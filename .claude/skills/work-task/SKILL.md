@@ -9,7 +9,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 
 - If given an issue number, use it. Otherwise take the lowest-numbered open issue in the earliest open milestone that is unblocked: `gh issue list --state open --json number,title,milestone,body`.
 - Unblocked means every issue in the body's `Blocked by:` line is closed (`gh issue view <n> --json state`). That line is the single source of truth for order. If it is missing or forms a cycle, fix the issue body and say so in the PR.
-- Don't start M1+ until the M0 decision issue (renderer) is closed.
+- Issues awaiting the owner's merge don't block you: continue with any other unblocked issue (M1+ still waits for the M0 decision). Stop and summarize only when nothing is unblocked.
 - Read the issue, then the docs in `CLAUDE.md`'s routing table for the area it touches. If a doc contradicts the issue's Acceptance line, the issue wins; fix the doc in the same PR.
 
 ## 2. Unblock without asking
@@ -20,8 +20,9 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 
 ## 3. Implement
 
-- Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. If a missing prerequisite appears, open a new issue instead of widening the PR.
-- Respect the layering in `docs/architecture.md` (Git -> Core -> Tui, no upward references). Tests follow the `testing` skill.
+- Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. Spikes use `spike/<n>-<slug>` and are never merged.
+- Parallel agents are fine for independent issues (separate worktrees); not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
+- Tests follow the `testing` skill; layering and cross-platform rules are in `CLAUDE.md`.
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
 - Run the AOT publish if you added a dependency or touched anything reflection-adjacent.
 - Update stale docs in the same PR. Log cross-cutting decisions in `docs/decisions.md`.
@@ -31,5 +32,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
 - Run the `reviewer` subagent on the branch with the issue number. Fix every `blocker` and `should-fix`, or justify why not in the PR.
 - Open a PR titled like the issue, body `Closes #<n>`, what changed, assumptions, and the reviewer verdict.
-- Labeled `destructive` or `spike`: stop after opening the PR; the owner merges. Otherwise merge on green CI with no open reviewer blockers.
+- `spike`: don't merge or open a PR; post measured findings as an issue comment, push the `spike/` branch and close the issue.
+- `destructive` or `needs-review`: stop after opening the PR; the owner merges.
+- Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main` and delete the local branch.
 - Then continue with the next issue if running autonomously.

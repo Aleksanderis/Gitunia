@@ -16,12 +16,13 @@ You get an issue number and/or a branch. Establish the diff yourself: `git diff 
 2. **Correctness.** Parsing edge cases (NUL separators, unicode, spaces, renames, detached/unborn HEAD, in-progress operations), off-by-one, empty/null cases, error paths, cancellation, races between refresh and user actions.
 3. **Safety of git operations.** Destructive commands confirmed and undoable where possible, no shell string interpolation (argument lists only), no writes while only reading, `index.lock` contention handled, user config/hooks/credentials respected, no `GIT_*` env beyond `docs/git-layer.md`.
 4. **Layering.** Git -> Core -> Tui only; Core has no console/process; Tui has no git logic. No blocking calls on the UI thread.
-5. **Native AOT.** No reflection, runtime codegen or non-AOT-safe packages; no new `IL*` warnings. Run the AOT publish if dependencies or serialization changed.
-6. **UX.** Keyboard-only works; bindings are in the `docs/ux.md` keymap table, with no conflicts; destructive actions confirm; resize and tiny terminals don't crash; wide chars and unicode render sanely.
-7. **Performance.** Nothing materializes a whole large graph eagerly; no per-frame allocations in hot render paths; streaming and virtualization where the docs call for them.
-8. **Tests.** Risk areas in `docs/testing.md` covered by tests that would fail if the code were wrong; real temp repos with isolated config; no network or wall-clock dependence.
-9. **Docs.** Stale docs updated, decisions logged, affected issues noted.
-10. **Hygiene.** Conventional commits, no stray files, debug output or commented-out code.
+5. **Cross-platform.** No Linux-only APIs, paths or shell assumptions outside the platform abstraction; every platform branch covers all supported OSes or fails clearly.
+6. **Native AOT.** No reflection, runtime codegen or non-AOT-safe packages; no new `IL*` warnings. Run the AOT publish if dependencies or serialization changed.
+7. **UX.** Keyboard-only works; bindings are in the `docs/ux.md` keymap table, with no conflicts; destructive actions confirm; resize and tiny terminals don't crash; wide chars and unicode render sanely.
+8. **Performance.** Nothing materializes a whole large graph eagerly; no per-frame allocations in hot render paths; streaming and virtualization where the docs call for them.
+9. **Tests.** Risk areas in `docs/testing.md` covered by tests that would fail if the code were wrong; real temp repos with isolated config; no network or wall-clock dependence.
+10. **Docs.** Stale docs updated, decisions logged, affected issues noted.
+11. **Hygiene.** Conventional commits, no stray files, debug output or commented-out code.
 
 You may run build and test commands once they exist (see CLAUDE.md). Do not modify files.
 

@@ -6,13 +6,14 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 ## Stack
 
-- C# on current .NET LTS. Published as a single Native AOT binary; it must start in well under 100 ms.
+- C# on .NET 10 (LTS), `net10.0`, SDK pinned in `global.json`. Code in `src/`, tests in `tests/` (layout in `docs/architecture.md`). Published as a single Native AOT binary; it must start in well under 100 ms.
 - Git access: spawn the `git` CLI and parse its output; no libgit2 without a logged decision.
 - UI: renderer (Terminal.Gui v2 or custom) is decided by the M0 spike. Tests: xUnit with real `git` on temp repos.
 
 ## Rules
 
 - Gitunia is a standalone multi-repo client with tabs. Never depend on the process working directory: every git call takes an explicit repo/worktree path, and all repo state is scoped to a tab. No static or global "current repo".
+- Cross-platform (Linux, Windows, macOS; macOS lowest priority, Linux is built and tested first). No platform-specific APIs outside the platform abstraction; anything platform-specific gets a branch for every supported OS or an explicit "unsupported" path. Paths via `Path` APIs, no hardcoded separators, `/dev/null` or `/tmp`. Details: `docs/architecture.md`.
 - Keep to the MVP scope in README.md. Don't add features beyond it without asking.
 - Native AOT from day one: no reflection or runtime codegen, every dependency AOT/trimming-compatible. Run the AOT publish after adding one (details: `docs/architecture.md`).
 - The Git layer returns typed results and never touches the UI. The state layer is pure (`(State, Command) -> State` plus effects) and runs without a terminal. Only the rendering layer touches the console. Layering details: `docs/architecture.md`.
@@ -24,7 +25,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 ## Git conventions
 
-- Branches: `feature/<issue>-<slug>` for new work, `fix/<issue>-<slug>` for bug fixes. Branch from `main`; never commit to it directly. Reference the issue in the PR body (`Closes #<n>`).
+- Branches: `feature/<issue>-<slug>` for new work, `fix/<issue>-<slug>` for bug fixes. Branch from `main`; no direct commits to it; changes arrive through merged PRs. Reference the issue in the PR body (`Closes #<n>`).
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
@@ -44,11 +45,11 @@ Read the doc before working in its area; don't rely on memory of it.
 
 ## Working autonomously
 
-Use the `work-task` skill (`.claude/skills/work-task/`). Hard rules:
+Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. Rules that must hold regardless:
 
-- Take the lowest-numbered open issue in the earliest open milestone whose `Blocked by:` issues are all closed. Don't start M1+ until the M0 decision issue is closed.
-- Issues labeled `destructive` (anything that can lose user data) or `spike`: open the PR and stop; the owner merges. Everything else: merge on green CI once the reviewer has no open blockers.
-- Decisions go in `docs/decisions.md` (and the relevant area doc). Open questions: the "Open questions" section of `docs/roadmap.md`, or an issue labeled `question`. Don't block on them; take the recommended default and say so in the PR.
-- Use the `reviewer` subagent before opening the PR.
-- Use the `testing` skill for tests and throwaway repos; never experiment on the user's real repos.
+- Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide). Don't start M1+ until the M0 decision issue is closed.
+- `spike`, `destructive` (can lose user data) and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; the others stop at an open PR for the owner. Keep working on other unblocked issues meanwhile.
+- Everything else: `gh pr merge <n> --merge --delete-branch` once CI is green and the reviewer (subagent) has no open blockers. Merge commits only, never squash or rebase, never force-push.
+- Don't block on questions: decide from the docs or take the recommended default, log it in `docs/decisions.md` or `docs/roadmap.md` open questions, and say so in the PR.
+- Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).
 - Build, test and lint commands: added here by the first issue (solution skeleton).

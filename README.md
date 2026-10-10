@@ -23,13 +23,14 @@ In:
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
 - Stash: list, push, apply, pop, drop.
 - Fetch, pull, push with progress and cancellation.
+- Hand-off to the user's tools: `$EDITOR` for commit messages, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
 Out until after MVP (ask before adding): interactive rebase editor, submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.
 
 ## Stack
 
-- C# on current .NET LTS, Native AOT for the published binary.
+- C# on .NET 10 (LTS), Native AOT for the published binary. Cross-platform: Linux, Windows, macOS (lowest priority).
 - Config and session state live in the user config/state dir (XDG on Linux), never in a repo.
 - Git access by running the `git` CLI and parsing plumbing/porcelain output (no libgit2 for writes).
 - TUI rendering: decided by the M0 spike (Terminal.Gui v2 vs a thin custom renderer). See `docs/architecture.md`.

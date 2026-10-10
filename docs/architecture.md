@@ -54,3 +54,10 @@ Confirm in M0; adjust here when it changes.
 - Many tabs: background tabs hold only compact state and are refreshed lazily or on a throttled timer; only the active tab does continuous work. Tab switch is instant (no reload).
 - Memory: compact commit model (struct-of-arrays or interned hashes), virtualized lists.
 - Render: diff against the previous frame, write one buffered flush per frame.
+
+## Cross-platform
+
+- **Decided:** Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first, and add Windows/macOS to CI in M4.
+- Platform-specific code lives behind a small abstraction in one place (config/state dirs: XDG / `%APPDATA%` / `~/Library`; console setup: raw mode and VT input/output; resize notification: SIGWINCH vs console events; process spawning and signals; file watching quirks). Every abstraction has an implementation or an explicit "unsupported" result for each OS.
+- Never hardcode path separators, `/tmp`, `/dev/null` or line endings; handle case-insensitive file systems, long Windows paths and CRLF in diffs.
+- Terminal features are capability-detected (truecolor/256/16, Unicode width, mouse, OSC 52), not assumed.

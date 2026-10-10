@@ -34,6 +34,21 @@ Tests must fail if the code is wrong; don't write tests that restate the impleme
   Advance the dates per commit so hashes are stable and ordering is meaningful.
 - Never `push`/`fetch` against real remotes. For remote scenarios use a local bare repo (`git init --bare`) as `origin`.
 
+- Cross-platform: set git isolation through the process environment in code (not shell scripts), use `Path` APIs, and never assume `/dev/null` or `/tmp`; the Linux-only shell snippets here are for manual use.
+
+## Driving the real binary (tmux)
+
+The agent can't see a terminal, so run the app in a detached tmux session and assert on its text:
+
+```sh
+tmux new-session -d -s gt -x 120 -y 40 'path/to/gitunia <repo>'
+tmux send-keys -t gt j j Enter
+tmux capture-pane -t gt -p        # rendered frame as text
+tmux kill-session -t gt
+```
+
+Wait for the frame to settle (poll `capture-pane` until it stops changing) instead of sleeping fixed times. Linux/macOS only; Windows relies on snapshot tests of the frame buffer.
+
 ## Canned shapes
 
 - **linear**: 20 commits on `main`.
