@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Gitunia.Core/Gitunia.Core.csproj" />
+    <Project Path="src/Gitunia.Git/Gitunia.Git.csproj" />
+    <Project Path="src/Gitunia.Platform/Gitunia.Platform.csproj" />
+    <Project Path="src/Gitunia.Tui/Gitunia.Tui.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gitunia.Core.Tests/Gitunia.Core.Tests.csproj" />
+    <Project Path="tests/Gitunia.Git.Tests/Gitunia.Git.Tests.csproj" />
+    <Project Path="tests/Gitunia.Platform.Tests/Gitunia.Platform.Tests.csproj" />
+    <Project Path="tests/Gitunia.Tui.Tests/Gitunia.Tui.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,6 +1,6 @@
 # Gitunia
 
-Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope. Pre-spike: there is no code yet, so build/test commands don't exist.
+Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope. Pre-spike: only the skeleton exists (M0).
 
 Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decisions). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/roadmap.md`).
 
@@ -52,4 +52,8 @@ Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. Ru
 - Everything else: `gh pr merge <n> --merge --delete-branch` once CI is green and the reviewer (subagent) has no open blockers. Merge commits only, never squash or rebase, never force-push.
 - Don't block on questions: decide from the docs or take the recommended default, log it in `docs/decisions.md` or `docs/roadmap.md` open questions, and say so in the PR.
 - Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).
-- Build, test and lint commands: added here by the first issue (solution skeleton).
+- Build, test and lint commands (run from the repo root):
+  - Build (analyzers on, warnings are errors, also the lint step): `dotnet build`
+  - Test: `dotnet test`
+  - AOT publish (fails on any `IL*` warning): `dotnet publish src/Gitunia.Tui -c Release -o <outdir>`; smoke run: `<outdir>/gitunia`
+  - Formatting is enforced by `.editorconfig` during build (`EnforceCodeStyleInBuild`).
