@@ -13,6 +13,7 @@
     <!-- IL* warnings fail the build via the global TreatWarningsAsErrors. -->
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Terminal.Gui" />
     <ProjectReference Include="..\Gitunia.Core\Gitunia.Core.csproj" />
     <ProjectReference Include="..\Gitunia.Platform\Gitunia.Platform.csproj" />
   </ItemGroup>

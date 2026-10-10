@@ -1,6 +1,6 @@
 # Architecture
 
-Status: draft, 2026-10-10. Items marked **Decided** are settled; **Open** items are resolved by the M0 spike.
+Status: draft, 2026-10-10. Items marked **Decided** are settled.
 
 ## Overview
 
@@ -23,7 +23,7 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 - **Decided:** three layers, strictly one-way dependencies: Rendering -> State -> Git. Git knows nothing about state or UI; State knows nothing about the console.
 - **Decided:** State is pure and testable without a terminal. Effects (run a git command, open an editor, copy to clipboard) are returned as data and executed by a runner that feeds results back as commands.
 - **Decided:** all git calls are async, cancellable and time-bounded; the UI never blocks on them.
-- **Open:** renderer. Options: (a) Terminal.Gui v2 (full widget toolkit, less control over graph and diff rendering, heavier), (b) thin custom renderer: cell buffer, diff-based flush, VT input parser (~1-2k lines, full control, modal keymap is easy). Leaning to (b); the spike decides.
+- **Decided (M0, #7):** Terminal.Gui v2 is the UI toolkit; the rendering layer wraps it and the state layer never sees it. Custom drawing (commit graph, diff) goes in custom views; modal keys and chords are handled at the application level by our keymap engine. Settings and pitfalls (iteration rate, streaming list source, key handling) and the measured numbers are in `docs/decisions.md`. The custom-renderer spikes were rejected on readability and maintenance cost, not speed. A custom renderer may be added later as a separate project, so keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`).
 
 ## Proposed solution layout
 
