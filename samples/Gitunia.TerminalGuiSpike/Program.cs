@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Terminal.Gui.App;
+using Terminal.Gui.Drawing;
+using Attribute = Terminal.Gui.Drawing.Attribute;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -29,30 +31,89 @@ public static class Program
 
         using IApplication app = Application.Create();
         var ipsArg = Array.IndexOf(args, "--ips");
-        if (ipsArg >= 0)
-        {
-            Application.MaximumIterationsPerSecond = ushort.Parse(args[ipsArg + 1]);
-        }
+        Application.MaximumIterationsPerSecond = ipsArg >= 0 ? ushort.Parse(args[ipsArg + 1]) : (ushort)100;
 
         app.Init();
 
-        var win = new Window { Title = "gitunia (Terminal.Gui)", Width = Dim.Fill(), Height = Dim.Fill() };
-        var tabs = new Label { X = 0, Y = 0, Width = Dim.Fill(), Text = " 1:" + Path.GetFileName(repo.TrimEnd(Path.DirectorySeparatorChar)) + "   2:other-repo   3:another" };
+        var repoName = Path.GetFileName(repo.TrimEnd(Path.DirectorySeparatorChar));
+        var win = new Window { Title = "", BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
+        var header = new SegView
+        {
+            X = 0, Y = 0, Width = Dim.Fill(), Height = 1, Fill = Look.Style(TextStyle.Bold | TextStyle.Reverse),
+            Build = () => [(" ● Gitunia  ─  " + repoName, Look.Style(TextStyle.Bold | TextStyle.Reverse))],
+        };
+        var tabs = new SegView
+        {
+            X = 0, Y = 1, Width = Dim.Fill(), Height = 1,
+            Build = () => [(" 1 " + repoName + " ", Look.Style(TextStyle.Reverse)), (" +  (tabs: M1)", Look.Style(TextStyle.Faint))],
+        };
 
-        var sideFrame = new FrameView { Title = "Refs", X = 0, Y = 1, Width = 26, Height = Dim.Fill(1) };
+        // Pane borders: bold when focused, faint otherwise (same cue as the custom demo).
+        var paneScheme = new Scheme
+        {
+            Normal = Look.Style(TextStyle.Faint),
+            Focus = Look.Style(TextStyle.Bold),
+            HotNormal = Look.Style(TextStyle.Faint),
+            HotFocus = Look.Style(TextStyle.Bold),
+        };
+
+        FrameView Pane(string title) => new() { Title = title, BorderStyle = LineStyle.Single, X = 0, Y = 2 };
+
+        var sideFrame = Pane("Refs");
+        sideFrame.Width = 26;
+        sideFrame.Height = Dim.Fill(1);
         var side = new ListView { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), CanFocus = true, Source = refs };
         sideFrame.Add(side);
 
-        var graphFrame = new FrameView { Title = "Graph", X = 26, Y = 1, Width = Dim.Fill(), Height = Dim.Percent(65) };
+        var graphFrame = Pane("Graph");
+        graphFrame.X = 26;
+        graphFrame.Width = Dim.Fill();
+        graphFrame.Height = Dim.Percent(65);
         var list = new ListView { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), CanFocus = true, Source = graph };
         graphFrame.Add(list);
 
-        var detailFrame = new FrameView { Title = "Details", X = 26, Y = Pos.Bottom(graphFrame), Width = Dim.Fill(), Height = Dim.Fill(1) };
+        var detailFrame = Pane("Commit");
+        detailFrame.X = 26;
+        detailFrame.Y = Pos.Bottom(graphFrame);
+        detailFrame.Width = Dim.Fill();
+        detailFrame.Height = Dim.Fill(1);
         var details = new Label { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), Text = "" };
         detailFrame.Add(details);
+        foreach (var f in new[] { sideFrame, graphFrame, detailFrame })
+        {
+            f.SetScheme(paneScheme);
+        }
 
-        var status = new Label { X = 0, Y = Pos.AnchorEnd(1), Width = Dim.Fill(), Text = "" };
-        win.Add(tabs, sideFrame, graphFrame, detailFrame, status);
+        var statusText = "";
+        var status = new SegView
+        {
+            X = 0, Y = Pos.AnchorEnd(1), Width = Dim.Fill(), Height = 1, Fill = Look.Style(TextStyle.Faint | TextStyle.Reverse),
+            Build = () => [(statusText, Look.Style(TextStyle.Faint | TextStyle.Reverse))],
+        };
+        foreach (var f in new[] { sideFrame, graphFrame, detailFrame })
+        {
+            f.Border!.Settings &= ~BorderSettings.Title;
+        }
+
+        Attribute TitleAttr(bool focused) => Look.Style(focused ? TextStyle.Bold : TextStyle.Faint);
+        var graphTitleText = " Graph ";
+        SegView Title(View frame, Func<string> text, Func<bool> focused)
+        {
+            var v = new SegView { X = Pos.Left(frame) + 2, Y = 2, Height = 1, Width = 1 };
+            v.Build = () =>
+            {
+                var t = text();
+                v.Width = t.Length;
+                return [(t, TitleAttr(focused()))];
+            };
+            return v;
+        }
+
+        var sideTitle = Title(sideFrame, () => " Refs ", () => side.HasFocus);
+        var graphTitle = Title(graphFrame, () => graphTitleText, () => list.HasFocus);
+        var detailTitle = new SegView { X = Pos.Left(detailFrame) + 2, Y = Pos.Top(detailFrame), Height = 1, Width = 8 };
+        detailTitle.Build = () => [(" Commit ", TitleAttr(false))];
+        win.Add(header, tabs, sideFrame, graphFrame, detailFrame, status, sideTitle, graphTitle, detailTitle);
         _active = list;
 
         side.HasFocusChanged += (_, e) =>
@@ -60,6 +121,9 @@ public static class Program
             if (e.NewValue)
             {
                 _active = side;
+                UpdateStatus();
+                sideTitle.SetNeedsDraw();
+                graphTitle.SetNeedsDraw();
             }
         };
         list.HasFocusChanged += (_, e) =>
@@ -67,6 +131,9 @@ public static class Program
             if (e.NewValue)
             {
                 _active = list;
+                UpdateStatus();
+                sideTitle.SetNeedsDraw();
+                graphTitle.SetNeedsDraw();
             }
         };
 
@@ -74,7 +141,17 @@ public static class Program
         {
             var n = _active.Source?.Count ?? 0;
             var mode = _searching ? "SEARCH" : "NORMAL";
-            status.Text = _searching ? "/" + _query : $" {mode}  {(_active == list ? "graph" : "refs")}  {(_active.SelectedItem ?? 0) + 1}/{n}";
+            var pos = n == 0 ? 0 : (_active.SelectedItem ?? 0) + 1;
+            statusText = _searching
+                ? " /" + _query
+                : $" {mode}  [{(_active == list ? "Graph" : "Refs")}]  {pos}/{n}  Tab j/k gg G ^d ^u / n N q";
+            if (graph.Count > 0)
+            {
+                graphTitleText = $" Graph  {(list.SelectedItem ?? 0) + 1}/{graph.Count} ";
+                graphTitle.SetNeedsDraw();
+            }
+
+            status.SetNeedsDraw();
         }
 
         void Select(int i)
@@ -107,7 +184,7 @@ public static class Program
             for (var k = 0; k < n; k++)
             {
                 var i = (start + k) % n;
-                var text = _active == list ? graph.Rows[i].Subject : refs.Items[i];
+                var text = _active == list ? graph.Rows[i].Subject : refs.Items[i].Text;
                 if (text.Contains(_query, StringComparison.OrdinalIgnoreCase))
                 {
                     Select(i);
@@ -115,7 +192,8 @@ public static class Program
                 }
             }
 
-            status.Text = "no match: " + _query;
+            statusText = " no match: " + _query;
+            status.SetNeedsDraw();
         }
 
         app.Keyboard.KeyDown += (_, k) =>
@@ -150,7 +228,10 @@ public static class Program
 
             if (k == Key.Tab)
             {
-                return; // default focus navigation moves between sidebar and graph
+                // Default focus navigation did not move between the two lists, so switch explicitly.
+                (_active == list ? side : list).SetFocus();
+                k.Handled = true;
+                return;
             }
 
             if (k == Key.D.WithCtrl)
@@ -218,7 +299,7 @@ public static class Program
         return 0;
     }
 
-    private static List<string> LoadRefs(string repo)
+    private static List<SidebarItem> LoadRefs(string repo)
     {
         var psi = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
         foreach (var a in new[] { "-C", repo, "for-each-ref", "--format=%(refname:short)\t%(refname)" })
@@ -227,15 +308,21 @@ public static class Program
         }
 
         using var p = Process.Start(psi)!;
-        var res = new List<string>();
+        var branches = new List<SidebarItem>();
+        var tags = new List<SidebarItem>();
         string? line;
         while ((line = p.StandardOutput.ReadLine()) is not null)
         {
             var parts = line.Split('\t');
-            res.Add((parts.Length > 1 && parts[1].StartsWith("refs/tags/", StringComparison.Ordinal) ? "◆ " : "● ") + parts[0]);
+            var item = new SidebarItem(parts[0], false);
+            (parts.Length > 1 && parts[1].StartsWith("refs/tags/", StringComparison.Ordinal) ? tags : branches).Add(item);
         }
 
         p.WaitForExit();
+        var res = new List<SidebarItem> { new($"Branches ({branches.Count})", true) };
+        res.AddRange(branches);
+        res.Add(new($"Tags ({tags.Count})", true));
+        res.AddRange(tags);
         return res;
     }
 
@@ -255,7 +342,7 @@ public static class Program
             {
                 await Task.Delay(30, cts.Token);
                 var psi = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
-                foreach (var a in new[] { "-C", repo, "show", "--stat", "--format=%H%n%an <%ae>%n%ad%n%n%B", hash })
+                foreach (var a in new[] { "-C", repo, "show", "--stat", "--format=fuller", hash })
                 {
                     psi.ArgumentList.Add(a);
                 }
