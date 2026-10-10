@@ -7,7 +7,7 @@ Status: draft v0, 2026-10-10.
 - Test where the risk is: parsing git output, graph layout, destructive operations, worktree handling, key handling, and rendering regressions. Plain wiring gets no tests.
 - Real `git` against real temporary repos for the Git layer. No mocking the process runner except for timeout/cancellation/error-path tests.
 - State and keymap logic is pure and tested without a terminal.
-- No test touches the user's repos, global git config or network. Fixtures set `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_SYSTEM=/dev/null` and a fixed author/committer and dates.
+- No test touches the user's repos, global git config or network. Isolation recipe and fixture shapes are in the `testing` skill.
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Layers
@@ -15,16 +15,12 @@ Status: draft v0, 2026-10-10.
 | Layer | Tools | Covers |
 |---|---|---|
 | Git parsers | xUnit, captured output fixtures | Every parser incl. odd cases (renames, unicode, detached, unborn, in-progress ops) |
-| Git integration | xUnit, temp repos built by a fixture builder | Commands end to end: branches, worktrees, stash, merge/rebase, partial staging |
+| Git integration | xUnit, temp repos (see `testing` skill) | Commands end to end: branches, worktrees, stash, merge/rebase, partial staging |
 | Graph layout | xUnit, property tests | Lane assignment invariants, determinism, incremental == full |
 | State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (test reads the keymap table) |
 | Rendering | snapshot tests of frames as text | Layout at several terminal sizes, wide chars, resize |
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
 | Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos |
-
-## Fixtures
-
-Use the `git-fixture` skill's builder pattern: a small fluent helper that creates a temp repo with a scripted history (branches, merges, worktrees, conflicts) and deterministic hashes. Keep a few canned repos (linear, branchy, many-worktrees, big generated one for performance).
 
 ## Performance checks
 

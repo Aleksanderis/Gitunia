@@ -55,7 +55,3 @@ The single source of truth for bindings. Add a row in the same change that adds 
 
 (More rows come with the workflows above.)
 
-## Open questions
-
-- Pane focus model: `Tab` cycling vs `Ctrl-w` + direction (vim windows) vs both.
-- Leader-key style chords (`<space>gc`) vs single-letter-per-view actions. Recommendation: per-view single keys for frequent actions, `<space>` leader for global ones.

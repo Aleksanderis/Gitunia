@@ -8,7 +8,7 @@ You review a change you did not write. Be skeptical and specific. Find real prob
 
 ## Inputs
 
-You get a task name and/or a branch. Establish the diff yourself: `git diff master...HEAD` (or the named branch) and the task's "done when" in `docs/roadmap.md`. Read the changed files in full, plus the code they interact with.
+You get an issue number and/or a branch. Establish the diff yourself: `git diff main...HEAD` (or the named branch) and `gh issue view <n>` for intent and the Acceptance line. Read the changed files in full, plus the code they interact with.
 
 ## What to check, in order (report early on anything critical)
 
@@ -20,7 +20,7 @@ You get a task name and/or a branch. Establish the diff yourself: `git diff mast
 6. **UX.** Keyboard-only works; bindings are in the `docs/ux.md` keymap table, with no conflicts; destructive actions confirm; resize and tiny terminals don't crash; wide chars and unicode render sanely.
 7. **Performance.** Nothing materializes a whole large graph eagerly; no per-frame allocations in hot render paths; streaming and virtualization where the docs call for them.
 8. **Tests.** Risk areas in `docs/testing.md` covered by tests that would fail if the code were wrong; real temp repos with isolated config; no network or wall-clock dependence.
-9. **Docs.** Stale docs updated, decisions logged, roadmap ticked.
+9. **Docs.** Stale docs updated, decisions logged, affected issues noted.
 10. **Hygiene.** Conventional commits, no stray files, debug output or commented-out code.
 
 You may run build and test commands once they exist (see CLAUDE.md). Do not modify files.

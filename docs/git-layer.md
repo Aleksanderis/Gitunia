@@ -9,7 +9,7 @@ Status: draft, 2026-10-10. Contract between Gitunia.Git and everything above it.
 - Environment: `LC_ALL=C` for parsed output, `GIT_TERMINAL_PROMPT=0` for background calls, `GIT_OPTIONAL_LOCKS=0` for read-only status polling (avoids fighting the user's other git processes over `index.lock`). Anything else needs a decision.
 - Prefer machine formats: `status --porcelain=v2 -z`, `for-each-ref --format=...`, `log --format=... -z`, `worktree list --porcelain -z`, `rev-list --parents`, `diff --raw -z`, `cat-file --batch` for bulk object reads.
 - Every call: `CancellationToken`, timeout, captured stderr, exit code mapped to a typed error. Long operations (fetch, pull, push, clone) stream progress (`--progress`) to the caller.
-- Credentials and hooks run in the user's real environment. Interactive prompts (ssh passphrase, credential helper UI) need a defined story: see Open questions.
+- Credentials and hooks run in the user's real environment. Interactive prompts (ssh passphrase, credential helper UI) need a defined story (open question in `roadmap.md`).
 
 ## Parsers
 
@@ -30,7 +30,3 @@ Status: draft, 2026-10-10. Contract between Gitunia.Git and everything above it.
 - Watch `.git` (and each worktree's gitdir) with `FileSystemWatcher`, debounced, plus manual refresh. Fall back to polling where watching is unreliable.
 - A refresh recomputes only what changed (refs, status, worktrees) and never resets scroll or selection.
 
-## Open questions
-
-- Interactive credential/ssh prompts: suspend the TUI and give git the terminal, or run with a pty and render prompts inline? Recommendation: suspend TUI for fetch/pull/push when git needs input, resume after.
-- Large-repo graph layout strategy (incremental lanes vs precomputed via `commit-graph`): decide with spike data.

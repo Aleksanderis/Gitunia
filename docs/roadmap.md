@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: draft, 2026-10-10. Order matters; "done when" is the exit criterion. Tasks move to a GitHub issue list when a remote exists; keep this file in sync until then.
+Status: 2026-10-10. Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line.
 
 ## M0 - Technology spike (throwaway code allowed)
 
@@ -40,7 +40,9 @@ Interactive rebase editor, blame, conflict resolution view, side-by-side diff, s
 
 ## Open questions
 
-- Terminal.Gui v2 vs custom renderer (M0 answers this).
-- Credential/ssh prompt handling (see `git-layer.md`).
-- Pane focus model and leader-key style (see `ux.md`).
-- Project licence (recommendation: MIT; decide before publishing).
+- Terminal.Gui v2 vs custom renderer: M0 answers this.
+- Interactive credential/ssh prompts: suspend the TUI and give git the terminal, or run with a pty and render prompts inline? Recommendation: suspend for fetch/pull/push when git needs input.
+- Large-repo graph layout: incremental lanes vs precomputed via `commit-graph`; decide with spike data.
+- Pane focus: `Tab` cycling vs `Ctrl-w` + direction vs both.
+- Key style: per-view single keys for frequent actions plus a `<space>` leader for global ones (recommended) vs leader-only.
+- Project licence: MIT recommended; decide before publishing.
