@@ -34,5 +34,5 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 - Open a PR titled like the issue, body `Closes #<n>`, what changed, assumptions, and the reviewer verdict.
 - `spike`: don't merge or open a PR; post measured findings as an issue comment, push the `spike/` branch and close the issue.
 - `destructive` or `needs-review`: stop after opening the PR; the owner merges.
-- Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main` and delete the local branch.
+- Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main`, remove the issue's worktree (`git worktree remove <path>`) and delete the local branch. Once a PR is merged, nothing of it may remain: no worktree, no local branch, no remote branch. Parallel agents must do this themselves before reporting. Spike branches are the exception: they stay (remote) by design.
 - Then continue with the next issue if running autonomously.
