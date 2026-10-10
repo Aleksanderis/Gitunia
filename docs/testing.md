@@ -27,3 +27,21 @@ CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run 
 ## Performance checks
 
 A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load and layout on a generated 100k-commit repo. Record numbers in `docs/architecture.md` when targets are verified.
+
+### Big repo
+
+`scripts/gen-big-repo.sh [dir] [commits]` builds a deterministic repo with `git fast-import` (default 100000 commits, ~5-10 s, linear `main` with a merged 4-commit feature branch every 40 commits, 24 kept branches, a tag per 5000 commits, commit-graph written). Default location `${GITUNIA_BIG_REPO:-${XDG_CACHE_HOME:-~/.cache}/gitunia/big-<commits>}`; it is generated on demand, never committed, and re-running is a no-op. Subjects are `Commit #<n>: ...` / `Merge feature f<k>`, so the newest and oldest commit are recognizable on screen. Linux/macOS only (bash, awk).
+
+### Measurement harness
+
+`scripts/measure.sh <binary> <repo> [--runs N] [--keys N] [--marker T] [--oldest T] [--size WxH] [--only-start]` runs the binary as `<binary> <repo>` in a private tmux server and prints `key=value` lines. Requires bash >= 5 and tmux; Linux/macOS only. Timings are wall-clock ms from polling `capture-pane`, so they carry a 1-3 ms polling floor; compare binaries with the same harness rather than reading them as absolute.
+
+Contract for a binary (spikes included):
+
+- Invoked as `<binary> <repo-path>`; renders in the alternate screen, fills the terminal.
+- First frame shows the commit list with the newest commit subject (HEAD's subject, from `git log -1 --format=%s`) as text. "Cold start" = tmux `new-session` until that text is on screen.
+- Keys: `j`/`k` move the selection, `Ctrl-d` half page down, `G` last commit, `gg` first commit. Each must change the rendered frame (a moved highlight counts, since captures keep escape sequences). Jumping to the end must show the oldest commit's subject; `gg` the newest.
+- It must re-render on terminal resize (the harness resizes and expects the marker again).
+- Binaries that can't do all of this still work with `--only-start --marker <text>`.
+
+Metrics: `binary_bytes`, `cold_start_ms_{median,p95,max}`, `key_latency_ms_{median,p95,max}` (`j` to changed frame), `page_scroll_ms_*` (`Ctrl-d`), `burst_200j_settle_ms` (200 queued `j` until the frame stops changing), `jump_to_end_ms`, `jump_to_start_ms`, `resize_ms` (frame changes after a window shrink and still shows the newest subject), `rss_kib`. `nan` means the expected frame never appeared within `--timeout`. Each poll costs a tmux round trip, so expect a few ms of floor on every latency figure; run a trivial reference program to calibrate on your machine. `cold_start_samples` and `key_samples` report how many samples produced numbers.

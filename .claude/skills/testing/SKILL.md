@@ -49,6 +49,18 @@ tmux kill-session -t gt
 
 Wait for the frame to settle (poll `capture-pane` until it stops changing) instead of sleeping fixed times. Linux/macOS only; Windows relies on snapshot tests of the frame buffer.
 
+Tips (all implemented in `scripts/measure.sh`, copy from there):
+- Use a private server (`tmux -L <name> -f /dev/null`) so the user's tmux and config never interfere; `kill-server` in a trap.
+- `set -g remain-on-exit on` keeps the pane after a short-lived binary exits, so its output can still be captured.
+- `capture-pane -p -e` keeps escape sequences; use it to detect changes that are only a highlight (selection moves).
+- `send-keys -N 200 j` repeats a key; `C-d` is Ctrl-d; send `g g` as two keys.
+- Wait for text (`grep -F` on the capture) rather than sleeping.
+
+## Big repo and measurements
+
+- Generate: `scripts/gen-big-repo.sh` (no args: 100k commits into `${GITUNIA_BIG_REPO:-~/.cache/gitunia/big-100000}`; ~5-10 s; idempotent; prints the path). Never inside the project tree.
+- Measure any binary the same way: `scripts/measure.sh <binary> <repo>` (contract and metrics: `docs/testing.md`, "Measurement harness").
+
 ## Canned shapes
 
 - **linear**: 20 commits on `main`.
