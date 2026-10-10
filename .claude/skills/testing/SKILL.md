@@ -18,7 +18,7 @@ Strategy and layers are in `docs/testing.md` (read it first). This skill is the 
 | Rendering | Snapshot of the frame as text | Several terminal sizes, wide chars, resize |
 | Dependencies or serialization | AOT publish + smoke run | No `IL*` warnings |
 
-Name tests `Given_<context>_When_<action>_Then_<outcome>`. Tests must fail if the code is wrong; don't write tests that restate the implementation. Destructive operations always get an integration test, including the "user cancels" path.
+Name tests `Given<Context>_When<Action>_Then<Outcome>` (PascalCase parts, e.g. `GivenNoUnicode_WhenRendering_ThenAsciiFrame`). Tests must fail if the code is wrong; don't write tests that restate the implementation. Destructive operations always get an integration test, including the "user cancels" path.
 
 ## Isolated repos
 

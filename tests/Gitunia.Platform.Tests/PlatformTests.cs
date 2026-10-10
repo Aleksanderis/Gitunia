@@ -6,7 +6,7 @@ namespace Gitunia.Platform.Tests;
 public class PlatformTests
 {
     [Fact]
-    public void Given_current_platform_When_reading_dirs_Then_they_are_rooted_and_named_after_the_app()
+    public void GivenCurrentPlatform_WhenReadingDirs_ThenTheyAreRootedAndNamedAfterTheApp()
     {
         var p = PlatformInfo.Current;
         Assert.True(Path.IsPathRooted(p.ConfigDir));
@@ -24,30 +24,30 @@ public class DetectionTests
     }
 
     [Fact]
-    public void Given_NO_COLOR_and_truecolor_When_detecting_color_Then_none() =>
+    public void GivenNoColorAndTruecolor_WhenDetectingColor_ThenNone() =>
         Assert.Equal(ColorDepth.None, With(("NO_COLOR", "1"), ("COLORTERM", "truecolor")).DetectColor(true));
 
     [Fact]
-    public void Given_COLORTERM_truecolor_When_detecting_color_Then_truecolor() =>
+    public void GivenColortermTruecolor_WhenDetectingColor_ThenTruecolor() =>
         Assert.Equal(ColorDepth.TrueColor, With(("COLORTERM", "truecolor")).DetectColor(true));
 
     [Fact]
-    public void Given_TERM_256color_When_detecting_color_Then_ansi256() =>
+    public void GivenTerm256color_WhenDetectingColor_ThenAnsi256() =>
         Assert.Equal(ColorDepth.Ansi256, With(("TERM", "xterm-256color")).DetectColor(true));
 
     [Fact]
-    public void Given_non_interactive_console_When_detecting_color_Then_none() =>
+    public void GivenNonInteractiveConsole_WhenDetectingColor_ThenNone() =>
         Assert.Equal(ColorDepth.None, With(("COLORTERM", "truecolor")).DetectColor(false));
 
     [Fact]
-    public void Given_locale_When_detecting_unicode_Then_utf8_locales_are_supported()
+    public void GivenLocale_WhenDetectingUnicode_ThenUtf8LocalesAreSupported()
     {
         Assert.True(With(("LANG", "en_US.UTF-8")).DetectUnicode());
         Assert.False(With(("LANG", "C")).DetectUnicode());
     }
 
     [Fact]
-    public void Given_XDG_vars_When_reading_linux_dirs_Then_they_are_used()
+    public void GivenXdgVars_WhenReadingLinuxDirs_ThenTheyAreUsed()
     {
         var p = With(("XDG_CONFIG_HOME", "/x/c"), ("XDG_STATE_HOME", "/x/s"));
         Assert.Equal(Path.Combine("/x/c", "gitunia"), p.ConfigDir);

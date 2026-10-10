@@ -12,7 +12,7 @@ Status: draft v0, 2026-10-10.
 
 ## Naming
 
-Test methods are named `Given_<context>_When_<action>_Then_<outcome>` (underscores allowed; CA1707 is off under `tests/`).
+Test methods are named `Given<Context>_When<Action>_Then<Outcome>` in PascalCase, the three parts separated by underscores (CA1707 is off under `tests/`).
 
 ## Layers
 
