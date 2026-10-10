@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Numerics;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.Views;
+using Attribute = Terminal.Gui.Drawing.Attribute;
 
 namespace Gitunia.Tui;
 
@@ -79,15 +80,12 @@ public sealed class LaneBuilder
     }
 }
 
-/// <summary>Append-only list source drawing a coloured commit graph, then "hash subject".</summary>
+/// <summary>Append-only list source drawing a coloured commit graph, then a dimmed short hash and the subject.</summary>
 public sealed class GraphSource : IListDataSource
 {
-    public const int GraphLanes = 12;
+    public const int MaxLanes = 12;
 
-    private static readonly Color[] Palette =
-    [
-        Color.BrightRed, Color.BrightGreen, Color.BrightYellow, Color.BrightBlue, Color.BrightMagenta, Color.BrightCyan,
-    ];
+    private (int Top, int Height, int Count, int Width) _laneCache = (-1, -1, -1, 1);
 
     public List<GraphRow> Rows { get; } = new();
 
@@ -116,29 +114,49 @@ public sealed class GraphSource : IListDataSource
 
     public IList ToList() => Rows;
 
+    /// <summary>Lane columns needed by the rows currently on screen (so short histories get no wide gap).</summary>
+    private int LaneWidth(ListView lv)
+    {
+        var key = (lv.Viewport.Y, lv.Viewport.Height, Rows.Count);
+        if (_laneCache.Top == key.Item1 && _laneCache.Height == key.Item2 && _laneCache.Count == key.Item3)
+        {
+            return _laneCache.Width;
+        }
+
+        var lanes = 1;
+        for (var i = key.Item1; i < Math.Min(Rows.Count, key.Item1 + key.Item2); i++)
+        {
+            var r = Rows[i];
+            var all = r.Through | r.Join | r.Fork | (1UL << r.Lane);
+            lanes = Math.Max(lanes, 64 - BitOperations.LeadingZeroCount(all));
+        }
+
+        lanes = Math.Min(lanes, MaxLanes);
+        _laneCache = (key.Item1, key.Item2, key.Item3, lanes);
+        return lanes;
+    }
+
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         listView.Move(col, row);
-        var baseAttr = listView.GetAttributeForRole(selected ? VisualRole.Focus : VisualRole.Normal);
+        var rev = selected && listView.HasFocus ? TextStyle.Reverse : TextStyle.None;
         if (item >= Rows.Count)
         {
-            listView.SetAttribute(baseAttr);
+            listView.SetAttribute(new Attribute(Color.None, Color.None, TextStyle.None));
             listView.AddStr(new string(' ', width));
             return;
         }
 
         var r = Rows[item];
+        var lanes = LaneWidth(listView);
         var used = 0;
-        var span = r.Join | r.Fork;
-        var high = span == 0 ? -1 : 63 - BitOperations.LeadingZeroCount(span);
-        for (var i = 0; i < GraphLanes; i++)
+        for (var i = 0; i < lanes; i++)
         {
             var ch = ' ';
-            var tail = ' ';
             var bit = 1UL << i;
             if (i == r.Lane)
             {
-                ch = r.IsMerge ? '◉' : '●';
+                ch = '●';
             }
             else if ((r.Through & bit) != 0)
             {
@@ -153,28 +171,18 @@ public sealed class GraphSource : IListDataSource
                 ch = '╮';
             }
 
-            if (ch != ' ' && ch != '│' && ch != '╯' && ch != '╮' && i < high)
-            {
-                tail = '─';
-            }
-
-            listView.SetAttribute(new Terminal.Gui.Drawing.Attribute(Palette[i % Palette.Length], baseAttr.Background));
-            listView.AddStr(string.Create(2, (ch, tail), static (s, st) =>
-            {
-                s[0] = st.ch;
-                s[1] = st.tail;
-            }));
+            listView.SetAttribute(new Attribute(Look.Lanes[i % Look.Lanes.Length], Color.None, rev));
+            listView.AddStr(ch + " ");
             used += 2;
         }
 
-        listView.SetAttribute(baseAttr);
-        var text = r.Hash[..7] + " " + r.Subject;
-        var avail = Math.Max(0, width - used);
-        if (text.Length > avail)
-        {
-            text = text[..avail];
-        }
+        listView.SetAttribute(new Attribute(Look.HashGrey, Color.None, rev | TextStyle.Faint));
+        listView.AddStr(" " + r.Hash[..7] + " ");
+        used += 9;
 
+        listView.SetAttribute(new Attribute(Color.None, Color.None, rev));
+        var avail = Math.Max(0, width - used);
+        var text = r.Subject.Length > avail ? r.Subject[..avail] : r.Subject;
         listView.AddStr(text.PadRight(avail));
     }
 
