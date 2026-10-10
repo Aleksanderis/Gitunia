@@ -28,7 +28,7 @@ A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load an
 
 ### Big repo
 
-`scripts/gen-big-repo.sh [dir] [commits]` builds a deterministic repo with `git fast-import` (default 100000 commits, ~5 s, linear `main` with a merged 4-commit feature branch every 40 commits, 24 kept branches, a tag per 5000 commits, commit-graph written). Default location `${GITUNIA_BIG_REPO:-${XDG_CACHE_HOME:-~/.cache}/gitunia/big-<commits>}`; it is generated on demand, never committed, and re-running is a no-op. Subjects are `Commit #<n>: ...` / `Merge feature f<k>`, so the newest and oldest commit are recognizable on screen. Linux/macOS only (bash, awk).
+`scripts/gen-big-repo.sh [dir] [commits]` builds a deterministic repo with `git fast-import` (default 100000 commits, ~5-10 s, linear `main` with a merged 4-commit feature branch every 40 commits, 24 kept branches, a tag per 5000 commits, commit-graph written). Default location `${GITUNIA_BIG_REPO:-${XDG_CACHE_HOME:-~/.cache}/gitunia/big-<commits>}`; it is generated on demand, never committed, and re-running is a no-op. Subjects are `Commit #<n>: ...` / `Merge feature f<k>`, so the newest and oldest commit are recognizable on screen. Linux/macOS only (bash, awk).
 
 ### Measurement harness
 
@@ -42,4 +42,4 @@ Contract for a binary (spikes included):
 - It must re-render on terminal resize (the harness resizes and expects the marker again).
 - Binaries that can't do all of this still work with `--only-start --marker <text>`.
 
-Metrics: `binary_bytes`, `cold_start_ms_{median,max}`, `key_latency_ms_{median,p95,max}` (`j` to changed frame), `page_scroll_ms_*` (`Ctrl-d`), `burst_200j_settle_ms` (200 queued `j` until the frame stops changing), `jump_to_end_ms`, `jump_to_start_ms`, `resize_ms`, `rss_kib`. `nan` means the expected frame never appeared within `--timeout`. A reference run of the script itself on a trivial Python list viewer over 100k commits gave a ~3.5 ms key-latency floor, which is the harness's own noise level.
+Metrics: `binary_bytes`, `cold_start_ms_{median,p95,max}`, `key_latency_ms_{median,p95,max}` (`j` to changed frame), `page_scroll_ms_*` (`Ctrl-d`), `burst_200j_settle_ms` (200 queued `j` until the frame stops changing), `jump_to_end_ms`, `jump_to_start_ms`, `resize_ms` (frame changes after a window shrink and still shows the newest subject), `rss_kib`. `nan` means the expected frame never appeared within `--timeout`. Each poll costs a tmux round trip, so expect a few ms of floor on every latency figure; run a trivial reference program to calibrate on your machine. `cold_start_samples` and `key_samples` report how many samples produced numbers.

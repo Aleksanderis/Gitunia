@@ -58,7 +58,7 @@ Tips (all implemented in `scripts/measure.sh`, copy from there):
 
 ## Big repo and measurements
 
-- Generate: `scripts/gen-big-repo.sh` (no args: 100k commits into `${GITUNIA_BIG_REPO:-~/.cache/gitunia/big-100000}`; ~5 s; idempotent; prints the path). Never inside the project tree.
+- Generate: `scripts/gen-big-repo.sh` (no args: 100k commits into `${GITUNIA_BIG_REPO:-~/.cache/gitunia/big-100000}`; ~5-10 s; idempotent; prints the path). Never inside the project tree.
 - Measure any binary the same way: `scripts/measure.sh <binary> <repo>` (contract and metrics: `docs/testing.md`, "Measurement harness").
 
 ## Canned shapes

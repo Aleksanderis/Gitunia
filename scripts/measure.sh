@@ -67,7 +67,7 @@ start_server() {
   t start-server \; set -g exit-empty off \; set -g remain-on-exit on
 }
 start_app() { # starts the app in session "m"; the caller times around this
-  t new-session -d -s m -x "$cols" -y "$rows" "$(printf '%q %q' "$bin" "$repo")"
+  t new-session -d -s m -x "$cols" -y "$rows" "exec $(printf '%q %q' "$bin" "$repo")"
 }
 stop_app() { t kill-session -t m 2>/dev/null || true; }
 
@@ -121,6 +121,7 @@ for _ in $(seq "$runs"); do
 done
 read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
 echo "cold_start_ms_median=$med"
+echo "cold_start_ms_p95=$p95"
 echo "cold_start_ms_max=$max"
 echo "cold_start_samples=$(printf '%s' "$vals" | grep -c . || true)"
 
@@ -143,6 +144,7 @@ read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
 echo "key_latency_ms_median=$med"
 echo "key_latency_ms_p95=$p95"
 echo "key_latency_ms_max=$max"
+echo "key_samples=$(printf '%s' "$vals" | grep -c . || true)"
 
 # page scroll: Ctrl-d x keys, each until the frame changes
 vals=""
@@ -155,10 +157,15 @@ read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
 echo "page_scroll_ms_median=$med"
 echo "page_scroll_ms_max=$max"
 
-# burst: 200 j in one send-keys, until the frame stops changing
-t send-keys -t m -N 200 j
+# burst: 200 j in one send-keys; time from send until the frame changed and then stopped changing
+base="$(pane)"
 t0=$(now_us)
-if wait_stable; then echo "burst_200j_settle_ms=$(ms "$WAIT_US")"; else echo "burst_200j_settle_ms=nan"; fi
+t send-keys -t m -N 200 j
+if wait_change "$base" && first=$WAIT_US && wait_stable; then
+  echo "burst_200j_settle_ms=$(ms $((first + WAIT_US)))"
+else
+  echo "burst_200j_settle_ms=nan"
+fi
 
 # jump to the end of history (G) until the oldest commit is visible, then back (gg)
 t0=$(now_us)
@@ -168,10 +175,14 @@ t0=$(now_us)
 t send-keys -t m g g
 if wait_for "$marker"; then echo "jump_to_start_ms=$(ms $(( $(now_us) - t0 )))"; else echo "jump_to_start_ms=nan"; fi
 
-# resize: re-render must still show the marker at a new size
+# resize: the frame must change after the window shrinks and still show the newest subject
+t send-keys -t m g g
+wait_for "$marker" || true
+wait_stable || true
+base="$(pane)"
 t0=$(now_us)
-t resize-window -t m -x $((cols - 30)) -y $((rows - 10)) 2>/dev/null || true
-if wait_for "$marker"; then echo "resize_ms=$(ms "$WAIT_US")"; else echo "resize_ms=nan"; fi
+t resize-window -t m -x $((cols - 30)) -y $((rows - 10))
+if wait_change "$base" && pane | grep -qF -- "$marker"; then echo "resize_ms=$(ms "$WAIT_US")"; else echo "resize_ms=nan"; fi
 
 # memory of the app process (RSS, KiB), if the pane pid is still alive
 pid="$(t display-message -t m -p '#{pane_pid}')"

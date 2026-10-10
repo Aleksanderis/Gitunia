@@ -30,8 +30,11 @@ if [ -e "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ]; then
   exit 1
 fi
 
-mkdir -p "$dir"
-git init -q -b main "$dir"
+# Build in a sibling temp dir and move into place, so a failed run never leaves a partial repo.
+tmp="$dir.tmp"
+rm -rf "$tmp"
+mkdir -p "$tmp"
+git init -q -b main "$tmp"
 
 awk -v total="$commits" '
 function emit(ref, mark, from, merge, subj, path, body) {
@@ -64,9 +67,11 @@ BEGIN {
     if (m % 5000 == 0) printf "reset refs/tags/v%d\nfrom :%d\n\n", m / 5000, m
   }
   printf "reset refs/heads/tmp\n\n"
-}' | git -C "$dir" fast-import --quiet
+}' | git -C "$tmp" fast-import --quiet
 
-git -C "$dir" reset -q --hard main
-git -C "$dir" commit-graph write --reachable
-git -C "$dir" rev-list --count --all >&2
+git -C "$tmp" reset -q --hard main
+git -C "$tmp" commit-graph write --reachable
+git -C "$tmp" rev-list --count --all >&2
+rmdir "$dir" 2>/dev/null || true
+mv "$tmp" "$dir"
 echo "$dir"
