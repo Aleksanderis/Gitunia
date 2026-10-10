@@ -33,14 +33,20 @@ src/
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
   Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
   Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target)
+  Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
+samples/
+  Gitunia.CustomRenderTui.Demo/  runnable demo screen for the custom renderer
 tests/
   Gitunia.Git.Tests/  against real temp repos
   Gitunia.Core.Tests/ pure state/keymap tests
   Gitunia.Tui.Tests/  snapshot tests of rendered frames
   Gitunia.Platform.Tests/
+  Gitunia.CustomRenderTui.Tests/  cell buffer diff and input parser tests
+tools/
+  ConPtyHarness/      Windows pseudoconsole smoke harness (standalone, used by the custom renderer workflow)
 ```
 
-Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); the AOT `IL*` warnings-as-errors list is in `Gitunia.Tui.csproj`. Adjust here when the layout changes.
+Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
 
 ## Native AOT constraints
 
