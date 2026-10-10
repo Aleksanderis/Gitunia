@@ -25,7 +25,9 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 ## Git conventions
 
-- Branches: `feature/<issue>-<slug>` for new work, `fix/<issue>-<slug>` for bug fixes. Branch from `main`; no direct commits to it; changes arrive through merged PRs. Reference the issue in the PR body (`Closes #<n>`).
+- Branches: `feature/<issue>-<slug>` for new work, `fix/<issue>-<slug>` for bug fixes. Branch from `main`; when working autonomously, no direct commits to it: changes arrive through merged PRs. Reference the issue in the PR body (`Closes #<n>`).
+- Ad-hoc requests from the owner: simple changes (e.g. a `.gitignore` entry, a doc tweak) go straight to `main`, no branch or PR. If it isn't obvious whether a change is simple enough, ask.
+- After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
