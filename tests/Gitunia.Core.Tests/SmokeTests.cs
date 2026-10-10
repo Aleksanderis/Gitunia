@@ -6,5 +6,5 @@ namespace Gitunia.Core.Tests;
 public class SmokeTests
 {
     [Fact]
-    public void Banner_names_the_app() => Assert.StartsWith("gitunia", AppInfo.Banner);
+    public void Given_app_info_When_reading_banner_Then_it_starts_with_the_app_name() => Assert.StartsWith("gitunia", AppInfo.Banner);
 }
