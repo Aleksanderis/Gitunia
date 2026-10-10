@@ -1,0 +1,3 @@
+<Project>
+  <!-- Standalone spike tool: deliberately not inheriting the repo-wide build rules. -->
+</Project>
