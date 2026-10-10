@@ -1,6 +1,6 @@
 # Architecture
 
-Status: draft, 2026-10-10. Items marked **Decided** are settled; **Open** items are resolved by the M0 spike.
+Status: draft, 2026-10-10. Items marked **Decided** are settled.
 
 ## Overview
 
@@ -23,7 +23,7 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 - **Decided:** three layers, strictly one-way dependencies: Rendering -> State -> Git. Git knows nothing about state or UI; State knows nothing about the console.
 - **Decided:** State is pure and testable without a terminal. Effects (run a git command, open an editor, copy to clipboard) are returned as data and executed by a runner that feeds results back as commands.
 - **Decided:** all git calls are async, cancellable and time-bounded; the UI never blocks on them.
-- **Open:** renderer. Options: (a) Terminal.Gui v2 (full widget toolkit, less control over graph and diff rendering, heavier), (b) thin custom renderer: cell buffer, diff-based flush, VT input parser (~1-2k lines, full control, modal keymap is easy). Leaning to (b); the spike decides.
+- **Decided (M0, #7):** thin custom renderer: cell buffer with diff-based flush (`Gitunia.Tui/Render/CellBuffer`), VT input parser (`Render/InputParser`), raw terminal in `Gitunia.Platform/RawTerminal` (Linux/macOS via termios; Windows console input is still to do). Terminal.Gui v2 was rejected on measured start time, size, latency and lack of modal-key support; numbers in `docs/decisions.md`. Do not use `Console` input/size APIs (they break raw mode); read fd 0 and use `ioctl`.
 
 ## Proposed solution layout
 
