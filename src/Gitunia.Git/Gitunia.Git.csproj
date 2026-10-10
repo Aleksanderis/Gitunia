@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Gitunia.Platform\Gitunia.Platform.csproj" />
+  </ItemGroup>
+</Project>

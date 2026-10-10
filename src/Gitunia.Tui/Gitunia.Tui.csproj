@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>gitunia</AssemblyName>
+    <RootNamespace>Gitunia.Tui</RootNamespace>
+    <PublishAot>true</PublishAot>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <StripSymbols>true</StripSymbols>
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <!-- IL* warnings fail the build via the global TreatWarningsAsErrors. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Gitunia.Core\Gitunia.Core.csproj" />
+    <ProjectReference Include="..\Gitunia.Platform\Gitunia.Platform.csproj" />
+  </ItemGroup>
+</Project>

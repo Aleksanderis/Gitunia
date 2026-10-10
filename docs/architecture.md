@@ -29,6 +29,7 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 
 ```
 src/
+  Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
   Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
   Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target)
@@ -36,9 +37,10 @@ tests/
   Gitunia.Git.Tests/  against real temp repos
   Gitunia.Core.Tests/ pure state/keymap tests
   Gitunia.Tui.Tests/  snapshot tests of rendered frames
+  Gitunia.Platform.Tests/
 ```
 
-Confirm in M0; adjust here when it changes.
+Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); the AOT `IL*` warnings-as-errors list is in `Gitunia.Tui.csproj`. Adjust here when the layout changes.
 
 ## Native AOT constraints
 
