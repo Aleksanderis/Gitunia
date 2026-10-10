@@ -429,3 +429,6 @@ FodyWeavers.xsd
 
 # Private notes (not published)
 docs/private/
+
+# JetBrains Rider/IDEA (per-user IDE state)
+.idea/
