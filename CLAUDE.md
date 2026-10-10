@@ -1,6 +1,6 @@
 # Gitunia
 
-Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope. Pre-spike: only the skeleton exists (M0).
+Keyboard-first terminal Git client (graph, branches, worktrees, vim-style keys). See README.md for goal and MVP scope. M0 done except the renderer sign-off: only the skeleton exists.
 
 Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decisions). Work is tracked as GitHub issues grouped by milestone M0-M4 (goals in `docs/roadmap.md`).
 
@@ -8,7 +8,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 - C# on .NET 10 (LTS), `net10.0`, SDK pinned in `global.json`. Code in `src/`, tests in `tests/` (layout in `docs/architecture.md`). Published as a single Native AOT binary; it must start in well under 100 ms.
 - Git access: spawn the `git` CLI and parse its output; no libgit2 without a logged decision.
-- UI: renderer (Terminal.Gui v2 or custom) is decided by the M0 spike. Tests: xUnit with real `git` on temp repos.
+- UI: Terminal.Gui v2 (decided in M0, see `docs/decisions.md` for settings and pitfalls). Tests: xUnit with real `git` on temp repos.
 
 ## Rules
 
