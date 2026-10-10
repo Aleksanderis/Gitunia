@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   linux-x64:
@@ -29,9 +29,9 @@ jobs:
         run: dotnet test -c Release --no-build
       - name: AOT publish (any IL* warning fails)
         run: |
-          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -o out 2>&1 | tee publish.log
+          dotnet publish src/Gitunia.Tui -c Release -r linux-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
           test "${PIPESTATUS[0]}" -eq 0
-          if grep -E "warning (IL|NETSDK)[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
       - name: Smoke run
         run: |
           out="$(./out/gitunia)"

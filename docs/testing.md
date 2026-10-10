@@ -22,6 +22,8 @@ Status: draft v0, 2026-10-10.
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
 | Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos |
 
+CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run on linux-x64 for every PR and push to main; the OS matrix comes in M4.
+
 ## Performance checks
 
 A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load and layout on a generated 100k-commit repo. Record numbers in `docs/architecture.md` when targets are verified.
