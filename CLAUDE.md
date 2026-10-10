@@ -17,6 +17,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Keep to the MVP scope in README.md. Don't add features beyond it without asking.
 - Native AOT from day one: no reflection or runtime codegen, every dependency AOT/trimming-compatible. Run the AOT publish after adding one (details: `docs/architecture.md`).
 - The Git layer returns typed results and never touches the UI. The state layer is pure (`(State, Command) -> State` plus effects) and runs without a terminal. Only the rendering layer touches the console. Layering details: `docs/architecture.md`.
+- No `InternalsVisibleTo`: test through public API. If something needs testing, make it a small public type or parameter (e.g. an injected env lookup), not an internal exposed to tests.
 - Never block the UI thread on a git process. Every git call is async, cancellable and has a timeout.
 - Be conservative with destructive operations (reset --hard, force push, branch/worktree delete, stash drop, discarding changes): confirm in the UI and keep an undo path (reflog hint) where git allows.
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).

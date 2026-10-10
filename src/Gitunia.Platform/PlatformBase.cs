@@ -1,6 +1,6 @@
 namespace Gitunia.Platform;
 
-internal abstract class PlatformBase : IPlatform
+public abstract class PlatformBase : IPlatform
 {
     private readonly Func<string, string?> _getEnv;
 
@@ -35,7 +35,7 @@ internal abstract class PlatformBase : IPlatform
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
-    internal ColorDepth DetectColor(bool interactive)
+    public ColorDepth DetectColor(bool interactive)
     {
         if (!interactive || Env("NO_COLOR") is not null)
         {
@@ -63,7 +63,7 @@ internal abstract class PlatformBase : IPlatform
         return term is "dumb" ? ColorDepth.None : ColorDepth.Ansi16;
     }
 
-    internal bool DetectUnicode()
+    public bool DetectUnicode()
     {
         // Windows: assumed UTF-8 capable (Windows Terminal / modern conhost); legacy conhost may render boxes poorly.
         if (OperatingSystem.IsWindows())
