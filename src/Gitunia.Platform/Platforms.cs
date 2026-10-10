@@ -1,6 +1,6 @@
 namespace Gitunia.Platform;
 
-internal sealed class LinuxPlatform : PlatformBase
+internal sealed class LinuxPlatform(Func<string, string?>? getEnv = null) : PlatformBase(getEnv)
 {
     public override string ConfigDir => Path.Combine(Env("XDG_CONFIG_HOME") ?? Path.Combine(Home, ".config"), PlatformInfo.AppDirName);
 
@@ -25,7 +25,7 @@ internal sealed class WindowsPlatform : PlatformBase
     public override string StateDir => Path.Combine(LocalAppData, PlatformInfo.AppDirName);
 }
 
-/// <summary>Explicit "unsupported" path for any other OS: keeps everything under a temp-safe home dir.</summary>
+/// <summary>Explicit "unsupported" path for any other OS: keeps everything under a dot-directory under the home dir.</summary>
 internal sealed class UnsupportedPlatform : PlatformBase
 {
     public override string ConfigDir => Path.Combine(Home, "." + PlatformInfo.AppDirName);

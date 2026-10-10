@@ -2,6 +2,13 @@ namespace Gitunia.Platform;
 
 internal abstract class PlatformBase : IPlatform
 {
+    private readonly Func<string, string?> _getEnv;
+
+    protected PlatformBase(Func<string, string?>? getEnv = null)
+    {
+        _getEnv = getEnv ?? Environment.GetEnvironmentVariable;
+    }
+
     public abstract string ConfigDir { get; }
 
     public abstract string StateDir { get; }
@@ -12,15 +19,23 @@ internal abstract class PlatformBase : IPlatform
         return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode());
     }
 
-    protected static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-    protected static string? Env(string name)
+    /// <summary>User home; falls back to the temp dir so paths never become cwd-relative.</summary>
+    protected static string Home
     {
-        var value = Environment.GetEnvironmentVariable(name);
+        get
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return string.IsNullOrEmpty(home) ? Path.GetTempPath() : home;
+        }
+    }
+
+    protected string? Env(string name)
+    {
+        var value = _getEnv(name);
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
-    private static ColorDepth DetectColor(bool interactive)
+    internal ColorDepth DetectColor(bool interactive)
     {
         if (!interactive || Env("NO_COLOR") is not null)
         {
@@ -39,7 +54,7 @@ internal abstract class PlatformBase : IPlatform
             return ColorDepth.Ansi256;
         }
 
-        // Windows Terminal and modern conhost support VT truecolor; WT_SESSION marks Windows Terminal.
+        // Windows Terminal sets WT_SESSION and supports VT truecolor.
         if (OperatingSystem.IsWindows() && Env("WT_SESSION") is not null)
         {
             return ColorDepth.TrueColor;
@@ -48,8 +63,9 @@ internal abstract class PlatformBase : IPlatform
         return term is "dumb" ? ColorDepth.None : ColorDepth.Ansi16;
     }
 
-    private static bool DetectUnicode()
+    internal bool DetectUnicode()
     {
+        // Windows: assumed UTF-8 capable (Windows Terminal / modern conhost); legacy conhost may render boxes poorly.
         if (OperatingSystem.IsWindows())
         {
             return true;
