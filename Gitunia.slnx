@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Gitunia.TerminalGuiSpike/Gitunia.TerminalGuiSpike.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Gitunia.Core/Gitunia.Core.csproj" />
     <Project Path="src/Gitunia.Git/Gitunia.Git.csproj" />
