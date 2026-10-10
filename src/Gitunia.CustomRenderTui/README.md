@@ -38,7 +38,7 @@ Keys: `Tab` switch pane, `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`
 
 ## Windows smoke test
 
-`tools/ConPtyHarness` runs an exe under a Windows pseudoconsole (ConPTY), sends keys and a resize and asserts on the VT output. The workflow `.github/workflows/custom-render-windows.yml` publishes the demo for win-x64 and runs it (manual, or when this project, the demo or the harness change). Locally on Windows:
+`tools/ConPtyHarness` runs an exe under a Windows pseudoconsole (ConPTY), sends keys and a resize and asserts on the VT output. The workflow `.github/workflows/custom-render-windows.yml` publishes the demo for win-x64 and runs it (manual only: Actions tab > Run workflow). Locally on Windows:
 
 ```
 dotnet build tools/ConPtyHarness -c Release -o harness
