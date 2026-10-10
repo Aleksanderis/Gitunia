@@ -10,6 +10,10 @@ Status: draft v0, 2026-10-10.
 - No test touches the user's repos, global git config or network. Isolation recipe and fixture shapes are in the `testing` skill.
 - A failing test blocks merge. No coverage percentage gate.
 
+## Naming
+
+Test methods are named `Given<Context>_When<Action>_Then<Outcome>` in PascalCase, the three parts separated by underscores (CA1707 is off under `tests/`).
+
 ## Layers
 
 | Layer | Tools | Covers |

@@ -6,5 +6,5 @@ namespace Gitunia.Git.Tests;
 public class SmokeTests
 {
     [Fact]
-    public void Minimum_git_version_is_declared() => Assert.Equal("2.43", GitLayer.MinimumGitVersion);
+    public void GivenGitLayer_WhenReadingMinimumVersion_ThenItIs243() => Assert.Equal("2.43", GitLayer.MinimumGitVersion);
 }
