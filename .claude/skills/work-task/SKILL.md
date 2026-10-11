@@ -32,8 +32,30 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
 - Run the `reviewer` subagent on the branch with the issue number. Fix every `blocker` and `should-fix`, or justify why not in the PR.
 - Make the review visible on GitHub: after opening the PR, post the reviewer's findings (verdict, then findings by severity) as a PR comment with `gh pr comment <n> --body-file <file>`, and after fixing, post a second comment saying which findings were fixed (with the commit) and which were skipped and why. The PR body carries only the one-line verdict. The owner reads reviews on the PR, not in the session. Reviewing the work-task's own PR with no reviewer run is not allowed, including for style or docs-only changes.
+- Everything you write on GitHub or in git carries the agent identity (see "Agent identity" below).
 - Open a PR titled like the issue, body `Closes #<n>`, what changed, assumptions, and the reviewer verdict.
 - `spike`: don't merge or open a PR; post measured findings as an issue comment, push the `spike/` branch and close the issue.
 - `destructive` or `needs-review`: stop after opening the PR; the owner merges.
 - Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main`, remove the issue's worktree (`git worktree remove <path>`) and delete the local branch. Once a PR is merged, nothing of it may remain: no worktree, no local branch, no remote branch. Parallel agents must do this themselves before reporting. Spike branches are the exception: they stay (remote) by design.
 - Then continue with the next issue if running autonomously.
+
+## Agent identity
+
+All agents act through the owner's GitHub login, so every artifact must say which agent made it. Roles: `orchestrator` (the main session: picks issues, opens PRs, merges), `implementer` (a per-issue subagent: code, tests, fix commits) and `reviewer` (the `reviewer` subagent).
+
+- **Commits:** author name is the role, email stays the owner's from git config (so GitHub still links the commit): `GIT_AUTHOR_NAME="Claude (implementer)" git commit ...`. The committer stays the owner. Add an `Agent: <role>` trailer above the `Co-Authored-By` line.
+- **PR comments, reviews, issue comments:** start with a header line, end with a signature line, and include a hidden marker so they can be filtered:
+
+  ```
+  ### 🔍 Reviewer agent: findings
+  <!-- agent: reviewer -->
+
+  ...body...
+
+  ---
+  <sub>🔍 Reviewer agent · Claude · PR #<n> @ <short sha></sub>
+  ```
+
+  Icons: orchestrator 🧭, implementer 🛠, reviewer 🔍. Header titles: `findings`, `fixes for review`, `spike findings`, `blocked`, etc. The signature names the role, "Claude", and the PR or issue plus commit it refers to.
+- **PR body:** the line above the generated-with footer reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it).
+- **Reviewer output:** the `reviewer` subagent is read-only, so it returns the complete comment (header, marker, body, signature) and whoever runs it posts it verbatim with `gh pr comment`. The fix-up comment is posted by the implementer with its own header and signature.

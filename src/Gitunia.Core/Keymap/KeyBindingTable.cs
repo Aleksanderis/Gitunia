@@ -1,0 +1,113 @@
+using System.Collections.Concurrent;
+
+namespace Gitunia.Core.Keymap;
+
+/// <summary>
+/// The data the keymap engine reads: bindings plus the view hierarchy. A view inherits the bindings of its
+/// parent (and finally of <see cref="GlobalView"/>); a binding in a more specific view shadows an equal
+/// key sequence further up. Nothing here is hardcoded, so user config can build a table the same way.
+/// </summary>
+public sealed class KeyBindingTable
+{
+    public const string GlobalView = "Global";
+
+    private readonly Dictionary<string, string> viewParents;
+    private readonly ConcurrentDictionary<(KeyMode Mode, string View), IReadOnlyList<KeyBinding>> effectiveCache = new();
+
+    public KeyBindingTable(IEnumerable<KeyBinding> bindings, IReadOnlyDictionary<string, string>? viewParents = null)
+    {
+        Bindings = [.. bindings];
+        this.viewParents = viewParents is null ? [] : new Dictionary<string, string>(viewParents);
+    }
+
+    public IReadOnlyList<KeyBinding> Bindings { get; }
+
+    /// <summary>Every view name that appears in a binding or as a parent link, including <see cref="GlobalView"/>.</summary>
+    public IReadOnlyCollection<string> Views
+    {
+        get
+        {
+            var views = new HashSet<string> { GlobalView };
+            views.UnionWith(Bindings.Select(binding => binding.View));
+            views.UnionWith(viewParents.Keys);
+            views.UnionWith(viewParents.Values);
+            return views;
+        }
+    }
+
+    /// <summary>The view followed by its ancestors, most specific first, always ending in <see cref="GlobalView"/>.</summary>
+    public IReadOnlyList<string> ViewChain(string view)
+    {
+        var chain = new List<string>();
+        var current = view;
+        while (current != GlobalView && !chain.Contains(current))
+        {
+            chain.Add(current);
+            current = viewParents.GetValueOrDefault(current, GlobalView);
+        }
+
+        chain.Add(GlobalView);
+        return chain;
+    }
+
+    /// <summary>The bindings active in a mode and view after inheritance and shadowing, most specific view first.</summary>
+    public IReadOnlyList<KeyBinding> EffectiveBindings(KeyMode mode, string view)
+    {
+        return effectiveCache.GetOrAdd((mode, view), key => ComputeEffective(key.Mode, key.View));
+    }
+
+    /// <summary>Finds duplicate bindings and prefixes that would hide a longer chord. An empty list means the table is consistent.</summary>
+    public IReadOnlyList<BindingConflict> FindConflicts()
+    {
+        var conflicts = new List<BindingConflict>();
+        foreach (var group in Bindings.GroupBy(binding => (binding.Mode, binding.View, binding.Sequence)))
+        {
+            var members = group.ToList();
+            for (var index = 1; index < members.Count; index++)
+            {
+                conflicts.Add(new BindingConflict(BindingConflictKind.Duplicate, group.Key.Mode, group.Key.View, members[0], members[index]));
+            }
+        }
+
+        var seen = new HashSet<(KeyBinding, KeyBinding)>();
+        foreach (var mode in Enum.GetValues<KeyMode>())
+        {
+            foreach (var view in Views)
+            {
+                var effective = EffectiveBindings(mode, view);
+                foreach (var shorter in effective)
+                {
+                    foreach (var longer in effective)
+                    {
+                        if (longer.Sequence.Length > shorter.Sequence.Length
+                            && longer.Sequence.StartsWith(shorter.Sequence)
+                            && seen.Add((shorter, longer)))
+                        {
+                            conflicts.Add(new BindingConflict(BindingConflictKind.PrefixShadow, mode, view, shorter, longer));
+                        }
+                    }
+                }
+            }
+        }
+
+        return conflicts;
+    }
+
+    private List<KeyBinding> ComputeEffective(KeyMode mode, string view)
+    {
+        var effective = new List<KeyBinding>();
+        var taken = new HashSet<KeySequence>();
+        foreach (var name in ViewChain(view))
+        {
+            foreach (var binding in Bindings.Where(candidate => candidate.Mode == mode && candidate.View == name))
+            {
+                if (taken.Add(binding.Sequence))
+                {
+                    effective.Add(binding);
+                }
+            }
+        }
+
+        return effective;
+    }
+}
