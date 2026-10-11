@@ -1,15 +1,16 @@
 # UX
 
-Status: draft v0, 2026-10-10. This is the spec for workflows and keys; write it before the views. Everything must work without a mouse.
+Spec for workflows and keys; the flows are written before the views. Keyboard and mouse are both fully supported: every action is reachable with either.
 
 ## Principles
 
 - Modal and discoverable: Normal mode navigates, actions are short mnemonic chords, `?` shows keys for the current view, `:` or `Ctrl-p` opens a command palette that lists every action with its binding.
-- Vim-like motions everywhere: `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work.
-- Layout: left sidebar (branches, remotes, tags, stashes, worktrees), center commit graph, right/bottom detail (commit info, files, diff). Working tree status is a pseudo-row at the top of the graph.
+- Key bindings are the defaults, and users can remap them or add extra bindings in the config file (planned for M4; the keymap engine is data-driven from M1 so remapping needs no redesign). Vim-like motions everywhere: `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work.
+- History layout: left sidebar (branches, remotes, tags, stashes, worktrees), center commit graph, right/bottom detail (commit info, files, diff). Working tree status is a pseudo-row at the top of the graph.
+- Working-tree layout (staging): selecting the status row (or a key from anywhere) switches the center and detail panes to unstaged files, staged files and a diff/hunk view. Whole files, hunks or selected lines are staged and unstaged from the diff itself, then the commit message is written and committed from the same screen. Details of this flow are specified as workflow 2 below, before M2.
 - Branches and worktrees are first-class, not a submenu: they are always visible in the sidebar and every branch shows which worktree holds it.
 - Destructive actions confirm and say what they will do and how to undo it.
-- Mouse is optional: click to focus/select, wheel to scroll. Nothing is mouse-only.
+- Mouse is optional but complete: everything doable by keyboard is doable with the mouse (click to focus/select, double-click to open, wheel to scroll, clickable tabs, buttons and menus for actions, drag to select ranges and resize panes). Nothing is keyboard-only or mouse-only; each action's mouse path is listed next to its binding.
 
 ## Workspace and tabs
 
@@ -28,7 +29,7 @@ Each needs a written step-by-step key flow here before it is implemented.
 
 0. Open a repo from anywhere, switch between tabs, reopen the previous session.
 1. Browse the graph, jump to a ref/commit, search by message/author/hash.
-2. Stage hunks and lines, commit, amend.
+2. Working-tree layout: review unstaged changes, stage whole files, hunks or selected lines in the built-in diff view, unstage, write the message, commit, amend.
 3. Create/switch/rename/delete branch; set upstream; see ahead/behind.
 4. Worktrees: add (new branch or existing), switch the app's active worktree, remove, prune, lock; see dirty state across all worktrees at a glance.
 5. Merge, rebase onto, cherry-pick, revert from the graph.

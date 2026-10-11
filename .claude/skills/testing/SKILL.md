@@ -5,7 +5,7 @@ description: Write, run and debug Gitunia tests, and create throwaway Git repos 
 
 # Testing
 
-Strategy and layers are in `docs/testing.md` (read it first). This skill is the procedure.
+This skill is the procedure. Strategy, layers and the measurement harness are in `docs/testing.md`; open it only for the section you need (for example the harness contract when running `scripts/measure.sh`), not up front.
 
 ## Pick the layer
 
@@ -47,7 +47,7 @@ tmux capture-pane -t gt -p        # rendered frame as text
 tmux kill-session -t gt
 ```
 
-Wait for the frame to settle (poll `capture-pane` until it stops changing) instead of sleeping fixed times. Linux/macOS only; Windows relies on snapshot tests of the frame buffer.
+Wait for the frame to settle (poll `capture-pane` until it stops changing) instead of sleeping fixed times. Linux/macOS only: tmux has no native Windows build, so on Windows rely on snapshot tests of the frame buffer, or drive the real binary under a pseudoconsole (`tools/ConPtyHarness`). A tmux-like multiplexer for Windows (e.g. psmux) is untested for this workflow; if Windows-specific bugs need interactive checks, evaluate it first and note the differences (send-keys syntax, capture options, `remain-on-exit`) here.
 
 Tips (all implemented in `scripts/measure.sh`, copy from there):
 - Use a private server (`tmux -L <name> -f /dev/null`) so the user's tmux and config never interfere; `kill-server` in a trap.
@@ -74,4 +74,4 @@ In C# tests use the fluent fixture builder in `tests/` (create it on first need,
 
 ## Running
 
-Build, test and benchmark commands live in `CLAUDE.md` once they exist. Report real output, including failures. Benchmarks (BenchmarkDotNet) are not part of the normal run.
+Report real output, including failures. Benchmarks (BenchmarkDotNet) are not part of the normal run.

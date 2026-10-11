@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: 2026-10-10. Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line.
+Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line.
 
 ## M0 - Technology spike (throwaway code allowed)
 

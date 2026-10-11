@@ -1,7 +1,5 @@
 # Testing
 
-Status: draft v0, 2026-10-10.
-
 ## Principles
 
 - Test where the risk is: parsing git output, graph layout, destructive operations, worktree handling, key handling, and rendering regressions. Plain wiring gets no tests.

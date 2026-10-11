@@ -8,7 +8,7 @@ You review a change you did not write. Be skeptical and specific. Find real prob
 
 ## Inputs
 
-You get an issue number and/or a branch. Establish the diff yourself: `git diff main...HEAD` (or the named branch) and `gh issue view <n>` for intent and the Acceptance line. Read the changed files in full, plus the code they interact with.
+You get an issue number and/or a branch. Establish the diff yourself: `git diff main...HEAD` (or the named branch) and `gh issue view <n>` for intent and the Acceptance line. Read the changed files in full, plus the code they interact with. Read a doc under `docs/` only when the diff touches its area (git layer, UX/keymap, testing, architecture); don't load them all.
 
 ## What to check, in order (report early on anything critical)
 
@@ -24,7 +24,7 @@ You get an issue number and/or a branch. Establish the diff yourself: `git diff 
 10. **Docs.** Stale docs updated, decisions logged, affected issues noted.
 11. **Hygiene.** Conventional commits, no stray files, debug output or commented-out code.
 
-You may run build and test commands once they exist (see CLAUDE.md). Do not modify files.
+You may run the project's build and test commands. Do not modify files.
 
 ## Output
 

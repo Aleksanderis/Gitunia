@@ -1,14 +1,13 @@
 # Git layer
 
-Status: draft, 2026-10-10. Contract between Gitunia.Git and everything above it.
+Contract between Gitunia.Git and everything above it.
 
 ## Running git
 
-- **Decided:** minimum supported git is 2.43 (older releases lack worktree and ref-listing behaviour we rely on and are out of mainstream support). Detect the version at startup with a clear error below it; feature-detect newer capabilities (for example relative worktree paths, 2.48) instead of raising the floor.
-
-- **Decided:** repo-scoped API. Every operation is invoked through a `Repo` handle bound to an explicit path; git is run with that path as working directory (`-C`), never relying on the app's cwd. Repo discovery (`rev-parse --show-toplevel/--git-common-dir`) validates paths the user opens, including bare repos, worktree paths (resolving to their main repo) and non-repos (clear error).
-- **Decided:** spawn `git` with `ProcessStartInfo` (no shell), arguments as a list, `-c core.quotepath=off` and similar per-call `-c` flags rather than mutating user config.
-- Environment: `LC_ALL=C` for parsed output, `GIT_TERMINAL_PROMPT=0` for background calls, `GIT_OPTIONAL_LOCKS=0` for read-only status polling (avoids fighting the user's other git processes over `index.lock`). Anything else needs a decision.
+- Minimum supported git is 2.43 (older releases lack worktree and ref-listing behaviour we rely on and are out of mainstream support). Detect the version at startup with a clear error below it; feature-detect newer capabilities (for example relative worktree paths, 2.48) instead of raising the floor.
+- Repo-scoped API. Every operation is invoked through a `Repo` handle bound to an explicit path; git is run with that path as working directory (`-C`), never relying on the app's cwd. Repo discovery (`rev-parse --show-toplevel/--git-common-dir`) validates paths the user opens, including bare repos, worktree paths (resolving to their main repo) and non-repos (clear error).
+- Spawn `git` with `ProcessStartInfo` (no shell), arguments as a list, `-c core.quotepath=off` and similar per-call `-c` flags rather than mutating user config.
+- Environment: `LC_ALL=C` for parsed output, `GIT_TERMINAL_PROMPT=0` for background calls, `GIT_OPTIONAL_LOCKS=0` for read-only status polling (avoids fighting the user's other git processes over `index.lock`). Nothing else is set.
 - Prefer machine formats: `status --porcelain=v2 -z`, `for-each-ref --format=...`, `log --format=... -z`, `worktree list --porcelain -z`, `rev-list --parents`, `diff --raw -z`, `cat-file --batch` for bulk object reads.
 - Every call: `CancellationToken`, timeout, captured stderr, exit code mapped to a typed error. Long operations (fetch, pull, push, clone) stream progress (`--progress`) to the caller.
 - Credentials and hooks run in the user's real environment. Interactive prompts (ssh passphrase, credential helper UI) need a defined story (open question in `roadmap.md`).
