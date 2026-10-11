@@ -36,7 +36,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 - Open a PR titled like the issue, body `Closes #<n>`, what changed, assumptions, and the reviewer verdict.
 - `spike`: don't merge or open a PR; post measured findings as an issue comment, push the `spike/` branch and close the issue.
 - `destructive` or `needs-review`: stop after opening the PR; the owner merges.
-- Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main`, remove the issue's worktree (`git worktree remove <path>`) and delete the local branch. Once a PR is merged, nothing of it may remain: no worktree, no local branch, no remote branch. Parallel agents must do this themselves before reporting. Spike branches are the exception: they stay (remote) by design.
+- Otherwise, when CI is green and the reviewer has no open blockers: `gh pr merge <n> --merge --delete-branch` then update local `main`, remove the issue's worktree (`git worktree remove <path>`) and delete the local branch. Once a PR is merged, nothing of it may remain: no worktree, no local branch, no remote branch. A subagent cannot remove the worktree it runs in (and the harness locks it), so a parallel agent only merges and reports "merged, cleanup pending" with its worktree path and branch names; the caller (orchestrating session) then removes each finished agent's worktree (`git worktree remove -f -f <path>`) and deletes its local branches, including the harness's `worktree-agent-*` branch, after checking they are merged into `main` (`git branch --merged main`). Run `git fetch -p` and confirm no stale worktrees or branches remain before ending the session. Spike branches are the exception: they stay (remote) by design.
 - Then continue with the next issue if running autonomously.
 
 ## Agent identity
@@ -57,5 +57,5 @@ All agents act through the owner's GitHub login, so every artifact must say whic
   ```
 
   Icons: orchestrator 🧭, implementer 🛠, reviewer 🔍. Header titles: `findings`, `fixes for review`, `spike findings`, `blocked`, etc. The signature names the role, "Claude", and the PR or issue plus commit it refers to.
-- **PR body:** the line above the generated-with footer reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it).
+- **PR body:** the last line reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it). No "Generated with Claude Code" footer anywhere.
 - **Reviewer output:** the `reviewer` subagent is read-only, so it returns the complete comment (header, marker, body, signature) and whoever runs it posts it verbatim with `gh pr comment`. The fix-up comment is posted by the implementer with its own header and signature.
