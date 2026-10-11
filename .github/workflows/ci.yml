@@ -37,3 +37,9 @@ jobs:
           out="$(./out/gitunia)"
           echo "$out"
           echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"

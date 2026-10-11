@@ -1,0 +1,24 @@
+namespace Gitunia.Tui.Rendering;
+
+/// <summary>Everything the chrome around the graph shows. Plain data, so a frame can be rendered without a terminal.</summary>
+/// <param name="RepositoryName">Name of the active tab's repository.</param>
+/// <param name="BranchName">Checked-out branch, null when detached or not loaded yet.</param>
+/// <param name="TabNumber">One-based number of the active tab.</param>
+/// <param name="TabCount">Open tabs.</param>
+/// <param name="ModeName">Input mode shown in the status bar, such as NORMAL.</param>
+/// <param name="PendingKeys">The unfinished chord or count (<c>5g</c>), empty when none.</param>
+/// <param name="SelectedPosition">One-based position of the selected row, 0 when the graph is empty.</param>
+/// <param name="LoadedCount">Rows loaded so far.</param>
+/// <param name="IsLoading">The log is still streaming in.</param>
+/// <param name="Message">A short notice such as "HEAD is not loaded yet", empty when none.</param>
+public sealed record ScreenModel(
+    string RepositoryName,
+    string? BranchName,
+    int TabNumber,
+    int TabCount,
+    string ModeName,
+    string PendingKeys,
+    int SelectedPosition,
+    int LoadedCount,
+    bool IsLoading,
+    string Message);
