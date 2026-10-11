@@ -17,6 +17,7 @@ Contract between Gitunia.Git and everything above it.
 
 - One parser per command, pure functions over `ReadOnlySpan<byte>`/string, with fixture-based tests (captured real output including odd cases: renames, copies, unicode paths, spaces, detached HEAD, unborn branch, merge in progress).
 - Parsers never throw on unknown fields; they ignore them and surface a warning.
+- Diffs: `DiffReader.ReadAsync(repo, ["diff", ...])` streams `DiffFile` > `DiffHunk` > `DiffLine` (addressed by file, hunk and line index, with old/new line numbers). `DiffPatchWriter` writes files and hunks back verbatim, and `WriteSelection` builds a patch of chosen lines for `git apply --cached` (`-R` for `PatchDirection.Reverse`). Binary files carry no hunks, only header lines. Details and limits: `docs/decisions.md` (#15).
 
 ## Models
 
