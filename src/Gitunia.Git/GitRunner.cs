@@ -88,7 +88,7 @@ public sealed class GitRunner
             StandardErrorEncoding = Encoding.UTF8,
             CreateNoWindow = true,
         };
-        foreach (string argument in arguments)
+        foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
         }
@@ -102,7 +102,7 @@ public sealed class GitRunner
 
         if (options.EnvironmentOverrides is not null)
         {
-            foreach ((string name, string? value) in options.EnvironmentOverrides)
+            foreach ((var name, var value) in options.EnvironmentOverrides)
             {
                 if (value is null)
                 {
@@ -133,17 +133,17 @@ public sealed class GitRunner
 
     private async Task<GitResult> RunCoreAsync(IReadOnlyList<string> arguments, GitRunOptions runOptions, CancellationToken cancellationToken)
     {
-        TimeSpan timeout = runOptions.Timeout ?? options.EffectiveTimeout;
+        var timeout = runOptions.Timeout ?? options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(timeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-        using Process process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
+        using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
         try
         {
-            Task<byte[]> outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
-            Task<string> errorTask = process.StandardError.ReadToEndAsync(linked.Token);
+            var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
+            var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
             await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
-            byte[] output = outputTask.Result;
-            string error = errorTask.Result;
+            var output = outputTask.Result;
+            var error = errorTask.Result;
             await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {
@@ -169,12 +169,12 @@ public sealed class GitRunner
         GitRunOptions runOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        TimeSpan timeout = runOptions.Timeout ?? options.EffectiveTimeout;
+        var timeout = runOptions.Timeout ?? options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(Timeout.InfiniteTimeSpan);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-        using Process process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
-        Task<string> errorTask = process.StandardError.ReadToEndAsync(linked.Token);
-        Stream output = process.StandardOutput.BaseStream;
+        using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
+        var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
+        var output = process.StandardOutput.BaseStream;
         var buffer = new byte[ReadBufferSize];
         try
         {
@@ -223,7 +223,7 @@ public sealed class GitRunner
     {
         try
         {
-            string error = await errorTask.ConfigureAwait(false);
+            var error = await errorTask.ConfigureAwait(false);
             await process.WaitForExitAsync(linkedToken).ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {

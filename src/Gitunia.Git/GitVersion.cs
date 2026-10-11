@@ -16,22 +16,22 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
     {
         version = default;
         const string Prefix = "git version ";
-        string trimmed = text.Trim();
-        int start = trimmed.IndexOf(Prefix, StringComparison.Ordinal);
+        var trimmed = text.Trim();
+        var start = trimmed.IndexOf(Prefix, StringComparison.Ordinal);
         if (start < 0)
         {
             return false;
         }
 
-        string[] parts = trimmed[(start + Prefix.Length)..].Split(' ')[0].Split('.');
+        var parts = trimmed[(start + Prefix.Length)..].Split(' ')[0].Split('.');
         if (parts.Length < 2
-            || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int major)
-            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int minor))
+            || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var major)
+            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minor))
         {
             return false;
         }
 
-        int patch = parts.Length > 2 && int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out int parsed)
+        var patch = parts.Length > 2 && int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : 0;
         version = new GitVersion(major, minor, patch);
@@ -42,13 +42,13 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
 
     private int CompareTo(GitVersion other)
     {
-        int byMajor = Major.CompareTo(other.Major);
+        var byMajor = Major.CompareTo(other.Major);
         if (byMajor != 0)
         {
             return byMajor;
         }
 
-        int byMinor = Minor.CompareTo(other.Minor);
+        var byMinor = Minor.CompareTo(other.Minor);
         return byMinor != 0 ? byMinor : Patch.CompareTo(other.Patch);
     }
 

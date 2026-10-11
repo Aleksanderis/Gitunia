@@ -6,8 +6,8 @@ public static class TestRepositories
     /// <summary>A single branch <c>main</c> with <paramref name="commitCount"/> commits.</summary>
     public static TestRepository Linear(int commitCount = 3)
     {
-        TestRepository repository = TestRepository.Create();
-        for (int index = 1; index <= commitCount; index++)
+        var repository = TestRepository.Create();
+        for (var index = 1; index <= commitCount; index++)
         {
             repository.Commit($"Commit {index}", ("file.txt", $"line {index}\n"));
         }
@@ -18,7 +18,7 @@ public static class TestRepositories
     /// <summary>main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, locked/prunable/dirty worktrees, renames and binary files are added by the parser issues that need them.</summary>
     public static TestRepository Branchy()
     {
-        TestRepository repository = TestRepository.Create()
+        var repository = TestRepository.Create()
             .Commit("Initial", ("base.txt", "base\n"))
             .CheckoutNewBranch("feature")
             .Commit("Feature one", ("feature.txt", "one\n"))
@@ -34,7 +34,7 @@ public static class TestRepositories
     /// <summary>main plus a linked worktree <c>wt</c> on branch <c>wt-branch</c>.</summary>
     public static TestRepository WithWorktree(out string worktreePath)
     {
-        TestRepository repository = Linear(2);
+        var repository = Linear(2);
         worktreePath = repository.AddWorktree("wt", "wt-branch", createBranch: true);
         return repository;
     }

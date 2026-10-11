@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using Terminal.Gui.App;
 using Terminal.Gui.Drawing;
-using Attribute = Terminal.Gui.Drawing.Attribute;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
+using Attribute = Terminal.Gui.Drawing.Attribute;
 
 namespace Gitunia.Tui;
 
@@ -29,7 +29,7 @@ public static class Program
         var refs = new CommitSource();
         refs.AddRange(LoadRefs(repositoryPath));
 
-        using IApplication app = Application.Create();
+        using var app = Application.Create();
         var iterationsArgument = Array.IndexOf(arguments, "--ips");
         Application.MaximumIterationsPerSecond = iterationsArgument >= 0 ? ushort.Parse(arguments[iterationsArgument + 1]) : (ushort)100;
 

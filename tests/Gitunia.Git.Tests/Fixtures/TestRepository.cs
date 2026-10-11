@@ -29,8 +29,8 @@ public sealed class TestRepository : IDisposable
     /// <summary>Creates an empty repository whose initial branch is <c>main</c>.</summary>
     public static TestRepository Create(bool bare = false)
     {
-        string root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-repo-" + Guid.NewGuid().ToString("N"));
-        string path = System.IO.Path.Combine(root, "repo");
+        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-repo-" + Guid.NewGuid().ToString("N"));
+        var path = System.IO.Path.Combine(root, "repo");
         Directory.CreateDirectory(path);
         var repository = new TestRepository(root, path);
         repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
@@ -40,7 +40,7 @@ public sealed class TestRepository : IDisposable
     /// <summary>Writes <paramref name="files"/> (path, content), stages everything and commits.</summary>
     public TestRepository Commit(string message, params (string RelativePath, string Content)[] files)
     {
-        foreach ((string relativePath, string content) in files)
+        foreach ((var relativePath, var content) in files)
         {
             WriteFile(relativePath, content);
         }
@@ -60,7 +60,7 @@ public sealed class TestRepository : IDisposable
     /// <summary>Writes a working-tree file, creating directories; not staged.</summary>
     public TestRepository WriteFile(string relativePath, string content)
     {
-        string fullPath = System.IO.Path.Combine(Path, relativePath);
+        var fullPath = System.IO.Path.Combine(Path, relativePath);
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath)!);
         File.WriteAllText(fullPath, content);
         return this;
@@ -107,7 +107,7 @@ public sealed class TestRepository : IDisposable
     /// <summary>Adds a linked worktree in a sibling directory and returns its path.</summary>
     public string AddWorktree(string name, string branch, bool createBranch = false)
     {
-        string path = System.IO.Path.Combine(rootDirectory, "worktrees", name);
+        var path = System.IO.Path.Combine(rootDirectory, "worktrees", name);
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
         Git(createBranch ? ["worktree", "add", "-q", "-b", branch, path] : ["worktree", "add", "-q", path, branch]);
         return path;
@@ -123,9 +123,9 @@ public sealed class TestRepository : IDisposable
     public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes)
     {
         // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.
-        DateTimeOffset moment = Epoch.AddMinutes(commitCounter++);
+        var moment = Epoch.AddMinutes(commitCounter++);
 
-        string stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+        var stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         var runner = new GitRunner(new GitRunnerOptions(
             EnvironmentOverrides: new Dictionary<string, string?>
             {
@@ -149,7 +149,7 @@ public sealed class TestRepository : IDisposable
                 ["GIT_AUTHOR_DATE"] = stamp,
                 ["GIT_COMMITTER_DATE"] = stamp,
             }));
-        GitResult result = runner
+        var result = runner
             .RunAsync(Path, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
             .GetAwaiter()
             .GetResult();
@@ -163,7 +163,7 @@ public sealed class TestRepository : IDisposable
             return;
         }
 
-        foreach (string file in Directory.EnumerateFiles(rootDirectory, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(rootDirectory, "*", SearchOption.AllDirectories))
         {
             // Git object files are read-only, which blocks deletion on Windows.
             File.SetAttributes(file, FileAttributes.Normal);

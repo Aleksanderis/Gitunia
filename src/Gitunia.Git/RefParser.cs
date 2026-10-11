@@ -15,30 +15,30 @@ public static class RefParser
     {
         var refs = new List<GitRef>();
         var warnings = new List<string>();
-        foreach (string record in output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var record in output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
         {
-            string line = record.Trim('\n');
+            var line = record.Trim('\n');
             if (line.Length == 0)
             {
                 continue;
             }
 
-            string[] fields = line.Split('\0');
+            var fields = line.Split('\0');
             if (fields.Length < FieldCount)
             {
                 warnings.Add($"Skipped ref line with {fields.Length} fields: '{line}'");
                 continue;
             }
 
-            string fullName = fields[0];
-            RefKind kind = KindOf(fullName);
+            var fullName = fields[0];
+            var kind = KindOf(fullName);
             if (kind == RefKind.Other)
             {
                 warnings.Add($"Skipped ref outside heads, remotes and tags: '{fullName}'");
                 continue;
             }
 
-            (int? ahead, int? behind, bool gone) = ParseTrack(fields[4], hasUpstream: fields[3].Length > 0, warnings);
+            (var ahead, var behind, var gone) = ParseTrack(fields[4], hasUpstream: fields[3].Length > 0, warnings);
             refs.Add(new GitRef(
                 fullName,
                 ShortName(fullName),
@@ -67,7 +67,7 @@ public static class RefParser
 
     private static string ShortName(string fullName)
     {
-        int second = fullName.IndexOf('/', "refs/".Length);
+        var second = fullName.IndexOf('/', "refs/".Length);
         return fullName[(second + 1)..];
     }
 
@@ -86,12 +86,12 @@ public static class RefParser
             return (null, null, true);
         }
 
-        int ahead = 0;
-        int behind = 0;
-        foreach (string part in track.Split(',', StringSplitOptions.TrimEntries))
+        var ahead = 0;
+        var behind = 0;
+        foreach (var part in track.Split(',', StringSplitOptions.TrimEntries))
         {
-            string[] words = part.Split(' ');
-            if (words.Length == 2 && int.TryParse(words[1], NumberStyles.None, CultureInfo.InvariantCulture, out int count))
+            var words = part.Split(' ');
+            if (words.Length == 2 && int.TryParse(words[1], NumberStyles.None, CultureInfo.InvariantCulture, out var count))
             {
                 if (words[0] == "ahead")
                 {

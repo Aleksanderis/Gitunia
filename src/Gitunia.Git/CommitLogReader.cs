@@ -14,15 +14,15 @@ public static class CommitLogReader
         [EnumeratorCancellation] CancellationToken cancellationToken,
         ICollection<string>? warnings = null)
     {
-        IReadOnlyList<string> arguments = CommitLogFormat.Arguments(order, revisions.Count == 0 ? ["--exclude=refs/stash", "--all"] : revisions);
+        var arguments = CommitLogFormat.Arguments(order, revisions.Count == 0 ? ["--exclude=refs/stash", "--all"] : revisions);
         var parser = new CommitLogParser();
         var completed = new List<CommitInfo>();
-        await foreach (byte[] chunk in repo.Runner
+        await foreach (var chunk in repo.Runner
             .StreamAsync(repo.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
             .ConfigureAwait(false))
         {
             parser.Feed(chunk, completed);
-            foreach (CommitInfo commit in completed)
+            foreach (var commit in completed)
             {
                 yield return commit;
             }
@@ -33,7 +33,7 @@ public static class CommitLogReader
         parser.Complete();
         if (warnings is not null)
         {
-            foreach (string warning in parser.Warnings)
+            foreach (var warning in parser.Warnings)
             {
                 warnings.Add(warning);
             }

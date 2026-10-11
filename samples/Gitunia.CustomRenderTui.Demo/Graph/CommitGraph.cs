@@ -36,7 +36,7 @@ public sealed class CommitGraph
         for (var i = 0; i < Math.Min(15, hex.Length); i++)
         {
             var character = hex[i];
-            uint digit = character <= (byte)'9' ? (uint)(character - '0') : (uint)((character | 0x20) - 'a' + 10);
+            var digit = character <= (byte)'9' ? (uint)(character - '0') : (uint)((character | 0x20) - 'a' + 10);
             key = (key << 4) | digit;
         }
 

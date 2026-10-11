@@ -14,9 +14,9 @@ public class RefParserTests
     [Fact]
     public void GivenCurrentBranchWithUpstream_WhenParsing_ThenAheadBehindAndWorktreeAreSet()
     {
-        string output = Line("refs/heads/main", HashOne, upstream: "refs/remotes/origin/main", track: "ahead 2, behind 1", head: "*", worktree: "/work/repo");
+        var output = Line("refs/heads/main", HashOne, upstream: "refs/remotes/origin/main", track: "ahead 2, behind 1", head: "*", worktree: "/work/repo");
 
-        GitRef reference = Assert.Single(RefParser.Parse(output).Items);
+        var reference = Assert.Single(RefParser.Parse(output).Items);
 
         Assert.Equal("main", reference.Name);
         Assert.Equal(RefKind.LocalBranch, reference.Kind);
@@ -33,9 +33,9 @@ public class RefParserTests
     [InlineData("", 0, 0)]
     public void GivenUpstreamTrackingText_WhenParsing_ThenCountsMatch(string track, int ahead, int behind)
     {
-        string output = Line("refs/heads/topic", HashOne, upstream: "refs/remotes/origin/topic", track: track);
+        var output = Line("refs/heads/topic", HashOne, upstream: "refs/remotes/origin/topic", track: track);
 
-        GitRef reference = Assert.Single(RefParser.Parse(output).Items);
+        var reference = Assert.Single(RefParser.Parse(output).Items);
 
         Assert.Equal(ahead, reference.Ahead);
         Assert.Equal(behind, reference.Behind);
@@ -45,9 +45,9 @@ public class RefParserTests
     [Fact]
     public void GivenGoneUpstream_WhenParsing_ThenFlaggedWithoutCounts()
     {
-        string output = Line("refs/heads/old", HashOne, upstream: "refs/remotes/origin/old", track: "gone");
+        var output = Line("refs/heads/old", HashOne, upstream: "refs/remotes/origin/old", track: "gone");
 
-        GitRef reference = Assert.Single(RefParser.Parse(output).Items);
+        var reference = Assert.Single(RefParser.Parse(output).Items);
 
         Assert.True(reference.IsUpstreamGone);
         Assert.Null(reference.Ahead);
@@ -57,7 +57,7 @@ public class RefParserTests
     [Fact]
     public void GivenBranchWithoutUpstream_WhenParsing_ThenNoCounts()
     {
-        GitRef reference = Assert.Single(RefParser.Parse(Line("refs/heads/local", HashOne)).Items);
+        var reference = Assert.Single(RefParser.Parse(Line("refs/heads/local", HashOne)).Items);
 
         Assert.Null(reference.UpstreamFullName);
         Assert.Null(reference.Ahead);
@@ -68,9 +68,9 @@ public class RefParserTests
     [Fact]
     public void GivenAnnotatedTag_WhenParsing_ThenCommitIsThePeeledObject()
     {
-        string output = Line("refs/tags/v1", HashOne, peeled: HashTwo) + Line("refs/tags/light", HashThree);
+        var output = Line("refs/tags/v1", HashOne, peeled: HashTwo) + Line("refs/tags/light", HashThree);
 
-        IReadOnlyList<GitRef> tags = RefParser.Parse(output).Items;
+        var tags = RefParser.Parse(output).Items;
 
         Assert.Equal(HashOne, tags[0].ObjectHash);
         Assert.Equal(HashTwo, tags[0].CommitHash);
@@ -81,9 +81,9 @@ public class RefParserTests
     [Fact]
     public void GivenRemoteBranchesAndSymbolicHead_WhenParsing_ThenShortNamesKeepRemotePrefix()
     {
-        string output = Line("refs/remotes/origin/feature/x", HashOne) + Line("refs/remotes/origin/HEAD", HashOne, symref: "refs/remotes/origin/main");
+        var output = Line("refs/remotes/origin/feature/x", HashOne) + Line("refs/remotes/origin/HEAD", HashOne, symref: "refs/remotes/origin/main");
 
-        IReadOnlyList<GitRef> refs = RefParser.Parse(output).Items;
+        var refs = RefParser.Parse(output).Items;
 
         Assert.Equal("origin/feature/x", refs[0].Name);
         Assert.Equal(RefKind.RemoteBranch, refs[0].Kind);
@@ -93,9 +93,9 @@ public class RefParserTests
     [Fact]
     public void GivenMalformedAndForeignRefs_WhenParsing_ThenSkippedWithWarnings()
     {
-        string output = "refs/heads/broken\0onlytwo\x1e\n" + Line("refs/stash", HashOne) + Line("refs/heads/ok", HashOne) + Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd");
+        var output = "refs/heads/broken\0onlytwo\x1e\n" + Line("refs/stash", HashOne) + Line("refs/heads/ok", HashOne) + Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd");
 
-        ParseResult<GitRef> result = RefParser.Parse(output);
+        var result = RefParser.Parse(output);
 
         Assert.Equal(["ok", "odd"], result.Items.Select(reference => reference.Name));
         Assert.Equal(3, result.Warnings.Count);
@@ -104,9 +104,9 @@ public class RefParserTests
     [Fact]
     public void GivenWorktreePathWithNewline_WhenParsing_ThenRefIsStillOneRecord()
     {
-        string output = Line("refs/heads/a", HashOne, head: "*", worktree: "/work/odd\nname") + Line("refs/heads/b", HashTwo);
+        var output = Line("refs/heads/a", HashOne, head: "*", worktree: "/work/odd\nname") + Line("refs/heads/b", HashTwo);
 
-        IReadOnlyList<GitRef> refs = RefParser.Parse(output).Items;
+        var refs = RefParser.Parse(output).Items;
 
         Assert.Equal(2, refs.Count);
         Assert.Equal("/work/odd\nname", refs[0].CheckedOutIn);
@@ -115,7 +115,7 @@ public class RefParserTests
     [Fact]
     public void GivenEmptyOutput_WhenParsing_ThenNothing()
     {
-        ParseResult<GitRef> result = RefParser.Parse(string.Empty);
+        var result = RefParser.Parse(string.Empty);
 
         Assert.Empty(result.Items);
         Assert.Empty(result.Warnings);

@@ -12,7 +12,7 @@ public class GitRunnerTests
     {
         var runner = new GitRunner();
 
-        GitResult result = await runner.RunGlobalAsync(["--version"], cancellationToken: TestContext.Current.CancellationToken);
+        var result = await runner.RunGlobalAsync(["--version"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
         Assert.StartsWith("git version", result.StandardOutputText);
@@ -35,7 +35,7 @@ public class GitRunnerTests
     {
         using var fake = FakeGitExecutable.Failing(1, "differences");
 
-        GitResult result = await RunnerFor(fake).RunAsync(
+        var result = await RunnerFor(fake).RunAsync(
             AnyDirectory,
             ["diff"],
             new GitRunOptions(AcceptedExitCodes: [1]),
@@ -47,7 +47,7 @@ public class GitRunnerTests
     [Fact]
     public async Task GivenSlowProcess_WhenTimeoutElapses_ThenTimeoutErrorAndProcessKilled()
     {
-        string marker = MarkerPath();
+        var marker = MarkerPath();
         using var fake = FakeGitExecutable.SleepingThenMarking(marker);
 
         await Assert.ThrowsAsync<GitTimeoutException>(
@@ -63,7 +63,7 @@ public class GitRunnerTests
     [Fact]
     public async Task GivenSlowProcess_WhenCancelled_ThenOperationCancelledAndProcessKilled()
     {
-        string marker = MarkerPath();
+        var marker = MarkerPath();
         using var fake = FakeGitExecutable.SleepingThenMarking(marker);
         using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
 
@@ -88,7 +88,7 @@ public class GitRunnerTests
         using var fake = FakeGitExecutable.Printing("hello");
         var collected = new List<byte>();
 
-        await foreach (byte[] chunk in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
+        await foreach (var chunk in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
             collected.AddRange(chunk);
         }
@@ -103,7 +103,7 @@ public class GitRunnerTests
 
         await Assert.ThrowsAsync<GitCommandFailedException>(async () =>
         {
-            await foreach (byte[] unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
+            await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
             {
                 Assert.NotNull(unused);
             }
@@ -118,7 +118,7 @@ public class GitRunnerTests
 
         await Assert.ThrowsAsync<GitTimeoutException>(async () =>
         {
-            await foreach (byte[] unused in RunnerFor(fake).StreamAsync(
+            await foreach (var unused in RunnerFor(fake).StreamAsync(
                 AnyDirectory,
                 ["log"],
                 new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(500)),
@@ -134,10 +134,10 @@ public class GitRunnerTests
     [Fact]
     public async Task GivenStream_WhenConsumerStopsEarly_ThenProcessIsKilled()
     {
-        string marker = MarkerPath();
+        var marker = MarkerPath();
         using var fake = FakeGitExecutable.SleepingThenMarking(marker);
 
-        await foreach (byte[] unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
+        await foreach (var unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
             Assert.NotEmpty(unused);
             break;
@@ -152,7 +152,7 @@ public class GitRunnerTests
         using var fake = FakeGitExecutable.Printing("data");
         var collected = 0;
 
-        await foreach (byte[] chunk in RunnerFor(fake).StreamAsync(
+        await foreach (var chunk in RunnerFor(fake).StreamAsync(
             AnyDirectory,
             ["log"],
             new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(200)),
@@ -170,13 +170,13 @@ public class GitRunnerTests
     {
         using var fake = FakeGitExecutable.EchoingArgumentsAndLocks();
 
-        GitResult result = await RunnerFor(fake).RunAsync(
+        var result = await RunnerFor(fake).RunAsync(
             AnyDirectory,
             ["status"],
             new GitRunOptions(ReadOnly: true),
             TestContext.Current.CancellationToken);
 
-        string text = result.StandardOutputText;
+        var text = result.StandardOutputText;
         Assert.Contains("-C", text);
         Assert.Contains(AnyDirectory, text);
         Assert.Contains("core.quotepath=off", text);
@@ -189,7 +189,7 @@ public class GitRunnerTests
     {
         using var fake = FakeGitExecutable.EchoingArgumentsAndLocks();
 
-        GitResult result = await RunnerFor(fake).RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
+        var result = await RunnerFor(fake).RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Contains("LOCKS=", result.StandardOutputText);
         Assert.DoesNotContain("LOCKS=0", result.StandardOutputText);
@@ -210,7 +210,7 @@ public class GitRunnerTests
         using var fake = FakeGitExecutable.Create("printf '%s|%s' \"$GIT_TERMINAL_PROMPT\" \"$GITUNIA_PROBE\"", "<nul set /p =\"%GIT_TERMINAL_PROMPT%|%GITUNIA_PROBE%\"");
         var runner = new GitRunner(new GitRunnerOptions(fake.Path, EnvironmentOverrides: new Dictionary<string, string?> { ["GITUNIA_PROBE"] = "yes" }));
 
-        GitResult result = await runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
+        var result = await runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("0|yes", result.StandardOutputText);
     }
