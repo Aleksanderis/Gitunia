@@ -83,6 +83,10 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ListsView, "N", ActionIds.SearchPrevious);
         Add(bindings, Navigation, ListsView, "Ctrl-d", ActionIds.ListHalfPageDown);
         Add(bindings, Navigation, ListsView, "Ctrl-u", ActionIds.ListHalfPageUp);
+        Add(bindings, Navigation, ListsView, "Down", ActionIds.ListDown);
+        Add(bindings, Navigation, ListsView, "Up", ActionIds.ListUp);
+        Add(bindings, Navigation, ListsView, "PageDown", ActionIds.ListHalfPageDown);
+        Add(bindings, Navigation, ListsView, "PageUp", ActionIds.ListHalfPageUp);
         Add(bindings, Navigation, ListsView, "v", ActionIds.VisualToggle);
     }
 
@@ -132,7 +136,6 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Command], global, "Enter", ActionIds.CommandExecute);
         Add(bindings, [KeyMode.Confirm], global, "y", ActionIds.ConfirmYes);
         Add(bindings, [KeyMode.Confirm], global, "n", ActionIds.ConfirmNo);
-        Add(bindings, [KeyMode.Confirm], global, "Enter", ActionIds.ConfirmYes);
     }
 
     private static void Add(List<KeyBinding> bindings, KeyMode[] modes, string view, string keys, ActionId action)

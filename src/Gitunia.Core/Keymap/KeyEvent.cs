@@ -3,6 +3,7 @@ namespace Gitunia.Core.Keymap;
 /// <summary>
 /// A renderer-agnostic key press. <see cref="Name"/> is either the typed text of a printable key
 /// (<c>j</c>, <c>G</c>, a space) or a canonical named key from <see cref="KeyNames"/> (<c>Enter</c>, <c>Esc</c>).
+/// The renderer adapter must supply the typed text (<c>J</c>, not <c>j</c> plus Shift) for printable keys.
 /// </summary>
 public readonly record struct KeyEvent(string Name, KeyModifiers Modifiers = KeyModifiers.None)
 {
