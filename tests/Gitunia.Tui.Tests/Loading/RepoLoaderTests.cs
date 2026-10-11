@@ -25,7 +25,7 @@ public class RepoLoaderTests
         session.Changed += () => changes++;
 
         // Posting runs the action inline; the test thread owns the host and session while it awaits the load.
-        await RepoLoader.RunAsync(runner, location, session, host, action => action());
+        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
         Assert.Equal(string.Empty, session.LoadError);
@@ -49,7 +49,7 @@ public class RepoLoaderTests
         using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode);
         await session.Cancellation.CancelAsync();
 
-        await RepoLoader.RunAsync(runner, location, session, host, action => action());
+        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
 
         Assert.True(session.IsLoading);
         Assert.Equal(0, session.Graph.Count);

@@ -36,6 +36,7 @@ public class CommandLineParserTests
     [InlineData("--print-frame", "wide")]
     [InlineData("--print-frame", "0x10")]
     [InlineData("--unknown")]
+    [InlineData("-h")]
     public void GivenBadArguments_WhenParsing_ThenErrorIsReported(params string[] arguments)
     {
         Assert.NotNull(CommandLineParser.Parse(arguments).Error);

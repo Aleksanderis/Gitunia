@@ -12,10 +12,10 @@ public static class RepoLoader
     /// <param name="session">Receives the graph rows.</param>
     /// <param name="host">Receives HEAD and refs as tab commands.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
-    public static async Task RunAsync(GitRunner runner, RepositoryLocation location, TabSession session, WorkspaceHost host, Action<Action> postToUi)
+    /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
+    public static async Task RunAsync(GitRunner runner, RepositoryLocation location, TabSession session, WorkspaceHost host, Action<Action> postToUi, CancellationToken token)
     {
         var repo = new Repo(runner, location);
-        var token = session.Cancellation.Token;
         var metadata = LoadMetadataAsync(repo, session.TabId, host, postToUi, token);
         try
         {
@@ -30,8 +30,9 @@ public static class RepoLoader
         {
             // The tab was closed.
         }
-        catch (GitException exception)
+        catch (Exception exception)
         {
+            // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
             postToUi(() => session.Fail(exception.Message));
         }
 

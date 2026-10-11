@@ -54,8 +54,14 @@ public sealed class EffectRunner
             return;
         }
 
+        if (sessions.Remove(load.TabId, out var previous))
+        {
+            previous.Dispose();
+        }
+
         var session = new TabSession(load.TabId, glyphs);
         sessions[load.TabId] = session;
-        _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, postToUi));
+        var token = session.Cancellation.Token;
+        _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, postToUi, token), CancellationToken.None);
     }
 }

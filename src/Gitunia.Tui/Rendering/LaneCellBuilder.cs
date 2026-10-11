@@ -2,7 +2,11 @@ using Gitunia.Core.Graph;
 
 namespace Gitunia.Tui.Rendering;
 
-/// <summary>Turns the edges of a <see cref="GraphRow"/> into characters: two columns per lane, the second one carries connecting lines.</summary>
+/// <summary>
+/// Turns the edges of a <see cref="GraphRow"/> into characters: two columns per lane, the second one carries
+/// connecting lines. Each cell collects the directions its lines leave through and the glyph set maps the
+/// combination to a character, so overlapping lines (forks, joins, crossings) always draw correctly.
+/// </summary>
 public static class LaneCellBuilder
 {
     /// <param name="row">The layout of the row.</param>
@@ -10,8 +14,9 @@ public static class LaneCellBuilder
     /// <param name="glyphs">The characters to use.</param>
     public static GraphCell[] Build(GraphRow row, int laneColumns, GraphGlyphSet glyphs)
     {
-        var cells = new GraphCell[laneColumns * 2];
-        Array.Fill(cells, new GraphCell(' ', -1));
+        var directions = new LineDirections[laneColumns * 2];
+        var lanes = new int[laneColumns * 2];
+        Array.Fill(lanes, -1);
 
         var nodeLane = Math.Min(row.Lane, laneColumns - 1);
         var outgoingCount = 0;
@@ -21,23 +26,32 @@ public static class LaneCellBuilder
             {
                 case GraphEdgeKind.Through:
                     var throughLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    cells[throughLane * 2] = new GraphCell(glyphs.Vertical, throughLane);
+                    Add(directions, lanes, throughLane * 2, LineDirections.Up | LineDirections.Down, throughLane);
                     break;
                 case GraphEdgeKind.Incoming:
-                    Connect(cells, Math.Min(edge.FromLane, laneColumns - 1), nodeLane, isIncoming: true, glyphs);
+                    Connect(directions, lanes, Math.Min(edge.FromLane, laneColumns - 1), nodeLane, LineDirections.Up);
                     break;
                 default:
                     outgoingCount++;
-                    Connect(cells, Math.Min(edge.ToLane, laneColumns - 1), nodeLane, isIncoming: false, glyphs);
+                    Connect(directions, lanes, Math.Min(edge.ToLane, laneColumns - 1), nodeLane, LineDirections.Down);
                     break;
             }
+        }
+
+        var cells = new GraphCell[laneColumns * 2];
+        for (var column = 0; column < cells.Length; column++)
+        {
+            cells[column] = directions[column] == LineDirections.None
+                ? new GraphCell(' ', -1)
+                : new GraphCell(glyphs.For(directions[column]), lanes[column]);
         }
 
         cells[nodeLane * 2] = new GraphCell(outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node, nodeLane);
         return cells;
     }
 
-    private static void Connect(GraphCell[] cells, int otherLane, int nodeLane, bool isIncoming, GraphGlyphSet glyphs)
+    // A line between the node and another lane: horizontal in between, a corner (up or down plus sideways) at the other lane.
+    private static void Connect(LineDirections[] directions, int[] lanes, int otherLane, int nodeLane, LineDirections vertical)
     {
         if (otherLane == nodeLane)
         {
@@ -46,31 +60,23 @@ public static class LaneCellBuilder
 
         var from = Math.Min(otherLane, nodeLane);
         var to = Math.Max(otherLane, nodeLane);
+        var isRight = otherLane > nodeLane;
         for (var column = (from * 2) + 1; column < to * 2; column++)
         {
-            var existing = cells[column].Glyph;
-            if (existing == ' ')
-            {
-                cells[column] = new GraphCell(glyphs.Horizontal, otherLane);
-            }
-            else if (existing == glyphs.Vertical)
-            {
-                cells[column] = new GraphCell(glyphs.Cross, cells[column].Lane);
-            }
+            Add(directions, lanes, column, LineDirections.Left | LineDirections.Right, otherLane);
         }
 
-        var isRight = otherLane > nodeLane;
-        var corner = isIncoming
-            ? (isRight ? glyphs.IncomingFromRight : glyphs.IncomingFromLeft)
-            : (isRight ? glyphs.OutgoingToRight : glyphs.OutgoingToLeft);
-        var opposite = isIncoming
-            ? (isRight ? glyphs.OutgoingToRight : glyphs.OutgoingToLeft)
-            : (isRight ? glyphs.IncomingFromRight : glyphs.IncomingFromLeft);
+        Add(directions, lanes, otherLane * 2, vertical | (isRight ? LineDirections.Left : LineDirections.Right), otherLane);
+    }
 
-        // A lane that continues through the row and receives the node's line, or ends at the node and is reused for a
-        // parent in the same row, is one tee instead of a corner that would cut the lane.
-        var cornerCell = cells[otherLane * 2].Glyph;
-        var isTee = cornerCell == glyphs.Vertical || (cornerCell == opposite && opposite != corner);
-        cells[otherLane * 2] = new GraphCell(isTee ? (isRight ? glyphs.TeeLeft : glyphs.TeeRight) : corner, otherLane);
+    // The first line in a cell decides its colour (a through lane keeps its own where a connection crosses it).
+    private static void Add(LineDirections[] directions, int[] lanes, int column, LineDirections added, int lane)
+    {
+        if (directions[column] == LineDirections.None)
+        {
+            lanes[column] = lane;
+        }
+
+        directions[column] |= added;
     }
 }

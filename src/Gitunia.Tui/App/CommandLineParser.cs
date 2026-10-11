@@ -24,7 +24,7 @@ public static class CommandLineParser
                 height = parsedHeight;
                 index++;
             }
-            else if (argument.StartsWith("--", StringComparison.Ordinal) || path is not null)
+            else if (argument.StartsWith('-') || path is not null)
             {
                 return new CommandLineOptions(null, null, null, $"unexpected argument '{argument}'");
             }
