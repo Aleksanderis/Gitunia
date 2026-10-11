@@ -5,8 +5,8 @@ namespace Gitunia.Core.Persistence;
 
 /// <summary>
 /// Loads and saves the session (open tabs, recents, pins, per-tab view state) as <c>session.json</c> in a state directory.
-/// Saves are atomic. Loading never throws for bad input: a missing or corrupt file yields an empty workspace, and a corrupt
-/// file is set aside as <c>session.json.corrupt</c> so it is not silently overwritten without a trace.
+/// Saves are atomic. Loading never throws for bad input: a missing or corrupt file yields an empty workspace. A corrupt file is set aside as <c>session.json.corrupt</c> (never
+/// overwriting an earlier one), a file of another schema version as <c>session.json.v&lt;n&gt;.bak</c>; an unreadable file is left alone.
 /// </summary>
 public sealed class SessionStore
 {
@@ -43,14 +43,15 @@ public sealed class SessionStore
 
             if (info.Length > MaximumFileBytes)
             {
-                return Discard("the session file is too large");
+                return SetAside("the session file is too large", ".corrupt", SessionLoadStatus.Discarded);
             }
 
             content = await File.ReadAllBytesAsync(FilePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Discard("the session file could not be read");
+            // A read error says nothing about the content (a lock, a permission glitch): leave the file where it is.
+            return new SessionLoadResult(new WorkspaceUpdate(Workspace.Empty, []), SessionLoadStatus.Discarded, "the session file could not be read");
         }
 
         SessionDocument? document;
@@ -60,12 +61,17 @@ public sealed class SessionStore
         }
         catch (JsonException)
         {
-            return Discard("the session file is not valid JSON");
+            return SetAside("the session file is not valid JSON", ".corrupt", SessionLoadStatus.Discarded);
         }
 
-        if (document is null || document.Version != SessionDocument.CurrentVersion)
+        if (document is null)
         {
-            return Discard("the session file has an unsupported version");
+            return SetAside("the session file is empty", ".corrupt", SessionLoadStatus.Discarded);
+        }
+
+        if (document.Version != SessionDocument.CurrentVersion)
+        {
+            return SetAside("the session file is from another version of gitunia", ".v" + document.Version + ".bak", SessionLoadStatus.UnsupportedVersion);
         }
 
         var update = SessionDocumentMapper.ToWorkspace(document, directoryExists);
@@ -87,17 +93,23 @@ public sealed class SessionStore
         }
     }
 
-    private SessionLoadResult Discard(string reason)
+    private SessionLoadResult SetAside(string reason, string suffix, SessionLoadStatus status)
     {
         try
         {
-            File.Move(FilePath, FilePath + ".corrupt", overwrite: true);
+            var target = FilePath + suffix;
+            if (suffix == ".corrupt" && File.Exists(target))
+            {
+                target += "." + Guid.NewGuid().ToString("N")[..8];
+            }
+
+            File.Move(FilePath, target, overwrite: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             // Setting the file aside is best effort; the next save replaces it anyway.
         }
 
-        return new SessionLoadResult(new WorkspaceUpdate(Workspace.Empty, []), SessionLoadStatus.Discarded, reason);
+        return new SessionLoadResult(new WorkspaceUpdate(Workspace.Empty, []), status, reason);
     }
 }

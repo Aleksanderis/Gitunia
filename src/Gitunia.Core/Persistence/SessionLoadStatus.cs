@@ -9,6 +9,9 @@ public enum SessionLoadStatus
     /// <summary>The session was read and restored.</summary>
     Restored,
 
-    /// <summary>The file was unreadable, malformed or from another schema version; it was set aside and an empty workspace is used.</summary>
+    /// <summary>The file was unreadable, malformed or oversized; a malformed one was set aside and an empty workspace is used.</summary>
     Discarded,
+
+    /// <summary>The file has another schema version (for example after a downgrade); it was backed up and an empty workspace is used.</summary>
+    UnsupportedVersion,
 }

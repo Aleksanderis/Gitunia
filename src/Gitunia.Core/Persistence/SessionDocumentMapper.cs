@@ -135,5 +135,5 @@ public static class SessionDocumentMapper
         return result.ToImmutable();
     }
 
-    private static bool IsAbsolute(string? path) => !string.IsNullOrWhiteSpace(path) && Path.IsPathRooted(path) && !path.Contains('\0');
+    private static bool IsAbsolute(string? path) => !string.IsNullOrWhiteSpace(path) && Path.IsPathFullyQualified(path) && !path.Contains('\0');
 }
