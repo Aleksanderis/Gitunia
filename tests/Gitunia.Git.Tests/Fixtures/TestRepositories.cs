@@ -15,7 +15,7 @@ public static class TestRepositories
         return repository;
     }
 
-    /// <summary>main and feature diverge and are merged; a second branch and a tag stay unmerged.</summary>
+    /// <summary>main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, locked/prunable/dirty worktrees, renames and binary files are added by the parser issues that need them.</summary>
     public static TestRepository Branchy()
     {
         TestRepository repository = TestRepository.Create()

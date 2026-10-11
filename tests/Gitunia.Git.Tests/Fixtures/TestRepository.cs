@@ -50,17 +50,19 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
+    /// <summary>Deletes a file from the working tree (not staged).</summary>
     public TestRepository Delete(string relativePath)
     {
         File.Delete(System.IO.Path.Combine(Path, relativePath));
         return this;
     }
 
+    /// <summary>Writes a working-tree file, creating directories; not staged.</summary>
     public TestRepository WriteFile(string relativePath, string content)
     {
-        string full = System.IO.Path.Combine(Path, relativePath);
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(full)!);
-        File.WriteAllText(full, content);
+        string fullPath = System.IO.Path.Combine(Path, relativePath);
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath)!);
+        File.WriteAllText(fullPath, content);
         return this;
     }
 
@@ -111,18 +113,17 @@ public sealed class TestRepository : IDisposable
         return path;
     }
 
+    /// <summary>Full hash of HEAD in the main repository.</summary>
     public string Head => Git("rev-parse", "HEAD").Trim();
 
     /// <summary>Runs git in the main repository and returns stdout. Commits advance the fake clock.</summary>
     public string Git(params string[] arguments) => Git(arguments, acceptedExitCodes: null);
 
+    /// <summary>Same as <see cref="Git(string[])"/> but tolerates the given non-zero exit codes.</summary>
     public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes)
     {
-        DateTimeOffset moment = Epoch.AddMinutes(commitCounter);
-        if (arguments.Length > 0 && arguments[0] is "commit" or "merge" or "tag")
-        {
-            commitCounter++;
-        }
+        // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.
+        DateTimeOffset moment = Epoch.AddMinutes(commitCounter++);
 
         string stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         var runner = new GitRunner(new GitRunnerOptions(
@@ -140,6 +141,11 @@ public sealed class TestRepository : IDisposable
                 ["GIT_AUTHOR_EMAIL"] = "test@example.com",
                 ["GIT_COMMITTER_NAME"] = "Test",
                 ["GIT_COMMITTER_EMAIL"] = "test@example.com",
+                ["GIT_DIR"] = null,
+                ["GIT_WORK_TREE"] = null,
+                ["GIT_INDEX_FILE"] = null,
+                ["GIT_OBJECT_DIRECTORY"] = null,
+                ["GIT_COMMON_DIR"] = null,
                 ["GIT_AUTHOR_DATE"] = stamp,
                 ["GIT_COMMITTER_DATE"] = stamp,
             }));
@@ -152,6 +158,11 @@ public sealed class TestRepository : IDisposable
 
     public void Dispose()
     {
+        if (!Directory.Exists(rootDirectory))
+        {
+            return;
+        }
+
         foreach (string file in Directory.EnumerateFiles(rootDirectory, "*", SearchOption.AllDirectories))
         {
             // Git object files are read-only, which blocks deletion on Windows.
