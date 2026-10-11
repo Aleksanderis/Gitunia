@@ -34,7 +34,9 @@ public static class Osc52Encoder
             return Failure(Osc52Status.TooLarge, $"Too large to copy ({bytes.Length} bytes, limit about {options.MaximumEncodedLength / 4 * 3} bytes).");
         }
 
-        var sequence = $"{Escape}]52;c;{Convert.ToBase64String(bytes)}{StringTerminator}";
+        // Screen chunks the sequence into DCS strings, so the OSC must end with BEL: an ESC \ terminator could be cut in half.
+        var terminator = options.Mode == Osc52Mode.Screen ? "\a" : StringTerminator;
+        var sequence = $"{Escape}]52;c;{Convert.ToBase64String(bytes)}{terminator}";
         return new Osc52Result(Osc52Status.Ready, Wrap(sequence, options.Mode), string.Empty);
     }
 

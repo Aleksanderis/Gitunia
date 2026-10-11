@@ -31,7 +31,7 @@ public sealed class ClipboardWriter
             output.Write(result.Sequence);
             output.Flush();
         }
-        catch (IOException exception)
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException)
         {
             return new ClipboardOutcome(false, $"Cannot copy: writing to the terminal failed ({exception.Message}).");
         }

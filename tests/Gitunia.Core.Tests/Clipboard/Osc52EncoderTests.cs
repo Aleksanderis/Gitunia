@@ -37,7 +37,23 @@ public class Osc52EncoderTests
         Assert.All(chunks, chunk => Assert.StartsWith("\u001bP", chunk, StringComparison.Ordinal));
         Assert.All(chunks, chunk => Assert.True(chunk.Length <= 2 + 76));
         var joined = string.Concat(chunks.Select(chunk => chunk[2..]));
-        Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)), joined);
+        Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)) + "\a", joined);
+    }
+
+    [Fact]
+    public void GivenAnyTextLength_WhenEncodingForScreen_ThenOnlyTheLeadingEscapeAppearsInsideChunks()
+    {
+        for (var length = 1; length <= 200; length++)
+        {
+            var text = new string('x', length);
+
+            var result = Osc52Encoder.Encode(text, new Osc52Options(Osc52Mode.Screen, 100_000));
+
+            var chunks = result.Sequence.Split("\u001b\\", StringSplitOptions.RemoveEmptyEntries);
+            var joined = string.Concat(chunks.Select(chunk => chunk[2..]));
+            Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)) + "\a", joined);
+            Assert.Equal(1, joined.Count(character => character == '\u001b'));
+        }
     }
 
     [Fact]
