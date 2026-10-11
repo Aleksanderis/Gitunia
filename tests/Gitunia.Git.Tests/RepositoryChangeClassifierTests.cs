@@ -32,6 +32,7 @@ public class RepositoryChangeClassifierTests
     [InlineData(".git/logs/HEAD", RepositoryChangeKinds.None)]
     [InlineData(".git/worktrees/other/HEAD", RepositoryChangeKinds.Worktrees)]
     [InlineData(".git/worktrees/other/index", RepositoryChangeKinds.None)]
+    [InlineData("Cargo.lock", RepositoryChangeKinds.WorkingTree)]
     [InlineData("src/file.cs", RepositoryChangeKinds.WorkingTree)]
     public void GivenMainTab_WhenClassifying_ThenKindMatches(string relativePath, RepositoryChangeKinds expected)
     {

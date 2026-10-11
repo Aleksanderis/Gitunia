@@ -20,20 +20,15 @@ public static class RepositoryChangeClassifier
 
     public static RepositoryChangeKinds Classify(RepositoryLocation location, string fullPath)
     {
-        if (fullPath.EndsWith(".lock", StringComparison.Ordinal))
-        {
-            return RepositoryChangeKinds.None;
-        }
-
         // The own git directory first: a linked worktree's lives inside the common directory.
         if (TryGetRelative(location.GitDirectory, fullPath, out var ownRelative))
         {
-            return ClassifyOwnGitDirectory(ownRelative);
+            return IsLockFile(fullPath) ? RepositoryChangeKinds.None : ClassifyOwnGitDirectory(ownRelative);
         }
 
         if (TryGetRelative(location.CommonDirectory, fullPath, out var commonRelative))
         {
-            return ClassifyCommonDirectory(commonRelative, location.IsLinkedWorktree);
+            return IsLockFile(fullPath) ? RepositoryChangeKinds.None : ClassifyCommonDirectory(commonRelative, location.IsLinkedWorktree);
         }
 
         if (location.WorkingTreePath is not null && TryGetRelative(location.WorkingTreePath, fullPath, out _))
@@ -43,6 +38,9 @@ public static class RepositoryChangeClassifier
 
         return RepositoryChangeKinds.None;
     }
+
+    /// <summary>Git's transient lock files; only meaningful inside git directories (a tracked Cargo.lock is a normal file).</summary>
+    private static bool IsLockFile(string fullPath) => fullPath.EndsWith(".lock", StringComparison.Ordinal);
 
     private static RepositoryChangeKinds ClassifyOwnGitDirectory(string relative)
     {

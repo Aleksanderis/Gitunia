@@ -5,7 +5,7 @@ namespace Gitunia.Git;
 /// git directories and the working tree. Events are classified, merged and debounced; the callback receives what may have changed.
 /// A background tab (<see cref="IsActive"/> false) does not call back: it keeps the pending changes and reports them when it is
 /// activated. When the shared <see cref="WatchBudget"/> is exhausted, or a watcher cannot be created or fails, the tab polls instead.
-/// The callback runs on a thread pool thread and must not throw.
+/// The callback runs on a thread pool thread (on the caller's thread for the report made by <see cref="SetActive"/>) and must not throw.
 /// </summary>
 public sealed class RepositoryWatcher : IDisposable
 {
@@ -17,6 +17,7 @@ public sealed class RepositoryWatcher : IDisposable
     private readonly Action<RepositoryChangeKinds> _onChanged;
     private readonly object _gate = new();
     private readonly List<FileSystemWatcher> _watchers = [];
+    private readonly HashSet<string> _watchedPaths = new(StringComparer.Ordinal);
     private readonly Timer _debounceTimer;
     private Timer? _pollTimer;
     private RepositoryChangeKinds _pending;
@@ -112,6 +113,7 @@ public sealed class RepositoryWatcher : IDisposable
                 foreach (var entry in plan)
                 {
                     _watchers.Add(CreateWatcher(entry.Path, entry.IsRecursive));
+                    _watchedPaths.Add(entry.Path);
                 }
             }
             catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
@@ -247,7 +249,7 @@ public sealed class RepositoryWatcher : IDisposable
     {
         lock (_gate)
         {
-            if (_isDisposed || _pollTimer is not null)
+            if (_isDisposed || _pollTimer is not null || _watchedPaths.Contains(path))
             {
                 return;
             }
@@ -262,6 +264,7 @@ public sealed class RepositoryWatcher : IDisposable
             try
             {
                 _watchers.Add(CreateWatcher(path, isRecursive: true));
+                _watchedPaths.Add(path);
             }
             catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
             {
@@ -299,13 +302,18 @@ public sealed class RepositoryWatcher : IDisposable
 
     private void ReleaseWatchers()
     {
-        foreach (var watcher in _watchers)
+        // Disposing can wait for in-flight handlers, which take the gate, so it happens off this thread.
+        var retired = _watchers.ToArray();
+        Task.Run(() =>
         {
-            watcher.EnableRaisingEvents = false;
-            watcher.Dispose();
-        }
-
+            foreach (var watcher in retired)
+            {
+                watcher.EnableRaisingEvents = false;
+                watcher.Dispose();
+            }
+        });
         _watchers.Clear();
+        _watchedPaths.Clear();
         _budget.Release(_heldSlots);
         _heldSlots = 0;
     }
