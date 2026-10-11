@@ -27,6 +27,7 @@ internal sealed class DiffFileBuilder
     private bool isCopy;
     private bool isBinary;
     private bool inBinaryPatch;
+    private bool skippingUnreadableHunk;
 
     private string? openHeaderText;
     private int openOldStart;
@@ -81,6 +82,11 @@ internal sealed class DiffFileBuilder
         if (line.StartsWith("@@ ", StringComparison.Ordinal))
         {
             StartHunk(line);
+            return;
+        }
+
+        if (skippingUnreadableHunk)
+        {
             return;
         }
 
@@ -205,11 +211,11 @@ internal sealed class DiffFileBuilder
         if (!TryParseHunkHeader(line, out var oldStart, out var oldCount, out var newStart, out var newCount, out var section))
         {
             warnings.Add($"Skipped hunk with an unreadable header: '{line}'");
-            openHeaderText = line;
-            openOldStart = openNewStart = openOldCount = openNewCount = 0;
-            remainingOld = remainingNew = 0;
+            skippingUnreadableHunk = true;
             return;
         }
+
+        skippingUnreadableHunk = false;
 
         openHeaderText = line;
         openOldStart = oldStart;

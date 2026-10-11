@@ -145,6 +145,45 @@ public class DiffReaderTests
         Assert.Equal("a\nB", repository.Git("show", ":f.txt"));
     }
 
+    [Theory]
+    [InlineData("added")]
+    [InlineData("removed")]
+    public async Task GivenNewlineAtEndOfFileChanges_WhenSelectingOneSideOfTheChange_ThenPatchStillApplies(string selectedSide)
+    {
+        using var repository = TestRepository.Create().Commit("base", ("f.txt", "a\nb"));
+        repository.WriteFile("f.txt", "a\nb\n");
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var file = (await ReadAllAsync(repo, ["diff"], [])).Single();
+        var lines = file.Hunks.Single().Lines.ToList();
+        var index = lines.FindIndex(line => line.Kind == (selectedSide == "added" ? DiffLineKind.Added : DiffLineKind.Removed));
+
+        ApplyToIndex(repository, DiffPatchWriter.WriteSelection(file, new Dictionary<int, IReadOnlyCollection<int>> { [0] = [index] }, PatchDirection.Forward), reverse: false);
+
+        Assert.Equal(selectedSide == "added" ? "a\nb\n" : "a\n", repository.Git("show", ":f.txt"));
+    }
+
+    [Fact]
+    public async Task GivenStagedChangesInTwoHunks_WhenReversingSelectionsOfBoth_ThenOffsetsAreRightAndOnlyThoseLinesAreUnstaged()
+    {
+        var original = string.Concat(Enumerable.Range(1, 30).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", ("f.txt", original));
+        repository.WriteFile("f.txt", original.Replace("line 3\n", "three\nextra\nextra two\n").Replace("line 20\n", string.Empty).Replace("line 27\n", "twenty-seven\n"));
+        repository.Git("add", "f.txt");
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var file = (await ReadAllAsync(repo, ["diff", "--cached", "-U1"], [])).Single();
+        Assert.Equal(3, file.Hunks.Count);
+        var selection = new Dictionary<int, IReadOnlyCollection<int>>
+        {
+            [0] = [file.Hunks[0].Lines.ToList().FindIndex(line => line.Text == "extra two")],
+            [2] = [file.Hunks[2].Lines.ToList().FindIndex(line => line.Text == "line 27")],
+        };
+
+        ApplyToIndex(repository, DiffPatchWriter.WriteSelection(file, selection, PatchDirection.Reverse), reverse: true);
+
+        var expected = original.Replace("line 3\n", "three\nextra\n").Replace("line 20\n", string.Empty).Replace("line 27\n", "line 27\ntwenty-seven\n");
+        Assert.Equal(expected, repository.Git("show", ":f.txt"));
+    }
+
     [Fact]
     public async Task GivenHugeDiff_WhenStreaming_ThenEveryLineArrivesAndParserBuffersOnlyOneLine()
     {
@@ -193,7 +232,7 @@ public class DiffReaderTests
     {
         Assert.NotEqual(string.Empty, patch);
         var patchPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-patch-" + Guid.NewGuid().ToString("N") + ".patch");
-        File.WriteAllBytes(patchPath, DiffPatchWriter.ToBytes(patch));
+        File.WriteAllBytes(patchPath, Encoding.UTF8.GetBytes(patch));
         try
         {
             repository.Git(reverse ? ["apply", "--cached", "-R", patchPath] : ["apply", "--cached", patchPath], null);

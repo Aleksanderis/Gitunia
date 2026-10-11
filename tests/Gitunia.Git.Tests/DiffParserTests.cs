@@ -168,6 +168,18 @@ public class DiffParserTests
     }
 
     [Fact]
+    public void GivenUnreadableHunkHeader_WhenParsing_ThenOneWarningAndNoBogusHunk()
+    {
+        var patch = "diff --git a/x.txt b/x.txt\n--- a/x.txt\n+++ b/x.txt\n@@ nonsense @@\n-a\n+b\n+c\n@@ -5 +5 @@\n-d\n+e\n";
+
+        var result = DiffParser.Parse(patch);
+
+        var file = Assert.Single(result.Items);
+        Assert.Equal("@@ -5 +5 @@", Assert.Single(file.Hunks).HeaderText);
+        Assert.Single(result.Warnings);
+    }
+
+    [Fact]
     public void GivenInvalidUtf8_WhenParsing_ThenWarnsOnce()
     {
         var parser = new DiffParser();

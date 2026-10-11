@@ -62,14 +62,14 @@ public class DiffPatchWriterTests
     }
 
     [Fact]
-    public void GivenNoNewlineLineKeptAsContext_WhenWriting_ThenMarkerFollowsIt()
+    public void GivenOneSideOfNoNewlineChangeSelected_WhenWriting_ThenOtherSideIsCoupledAndMarkersStay()
     {
         var file = DiffParser.Parse(DiffFixtures.NoNewlineBothSides).Items.Single();
 
         var patch = DiffPatchWriter.WriteSelection(file, Selection((0, [2])), PatchDirection.Forward);
 
-        Assert.EndsWith(" first\n last\n\\ No newline at end of file\n+last changed\n\\ No newline at end of file\n", patch, StringComparison.Ordinal);
-        Assert.Contains("@@ -1,2 +1,3 @@", patch, StringComparison.Ordinal);
+        Assert.EndsWith(" first\n-last\n\\ No newline at end of file\n+last changed\n\\ No newline at end of file\n", patch, StringComparison.Ordinal);
+        Assert.Contains("@@ -1,2 +1,2 @@", patch, StringComparison.Ordinal);
     }
 
     [Fact]

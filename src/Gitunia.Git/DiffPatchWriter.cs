@@ -71,10 +71,11 @@ public static class DiffPatchWriter
             var oldCount = 0;
             var newCount = 0;
             var hasChange = false;
+            var effectiveSelection = CoupleNoNewlineLines(hunk, selected);
             for (var lineIndex = 0; lineIndex < hunk.Lines.Count; lineIndex++)
             {
                 var line = hunk.Lines[lineIndex];
-                var kind = EffectiveKind(line.Kind, selected.Contains(lineIndex), direction);
+                var kind = EffectiveKind(line.Kind, effectiveSelection.Contains(lineIndex), direction);
                 if (kind is null)
                 {
                     continue;
@@ -109,8 +110,32 @@ public static class DiffPatchWriter
         return builder.Append(body).ToString();
     }
 
-    /// <summary>The bytes to hand to <c>git apply</c>.</summary>
-    public static byte[] ToBytes(string patch) => Encoding.UTF8.GetBytes(patch);
+    /// <summary>
+    /// A line followed by the no-newline marker changes whether the file ends with a newline, which only makes sense
+    /// together with the opposite change next to it. If such a line is unselected while a line of the other kind is
+    /// selected, it is selected too so the patch stays applicable.
+    /// </summary>
+    private static HashSet<int> CoupleNoNewlineLines(DiffHunk hunk, IReadOnlyCollection<int> selected)
+    {
+        var result = new HashSet<int>(selected);
+        var selectsAdded = selected.Any(index => index >= 0 && index < hunk.Lines.Count && hunk.Lines[index].Kind == DiffLineKind.Added);
+        var selectsRemoved = selected.Any(index => index >= 0 && index < hunk.Lines.Count && hunk.Lines[index].Kind == DiffLineKind.Removed);
+        for (var index = 0; index < hunk.Lines.Count; index++)
+        {
+            var line = hunk.Lines[index];
+            if (!line.NoNewlineAtEnd || result.Contains(index))
+            {
+                continue;
+            }
+
+            if ((line.Kind == DiffLineKind.Removed && selectsAdded) || (line.Kind == DiffLineKind.Added && selectsRemoved))
+            {
+                result.Add(index);
+            }
+        }
+
+        return result;
+    }
 
     private static string CultureFree(FormattableString text) => text.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
