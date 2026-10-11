@@ -133,9 +133,9 @@ public sealed partial class App : IDisposable
                 _buf.Resize(w, h);
                 return true;
             case KeyEvent k:
-                var before = _graphCur.Sel;
+                var before = _graphCur.Selection;
                 var dirty = OnKey(k);
-                if (_graphCur.Sel != before)
+                if (_graphCur.Selection != before)
                 {
                     RequestDetails();
                 }
@@ -150,7 +150,7 @@ public sealed partial class App : IDisposable
     {
         var status = _searching
             ? "/" + _input
-            : $" NORMAL  [{_focus}]  {_graphCur.Sel + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q" + (_query.Length > 0 ? $"  [/{_query}]" : string.Empty);
+            : $" NORMAL  [{_focus}]  {_graphCur.Selection + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q" + (_query.Length > 0 ? $"  [/{_query}]" : string.Empty);
         Screen.Draw(_buf, new ScreenModel
         {
             RepoName = Path.GetFileName(_repo.TrimEnd(Path.DirectorySeparatorChar)),

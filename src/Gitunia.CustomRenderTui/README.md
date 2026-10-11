@@ -42,7 +42,7 @@ Keys: `Tab` switch pane, `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`
 
 ```
 dotnet build tools/ConPtyHarness -c Release -o harness
-./tools/make-fixture-repo.ps1 -Path $env:TEMP/fixture
+./scripts/make-fixture-repo.ps1 -Path $env:TEMP/fixture
 dotnet harness/ConPtyHarness.dll out/gitunia-custom-demo.exe $env:TEMP/fixture --strict
 ```
 

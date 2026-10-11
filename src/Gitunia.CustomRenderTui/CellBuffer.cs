@@ -2,18 +2,6 @@ using System.Text;
 
 namespace Gitunia.CustomRenderTui;
 
-[Flags]
-public enum Style : byte
-{
-    None = 0,
-    Reverse = 1,
-    Dim = 2,
-    Bold = 4,
-}
-
-/// <summary>One terminal cell. Fg is a 256-colour palette index; 0 means the terminal default.</summary>
-public readonly record struct Cell(char Ch, Style Style, byte Fg = 0);
-
 /// <summary>Cell grid with diff-based flush: only changed cells are emitted, in one buffered write.</summary>
 public sealed class CellBuffer
 {

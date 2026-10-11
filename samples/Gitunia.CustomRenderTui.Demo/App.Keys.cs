@@ -122,7 +122,7 @@ public sealed partial class App
 
         for (var step = 1; step <= total; step++)
         {
-            var i = (((_graphCur.Sel + (dir * step)) % total) + total) % total;
+            var i = (((_graphCur.Selection + (dir * step)) % total) + total) % total;
             if (_graph.Store.Subject(i).Contains(_query, StringComparison.OrdinalIgnoreCase))
             {
                 _graphCur.Set(i, total);

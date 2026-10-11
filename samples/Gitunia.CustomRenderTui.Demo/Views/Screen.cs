@@ -3,40 +3,6 @@ using Gitunia.CustomRenderTui;
 
 namespace Gitunia.CustomRenderTui.Demo.Views;
 
-public enum Pane
-{
-    Sidebar,
-    Graph,
-    Details,
-}
-
-/// <summary>One sidebar row: a section header or a ref name.</summary>
-public readonly record struct SidebarItem(string Text, bool Header);
-
-/// <summary>Everything the screen shows, handed to <see cref="Screen.Draw"/> each frame.</summary>
-public sealed class ScreenModel
-{
-    public string RepoName { get; init; } = string.Empty;
-
-    public Pane Focus { get; init; }
-
-    public CommitGraph Graph { get; init; } = new();
-
-    public ListCursor GraphCursor { get; init; } = new();
-
-    public IReadOnlyList<SidebarItem> Sidebar { get; init; } = [];
-
-    public ListCursor SidebarCursor { get; init; } = new();
-
-    public IReadOnlyList<string> Details { get; init; } = [];
-
-    public ListCursor DetailsCursor { get; init; } = new();
-
-    public bool Loading { get; init; }
-
-    public string Status { get; init; } = string.Empty;
-}
-
 /// <summary>Draws the M1-like layout: title bar, tab bar, sidebar, graph, details pane and status line.</summary>
 public static class Screen
 {
@@ -83,7 +49,7 @@ public static class Screen
             var item = m.Sidebar[top + r];
             var text = item.Header ? "▾ " + item.Text : "  " + item.Text;
             buf.Put(x + 1, y + 1 + r, Clip(text, w - 2), item.Header ? Style.Bold : Style.None, item.Header ? (byte)110 : (byte)0);
-            if (top + r == m.SidebarCursor.Sel && m.Focus == Pane.Sidebar)
+            if (top + r == m.SidebarCursor.Selection && m.Focus == Pane.Sidebar)
             {
                 buf.StyleSpan(x + 1, y + 1 + r, w - 2, Style.Reverse);
             }
@@ -93,7 +59,7 @@ public static class Screen
     private static void DrawGraph(CellBuffer buf, ScreenModel m, int x, int y, int w, int h)
     {
         var count = m.Graph.Count;
-        buf.Box(x, y, w, h, $"Graph  {(count == 0 ? 0 : m.GraphCursor.Sel + 1)}/{count}{(m.Loading ? " loading…" : string.Empty)}", BorderStyle(m, Pane.Graph));
+        buf.Box(x, y, w, h, $"Graph  {(count == 0 ? 0 : m.GraphCursor.Selection + 1)}/{count}{(m.Loading ? " loading…" : string.Empty)}", BorderStyle(m, Pane.Graph));
         var rows = h - 2;
         var inner = w - 2;
         var top = m.GraphCursor.Scroll(rows, count);
@@ -125,7 +91,7 @@ public static class Screen
             var hash = m.Graph.Store.Hash(idx);
             buf.Put(textX, y + 1 + r, hash.Length >= 7 ? hash[..7] : hash, Style.Dim, 244);
             buf.Put(textX + 8, y + 1 + r, Clip(m.Graph.Store.Subject(idx), x + w - 1 - (textX + 8)), Style.None);
-            if (idx == m.GraphCursor.Sel)
+            if (idx == m.GraphCursor.Selection)
             {
                 buf.StyleSpan(x + 1, y + 1 + r, inner, m.Focus == Pane.Graph ? Style.Reverse : Style.Bold);
             }

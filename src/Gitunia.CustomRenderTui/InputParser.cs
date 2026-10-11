@@ -67,12 +67,12 @@ public sealed class InputParser
         _pending.RemoveRange(0, i);
     }
 
-    private static void Csi(string args, char fin, List<KeyEvent> o)
+    private static void Csi(string args, char finalChar, List<KeyEvent> o)
     {
         if (args.StartsWith('<'))
         {
             var parts = args[1..].Split(';');
-            if (fin == 'M' && parts.Length == 3 && int.TryParse(parts[0], out var btn))
+            if (finalChar == 'M' && parts.Length == 3 && int.TryParse(parts[0], out var btn))
             {
                 if (btn == 64)
                 {
@@ -87,7 +87,7 @@ public sealed class InputParser
             return;
         }
 
-        switch (fin)
+        switch (finalChar)
         {
             case 'A': o.Add(new KeyEvent(KeyKind.Up)); break;
             case 'B': o.Add(new KeyEvent(KeyKind.Down)); break;

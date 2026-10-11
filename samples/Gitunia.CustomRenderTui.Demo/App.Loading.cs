@@ -42,7 +42,7 @@ public sealed partial class App
             return;
         }
 
-        var hash = _graph.Store.Hash(_graphCur.Sel);
+        var hash = _graph.Store.Hash(_graphCur.Selection);
         if (hash == _detailHash)
         {
             return;
