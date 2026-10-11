@@ -1,0 +1,52 @@
+using Gitunia.Core.Graph;
+
+namespace Gitunia.Tui.Rendering;
+
+/// <summary>Lays out a whole frame as styled lines, without a terminal: what snapshot tests and <c>--print-frame</c> show.</summary>
+public static class ScreenComposer
+{
+    /// <param name="model">The chrome content.</param>
+    /// <param name="graph">The loaded commits.</param>
+    /// <param name="selectedItem">Selected list item (the reserved leading rows count as items).</param>
+    /// <param name="topItem">First visible list item.</param>
+    /// <param name="width">Terminal columns.</param>
+    /// <param name="height">Terminal rows.</param>
+    /// <param name="glyphs">The characters to draw the graph with.</param>
+    public static IReadOnlyList<StyledLine> Compose(
+        ScreenModel model,
+        CommitGraph graph,
+        int selectedItem,
+        int topItem,
+        int width,
+        int height,
+        GraphGlyphSet glyphs)
+    {
+        var lines = new List<StyledLine>(height);
+        if (height > ScreenLayout.HeaderRow)
+        {
+            lines.Add(ChromeBuilder.Header(model, width, glyphs));
+        }
+
+        if (height > ScreenLayout.TabRow)
+        {
+            lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
+        }
+
+        var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs);
+        for (var offset = 0; offset < ScreenLayout.GraphHeight(height); offset++)
+        {
+            var item = topItem + offset;
+            var commitIndex = item - ScreenLayout.ReservedLeadingRows;
+            lines.Add(commitIndex >= 0 && commitIndex < graph.Count
+                ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
+                : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0));
+        }
+
+        if (height > ScreenLayout.GraphTop)
+        {
+            lines.Add(ChromeBuilder.Status(model, width, glyphs));
+        }
+
+        return lines;
+    }
+}

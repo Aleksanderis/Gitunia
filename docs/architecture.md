@@ -30,7 +30,7 @@ src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
   Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types: styled lines, graph glyphs, frame composer), Views (Terminal.Gui views, palette), Input (key translation, keymap controller), Loading (streaming from git), App (wiring: workspace host, effect runner, action router)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/
@@ -60,6 +60,18 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 - Many tabs: background tabs hold only compact state and are refreshed lazily or on a throttled timer; only the active tab does continuous work. Tab switch is instant (no reload).
 - Memory: compact commit model (struct-of-arrays or interned hashes), virtualized lists.
 - Render: diff against the previous frame, write one buffered flush per frame.
+
+### Verified numbers (graph view, #22)
+
+Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh` medians (they include 1-3 ms of tmux polling), Terminal.Gui at 100 iterations per second:
+
+| Terminal | Cold start to first rows | `j` latency | `Ctrl-d` | 200 queued `j` settle | RSS with all 100k loaded |
+|---|---|---|---|---|---|
+| 80x24 | ~72 ms (p95 106) | ~7.5 ms | ~7 ms | ~15 ms | ~69 MB |
+| 120x40 | ~80 ms (p95 101) | ~7.3 ms | ~7.6 ms | ~14 ms | ~73 MB |
+| 200x60 | ~89 ms (p95 106) | ~8.8 ms | ~11.7 ms | ~16 ms | ~73 MB |
+
+The first 150 commits are on screen at once; the whole log streams in and is laid out in ~0.8 s without blocking input (the status bar shows `n/total+` while loading). Idle CPU after loading is ~1%. Memory per loaded commit is ~250 bytes (a compact `GraphEntry`, not the full `CommitInfo`); frame cost depends on the visible rows only, not on the number of loaded commits. A narrow window cuts the newest subject, so the harness's resize check cannot find its marker there (`resize_ms=nan` at 80x24 is that, not a failure to redraw). Known limit: the wide-character table in `TextWidth` covers CJK and the main emoji blocks only, so some newer emoji count as one column and can make a row one cell too wide.
 
 ## Cross-platform
 
