@@ -26,6 +26,6 @@ jobs:
       - name: Build the ConPTY harness
         run: dotnet build tools/ConPtyHarness -c Release -o harness
       - name: Create fixture repo
-        run: ./tools/make-fixture-repo.ps1 -Path $env:RUNNER_TEMP/repo
+        run: ./scripts/make-fixture-repo.ps1 -Path $env:RUNNER_TEMP/repo
       - name: Smoke test under ConPTY
         run: dotnet harness/ConPtyHarness.dll out/gitunia-custom-demo.exe $env:RUNNER_TEMP/repo --strict --expect-after-j 2 --expect-after-resize 'j/k gg G' --expect-after-G 40

@@ -21,7 +21,7 @@ public enum KeyKind
     WheelDown,
 }
 
-public readonly record struct KeyEvent(KeyKind Kind, char Ch = '\0', bool Ctrl = false);
+public readonly record struct KeyEvent(KeyKind Kind, char Character = '\0', bool Ctrl = false);
 
 /// <summary>Incremental VT input parser: UTF-8 text, Ctrl combos, CSI/SS3 keys, SGR mouse wheel.</summary>
 public sealed class InputParser
@@ -37,21 +37,21 @@ public sealed class InputParser
     /// </summary>
     public void Feed(ReadOnlySpan<byte> data, List<KeyEvent> output)
     {
-        foreach (var b in data)
+        foreach (var value in data)
         {
-            _pending.Add(b);
+            _pending.Add(value);
         }
 
         var i = 0;
         while (i < _pending.Count)
         {
-            var n = TryParse(i, output);
-            if (n == 0)
+            var consumed = TryParse(i, output);
+            if (consumed == 0)
             {
                 break;
             }
 
-            i += n;
+            i += consumed;
         }
 
         if (i < _pending.Count && _pending[i] == 0x1b && _pending.Count - i == 1)
@@ -67,41 +67,41 @@ public sealed class InputParser
         _pending.RemoveRange(0, i);
     }
 
-    private static void Csi(string args, char fin, List<KeyEvent> o)
+    private static void Csi(string args, char finalChar, List<KeyEvent> output)
     {
         if (args.StartsWith('<'))
         {
             var parts = args[1..].Split(';');
-            if (fin == 'M' && parts.Length == 3 && int.TryParse(parts[0], out var btn))
+            if (finalChar == 'M' && parts.Length == 3 && int.TryParse(parts[0], out var button))
             {
-                if (btn == 64)
+                if (button == 64)
                 {
-                    o.Add(new KeyEvent(KeyKind.WheelUp));
+                    output.Add(new KeyEvent(KeyKind.WheelUp));
                 }
-                else if (btn == 65)
+                else if (button == 65)
                 {
-                    o.Add(new KeyEvent(KeyKind.WheelDown));
+                    output.Add(new KeyEvent(KeyKind.WheelDown));
                 }
             }
 
             return;
         }
 
-        switch (fin)
+        switch (finalChar)
         {
-            case 'A': o.Add(new KeyEvent(KeyKind.Up)); break;
-            case 'B': o.Add(new KeyEvent(KeyKind.Down)); break;
-            case 'C': o.Add(new KeyEvent(KeyKind.Right)); break;
-            case 'D': o.Add(new KeyEvent(KeyKind.Left)); break;
-            case 'H': o.Add(new KeyEvent(KeyKind.Home)); break;
-            case 'F': o.Add(new KeyEvent(KeyKind.End)); break;
+            case 'A': output.Add(new KeyEvent(KeyKind.Up)); break;
+            case 'B': output.Add(new KeyEvent(KeyKind.Down)); break;
+            case 'C': output.Add(new KeyEvent(KeyKind.Right)); break;
+            case 'D': output.Add(new KeyEvent(KeyKind.Left)); break;
+            case 'H': output.Add(new KeyEvent(KeyKind.Home)); break;
+            case 'F': output.Add(new KeyEvent(KeyKind.End)); break;
             case '~':
                 switch (args)
                 {
-                    case "5": o.Add(new KeyEvent(KeyKind.PageUp)); break;
-                    case "6": o.Add(new KeyEvent(KeyKind.PageDown)); break;
-                    case "1" or "7": o.Add(new KeyEvent(KeyKind.Home)); break;
-                    case "4" or "8": o.Add(new KeyEvent(KeyKind.End)); break;
+                    case "5": output.Add(new KeyEvent(KeyKind.PageUp)); break;
+                    case "6": output.Add(new KeyEvent(KeyKind.PageDown)); break;
+                    case "1" or "7": output.Add(new KeyEvent(KeyKind.Home)); break;
+                    case "4" or "8": output.Add(new KeyEvent(KeyKind.End)); break;
                 }
 
                 break;
@@ -109,82 +109,82 @@ public sealed class InputParser
     }
 
     // Returns consumed bytes, 0 when the sequence is incomplete.
-    private int TryParse(int p, List<KeyEvent> o)
+    private int TryParse(int start, List<KeyEvent> output)
     {
-        var b = _pending[p];
-        var left = _pending.Count - p;
-        if (b == 0x1b)
+        var first = _pending[start];
+        var left = _pending.Count - start;
+        if (first == 0x1b)
         {
             if (left < 2)
             {
                 return 0;
             }
 
-            var c = _pending[p + 1];
-            if (c is (byte)'[' or (byte)'O')
+            var second = _pending[start + 1];
+            if (second is (byte)'[' or (byte)'O')
             {
-                var j = p + 2;
-                while (j < _pending.Count && _pending[j] is >= 0x20 and <= 0x3f)
+                var end = start + 2;
+                while (end < _pending.Count && _pending[end] is >= 0x20 and <= 0x3f)
                 {
-                    j++;
+                    end++;
                 }
 
-                if (j >= _pending.Count)
+                if (end >= _pending.Count)
                 {
                     return 0;
                 }
 
-                var args = Encoding.ASCII.GetString(_pending.GetRange(p + 2, j - p - 2).ToArray());
-                Csi(args, (char)_pending[j], o);
-                return j - p + 1;
+                var args = Encoding.ASCII.GetString(_pending.GetRange(start + 2, end - start - 2).ToArray());
+                Csi(args, (char)_pending[end], output);
+                return end - start + 1;
             }
 
-            o.Add(new KeyEvent(KeyKind.Escape));
+            output.Add(new KeyEvent(KeyKind.Escape));
             return 1;
         }
 
-        if (b is 0x0d or 0x0a)
+        if (first is 0x0d or 0x0a)
         {
-            o.Add(new KeyEvent(KeyKind.Enter));
+            output.Add(new KeyEvent(KeyKind.Enter));
             return 1;
         }
 
-        if (b is 0x7f or 0x08)
+        if (first is 0x7f or 0x08)
         {
-            o.Add(new KeyEvent(KeyKind.Backspace));
+            output.Add(new KeyEvent(KeyKind.Backspace));
             return 1;
         }
 
-        if (b == 0x09)
+        if (first == 0x09)
         {
-            o.Add(new KeyEvent(KeyKind.Tab));
+            output.Add(new KeyEvent(KeyKind.Tab));
             return 1;
         }
 
-        if (b < 0x20)
+        if (first < 0x20)
         {
-            o.Add(new KeyEvent(KeyKind.Text, (char)(b + 0x60), true));
+            output.Add(new KeyEvent(KeyKind.Text, (char)(first + 0x60), true));
             return 1;
         }
 
-        if (b < 0x80)
+        if (first < 0x80)
         {
-            o.Add(new KeyEvent(KeyKind.Text, (char)b));
+            output.Add(new KeyEvent(KeyKind.Text, (char)first));
             return 1;
         }
 
-        var len = b >= 0xf0 ? 4 : b >= 0xe0 ? 3 : 2;
-        if (left < len)
+        var length = first >= 0xf0 ? 4 : first >= 0xe0 ? 3 : 2;
+        if (left < length)
         {
             return 0;
         }
 
-        var s = Encoding.UTF8.GetString(_pending.GetRange(p, len).ToArray());
-        if (s.Length > 0)
+        var text = Encoding.UTF8.GetString(_pending.GetRange(start, length).ToArray());
+        if (text.Length > 0)
         {
-            o.Add(new KeyEvent(KeyKind.Text, s[0]));
+            output.Add(new KeyEvent(KeyKind.Text, text[0]));
         }
 
-        return len;
+        return length;
     }
 }

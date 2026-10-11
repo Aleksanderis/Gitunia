@@ -1,17 +1,17 @@
 namespace Gitunia.Platform;
 
-public sealed class LinuxPlatform(Func<string, string?>? getEnv = null) : PlatformBase(getEnv)
+public sealed class LinuxPlatform(Func<string, string?>? getEnvironmentVariable = null) : PlatformBase(getEnvironmentVariable)
 {
-    public override string ConfigDir => Path.Combine(Env("XDG_CONFIG_HOME") ?? Path.Combine(Home, ".config"), PlatformInfo.AppDirName);
+    public override string ConfigDirectory => Path.Combine(ReadEnvironment("XDG_CONFIG_HOME") ?? Path.Combine(Home, ".config"), PlatformInfo.AppDirectoryName);
 
-    public override string StateDir => Path.Combine(Env("XDG_STATE_HOME") ?? Path.Combine(Home, ".local", "state"), PlatformInfo.AppDirName);
+    public override string StateDirectory => Path.Combine(ReadEnvironment("XDG_STATE_HOME") ?? Path.Combine(Home, ".local", "state"), PlatformInfo.AppDirectoryName);
 }
 
 public sealed class MacPlatform : PlatformBase
 {
-    public override string ConfigDir => Path.Combine(Home, "Library", "Application Support", PlatformInfo.AppDirName);
+    public override string ConfigDirectory => Path.Combine(Home, "Library", "Application Support", PlatformInfo.AppDirectoryName);
 
-    public override string StateDir => Path.Combine(Home, "Library", "Application Support", PlatformInfo.AppDirName, "state");
+    public override string StateDirectory => Path.Combine(Home, "Library", "Application Support", PlatformInfo.AppDirectoryName, "state");
 }
 
 public sealed class WindowsPlatform : PlatformBase
@@ -20,15 +20,15 @@ public sealed class WindowsPlatform : PlatformBase
 
     private static string LocalAppData => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
-    public override string ConfigDir => Path.Combine(AppData, PlatformInfo.AppDirName);
+    public override string ConfigDirectory => Path.Combine(AppData, PlatformInfo.AppDirectoryName);
 
-    public override string StateDir => Path.Combine(LocalAppData, PlatformInfo.AppDirName);
+    public override string StateDirectory => Path.Combine(LocalAppData, PlatformInfo.AppDirectoryName);
 }
 
 /// <summary>Explicit "unsupported" path for any other OS: keeps everything under a dot-directory under the home dir.</summary>
 public sealed class UnsupportedPlatform : PlatformBase
 {
-    public override string ConfigDir => Path.Combine(Home, "." + PlatformInfo.AppDirName);
+    public override string ConfigDirectory => Path.Combine(Home, "." + PlatformInfo.AppDirectoryName);
 
-    public override string StateDir => Path.Combine(Home, "." + PlatformInfo.AppDirName, "state");
+    public override string StateDirectory => Path.Combine(Home, "." + PlatformInfo.AppDirectoryName, "state");
 }

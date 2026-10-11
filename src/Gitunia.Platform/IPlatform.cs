@@ -19,10 +19,10 @@ public sealed record ConsoleCapabilities(bool IsInteractive, ColorDepth Color, b
 public interface IPlatform
 {
     /// <summary>Directory for user configuration (keys, theme).</summary>
-    string ConfigDir { get; }
+    string ConfigDirectory { get; }
 
     /// <summary>Directory for state (session, recents).</summary>
-    string StateDir { get; }
+    string StateDirectory { get; }
 
     ConsoleCapabilities DetectConsole();
 }

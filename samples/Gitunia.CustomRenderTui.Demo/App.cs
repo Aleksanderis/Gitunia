@@ -13,17 +13,17 @@ namespace Gitunia.CustomRenderTui.Demo;
 /// </summary>
 public sealed partial class App : IDisposable
 {
-    private readonly string _repo;
+    private readonly string _repositoryPath;
     private readonly Channel<object> _events = Channel.CreateUnbounded<object>(new UnboundedChannelOptions { SingleReader = true });
     private readonly CommitGraph _graph = new();
-    private readonly CellBuffer _buf = new();
+    private readonly CellBuffer _buffer = new();
     private readonly InputParser _parser = new();
-    private readonly ListCursor _graphCur = new();
-    private readonly ListCursor _sideCur = new();
-    private readonly ListCursor _detailCur = new();
-    private List<SidebarItem> _side = [];
+    private readonly ListCursor _graphCursor = new();
+    private readonly ListCursor _sidebarCursor = new();
+    private readonly ListCursor _detailCursor = new();
+    private List<SidebarItem> _sidebar = [];
     private List<string> _details = [];
-    private CancellationTokenSource? _detailCts;
+    private CancellationTokenSource? _detailCancellationTokenSource;
     private string _detailHash = string.Empty;
     private Pane _focus = Pane.Graph;
     private bool _loading = true;
@@ -34,9 +34,9 @@ public sealed partial class App : IDisposable
     private string _input = string.Empty;
     private bool _quit;
 
-    public App(string repo) => _repo = repo;
+    public App(string repositoryPath) => _repositoryPath = repositoryPath;
 
-    public void Dispose() => _detailCts?.Dispose();
+    public void Dispose() => _detailCancellationTokenSource?.Dispose();
 
     private sealed record Resize;
 
@@ -46,20 +46,20 @@ public sealed partial class App : IDisposable
 
     public int Run()
     {
-        using var term = new RawTerminal();
-        term.Enter();
-        using var cts = new CancellationTokenSource();
-        term.Resized += () => _events.Writer.TryWrite(new Resize());
+        using var terminal = new RawTerminal();
+        terminal.Enter();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        terminal.Resized += () => _events.Writer.TryWrite(new Resize());
 
-        (var w, var h) = RawTerminal.GetSize();
-        _buf.Resize(w, h);
+        (var width, var height) = RawTerminal.GetSize();
+        _buffer.Resize(width, height);
         _ = GitLogRunner.RunAsync(
-            _repo,
+            _repositoryPath,
             chunk => _events.Writer.TryWrite(chunk),
             () => _events.Writer.TryWrite("done"),
-            cts.Token);
-        _ = LoadRefsAsync(cts.Token);
-        var reader = new Thread(() => ReadInput(term)) { IsBackground = true };
+            cancellationTokenSource.Token);
+        _ = LoadRefsAsync(cancellationTokenSource.Token);
+        var reader = new Thread(() => ReadInput(terminal)) { IsBackground = true };
         reader.Start();
 
         var reading = _events.Reader;
@@ -71,9 +71,9 @@ public sealed partial class App : IDisposable
                 break;
             }
 
-            while (reading.TryRead(out var ev))
+            while (reading.TryRead(out var appEvent))
             {
-                dirty |= Handle(ev);
+                dirty |= Handle(appEvent);
             }
 
             if (dirty && _graph.Count > 0)
@@ -82,31 +82,31 @@ public sealed partial class App : IDisposable
             }
         }
 
-        cts.Cancel();
-        _detailCts?.Cancel();
+        cancellationTokenSource.Cancel();
+        _detailCancellationTokenSource?.Cancel();
         return 0;
     }
 
     /// <summary>Blocking read loop on its own thread: bytes in, parsed key events posted to the UI thread.</summary>
-    private void ReadInput(RawTerminal term)
+    private void ReadInput(RawTerminal terminal)
     {
-        var buf = new byte[1024];
+        var buffer = new byte[1024];
         var keys = new List<KeyEvent>();
-        int n;
-        while ((n = term.Read(buf)) > 0)
+        int bytesRead;
+        while ((bytesRead = terminal.Read(buffer)) > 0)
         {
             keys.Clear();
-            _parser.Feed(buf.AsSpan(0, n), keys);
-            foreach (var k in keys)
+            _parser.Feed(buffer.AsSpan(0, bytesRead), keys);
+            foreach (var key in keys)
             {
-                _events.Writer.TryWrite(k);
+                _events.Writer.TryWrite(key);
             }
         }
     }
 
-    private bool Handle(object ev)
+    private bool Handle(object appEvent)
     {
-        switch (ev)
+        switch (appEvent)
         {
             case byte[] chunk:
                 _graph.Append(chunk);
@@ -116,26 +116,26 @@ public sealed partial class App : IDisposable
                 _loading = false;
                 if (_gotoEndWhenDone)
                 {
-                    _graphCur.ToEnd(_graph.Count);
+                    _graphCursor.ToEnd(_graph.Count);
                     RequestDetails();
                 }
 
                 return true;
             case Refs refs:
-                _side = refs.Items;
+                _sidebar = refs.Items;
                 return true;
-            case DetailsLoaded d when d.Hash == _detailHash:
-                _details = [.. d.Text.Split('\n')];
-                _detailCur.ToStart();
+            case DetailsLoaded loaded when loaded.Hash == _detailHash:
+                _details = [.. loaded.Text.Split('\n')];
+                _detailCursor.ToStart();
                 return true;
             case Resize:
-                (var w, var h) = RawTerminal.GetSize();
-                _buf.Resize(w, h);
+                (var width, var height) = RawTerminal.GetSize();
+                _buffer.Resize(width, height);
                 return true;
-            case KeyEvent k:
-                var before = _graphCur.Sel;
-                var dirty = OnKey(k);
-                if (_graphCur.Sel != before)
+            case KeyEvent key:
+                var before = _graphCursor.Selection;
+                var dirty = OnKey(key);
+                if (_graphCursor.Selection != before)
                 {
                     RequestDetails();
                 }
@@ -150,21 +150,21 @@ public sealed partial class App : IDisposable
     {
         var status = _searching
             ? "/" + _input
-            : $" NORMAL  [{_focus}]  {_graphCur.Sel + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q" + (_query.Length > 0 ? $"  [/{_query}]" : string.Empty);
-        Screen.Draw(_buf, new ScreenModel
+            : $" NORMAL  [{_focus}]  {_graphCursor.Selection + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q" + (_query.Length > 0 ? $"  [/{_query}]" : string.Empty);
+        Screen.Draw(_buffer, new ScreenModel
         {
-            RepoName = Path.GetFileName(_repo.TrimEnd(Path.DirectorySeparatorChar)),
+            RepoName = Path.GetFileName(_repositoryPath.TrimEnd(Path.DirectorySeparatorChar)),
             Focus = _focus,
             Graph = _graph,
-            GraphCursor = _graphCur,
-            Sidebar = _side,
-            SidebarCursor = _sideCur,
+            GraphCursor = _graphCursor,
+            Sidebar = _sidebar,
+            SidebarCursor = _sidebarCursor,
             Details = _details,
-            DetailsCursor = _detailCur,
+            DetailsCursor = _detailCursor,
             Loading = _loading,
             Status = status,
         });
-        var bytes = _buf.Flush();
+        var bytes = _buffer.Flush();
         if (bytes.Length > 0)
         {
             RawTerminal.Write(bytes);

@@ -6,7 +6,7 @@ namespace Gitunia.CustomRenderTui.Demo;
 public sealed class CommitStore
 {
     private byte[] _data = new byte[1 << 20];
-    private int _len;
+    private int _length;
     private int[] _starts = new int[1 << 14];
     private readonly List<int> _ends = [];
     private int _scanned;
@@ -15,17 +15,17 @@ public sealed class CommitStore
 
     public void Append(ReadOnlySpan<byte> chunk)
     {
-        if (_len + chunk.Length > _data.Length)
+        if (_length + chunk.Length > _data.Length)
         {
-            Array.Resize(ref _data, Math.Max(_data.Length * 2, _len + chunk.Length));
+            Array.Resize(ref _data, Math.Max(_data.Length * 2, _length + chunk.Length));
         }
 
-        chunk.CopyTo(_data.AsSpan(_len));
-        _len += chunk.Length;
+        chunk.CopyTo(_data.AsSpan(_length));
+        _length += chunk.Length;
 
         // index complete lines only; a partial trailing line waits for the next chunk
         var lineStart = Count == 0 ? 0 : _starts[Count - 1] + LineLength(Count - 1) + 1;
-        for (var i = Math.Max(_scanned, lineStart); i < _len; i++)
+        for (var i = Math.Max(_scanned, lineStart); i < _length; i++)
         {
             if (_data[i] == (byte)'\n')
             {
@@ -40,33 +40,33 @@ public sealed class CommitStore
             }
         }
 
-        _scanned = _len;
+        _scanned = _length;
     }
 
-    private int LineLength(int i) => _ends[i] - _starts[i];
+    private int LineLength(int index) => _ends[index] - _starts[index];
 
-    public ReadOnlySpan<byte> Line(int i) => _data.AsSpan(_starts[i], LineLength(i));
+    public ReadOnlySpan<byte> Line(int index) => _data.AsSpan(_starts[index], LineLength(index));
 
-    public string Hash(int i) => Encoding.UTF8.GetString(Field(i, 0));
+    public string Hash(int index) => Encoding.UTF8.GetString(Field(index, 0));
 
-    public string Subject(int i) => Encoding.UTF8.GetString(Field(i, 2));
+    public string Subject(int index) => Encoding.UTF8.GetString(Field(index, 2));
 
-    /// <summary>Field n of line i: 0 hash, 1 parents, 2 subject ("hash TAB parents TAB subject").</summary>
-    public ReadOnlySpan<byte> Field(int i, int n)
+    /// <summary>Field fieldIndex of line index: 0 hash, 1 parents, 2 subject ("hash TAB parents TAB subject").</summary>
+    public ReadOnlySpan<byte> Field(int index, int fieldIndex)
     {
-        var line = Line(i);
-        for (var f = 0; f < n; f++)
+        var line = Line(index);
+        for (var skipped = 0; skipped < fieldIndex; skipped++)
         {
-            var t = line.IndexOf((byte)'\t');
-            if (t < 0)
+            var tabIndex = line.IndexOf((byte)'	');
+            if (tabIndex < 0)
             {
                 return [];
             }
 
-            line = line[(t + 1)..];
+            line = line[(tabIndex + 1)..];
         }
 
-        if (n < 2)
+        if (fieldIndex < 2)
         {
             var end = line.IndexOf((byte)'\t');
             return end < 0 ? line : line[..end];
@@ -75,5 +75,5 @@ public sealed class CommitStore
         return line;
     }
 
-    public string Text(int i) => Encoding.UTF8.GetString(Line(i)).Replace('\t', ' ');
+    public string Text(int index) => Encoding.UTF8.GetString(Line(index)).Replace('\t', ' ');
 }

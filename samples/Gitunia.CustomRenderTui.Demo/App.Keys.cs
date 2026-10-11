@@ -6,32 +6,32 @@ public sealed partial class App
 {
     private ListCursor Cursor => _focus switch
     {
-        Pane.Sidebar => _sideCur,
-        Pane.Details => _detailCur,
-        _ => _graphCur,
+        Pane.Sidebar => _sidebarCursor,
+        Pane.Details => _detailCursor,
+        _ => _graphCursor,
     };
 
     private int Count => _focus switch
     {
-        Pane.Sidebar => _side.Count,
+        Pane.Sidebar => _sidebar.Count,
         Pane.Details => _details.Count,
         _ => _graph.Count,
     };
 
-    private int PageRows => Math.Max(1, _buf.Height - 5);
+    private int PageRows => Math.Max(1, _buffer.Height - 5);
 
-    private bool OnKey(KeyEvent k)
+    private bool OnKey(KeyEvent key)
     {
         if (_searching)
         {
-            return OnSearchKey(k);
+            return OnSearchKey(key);
         }
 
-        var wasG = _pendingG;
+        var wasPendingG = _pendingG;
         _pendingG = false;
-        if (k.Ctrl)
+        if (key.Ctrl)
         {
-            switch (k.Ch)
+            switch (key.Character)
             {
                 case 'd': Cursor.Move(PageRows / 2, Count); break;
                 case 'u': Cursor.Move(-(PageRows / 2), Count); break;
@@ -41,23 +41,23 @@ public sealed partial class App
             return true;
         }
 
-        switch (k.Kind)
+        switch (key.Kind)
         {
             case KeyKind.Tab: _focus = (Pane)(((int)_focus + 1) % 3); break;
-            case KeyKind.Down or KeyKind.WheelDown: Cursor.Move(k.Kind == KeyKind.WheelDown ? 3 : 1, Count); break;
-            case KeyKind.Up or KeyKind.WheelUp: Cursor.Move(k.Kind == KeyKind.WheelUp ? -3 : -1, Count); break;
+            case KeyKind.Down or KeyKind.WheelDown: Cursor.Move(key.Kind == KeyKind.WheelDown ? 3 : 1, Count); break;
+            case KeyKind.Up or KeyKind.WheelUp: Cursor.Move(key.Kind == KeyKind.WheelUp ? -3 : -1, Count); break;
             case KeyKind.PageDown: Cursor.Move(PageRows, Count); break;
             case KeyKind.PageUp: Cursor.Move(-PageRows, Count); break;
             case KeyKind.Home: Cursor.ToStart(); break;
             case KeyKind.End: GoEnd(); break;
             case KeyKind.Text:
-                switch (k.Ch)
+                switch (key.Character)
                 {
                     case 'j': Cursor.Move(1, Count); break;
                     case 'k': Cursor.Move(-1, Count); break;
                     case 'G': GoEnd(); break;
                     case 'g':
-                        if (wasG)
+                        if (wasPendingG)
                         {
                             Cursor.ToStart();
                             _gotoEndWhenDone = false;
@@ -89,9 +89,9 @@ public sealed partial class App
         _gotoEndWhenDone = _focus == Pane.Graph && _loading; // keep following the end until the stream finishes
     }
 
-    private bool OnSearchKey(KeyEvent k)
+    private bool OnSearchKey(KeyEvent key)
     {
-        switch (k.Kind)
+        switch (key.Kind)
         {
             case KeyKind.Escape: _searching = false; break;
             case KeyKind.Enter:
@@ -106,13 +106,13 @@ public sealed partial class App
                 }
 
                 break;
-            case KeyKind.Text when !k.Ctrl: _input += k.Ch; break;
+            case KeyKind.Text when !key.Ctrl: _input += key.Character; break;
         }
 
         return true;
     }
 
-    private void Search(int dir)
+    private void Search(int direction)
     {
         var total = _graph.Count;
         if (_query.Length == 0 || total == 0)
@@ -122,10 +122,10 @@ public sealed partial class App
 
         for (var step = 1; step <= total; step++)
         {
-            var i = (((_graphCur.Sel + (dir * step)) % total) + total) % total;
-            if (_graph.Store.Subject(i).Contains(_query, StringComparison.OrdinalIgnoreCase))
+            var index = (((_graphCursor.Selection + (direction * step)) % total) + total) % total;
+            if (_graph.Store.Subject(index).Contains(_query, StringComparison.OrdinalIgnoreCase))
             {
-                _graphCur.Set(i, total);
+                _graphCursor.Set(index, total);
                 return;
             }
         }

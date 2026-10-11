@@ -10,10 +10,10 @@ if (!OperatingSystem.IsWindows())
     return 2;
 }
 
-var exe = args[0];
-var repo = args[1];
+var executablePath = args[0];
+var repositoryPath = args[1];
 var strict = args.Contains("--strict");
-string Opt(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 ? args[i + 1] : def; }
+string Opt(string name, string defaultValue) { var index = Array.IndexOf(args, name); return index >= 0 ? args[index + 1] : defaultValue; }
 var expectFirst = Opt("--expect-first", "SUBJ-LATEST");
 var expectAfterJ = Opt("--expect-after-j", string.Empty);
 var expectAfterResize = Opt("--expect-after-resize", string.Empty);
@@ -22,20 +22,20 @@ var expectAfterG = Opt("--expect-after-G", string.Empty);
 var results = new List<(string Name, bool Ok, string Detail)>();
 void Check(string name, bool ok, string detail) { results.Add((name, ok, detail)); Console.WriteLine($"{(ok ? "PASS" : "FAIL")}  {name}  {detail}"); }
 
-using var session = new PtySession(exe, $"\"{exe}\" \"{repo}\"", 100, 20);
-var sw = Stopwatch.StartNew();
+using var session = new PtySession(executablePath, $"\"{executablePath}\" \"{repositoryPath}\"", 100, 20);
+var stopwatch = Stopwatch.StartNew();
 
-var firstOk = session.WaitFor(s => s.Contains(expectFirst, StringComparison.Ordinal), 20000);
-Check("first frame shows newest commit", firstOk, $"{sw.ElapsedMilliseconds} ms to first frame");
+var firstOk = session.WaitFor(output => output.Contains(expectFirst, StringComparison.Ordinal), 20000);
+Check("first frame shows newest commit", firstOk, $"{stopwatch.ElapsedMilliseconds} ms to first frame");
 Check("alt screen entered", session.Output.Contains("\e[?1049h", StringComparison.Ordinal), string.Empty);
 Check("non-ASCII commit subject rendered as UTF-8", session.Output.Contains("café ✓", StringComparison.Ordinal), string.Empty);
 
 session.Settle(500);
 var before = session.Length;
-sw.Restart();
+stopwatch.Restart();
 session.Send("j");
 var jOk = session.WaitFor(_ => session.Length > before, 5000);
-var jDetail = $"{sw.ElapsedMilliseconds} ms, +{session.Length - before} bytes";
+var jDetail = $"{stopwatch.ElapsedMilliseconds} ms, +{session.Length - before} bytes";
 if (expectAfterJ.Length > 0)
 {
     session.Settle(300);
@@ -48,10 +48,10 @@ Check("j changes the frame", jOk, jDetail);
 
 session.Settle(300);
 before = session.Length;
-sw.Restart();
+stopwatch.Restart();
 session.Resize(60, 15);
 var rOk = session.WaitFor(_ => session.Length > before, 5000);
-var rDetail = $"{sw.ElapsedMilliseconds} ms, +{session.Length - before} bytes";
+var rDetail = $"{stopwatch.ElapsedMilliseconds} ms, +{session.Length - before} bytes";
 if (expectAfterResize.Length > 0)
 {
     session.Settle(300);
@@ -86,8 +86,8 @@ if (strict)
 
 session.Settle(300);
 session.Send(strict ? "\u0003" : "q");
-var exited = session.WaitExit(8000, out var code);
-Check("quit key exits cleanly", exited && code == 0, exited ? $"exit code {code}" : "did not exit within 8 s");
+var exited = session.WaitExit(8000, out var exitCode);
+Check("quit key exits cleanly", exited && exitCode == 0, exited ? $"exit code {exitCode}" : "did not exit within 8 s");
 session.Settle(300);
 var tail = session.Output[Math.Max(0, session.Length - 200)..];
 Check("alt screen left on exit", tail.Contains("\e[?1049l", StringComparison.Ordinal), string.Empty);
@@ -96,68 +96,68 @@ Check("cursor shown on exit", tail.Contains("\e[?25h", StringComparison.Ordinal)
 Console.WriteLine("---- last 300 chars of VT output (escaped) ----");
 Console.WriteLine(session.Output[Math.Max(0, session.Length - 300)..].Replace("\e", "<ESC>", StringComparison.Ordinal));
 
-var failed = results.Count(r => !r.Ok);
+var failed = results.Count(result => !result.Ok);
 if (!strict)
 {
     // Non-strict: only the core steps decide the exit code.
     var core = new[] { "first frame shows newest commit", "j changes the frame", "quit key exits cleanly" };
-    failed = results.Count(r => !r.Ok && core.Contains(r.Name));
+    failed = results.Count(result => !result.Ok && core.Contains(result.Name));
 }
 
-Console.WriteLine($"{results.Count - results.Count(r => !r.Ok)}/{results.Count} checks passed");
+Console.WriteLine($"{results.Count - results.Count(result => !result.Ok)}/{results.Count} checks passed");
 return failed == 0 ? 0 : 1;
 
 internal sealed class PtySession : IDisposable
 {
-    private readonly nint _hPc;
-    private readonly nint _inWrite;
-    private readonly nint _outRead;
+    private readonly nint _pseudoConsole;
+    private readonly nint _inputWrite;
+    private readonly nint _outputRead;
     private readonly nint _process;
-    private readonly StringBuilder _out = new();
+    private readonly StringBuilder _outputBuffer = new();
     private readonly object _lock = new();
     private readonly Thread _reader;
 
-    public PtySession(string exe, string cmdLine, short cols, short rows)
+    public PtySession(string executablePath, string commandLine, short columns, short rows)
     {
-        if (!Native.CreatePipe(out var inRead, out _inWrite, 0, 0) || !Native.CreatePipe(out _outRead, out var outWrite, 0, 0))
+        if (!Native.CreatePipe(out var inputRead, out _inputWrite, 0, 0) || !Native.CreatePipe(out _outputRead, out var outputWrite, 0, 0))
         {
             throw new InvalidOperationException("CreatePipe failed " + Marshal.GetLastWin32Error());
         }
 
-        var hr = Native.CreatePseudoConsole(new Native.Coord { X = cols, Y = rows }, inRead, outWrite, 0, out _hPc);
-        if (hr != 0)
+        var result = Native.CreatePseudoConsole(new Native.Coord { X = columns, Y = rows }, inputRead, outputWrite, 0, out _pseudoConsole);
+        if (result != 0)
         {
-            throw new InvalidOperationException("CreatePseudoConsole failed 0x" + hr.ToString("x"));
+            throw new InvalidOperationException("CreatePseudoConsole failed 0x" + result.ToString("x"));
         }
 
         nint size = 0;
         Native.InitializeProcThreadAttributeList(0, 1, 0, ref size);
-        var attrs = Marshal.AllocHGlobal(size);
-        if (!Native.InitializeProcThreadAttributeList(attrs, 1, 0, ref size))
+        var attributeList = Marshal.AllocHGlobal(size);
+        if (!Native.InitializeProcThreadAttributeList(attributeList, 1, 0, ref size))
         {
             throw new InvalidOperationException("InitializeProcThreadAttributeList failed " + Marshal.GetLastWin32Error());
         }
 
-        if (!Native.UpdateProcThreadAttribute(attrs, 0, 0x20016, _hPc, nint.Size, 0, 0))
+        if (!Native.UpdateProcThreadAttribute(attributeList, 0, 0x20016, _pseudoConsole, nint.Size, 0, 0))
         {
             throw new InvalidOperationException("UpdateProcThreadAttribute failed " + Marshal.GetLastWin32Error());
         }
 
-        var si = new Native.StartupInfoEx { AttributeList = attrs };
-        si.StartupInfo.Cb = Marshal.SizeOf<Native.StartupInfoEx>();
+        var startupInfo = new Native.StartupInfoEx { AttributeList = attributeList };
+        startupInfo.StartupInfo.Cb = Marshal.SizeOf<Native.StartupInfoEx>();
 
         // Without STARTF_USESTDHANDLES (handles left NULL) the child inherited this process's redirected stdio
         // (CI pipes) instead of the pseudoconsole: Console.IsInputRedirected was true in the child.
-        si.StartupInfo.Flags = 0x100;
-        if (!Native.CreateProcess(null, cmdLine, 0, 0, false, 0x80000, 0, null, ref si, out var pi))
+        startupInfo.StartupInfo.Flags = 0x100;
+        if (!Native.CreateProcess(null, commandLine, 0, 0, false, 0x80000, 0, null, ref startupInfo, out var processInformation))
         {
-            throw new InvalidOperationException("CreateProcess failed " + Marshal.GetLastWin32Error() + " for " + exe);
+            throw new InvalidOperationException("CreateProcess failed " + Marshal.GetLastWin32Error() + " for " + executablePath);
         }
 
-        _process = pi.Process;
-        Native.CloseHandle(pi.Thread);
-        Native.CloseHandle(inRead);
-        Native.CloseHandle(outWrite);
+        _process = processInformation.Process;
+        Native.CloseHandle(processInformation.Thread);
+        Native.CloseHandle(inputRead);
+        Native.CloseHandle(outputWrite);
 
         _reader = new Thread(ReadLoop) { IsBackground = true };
         _reader.Start();
@@ -165,28 +165,28 @@ internal sealed class PtySession : IDisposable
 
     public string Output
     {
-        get { lock (_lock) { return _out.ToString(); } }
+        get { lock (_lock) { return _outputBuffer.ToString(); } }
     }
 
     public int Length
     {
-        get { lock (_lock) { return _out.Length; } }
+        get { lock (_lock) { return _outputBuffer.Length; } }
     }
 
     public void Send(string keys)
     {
-        var b = Encoding.UTF8.GetBytes(keys);
-        Native.WriteFile(_inWrite, b, (uint)b.Length, out _, 0);
+        var bytes = Encoding.UTF8.GetBytes(keys);
+        Native.WriteFile(_inputWrite, bytes, (uint)bytes.Length, out _, 0);
     }
 
-    public void Resize(short cols, short rows) => Native.ResizePseudoConsole(_hPc, new Native.Coord { X = cols, Y = rows });
+    public void Resize(short columns, short rows) => Native.ResizePseudoConsole(_pseudoConsole, new Native.Coord { X = columns, Y = rows });
 
-    public bool WaitFor(Func<string, bool> pred, int timeoutMs)
+    public bool WaitFor(Func<string, bool> predicate, int timeoutMilliseconds)
     {
-        var sw = Stopwatch.StartNew();
-        while (sw.ElapsedMilliseconds < timeoutMs)
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.ElapsedMilliseconds < timeoutMilliseconds)
         {
-            if (pred(Output))
+            if (predicate(Output))
             {
                 return true;
             }
@@ -194,54 +194,54 @@ internal sealed class PtySession : IDisposable
             Thread.Sleep(10);
         }
 
-        return pred(Output);
+        return predicate(Output);
     }
 
     /// <summary>Waits until no new output arrived for the given quiet period.</summary>
-    public void Settle(int quietMs)
+    public void Settle(int quietMilliseconds)
     {
         var last = Length;
-        var sw = Stopwatch.StartNew();
-        while (sw.ElapsedMilliseconds < quietMs)
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.ElapsedMilliseconds < quietMilliseconds)
         {
             Thread.Sleep(20);
             if (Length != last)
             {
                 last = Length;
-                sw.Restart();
+                stopwatch.Restart();
             }
         }
     }
 
-    public bool WaitExit(int timeoutMs, out uint code)
+    public bool WaitExit(int timeoutMilliseconds, out uint exitCode)
     {
-        code = 0;
-        if (Native.WaitForSingleObject(_process, (uint)timeoutMs) != 0)
+        exitCode = 0;
+        if (Native.WaitForSingleObject(_process, (uint)timeoutMilliseconds) != 0)
         {
             return false;
         }
 
-        Native.GetExitCodeProcess(_process, out code);
+        Native.GetExitCodeProcess(_process, out exitCode);
         return true;
     }
 
     public void Dispose()
     {
         Native.TerminateProcess(_process, 1);
-        Native.ClosePseudoConsole(_hPc);
+        Native.ClosePseudoConsole(_pseudoConsole);
     }
 
     private void ReadLoop()
     {
-        var buf = new byte[8192];
-        var dec = Encoding.UTF8.GetDecoder();
+        var buffer = new byte[8192];
+        var decoder = Encoding.UTF8.GetDecoder();
         var chars = new char[8192];
-        while (Native.ReadFile(_outRead, buf, (uint)buf.Length, out var n, 0) && n > 0)
+        while (Native.ReadFile(_outputRead, buffer, (uint)buffer.Length, out var bytesRead, 0) && bytesRead > 0)
         {
-            var c = dec.GetChars(buf, 0, (int)n, chars, 0);
+            var charCount = decoder.GetChars(buffer, 0, (int)bytesRead, chars, 0);
             lock (_lock)
             {
-                _out.Append(chars, 0, c);
+                _outputBuffer.Append(chars, 0, charCount);
             }
         }
     }
@@ -285,41 +285,41 @@ internal static class Native
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern bool CreatePipe(out nint read, out nint write, nint attrs, uint size);
+    public static extern bool CreatePipe(out nint read, out nint write, nint attributeList, uint size);
 
     [DllImport("kernel32.dll")]
-    public static extern int CreatePseudoConsole(Coord size, nint input, nint output, uint flags, out nint hpc);
+    public static extern int CreatePseudoConsole(Coord size, nint input, nint output, uint flags, out nint pseudoConsole);
 
     [DllImport("kernel32.dll")]
-    public static extern int ResizePseudoConsole(nint hpc, Coord size);
+    public static extern int ResizePseudoConsole(nint pseudoConsole, Coord size);
 
     [DllImport("kernel32.dll")]
-    public static extern void ClosePseudoConsole(nint hpc);
+    public static extern void ClosePseudoConsole(nint pseudoConsole);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool InitializeProcThreadAttributeList(nint list, int count, int flags, ref nint size);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern bool UpdateProcThreadAttribute(nint list, uint flags, nint attribute, nint value, nint size, nint prev, nint returnSize);
+    public static extern bool UpdateProcThreadAttribute(nint list, uint flags, nint attribute, nint value, nint size, nint previousValue, nint returnSize);
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    public static extern bool CreateProcess(string? app, string cmd, nint pa, nint ta, bool inherit, uint flags, nint env, string? dir, ref StartupInfoEx si, out ProcessInformation pi);
+    public static extern bool CreateProcess(string? application, string commandLine, nint processAttributes, nint threadAttributes, bool inheritHandles, uint flags, nint environment, string? currentDirectory, ref StartupInfoEx startupInfo, out ProcessInformation processInformation);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern bool WriteFile(nint h, byte[] buf, uint count, out uint written, nint overlapped);
+    public static extern bool WriteFile(nint handle, byte[] buffer, uint count, out uint written, nint overlapped);
 
     [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern bool ReadFile(nint h, byte[] buf, uint count, out uint read, nint overlapped);
+    public static extern bool ReadFile(nint handle, byte[] buffer, uint count, out uint read, nint overlapped);
 
     [DllImport("kernel32.dll")]
-    public static extern uint WaitForSingleObject(nint h, uint ms);
+    public static extern uint WaitForSingleObject(nint handle, uint milliseconds);
 
     [DllImport("kernel32.dll")]
-    public static extern bool GetExitCodeProcess(nint h, out uint code);
+    public static extern bool GetExitCodeProcess(nint handle, out uint exitCode);
 
     [DllImport("kernel32.dll")]
-    public static extern bool TerminateProcess(nint h, uint code);
+    public static extern bool TerminateProcess(nint handle, uint exitCode);
 
     [DllImport("kernel32.dll")]
-    public static extern bool CloseHandle(nint h);
+    public static extern bool CloseHandle(nint handle);
 }

@@ -107,6 +107,6 @@ public class InputParserTests
     {
         var keys = Parse("\e[Bj");
 
-        Assert.Equal([KeyKind.Down, KeyKind.Text], keys.Select(k => k.Kind));
+        Assert.Equal([KeyKind.Down, KeyKind.Text], keys.Select(key => key.Kind));
     }
 }

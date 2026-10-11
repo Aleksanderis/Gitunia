@@ -33,12 +33,12 @@ public sealed unsafe partial class RawTerminal : IDisposable
     private readonly byte[] _records = new byte[InputRecordSize * 32];
     private bool _active;
     private FileStream? _unixStdin;
-    private uint _savedInMode;
-    private uint _savedOutMode;
-    private uint _savedInCp;
-    private uint _savedOutCp;
+    private uint _savedInputMode;
+    private uint _savedOutputMode;
+    private uint _savedInputCodePage;
+    private uint _savedOutputCodePage;
     private char _pendingHigh;
-    private PosixSignalRegistration? _winch;
+    private PosixSignalRegistration? _resizeRegistration;
 
     /// <summary>Raised when the terminal was resized: from the reader thread on Windows, from a signal callback on Unix.</summary>
     public event Action? Resized;
@@ -55,24 +55,24 @@ public sealed unsafe partial class RawTerminal : IDisposable
         {
             if (GetConsoleScreenBufferInfo(GetStdHandle(StdOutputHandle), out var info))
             {
-                var w = info.Right - info.Left + 1;
-                var h = info.Bottom - info.Top + 1;
-                if (w > 0 && h > 0)
+                var width = info.Right - info.Left + 1;
+                var height = info.Bottom - info.Top + 1;
+                if (width > 0 && height > 0)
                 {
-                    return (w, h);
+                    return (width, height);
                 }
             }
 
             return (80, 24);
         }
 
-        var ws = new ushort[4];
-        fixed (ushort* p = ws)
+        var windowSize = new ushort[4];
+        fixed (ushort* sizePointer = windowSize)
         {
             // TIOCGWINSZ: 0x5413 on Linux, 0x40087468 on macOS
-            if (IoCtl(1, OperatingSystem.IsLinux() ? 0x5413UL : 0x40087468UL, p) == 0 && ws[0] > 0 && ws[1] > 0)
+            if (IoCtl(1, OperatingSystem.IsLinux() ? 0x5413UL : 0x40087468UL, sizePointer) == 0 && windowSize[0] > 0 && windowSize[1] > 0)
             {
-                return (ws[1], ws[0]);
+                return (windowSize[1], windowSize[0]);
             }
         }
 
@@ -87,9 +87,9 @@ public sealed unsafe partial class RawTerminal : IDisposable
             return;
         }
 
-        using var o = Console.OpenStandardOutput();
-        o.Write(bytes);
-        o.Flush();
+        using var output = Console.OpenStandardOutput();
+        output.Write(bytes);
+        output.Flush();
     }
 
     public void Enter()
@@ -101,7 +101,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
         else if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
             EnterUnix();
-            _winch = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, _ => Resized?.Invoke());
+            _resizeRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH, _ => Resized?.Invoke());
         }
         else
         {
@@ -123,35 +123,35 @@ public sealed unsafe partial class RawTerminal : IDisposable
         }
 
         _active = false;
-        _winch?.Dispose();
+        _resizeRegistration?.Dispose();
         Write("\e[?1006l\e[?1000l\e[?25h\e[?1049l"u8);
         if (OperatingSystem.IsWindows())
         {
-            _ = SetConsoleMode(GetStdHandle(StdInputHandle), _savedInMode);
-            _ = SetConsoleMode(GetStdHandle(StdOutputHandle), _savedOutMode);
-            _ = SetConsoleCP(_savedInCp);
-            _ = SetConsoleOutputCP(_savedOutCp);
+            _ = SetConsoleMode(GetStdHandle(StdInputHandle), _savedInputMode);
+            _ = SetConsoleMode(GetStdHandle(StdOutputHandle), _savedOutputMode);
+            _ = SetConsoleCP(_savedInputCodePage);
+            _ = SetConsoleOutputCP(_savedOutputCodePage);
         }
         else
         {
-            fixed (byte* s = _saved)
+            fixed (byte* savedPointer = _saved)
             {
-                _ = TcSetAttr(0, 0, s);
+                _ = TcSetAttr(0, 0, savedPointer);
             }
         }
     }
 
     [LibraryImport("libc", EntryPoint = "tcgetattr")]
-    private static partial int TcGetAttr(int fd, byte* termios);
+    private static partial int TcGetAttr(int fileDescriptor, byte* termios);
 
     [LibraryImport("libc", EntryPoint = "tcsetattr")]
-    private static partial int TcSetAttr(int fd, int actions, byte* termios);
+    private static partial int TcSetAttr(int fileDescriptor, int actions, byte* termios);
 
     [LibraryImport("libc", EntryPoint = "cfmakeraw")]
     private static partial void CfMakeRaw(byte* termios);
 
     [LibraryImport("libc", EntryPoint = "ioctl")]
-    private static partial int IoCtl(int fd, ulong request, ushort* arg);
+    private static partial int IoCtl(int fileDescriptor, ulong request, ushort* arg);
 
     [LibraryImport("kernel32", EntryPoint = "GetStdHandle")]
     private static partial nint GetStdHandle(int which);
@@ -172,11 +172,11 @@ public sealed unsafe partial class RawTerminal : IDisposable
 
     [LibraryImport("kernel32", EntryPoint = "SetConsoleCP")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetConsoleCP(uint cp);
+    private static partial bool SetConsoleCP(uint codePage);
 
     [LibraryImport("kernel32", EntryPoint = "SetConsoleOutputCP")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetConsoleOutputCP(uint cp);
+    private static partial bool SetConsoleOutputCP(uint codePage);
 
     [LibraryImport("kernel32", EntryPoint = "GetConsoleScreenBufferInfo")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -192,13 +192,13 @@ public sealed unsafe partial class RawTerminal : IDisposable
 
     private static void WriteWindows(ReadOnlySpan<byte> bytes)
     {
-        var hOut = GetStdHandle(StdOutputHandle);
-        fixed (byte* p = bytes)
+        var outputHandle = GetStdHandle(StdOutputHandle);
+        fixed (byte* pointer = bytes)
         {
             uint offset = 0;
             while (offset < bytes.Length)
             {
-                if (!WriteFile(hOut, p + offset, (uint)bytes.Length - offset, out var written, 0) || written == 0)
+                if (!WriteFile(outputHandle, pointer + offset, (uint)bytes.Length - offset, out var written, 0) || written == 0)
                 {
                     return;
                 }
@@ -211,17 +211,17 @@ public sealed unsafe partial class RawTerminal : IDisposable
     private void EnterUnix()
     {
         var work = new byte[256];
-        fixed (byte* s = _saved)
-        fixed (byte* w = work)
+        fixed (byte* savedPointer = _saved)
+        fixed (byte* workPointer = work)
         {
-            if (TcGetAttr(0, s) != 0)
+            if (TcGetAttr(0, savedPointer) != 0)
             {
                 throw new InvalidOperationException("stdin is not a terminal");
             }
 
-            Buffer.MemoryCopy(s, w, 256, 256);
-            CfMakeRaw(w);
-            _ = TcSetAttr(0, 0, w);
+            Buffer.MemoryCopy(savedPointer, workPointer, 256, 256);
+            CfMakeRaw(workPointer);
+            _ = TcSetAttr(0, 0, workPointer);
         }
     }
 
@@ -233,28 +233,28 @@ public sealed unsafe partial class RawTerminal : IDisposable
 
     private void EnterWindows()
     {
-        var hIn = GetStdHandle(StdInputHandle);
-        var hOut = GetStdHandle(StdOutputHandle);
-        if (!GetConsoleMode(hIn, out _savedInMode) || !GetConsoleMode(hOut, out _savedOutMode))
+        var inputHandle = GetStdHandle(StdInputHandle);
+        var outputHandle = GetStdHandle(StdOutputHandle);
+        if (!GetConsoleMode(inputHandle, out _savedInputMode) || !GetConsoleMode(outputHandle, out _savedOutputMode))
         {
             throw new InvalidOperationException("stdin/stdout is not a console");
         }
 
-        _savedInCp = GetConsoleCP();
-        _savedOutCp = GetConsoleOutputCP();
+        _savedInputCodePage = GetConsoleCP();
+        _savedOutputCodePage = GetConsoleOutputCP();
 
         // Input: no line buffering, echo, Ctrl-C processing or quick-edit selection; VT sequences + resize events on.
-        var inMode = (_savedInMode & ~(EnableLineInput | EnableEchoInput | EnableProcessedInput | EnableQuickEdit))
+        var inMode = (_savedInputMode & ~(EnableLineInput | EnableEchoInput | EnableProcessedInput | EnableQuickEdit))
             | EnableExtendedFlags | EnableWindowInput | EnableVirtualTerminalInput;
-        if (!SetConsoleMode(hIn, inMode))
+        if (!SetConsoleMode(inputHandle, inMode))
         {
             throw new InvalidOperationException("Could not enable virtual terminal input (console too old?)");
         }
 
-        var outMode = _savedOutMode | EnableProcessedOutput | EnableVirtualTerminalProcessing | DisableNewlineAutoReturn;
-        if (!SetConsoleMode(hOut, outMode))
+        var outMode = _savedOutputMode | EnableProcessedOutput | EnableVirtualTerminalProcessing | DisableNewlineAutoReturn;
+        if (!SetConsoleMode(outputHandle, outMode))
         {
-            _ = SetConsoleMode(hIn, _savedInMode);
+            _ = SetConsoleMode(inputHandle, _savedInputMode);
             throw new InvalidOperationException("Could not enable virtual terminal processing (console too old?)");
         }
 
@@ -264,14 +264,14 @@ public sealed unsafe partial class RawTerminal : IDisposable
 
     private int ReadWindows(byte[] buffer)
     {
-        var hIn = GetStdHandle(StdInputHandle);
+        var inputHandle = GetStdHandle(StdInputHandle);
         while (true)
         {
             uint read;
             bool ok;
-            fixed (byte* rec = _records)
+            fixed (byte* recordsPointer = _records)
             {
-                ok = ReadConsoleInput(hIn, rec, 32, out read);
+                ok = ReadConsoleInput(inputHandle, recordsPointer, 32, out read);
             }
 
             if (!ok)
@@ -279,7 +279,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
                 return 0;
             }
 
-            var n = 0;
+            var byteCount = 0;
             for (var i = 0; i < read; i++)
             {
                 var type = BitConverter.ToUInt16(_records, i * InputRecordSize);
@@ -290,41 +290,41 @@ public sealed unsafe partial class RawTerminal : IDisposable
                 }
                 else if (type == KeyEvent && BitConverter.ToInt32(_records, data) != 0)
                 {
-                    var ch = (char)BitConverter.ToUInt16(_records, data + 10);
-                    n += EncodeChar(ch, buffer.AsSpan(n));
+                    var character = (char)BitConverter.ToUInt16(_records, data + 10);
+                    byteCount += EncodeCharacter(character, buffer.AsSpan(byteCount));
                 }
             }
 
-            if (n > 0)
+            if (byteCount > 0)
             {
-                return n;
+                return byteCount;
             }
         }
     }
 
-    private int EncodeChar(char ch, Span<byte> dest)
+    private int EncodeCharacter(char character, Span<byte> destination)
     {
-        if (ch == 0 || dest.Length < 4)
+        if (character == 0 || destination.Length < 4)
         {
             return 0;
         }
 
-        if (char.IsHighSurrogate(ch))
+        if (char.IsHighSurrogate(character))
         {
-            _pendingHigh = ch;
+            _pendingHigh = character;
             return 0;
         }
 
         Span<char> chars = stackalloc char[2];
         var count = 0;
-        if (char.IsLowSurrogate(ch) && _pendingHigh != 0)
+        if (char.IsLowSurrogate(character) && _pendingHigh != 0)
         {
             chars[count++] = _pendingHigh;
         }
 
         _pendingHigh = '\0';
-        chars[count++] = ch;
-        return Encoding.UTF8.GetBytes(chars[..count], dest);
+        chars[count++] = character;
+        return Encoding.UTF8.GetBytes(chars[..count], destination);
     }
 
     [StructLayout(LayoutKind.Sequential)]

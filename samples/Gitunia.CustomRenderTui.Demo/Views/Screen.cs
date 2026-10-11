@@ -3,115 +3,81 @@ using Gitunia.CustomRenderTui;
 
 namespace Gitunia.CustomRenderTui.Demo.Views;
 
-public enum Pane
-{
-    Sidebar,
-    Graph,
-    Details,
-}
-
-/// <summary>One sidebar row: a section header or a ref name.</summary>
-public readonly record struct SidebarItem(string Text, bool Header);
-
-/// <summary>Everything the screen shows, handed to <see cref="Screen.Draw"/> each frame.</summary>
-public sealed class ScreenModel
-{
-    public string RepoName { get; init; } = string.Empty;
-
-    public Pane Focus { get; init; }
-
-    public CommitGraph Graph { get; init; } = new();
-
-    public ListCursor GraphCursor { get; init; } = new();
-
-    public IReadOnlyList<SidebarItem> Sidebar { get; init; } = [];
-
-    public ListCursor SidebarCursor { get; init; } = new();
-
-    public IReadOnlyList<string> Details { get; init; } = [];
-
-    public ListCursor DetailsCursor { get; init; } = new();
-
-    public bool Loading { get; init; }
-
-    public string Status { get; init; } = string.Empty;
-}
-
 /// <summary>Draws the M1-like layout: title bar, tab bar, sidebar, graph, details pane and status line.</summary>
 public static class Screen
 {
     private static readonly byte[] LaneColors = [75, 114, 215, 177, 203, 80, 222, 141, 150, 209, 117, 183];
 
-    public static void Draw(CellBuffer buf, ScreenModel m)
+    public static void Draw(CellBuffer buffer, ScreenModel model)
     {
-        buf.Clear();
-        var w = buf.Width;
-        var h = buf.Height;
-        if (w < 60 || h < 14)
+        buffer.Clear();
+        var width = buffer.Width;
+        var height = buffer.Height;
+        if (width < 60 || height < 14)
         {
-            buf.Put(0, 0, "terminal too small", Style.Bold);
+            buffer.Put(0, 0, "terminal too small", Style.Bold);
             return;
         }
 
-        DrawChrome(buf, m);
-        var bodyH = h - 3;
-        var sideW = Math.Clamp(w / 5, 16, 28);
-        var detailsH = Math.Clamp(bodyH / 3, 6, 12);
-        DrawSidebar(buf, m, 0, 2, sideW, bodyH);
-        DrawGraph(buf, m, sideW, 2, w - sideW, bodyH - detailsH);
-        DrawDetails(buf, m, sideW, 2 + bodyH - detailsH, w - sideW, detailsH);
-        buf.Put(0, h - 1, m.Status.PadRight(w), Style.Dim | Style.Reverse);
+        DrawChrome(buffer, model);
+        var bodyHeight = height - 3;
+        var sidebarWidth = Math.Clamp(width / 5, 16, 28);
+        var detailsHeight = Math.Clamp(bodyHeight / 3, 6, 12);
+        DrawSidebar(buffer, model, 0, 2, sidebarWidth, bodyHeight);
+        DrawGraph(buffer, model, sidebarWidth, 2, width - sidebarWidth, bodyHeight - detailsHeight);
+        DrawDetails(buffer, model, sidebarWidth, 2 + bodyHeight - detailsHeight, width - sidebarWidth, detailsHeight);
+        buffer.Put(0, height - 1, model.Status.PadRight(width), Style.Dim | Style.Reverse);
     }
 
-    private static void DrawChrome(CellBuffer buf, ScreenModel m)
+    private static void DrawChrome(CellBuffer buffer, ScreenModel model)
     {
-        var w = buf.Width;
-        buf.Put(0, 0, (" ● Gitunia  ─  " + m.RepoName).PadRight(w), Style.Bold | Style.Reverse);
-        buf.Put(0, 1, " 1 " + m.RepoName + " ", Style.Reverse);
-        buf.Put(4 + m.RepoName.Length, 1, " +  (tabs: M1)", Style.Dim);
+        var width = buffer.Width;
+        buffer.Put(0, 0, (" ● Gitunia  ─  " + model.RepoName).PadRight(width), Style.Bold | Style.Reverse);
+        buffer.Put(0, 1, " 1 " + model.RepoName + " ", Style.Reverse);
+        buffer.Put(4 + model.RepoName.Length, 1, " +  (tabs: M1)", Style.Dim);
     }
 
-    private static Style BorderStyle(ScreenModel m, Pane p) => m.Focus == p ? Style.Bold : Style.Dim;
+    private static Style BorderStyle(ScreenModel model, Pane pane) => model.Focus == pane ? Style.Bold : Style.Dim;
 
-    private static void DrawSidebar(CellBuffer buf, ScreenModel m, int x, int y, int w, int h)
+    private static void DrawSidebar(CellBuffer buffer, ScreenModel model, int x, int y, int width, int height)
     {
-        buf.Box(x, y, w, h, "Refs", BorderStyle(m, Pane.Sidebar));
-        var rows = h - 2;
-        var top = m.SidebarCursor.Scroll(rows, m.Sidebar.Count);
-        for (var r = 0; r < rows && top + r < m.Sidebar.Count; r++)
+        buffer.Box(x, y, width, height, "Refs", BorderStyle(model, Pane.Sidebar));
+        var rows = height - 2;
+        var top = model.SidebarCursor.Scroll(rows, model.Sidebar.Count);
+        for (var row = 0; row < rows && top + row < model.Sidebar.Count; row++)
         {
-            var item = m.Sidebar[top + r];
+            var item = model.Sidebar[top + row];
             var text = item.Header ? "▾ " + item.Text : "  " + item.Text;
-            buf.Put(x + 1, y + 1 + r, Clip(text, w - 2), item.Header ? Style.Bold : Style.None, item.Header ? (byte)110 : (byte)0);
-            if (top + r == m.SidebarCursor.Sel && m.Focus == Pane.Sidebar)
+            buffer.Put(x + 1, y + 1 + row, Clip(text, width - 2), item.Header ? Style.Bold : Style.None, item.Header ? (byte)110 : (byte)0);
+            if (top + row == model.SidebarCursor.Selection && model.Focus == Pane.Sidebar)
             {
-                buf.StyleSpan(x + 1, y + 1 + r, w - 2, Style.Reverse);
+                buffer.StyleSpan(x + 1, y + 1 + row, width - 2, Style.Reverse);
             }
         }
     }
 
-    private static void DrawGraph(CellBuffer buf, ScreenModel m, int x, int y, int w, int h)
+    private static void DrawGraph(CellBuffer buffer, ScreenModel model, int x, int y, int width, int height)
     {
-        var count = m.Graph.Count;
-        buf.Box(x, y, w, h, $"Graph  {(count == 0 ? 0 : m.GraphCursor.Sel + 1)}/{count}{(m.Loading ? " loading…" : string.Empty)}", BorderStyle(m, Pane.Graph));
-        var rows = h - 2;
-        var inner = w - 2;
-        var top = m.GraphCursor.Scroll(rows, count);
+        var count = model.Graph.Count;
+        buffer.Box(x, y, width, height, $"Graph  {(count == 0 ? 0 : model.GraphCursor.Selection + 1)}/{count}{(model.Loading ? " loading…" : string.Empty)}", BorderStyle(model, Pane.Graph));
+        var rows = height - 2;
+        var inner = width - 2;
+        var top = model.GraphCursor.Scroll(rows, count);
 
         var lanes = 1;
-        for (var r = 0; r < rows && top + r < count; r++)
+        for (var row = 0; row < rows && top + row < count; row++)
         {
-            lanes = Math.Max(lanes, m.Graph.Layout.Row(top + r).Length);
+            lanes = Math.Max(lanes, model.Graph.Layout.Row(top + row).Length);
         }
 
         var textX = x + 1 + (lanes * 2) + 1;
-        for (var r = 0; r < rows && top + r < count; r++)
+        for (var row = 0; row < rows && top + row < count; row++)
         {
-            var idx = top + r;
-            var row = m.Graph.Layout.Row(idx);
-            for (var j = 0; j < row.Length; j++)
+            var index = top + row;
+            var glyphs = model.Graph.Layout.Row(index);
+            for (var j = 0; j < glyphs.Length; j++)
             {
-                var glyph = row[j] switch
+                var glyph = glyphs[j] switch
                 {
                     LaneLayout.Pipe => "│",
                     LaneLayout.Node => "●",
@@ -119,29 +85,29 @@ public static class Screen
                     LaneLayout.Fork => "╮",
                     _ => " ",
                 };
-                buf.Put(x + 1 + (j * 2), y + 1 + r, glyph, Style.None, LaneColors[j % LaneColors.Length]);
+                buffer.Put(x + 1 + (j * 2), y + 1 + row, glyph, Style.None, LaneColors[j % LaneColors.Length]);
             }
 
-            var hash = m.Graph.Store.Hash(idx);
-            buf.Put(textX, y + 1 + r, hash.Length >= 7 ? hash[..7] : hash, Style.Dim, 244);
-            buf.Put(textX + 8, y + 1 + r, Clip(m.Graph.Store.Subject(idx), x + w - 1 - (textX + 8)), Style.None);
-            if (idx == m.GraphCursor.Sel)
+            var hash = model.Graph.Store.Hash(index);
+            buffer.Put(textX, y + 1 + row, hash.Length >= 7 ? hash[..7] : hash, Style.Dim, 244);
+            buffer.Put(textX + 8, y + 1 + row, Clip(model.Graph.Store.Subject(index), x + width - 1 - (textX + 8)), Style.None);
+            if (index == model.GraphCursor.Selection)
             {
-                buf.StyleSpan(x + 1, y + 1 + r, inner, m.Focus == Pane.Graph ? Style.Reverse : Style.Bold);
+                buffer.StyleSpan(x + 1, y + 1 + row, inner, model.Focus == Pane.Graph ? Style.Reverse : Style.Bold);
             }
         }
     }
 
-    private static void DrawDetails(CellBuffer buf, ScreenModel m, int x, int y, int w, int h)
+    private static void DrawDetails(CellBuffer buffer, ScreenModel model, int x, int y, int width, int height)
     {
-        buf.Box(x, y, w, h, "Commit", BorderStyle(m, Pane.Details));
-        var rows = h - 2;
-        var top = m.DetailsCursor.Scroll(rows, m.Details.Count);
-        for (var r = 0; r < rows && top + r < m.Details.Count; r++)
+        buffer.Box(x, y, width, height, "Commit", BorderStyle(model, Pane.Details));
+        var rows = height - 2;
+        var top = model.DetailsCursor.Scroll(rows, model.Details.Count);
+        for (var row = 0; row < rows && top + row < model.Details.Count; row++)
         {
-            buf.Put(x + 1, y + 1 + r, Clip(m.Details[top + r], w - 2), Style.None);
+            buffer.Put(x + 1, y + 1 + row, Clip(model.Details[top + row], width - 2), Style.None);
         }
     }
 
-    private static string Clip(string s, int width) => width <= 0 ? string.Empty : s.Length > width ? s[..width] : s;
+    private static string Clip(string text, int width) => width <= 0 ? string.Empty : text.Length > width ? text[..width] : text;
 }
