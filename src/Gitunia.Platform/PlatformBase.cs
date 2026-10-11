@@ -2,16 +2,16 @@ namespace Gitunia.Platform;
 
 public abstract class PlatformBase : IPlatform
 {
-    private readonly Func<string, string?> _getEnv;
+    private readonly Func<string, string?> _getEnvironmentVariable;
 
-    protected PlatformBase(Func<string, string?>? getEnv = null)
+    protected PlatformBase(Func<string, string?>? getEnvironmentVariable = null)
     {
-        _getEnv = getEnv ?? Environment.GetEnvironmentVariable;
+        _getEnvironmentVariable = getEnvironmentVariable ?? Environment.GetEnvironmentVariable;
     }
 
-    public abstract string ConfigDir { get; }
+    public abstract string ConfigDirectory { get; }
 
-    public abstract string StateDir { get; }
+    public abstract string StateDirectory { get; }
 
     public ConsoleCapabilities DetectConsole()
     {
@@ -19,7 +19,7 @@ public abstract class PlatformBase : IPlatform
         return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode());
     }
 
-    /// <summary>User home; falls back to the temp dir so paths never become cwd-relative.</summary>
+    /// <summary>User home; falls back to the temp directory so paths never become cwd-relative.</summary>
     protected static string Home
     {
         get
@@ -29,33 +29,33 @@ public abstract class PlatformBase : IPlatform
         }
     }
 
-    protected string? Env(string name)
+    protected string? ReadEnvironment(string name)
     {
-        var value = _getEnv(name);
+        var value = _getEnvironmentVariable(name);
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
     public ColorDepth DetectColor(bool interactive)
     {
-        if (!interactive || Env("NO_COLOR") is not null)
+        if (!interactive || ReadEnvironment("NO_COLOR") is not null)
         {
             return ColorDepth.None;
         }
 
-        var colorTerm = Env("COLORTERM");
+        var colorTerm = ReadEnvironment("COLORTERM");
         if (colorTerm is "truecolor" or "24bit")
         {
             return ColorDepth.TrueColor;
         }
 
-        var term = Env("TERM") ?? string.Empty;
+        var term = ReadEnvironment("TERM") ?? string.Empty;
         if (term.Contains("256color", StringComparison.Ordinal))
         {
             return ColorDepth.Ansi256;
         }
 
         // Windows Terminal sets WT_SESSION and supports VT truecolor.
-        if (OperatingSystem.IsWindows() && Env("WT_SESSION") is not null)
+        if (OperatingSystem.IsWindows() && ReadEnvironment("WT_SESSION") is not null)
         {
             return ColorDepth.TrueColor;
         }
@@ -71,7 +71,7 @@ public abstract class PlatformBase : IPlatform
             return true;
         }
 
-        var locale = Env("LC_ALL") ?? Env("LC_CTYPE") ?? Env("LANG") ?? string.Empty;
+        var locale = ReadEnvironment("LC_ALL") ?? ReadEnvironment("LC_CTYPE") ?? ReadEnvironment("LANG") ?? string.Empty;
         return locale.Contains("UTF-8", StringComparison.OrdinalIgnoreCase)
             || locale.Contains("utf8", StringComparison.OrdinalIgnoreCase);
     }

@@ -6,20 +6,20 @@ namespace Gitunia.Platform.Tests;
 public class PlatformTests
 {
     [Fact]
-    public void GivenCurrentPlatform_WhenReadingDirs_ThenTheyAreRootedAndNamedAfterTheApp()
+    public void GivenCurrentPlatform_WhenReadingDirectories_ThenTheyAreRootedAndNamedAfterTheApp()
     {
         var platform = PlatformInfo.Current;
-        Assert.True(Path.IsPathRooted(platform.ConfigDir));
-        Assert.True(Path.IsPathRooted(platform.StateDir));
-        Assert.Contains(PlatformInfo.AppDirName, platform.ConfigDir);
+        Assert.True(Path.IsPathRooted(platform.ConfigDirectory));
+        Assert.True(Path.IsPathRooted(platform.StateDirectory));
+        Assert.Contains(PlatformInfo.AppDirectoryName, platform.ConfigDirectory);
     }
 }
 
 public class DetectionTests
 {
-    private static LinuxPlatform With(params (string K, string V)[] env)
+    private static LinuxPlatform With(params (string Key, string Value)[] environment)
     {
-        var dictionary = env.ToDictionary(entry => entry.K, entry => entry.V);
+        var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
         return new LinuxPlatform(key => dictionary.GetValueOrDefault(key));
     }
 
@@ -47,10 +47,10 @@ public class DetectionTests
     }
 
     [Fact]
-    public void GivenXdgVars_WhenReadingLinuxDirs_ThenTheyAreUsed()
+    public void GivenXdgVars_WhenReadingLinuxDirectories_ThenTheyAreUsed()
     {
         var platform = With(("XDG_CONFIG_HOME", "/x/c"), ("XDG_STATE_HOME", "/x/s"));
-        Assert.Equal(Path.Combine("/x/c", "gitunia"), platform.ConfigDir);
-        Assert.Equal(Path.Combine("/x/s", "gitunia"), platform.StateDir);
+        Assert.Equal(Path.Combine("/x/c", "gitunia"), platform.ConfigDirectory);
+        Assert.Equal(Path.Combine("/x/s", "gitunia"), platform.StateDirectory);
     }
 }

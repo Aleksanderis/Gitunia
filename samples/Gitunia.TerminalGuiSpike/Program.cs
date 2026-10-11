@@ -14,38 +14,38 @@ public static class Program
     private static bool _searching;
     private static string _query = "";
     private static ListView _active = null!;
-    private static CancellationTokenSource? _detailCts;
+    private static CancellationTokenSource? _detailCancellationTokenSource;
 
-    public static int Main(string[] args)
+    public static int Main(string[] arguments)
     {
-        if (args.Length < 1)
+        if (arguments.Length < 1)
         {
             Console.Error.WriteLine("usage: gitunia <repo> [--ips N]");
             return 2;
         }
 
-        var repo = Path.GetFullPath(args[0]);
+        var repositoryPath = Path.GetFullPath(arguments[0]);
         var graph = new GraphSource();
         var refs = new CommitSource();
-        refs.AddRange(LoadRefs(repo));
+        refs.AddRange(LoadRefs(repositoryPath));
 
         using IApplication app = Application.Create();
-        var ipsArg = Array.IndexOf(args, "--ips");
-        Application.MaximumIterationsPerSecond = ipsArg >= 0 ? ushort.Parse(args[ipsArg + 1]) : (ushort)100;
+        var iterationsArgument = Array.IndexOf(arguments, "--ips");
+        Application.MaximumIterationsPerSecond = iterationsArgument >= 0 ? ushort.Parse(arguments[iterationsArgument + 1]) : (ushort)100;
 
         app.Init();
 
-        var repoName = Path.GetFileName(repo.TrimEnd(Path.DirectorySeparatorChar));
-        var win = new Window { Title = "", BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
-        var header = new SegView
+        var repositoryName = Path.GetFileName(repositoryPath.TrimEnd(Path.DirectorySeparatorChar));
+        var window = new Window { Title = "", BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
+        var header = new SegmentView
         {
             X = 0, Y = 0, Width = Dim.Fill(), Height = 1, Fill = Look.Style(TextStyle.Bold | TextStyle.Reverse),
-            Build = () => [(" ● Gitunia  ─  " + repoName, Look.Style(TextStyle.Bold | TextStyle.Reverse))],
+            Build = () => [(" ● Gitunia  ─  " + repositoryName, Look.Style(TextStyle.Bold | TextStyle.Reverse))],
         };
-        var tabs = new SegView
+        var tabs = new SegmentView
         {
             X = 0, Y = 1, Width = Dim.Fill(), Height = 1,
-            Build = () => [(" 1 " + repoName + " ", Look.Style(TextStyle.Reverse)), (" +  (tabs: M1)", Look.Style(TextStyle.Faint))],
+            Build = () => [(" 1 " + repositoryName + " ", Look.Style(TextStyle.Reverse)), (" +  (tabs: M1)", Look.Style(TextStyle.Faint))],
         };
 
         // Pane borders: bold when focused, faint otherwise (same cue as the custom demo).
@@ -79,46 +79,46 @@ public static class Program
         detailFrame.Height = Dim.Fill(1);
         var details = new Label { X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill(), Text = "" };
         detailFrame.Add(details);
-        foreach (var f in new[] { sideFrame, graphFrame, detailFrame })
+        foreach (var frame in new[] { sideFrame, graphFrame, detailFrame })
         {
-            f.SetScheme(paneScheme);
+            frame.SetScheme(paneScheme);
         }
 
         var statusText = "";
-        var status = new SegView
+        var status = new SegmentView
         {
             X = 0, Y = Pos.AnchorEnd(1), Width = Dim.Fill(), Height = 1, Fill = Look.Style(TextStyle.Faint | TextStyle.Reverse),
             Build = () => [(statusText, Look.Style(TextStyle.Faint | TextStyle.Reverse))],
         };
-        foreach (var f in new[] { sideFrame, graphFrame, detailFrame })
+        foreach (var frame in new[] { sideFrame, graphFrame, detailFrame })
         {
-            f.Border!.Settings &= ~BorderSettings.Title;
+            frame.Border!.Settings &= ~BorderSettings.Title;
         }
 
-        Attribute TitleAttr(bool focused) => Look.Style(focused ? TextStyle.Bold : TextStyle.Faint);
+        Attribute TitleAppearance(bool focused) => Look.Style(focused ? TextStyle.Bold : TextStyle.Faint);
         var graphTitleText = " Graph ";
-        SegView Title(View frame, Func<string> text, Func<bool> focused)
+        SegmentView Title(View frame, Func<string> text, Func<bool> focused)
         {
-            var v = new SegView { X = Pos.Left(frame) + 2, Y = 2, Height = 1, Width = 1 };
-            v.Build = () =>
+            var view = new SegmentView { X = Pos.Left(frame) + 2, Y = 2, Height = 1, Width = 1 };
+            view.Build = () =>
             {
-                var t = text();
-                v.Width = t.Length;
-                return [(t, TitleAttr(focused()))];
+                var titleText = text();
+                view.Width = titleText.Length;
+                return [(titleText, TitleAppearance(focused()))];
             };
-            return v;
+            return view;
         }
 
         var sideTitle = Title(sideFrame, () => " Refs ", () => side.HasFocus);
         var graphTitle = Title(graphFrame, () => graphTitleText, () => list.HasFocus);
-        var detailTitle = new SegView { X = Pos.Left(detailFrame) + 2, Y = Pos.Top(detailFrame), Height = 1, Width = 8 };
-        detailTitle.Build = () => [(" Commit ", TitleAttr(false))];
-        win.Add(header, tabs, sideFrame, graphFrame, detailFrame, status, sideTitle, graphTitle, detailTitle);
+        var detailTitle = new SegmentView { X = Pos.Left(detailFrame) + 2, Y = Pos.Top(detailFrame), Height = 1, Width = 8 };
+        detailTitle.Build = () => [(" Commit ", TitleAppearance(false))];
+        window.Add(header, tabs, sideFrame, graphFrame, detailFrame, status, sideTitle, graphTitle, detailTitle);
         _active = list;
 
-        side.HasFocusChanged += (_, e) =>
+        side.HasFocusChanged += (_, changed) =>
         {
-            if (e.NewValue)
+            if (changed.NewValue)
             {
                 _active = side;
                 UpdateStatus();
@@ -126,9 +126,9 @@ public static class Program
                 graphTitle.SetNeedsDraw();
             }
         };
-        list.HasFocusChanged += (_, e) =>
+        list.HasFocusChanged += (_, changed) =>
         {
-            if (e.NewValue)
+            if (changed.NewValue)
             {
                 _active = list;
                 UpdateStatus();
@@ -139,12 +139,12 @@ public static class Program
 
         void UpdateStatus()
         {
-            var n = _active.Source?.Count ?? 0;
+            var count = _active.Source?.Count ?? 0;
             var mode = _searching ? "SEARCH" : "NORMAL";
-            var pos = n == 0 ? 0 : (_active.SelectedItem ?? 0) + 1;
+            var position = count == 0 ? 0 : (_active.SelectedItem ?? 0) + 1;
             statusText = _searching
                 ? " /" + _query
-                : $" {mode}  [{(_active == list ? "Graph" : "Refs")}]  {pos}/{n}  Tab j/k gg G ^d ^u / n N q";
+                : $" {mode}  [{(_active == list ? "Graph" : "Refs")}]  {position}/{count}  Tab j/k gg G ^d ^u / n N q";
             if (graph.Count > 0)
             {
                 graphTitleText = $" Graph  {(list.SelectedItem ?? 0) + 1}/{graph.Count} ";
@@ -154,40 +154,40 @@ public static class Program
             status.SetNeedsDraw();
         }
 
-        void Select(int i)
+        void Select(int index)
         {
-            var n = _active.Source?.Count ?? 0;
-            if (n == 0)
+            var count = _active.Source?.Count ?? 0;
+            if (count == 0)
             {
                 return;
             }
 
-            _active.SelectedItem = i;
+            _active.SelectedItem = index;
             _active.EnsureSelectedItemVisible();
             UpdateStatus();
             if (_active == list)
             {
-                LoadDetails(app, repo, graph, i, details);
+                LoadDetails(app, repositoryPath, graph, index, details);
             }
         }
 
-        void Page(int dir)
+        void Page(int direction)
         {
-            var h = Math.Max(1, _active.Viewport.Height / 2);
-            Select(Math.Clamp((_active.SelectedItem ?? 0) + (dir * h), 0, Math.Max(0, (_active.Source?.Count ?? 1) - 1)));
+            var halfPage = Math.Max(1, _active.Viewport.Height / 2);
+            Select(Math.Clamp((_active.SelectedItem ?? 0) + (direction * halfPage), 0, Math.Max(0, (_active.Source?.Count ?? 1) - 1)));
         }
 
         void FindNext()
         {
             var start = (_active.SelectedItem ?? -1) + 1;
-            var n = _active.Source?.Count ?? 0;
-            for (var k = 0; k < n; k++)
+            var count = _active.Source?.Count ?? 0;
+            for (var offset = 0; offset < count; offset++)
             {
-                var i = (start + k) % n;
-                var text = _active == list ? graph.Rows[i].Subject : refs.Items[i].Text;
+            var index = (start + offset) % count;
+                var text = _active == list ? graph.Rows[index].Subject : refs.Items[index].Text;
                 if (text.Contains(_query, StringComparison.OrdinalIgnoreCase))
                 {
-                    Select(i);
+                    Select(index);
                     return;
                 }
             }
@@ -196,57 +196,57 @@ public static class Program
             status.SetNeedsDraw();
         }
 
-        app.Keyboard.KeyDown += (_, k) =>
+        app.Keyboard.KeyDown += (_, key) =>
         {
-            var r = k.AsRune.ToString();
+            var typed = key.AsRune.ToString();
             if (_searching)
             {
-                if (k == Key.Enter)
+                if (key == Key.Enter)
                 {
                     _searching = false;
                     FindNext();
                 }
-                else if (k == Key.Esc)
+                else if (key == Key.Esc)
                 {
                     _searching = false;
                     UpdateStatus();
                 }
-                else if (k == Key.Backspace && _query.Length > 0)
+                else if (key == Key.Backspace && _query.Length > 0)
                 {
                     _query = _query[..^1];
                     UpdateStatus();
                 }
-                else if (k.AsRune.Value >= 32)
+                else if (key.AsRune.Value >= 32)
                 {
-                    _query += r;
+                    _query += typed;
                     UpdateStatus();
                 }
 
-                k.Handled = true;
+                key.Handled = true;
                 return;
             }
 
-            if (k == Key.Tab)
+            if (key == Key.Tab)
             {
                 // Default focus navigation did not move between the two lists, so switch explicitly.
                 (_active == list ? side : list).SetFocus();
-                k.Handled = true;
+                key.Handled = true;
                 return;
             }
 
-            if (k == Key.D.WithCtrl)
+            if (key == Key.D.WithCtrl)
             {
                 Page(1);
             }
-            else if (k == Key.U.WithCtrl)
+            else if (key == Key.U.WithCtrl)
             {
                 Page(-1);
             }
-            else if (r == "G")
+            else if (typed == "G")
             {
                 Select((_active.Source?.Count ?? 1) - 1);
             }
-            else if (r == "g")
+            else if (typed == "g")
             {
                 if (_pending == "g")
                 {
@@ -258,28 +258,28 @@ public static class Program
                     _pending = "g";
                 }
 
-                k.Handled = true;
+                key.Handled = true;
                 return;
             }
-            else if (r == "j")
+            else if (typed == "j")
             {
                 Select(Math.Min((_active.Source?.Count ?? 1) - 1, (_active.SelectedItem ?? 0) + 1));
             }
-            else if (r == "k")
+            else if (typed == "k")
             {
                 Select(Math.Max(0, (_active.SelectedItem ?? 0) - 1));
             }
-            else if (r == "/")
+            else if (typed == "/")
             {
                 _searching = true;
                 _query = "";
                 UpdateStatus();
             }
-            else if (r == "n")
+            else if (typed == "n")
             {
                 FindNext();
             }
-            else if (r == "q")
+            else if (typed == "q")
             {
                 app.RequestStop();
             }
@@ -289,77 +289,77 @@ public static class Program
             }
 
             _pending = "";
-            k.Handled = true;
+            key.Handled = true;
         };
 
         list.SetFocus();
-        _ = Task.Run(() => Stream(app, repo, graph, list, details, UpdateStatus));
-        app.Run(win);
-        win.Dispose();
+        _ = Task.Run(() => Stream(app, repositoryPath, graph, list, details, UpdateStatus));
+        app.Run(window);
+        window.Dispose();
         return 0;
     }
 
-    private static List<SidebarItem> LoadRefs(string repo)
+    private static List<SidebarItem> LoadRefs(string repositoryPath)
     {
-        var psi = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
-        foreach (var a in new[] { "-C", repo, "for-each-ref", "--format=%(refname:short)\t%(refname)" })
+        var startInfo = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
+        foreach (var argument in new[] { "-C", repositoryPath, "for-each-ref", "--format=%(refname:short)\t%(refname)" })
         {
-            psi.ArgumentList.Add(a);
+            startInfo.ArgumentList.Add(argument);
         }
 
-        using var p = Process.Start(psi)!;
+        using var process = Process.Start(startInfo)!;
         var branches = new List<SidebarItem>();
         var tags = new List<SidebarItem>();
         string? line;
-        while ((line = p.StandardOutput.ReadLine()) is not null)
+        while ((line = process.StandardOutput.ReadLine()) is not null)
         {
             var parts = line.Split('\t');
             var item = new SidebarItem(parts[0], false);
             (parts.Length > 1 && parts[1].StartsWith("refs/tags/", StringComparison.Ordinal) ? tags : branches).Add(item);
         }
 
-        p.WaitForExit();
-        var res = new List<SidebarItem> { new($"Branches ({branches.Count})", true) };
-        res.AddRange(branches);
-        res.Add(new($"Tags ({tags.Count})", true));
-        res.AddRange(tags);
-        return res;
+        process.WaitForExit();
+        var result = new List<SidebarItem> { new($"Branches ({branches.Count})", true) };
+        result.AddRange(branches);
+        result.Add(new($"Tags ({tags.Count})", true));
+        result.AddRange(tags);
+        return result;
     }
 
-    private static void LoadDetails(IApplication app, string repo, GraphSource graph, int i, Label details)
+    private static void LoadDetails(IApplication app, string repositoryPath, GraphSource graph, int index, Label details)
     {
-        _detailCts?.Cancel();
-        var cts = _detailCts = new CancellationTokenSource();
-        if (i >= graph.Rows.Count)
+        _detailCancellationTokenSource?.Cancel();
+        var cancellationTokenSource = _detailCancellationTokenSource = new CancellationTokenSource();
+        if (index >= graph.Rows.Count)
         {
             return;
         }
 
-        var hash = graph.Rows[i].Hash;
+        var hash = graph.Rows[index].Hash;
         _ = Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(30, cts.Token);
-                var psi = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
-                foreach (var a in new[] { "-C", repo, "show", "--stat", "--format=fuller", hash })
+                await Task.Delay(30, cancellationTokenSource.Token);
+                var startInfo = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
+                foreach (var argument in new[] { "-C", repositoryPath, "show", "--stat", "--format=fuller", hash })
                 {
-                    psi.ArgumentList.Add(a);
+                    startInfo.ArgumentList.Add(argument);
                 }
 
-                using var p = Process.Start(psi)!;
-                using var reg = cts.Token.Register(() =>
+                using var process = Process.Start(startInfo)!;
+                using var registration = cancellationTokenSource.Token.Register(() =>
                 {
                     try
                     {
-                        p.Kill();
+                        process.Kill();
                     }
                     catch (InvalidOperationException)
                     {
                     }
                 });
-                var text = await p.StandardOutput.ReadToEndAsync(cts.Token);
-                if (!cts.IsCancellationRequested)
+                var text = await process.StandardOutput.ReadToEndAsync(cancellationTokenSource.Token);
+                if (!cancellationTokenSource.IsCancellationRequested)
                 {
                     app.Invoke(() => details.Text = text);
                 }
@@ -370,36 +370,36 @@ public static class Program
         });
     }
 
-    private static async Task Stream(IApplication app, string repo, GraphSource graph, ListView list, Label details, Action updateStatus)
+    private static async Task Stream(IApplication app, string repositoryPath, GraphSource graph, ListView list, Label details, Action updateStatus)
     {
-        var psi = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
-        foreach (var a in new[] { "-C", repo, "log", "--format=%H%x09%P%x09%s", "--date-order" })
+        var startInfo = new ProcessStartInfo("git") { RedirectStandardOutput = true, UseShellExecute = false };
+        foreach (var argument in new[] { "-C", repositoryPath, "log", "--format=%H%x09%P%x09%s", "--date-order" })
         {
-            psi.ArgumentList.Add(a);
+            startInfo.ArgumentList.Add(argument);
         }
 
-        using var p = Process.Start(psi)!;
+        using var process = Process.Start(startInfo)!;
         var lanes = new LaneBuilder();
         var batch = new List<GraphRow>(2048);
         var first = true;
         string? line;
-        while ((line = await p.StandardOutput.ReadLineAsync()) is not null)
+        while ((line = await process.StandardOutput.ReadLineAsync()) is not null)
         {
-            var f = line.Split('\t', 3);
-            var parents = f[1].Length == 0 ? [] : f[1].Split(' ');
-            batch.Add(lanes.Add(f[0], parents, f.Length > 2 ? f[2] : ""));
+            var fields = line.Split('	', 3);
+            var parents = fields[1].Length == 0 ? [] : fields[1].Split(' ');
+            batch.Add(lanes.Add(fields[0], parents, fields.Length > 2 ? fields[2] : ""));
             if (batch.Count >= (first ? 200 : 5000))
             {
                 first = false;
-                Flush(app, repo, graph, list, details, batch, updateStatus);
+                Flush(app, repositoryPath, graph, list, details, batch, updateStatus);
                 batch = new List<GraphRow>(5000);
             }
         }
 
-        Flush(app, repo, graph, list, details, batch, updateStatus);
+        Flush(app, repositoryPath, graph, list, details, batch, updateStatus);
     }
 
-    private static void Flush(IApplication app, string repo, GraphSource graph, ListView list, Label details, List<GraphRow> batch, Action updateStatus)
+    private static void Flush(IApplication app, string repositoryPath, GraphSource graph, ListView list, Label details, List<GraphRow> batch, Action updateStatus)
     {
         if (batch.Count == 0)
         {
@@ -417,7 +417,7 @@ public static class Program
 
             if (wasEmpty)
             {
-                LoadDetails(app, repo, graph, 0, details);
+                LoadDetails(app, repositoryPath, graph, 0, details);
             }
 
             list.SetNeedsDraw();

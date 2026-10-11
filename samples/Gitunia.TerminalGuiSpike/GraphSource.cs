@@ -17,15 +17,15 @@ public sealed class LaneBuilder
 
     public GraphRow Add(string hash, string[] parents, string subject)
     {
-        var idx = _lanes.IndexOf(hash);
-        if (idx < 0)
+        var laneIndex = _lanes.IndexOf(hash);
+        if (laneIndex < 0)
         {
-            idx = FreeSlot();
-            _lanes[idx] = hash;
+            laneIndex = FreeSlot();
+            _lanes[laneIndex] = hash;
         }
 
         ulong join = 0;
-        for (var j = idx + 1; j < _lanes.Count; j++)
+        for (var j = laneIndex + 1; j < _lanes.Count; j++)
         {
             if (_lanes[j] == hash)
             {
@@ -37,24 +37,24 @@ public sealed class LaneBuilder
         ulong through = 0;
         for (var i = 0; i < _lanes.Count; i++)
         {
-            if (i != idx && _lanes[i] is not null)
+            if (i != laneIndex && _lanes[i] is not null)
             {
                 through |= Bit(i);
             }
         }
 
         ulong fork = 0;
-        _lanes[idx] = parents.Length > 0 ? parents[0] : null;
-        for (var p = 1; p < parents.Length; p++)
+        _lanes[laneIndex] = parents.Length > 0 ? parents[0] : null;
+        for (var parentIndex = 1; parentIndex < parents.Length; parentIndex++)
         {
-            var k = _lanes.IndexOf(parents[p]);
-            if (k < 0)
+            var parentLane = _lanes.IndexOf(parents[parentIndex]);
+            if (parentLane < 0)
             {
-                k = FreeSlot();
-                _lanes[k] = parents[p];
+                parentLane = FreeSlot();
+                _lanes[parentLane] = parents[parentIndex];
             }
 
-            fork |= Bit(k);
+            fork |= Bit(parentLane);
         }
 
         while (_lanes.Count > 0 && _lanes[^1] is null)
@@ -62,17 +62,17 @@ public sealed class LaneBuilder
             _lanes.RemoveAt(_lanes.Count - 1);
         }
 
-        return new GraphRow(hash, subject, idx, through, join, fork, parents.Length > 1);
+        return new GraphRow(hash, subject, laneIndex, through, join, fork, parents.Length > 1);
     }
 
-    private static ulong Bit(int i) => i < 64 ? 1UL << i : 0;
+    private static ulong Bit(int index) => index < 64 ? 1UL << index : 0;
 
     private int FreeSlot()
     {
-        var i = _lanes.IndexOf(null);
-        if (i >= 0)
+        var index = _lanes.IndexOf(null);
+        if (index >= 0)
         {
-            return i;
+            return index;
         }
 
         _lanes.Add(null);
@@ -115,9 +115,9 @@ public sealed class GraphSource : IListDataSource
     public IList ToList() => Rows;
 
     /// <summary>Lane columns needed by the rows currently on screen (so short histories get no wide gap).</summary>
-    private int LaneWidth(ListView lv)
+    private int LaneWidth(ListView listView)
     {
-        var key = (lv.Viewport.Y, lv.Viewport.Height, Rows.Count);
+        var key = (listView.Viewport.Y, listView.Viewport.Height, Rows.Count);
         if (_laneCache.Top == key.Item1 && _laneCache.Height == key.Item2 && _laneCache.Count == key.Item3)
         {
             return _laneCache.Width;
@@ -126,8 +126,8 @@ public sealed class GraphSource : IListDataSource
         var lanes = 1;
         for (var i = key.Item1; i < Math.Min(Rows.Count, key.Item1 + key.Item2); i++)
         {
-            var r = Rows[i];
-            var all = r.Through | r.Join | r.Fork | (1UL << r.Lane);
+            var row = Rows[i];
+            var all = row.Through | row.Join | row.Fork | (1UL << row.Lane);
             lanes = Math.Max(lanes, 64 - BitOperations.LeadingZeroCount(all));
         }
 
@@ -139,7 +139,7 @@ public sealed class GraphSource : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         listView.Move(col, row);
-        var rev = selected && listView.HasFocus ? TextStyle.Reverse : TextStyle.None;
+        var reverse = selected && listView.HasFocus ? TextStyle.Reverse : TextStyle.None;
         if (item >= Rows.Count)
         {
             listView.SetAttribute(new Attribute(Color.None, Color.None, TextStyle.None));
@@ -147,43 +147,43 @@ public sealed class GraphSource : IListDataSource
             return;
         }
 
-        var r = Rows[item];
+        var commit = Rows[item];
         var lanes = LaneWidth(listView);
         var used = 0;
         for (var i = 0; i < lanes; i++)
         {
-            var ch = ' ';
+            var glyph = ' ';
             var bit = 1UL << i;
-            if (i == r.Lane)
+            if (i == commit.Lane)
             {
-                ch = '●';
+                glyph = '●';
             }
-            else if ((r.Through & bit) != 0)
+            else if ((commit.Through & bit) != 0)
             {
-                ch = '│';
+                glyph = '│';
             }
-            else if ((r.Join & bit) != 0)
+            else if ((commit.Join & bit) != 0)
             {
-                ch = '╯';
+                glyph = '╯';
             }
-            else if ((r.Fork & bit) != 0)
+            else if ((commit.Fork & bit) != 0)
             {
-                ch = '╮';
+                glyph = '╮';
             }
 
-            listView.SetAttribute(new Attribute(Look.Lanes[i % Look.Lanes.Length], Color.None, rev));
-            listView.AddStr(ch + " ");
+            listView.SetAttribute(new Attribute(Look.Lanes[i % Look.Lanes.Length], Color.None, reverse));
+            listView.AddStr(glyph + " ");
             used += 2;
         }
 
-        listView.SetAttribute(new Attribute(Look.HashGrey, Color.None, rev | TextStyle.Faint));
-        listView.AddStr(" " + r.Hash[..7] + " ");
+        listView.SetAttribute(new Attribute(Look.HashGrey, Color.None, reverse | TextStyle.Faint));
+        listView.AddStr(" " + commit.Hash[..7] + " ");
         used += 9;
 
-        listView.SetAttribute(new Attribute(Color.None, Color.None, rev));
-        var avail = Math.Max(0, width - used);
-        var text = r.Subject.Length > avail ? r.Subject[..avail] : r.Subject;
-        listView.AddStr(text.PadRight(avail));
+        listView.SetAttribute(new Attribute(Color.None, Color.None, reverse));
+        var available = Math.Max(0, width - used);
+        var text = commit.Subject.Length > available ? commit.Subject[..available] : commit.Subject;
+        listView.AddStr(text.PadRight(available));
     }
 
     public void Dispose()

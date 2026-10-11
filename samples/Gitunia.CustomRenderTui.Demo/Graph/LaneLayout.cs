@@ -17,25 +17,25 @@ public sealed class LaneLayout
 
     private readonly List<ulong> _lanes = [];
     private byte[] _glyphs = new byte[1 << 16];
-    private int[] _start = new int[1 << 14];
-    private int _glyphLen;
+    private int[] _starts = new int[1 << 14];
+    private int _glyphLength;
 
     public int Count { get; private set; }
 
-    public ReadOnlySpan<byte> Row(int i) => _glyphs.AsSpan(_start[i], _start[i + 1] - _start[i]);
+    public ReadOnlySpan<byte> Row(int index) => _glyphs.AsSpan(_starts[index], _starts[index + 1] - _starts[index]);
 
     public void Add(ulong hash, ReadOnlySpan<ulong> parents)
     {
-        var col = _lanes.IndexOf(hash);
-        if (col < 0)
+        var column = _lanes.IndexOf(hash);
+        if (column < 0)
         {
-            col = FreeLane();
+            column = FreeLane();
         }
 
         Span<byte> marks = stackalloc byte[MaxLanes];
         for (var i = 0; i < _lanes.Count; i++)
         {
-            if (i != col && _lanes[i] == hash)
+            if (i != column && _lanes[i] == hash)
             {
                 if (i < MaxLanes)
                 {
@@ -46,16 +46,16 @@ public sealed class LaneLayout
             }
         }
 
-        _lanes[col] = parents.Length > 0 ? parents[0] : 0;
-        for (var p = 1; p < parents.Length; p++)
+        _lanes[column] = parents.Length > 0 ? parents[0] : 0;
+        for (var parentIndex = 1; parentIndex < parents.Length; parentIndex++)
         {
-            if (_lanes.Contains(parents[p]))
+            if (_lanes.Contains(parents[parentIndex]))
             {
                 continue;
             }
 
-            var slot = FreeLane(col);
-            _lanes[slot] = parents[p];
+            var slot = FreeLane(column);
+            _lanes[slot] = parents[parentIndex];
             if (slot < MaxLanes)
             {
                 marks[slot] = Fork;
@@ -66,10 +66,10 @@ public sealed class LaneLayout
         Ensure(width);
         for (var i = 0; i < width; i++)
         {
-            _glyphs[_glyphLen++] = i == col ? Node : marks[i] != Empty ? marks[i] : _lanes[i] != 0 ? Pipe : Empty;
+            _glyphs[_glyphLength++] = i == column ? Node : marks[i] != Empty ? marks[i] : _lanes[i] != 0 ? Pipe : Empty;
         }
 
-        _start[++Count] = _glyphLen;
+        _starts[++Count] = _glyphLength;
         while (_lanes.Count > 0 && _lanes[^1] == 0)
         {
             _lanes.RemoveAt(_lanes.Count - 1);
@@ -92,14 +92,14 @@ public sealed class LaneLayout
 
     private void Ensure(int width)
     {
-        if (_glyphLen + width > _glyphs.Length)
+        if (_glyphLength + width > _glyphs.Length)
         {
-            Array.Resize(ref _glyphs, Math.Max(_glyphs.Length * 2, _glyphLen + width));
+            Array.Resize(ref _glyphs, Math.Max(_glyphs.Length * 2, _glyphLength + width));
         }
 
-        if (Count + 2 > _start.Length)
+        if (Count + 2 > _starts.Length)
         {
-            Array.Resize(ref _start, _start.Length * 2);
+            Array.Resize(ref _starts, _starts.Length * 2);
         }
     }
 }

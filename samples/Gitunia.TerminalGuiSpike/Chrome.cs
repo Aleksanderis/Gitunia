@@ -8,17 +8,17 @@ namespace Gitunia.Tui;
 public static class Look
 {
     /// <summary>xterm-256 palette index to true colour, so we can reuse the custom demo's exact colours.</summary>
-    public static Color Xterm(int i)
+    public static Color Xterm(int index)
     {
-        if (i >= 232)
+        if (index >= 232)
         {
-            var g = 8 + ((i - 232) * 10);
-            return new Color(g, g, g);
+            var grey = 8 + ((index - 232) * 10);
+            return new Color(grey, grey, grey);
         }
 
-        int[] lv = [0, 95, 135, 175, 215, 255];
-        var c = i - 16;
-        return new Color(lv[c / 36], lv[c / 6 % 6], lv[c % 6]);
+        int[] levels = [0, 95, 135, 175, 215, 255];
+        var offset = index - 16;
+        return new Color(levels[offset / 36], levels[offset / 6 % 6], levels[offset % 6]);
     }
 
     public static readonly Color[] Lanes = new[] { 75, 114, 215, 177, 203, 80, 222, 141, 150, 209, 117, 183 }.Select(Xterm).ToArray();
@@ -28,13 +28,13 @@ public static class Look
     public static readonly Color SectionBlue = Xterm(110);
 
     /// <summary>Terminal default colours with the given style (Reverse swaps them: the "filled bar" look).</summary>
-    public static Attribute Style(TextStyle s) => new(Color.None, Color.None, s);
+    public static Attribute Style(TextStyle style) => new(Color.None, Color.None, style);
 }
 
 /// <summary>One-line view drawn from coloured segments and padded to the full width (header, tab row, status line).</summary>
-public sealed class SegView : View
+public sealed class SegmentView : View
 {
-    public Func<IEnumerable<(string Text, Attribute Attr)>>? Build { get; set; }
+    public Func<IEnumerable<(string Text, Attribute Appearance)>>? Build { get; set; }
 
     public Attribute Fill { get; set; } = Look.Style(TextStyle.None);
 
@@ -43,17 +43,17 @@ public sealed class SegView : View
         var width = Viewport.Width;
         Move(0, 0);
         var used = 0;
-        foreach (var (text, attr) in Build?.Invoke() ?? Enumerable.Empty<(string, Attribute)>())
+        foreach (var (text, appearance) in Build?.Invoke() ?? Enumerable.Empty<(string, Attribute)>())
         {
             if (used >= width)
             {
                 break;
             }
 
-            var t = text.Length > width - used ? text[..(width - used)] : text;
-            SetAttribute(attr);
-            AddStr(t);
-            used += t.Length;
+            var visible = text.Length > width - used ? text[..(width - used)] : text;
+            SetAttribute(appearance);
+            AddStr(visible);
+            used += visible.Length;
         }
 
         SetAttribute(Fill);

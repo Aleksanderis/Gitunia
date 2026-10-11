@@ -4,11 +4,11 @@ namespace Gitunia.CustomRenderTui.Demo;
 
 public sealed partial class App
 {
-    private async Task LoadRefsAsync(CancellationToken ct)
+    private async Task LoadRefsAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var text = await GitText.RunAsync(_repo, ["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes", "refs/tags"], ct).ConfigureAwait(false);
+            var text = await GitText.RunAsync(_repositoryPath, ["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes", "refs/tags"], cancellationToken).ConfigureAwait(false);
             var branches = new List<SidebarItem>();
             var tags = new List<SidebarItem>();
             foreach (var line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -42,30 +42,30 @@ public sealed partial class App
             return;
         }
 
-        var hash = _graph.Store.Hash(_graphCur.Selection);
+        var hash = _graph.Store.Hash(_graphCursor.Selection);
         if (hash == _detailHash)
         {
             return;
         }
 
         _detailHash = hash;
-        _detailCts?.Cancel();
-        _detailCts?.Dispose();
-        _detailCts = new CancellationTokenSource();
-        var ct = _detailCts.Token;
+        _detailCancellationTokenSource?.Cancel();
+        _detailCancellationTokenSource?.Dispose();
+        _detailCancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = _detailCancellationTokenSource.Token;
         _ = Task.Run(
             async () =>
             {
                 try
                 {
-                    await Task.Delay(40, ct).ConfigureAwait(false); // coalesce held keys into one git spawn
-                    var text = await GitText.RunAsync(_repo, ["show", "--stat", "--no-color", "--format=fuller", hash], ct).ConfigureAwait(false);
+                    await Task.Delay(40, cancellationToken).ConfigureAwait(false); // coalesce held keys into one git spawn
+                    var text = await GitText.RunAsync(_repositoryPath, ["show", "--stat", "--no-color", "--format=fuller", hash], cancellationToken).ConfigureAwait(false);
                     _events.Writer.TryWrite(new DetailsLoaded(hash, text));
                 }
                 catch (OperationCanceledException)
                 {
                 }
             },
-            ct);
+            cancellationToken);
     }
 }

@@ -42,22 +42,22 @@ public sealed class CommitSource : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         listView.Move(col, row);
-        var it = item < Items.Count ? Items[item] : default;
-        var s = it.Text is null ? "" : (it.Header ? "▾ " : "  ") + it.Text;
-        if (s.Length > width)
+        var entry = item < Items.Count ? Items[item] : default;
+        var text = entry.Text is null ? "" : (entry.Header ? "▾ " : "  ") + entry.Text;
+        if (text.Length > width)
         {
-            s = s[..width];
+            text = text[..width];
         }
 
-        var style = it.Header ? TextStyle.Bold : TextStyle.None;
+        var style = entry.Header ? TextStyle.Bold : TextStyle.None;
         if (selected && listView.HasFocus)
         {
             style |= TextStyle.Reverse;
         }
 
-        var fg = it.Header ? Look.SectionBlue : Color.None;
-        listView.SetAttribute(new Attribute(fg, Color.None, style));
-        listView.AddStr(s.PadRight(width));
+        var foreground = entry.Header ? Look.SectionBlue : Color.None;
+        listView.SetAttribute(new Attribute(foreground, Color.None, style));
+        listView.AddStr(text.PadRight(width));
     }
 
     public void Dispose()
