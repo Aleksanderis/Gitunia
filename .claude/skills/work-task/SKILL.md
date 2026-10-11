@@ -57,5 +57,5 @@ All agents act through the owner's GitHub login, so every artifact must say whic
   ```
 
   Icons: orchestrator 🧭, implementer 🛠, reviewer 🔍. Header titles: `findings`, `fixes for review`, `spike findings`, `blocked`, etc. The signature names the role, "Claude", and the PR or issue plus commit it refers to.
-- **PR body:** the line above the generated-with footer reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it).
+- **PR body:** the last line reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it). No "Generated with Claude Code" footer anywhere.
 - **Reviewer output:** the `reviewer` subagent is read-only, so it returns the complete comment (header, marker, body, signature) and whoever runs it posts it verbatim with `gh pr comment`. The fix-up comment is posted by the implementer with its own header and signature.
