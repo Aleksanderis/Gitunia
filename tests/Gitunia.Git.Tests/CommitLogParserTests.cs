@@ -41,6 +41,18 @@ public class CommitLogParserTests
     }
 
     [Fact]
+    public void GivenSha256Hashes_WhenParsing_ThenFullLengthIsKept()
+    {
+        string hash = new('a', 64);
+        string text = string.Join('\x1f', hash, hash.Replace('a', 'b'), "A", "a@b", "1", string.Empty, "Subject") + "\0";
+
+        CommitInfo commit = Assert.Single(ParseAll(text, 1000, out _));
+
+        Assert.Equal(hash, commit.Id.ToString());
+        Assert.Equal(hash.Replace('a', 'b'), Assert.Single(commit.Parents).ToString());
+    }
+
+    [Fact]
     public void GivenAnyChunking_WhenParsing_ThenResultIsIdentical()
     {
         string text = Record(2, [1], author: "Zoë 日本", subject: "ünï subject with spaces") + Record(1, [], decorations: "HEAD -> refs/heads/main, tag: refs/tags/v1");

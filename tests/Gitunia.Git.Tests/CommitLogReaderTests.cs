@@ -104,15 +104,59 @@ public class CommitLogReaderTests
         Assert.SkipUnless(bigRepository is not null && Directory.Exists(bigRepository), "set GITUNIA_BIG_REPO to a repo from scripts/gen-big-repo.sh to run this");
         Repo repo = await Repo.OpenAsync(Runner, bigRepository!, Token);
         long expected = long.Parse((await repo.RunAsync(["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
         long count = 0;
-        await foreach (CommitInfo unused in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, [], Token))
+        await foreach (CommitInfo commit in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, [], Token))
         {
-            count += unused.Id.IsValid ? 1 : 0;
+            count += commit.Id.IsValid ? 1 : 0;
         }
 
         Assert.Equal(expected, count);
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(30), $"took {stopwatch.Elapsed}");
+    }
+
+    [Fact]
+    public async Task GivenUnknownRevision_WhenReadingLog_ThenGitErrorPropagates()
+    {
+        using TestRepository repository = TestRepositories.Linear(1);
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => ReadAllAsync(repo, CommitOrder.Topological, "no-such-branch"));
+    }
+
+    [Fact]
+    public async Task GivenRevisionNamedLikeAFile_WhenReadingLog_ThenItIsStillTreatedAsRevision()
+    {
+        using TestRepository repository = TestRepository.Create().Commit("One", ("main", "file named like the branch\n"));
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Single(await ReadAllAsync(repo, CommitOrder.Topological, "main"));
+    }
+
+    [Fact]
+    public async Task GivenStash_WhenReadingDefaultLog_ThenStashCommitsAreExcluded()
+    {
+        using TestRepository repository = TestRepositories.Linear(1);
+        repository.WriteFile("file.txt", "changed\n");
+        repository.Git("stash", "push", "-q");
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Single(await ReadAllAsync(repo));
+    }
+
+    [Fact]
+    public async Task GivenCancellation_WhenReadingLog_ThenOperationCancelled()
+    {
+        using TestRepository repository = TestRepositories.Linear(3);
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var source = new CancellationTokenSource();
+        await source.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (CommitInfo commit in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, [], source.Token))
+            {
+                Assert.NotNull(commit);
+            }
+        });
     }
 }

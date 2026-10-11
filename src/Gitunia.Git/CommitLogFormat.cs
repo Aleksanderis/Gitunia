@@ -27,6 +27,9 @@ public static class CommitLogFormat
         };
         arguments.Add(order == CommitOrder.Topological ? "--topo-order" : "--date-order");
         arguments.AddRange(revisions);
+
+        // Without '--' a revision that matches a file name is ambiguous to git.
+        arguments.Add("--");
         return arguments;
     }
 }
