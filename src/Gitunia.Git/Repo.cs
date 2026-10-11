@@ -81,8 +81,16 @@ public sealed class Repo
         string sequencerTodo = Path.Combine(gitDirectory, "sequencer", "todo");
         if (File.Exists(sequencerTodo))
         {
-            string firstCommand = File.ReadLines(sequencerTodo).FirstOrDefault(line => line.Length > 0 && line[0] != '#') ?? string.Empty;
-            return firstCommand.StartsWith("revert", StringComparison.Ordinal) ? RepositoryOperation.Revert : RepositoryOperation.CherryPick;
+            try
+            {
+                string firstCommand = File.ReadLines(sequencerTodo).FirstOrDefault(line => line.Length > 0 && line[0] != '#') ?? string.Empty;
+                return firstCommand.StartsWith("revert", StringComparison.Ordinal) ? RepositoryOperation.Revert : RepositoryOperation.CherryPick;
+            }
+            catch (IOException)
+            {
+                // The operation finished while we looked.
+                return RepositoryOperation.None;
+            }
         }
 
         return File.Exists(Path.Combine(gitDirectory, "BISECT_LOG")) ? RepositoryOperation.Bisect : RepositoryOperation.None;

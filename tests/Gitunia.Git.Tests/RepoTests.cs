@@ -210,4 +210,117 @@ public class RepoTests
 
         Assert.Equal(RepositoryOperation.Bisect, repo.DetectOperation());
     }
+
+    [Fact]
+    public async Task GivenPathWithSpacesAndUnicode_WhenOpening_ThenResolves()
+    {
+        using TestRepository repository = TestRepository.Create().Commit("Odd", (Path.Combine("sub dir ünï", "file.txt"), "x\n"));
+
+        Repo repo = await Repo.OpenAsync(Runner, Path.Combine(repository.Path, "sub dir ünï"), Token);
+
+        Assert.Equal(Canonical(repository, repository.Path), Normalize(repo.Location.WorkingTreePath!));
+    }
+
+    [Fact]
+    public async Task GivenLinkedWorktreeOfBareRepository_WhenOpening_ThenWorkingTreeIsLinkedAndCommonDirectoryIsBare()
+    {
+        using TestRepository source = TestRepositories.Linear(1);
+        using TestRepository bare = TestRepository.Create(bare: true);
+        source.Git("push", "-q", bare.Path, "main");
+        string worktreePath = bare.AddWorktree("from-bare", "main");
+
+        Repo repo = await Repo.OpenAsync(Runner, worktreePath, Token);
+        Repo bareRepo = await Repo.OpenAsync(Runner, bare.Path, Token);
+
+        Assert.True(repo.Location.IsLinkedWorktree);
+        Assert.False(repo.Location.IsBare);
+        Assert.Equal(Normalize(bareRepo.Location.GitDirectory), Normalize(repo.Location.CommonDirectory));
+        Assert.Equal("main", (await repo.ReadHeadAsync(Token)).BranchName);
+    }
+
+    [Fact]
+    public async Task GivenRelativeWorktreePointer_WhenOpeningInsideItsGitDirectory_ThenWorkingTreeIsFound()
+    {
+        using TestRepository repository = TestRepositories.Linear(1);
+        string worktreePath = Path.Combine(Path.GetDirectoryName(repository.Path)!, "relative-wt");
+        string output;
+        try
+        {
+            output = repository.Git(["worktree", "add", "-q", "--relative-paths", "-b", "rel", worktreePath], null);
+        }
+        catch (GitCommandFailedException)
+        {
+            return; // git older than 2.48 has no --relative-paths
+        }
+
+        Assert.NotNull(output);
+        Repo repo = await Repo.OpenAsync(Runner, Path.Combine(repository.Path, ".git", "worktrees", "relative-wt"), Token);
+
+        Assert.Equal(Canonical(repository, worktreePath), Normalize(repo.Location.WorkingTreePath!));
+    }
+
+    [Fact]
+    public async Task GivenSeparateGitDirectory_WhenOpeningInsideIt_ThenFailsUnlessCoreWorktreeIsSet()
+    {
+        using TestRepository repository = TestRepository.Create();
+        string separate = Path.Combine(Path.GetDirectoryName(repository.Path)!, "separate.git");
+        string worktree = Path.Combine(Path.GetDirectoryName(repository.Path)!, "separate-work");
+        Directory.CreateDirectory(worktree);
+        repository.Git("init", "-q", "-b", "main", "--separate-git-dir", separate, worktree);
+
+        await Assert.ThrowsAsync<NotARepositoryException>(() => Repo.OpenAsync(Runner, separate, Token));
+
+        repository.Git(["-C", separate, "config", "core.worktree", worktree], null);
+        Repo repo = await Repo.OpenAsync(Runner, separate, Token);
+
+        Assert.Equal(Canonical(repository, worktree), Normalize(repo.Location.WorkingTreePath!));
+    }
+
+    [Fact]
+    public async Task GivenConflictInLinkedWorktree_WhenDetectingOperation_ThenOnlyThatWorktreeReportsIt()
+    {
+        using TestRepository repository = TestRepository.Create()
+            .Commit("Initial", ("conflict.txt", "original\n"))
+            .CheckoutNewBranch("other")
+            .Commit("Other", ("conflict.txt", "other\n"))
+            .Checkout("main");
+        string worktreePath = repository.AddWorktree("work", "side", createBranch: true);
+        repository.Git(["-C", worktreePath, "checkout", "-q", "-b", "side2"], null);
+        File.WriteAllText(Path.Combine(worktreePath, "conflict.txt"), "side\n");
+        repository.Git(["-C", worktreePath, "commit", "-q", "-am", "Side"], null);
+        repository.Git(["-C", worktreePath, "merge", "-q", "other"], [1]);
+
+        Repo linked = await Repo.OpenAsync(Runner, worktreePath, Token);
+        Repo main = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Equal(RepositoryOperation.Merge, linked.DetectOperation());
+        Assert.Equal(RepositoryOperation.None, main.DetectOperation());
+    }
+
+    [Fact]
+    public async Task GivenMultiCommitCherryPickStopped_WhenDetectingOperation_ThenCherryPickFromSequencer()
+    {
+        using TestRepository repository = TestRepository.Create()
+            .Commit("Initial", ("a.txt", "a\n"), ("b.txt", "b\n"))
+            .CheckoutNewBranch("other")
+            .Commit("Other a", ("a.txt", "other a\n"))
+            .Commit("Other b", ("b.txt", "other b\n"))
+            .Checkout("main")
+            .Commit("Main a", ("a.txt", "main a\n"));
+        repository.Git(["cherry-pick", "other~1", "other"], [1]);
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Equal(RepositoryOperation.CherryPick, repo.DetectOperation());
+    }
+
+    [Fact]
+    public async Task GivenRebaseStopped_WhenReadingHead_ThenDetached()
+    {
+        using TestRepository repository = TestRepositories.Conflicted();
+        repository.Git(["merge", "--abort"], null);
+        repository.Git(["rebase", "other"], [1]);
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Equal(HeadKind.Detached, (await repo.ReadHeadAsync(Token)).Kind);
+    }
 }
