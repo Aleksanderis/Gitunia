@@ -1,0 +1,220 @@
+using System.Text;
+
+namespace Gitunia.Git;
+
+/// <summary>
+/// Incremental parser for <c>git log</c> output in <see cref="CommitLogFormat"/>. Feed it chunks of any size;
+/// it keeps only the bytes of the commit that is still incomplete, so memory does not grow with the log.
+/// </summary>
+public sealed class CommitLogParser
+{
+    private const int FieldCount = 7;
+
+    private static readonly ObjectId[] NoParents = [];
+    private static readonly CommitDecoration[] NoDecorations = [];
+
+    private readonly List<byte> carry = [];
+    private readonly List<string> warnings = [];
+    private readonly Dictionary<string, string> internedText = [];
+
+    /// <summary>Everything the parser could not understand so far.</summary>
+    public IReadOnlyList<string> Warnings => warnings;
+
+    /// <summary>Bytes of an unfinished commit held back (never more than one commit).</summary>
+    public int BufferedByteCount => carry.Count;
+
+    /// <summary>Parses the next chunk and appends every commit completed by it to <paramref name="output"/>.</summary>
+    public void Feed(ReadOnlySpan<byte> chunk, ICollection<CommitInfo> output)
+    {
+        while (chunk.Length > 0)
+        {
+            int terminator = chunk.IndexOf(CommitLogFormat.RecordTerminator);
+            if (terminator < 0)
+            {
+                foreach (byte value in chunk)
+                {
+                    carry.Add(value);
+                }
+
+                return;
+            }
+
+            if (carry.Count == 0)
+            {
+                ParseRecord(chunk[..terminator], output);
+            }
+            else
+            {
+                foreach (byte value in chunk[..terminator])
+                {
+                    carry.Add(value);
+                }
+
+                ParseRecord(carry.ToArray(), output);
+                carry.Clear();
+            }
+
+            chunk = chunk[(terminator + 1)..];
+        }
+    }
+
+    /// <summary>Call after the last chunk; reports a truncated final commit.</summary>
+    public void Complete()
+    {
+        if (carry.Count > 0)
+        {
+            warnings.Add($"Output ended inside a commit record ({carry.Count} bytes dropped)");
+            carry.Clear();
+        }
+    }
+
+    private static void SplitFields(ReadOnlySpan<byte> record, Span<Range> fields, out int count)
+    {
+        count = 0;
+        int start = 0;
+        for (int index = 0; index < record.Length && count < fields.Length - 1; index++)
+        {
+            if (record[index] == CommitLogFormat.FieldSeparator)
+            {
+                fields[count++] = start..index;
+                start = index + 1;
+            }
+        }
+
+        fields[count++] = start..record.Length;
+    }
+
+    private static IReadOnlyList<CommitDecoration> ParseDecorations(string text)
+    {
+        if (text.Length == 0)
+        {
+            return NoDecorations;
+        }
+
+        var decorations = new List<CommitDecoration>();
+        foreach (string part in text.Split(", "))
+        {
+            string name = part;
+            bool current = false;
+            if (name.StartsWith("HEAD -> ", StringComparison.Ordinal))
+            {
+                name = name["HEAD -> ".Length..];
+                current = true;
+            }
+            else if (name == "HEAD")
+            {
+                decorations.Add(new CommitDecoration("HEAD", "HEAD", RefKind.Head, true));
+                continue;
+            }
+
+            bool isTag = name.StartsWith("tag: ", StringComparison.Ordinal);
+            if (isTag)
+            {
+                name = name["tag: ".Length..];
+            }
+
+            decorations.Add(Decorate(name, isTag, current));
+        }
+
+        return decorations;
+    }
+
+    private static CommitDecoration Decorate(string fullName, bool isTag, bool current)
+    {
+        (RefKind kind, string prefix) = fullName switch
+        {
+            _ when isTag => (RefKind.Tag, "refs/tags/"),
+            _ when fullName.StartsWith("refs/heads/", StringComparison.Ordinal) => (RefKind.LocalBranch, "refs/heads/"),
+            _ when fullName.StartsWith("refs/remotes/", StringComparison.Ordinal) => (RefKind.RemoteBranch, "refs/remotes/"),
+            _ => (RefKind.Other, string.Empty),
+        };
+        string shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
+        return new CommitDecoration(fullName, shortName, kind, current);
+    }
+
+    private void ParseRecord(ReadOnlySpan<byte> record, ICollection<CommitInfo> output)
+    {
+        // A leading newline can appear when git separates records with both a NUL and a line feed.
+        if (record.Length > 0 && record[0] == (byte)'\n')
+        {
+            record = record[1..];
+        }
+
+        if (record.Length == 0)
+        {
+            return;
+        }
+
+        Span<Range> fields = stackalloc Range[FieldCount];
+        SplitFields(record, fields, out int count);
+        if (count < FieldCount)
+        {
+            warnings.Add($"Skipped commit record with {count} fields");
+            return;
+        }
+
+        if (!ObjectId.TryParse(record[fields[0]], out ObjectId id))
+        {
+            warnings.Add("Skipped commit record with an invalid hash");
+            return;
+        }
+
+        ObjectId[]? parents = ParseParents(record[fields[1]]);
+        if (parents is null)
+        {
+            warnings.Add($"Skipped commit {id} with an invalid parent list");
+            return;
+        }
+
+        if (!long.TryParse(record[fields[4]], out long unixSeconds))
+        {
+            warnings.Add($"Commit {id} has an invalid author time");
+        }
+
+        output.Add(new CommitInfo(
+            id,
+            parents,
+            Intern(record[fields[2]]),
+            Intern(record[fields[3]]),
+            DateTimeOffset.FromUnixTimeSeconds(unixSeconds),
+            Encoding.UTF8.GetString(record[fields[6]]),
+            ParseDecorations(Encoding.UTF8.GetString(record[fields[5]]))));
+    }
+
+    private static ObjectId[]? ParseParents(ReadOnlySpan<byte> field)
+    {
+        if (field.Length == 0)
+        {
+            return NoParents;
+        }
+
+        var parents = new List<ObjectId>(2);
+        while (field.Length > 0)
+        {
+            int space = field.IndexOf((byte)' ');
+            ReadOnlySpan<byte> hash = space < 0 ? field : field[..space];
+            if (!ObjectId.TryParse(hash, out ObjectId parent))
+            {
+                return null;
+            }
+
+            parents.Add(parent);
+            field = space < 0 ? [] : field[(space + 1)..];
+        }
+
+        return parents.ToArray();
+    }
+
+    /// <summary>Author names and emails repeat across thousands of commits; share one string per distinct value.</summary>
+    private string Intern(ReadOnlySpan<byte> utf8)
+    {
+        string text = Encoding.UTF8.GetString(utf8);
+        if (internedText.TryGetValue(text, out string? existing))
+        {
+            return existing;
+        }
+
+        internedText[text] = text;
+        return text;
+    }
+}
