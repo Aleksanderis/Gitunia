@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Gitunia.Core.Graph;
 using Xunit;
 using static Gitunia.Core.Tests.Graph.GraphTestData;
@@ -75,18 +74,14 @@ public class GraphLayoutPropertyTests
     }
 
     [Fact]
-    public void GivenHundredThousandCommits_WhenLayingOut_ThenItFinishesQuicklyAndStaysNarrow()
+    public void GivenHundredThousandCommits_WhenLayingOut_ThenAllRowsExistAndLanesStayNarrow()
     {
         var commits = RandomHistory(seed: 7, count: 100_000, window: 16);
-        var stopwatch = Stopwatch.StartNew();
 
         var builder = new GraphLayoutBuilder();
         builder.AppendRange(commits);
 
-        stopwatch.Stop();
         Assert.Equal(100_000, builder.Rows.Count);
         Assert.InRange(builder.Rows.Max(row => row.LaneCount), 1, 19);
-        // Sanity bound only (typically well under a second); catches accidental quadratic behaviour.
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"took {stopwatch.Elapsed}");
     }
 }

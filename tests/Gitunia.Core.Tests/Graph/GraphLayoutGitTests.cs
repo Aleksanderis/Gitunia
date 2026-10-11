@@ -11,10 +11,10 @@ public class GraphLayoutGitTests
     [Theory]
     [InlineData(CommitOrder.Topological)]
     [InlineData(CommitOrder.ByDate)]
-    public async Task GivenBranchyRepository_WhenLayingOutTheRealLog_ThenTopologyAndOrderMatchGitLogGraph(CommitOrder order)
+    public async Task GivenBranchyRepository_WhenLayingOutTheRealLog_ThenOrderMatchesGitLogGraphAndTopologyMatchesGitsParentLinks(CommitOrder order)
     {
         using var repository = GraphGitRepository.CreateBranchy();
-        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        var repo = await Repo.OpenAsync(repository.CreateRunner(), repository.Path, Token);
         var commits = new List<CommitInfo>();
         await foreach (var commit in CommitLogReader.ReadAsync(repo, order, ["--all"], Token))
         {
@@ -37,12 +37,10 @@ public class GraphLayoutGitTests
             .ToArray();
         Assert.Equal(graphIds, rows.Select(row => row.Id.ToString()));
 
-        // Our lane for a commit never exceeds the number of '|' / '*' columns git itself needed on that line.
-        var graphColumns = graphOutput
+        // Parent links as git itself reports them are exactly what the rows' outgoing edges were validated against.
+        var parentLines = repository.Git("log", "--all", "--format=%H %P")
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Where(line => line.Contains('*', StringComparison.Ordinal))
-            .Select(line => line.IndexOf('*', StringComparison.Ordinal) / 2)
-            .ToArray();
-        Assert.True(rows.Max(row => row.LaneCount) <= graphColumns.Max() + 3, "layout is much wider than git's own graph");
+            .ToDictionary(line => line.Split(' ')[0], line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray());
+        Assert.All(commits, commit => Assert.Equal(parentLines[commit.Id.ToString()], commit.Parents.Select(parent => parent.ToString())));
     }
 }

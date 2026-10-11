@@ -14,7 +14,7 @@ public sealed class GraphLayoutBuilder
     private readonly List<GraphRow> rows = [];
 
     /// <summary>All rows laid out so far, in feed order.</summary>
-    public IReadOnlyList<GraphRow> Rows => rows;
+    public IReadOnlyList<GraphRow> Rows => rows.AsReadOnly();
 
     /// <summary>Number of lanes currently open below the last row.</summary>
     public int OpenLaneCount => lanes.Count;

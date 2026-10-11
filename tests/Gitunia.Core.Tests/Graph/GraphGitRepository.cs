@@ -55,10 +55,14 @@ public sealed class GraphGitRepository : IDisposable
 
     public void Commit(string message) => Git("commit", "-q", "--allow-empty", "-m", message);
 
-    public string Git(params string[] arguments)
+    public string Git(params string[] arguments) =>
+        CreateRunner().RunAsync(Path, arguments, GitRunOptions.Default).GetAwaiter().GetResult().StandardOutputText;
+
+    /// <summary>A runner isolated from the user's git config, with a fixed identity and the next fake clock tick.</summary>
+    public GitRunner CreateRunner()
     {
         var stamp = Epoch.AddMinutes(clock++).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        var runner = new GitRunner(new GitRunnerOptions(
+        return new GitRunner(new GitRunnerOptions(
             EnvironmentOverrides: new Dictionary<string, string?>
             {
                 ["GIT_CONFIG_GLOBAL"] = emptyConfigPath,
@@ -71,7 +75,6 @@ public sealed class GraphGitRepository : IDisposable
                 ["GIT_AUTHOR_DATE"] = stamp,
                 ["GIT_COMMITTER_DATE"] = stamp,
             }));
-        return runner.RunAsync(Path, arguments, GitRunOptions.Default).GetAwaiter().GetResult().StandardOutputText;
     }
 
     public void Dispose()
