@@ -9,7 +9,7 @@ public class RefParserTests
     private const string HashThree = "3333333333333333333333333333333333333333";
 
     private static string Line(string fullName, string objectHash, string peeled = "", string upstream = "", string track = "", string head = " ", string worktree = "", string symref = "") =>
-        string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref) + "\n";
+        string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref) + "\x1e\n";
 
     [Fact]
     public void GivenCurrentBranchWithUpstream_WhenParsing_ThenAheadBehindAndWorktreeAreSet()
@@ -93,12 +93,23 @@ public class RefParserTests
     [Fact]
     public void GivenMalformedAndForeignRefs_WhenParsing_ThenSkippedWithWarnings()
     {
-        string output = "refs/heads/broken\0onlytwo\n" + Line("refs/stash", HashOne) + Line("refs/heads/ok", HashOne) + Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd");
+        string output = "refs/heads/broken\0onlytwo\x1e\n" + Line("refs/stash", HashOne) + Line("refs/heads/ok", HashOne) + Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd");
 
         ParseResult<GitRef> result = RefParser.Parse(output);
 
         Assert.Equal(["ok", "odd"], result.Items.Select(reference => reference.Name));
         Assert.Equal(3, result.Warnings.Count);
+    }
+
+    [Fact]
+    public void GivenWorktreePathWithNewline_WhenParsing_ThenRefIsStillOneRecord()
+    {
+        string output = Line("refs/heads/a", HashOne, head: "*", worktree: "/work/odd\nname") + Line("refs/heads/b", HashTwo);
+
+        IReadOnlyList<GitRef> refs = RefParser.Parse(output).Items;
+
+        Assert.Equal(2, refs.Count);
+        Assert.Equal("/work/odd\nname", refs[0].CheckedOutIn);
     }
 
     [Fact]

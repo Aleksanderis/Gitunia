@@ -37,6 +37,44 @@ public class RefReaderTests
     }
 
     [Fact]
+    public async Task GivenDetachedHead_WhenReadingRefs_ThenNoBranchIsCurrent()
+    {
+        using TestRepository repository = TestRepositories.Linear(2);
+        repository.Git("checkout", "-q", "--detach", "HEAD~1");
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        ParseResult<GitRef> result = await RefReader.ReadRefsAsync(repo, Token);
+
+        Assert.DoesNotContain(result.Items, reference => reference.IsCurrent);
+        Assert.Null(result.Items.Single(reference => reference.Name == "main").CheckedOutIn);
+    }
+
+    [Fact]
+    public async Task GivenUnbornBranch_WhenReadingWorktrees_ThenHeadHashIsNull()
+    {
+        using TestRepository repository = TestRepository.Create();
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        Assert.Null(Assert.Single((await RefReader.ReadWorktreesAsync(repo, Token)).Items).HeadHash);
+    }
+
+    [Fact]
+    public async Task GivenLinkedWorktreeAndOddNames_WhenReadingRefs_ThenCheckedOutInAndNamesAreCorrect()
+    {
+        using TestRepository repository = TestRepositories.Linear(1);
+        repository.Branch("feature/ünï_branch");
+        repository.Tag("release/1.0");
+        string worktreePath = repository.AddWorktree("wt with space", "feature/ünï_branch");
+        Repo repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        IReadOnlyList<GitRef> refs = (await RefReader.ReadRefsAsync(repo, Token)).Items;
+
+        GitRef feature = refs.Single(reference => reference.Name == "feature/ünï_branch");
+        Assert.Equal(Path.GetFullPath(worktreePath), Path.GetFullPath(feature.CheckedOutIn!));
+        Assert.Equal(RefKind.Tag, refs.Single(reference => reference.Name == "release/1.0").Kind);
+    }
+
+    [Fact]
     public async Task GivenUpstreamAheadAndBehind_WhenReadingRefs_ThenCountsAreReported()
     {
         using TestRepository origin = TestRepository.Create(bare: true);

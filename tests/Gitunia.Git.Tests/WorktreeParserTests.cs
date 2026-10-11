@@ -24,6 +24,17 @@ public class WorktreeParserTests
     }
 
     [Fact]
+    public void GivenUnbornBranch_WhenParsing_ThenHeadHashIsNull()
+    {
+        string output = Record("worktree /work/repo", "HEAD 0000000000000000000000000000000000000000", "branch refs/heads/main");
+
+        WorktreeInfo worktree = Assert.Single(WorktreeParser.Parse(output).Items);
+
+        Assert.Null(worktree.HeadHash);
+        Assert.Equal("refs/heads/main", worktree.BranchFullName);
+    }
+
+    [Fact]
     public void GivenDetachedHead_WhenParsing_ThenNoBranch()
     {
         string output = Record("worktree /work/repo", "HEAD " + Hash, "detached");

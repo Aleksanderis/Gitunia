@@ -2,7 +2,7 @@ namespace Gitunia.Git;
 
 /// <summary>One entry of <c>git worktree list</c>.</summary>
 /// <param name="Path">Absolute path of the worktree (the git directory for a bare main entry).</param>
-/// <param name="HeadHash">Commit HEAD points at; all zeros for an unborn branch, null for a bare entry.</param>
+/// <param name="HeadHash">Commit HEAD points at; null for an unborn branch (git reports all zeros) and for a bare entry.</param>
 /// <param name="BranchFullName">Full name of the checked-out branch, or null when detached or bare.</param>
 /// <param name="IsDetached">HEAD is detached.</param>
 /// <param name="IsBare">The entry is the bare repository itself.</param>

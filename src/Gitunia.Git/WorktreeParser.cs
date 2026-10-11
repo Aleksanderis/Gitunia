@@ -51,7 +51,7 @@ public static class WorktreeParser
                     path = value;
                     break;
                 case "HEAD":
-                    head = value;
+                    head = value.Trim('0').Length == 0 ? null : value;
                     break;
                 case "branch":
                     branch = value;

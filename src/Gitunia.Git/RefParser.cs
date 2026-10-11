@@ -5,9 +5,9 @@ namespace Gitunia.Git;
 /// <summary>Parses the output of <c>for-each-ref</c> produced with <see cref="Format"/>.</summary>
 public static class RefParser
 {
-    /// <summary>The <c>--format</c> value the parser expects: eight NUL-separated fields, one ref per line.</summary>
+    /// <summary>The <c>--format</c> value the parser expects: eight NUL-separated fields, each ref ended by a record separator (0x1e) so paths with newlines survive.</summary>
     public const string Format =
-        "%(refname)%00%(objectname)%00%(*objectname)%00%(upstream)%00%(upstream:track,nobracket)%00%(HEAD)%00%(worktreepath)%00%(symref)%0a";
+        "%(refname)%00%(objectname)%00%(*objectname)%00%(upstream)%00%(upstream:track,nobracket)%00%(HEAD)%00%(worktreepath)%00%(symref)%1e";
 
     private const int FieldCount = 8;
 
@@ -15,8 +15,14 @@ public static class RefParser
     {
         var refs = new List<GitRef>();
         var warnings = new List<string>();
-        foreach (string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        foreach (string record in output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
         {
+            string line = record.Trim('\n');
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
             string[] fields = line.Split('\0');
             if (fields.Length < FieldCount)
             {
