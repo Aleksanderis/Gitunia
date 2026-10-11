@@ -28,10 +28,10 @@ public sealed class CommitLogParser
     {
         while (chunk.Length > 0)
         {
-            int terminator = chunk.IndexOf(CommitLogFormat.RecordTerminator);
+            var terminator = chunk.IndexOf(CommitLogFormat.RecordTerminator);
             if (terminator < 0)
             {
-                foreach (byte value in chunk)
+                foreach (var value in chunk)
                 {
                     carry.Add(value);
                 }
@@ -45,7 +45,7 @@ public sealed class CommitLogParser
             }
             else
             {
-                foreach (byte value in chunk[..terminator])
+                foreach (var value in chunk[..terminator])
                 {
                     carry.Add(value);
                 }
@@ -71,8 +71,8 @@ public sealed class CommitLogParser
     private static void SplitFields(ReadOnlySpan<byte> record, Span<Range> fields, out int count)
     {
         count = 0;
-        int start = 0;
-        for (int index = 0; index < record.Length && count < fields.Length - 1; index++)
+        var start = 0;
+        for (var index = 0; index < record.Length && count < fields.Length - 1; index++)
         {
             if (record[index] == CommitLogFormat.FieldSeparator)
             {
@@ -92,10 +92,10 @@ public sealed class CommitLogParser
         }
 
         var decorations = new List<CommitDecoration>();
-        foreach (string part in text.Split(", "))
+        foreach (var part in text.Split(", "))
         {
-            string name = part;
-            bool current = false;
+            var name = part;
+            var current = false;
             if (name.StartsWith("HEAD -> ", StringComparison.Ordinal))
             {
                 name = name["HEAD -> ".Length..];
@@ -107,7 +107,7 @@ public sealed class CommitLogParser
                 continue;
             }
 
-            bool isTag = name.StartsWith("tag: ", StringComparison.Ordinal);
+            var isTag = name.StartsWith("tag: ", StringComparison.Ordinal);
             if (isTag)
             {
                 name = name["tag: ".Length..];
@@ -121,14 +121,14 @@ public sealed class CommitLogParser
 
     private static CommitDecoration Decorate(string fullName, bool isTag, bool current)
     {
-        (RefKind kind, string prefix) = fullName switch
+        (var kind, var prefix) = fullName switch
         {
             _ when isTag => (RefKind.Tag, "refs/tags/"),
             _ when fullName.StartsWith("refs/heads/", StringComparison.Ordinal) => (RefKind.LocalBranch, "refs/heads/"),
             _ when fullName.StartsWith("refs/remotes/", StringComparison.Ordinal) => (RefKind.RemoteBranch, "refs/remotes/"),
             _ => (RefKind.Other, string.Empty),
         };
-        string shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
+        var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
         return new CommitDecoration(fullName, shortName, kind, current);
     }
 
@@ -146,27 +146,27 @@ public sealed class CommitLogParser
         }
 
         Span<Range> fields = stackalloc Range[FieldCount];
-        SplitFields(record, fields, out int count);
+        SplitFields(record, fields, out var count);
         if (count < FieldCount)
         {
             warnings.Add($"Skipped commit record with {count} fields");
             return;
         }
 
-        if (!ObjectId.TryParse(record[fields[0]], out ObjectId id))
+        if (!ObjectId.TryParse(record[fields[0]], out var id))
         {
             warnings.Add("Skipped commit record with an invalid hash");
             return;
         }
 
-        ObjectId[]? parents = ParseParents(record[fields[1]]);
+        var parents = ParseParents(record[fields[1]]);
         if (parents is null)
         {
             warnings.Add($"Skipped commit {id} with an invalid parent list");
             return;
         }
 
-        if (!long.TryParse(record[fields[4]], out long unixSeconds))
+        if (!long.TryParse(record[fields[4]], out var unixSeconds))
         {
             warnings.Add($"Commit {id} has an invalid author time");
         }
@@ -191,9 +191,9 @@ public sealed class CommitLogParser
         var parents = new List<ObjectId>(2);
         while (field.Length > 0)
         {
-            int space = field.IndexOf((byte)' ');
-            ReadOnlySpan<byte> hash = space < 0 ? field : field[..space];
-            if (!ObjectId.TryParse(hash, out ObjectId parent))
+            var space = field.IndexOf((byte)' ');
+            var hash = space < 0 ? field : field[..space];
+            if (!ObjectId.TryParse(hash, out var parent))
             {
                 return null;
             }
@@ -208,8 +208,8 @@ public sealed class CommitLogParser
     /// <summary>Author names and emails repeat across thousands of commits; share one string per distinct value.</summary>
     private string Intern(ReadOnlySpan<byte> utf8)
     {
-        string text = Encoding.UTF8.GetString(utf8);
-        if (internedText.TryGetValue(text, out string? existing))
+        var text = Encoding.UTF8.GetString(utf8);
+        if (internedText.TryGetValue(text, out var existing))
         {
             return existing;
         }

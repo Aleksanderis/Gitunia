@@ -11,7 +11,7 @@ public class GitVersionTests
     [InlineData("git version 2.48.rc1", 2, 48, 0)]
     public void GivenVersionOutput_WhenParsing_ThenNumbersAreExtracted(string text, int major, int minor, int patch)
     {
-        Assert.True(GitVersion.TryParse(text, out GitVersion version));
+        Assert.True(GitVersion.TryParse(text, out var version));
         Assert.Equal(new GitVersion(major, minor, patch), version);
     }
 
@@ -48,7 +48,7 @@ public class GitVersionTests
     {
         using var fake = FakeGitExecutable.Printing("git version 2.50.0");
 
-        GitVersion version = await GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.Path)), TestContext.Current.CancellationToken);
+        var version = await GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.Path)), TestContext.Current.CancellationToken);
 
         Assert.Equal(new GitVersion(2, 50, 0), version);
         Assert.True(version.IsAtLeast(GitVersion.RelativeWorktrees));

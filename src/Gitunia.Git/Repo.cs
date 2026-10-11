@@ -21,7 +21,7 @@ public sealed class Repo
     /// <summary>Discovers the repository containing <paramref name="path"/> and binds a handle to it.</summary>
     public static async Task<Repo> OpenAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
-        RepositoryLocation location = await RepositoryDiscovery.DiscoverAsync(runner, path, cancellationToken).ConfigureAwait(false);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, path, cancellationToken).ConfigureAwait(false);
         return new Repo(runner, location);
     }
 
@@ -32,12 +32,12 @@ public sealed class Repo
     public async Task<HeadState> ReadHeadAsync(CancellationToken cancellationToken)
     {
         var options = new GitRunOptions(ReadOnly: true, AcceptedExitCodes: [1]);
-        GitResult symbolic = await RunAsync(["symbolic-ref", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
-        GitResult commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
+        var symbolic = await RunAsync(["symbolic-ref", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
+        var commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
 
-        string reference = symbolic.StandardOutputText.Trim();
-        string? branchName = reference.StartsWith(BranchPrefix, StringComparison.Ordinal) ? reference[BranchPrefix.Length..] : null;
-        string? hash = commit.ExitCode == 0 ? commit.StandardOutputText.Trim() : null;
+        var reference = symbolic.StandardOutputText.Trim();
+        var branchName = reference.StartsWith(BranchPrefix, StringComparison.Ordinal) ? reference[BranchPrefix.Length..] : null;
+        var hash = commit.ExitCode == 0 ? commit.StandardOutputText.Trim() : null;
 
         return (branchName, hash) switch
         {
@@ -50,7 +50,7 @@ public sealed class Repo
     /// <summary>Detects a stopped multi-step operation from the state files in this worktree's git directory.</summary>
     public RepositoryOperation DetectOperation()
     {
-        string gitDirectory = Location.GitDirectory;
+        var gitDirectory = Location.GitDirectory;
         if (Directory.Exists(Path.Combine(gitDirectory, "rebase-merge")))
         {
             return RepositoryOperation.Rebase;
@@ -78,12 +78,12 @@ public sealed class Repo
             return RepositoryOperation.Revert;
         }
 
-        string sequencerTodo = Path.Combine(gitDirectory, "sequencer", "todo");
+        var sequencerTodo = Path.Combine(gitDirectory, "sequencer", "todo");
         if (File.Exists(sequencerTodo))
         {
             try
             {
-                string firstCommand = File.ReadLines(sequencerTodo).FirstOrDefault(line => line.Length > 0 && line[0] != '#') ?? string.Empty;
+                var firstCommand = File.ReadLines(sequencerTodo).FirstOrDefault(line => line.Length > 0 && line[0] != '#') ?? string.Empty;
                 return firstCommand.StartsWith("revert", StringComparison.Ordinal) ? RepositoryOperation.Revert : RepositoryOperation.CherryPick;
             }
             catch (IOException)

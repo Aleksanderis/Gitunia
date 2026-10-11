@@ -16,7 +16,7 @@ public sealed class FakeGitExecutable : IDisposable
     /// <summary>Creates a script from a body for the current OS: <paramref name="unixBody"/> for sh, <paramref name="windowsBody"/> for cmd.</summary>
     public static FakeGitExecutable Create(string unixBody, string windowsBody)
     {
-        string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-fake-" + Guid.NewGuid().ToString("N"));
+        var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-fake-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         string path;
         if (OperatingSystem.IsWindows())

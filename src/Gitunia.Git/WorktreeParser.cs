@@ -10,7 +10,7 @@ public static class WorktreeParser
         var attributes = new List<string>();
 
         // An empty segment is the record terminator. Output without the final terminator is tolerated.
-        foreach (string segment in output.Split('\0'))
+        foreach (var segment in output.Split('\0'))
         {
             if (segment.Length > 0)
             {
@@ -35,16 +35,16 @@ public static class WorktreeParser
         string? path = null;
         string? head = null;
         string? branch = null;
-        bool detached = false;
-        bool bare = false;
-        bool locked = false;
+        var detached = false;
+        var bare = false;
+        var locked = false;
         string? lockReason = null;
-        bool prunable = false;
+        var prunable = false;
         string? pruneReason = null;
 
-        foreach (string attribute in attributes)
+        foreach (var attribute in attributes)
         {
-            (string key, string value) = SplitAttribute(attribute);
+            (var key, var value) = SplitAttribute(attribute);
             switch (key)
             {
                 case "worktree":
@@ -88,7 +88,7 @@ public static class WorktreeParser
 
     private static (string Key, string Value) SplitAttribute(string attribute)
     {
-        int space = attribute.IndexOf(' ', StringComparison.Ordinal);
+        var space = attribute.IndexOf(' ', StringComparison.Ordinal);
         return space < 0 ? (attribute, string.Empty) : (attribute[..space], attribute[(space + 1)..]);
     }
 }

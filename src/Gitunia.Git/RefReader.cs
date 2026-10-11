@@ -7,7 +7,7 @@ public static class RefReader
 
     public static async Task<ParseResult<GitRef>> ReadRefsAsync(Repo repo, CancellationToken cancellationToken)
     {
-        GitResult result = await repo.RunAsync(
+        var result = await repo.RunAsync(
             ["for-each-ref", "--format=" + RefParser.Format, "refs/heads", "refs/remotes", "refs/tags"],
             PollingOptions,
             cancellationToken).ConfigureAwait(false);
@@ -16,7 +16,7 @@ public static class RefReader
 
     public static async Task<ParseResult<WorktreeInfo>> ReadWorktreesAsync(Repo repo, CancellationToken cancellationToken)
     {
-        GitResult result = await repo.RunAsync(["worktree", "list", "--porcelain", "-z"], PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repo.RunAsync(["worktree", "list", "--porcelain", "-z"], PollingOptions, cancellationToken).ConfigureAwait(false);
         return WorktreeParser.Parse(result.StandardOutputText);
     }
 }

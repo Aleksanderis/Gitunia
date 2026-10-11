@@ -38,11 +38,11 @@ public readonly struct ObjectId : IEquatable<ObjectId>
         }
 
         Span<byte> bytes = stackalloc byte[32];
-        int byteLength = hexDigits.Length / 2;
-        for (int index = 0; index < byteLength; index++)
+        var byteLength = hexDigits.Length / 2;
+        for (var index = 0; index < byteLength; index++)
         {
-            int high = HexValue(hexDigits[index * 2]);
-            int low = HexValue(hexDigits[(index * 2) + 1]);
+            var high = HexValue(hexDigits[index * 2]);
+            var low = HexValue(hexDigits[(index * 2) + 1]);
             if (high < 0 || low < 0)
             {
                 return false;
@@ -64,7 +64,7 @@ public readonly struct ObjectId : IEquatable<ObjectId>
             return false;
         }
 
-        for (int index = 0; index < hexDigits.Length; index++)
+        for (var index = 0; index < hexDigits.Length; index++)
         {
             ascii[index] = (byte)hexDigits[index];
         }

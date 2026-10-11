@@ -6,7 +6,7 @@ public static class RepositoryDiscovery
     /// <exception cref="NotARepositoryException">The path does not exist or is outside any repository.</exception>
     public static async Task<RepositoryLocation> DiscoverAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
-        string fullPath = Path.GetFullPath(path);
+        var fullPath = Path.GetFullPath(path);
         if (!Directory.Exists(fullPath))
         {
             throw new NotARepositoryException(fullPath, "the directory does not exist");
@@ -28,24 +28,24 @@ public static class RepositoryDiscovery
             throw new NotARepositoryException(fullPath, "no git repository found here or in any parent directory");
         }
 
-        string[] lines = basics.StandardOutputText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var lines = basics.StandardOutputText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length < 4)
         {
             throw new GitException($"Unexpected rev-parse output for '{fullPath}'.");
         }
 
-        bool isBare = lines[0].Trim() == "true";
-        bool isInsideGitDirectory = lines[1].Trim() == "true";
-        string gitDirectory = Path.GetFullPath(lines[2].Trim());
-        string commonDirectory = Path.GetFullPath(lines[3].Trim());
-        bool isLinkedWorktree = !string.Equals(gitDirectory, commonDirectory, StringComparison.Ordinal);
+        var isBare = lines[0].Trim() == "true";
+        var isInsideGitDirectory = lines[1].Trim() == "true";
+        var gitDirectory = Path.GetFullPath(lines[2].Trim());
+        var commonDirectory = Path.GetFullPath(lines[3].Trim());
+        var isLinkedWorktree = !string.Equals(gitDirectory, commonDirectory, StringComparison.Ordinal);
 
         if (isBare)
         {
             return new RepositoryLocation(null, gitDirectory, commonDirectory, true, false);
         }
 
-        string workingTree = isInsideGitDirectory
+        var workingTree = isInsideGitDirectory
             ? await ResolveWorkingTreeFromGitDirectoryAsync(runner, fullPath, gitDirectory, isLinkedWorktree, cancellationToken).ConfigureAwait(false)
             : await ReadTopLevelAsync(runner, fullPath, cancellationToken).ConfigureAwait(false);
         return new RepositoryLocation(workingTree, gitDirectory, commonDirectory, false, isLinkedWorktree);
@@ -53,7 +53,7 @@ public static class RepositoryDiscovery
 
     private static async Task<string> ReadTopLevelAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
-        GitResult result = await runner.RunAsync(
+        var result = await runner.RunAsync(
             path,
             ["rev-parse", "--path-format=absolute", "--show-toplevel"],
             new GitRunOptions(ReadOnly: true),
@@ -72,7 +72,7 @@ public static class RepositoryDiscovery
         {
             // A linked worktree's git directory records the path of its '.git' file in 'gitdir'. The pointer can be
             // relative to that git directory (worktree.useRelativePaths), never to the process working directory.
-            string pointer = (await File.ReadAllTextAsync(Path.Combine(gitDirectory, "gitdir"), cancellationToken).ConfigureAwait(false)).Trim();
+            var pointer = (await File.ReadAllTextAsync(Path.Combine(gitDirectory, "gitdir"), cancellationToken).ConfigureAwait(false)).Trim();
             return Path.GetFullPath(Path.Combine(Path.GetFullPath(pointer, gitDirectory), ".."));
         }
 
@@ -82,12 +82,12 @@ public static class RepositoryDiscovery
             return Path.GetFullPath(Path.Combine(gitDirectory, ".."));
         }
 
-        GitResult configured = await runner.RunAsync(
+        var configured = await runner.RunAsync(
             path,
             ["config", "--get", "core.worktree"],
             new GitRunOptions(ReadOnly: true, AcceptedExitCodes: [1]),
             cancellationToken).ConfigureAwait(false);
-        string worktree = configured.StandardOutputText.Trim();
+        var worktree = configured.StandardOutputText.Trim();
         if (worktree.Length == 0)
         {
             throw new NotARepositoryException(path, "the working tree of this git directory cannot be determined; open the working tree instead");
