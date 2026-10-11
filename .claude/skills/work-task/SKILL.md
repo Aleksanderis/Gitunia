@@ -21,6 +21,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 ## 3. Implement
 
 - Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. Spikes use `spike/<n>-<slug>` and are never merged.
+- When several unblocked issues are independent (different files, no shared contracts), run them in parallel: one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Only keep to a single agent when the issues share files or keymap rows.
 - Parallel agents are fine for independent issues (separate worktrees); not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
 - Tests follow the `testing` skill; layering and cross-platform rules are in `CLAUDE.md`.
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
@@ -31,6 +32,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
 - Run the `reviewer` subagent on the branch with the issue number. Fix every `blocker` and `should-fix`, or justify why not in the PR.
+- Make the review visible on GitHub: after opening the PR, post the reviewer's findings (verdict, then findings by severity) as a PR comment with `gh pr comment <n> --body-file <file>`, and after fixing, post a second comment saying which findings were fixed (with the commit) and which were skipped and why. The PR body carries only the one-line verdict. The owner reads reviews on the PR, not in the session. Reviewing the work-task's own PR with no reviewer run is not allowed, including for style or docs-only changes.
 - Open a PR titled like the issue, body `Closes #<n>`, what changed, assumptions, and the reviewer verdict.
 - `spike`: don't merge or open a PR; post measured findings as an issue comment, push the `spike/` branch and close the issue.
 - `destructive` or `needs-review`: stop after opening the PR; the owner merges.
