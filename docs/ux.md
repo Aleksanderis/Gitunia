@@ -75,7 +75,7 @@ Still to design before their milestones:
 
 ## Keymap
 
-The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view.
+The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `:name` is an ex command and not a key.
 
 | Mode/View | Key | Action |
 |---|---|---|
@@ -90,12 +90,13 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-t` / `<space>o` | Open repo picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
 | Global | `<space>p` | Pin/unpin repo |
-| Global | `Ctrl-w` `h` `j` `k` `l` | Focus pane left / down / up / right |
+| Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
+| Lists | `v` | Start / end range selection (Visual mode) |
 | Graph | `@` | Jump to HEAD |
 | Graph | `gr` | Jump to ref or hash (fuzzy) |
 | Graph | `Enter` | Focus commit details |
