@@ -16,9 +16,13 @@ public sealed class RepositoryPathComparer : IEqualityComparer<string>
     public static RepositoryPathComparer Create(bool ignoreCase) =>
         new(ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
+    /// <inheritdoc />
     public bool Equals(string? left, string? right) => comparer.Equals(Normalize(left), Normalize(right));
 
+    /// <inheritdoc />
     public int GetHashCode([DisallowNull] string obj) => comparer.GetHashCode(Normalize(obj)!);
 
-    private static string? Normalize(string? path) => path is null ? null : Path.TrimEndingDirectorySeparator(path);
+    private static string? Normalize(string? path) => path is null
+        ? null
+        : Path.TrimEndingDirectorySeparator(path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar));
 }

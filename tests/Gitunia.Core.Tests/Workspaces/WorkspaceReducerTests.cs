@@ -107,6 +107,27 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
+    public void GivenTab_WhenClosingIt_ThenItsLoadIsCancelled()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = IdOf(workspace, "alpha");
+
+        var update = WorkspaceReducer.Reduce(workspace, new CloseTabCommand(id));
+
+        Assert.Equal(new CancelLoadEffect(id), Assert.Single(update.Effects));
+    }
+
+    [Fact]
+    public void GivenMixedSeparators_WhenComparingPaths_ThenTheyMatch()
+    {
+        var comparer = RepositoryPathComparer.Create(ignoreCase: false);
+
+        Assert.True(comparer.Equals(
+            "a" + Path.AltDirectorySeparatorChar + "repo",
+            "a" + Path.DirectorySeparatorChar + "repo"));
+    }
+
+    [Fact]
     public void GivenInactiveTab_WhenClosingIt_ThenActiveTabIsUnchanged()
     {
         var workspace = Open(Workspace.Empty, "alpha", "beta");

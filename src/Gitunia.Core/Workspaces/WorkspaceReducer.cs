@@ -5,6 +5,7 @@ namespace Gitunia.Core.Workspaces;
 /// <summary>Pure transitions of the workspace: <c>(Workspace, WorkspaceCommand) -> (Workspace, Effects)</c>. No global state.</summary>
 public static class WorkspaceReducer
 {
+    /// <summary>Applies a command to the workspace and returns the new state and effects.</summary>
     public static WorkspaceUpdate Reduce(Workspace workspace, WorkspaceCommand command) => command switch
     {
         OpenRepositoryCommand open => Open(workspace, open),
@@ -65,7 +66,7 @@ public static class WorkspaceReducer
             previous = null;
         }
 
-        return Unchanged(workspace with { Tabs = tabs, ActiveTabId = active, PreviousTabId = previous });
+        return new WorkspaceUpdate(workspace with { Tabs = tabs, ActiveTabId = active, PreviousTabId = previous }, [new CancelLoadEffect(id)]);
     }
 
     private static Workspace Activate(Workspace workspace, TabId id)

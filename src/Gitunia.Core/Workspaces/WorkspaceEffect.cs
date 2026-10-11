@@ -12,3 +12,7 @@ public abstract record WorkspaceEffect
 /// <param name="TabId">The tab the results belong to.</param>
 /// <param name="RepositoryPath">The path git runs against.</param>
 public sealed record LoadRepositoryEffect(TabId TabId, string RepositoryPath) : WorkspaceEffect;
+
+/// <summary>Cancel the in-flight load of a tab that was closed.</summary>
+/// <param name="TabId">The closed tab.</param>
+public sealed record CancelLoadEffect(TabId TabId) : WorkspaceEffect;
