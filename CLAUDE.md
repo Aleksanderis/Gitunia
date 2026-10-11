@@ -22,6 +22,8 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Be conservative with destructive operations (reset --hard, force push, branch/worktree delete, stash drop, discarding changes): confirm in the UI and keep an undo path (reflog hint) where git allows.
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Names are spelled out: no truncated or single-letter names (`platform`, `dictionary`, `selection`, `buffer`, not `p`, `d`, `sel`, `buf`); loop indexes and well-known domain terms excepted. This applies to variables, parameters, members and test locals.
+- Locals are declared with `var` (built-in types, apparent and non-apparent types alike); enforced as a warning (error in the build) by `.editorconfig`. Explicit types stay in signatures, fields and members.
+- Member order: private methods come after all public/protected methods (fields, constructors and properties stay on top). Applies to test classes too: test methods first, private helpers last.
 - One type per file, named after the type. Models (records, enums, plain data) and classes with logic live in separate files; unrelated models get separate files too, unless they are closely related or inherited from each other.
 - Scripts (bash and PowerShell) live in `scripts/`; `tools/` holds small C# helper programs.
 - Every key binding goes in the keymap table in `docs/ux.md` in the same change that adds it. No binding conflicts.

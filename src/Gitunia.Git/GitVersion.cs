@@ -40,6 +40,8 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
 
     public bool IsAtLeast(GitVersion other) => CompareTo(other) >= 0;
 
+    public override string ToString() => $"{Major}.{Minor}.{Patch}";
+
     private int CompareTo(GitVersion other)
     {
         var byMajor = Major.CompareTo(other.Major);
@@ -51,6 +53,4 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
         var byMinor = Minor.CompareTo(other.Minor);
         return byMinor != 0 ? byMinor : Patch.CompareTo(other.Patch);
     }
-
-    public override string ToString() => $"{Major}.{Minor}.{Patch}";
 }

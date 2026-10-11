@@ -9,11 +9,6 @@ public class RepoTests
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private static string Normalize(string path) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
-
-    private static string Canonical(TestRepository repository, string path) =>
-        Normalize(repository.Git(["-C", path, "rev-parse", "--path-format=absolute", "--show-toplevel"], null).Trim());
-
     [Fact]
     public async Task GivenWorkingTreeRoot_WhenOpening_ThenLocationIsResolved()
     {
@@ -323,4 +318,9 @@ public class RepoTests
 
         Assert.Equal(HeadKind.Detached, (await repo.ReadHeadAsync(Token)).Kind);
     }
+
+    private static string Normalize(string path) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
+
+    private static string Canonical(TestRepository repository, string path) =>
+        Normalize(repository.Git(["-C", path, "rev-parse", "--path-format=absolute", "--show-toplevel"], null).Trim());
 }

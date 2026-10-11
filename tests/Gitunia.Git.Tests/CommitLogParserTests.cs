@@ -5,28 +5,6 @@ namespace Gitunia.Git.Tests;
 
 public class CommitLogParserTests
 {
-    private static string HashFor(int number) => number.ToString("x").PadLeft(40, '0');
-
-    private static string Record(int number, int[] parents, string author = "Ann", string email = "ann@example.com", long time = 1_700_000_000, string decorations = "", string subject = "Subject")
-    {
-        var parentText = string.Join(' ', parents.Select(HashFor));
-        return string.Join('\x1f', HashFor(number), parentText, author, email, time.ToString(), decorations, subject) + "\0";
-    }
-
-    private static List<CommitInfo> ParseAll(string text, int chunkSize, out CommitLogParser parser)
-    {
-        parser = new CommitLogParser();
-        var commits = new List<CommitInfo>();
-        var bytes = Encoding.UTF8.GetBytes(text);
-        for (var offset = 0; offset < bytes.Length; offset += chunkSize)
-        {
-            parser.Feed(bytes.AsSpan(offset, Math.Min(chunkSize, bytes.Length - offset)), commits);
-        }
-
-        parser.Complete();
-        return commits;
-    }
-
     [Fact]
     public void GivenMergeAndRootCommits_WhenParsing_ThenParentsAreOrdered()
     {
@@ -158,6 +136,28 @@ public class CommitLogParserTests
         Assert.Equal(100_000, counter.Count);
         Assert.Empty(parser.Warnings);
         Assert.True(largestBuffer < 400, $"buffered {largestBuffer} bytes");
+    }
+
+    private static string HashFor(int number) => number.ToString("x").PadLeft(40, '0');
+
+    private static string Record(int number, int[] parents, string author = "Ann", string email = "ann@example.com", long time = 1_700_000_000, string decorations = "", string subject = "Subject")
+    {
+        var parentText = string.Join(' ', parents.Select(HashFor));
+        return string.Join('\x1f', HashFor(number), parentText, author, email, time.ToString(), decorations, subject) + "\0";
+    }
+
+    private static List<CommitInfo> ParseAll(string text, int chunkSize, out CommitLogParser parser)
+    {
+        parser = new CommitLogParser();
+        var commits = new List<CommitInfo>();
+        var bytes = Encoding.UTF8.GetBytes(text);
+        for (var offset = 0; offset < bytes.Length; offset += chunkSize)
+        {
+            parser.Feed(bytes.AsSpan(offset, Math.Min(chunkSize, bytes.Length - offset)), commits);
+        }
+
+        parser.Complete();
+        return commits;
     }
 
     private sealed class CountingCollection : ICollection<CommitInfo>

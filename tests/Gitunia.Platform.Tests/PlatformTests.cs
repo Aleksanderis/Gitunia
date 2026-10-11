@@ -17,12 +17,6 @@ public class PlatformTests
 
 public class DetectionTests
 {
-    private static LinuxPlatform With(params (string Key, string Value)[] environment)
-    {
-        var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
-        return new LinuxPlatform(key => dictionary.GetValueOrDefault(key));
-    }
-
     [Fact]
     public void GivenNoColorAndTruecolor_WhenDetectingColor_ThenNone() =>
         Assert.Equal(ColorDepth.None, With(("NO_COLOR", "1"), ("COLORTERM", "truecolor")).DetectColor(true));
@@ -52,5 +46,11 @@ public class DetectionTests
         var platform = With(("XDG_CONFIG_HOME", "/x/c"), ("XDG_STATE_HOME", "/x/s"));
         Assert.Equal(Path.Combine("/x/c", "gitunia"), platform.ConfigDirectory);
         Assert.Equal(Path.Combine("/x/s", "gitunia"), platform.StateDirectory);
+    }
+
+    private static LinuxPlatform With(params (string Key, string Value)[] environment)
+    {
+        var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
+        return new LinuxPlatform(key => dictionary.GetValueOrDefault(key));
     }
 }

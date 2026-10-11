@@ -8,9 +8,6 @@ public class RefParserTests
     private const string HashTwo = "2222222222222222222222222222222222222222";
     private const string HashThree = "3333333333333333333333333333333333333333";
 
-    private static string Line(string fullName, string objectHash, string peeled = "", string upstream = "", string track = "", string head = " ", string worktree = "", string symref = "") =>
-        string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref) + "\x1e\n";
-
     [Fact]
     public void GivenCurrentBranchWithUpstream_WhenParsing_ThenAheadBehindAndWorktreeAreSet()
     {
@@ -120,4 +117,7 @@ public class RefParserTests
         Assert.Empty(result.Items);
         Assert.Empty(result.Warnings);
     }
+
+    private static string Line(string fullName, string objectHash, string peeled = "", string upstream = "", string track = "", string head = " ", string worktree = "", string symref = "") =>
+        string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref) + "\x1e\n";
 }

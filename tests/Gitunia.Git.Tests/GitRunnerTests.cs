@@ -5,8 +5,6 @@ public class GitRunnerTests
 {
     private static readonly string AnyDirectory = Path.GetTempPath();
 
-    private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.Path));
-
     [Fact]
     public async Task GivenRealGit_WhenAskingVersion_ThenOutputIsCaptured()
     {
@@ -195,15 +193,6 @@ public class GitRunnerTests
         Assert.DoesNotContain("LOCKS=0", result.StandardOutputText);
     }
 
-    private static string MarkerPath() => Path.Combine(Path.GetTempPath(), "gitunia-marker-" + Guid.NewGuid().ToString("N"));
-
-    private static async Task AssertNeverMarkedAsync(string marker)
-    {
-        // The fake would write the marker after two seconds had the process survived.
-        await Task.Delay(TimeSpan.FromSeconds(3));
-        Assert.False(File.Exists(marker), "the process was not killed");
-    }
-
     [Fact]
     public async Task GivenEnvironmentOverride_WhenRunning_ThenProcessSeesIt()
     {
@@ -213,5 +202,16 @@ public class GitRunnerTests
         var result = await runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("0|yes", result.StandardOutputText);
+    }
+
+    private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.Path));
+
+    private static string MarkerPath() => Path.Combine(Path.GetTempPath(), "gitunia-marker-" + Guid.NewGuid().ToString("N"));
+
+    private static async Task AssertNeverMarkedAsync(string marker)
+    {
+        // The fake would write the marker after two seconds had the process survived.
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        Assert.False(File.Exists(marker), "the process was not killed");
     }
 }

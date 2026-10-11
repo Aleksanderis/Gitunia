@@ -6,8 +6,6 @@ public class WorktreeParserTests
 {
     private const string Hash = "1111111111111111111111111111111111111111";
 
-    private static string Record(params string[] attributes) => string.Join('\0', attributes) + "\0\0";
-
     [Fact]
     public void GivenMainAndLinkedWorktrees_WhenParsing_ThenFirstIsMain()
     {
@@ -99,4 +97,6 @@ public class WorktreeParserTests
         Assert.Empty(result.Items);
         Assert.Single(result.Warnings);
     }
+
+    private static string Record(params string[] attributes) => string.Join('\0', attributes) + "\0\0";
 }

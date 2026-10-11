@@ -9,17 +9,6 @@ public class CommitLogReaderTests
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private static async Task<List<CommitInfo>> ReadAllAsync(Repo repo, CommitOrder order = CommitOrder.Topological, params string[] revisions)
-    {
-        var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repo, order, revisions, Token))
-        {
-            commits.Add(commit);
-        }
-
-        return commits;
-    }
-
     [Fact]
     public async Task GivenBranchyRepository_WhenReadingLog_ThenEveryCommitAppearsChildrenBeforeParents()
     {
@@ -158,5 +147,16 @@ public class CommitLogReaderTests
                 Assert.NotNull(commit);
             }
         });
+    }
+
+    private static async Task<List<CommitInfo>> ReadAllAsync(Repo repo, CommitOrder order = CommitOrder.Topological, params string[] revisions)
+    {
+        var commits = new List<CommitInfo>();
+        await foreach (var commit in CommitLogReader.ReadAsync(repo, order, revisions, Token))
+        {
+            commits.Add(commit);
+        }
+
+        return commits;
     }
 }
