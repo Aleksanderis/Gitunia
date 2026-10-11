@@ -23,12 +23,48 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 
 Normal (navigate, act), Visual (select a range of lines/commits), Insert (text input: commit message, filters), Command (`:` palette), Confirm (y/n dialogs).
 
-## Core workflows to design first
+## Focus model and key style
 
-Each needs a written step-by-step key flow here before it is implemented.
+- Panes: sidebar, graph, detail (file list), diff. `Tab` / `Shift-Tab` cycle panes; `Ctrl-w` + `h` `j` `k` `l` moves focus by direction, `Ctrl-w w` cycles, `Ctrl-w c` closes the tab. Both exist; the focused pane has a highlighted border and its own status hints.
+- Frequent actions are single keys per view (`Enter`, `y`, `/`); global actions use the `<space>` leader (`<space>o` open repo, `<space>p` pin, `<space>z` zoom pane). `g` and `]`/`[` start chords; counts prefix motions (`5j`, `3gt`).
+- Chord engine: a pending prefix shows in the status bar and, after 500 ms, a which-key popup listing the continuations; `Esc` cancels; there is no chord timeout. Bindings are data (mode, view, key sequence, action id), so remapping in M4 needs no redesign.
+- In Insert mode (search box, picker input) printable keys are text; only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act, so the leader and chords never fire while typing.
 
-0. Open a repo from anywhere, switch between tabs, reopen the previous session.
-1. Browse the graph, jump to a ref/commit, search by message/author/hash.
+## Workflows
+
+Each later workflow (2-7 below) needs a written step-by-step key flow here before it is implemented. Flows 0 and 1 are specified now.
+
+### 0. Open a repo, switch tabs, reopen the session
+
+1. `gitunia` restores the last session (tabs, active tab, per-tab selection/focus). With no session it opens the repo picker. `gitunia <path>` opens that path as a tab (subdirectory resolves to the repo root; a repo already open just gets focused) and keeps the other restored tabs.
+2. `Ctrl-t` or `<space>o` opens the repo picker (Insert mode, input focused). It lists open, pinned, recent and discovered repos, fuzzy-filtered as you type; `Up`/`Down` or `Ctrl-j`/`Ctrl-k` move; `Enter` opens in a new tab (or focuses the existing tab); `Esc` cancels.
+3. Typing something that starts with `/`, `~`, `.` or a drive letter is treated as a path: `Tab` completes directories, `Enter` opens the resolved repo; a non-repo path shows an inline "not a git repository" message and stays open.
+4. In the picker `Alt-p` pins or unpins the highlighted entry and `Alt-d` removes it from recents (never deletes anything on disk).
+5. Switch tabs with `gt` / `gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` for the previously active tab. Mouse: click a tab. `Ctrl-w c` closes the tab; closing the last tab shows the picker.
+6. A tab whose repo disappeared (moved or deleted) stays in the bar marked as missing; `Enter` on it offers to locate or close it.
+
+### 1. Browse the graph, jump, search
+
+1. A repo tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
+2. Move with `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G`, counts and the mouse wheel. `@` jumps to HEAD; `gr` opens a fuzzy ref list (branches, tags, remotes) that also accepts a hash prefix, and `Enter` selects that commit.
+3. `Enter` on a commit moves focus to the detail pane (commit info and changed files); `Esc` or `h` returns to the graph. The detail pane also follows the graph selection while the graph is focused.
+4. `/` opens the search box (Insert mode). Plain text matches the subject and body; `author:` and `hash:` prefixes match the author or hash prefix. `Enter` jumps to the first match and returns to Normal mode, `n`/`N` step through matches, `Esc` in Normal mode clears the highlight. Matches outside the loaded range load on demand and show progress.
+5. `y` copies the selected commit hash (OSC 52); `r` refreshes the repo now.
+
+### Sidebar navigation
+
+1. `Tab` or `Ctrl-w h` focuses the sidebar (sections: branches, remotes, tags, worktrees, stashes). `j`/`k` move, `l`/`Enter` expand a section, `h` collapses it (or moves to the parent).
+2. `Enter` on a branch, remote branch or tag selects its commit in the graph and keeps focus in the sidebar; `l` on a leaf (or `Tab`) moves focus to the graph. Each branch shows the worktree that holds it.
+3. `/` filters the sidebar entries by name; `Esc` clears the filter.
+
+### Diff viewing
+
+1. In the detail pane select a file with `j`/`k` and press `Enter`: the diff pane shows that file's unified diff and takes focus. `<space>z` zooms the focused pane to full screen and back.
+2. `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G` scroll; `]c` / `[c` jump to the next / previous hunk and `]f` / `[f` to the next / previous file of the commit. `/` and `n`/`N` search within the diff.
+3. `q`, `Esc` or `h` returns focus to the file list. Binary and oversized files show a placeholder with an explicit key to load them anyway.
+
+Still to design before their milestones:
+
 2. Working-tree layout: review unstaged changes, stage whole files, hunks or selected lines in the built-in diff view, unstage, write the message, commit, amend.
 3. Create/switch/rename/delete branch; set upstream; see ahead/behind.
 4. Worktrees: add (new branch or existing), switch the app's active worktree, remove, prune, lock; see dirty state across all worktrees at a glance.
@@ -47,12 +83,36 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `q` | Back / quit from root view |
 | Global | `Tab` / `Shift-Tab` | Next / previous pane |
 | Lists | `j` `k` / `gg` `G` | Move / top / bottom |
-| Lists | `/` `n` `N` | Search, next, previous |
+| Lists | `/` `n` `N` | Search, next, previous (graph search prefixes: `author:`, `hash:`) |
 | Global | `gt` / `gT` | Next / previous tab (counts: `3gt` goes to tab 3) |
 | Global | `Alt-1`..`Alt-9` | Jump to tab N |
 | Global | `Ctrl-t` / `<space>o` | Open repo picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
 | Global | `<space>p` | Pin/unpin repo |
+| Global | `Ctrl-w` `h` `j` `k` `l` | Focus pane left / down / up / right |
+| Global | `Ctrl-w w` | Next pane |
+| Global | `Ctrl-^` | Previously active tab |
+| Global | `<space>z` | Zoom focused pane |
+| Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode |
+| Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
+| Graph | `@` | Jump to HEAD |
+| Graph | `gr` | Jump to ref or hash (fuzzy) |
+| Graph | `Enter` | Focus commit details |
+| Graph | `y` | Copy commit hash |
+| Graph | `r` | Refresh repo |
+| Detail | `Enter` | Open file diff |
+| Detail | `h` / `Esc` | Back to graph |
+| Sidebar | `l` / `Enter` | Expand section / select ref in graph |
+| Sidebar | `h` | Collapse section / parent |
+| Sidebar | `/` | Filter entries |
+| Diff | `]c` `[c` | Next / previous hunk |
+| Diff | `]f` `[f` | Next / previous file |
+| Diff | `q` / `Esc` / `h` | Back to file list |
+| Picker | `Up` `Down` / `Ctrl-j` `Ctrl-k` | Move highlight |
+| Picker | `Enter` | Open repo (new tab or focus existing) |
+| Picker | `Tab` | Complete path |
+| Picker | `Alt-p` | Pin / unpin entry |
+| Picker | `Alt-d` | Remove from recents |
 
-(More rows come with the workflows above.)
+Mouse paths: click focuses a pane or selects a row, double-click opens (commit details, file diff, repo in picker), wheel scrolls, click a tab switches. (More rows come with workflows 2-7.)
 

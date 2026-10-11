@@ -42,5 +42,3 @@ Interactive rebase editor, blame, conflict resolution view, side-by-side diff, s
 
 - Interactive credential/ssh prompts: suspend the TUI and give git the terminal, or run with a pty and render prompts inline? Recommendation: suspend for fetch/pull/push when git needs input.
 - Large-repo graph layout: incremental lanes vs precomputed via `commit-graph`; decide with spike data.
-- Pane focus: `Tab` cycling vs `Ctrl-w` + direction vs both.
-- Key style: per-view single keys for frequent actions plus a `<space>` leader for global ones (recommended) vs leader-only.
