@@ -17,7 +17,7 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 - The app opens with or without a repo: `gitunia` (restore last session, or repo picker if none), `gitunia <path>` (open that repo as a tab, also from outside any repo; a subdirectory resolves to its repo root).
 - Tab bar shows repo name (path on disambiguation), branch and a dirty/ahead/behind marker, and background-activity state.
 - Repo picker: fuzzy search over recent, pinned and discovered repos (configurable scan roots), open by typing a path, close/pin entries. Opening an already-open repo focuses its tab.
-- Each tab keeps its own selection, scroll, filters and focused pane.
+- Each tab keeps its own selection, scroll, filters and focused pane.  Closing the active tab activates its right neighbour (left if it was last).
 
 ## Modes
 
@@ -75,7 +75,7 @@ Still to design before their milestones:
 
 ## Keymap
 
-The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view.
+The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `:name` is an ex command and not a key. Modes: rows apply to Normal; Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
 
 | Mode/View | Key | Action |
 |---|---|---|
@@ -90,12 +90,14 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-t` / `<space>o` | Open repo picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
 | Global | `<space>p` | Pin/unpin repo |
-| Global | `Ctrl-w` `h` `j` `k` `l` | Focus pane left / down / up / right |
+| Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
+| Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
+| Lists | `v` | Start / end range selection (Visual mode) |
 | Graph | `@` | Jump to HEAD |
 | Graph | `gr` | Jump to ref or hash (fuzzy) |
 | Graph | `Enter` | Focus commit details |
