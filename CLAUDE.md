@@ -35,6 +35,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Ad-hoc requests from the owner: simple changes (e.g. a `.gitignore` entry, a doc tweak) go straight to `main`, no branch or PR. If it isn't obvious whether a change is simple enough, ask.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: author-name convention, `Agent:` trailer, header and signature. Details in the `work-task` skill, "Agent identity".
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read

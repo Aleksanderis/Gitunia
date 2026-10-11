@@ -28,6 +28,8 @@ You may run the project's build and test commands. Do not modify files.
 
 ## Output
 
+Format the output as a ready-to-post PR comment, per "Agent identity" in `.claude/skills/work-task/SKILL.md`: first line `### 🔍 Reviewer agent: findings`, then `<!-- agent: reviewer -->`, then the content below, then a closing `---` and `<sub>🔍 Reviewer agent · Claude · PR #<n> @ <short sha></sub>` (use the issue number if there is no PR yet). You can't post it yourself; the caller posts it verbatim.
+
 Lead with a verdict: **approve**, **approve with comments** or **changes requested**.
 
 Then findings, most severe first. For each: severity (`blocker`, `should-fix`, `nit`), `file:line`, what is wrong, why it matters (a concrete failing scenario where possible) and a suggested fix. Only report what you verified in the code; mark uncertain points as questions. No praise padding, no restating the diff. End with the 2-3 things the owner should look at most closely if the change touches destructive git operations.
