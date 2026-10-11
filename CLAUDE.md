@@ -59,7 +59,7 @@ Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. Ru
 - Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide). Don't start M1+ until the M0 decision issue is closed.
 - `spike`, `destructive` (can lose user data) and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; the others stop at an open PR for the owner. Keep working on other unblocked issues meanwhile.
 - Every PR gets the reviewer's findings posted as a PR comment (and a follow-up comment on what was fixed); the review must be visible on GitHub, not only in the session.
-- Independent unblocked issues are worked in parallel by subagents in separate worktrees.
+- Independent unblocked issues run in parallel as subagents in separate worktrees (see the skill).
 - Everything else: `gh pr merge <n> --merge --delete-branch` once CI is green and the reviewer (subagent) has no open blockers. Merge commits only, never squash or rebase, never force-push.
 - Don't block on questions: decide from the docs or take the recommended default, log it in `docs/decisions.md` or `docs/roadmap.md` open questions, and say so in the PR.
 - Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).

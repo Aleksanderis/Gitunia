@@ -21,8 +21,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 ## 3. Implement
 
 - Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. Spikes use `spike/<n>-<slug>` and are never merged.
-- When several unblocked issues are independent (different files, no shared contracts), run them in parallel: one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Only keep to a single agent when the issues share files or keymap rows.
-- Parallel agents are fine for independent issues (separate worktrees); not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
+- Run independent unblocked issues in parallel: one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
 - Tests follow the `testing` skill; layering and cross-platform rules are in `CLAUDE.md`.
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
 - Run the AOT publish if you added a dependency or touched anything reflection-adjacent.

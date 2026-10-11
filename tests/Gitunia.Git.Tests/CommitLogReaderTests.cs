@@ -94,7 +94,7 @@ public class CommitLogReaderTests
         var repo = await Repo.OpenAsync(Runner, bigRepository!, Token);
         var expected = long.Parse((await repo.RunAsync(["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
 
-        long count = 0;
+        var count = 0L;
         await foreach (var commit in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, [], Token))
         {
             count += commit.Id.IsValid ? 1 : 0;

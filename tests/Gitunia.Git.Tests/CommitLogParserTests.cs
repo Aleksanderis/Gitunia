@@ -21,7 +21,7 @@ public class CommitLogParserTests
     [Fact]
     public void GivenSha256Hashes_WhenParsing_ThenFullLengthIsKept()
     {
-        string hash = new('a', 64);
+        var hash = new string('a', 64);
         var text = string.Join('\x1f', hash, hash.Replace('a', 'b'), "A", "a@b", "1", string.Empty, "Subject") + "\0";
 
         var commit = Assert.Single(ParseAll(text, 1000, out _));
