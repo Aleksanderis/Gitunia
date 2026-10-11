@@ -67,9 +67,9 @@ public sealed class GitRunner
                 process.Kill(entireProcessTree: true);
             }
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
-            // Already exited.
+            // Already exited or exiting.
         }
     }
 
@@ -136,13 +136,14 @@ public sealed class GitRunner
         TimeSpan timeout = runOptions.Timeout ?? options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(timeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-        using Process process = Start(arguments, runOptions);
+        using Process process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
         try
         {
             Task<byte[]> outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
             Task<string> errorTask = process.StandardError.ReadToEndAsync(linked.Token);
-            byte[] output = await outputTask.ConfigureAwait(false);
-            string error = await errorTask.ConfigureAwait(false);
+            await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
+            byte[] output = outputTask.Result;
+            string error = errorTask.Result;
             await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {
@@ -169,9 +170,9 @@ public sealed class GitRunner
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         TimeSpan timeout = runOptions.Timeout ?? options.EffectiveTimeout;
-        using var timeoutSource = new CancellationTokenSource(timeout);
+        using var timeoutSource = new CancellationTokenSource(Timeout.InfiniteTimeSpan);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-        using Process process = Start(arguments, runOptions);
+        using Process process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
         Task<string> errorTask = process.StandardError.ReadToEndAsync(linked.Token);
         Stream output = process.StandardOutput.BaseStream;
         var buffer = new byte[ReadBufferSize];
@@ -182,7 +183,10 @@ public sealed class GitRunner
                 int count;
                 try
                 {
+                    // The idle timer only runs while waiting for git, never while the consumer handles a chunk.
+                    timeoutSource.CancelAfter(timeout);
                     count = await output.ReadAsync(buffer, linked.Token).ConfigureAwait(false);
+                    timeoutSource.CancelAfter(Timeout.InfiniteTimeSpan);
                 }
                 catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                 {
@@ -194,21 +198,41 @@ public sealed class GitRunner
                     break;
                 }
 
-                timeoutSource.CancelAfter(timeout);
                 yield return buffer.AsSpan(0, count).ToArray();
             }
 
-            string error = await errorTask.ConfigureAwait(false);
-            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
-            if (!IsAccepted(process.ExitCode, runOptions))
-            {
-                throw new GitCommandFailedException(arguments, process.ExitCode, error);
-            }
+            timeoutSource.CancelAfter(timeout);
+            await FinishStreamAsync(process, errorTask, arguments, runOptions, timeoutSource, timeout, cancellationToken, linked.Token).ConfigureAwait(false);
         }
         finally
         {
             // Early disposal, cancellation, timeout and failures all end here.
             KillQuietly(process);
+        }
+    }
+
+    private static async Task FinishStreamAsync(
+        Process process,
+        Task<string> errorTask,
+        IReadOnlyList<string> arguments,
+        GitRunOptions runOptions,
+        CancellationTokenSource timeoutSource,
+        TimeSpan timeout,
+        CancellationToken callerToken,
+        CancellationToken linkedToken)
+    {
+        try
+        {
+            string error = await errorTask.ConfigureAwait(false);
+            await process.WaitForExitAsync(linkedToken).ConfigureAwait(false);
+            if (!IsAccepted(process.ExitCode, runOptions))
+            {
+                throw new GitCommandFailedException(arguments, process.ExitCode, error);
+            }
+        }
+        catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !callerToken.IsCancellationRequested)
+        {
+            throw new GitTimeoutException(arguments, timeout);
         }
     }
 

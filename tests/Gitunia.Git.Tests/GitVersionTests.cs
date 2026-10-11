@@ -50,7 +50,8 @@ public class GitVersionTests
 
         GitVersion version = await GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.Path)), TestContext.Current.CancellationToken);
 
-        Assert.True(version.IsAtLeast(GitVersion.RelativeWorktrees) || version.Minor == 50);
+        Assert.Equal(new GitVersion(2, 50, 0), version);
+        Assert.True(version.IsAtLeast(GitVersion.RelativeWorktrees));
     }
 
     [Fact]

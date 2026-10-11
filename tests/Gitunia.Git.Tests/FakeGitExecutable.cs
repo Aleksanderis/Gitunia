@@ -37,6 +37,13 @@ public sealed class FakeGitExecutable : IDisposable
     public static FakeGitExecutable Sleeping() =>
         Create("sleep 30", "ping -n 30 127.0.0.1 >nul");
 
+    /// <summary>Prints 'first', sleeps two seconds, then writes the marker file; a killed process never writes it.</summary>
+    public static FakeGitExecutable SleepingThenMarking(string markerPath) =>
+        Create($"printf first\nsleep 2\necho done > '{markerPath}'", $"<nul set /p =\"first\"\r\nping -n 3 127.0.0.1 >nul\r\necho done > \"{markerPath}\"");
+
+    public static FakeGitExecutable EchoingArgumentsAndLocks() =>
+        Create("printf '%s\\n' \"$@\"\nprintf 'LOCKS=%s' \"$GIT_OPTIONAL_LOCKS\"", "echo %*\r\n<nul set /p =\"LOCKS=%GIT_OPTIONAL_LOCKS%\"");
+
     public static FakeGitExecutable Failing(int exitCode, string message) =>
         Create($"echo '{message}' >&2\nexit {exitCode}", $"echo {message} 1>&2\r\nexit /b {exitCode}");
 
@@ -52,7 +59,7 @@ public sealed class FakeGitExecutable : IDisposable
         {
             Directory.Delete(directory, recursive: true);
         }
-        catch (IOException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             // Best effort cleanup of a temp directory.
         }

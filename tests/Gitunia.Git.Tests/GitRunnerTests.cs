@@ -1,6 +1,4 @@
 using Xunit;
-using System.Diagnostics;
-
 namespace Gitunia.Git.Tests;
 
 public class GitRunnerTests
@@ -47,10 +45,10 @@ public class GitRunnerTests
     }
 
     [Fact]
-    public async Task GivenSlowProcess_WhenTimeoutElapses_ThenTimeoutErrorAndProcessKilledPromptly()
+    public async Task GivenSlowProcess_WhenTimeoutElapses_ThenTimeoutErrorAndProcessKilled()
     {
-        using var fake = FakeGitExecutable.Sleeping();
-        var stopwatch = Stopwatch.StartNew();
+        string marker = MarkerPath();
+        using var fake = FakeGitExecutable.SleepingThenMarking(marker);
 
         await Assert.ThrowsAsync<GitTimeoutException>(
             () => RunnerFor(fake).RunAsync(
@@ -59,20 +57,20 @@ public class GitRunnerTests
                 new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(300)),
                 TestContext.Current.CancellationToken));
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"took {stopwatch.Elapsed}");
+        await AssertNeverMarkedAsync(marker);
     }
 
     [Fact]
-    public async Task GivenSlowProcess_WhenCancelled_ThenOperationCancelledAndProcessKilledPromptly()
+    public async Task GivenSlowProcess_WhenCancelled_ThenOperationCancelledAndProcessKilled()
     {
-        using var fake = FakeGitExecutable.Sleeping();
+        string marker = MarkerPath();
+        using var fake = FakeGitExecutable.SleepingThenMarking(marker);
         using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
-        var stopwatch = Stopwatch.StartNew();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => RunnerFor(fake).RunAsync(AnyDirectory, ["fetch"], cancellationToken: source.Token));
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"took {stopwatch.Elapsed}");
+        await AssertNeverMarkedAsync(marker);
     }
 
     [Fact]
@@ -136,8 +134,8 @@ public class GitRunnerTests
     [Fact]
     public async Task GivenStream_WhenConsumerStopsEarly_ThenProcessIsKilled()
     {
-        using var fake = FakeGitExecutable.PrintingThenSleeping("first");
-        var stopwatch = Stopwatch.StartNew();
+        string marker = MarkerPath();
+        using var fake = FakeGitExecutable.SleepingThenMarking(marker);
 
         await foreach (byte[] unused in RunnerFor(fake).StreamAsync(AnyDirectory, ["log"], cancellationToken: TestContext.Current.CancellationToken))
         {
@@ -145,7 +143,65 @@ public class GitRunnerTests
             break;
         }
 
-        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"took {stopwatch.Elapsed}");
+        await AssertNeverMarkedAsync(marker);
+    }
+
+    [Fact]
+    public async Task GivenSlowConsumer_WhenHandlingChunkLongerThanTimeout_ThenNoTimeout()
+    {
+        using var fake = FakeGitExecutable.Printing("data");
+        var collected = 0;
+
+        await foreach (byte[] chunk in RunnerFor(fake).StreamAsync(
+            AnyDirectory,
+            ["log"],
+            new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(200)),
+            TestContext.Current.CancellationToken))
+        {
+            await Task.Delay(600, TestContext.Current.CancellationToken);
+            collected += chunk.Length;
+        }
+
+        Assert.Equal(4, collected);
+    }
+
+    [Fact]
+    public async Task GivenRepositoryPathAndReadOnly_WhenRunning_ThenGitReceivesExplicitPathQuotepathAndNoOptionalLocks()
+    {
+        using var fake = FakeGitExecutable.EchoingArgumentsAndLocks();
+
+        GitResult result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["status"],
+            new GitRunOptions(ReadOnly: true),
+            TestContext.Current.CancellationToken);
+
+        string text = result.StandardOutputText;
+        Assert.Contains("-C", text);
+        Assert.Contains(AnyDirectory, text);
+        Assert.Contains("core.quotepath=off", text);
+        Assert.Contains("status", text);
+        Assert.Contains("LOCKS=0", text);
+    }
+
+    [Fact]
+    public async Task GivenNotReadOnly_WhenRunning_ThenOptionalLocksUnset()
+    {
+        using var fake = FakeGitExecutable.EchoingArgumentsAndLocks();
+
+        GitResult result = await RunnerFor(fake).RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Contains("LOCKS=", result.StandardOutputText);
+        Assert.DoesNotContain("LOCKS=0", result.StandardOutputText);
+    }
+
+    private static string MarkerPath() => Path.Combine(Path.GetTempPath(), "gitunia-marker-" + Guid.NewGuid().ToString("N"));
+
+    private static async Task AssertNeverMarkedAsync(string marker)
+    {
+        // The fake would write the marker after two seconds had the process survived.
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        Assert.False(File.Exists(marker), "the process was not killed");
     }
 
     [Fact]
