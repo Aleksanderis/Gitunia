@@ -179,7 +179,7 @@ public class KeymapEngineTests
     {
         var feeder = CreateFeeder(DefaultKeymap.SidebarView);
 
-        Assert.Equal(KeyOutcome.Unbound, feeder.Feed("y").Outcome);
+        Assert.Equal(KeyOutcome.Unbound, feeder.Feed("@").Outcome);
         Assert.Equal(ActionIds.SidebarFilter, feeder.Feed("/").Action);
     }
 

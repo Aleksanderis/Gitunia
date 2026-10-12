@@ -17,6 +17,31 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
+    public async Task GivenABranchRow_WhenCopying_ThenItsNameGoesToTheClipboard()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.FocusRow("old");
+
+        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+
+        Assert.Equal("\u001b]52;c;b2xk\u001b\\", harness.Clipboard.ToString());
+    }
+
+    [Fact]
+    public async Task GivenASectionRow_WhenCopying_ThenNothingIsCopied()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.FocusRow("Tags");
+
+        harness.Handler.TryHandle(ActionIds.SidebarCopy, null);
+
+        Assert.Equal(string.Empty, harness.Clipboard.ToString());
+        Assert.Equal("Select an entry to copy", harness.Handler.Message);
+    }
+
+    [Fact]
     public async Task GivenGraphFocus_WhenTabPressedTwice_ThenFocusGoesToSidebarAndBack()
     {
         using var repository = BranchyRepository();

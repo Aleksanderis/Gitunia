@@ -114,17 +114,21 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `y` | Copy commit hash |
 | Graph | `r` | Refresh repo |
 | Detail | `Enter` | Open file diff |
+| Detail | `y` | Copy the path of the selected file |
 | Detail | `r` | Retry loading the commit details after a failure |
 | Detail | `h` / `Esc` | Back to graph |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |
 | Sidebar | `/` | Filter entries |
+| Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Diff | `]c` `[c` | Next / previous hunk |
 | Diff | `]f` `[f` | Next / previous file |
 | Diff | `q` / `Esc` / `h` | Back to file list |
 | Diff | `/` `n` `N` | Search in diff, next, previous |
 | Diff | `w` | Toggle word wrap (off by default; the cursor moves by screen line while on) |
+| Diff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
+| Diff | `Y` | Copy the displayed rows of the file under the cursor (not a pasteable patch) |
 | Diff | `L` | Load anyway: reload the commit without the row and per-file limits |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |

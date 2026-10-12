@@ -114,6 +114,7 @@ public static class DefaultKeymap
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
+        Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
 
@@ -121,6 +122,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "Enter", ActionIds.SidebarActivate);
         Add(bindings, NormalOnly, SidebarView, "h", ActionIds.SidebarCollapse);
         Add(bindings, NormalOnly, SidebarView, "/", ActionIds.SidebarFilter);
+        Add(bindings, NormalOnly, SidebarView, "y", ActionIds.SidebarCopy);
 
         Add(bindings, NormalOnly, DiffView, "]c", ActionIds.DiffNextHunk);
         Add(bindings, NormalOnly, DiffView, "[c", ActionIds.DiffPreviousHunk);
@@ -134,6 +136,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "/", ActionIds.DiffSearchOpen);
         Add(bindings, NormalOnly, DiffView, "n", ActionIds.DiffSearchNext);
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
+        Add(bindings, NormalOnly, DiffView, "y", ActionIds.DiffCopyLine);
+        Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
     }
 
     private static void AddPicker(List<KeyBinding> bindings)

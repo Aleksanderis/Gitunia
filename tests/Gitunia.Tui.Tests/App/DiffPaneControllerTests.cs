@@ -340,7 +340,7 @@ public class DiffPaneControllerTests
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { });
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { }, new ClipboardCopier(null, new Gitunia.Core.Status.StatusChannel()));
             Controller.OnTabSwitched(null, session);
         }
 

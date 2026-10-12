@@ -14,6 +14,7 @@ namespace Gitunia.Core.Sidebar;
 /// <param name="Count">For a section header, the number of entries (matching the filter).</param>
 /// <param name="Ahead">Commits ahead of the upstream, null when unknown or without upstream.</param>
 /// <param name="Behind">Commits behind the upstream, null when unknown or without upstream.</param>
+/// <param name="Path">For a worktree, its absolute path; null for every other row.</param>
 public sealed record SidebarRow(
     SidebarRowKind Kind,
     SidebarSection Section,
@@ -24,7 +25,8 @@ public sealed record SidebarRow(
     bool IsExpanded,
     int Count,
     int? Ahead,
-    int? Behind)
+    int? Behind,
+    string? Path = null)
 {
     /// <summary>The row is a section header.</summary>
     public bool IsSection => Kind == SidebarRowKind.Section;

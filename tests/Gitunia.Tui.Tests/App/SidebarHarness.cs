@@ -1,3 +1,4 @@
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Sidebar;
@@ -31,12 +32,16 @@ public sealed class SidebarHarness : IDisposable
             () => SidebarVisible,
             () => DetailVisible,
             item => SelectedGraphItem = item,
-            mode => Mode = mode);
+            mode => Mode = mode,
+            new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
         host.Changed += () => source.Update(host.Workspace.ActiveTab);
         source.Update(host.Workspace.ActiveTab);
     }
 
     public WorkspaceHost Host { get; }
+
+    /// <summary>What the handler wrote to the terminal (OSC 52 sequences).</summary>
+    public StringWriter Clipboard { get; } = new();
 
     public SidebarListSource Source { get; }
 
