@@ -14,6 +14,7 @@ namespace Gitunia.Core.Workspaces;
 /// <param name="Stashes">The stash stack, newest first, empty until loaded.</param>
 /// <param name="Sidebar">Folded sections, name filter and cursor of the sidebar.</param>
 /// <param name="IsMissing">The repository directory disappeared; the tab stays so the user can locate or close it.</param>
+/// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
 public sealed record RepoState(
     TabId Id,
     RepositoryLocation Location,
@@ -23,7 +24,8 @@ public sealed record RepoState(
     ImmutableArray<WorktreeInfo> Worktrees,
     ImmutableArray<StashEntry> Stashes,
     SidebarState Sidebar,
-    bool IsMissing)
+    bool IsMissing,
+    RepoStatusSummary? Status = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

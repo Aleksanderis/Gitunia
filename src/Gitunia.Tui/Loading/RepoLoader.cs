@@ -47,10 +47,14 @@ public static class RepoLoader
         {
             var headTask = repo.ReadHeadAsync(token);
             var refsTask = RefReader.ReadRefsAsync(repo, token);
+            var statusTask = StatusReader.ReadStatusAsync(repo, false, token);
             var head = await headTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(head))));
             var refs = await refsTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
+            var status = await statusTask.ConfigureAwait(false);
+            var summary = new RepoStatusSummary(status.Entries.Count > 0, status.Branch.Ahead ?? 0, status.Branch.Behind ?? 0);
+            postToUi(() => host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary))));
         }
         catch (Exception exception) when (exception is OperationCanceledException or GitException)
         {

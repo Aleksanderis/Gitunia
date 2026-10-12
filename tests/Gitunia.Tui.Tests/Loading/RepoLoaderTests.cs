@@ -55,4 +55,38 @@ public class RepoLoaderTests
         Assert.True(session.IsLoading);
         Assert.Equal(0, session.Graph.Count);
     }
+
+    [Fact]
+    public async Task GivenDirtyRepository_WhenLoading_ThenTheStatusSummaryArrivesForTheTabBar()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1")).WriteFile("untracked.txt", "x");
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+
+        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+
+        Assert.Equal(new RepoStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+    }
+
+    [Fact]
+    public async Task GivenCleanRepository_WhenLoading_ThenTheStatusSummaryIsNotDirty()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+
+        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+
+        Assert.Equal(new RepoStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+    }
 }

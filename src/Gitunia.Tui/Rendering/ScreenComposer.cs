@@ -39,6 +39,18 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
+        if (model.Picker is not null)
+        {
+            var pickerHeight = ScreenLayout.GraphHeight(height);
+            lines.AddRange(PickerComposer.Compose(model.Picker, model.HomeDirectory, width, pickerHeight, glyphs));
+            if (height > ScreenLayout.GraphTop)
+            {
+                lines.Add(ChromeBuilder.Status(model, width, glyphs));
+            }
+
+            return lines;
+        }
+
         var showDetail = detail is not null && DetailLayout.PaneHeight(height) > 0;
         var graphHeight = showDetail ? DetailLayout.GraphHeight(height) : ScreenLayout.GraphHeight(height);
         var sidebarWidth = sidebar is null ? 0 : ScreenLayout.SidebarWidth(width);

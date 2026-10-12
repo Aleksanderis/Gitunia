@@ -20,6 +20,8 @@ public enum SegmentRole
     Status,
     Faint,
 
+    /// <summary>A failure notice.</summary>
+    Error,
     /// <summary>A sidebar section title.</summary>
     SectionTitle,
 

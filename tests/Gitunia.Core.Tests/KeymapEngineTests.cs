@@ -214,6 +214,8 @@ public class KeymapEngineTests
         Assert.Equal(ActionIds.PickerPin, feeder.Feed("Alt-p").Action);
         Assert.Equal(ActionIds.PickerOpen, feeder.Feed("Ctrl-t").Action);
         Assert.Equal(ActionIds.TabGoTo(2), feeder.Feed("Alt-2").Action);
+        Assert.Equal(ActionIds.PickerNext, feeder.Feed("Ctrl-j").Action);
+        Assert.Equal(ActionIds.PickerPrevious, feeder.Feed("Ctrl-k").Action);
         Assert.Equal(ActionIds.PickerAccept, feeder.Feed("Enter").Action);
         Assert.Equal(ActionIds.Cancel, feeder.Feed("Esc").Action);
     }

@@ -38,3 +38,7 @@ public sealed record RefsLoadedCommand(ImmutableArray<GitRef> Refs) : RepoComman
 /// <summary>The repository directory vanished or came back.</summary>
 /// <param name="IsMissing">Whether it is missing.</param>
 public sealed record SetMissingCommand(bool IsMissing) : RepoCommand;
+
+/// <summary>The working tree status was (re)loaded.</summary>
+/// <param name="Summary">What the tab bar shows.</param>
+public sealed record StatusLoadedCommand(RepoStatusSummary Summary) : RepoCommand;

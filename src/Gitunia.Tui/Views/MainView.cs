@@ -9,7 +9,8 @@ namespace Gitunia.Tui.Views;
 public sealed class MainView : IDisposable
 {
     private readonly LineView header;
-    private readonly LineView tabs;
+    private readonly TabBarView tabs;
+    private readonly PickerView picker;
     private readonly LineView status;
     private readonly LineView sidebarFilter;
     private readonly DividerView divider;
@@ -24,7 +25,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        tabs = new LineView(width => ChromeBuilder.Tabs(model(), width, glyphs))
+        tabs = new TabBarView(model, glyphs)
         {
             X = 0,
             Y = ScreenLayout.TabRow,
@@ -81,6 +82,14 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => DetailLayout.ContentHeight(ScreenHeight())),
             CanFocus = true,
         };
+        picker = new PickerView(model, glyphs)
+        {
+            X = 0,
+            Y = ScreenLayout.GraphTop,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(1),
+            Visible = false,
+        };
         status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
         {
             X = 0,
@@ -90,7 +99,21 @@ public sealed class MainView : IDisposable
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
-        Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, status, Overlay);
+        Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, picker, status, Overlay);
+    }
+
+    /// <summary>Raised with the one-based tab number when a tab in the tab row is clicked.</summary>
+    public event Action<int>? TabClicked
+    {
+        add => tabs.TabClicked += value;
+        remove => tabs.TabClicked -= value;
+    }
+
+    /// <summary>Raised with the row index and whether it was a double-click when a picker row is clicked.</summary>
+    public event Action<int, bool>? PickerRowClicked
+    {
+        add => picker.RowClicked += value;
+        remove => picker.RowClicked -= value;
     }
 
     public Window Window { get; }
@@ -108,6 +131,25 @@ public sealed class MainView : IDisposable
     /// <summary>The terminal size in columns and rows.</summary>
     public (int Width, int Height) ScreenSize => (Window.Viewport.Width, Window.Viewport.Height);
 
+    /// <summary>Shows the repo picker in place of the graph, or the graph again.</summary>
+    public void ShowPicker(bool isOpen)
+    {
+        if (picker.Visible == isOpen)
+        {
+            return;
+        }
+
+        picker.Visible = isOpen;
+        Graph.Visible = !isOpen;
+        if (!isOpen)
+        {
+            Graph.SetFocus();
+        }
+
+        picker.SetNeedsDraw();
+        Graph.SetNeedsDraw();
+    }
+
     private int ScreenWidth => Window.Viewport.Width;
 
     private int SidebarWidth => ScreenLayout.SidebarWidth(ScreenWidth);
@@ -118,6 +160,7 @@ public sealed class MainView : IDisposable
         header.SetNeedsDraw();
         tabs.SetNeedsDraw();
         status.SetNeedsDraw();
+        picker.SetNeedsDraw();
         sidebarFilter.SetNeedsDraw();
         divider.SetNeedsDraw();
         Sidebar.SetNeedsDraw();

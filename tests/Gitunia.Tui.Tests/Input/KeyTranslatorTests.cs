@@ -95,4 +95,32 @@ public class KeyTranslatorTests
 
         Assert.Equal(ActionIds.ListHalfPageDown, result.Action);
     }
+
+    [Fact]
+    public void GivenCtrlSix_WhenTranslating_ThenItIsCtrlCaretTheTerminalSends()
+    {
+        // 0x1E arrives as Ctrl+6 (checked against Terminal.Gui 2.5.0 under tmux), so the previous-tab key needs this mapping.
+        Assert.Equal(new KeyEvent("^", KeyModifiers.Ctrl), Translate(Key.D6.WithCtrl));
+    }
+
+    [Fact]
+    public void GivenCtrlEnter_WhenTranslating_ThenItIsCtrlJNotEnter()
+    {
+        // 0x0A arrives as Ctrl+Enter, distinct from Enter (0x0D), so Ctrl-j can move the picker highlight.
+        Assert.Equal(new KeyEvent("j", KeyModifiers.Ctrl), Translate(Key.Enter.WithCtrl));
+        Assert.Equal(new KeyEvent(KeyNames.Enter), Translate(Key.Enter));
+    }
+
+    [Fact]
+    public void GivenPickerInInsertMode_WhenPressingCtrlJAndCtrlCaret_ThenHighlightMovesAndPreviousTabFires()
+    {
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        var state = KeymapState.Initial.WithMode(KeyMode.Insert);
+
+        var down = engine.Process(state, Translate(Key.Enter.WithCtrl), DefaultKeymap.PickerView);
+        var previousTab = engine.Process(state, Translate(Key.D6.WithCtrl), DefaultKeymap.PickerView);
+
+        Assert.Equal(ActionIds.PickerNext, down.Action);
+        Assert.Equal(ActionIds.TabLastActive, previousTab.Action);
+    }
 }
