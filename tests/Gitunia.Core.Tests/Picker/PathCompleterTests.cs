@@ -14,6 +14,15 @@ public class PathCompleterTests
         repositories: [PickerFixtures.PathOf("code", "alpha")]);
 
     [Fact]
+    public void GivenCancelledToken_WhenListingCandidates_ThenListingStops()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PathCompleter.ListCandidates("~/code/", Context(), cancellation.Token));
+    }
+
+    [Fact]
     public void GivenTypedPrefix_WhenListingCandidates_ThenOnlyMatchingDirectoriesAreReturnedSorted()
     {
         var candidates = PathCompleter.Candidates("~/code/alp", Context());

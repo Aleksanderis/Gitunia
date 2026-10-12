@@ -20,6 +20,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
     private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
     private CancellationTokenSource? listingCancellation;
+    private bool completeAfterListing;
     private ImmutableArray<string> discovered = [];
     private DateTime lastScan = DateTime.MinValue;
     private bool isScanning;
@@ -39,6 +40,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     public void Open(TabId? locatingTabId = null, string initialQuery = "")
     {
         CancelListing();
+        completeAfterListing = false;
         State = PickerReducer.Open(CreateContext(), locatingTabId, initialQuery);
         if (State.IsListing)
         {
@@ -53,12 +55,20 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     {
         openRequest++;
         CancelListing();
+        completeAfterListing = false;
         State = null;
         Changed?.Invoke();
     }
 
     public void Apply(PickerCommand command)
     {
+        if (State is { IsListing: true } && command is CompletePathCommand)
+        {
+            // Tab during a pending listing is applied once the candidates arrive.
+            completeAfterListing = true;
+            return;
+        }
+
         if (State is { } state)
         {
             var reduced = PickerReducer.Reduce(state, command, CreateContext());
@@ -73,6 +83,11 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             }
 
             Changed?.Invoke();
+            if (command is ListingCompletedCommand && completeAfterListing && !reduced.IsListing)
+            {
+                completeAfterListing = false;
+                Apply(new CompletePathCommand());
+            }
         }
     }
 
@@ -220,8 +235,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             {
                 return;
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+            catch (Exception exception)
             {
+                // Whatever went wrong, the picker must leave the scanning state.
                 message = exception.Message;
             }
 

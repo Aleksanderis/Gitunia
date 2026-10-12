@@ -25,7 +25,7 @@ public static class PickerReducer
         CompletePathCommand => state.IsPathMode && !state.IsListing ? WithQuery(state, PathCompleter.Complete(state.Query, state.Rows, state.Highlight), context) : state,
         SetMessageCommand message => state with { Message = message.Message },
         ListingCompletedCommand listing => listing.Query == state.Query && state.IsPathMode
-            ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message, IsListing = false }
+            ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message.Length > 0 ? listing.Message : state.Message, IsListing = false }
             : state,
         RefreshRowsCommand => Refresh(state, context),
         _ => state,

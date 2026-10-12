@@ -184,7 +184,10 @@ public class PickerControllerTests
             return [Path.Combine(directory, "fresh")];
         });
         picker.Open();
-        picker.Apply(new TypeTextCommand("~/slow"));
+        picker.Apply(new TypeTextCommand("~/slow/"));
+        picker.Apply(new TypeTextCommand("x"));
+        picker.Apply(new BackspaceCommand());
+        picker.Apply(new BackspaceCommand());
         picker.Apply(new BackspaceCommand());
         picker.Apply(new BackspaceCommand());
         picker.Apply(new BackspaceCommand());
@@ -196,6 +199,7 @@ public class PickerControllerTests
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal("~/fast/", picker.State!.Query);
+        Assert.Empty(picker.State.Message);
         Assert.Equal(["fresh"], picker.State.Rows.Select(row => row.Name));
     }
 
@@ -216,5 +220,36 @@ public class PickerControllerTests
 
         Assert.Contains("timed out", picker.State!.Message, StringComparison.Ordinal);
         Assert.Empty(picker.State.Rows);
+    }
+
+    [Fact]
+    public async Task GivenListingThatThrows_WhenTyping_ThenTheNoticeReplacesScanning()
+    {
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: _ => throw new NotSupportedException("bad path"));
+        picker.Open();
+
+        picker.Apply(new TypeTextCommand("~/"));
+        await WaitForAsync(() => !picker.State!.IsListing);
+
+        Assert.Equal("bad path", picker.State!.Message);
+    }
+
+    [Fact]
+    public async Task GivenTabDuringListing_WhenTheListingCompletes_ThenThePathIsCompleted()
+    {
+        using var release = new ManualResetEventSlim();
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        {
+            release.Wait(TestContext.Current.CancellationToken);
+            return [Path.Combine(directory, "alpha"), Path.Combine(directory, "beta")];
+        });
+        picker.Open();
+        picker.Apply(new TypeTextCommand("~/al"));
+
+        picker.Apply(new CompletePathCommand());
+        release.Set();
+        await WaitForAsync(() => picker.State!.Query == "~/alpha/");
+
+        Assert.Equal("~/alpha/", picker.State!.Query);
     }
 }
