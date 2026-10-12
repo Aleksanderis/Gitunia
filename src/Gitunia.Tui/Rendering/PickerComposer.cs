@@ -67,7 +67,7 @@ public static class PickerComposer
 
         if (picker.Rows.IsEmpty)
         {
-            var empty = picker.IsPathMode ? " no matching directories" : picker.Query.Length > 0 ? " no matching repositories" : " no repositories yet: type a path to open one";
+            var empty = picker.IsListing ? " scanning..." : picker.IsPathMode ? " no matching directories" : picker.Query.Length > 0 ? " no matching repositories" : " no repositories yet: type a path to open one";
             lines.Add(new LineBuilder(width, glyphs.Ellipsis).Append(empty, SegmentRole.Faint).Build());
             return lines;
         }

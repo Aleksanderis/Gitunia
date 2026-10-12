@@ -6,7 +6,10 @@ public static class PathCompleter
     private const int MaximumCandidates = 500;
 
     /// <summary>The subdirectories that continue the typed path, sorted by name; hidden ones only when the typed name starts with a dot.</summary>
-    public static IReadOnlyList<PickerRow> Candidates(string text, PickerContext context)
+    public static IReadOnlyList<PickerRow> Candidates(string text, PickerContext context) => ListCandidates(text, context, CancellationToken.None);
+
+    /// <summary>Like <see cref="Candidates"/>, but stops with <see cref="OperationCanceledException"/> when cancelled (checked between entries).</summary>
+    public static IReadOnlyList<PickerRow> ListCandidates(string text, PickerContext context, CancellationToken cancellationToken)
     {
         SplitTyped(text, out var directoryText, out var namePrefix);
         var directory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
@@ -14,6 +17,7 @@ public static class PathCompleter
         var matches = new List<string>();
         foreach (var path in context.ListDirectories(directory))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
             if (name.StartsWith(namePrefix, comparison) && (!name.StartsWith('.') || namePrefix.StartsWith('.')))
             {
@@ -24,10 +28,17 @@ public static class PathCompleter
         matches.Sort((left, right) => string.Compare(Path.GetFileName(left), Path.GetFileName(right), StringComparison.OrdinalIgnoreCase));
 
         // Only the rows that are shown cost a file system check.
-        return [.. matches.Take(MaximumCandidates).Select(path => new PickerRow(
-            path,
-            Path.GetFileName(Path.TrimEndingDirectorySeparator(path)),
-            PickerTags.Directory | (context.IsRepository(path) ? PickerTags.Repository : PickerTags.None)))];
+        var rows = new List<PickerRow>();
+        foreach (var path in matches.Take(MaximumCandidates))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            rows.Add(new PickerRow(
+                path,
+                Path.GetFileName(Path.TrimEndingDirectorySeparator(path)),
+                PickerTags.Directory | (context.IsRepository(path) ? PickerTags.Repository : PickerTags.None)));
+        }
+
+        return rows;
     }
 
     /// <summary>
