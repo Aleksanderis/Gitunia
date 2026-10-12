@@ -36,7 +36,11 @@ public static class RepoLoader
         catch (Exception exception)
         {
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
-            postToUi(() => session.Fail(exception.Message));
+            postToUi(() =>
+            {
+                statuses.Error("Could not load the graph: " + exception.Message);
+                session.Fail(exception.Message);
+            });
         }
 
         await metadata.ConfigureAwait(false);

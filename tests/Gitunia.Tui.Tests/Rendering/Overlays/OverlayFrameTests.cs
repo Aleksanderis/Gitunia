@@ -33,6 +33,26 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenLongMessage_WhenRenderingMessages_ThenItWrapsAndEveryWordIsReadable()
+    {
+        const string message = "fatal: unable to access the repository because the object database is corrupt and cannot be read";
+        var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", message)]) };
+        var state = OverlayState.OpenMessages(KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
+
+        var lines = Text(frame!).Split('\n');
+        Assert.All(lines, line => Assert.True(line.Length <= 40));
+        var joined = string.Join(' ', lines.Select(line => line.Trim('│', ' ')));
+        foreach (var word in message.Split(' '))
+        {
+            Assert.Contains(word, joined, StringComparison.Ordinal);
+        }
+
+        Assert.True(HelpFrameBuilder.ContentHeight(sections, 40) > 2);
+    }
+
+    [Fact]
     public void GivenPalette_WhenRenderingAt80x24_ThenItListsActionsWithTheirKeys()
     {
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode);
@@ -139,7 +159,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("Zoom the fo", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("<space>m", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 
