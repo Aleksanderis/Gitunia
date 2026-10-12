@@ -36,6 +36,9 @@ public sealed class CommitGraph
         AddRange(replacement);
     }
 
+    /// <summary>A copy of all rows, safe to read from another thread while the graph changes.</summary>
+    public GraphEntry[] ToArray() => entries.ToArray();
+
     /// <summary>Index of the commit, or -1 when it is not loaded (yet).</summary>
     public int IndexOf(ObjectId commitId)
     {
