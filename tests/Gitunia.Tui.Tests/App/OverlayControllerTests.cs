@@ -23,7 +23,7 @@ public sealed class OverlayControllerTests : IDisposable
         OverlayController? controller = null;
         keys = new KeyController(engine, (action, count) => RouteAction(controller!, action, count));
         timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action => posted.Enqueue(action));
-        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, DefaultKeymap.GraphView);
+        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView);
         overlays = controller;
         overlays.Changed += () => changes++;
     }

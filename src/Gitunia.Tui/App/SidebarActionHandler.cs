@@ -18,6 +18,7 @@ public sealed class SidebarActionHandler(
     Func<TabSession?> activeSession,
     Func<int> pageHeight,
     Func<bool> isSidebarVisible,
+    Func<bool> isDetailVisible,
     Action<int> selectGraphItem,
     Action<KeyMode> setMode)
 {
@@ -107,7 +108,7 @@ public sealed class SidebarActionHandler(
     private bool TryHandlePaneAction(RepoState tab, ActionId action)
     {
         var focused = tab.View.FocusedPane;
-        var available = isSidebarVisible() ? new[] { PaneKind.Sidebar, PaneKind.Graph } : [PaneKind.Graph];
+        var available = OpenPanes();
         if (action == ActionIds.PaneNext || action == ActionIds.PanePrevious)
         {
             FocusPane(tab, PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, available));
@@ -121,6 +122,22 @@ public sealed class SidebarActionHandler(
         }
 
         return action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown;
+    }
+
+    private List<PaneKind> OpenPanes()
+    {
+        var panes = new List<PaneKind> { PaneKind.Graph };
+        if (isSidebarVisible())
+        {
+            panes.Insert(0, PaneKind.Sidebar);
+        }
+
+        if (isDetailVisible())
+        {
+            panes.Add(PaneKind.Detail);
+        }
+
+        return panes;
     }
 
     private bool HandleFilterEditing(ActionId action)

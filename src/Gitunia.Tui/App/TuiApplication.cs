@@ -3,6 +3,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Platform;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
@@ -44,14 +45,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             ActiveSession,
             () => view.Sidebar.Viewport.Height,
             () => ScreenLayout.SidebarWidth(view.Window.Viewport.Width) > 0,
+            () => DetailLayout.PaneHeight(view.Window.Viewport.Height) > 0,
             SelectGraphItem,
             mode => keys.SetMode(mode));
-        view = new MainView(CreateModel, glyphs, sidebarSource, () => sidebar.Chrome);
-        router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop, sidebar);
+        view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs, sidebarSource, () => sidebar.Chrome);
+        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar);
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, DefaultKeymap.GraphView);
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
         var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
@@ -63,6 +65,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
         view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
         view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
+        view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(view.Detail, PaneKind.Detail);
         app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, overlays.ViewName);
 
         host.Dispatch(new OpenRepositoryCommand(location));
@@ -70,6 +73,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         if (session is not null)
         {
             view.Graph.Source = session.Source;
+            view.Detail.Source = session.DetailSource;
+            session.Details.Changed += RefreshDetail;
             session.Changed += OnSessionChanged;
         }
 
@@ -100,15 +105,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 
-    private string FocusedViewName() => host.Workspace.ActiveTab?.View.FocusedPane switch
-    {
-        PaneKind.Sidebar => DefaultKeymap.SidebarView,
-        PaneKind.Detail => DefaultKeymap.DetailView,
-        PaneKind.Diff => DefaultKeymap.DiffView,
-        _ => DefaultKeymap.GraphView,
-    };
-
-    // The state decides which pane has focus; the views follow it.
+    // The state decides which pane has focus; the toolkit focus follows it (a click goes the other way, see OnPaneFocused).
     private void ApplyFocus()
     {
         var wanted = host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
@@ -118,8 +115,16 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
 
         appliedFocus = wanted;
-        overlays.BaseView = FocusedViewName();
-        (wanted == PaneKind.Sidebar ? view.Sidebar : view.Graph).SetFocus();
+        var pane = wanted switch
+        {
+            PaneKind.Sidebar => view.Sidebar,
+            PaneKind.Detail => view.Detail,
+            _ => view.Graph,
+        };
+        if (!pane.HasFocus)
+        {
+            pane.SetFocus();
+        }
     }
 
     // A click gave a view the focus: record it in the state so the keymap uses the right view.
@@ -142,6 +147,13 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private ScreenModel CreateModel() =>
         ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
+
+    private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
+    {
+        var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
+        var isFocused = view.Detail.HasFocus;
+        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
+    }
 
     private void OnSessionChanged()
     {
@@ -166,9 +178,36 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
-            host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(session.Graph[commitIndex].Id)));
+            var entry = session.Graph[commitIndex];
+            host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(entry.Id)));
+
+            // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
+            session.Details.Select(entry.Id);
+            RefreshDetail();
         }
 
         host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(view.Graph.Viewport.Y)));
+    }
+
+    private void RefreshDetail()
+    {
+        var session = ActiveSession();
+        if (session is null)
+        {
+            return;
+        }
+
+        var commitIndex = view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
+        var previous = session.DetailSource.Content;
+        var content = DetailContentBuilder.Build(entry, session.Details.Current);
+        session.DetailSource.Update(content);
+
+        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place.
+        var selected = content.ShortHash == previous.ShortHash ? view.Detail.SelectedItem ?? 0 : 0;
+        view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
+        view.Detail.EnsureSelectedItemVisible();
+        view.Detail.SetNeedsDraw();
+        view.RefreshChrome();
     }
 }

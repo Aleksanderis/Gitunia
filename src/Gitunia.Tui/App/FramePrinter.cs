@@ -29,6 +29,17 @@ public static class FramePrinter
         }
 
         var head = await repo.ReadHeadAsync(cancellationToken);
+        var selected = graph.Count > 0 ? graph[0] : null;
+        var detailState = CommitDetailsState.Empty;
+        if (selected is not null && DetailLayout.PaneHeight(height) > 0)
+        {
+            var details = await CommitDetailsReader.ReadAsync(repo, selected.Id, cancellationToken);
+            detailState = details is null
+                ? new CommitDetailsState(selected.Id, CommitDetailsStatus.Failed, null, "Commit not found")
+                : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
+        }
+
+        var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState), 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
             head.BranchName,
@@ -41,7 +52,7 @@ public static class FramePrinter
             false,
             string.Empty);
         var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
-        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, sidebar))
+        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar))
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }

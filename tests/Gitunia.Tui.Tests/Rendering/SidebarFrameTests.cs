@@ -23,7 +23,7 @@ public class SidebarFrameTests
         CommitFactory.Commit(1, "first", []));
 
     private static string[] Frame(SidebarModel? sidebar, int width, int height, GraphGlyphSet? glyphs = null) =>
-        [.. ScreenComposer.Compose(Model, Graph(), 0, 0, width, height, glyphs ?? GraphGlyphSet.Unicode, sidebar).Select(line => line.Text.TrimEnd())];
+        [.. ScreenComposer.Compose(Model, Graph(), 0, 0, width, height, glyphs ?? GraphGlyphSet.Unicode, null, sidebar).Select(line => line.Text.TrimEnd())];
 
     [Fact]
     public void GivenSidebarRows_WhenComposingAt80x9_ThenSidebarSitsLeftOfTheGraphWithADivider()
@@ -82,7 +82,7 @@ public class SidebarFrameTests
     {
         var rows = Enumerable.Range(0, 10).Select(index => Branch("branch" + index)).ToArray();
 
-        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 7, GraphGlyphSet.Unicode, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
+        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 7, GraphGlyphSet.Unicode, null, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
 
         Assert.StartsWith("    branch6", lines[2].Text, StringComparison.Ordinal);
         Assert.StartsWith("    branch8", lines[4].Text, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public class SidebarFrameTests
     [InlineData(20)]
     public void GivenNarrowTerminal_WhenComposing_ThenSidebarIsHiddenAndGraphUsesTheWholeWidth(int width)
     {
-        var withSidebar = ScreenComposer.Compose(Model, Graph(), 0, 0, width, 8, GraphGlyphSet.Unicode, Sidebar(Section(SidebarSection.Branches, "Branches", 0, true)));
+        var withSidebar = ScreenComposer.Compose(Model, Graph(), 0, 0, width, 8, GraphGlyphSet.Unicode, null, Sidebar(Section(SidebarSection.Branches, "Branches", 0, true)));
         var without = ScreenComposer.Compose(Model, Graph(), 0, 0, width, 8, GraphGlyphSet.Unicode);
 
         Assert.Equal(without.Select(line => line.Text), withSidebar.Select(line => line.Text));
@@ -129,7 +129,7 @@ public class SidebarFrameTests
     {
         var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, true), Branch("修正ブランチ", "ワークツリー", true, 1, 1));
 
-        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, width, height, GraphGlyphSet.Unicode, sidebar);
+        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, width, height, GraphGlyphSet.Unicode, null, sidebar);
 
         Assert.Equal(height, lines.Count);
         Assert.All(lines, line => Assert.Equal(width, TextWidth.Of(line.Text)));
@@ -138,11 +138,11 @@ public class SidebarFrameTests
     [Fact]
     public void GivenFocusedSidebar_WhenComposing_ThenDividerIsTheFocusedBorderRole()
     {
-        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, Sidebar() with { IsFocused = true });
+        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, null, Sidebar() with { IsFocused = true });
 
         Assert.Contains(lines[2].Segments, segment => segment.Role == SegmentRole.FocusedBorder);
         Assert.DoesNotContain(
-            ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, Sidebar())[2].Segments,
+            ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, null, Sidebar())[2].Segments,
             segment => segment.Role == SegmentRole.FocusedBorder);
     }
 

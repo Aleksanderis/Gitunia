@@ -15,11 +15,11 @@ public sealed class SidebarHarness : IDisposable
     private readonly TabSession session;
     private readonly TabSession emptySession;
 
-    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source)
+    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, Repo repo)
     {
         Host = host;
         this.session = session;
-        emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode);
+        emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repo, action => action(), TimeSpan.Zero));
         emptySession.Complete();
         Source = source;
         Handler = new SidebarActionHandler(
@@ -28,6 +28,7 @@ public sealed class SidebarHarness : IDisposable
             () => HideGraph ? emptySession : session,
             () => 10,
             () => SidebarVisible,
+            () => DetailVisible,
             item => SelectedGraphItem = item,
             mode => Mode = mode);
         host.Changed += () => source.Update(host.Workspace.ActiveTab);
@@ -41,6 +42,8 @@ public sealed class SidebarHarness : IDisposable
     public SidebarActionHandler Handler { get; }
 
     public bool SidebarVisible { get; set; } = true;
+
+    public bool DetailVisible { get; set; }
 
     /// <summary>Makes the handler see a session whose graph has no commits.</summary>
     public bool HideGraph { get; set; }
@@ -58,11 +61,11 @@ public sealed class SidebarHarness : IDisposable
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        var session = new TabSession(tabId, GraphGlyphSet.Unicode);
+        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
         // Posting runs the action inline (serialized, like the UI thread would).
         await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
-        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode));
+        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), new Repo(runner, location));
     }
 
     /// <summary>Focuses the sidebar and puts the cursor on the row with this label.</summary>

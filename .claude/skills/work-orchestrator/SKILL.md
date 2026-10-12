@@ -5,7 +5,15 @@ description: Orchestrate a Gitunia milestone (or a slice of it) by delegating is
 
 # Work a milestone
 
-You are the orchestrator, not the implementer. Each issue is delivered by a subagent following the `work-task` skill (read it once; it holds the per-issue procedure, the parallelism cap, the lean-prompt rules and the rate-limit rules). This skill only decides what to run, when to stop, and how to hand over.
+Invoke as `/work-orchestrator start working on M2` (any milestone: `M1`..`M4`, or a title; no other prompt is needed). Resolve the argument to the milestone title with `gh api repos/{owner}/{repo}/milestones --jq '.[]|"\(.number) \(.title)"'`. Goals per milestone are in `docs/roadmap.md`. Do not start M1+ until the M0 decision issue is closed, and do not start a milestone while an earlier one still has open, unblocked issues unless the owner says so.
+
+You are the orchestrator, not the implementer. Each issue is delivered by a subagent following the `work-task` skill (read it once; it holds the per-issue procedure and what an agent must do). This skill decides what to run, how many at once, what each agent is told, and when to stop.
+
+## Delegation rules
+
+- At most 3 subagents at a time (token budget); queue the rest and start the next only when one finishes. One subagent per issue, each in its own worktree (`isolation: "worktree"`). Only issues that are independent run together: different files, no shared contracts, not the same keymap rows; issues that touch the same shell files run fewer at once.
+- Lean prompts, never the orchestrator's context: the issue number, the branch name (`feature/<n>-<slug>`), the few docs sections the agent needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, "follow the `work-task` skill and CLAUDE.md", and a request for a report of at most 10 lines.
+- Rate limits: a limit error kills running agents and names the reset time. Launch nothing new and never delete the failed agents' worktrees or branches. After the reset resume the same agent with `SendMessage` (it keeps its context); only if impossible, relaunch it with a prompt that says to continue from its branch's existing commits. Schedule a wake-up for the reset time instead of idling.
 
 ## 1. Rebuild state from GitHub (never from memory)
 
@@ -20,14 +28,14 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 ## 2. Run one bounded batch
 
 - Pick up to 3 independent unblocked issues (different files, no shared contracts or keymap rows). Prefer finishing in-flight issues first. If issues touch the same shell files, run fewer at once.
-- Launch one subagent per issue with the lean prompt from `work-task`. Do not paste docs or earlier reports into prompts.
+- Launch one subagent per issue with the lean prompt above. Do not paste docs or earlier reports into prompts.
 - A batch is at most 3 issues in total, not 3 at a time: when 3 have merged (or stopped for the owner), stop launching and go to step 4. This keeps the session short.
 - As each agent reports (max 10 lines, details are in its PR comments): confirm the PR is merged (`gh pr view <n> --json state`), stop the agent (`TaskStop`; ignore "not running"), then clean up: `git worktree remove -f -f <path>`, delete its local feature branch and its `worktree-agent-*` branch only after `git branch --merged main` confirms they are merged, then `git fetch -p`. Pull `main`. Then start the next queued issue.
 - Do not read PR diffs or agent output files yourself; trust the PR comments and CI. Open the PR only if an agent reports a problem.
 
 ## 3. Rate limits and failures
 
-- Follow `work-task`: on a limit error launch nothing new, keep the failed agents' worktrees and branches, schedule a wake-up for the reset time, then resume the same agents with `SendMessage`.
+- Apply the rate-limit rule above.
 - If the same failure repeats after three different attempts, comment on the issue and move on (`work-task` step 2).
 
 ## 4. Stop and hand over

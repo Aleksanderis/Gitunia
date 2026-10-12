@@ -13,6 +13,7 @@ public static class ScreenComposer
     /// <param name="height">Terminal rows.</param>
     /// <param name="glyphs">The characters to draw the graph with.</param>
     /// <param name="sidebar">The sidebar to show left of the graph (when the terminal is wide enough), or null for none.</param>
+    /// <param name="detail">The commit detail pane below the graph, or null to leave it out (it is also left out on short screens).</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -21,6 +22,7 @@ public static class ScreenComposer
         int width,
         int height,
         GraphGlyphSet glyphs,
+        DetailPaneModel? detail = null,
         SidebarModel? sidebar = null)
     {
         var lines = new List<StyledLine>(height);
@@ -34,11 +36,13 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
+        var showDetail = detail is not null && DetailLayout.PaneHeight(height) > 0;
+        var graphHeight = showDetail ? DetailLayout.GraphHeight(height) : ScreenLayout.GraphHeight(height);
         var sidebarWidth = sidebar is null ? 0 : ScreenLayout.SidebarWidth(width);
         var graphWidth = width - (sidebarWidth > 0 ? sidebarWidth + 1 : 0);
-        var sidebarLines = sidebarWidth > 0 ? SidebarPane.Compose(sidebar!, sidebarWidth, ScreenLayout.GraphHeight(height), glyphs) : [];
+        var sidebarLines = sidebarWidth > 0 ? SidebarPane.Compose(sidebar!, sidebarWidth, graphHeight, glyphs) : [];
         var options = new GraphRowOptions(graphWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, graphWidth), glyphs);
-        for (var offset = 0; offset < ScreenLayout.GraphHeight(height); offset++)
+        for (var offset = 0; offset < graphHeight; offset++)
         {
             var item = topItem + offset;
             var commitIndex = item - ScreenLayout.ReservedLeadingRows;
@@ -46,6 +50,11 @@ public static class ScreenComposer
                 ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
                 : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
             lines.Add(sidebarWidth > 0 ? Beside(sidebarLines[offset], SidebarPane.Divider(sidebar!.IsFocused, glyphs), graphLine) : graphLine);
+        }
+
+        if (showDetail)
+        {
+            lines.AddRange(DetailPaneRenderer.RenderPane(detail!, width, DetailLayout.ContentHeight(height), glyphs));
         }
 
         if (height > ScreenLayout.GraphTop)

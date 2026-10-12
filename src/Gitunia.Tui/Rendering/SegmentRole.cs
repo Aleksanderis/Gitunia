@@ -28,6 +28,15 @@ public enum SegmentRole
 
     /// <summary>The line between panes while the pane beside it has focus.</summary>
     FocusedBorder,
+    /// <summary>A file the commit added.</summary>
+    FileAdded,
+
+    /// <summary>A file the commit deleted.</summary>
+    FileDeleted,
+
+    /// <summary>A file the commit modified, renamed, copied or changed the type of.</summary>
+    FileChanged,
+
     /// <summary>The title bar of an overlay (palette, help, which-key).</summary>
     OverlayTitle,
 
