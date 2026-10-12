@@ -61,6 +61,20 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 - Memory: compact commit model (struct-of-arrays or interned hashes), virtualized lists.
 - Render: diff against the previous frame, write one buffered flush per frame.
 
+### Verified numbers (many restored tabs, #111)
+
+`scripts/measure-tabs.sh <binary> --tabs 12 --runs 7` builds throwaway repos (300 commits each) and a session file in a temp state directory, then restores them under tmux (120x40, Native AOT linux-x64, medians, 1-3 ms polling floor included):
+
+| Metric | Result |
+|---|---|
+| Cold start to the first frame of the active tab, 12 tabs restored | ~50 ms (p95 57) |
+| RSS after start (only the active tab loaded) | ~36 MB |
+| First visit of a background tab (`gt`, includes its load) | ~37 ms (max 48) |
+| Switch back to an already loaded tab | ~13-30 ms (poll-bound) |
+| RSS after visiting all 12 tabs | ~46 MB (20 tabs: ~50 MB) |
+
+Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs show no dirty/ahead/behind markers until visited; a cheap status-only refresh for that is tracked in #129. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
+
 ### Verified numbers (graph view, #22)
 
 Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh` medians (they include 1-3 ms of tmux polling), Terminal.Gui at 100 iterations per second:
