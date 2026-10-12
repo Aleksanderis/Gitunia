@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Input;
@@ -13,7 +14,7 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="WorkspaceHost"/> as commands.
 /// </summary>
-public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar)
+public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -29,6 +30,18 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (action == ActionIds.StatusDismiss)
+        {
+            statuses.Dismiss();
+            return;
+        }
+
+        if (action == ActionIds.DetailRetry)
+        {
+            Message = activeSession()?.Details.Retry() == true ? "retrying..." : "nothing to retry";
+            return;
+        }
+
         if (sidebar.TryHandle(action, count))
         {
             Message = sidebar.Message;
@@ -72,7 +85,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
                 quit();
             }
         }
-        else if (action != ActionIds.Cancel)
+        else if (action == ActionIds.Cancel)
+        {
+            // Nothing else claimed the Esc: it clears the status message.
+            statuses.Dismiss();
+        }
+        else
         {
             Message = ActionCatalog.Describe(action) + ": not implemented yet";
         }

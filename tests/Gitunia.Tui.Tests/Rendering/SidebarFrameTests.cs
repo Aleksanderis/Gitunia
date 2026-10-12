@@ -48,7 +48,7 @@ public class SidebarFrameTests
                 "    old             │",
                 " ▸ Tags 12          │",
                 "                    │",
-                " NORMAL  1/2  j/k gg G ^d ^u @ q"),
+                " NORMAL  1/2  j/k gg G ^d ^u @ ? : q"),
             string.Join('\n', frame));
     }
 

@@ -18,6 +18,21 @@ public class OverlayFrameTests
     private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
     [Fact]
+    public void GivenMessagesOverlay_WhenRendering_ThenItListsSeverityAndTextWithTheMessagesTitle()
+    {
+        var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", "repo: could not read the stashes"), new HelpRow("info", "ok")]) };
+        var state = OverlayState.OpenMessages(KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
+
+        var text = Text(frame);
+        Assert.Contains("Status messages", text, StringComparison.Ordinal);
+        Assert.Contains("error  repo: could not read the stashes", text, StringComparison.Ordinal);
+        Assert.Contains("Esc close", text, StringComparison.Ordinal);
+        Assert.NotNull(OverlayFrameFactory.Create(state, sections, string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
     public void GivenPalette_WhenRenderingAt80x24_ThenItListsActionsWithTheirKeys()
     {
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode);
@@ -38,7 +53,7 @@ public class OverlayFrameTests
                 "│ Search                                                             / │",
                 "│ Next search match                                                  n │",
                 "│ Previous search match                                              N │",
-                "│ 1/65  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/68  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -111,7 +126,7 @@ public class OverlayFrameTests
                 "│  Ctrl-u / PageUp       Half page up                          │",
                 "│  v                     Start or end range selection          │",
                 "│                                                              │",
-                "│ 1-19/46  list keys scroll  Esc close                         │",
+                "│ 1-19/48  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

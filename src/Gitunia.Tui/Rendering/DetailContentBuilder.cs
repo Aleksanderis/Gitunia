@@ -44,7 +44,7 @@ public static class DetailContentBuilder
         rows.Add(Plain(Indent + entry.Subject));
         rows.Add(Blank());
         var status = state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
-            ? "Could not load the commit: " + state.Error
+            ? "Could not load the commit (r retries): " + state.Error
             : "Loading...";
         rows.Add(new DetailRow([new StyledSegment(status, SegmentRole.Faint)]));
         return new DetailContent(ShortHash(entry.Id), rows, rows.Count, []);

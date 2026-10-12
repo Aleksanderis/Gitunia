@@ -27,6 +27,9 @@ public sealed record OverlayState(
     public static OverlayState OpenHelp(string view, KeyMode returnMode) =>
         new(OverlayKind.Help, view, 0, null, returnMode, false);
 
+    public static OverlayState OpenMessages(KeyMode returnMode) =>
+        new(OverlayKind.Messages, string.Empty, 0, null, returnMode, false);
+
     public static OverlayState OpenPalette(PaletteState palette, KeyMode returnMode) =>
         new(OverlayKind.Palette, string.Empty, 0, palette, returnMode, false);
 

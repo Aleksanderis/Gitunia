@@ -13,6 +13,8 @@ public static class ActionIds
 
     public static ActionId DetailOpenDiff { get; } = new("detail.open-diff");
 
+    public static ActionId DetailRetry { get; } = new("detail.retry");
+
     public static ActionId DiffNextFile { get; } = new("diff.next-file");
 
     public static ActionId DiffNextHunk { get; } = new("diff.next-hunk");
@@ -104,6 +106,10 @@ public static class ActionIds
     public static ActionId SidebarExpand { get; } = new("sidebar.expand");
 
     public static ActionId SidebarFilter { get; } = new("sidebar.filter");
+
+    public static ActionId StatusDismiss { get; } = new("status.dismiss");
+
+    public static ActionId StatusHistory { get; } = new("status.history");
 
     public static ActionId TabClose { get; } = new("tab.close");
 

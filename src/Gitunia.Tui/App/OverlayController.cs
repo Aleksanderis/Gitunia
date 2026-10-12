@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Overlays;
@@ -24,6 +25,7 @@ public sealed class OverlayController
     private readonly Func<(int Width, int Height)> screenSize;
     private readonly GraphGlyphSet glyphs;
     private readonly Func<string> baseView;
+    private readonly StatusChannel statuses;
     private IReadOnlyList<HelpSection> helpSections = [];
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
@@ -33,6 +35,7 @@ public sealed class OverlayController
     /// <param name="screenSize">The current terminal size.</param>
     /// <param name="glyphs">The characters overlays are drawn with.</param>
     /// <param name="baseView">The keymap view that is focused when no overlay is open (asked each time: it follows the focused pane).</param>
+    /// <param name="statuses">The status messages the history overlay lists.</param>
     public OverlayController(
         KeymapEngine engine,
         KeyController keys,
@@ -40,7 +43,8 @@ public sealed class OverlayController
         Action<ActionId, int?> run,
         Func<(int Width, int Height)> screenSize,
         GraphGlyphSet glyphs,
-        Func<string> baseView)
+        Func<string> baseView,
+        StatusChannel statuses)
     {
         this.engine = engine;
         this.keys = keys;
@@ -49,6 +53,7 @@ public sealed class OverlayController
         this.screenSize = screenSize;
         this.glyphs = glyphs;
         this.baseView = baseView;
+        this.statuses = statuses;
         keys.PendingChanged += OnPendingChanged;
         keys.TextKeyPressed += OnTextKey;
     }
@@ -62,6 +67,7 @@ public sealed class OverlayController
     public string ViewName => State.Kind switch
     {
         OverlayKind.Help => DefaultKeymap.HelpView,
+        OverlayKind.Messages => DefaultKeymap.MessagesView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
         _ => baseView(),
     };
@@ -82,11 +88,11 @@ public sealed class OverlayController
             return OpenFor(action);
         }
 
-        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow))
+        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
         {
             Close();
         }
-        else if (State.Kind == OverlayKind.Help)
+        else if (State.Kind is OverlayKind.Help or OverlayKind.Messages)
         {
             ScrollHelp(action, count);
         }
@@ -107,6 +113,13 @@ public sealed class OverlayController
             return true;
         }
 
+        if (action == ActionIds.StatusHistory)
+        {
+            helpSections = [MessageSection()];
+            Open(OverlayState.OpenMessages(keys.Mode), KeyMode.Normal);
+            return true;
+        }
+
         if (action == ActionIds.PaletteOpen)
         {
             var palette = new PaletteState(PaletteEntryBuilder.Build(engine.Table, baseView()));
@@ -115,6 +128,21 @@ public sealed class OverlayController
         }
 
         return false;
+    }
+
+    // Newest first; the severity takes the keys column.
+    private HelpSection MessageSection()
+    {
+        var rows = statuses.Log.History
+            .Reverse()
+            .Select(message => new HelpRow(message.Severity.ToString().ToLowerInvariant(), message.Text))
+            .ToList();
+        if (rows.Count == 0)
+        {
+            rows.Add(new HelpRow(string.Empty, "no messages yet"));
+        }
+
+        return new HelpSection("Newest first", rows);
     }
 
     private void Open(OverlayState state, KeyMode mode)

@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Loading;
@@ -14,17 +15,19 @@ public sealed class EffectRunner
     private readonly GitRunner runner;
     private readonly WorkspaceHost host;
     private readonly Action<Action> postToUi;
+    private readonly StatusChannel statuses;
     private readonly GraphGlyphSet glyphs;
     private readonly TimeSpan detailDebounce;
     private readonly Dictionary<TabId, TabSession> sessions = [];
 
-    public EffectRunner(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, TimeSpan? detailDebounce = null)
+    public EffectRunner(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null)
     {
         this.detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
         this.runner = runner;
         this.host = host;
         this.postToUi = postToUi;
         this.glyphs = glyphs;
+        this.statuses = statuses;
         host.EffectRaised += Run;
     }
 
@@ -64,6 +67,6 @@ public sealed class EffectRunner
         var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(new Repo(runner, tab.Location), postToUi, detailDebounce));
         sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, postToUi, token), CancellationToken.None);
+        _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, statuses, postToUi, token), CancellationToken.None);
     }
 }
