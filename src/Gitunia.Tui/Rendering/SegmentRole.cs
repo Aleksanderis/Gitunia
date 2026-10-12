@@ -19,4 +19,10 @@ public enum SegmentRole
     StatusMode,
     Status,
     Faint,
+
+    /// <summary>The title bar of an overlay (palette, help, which-key).</summary>
+    OverlayTitle,
+
+    /// <summary>The keys column of an overlay.</summary>
+    OverlayKey,
 }

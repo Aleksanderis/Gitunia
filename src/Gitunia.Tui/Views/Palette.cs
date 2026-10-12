@@ -32,6 +32,8 @@ public static class Palette
             SegmentRole.StatusMode => Style(TextStyle.Bold | TextStyle.Reverse),
             SegmentRole.Status => Style(TextStyle.Faint | TextStyle.Reverse),
             SegmentRole.Faint => Style(TextStyle.Faint),
+            SegmentRole.OverlayTitle => Style(TextStyle.Bold | TextStyle.Reverse),
+            SegmentRole.OverlayKey => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
             _ => Style(selection),
         };
     }

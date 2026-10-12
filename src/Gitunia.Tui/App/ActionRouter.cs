@@ -31,6 +31,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, Func<Ta
         {
             quit();
         }
+        else if (action != ActionIds.Cancel)
+        {
+            Message = ActionCatalog.Describe(action) + ": not implemented yet";
+        }
     }
 
     private void Select(int item)
