@@ -58,6 +58,20 @@ public sealed class CommitDetailsStore : IDisposable
         _ = Task.Run(() => LoadAsync(commit, token), CancellationToken.None);
     }
 
+    /// <summary>Loads the selected commit again after its details failed to load. Does nothing in any other state.</summary>
+    /// <returns>True when a new load started.</returns>
+    public bool Retry()
+    {
+        if (Current is not { Status: CommitDetailsStatus.Failed, Commit: { } commit })
+        {
+            return false;
+        }
+
+        Current = CommitDetailsState.Empty;
+        Select(commit);
+        return true;
+    }
+
     public void Dispose() => CancelPending();
 
     private void CancelPending()

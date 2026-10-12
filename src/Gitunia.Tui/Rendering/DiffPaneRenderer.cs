@@ -36,7 +36,7 @@ public static class DiffPaneRenderer
         if (fileCount > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
         {
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
-            var hunksBefore = pane.Document.HunkRows.Count(hunkRow => hunkRow <= pane.SelectedRow);
+            var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);
             builder.Append(
                 $"  file {(fileIndex + 1).ToString(CultureInfo.InvariantCulture)}/{fileCount.ToString(CultureInfo.InvariantCulture)}"
                 + $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
@@ -45,5 +45,25 @@ public static class DiffPaneRenderer
         }
 
         return builder.Build(SegmentRole.Plain);
+    }
+
+    private static int HunksUpTo(IReadOnlyList<int> hunkRows, int row)
+    {
+        var low = 0;
+        var high = hunkRows.Count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (hunkRows[middle] <= row)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
     }
 }

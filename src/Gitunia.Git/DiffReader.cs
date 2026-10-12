@@ -36,30 +36,36 @@ public static class DiffReader
 
         var parser = new DiffParser();
         var completed = new List<DiffFile>();
-        await foreach (var chunk in repo.Runner
-            .StreamAsync(repo.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
-            .ConfigureAwait(false))
+        try
         {
-            parser.Feed(chunk, completed);
+            await foreach (var chunk in repo.Runner
+                .StreamAsync(repo.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
+                .ConfigureAwait(false))
+            {
+                parser.Feed(chunk, completed);
+                foreach (var file in completed)
+                {
+                    yield return file;
+                }
+
+                completed.Clear();
+            }
+
+            parser.Complete(completed);
             foreach (var file in completed)
             {
                 yield return file;
             }
-
-            completed.Clear();
         }
-
-        parser.Complete(completed);
-        foreach (var file in completed)
+        finally
         {
-            yield return file;
-        }
-
-        if (warnings is not null)
-        {
-            foreach (var warning in parser.Warnings)
+            // Also runs when the caller stops reading early, so warnings seen so far are not lost.
+            if (warnings is not null)
             {
-                warnings.Add(warning);
+                foreach (var warning in parser.Warnings)
+                {
+                    warnings.Add(warning);
+                }
             }
         }
     }

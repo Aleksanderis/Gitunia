@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.App;
@@ -15,6 +16,7 @@ public sealed class OverlayControllerTests : IDisposable
     private readonly KeyController keys;
     private readonly OverlayController overlays;
     private readonly WhichKeyTimer timer;
+    private readonly StatusChannel statuses = new();
     private int changes;
 
     public OverlayControllerTests()
@@ -23,7 +25,7 @@ public sealed class OverlayControllerTests : IDisposable
         OverlayController? controller = null;
         keys = new KeyController(engine, (action, count) => RouteAction(controller!, action, count));
         timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action => posted.Enqueue(action));
-        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView);
+        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView, statuses);
         overlays = controller;
         overlays.Changed += () => changes++;
     }
@@ -85,6 +87,34 @@ public sealed class OverlayControllerTests : IDisposable
 
         Assert.Equal(1, overlays.State.HelpScroll);
         Assert.Empty(routed);
+    }
+
+    [Fact]
+    public void GivenMessages_WhenPressingSpaceM_ThenTheHistoryOpensNewestFirstAndEscCloses()
+    {
+        statuses.Error("older failure");
+        statuses.Warning("newer warning");
+
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var opened = overlays.State.Kind;
+        var lines = overlays.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
+        Press(Key.Esc);
+
+        Assert.Equal(OverlayKind.Messages, opened);
+        Assert.Contains("Status messages", lines[0], StringComparison.Ordinal);
+        Assert.Contains("newer warning", lines[2], StringComparison.Ordinal);
+        Assert.Contains("older failure", lines[3], StringComparison.Ordinal);
+        Assert.False(overlays.State.IsOpen);
+    }
+
+    [Fact]
+    public void GivenNoMessages_WhenOpeningTheHistory_ThenItSaysSo()
+    {
+        Press(new Key(' '));
+        Press(new Key('m'));
+
+        Assert.Contains("no messages yet", string.Join('\n', overlays.CurrentFrame()!.Lines.Select(line => line.Text)), StringComparison.Ordinal);
     }
 
     [Fact]

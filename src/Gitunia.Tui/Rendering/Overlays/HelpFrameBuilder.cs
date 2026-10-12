@@ -29,8 +29,8 @@ public static class HelpFrameBuilder
     public static int MaximumScroll(IReadOnlyList<HelpSection> sections, int screenWidth, int screenHeight) =>
         Math.Max(0, ContentHeight(sections) - VisibleRows(sections, screenWidth, screenHeight));
 
-    /// <summary>The help frame for a screen, or null when the screen is too small to show it.</summary>
-    public static OverlayFrame? Build(IReadOnlyList<HelpSection> sections, string view, int scroll, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    /// <summary>The help frame for a screen, or null when the screen is too small to show it. <paramref name="title"/> replaces the default "Keys: view" title.</summary>
+    public static OverlayFrame? Build(IReadOnlyList<HelpSection> sections, string view, int scroll, int screenWidth, int screenHeight, GraphGlyphSet glyphs, string? title = null)
     {
         var rowCount = VisibleRows(sections, screenWidth, screenHeight);
         if (rowCount == 0)
@@ -43,7 +43,7 @@ public static class HelpFrameBuilder
         var content = Flatten(sections, keysWidth, width, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
-        var lines = new List<StyledLine> { OverlayBox.Title("Keys: " + view, width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(title ?? "Keys: " + view, width, glyphs) };
         lines.AddRange(content.Skip(first).Take(rowCount));
         lines.Add(OverlayBox.Text(
             content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}  list keys scroll  Esc close" : "Esc close",

@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
@@ -194,6 +195,22 @@ public class DiffPaneControllerTests
         Assert.Same(harness.Session.Diff!.Source, harness.DiffList.Source);
     }
 
+    [Fact]
+    public async Task GivenADiffThatLoadsWhileAnotherTabIsShown_WhenSwitchingBack_ThenItShowsTheLoadedDiffAtTheFile()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        harness.SelectFile("b.txt");
+        harness.Execute(ActionIds.DetailOpenDiff);
+        harness.Controller.OnTabSwitched(harness.Session, null);
+        await harness.WaitForDiffAsync();
+
+        harness.Controller.OnTabSwitched(null, harness.Session);
+
+        var document = harness.Session.Diff!.Source.Document;
+        Assert.Equal(DiffStatus.Loaded, harness.Session.Diff.Store.Status);
+        Assert.Equal(document.FileRows[document.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
+    }
+
     private sealed class DiffHarness : IDisposable
     {
         private readonly TestRepository? ownedRepository;
@@ -239,7 +256,7 @@ public class DiffPaneControllerTests
                 GraphGlyphSet.Unicode,
                 new CommitDetailsStore(repo, action => action(), TimeSpan.Zero),
                 new DiffStore(repo, action => action()));
-            await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
+            await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, owned);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;

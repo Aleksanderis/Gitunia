@@ -41,16 +41,15 @@ public static class DiffSearch
         var wrapped = false;
         for (var step = 0; step < steps; step++)
         {
-            var next = forward
-                ? matches.Where(match => match > current).Cast<int?>().FirstOrDefault()
-                : matches.Where(match => match < current).Cast<int?>().LastOrDefault();
-            if (next is null)
+            var position = LowerBound(matches, forward ? current + 1 : current);
+            var index = forward ? position : position - 1;
+            if (index < 0 || index >= matches.Count)
             {
                 wrapped = true;
-                next = forward ? matches[0] : matches[^1];
+                index = forward ? 0 : matches.Count - 1;
             }
 
-            current = next.Value;
+            current = matches[index];
         }
 
         return new DiffSearchUpdate(state with { Notice = wrapped ? "search wrapped" : string.Empty }, current);
@@ -76,5 +75,26 @@ public static class DiffSearch
         }
 
         return matches;
+    }
+
+    /// <summary>Index of the first match that is at least <paramref name="row"/>, or the match count when there is none.</summary>
+    private static int LowerBound(IReadOnlyList<int> matches, int row)
+    {
+        var low = 0;
+        var high = matches.Count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (matches[middle] < row)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
     }
 }

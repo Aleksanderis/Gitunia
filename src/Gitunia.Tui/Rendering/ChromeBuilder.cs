@@ -1,11 +1,12 @@
 using System.Globalization;
+using Gitunia.Core.Status;
 
 namespace Gitunia.Tui.Rendering;
 
 /// <summary>Builds the header, tab row and status bar lines.</summary>
 public static class ChromeBuilder
 {
-    private const string KeyHints = "j/k gg G ^d ^u @ q";
+    private const string KeyHints = "j/k gg G ^d ^u @ ? : q";
     private const string PickerHints = "Enter open  Tab complete  Alt-p pin  Alt-d forget  Esc close";
 
     public static StyledLine Header(ScreenModel model, int width, GraphGlyphSet glyphs) =>
@@ -53,7 +54,7 @@ public static class ChromeBuilder
 
         if (model.Message.Length > 0)
         {
-            builder.Append(" " + model.Message + " ", SegmentRole.Status);
+            builder.Append(" " + model.Message + " ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.Error : SegmentRole.Status);
         }
 
         if (model.SearchLine.Length == 0)

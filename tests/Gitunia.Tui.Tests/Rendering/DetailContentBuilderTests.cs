@@ -58,7 +58,7 @@ public class DetailContentBuilderTests
 
         var content = DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Failed, null, "git exploded"));
 
-        Assert.Equal("Could not load the commit: git exploded", Lines(content)[^1]);
+        Assert.Equal("Could not load the commit (r retries): git exploded", Lines(content)[^1]);
     }
 
     [Fact]

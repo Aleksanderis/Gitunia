@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
@@ -64,7 +65,7 @@ public sealed class SidebarHarness : IDisposable
         var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
         // Posting runs the action inline (serialized, like the UI thread would).
-        await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
         return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), new Repo(runner, location));
     }
 

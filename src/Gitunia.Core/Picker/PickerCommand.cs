@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Gitunia.Core.Picker;
 
 /// <summary>A change to the open picker.</summary>
@@ -31,3 +33,9 @@ public sealed record SetMessageCommand(string Message) : PickerCommand;
 
 /// <summary>The workspace or the scan results changed (a pin, a removed recent, a finished scan): rebuild the rows and keep the highlighted repository.</summary>
 public sealed record RefreshRowsCommand : PickerCommand;
+
+/// <summary>The background listing of a typed path finished (or failed or timed out, then with a message and no rows). Ignored when the query changed meanwhile.</summary>
+/// <param name="Query">The query the listing was started for.</param>
+/// <param name="Rows">The directory candidates.</param>
+/// <param name="Message">A notice such as a timeout, empty when none.</param>
+public sealed record ListingCompletedCommand(string Query, ImmutableArray<PickerRow> Rows, string Message = "") : PickerCommand;

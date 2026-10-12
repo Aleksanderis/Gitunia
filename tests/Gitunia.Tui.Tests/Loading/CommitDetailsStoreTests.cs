@@ -110,6 +110,37 @@ public class CommitDetailsStoreTests
     }
 
     [Fact]
+    public async Task GivenFailedLoad_WhenRetrying_ThenItLoadsAgainAndSettles()
+    {
+        using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        using var store = new CommitDetailsStore(repo, action => action(), TimeSpan.FromMilliseconds(1));
+        Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
+        store.Select(missing);
+        await WaitForSettledAsync(store, missing);
+
+        var started = store.Retry();
+
+        Assert.True(started);
+        Assert.Equal(CommitDetailsStatus.Loading, store.Current.Status);
+        Assert.Equal(CommitDetailsStatus.Failed, (await WaitForSettledAsync(store, missing)).Status);
+    }
+
+    [Fact]
+    public async Task GivenLoadedCommit_WhenRetrying_ThenNothingHappens()
+    {
+        using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        using var store = new CommitDetailsStore(repo, action => action(), TimeSpan.FromMilliseconds(1));
+        var head = IdOf(repository, "HEAD");
+        store.Select(head);
+        await WaitForSettledAsync(store, head);
+
+        Assert.False(store.Retry());
+        Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
+    }
+
+    [Fact]
     public async Task GivenDisposedStore_WhenLoadWasPending_ThenNothingIsPosted()
     {
         using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));

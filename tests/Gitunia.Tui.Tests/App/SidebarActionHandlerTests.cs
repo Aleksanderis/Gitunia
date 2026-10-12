@@ -29,6 +29,37 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
+    public async Task GivenAnOpenDiff_WhenTabbing_ThenTheDiffJoinsTheCycleAfterTheDetailPane()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.DetailVisible = true;
+        harness.Handler.IsDiffVisible = () => true;
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+
+        harness.Handler.TryHandle(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+        harness.Handler.TryHandle(ActionIds.PaneFocusLeft, null);
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAZoomedPane_WhenTabbing_ThenHiddenPanesAreSkipped()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.SidebarVisible = false;
+        harness.DetailVisible = false;
+        harness.Handler.IsGraphVisible = () => false;
+        harness.Handler.IsDiffVisible = () => true;
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+
+        harness.Handler.TryHandle(ActionIds.PaneNext, null);
+
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
     public async Task GivenHiddenSidebar_WhenCyclingPanes_ThenFocusStaysOnTheGraph()
     {
         using var repository = BranchyRepository();
