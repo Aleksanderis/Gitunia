@@ -38,6 +38,12 @@ public sealed class SearchController(GraphViewHandle view, Action<Action> postTo
             return false;
         }
 
+        // A tab that was in the background while its log kept loading catches up here.
+        if (session.Search.Query is not null)
+        {
+            Dispatch(session, new GraphGrewCommand(session.Graph.Count, !session.IsLoading));
+        }
+
         if (action == ActionIds.SearchOpen)
         {
             Dispatch(session, new OpenSearchCommand());

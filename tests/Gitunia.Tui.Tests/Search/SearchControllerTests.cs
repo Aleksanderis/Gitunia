@@ -166,4 +166,56 @@ public class SearchControllerTests
         Assert.Equal(3, harness.Session.Search.Matches.Length);
         Assert.True(harness.Session.Search.IsComplete);
     }
+
+    [Fact]
+    public void GivenDeferredWork_WhenTypingBetweenSlices_ThenInputIsHandledAndTheStaleScanStops()
+    {
+        var commits = Enumerable.Range(1, 12_000)
+            .Select(number => CommitFactory.Commit(number, "hay " + number, number == 1 ? [] : [number - 1]))
+            .Reverse()
+            .ToArray();
+        var queue = new Queue<Action>();
+        using var harness = new PromptHarness(CommitFactory.Graph(commits), deferred: queue);
+
+        harness.Press(new Key('/'));
+        harness.Type("hay");
+        Assert.Equal(0, harness.Session.Search.Scanned);
+        while (queue.Count > 0)
+        {
+            queue.Dequeue()();
+        }
+
+        // Only the slices of the latest query ran; older generations were dropped.
+        Assert.Equal(12_000, harness.Session.Search.Scanned);
+
+        harness.Type("x");
+        queue.Dequeue()();
+        Assert.True(harness.Session.Search.Scanned is > 0 and < 12_000);
+        harness.Press(Key.Backspace);
+        while (queue.Count > 0)
+        {
+            queue.Dequeue()();
+        }
+
+        Assert.Equal("hay", harness.Session.Search.Text);
+        Assert.Equal(12_000, harness.Session.Search.Scanned);
+        Assert.Equal(12_000, harness.Session.Search.Matches.Length);
+    }
+
+    [Fact]
+    public void GivenActiveSearch_WhenOpeningGrAndPressingEscape_ThenOnlyTheRefPromptCloses()
+    {
+        using var harness = new PromptHarness(Graph());
+        harness.Press(new Key('/'));
+        harness.Type("fix");
+        harness.Press(Key.Enter);
+
+        harness.Press(new Key('g'));
+        harness.Press(new Key('r'));
+        harness.Press(Key.Esc);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.True(harness.Session.Search.IsOpen);
+        Assert.StartsWith("/fix", harness.StatusLine, StringComparison.Ordinal);
+    }
 }

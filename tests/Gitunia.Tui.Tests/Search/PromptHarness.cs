@@ -18,7 +18,7 @@ public sealed class PromptHarness : IDisposable
     private readonly KeyController keys;
     private readonly List<IPromptHandler> prompts = [];
 
-    public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null)
+    public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null, Queue<Action>? deferred = null)
     {
         Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode);
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
@@ -34,8 +34,8 @@ public sealed class PromptHarness : IDisposable
             row => SelectedRow = row,
             mode => keys!.SetMode(mode),
             () => Redraws++);
-        prompts.Add(new Gitunia.Tui.Search.SearchController(handle, action => action()));
         prompts.Add(new Gitunia.Tui.Search.RefJumpController(handle, () => references));
+        prompts.Add(new Gitunia.Tui.Search.SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
         Session.Changed += () => prompts.ForEach(prompt => prompt.OnGraphChanged());
         keys = new KeyController(
             new KeymapEngine(DefaultKeymap.Create()),

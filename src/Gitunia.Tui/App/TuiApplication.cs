@@ -71,6 +71,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 
+    // app.Invoke runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
+    private static Action<Action> DeferToNextIteration(IApplication app) => work => app.AddTimeout(
+        TimeSpan.Zero,
+        () =>
+        {
+            work();
+            return false;
+        });
+
     private IReadOnlyList<IPromptHandler> CreatePrompts(IApplication app)
     {
         var handle = new GraphViewHandle(
@@ -89,8 +98,9 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             });
         return
         [
-            new SearchController(handle, action => app.Invoke(action)),
+            // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
+            new SearchController(handle, DeferToNextIteration(app)),
         ];
     }
 
