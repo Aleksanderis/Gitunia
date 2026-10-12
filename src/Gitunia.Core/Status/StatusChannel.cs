@@ -14,6 +14,12 @@ public sealed class StatusChannel
 
     public void Post(string text, StatusSeverity severity = StatusSeverity.Info)
     {
+        if (Log.Latest is { } latest && latest.Text == text && latest.Severity == severity)
+        {
+            // The same failure again (a repeated refresh) would only fill the history with copies.
+            return;
+        }
+
         Log = Log.Post(text, severity);
         Changed?.Invoke();
     }

@@ -18,6 +18,21 @@ public class OverlayFrameTests
     private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
     [Fact]
+    public void GivenMessagesOverlay_WhenRendering_ThenItListsSeverityAndTextWithTheMessagesTitle()
+    {
+        var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", "repo: could not read the stashes"), new HelpRow("info", "ok")]) };
+        var state = OverlayState.OpenMessages(KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
+
+        var text = Text(frame);
+        Assert.Contains("Status messages", text, StringComparison.Ordinal);
+        Assert.Contains("error  repo: could not read the stashes", text, StringComparison.Ordinal);
+        Assert.Contains("Esc close", text, StringComparison.Ordinal);
+        Assert.NotNull(OverlayFrameFactory.Create(state, sections, string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
     public void GivenPalette_WhenRenderingAt80x24_ThenItListsActionsWithTheirKeys()
     {
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode);

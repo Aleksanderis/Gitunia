@@ -65,7 +65,7 @@ public static class RepoLoader
         catch (GitException exception)
         {
             // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
-            postToUi(() => statuses.Error("Could not read the repository status: " + exception.Message));
+            postToUi(() => statuses.Error(Path.GetFileName(Path.TrimEndingDirectorySeparator(repo.Location.RootPath)) + ": could not read the repository status: " + exception.Message));
         }
     }
 }

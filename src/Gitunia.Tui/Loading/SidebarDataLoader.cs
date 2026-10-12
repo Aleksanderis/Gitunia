@@ -12,11 +12,11 @@ public static class SidebarDataLoader
     {
         var worktreesTask = RefReader.ReadWorktreesAsync(repo, token);
         var stashesTask = StashReader.ReadStashesAsync(repo, token);
-        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", tabId, host, statuses, postToUi).ConfigureAwait(false);
-        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", tabId, host, statuses, postToUi).ConfigureAwait(false);
+        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", repo, tabId, host, statuses, postToUi).ConfigureAwait(false);
+        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", repo, tabId, host, statuses, postToUi).ConfigureAwait(false);
     }
 
-    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepoCommand> toCommand, string what, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi)
+    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepoCommand> toCommand, string what, Repo repo, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi)
     {
         try
         {
@@ -30,7 +30,7 @@ public static class SidebarDataLoader
         catch (GitException exception)
         {
             // One failed part does not hide the other.
-            postToUi(() => statuses.Error($"Could not read the {what}: {exception.Message}"));
+            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repo.Location.RootPath))}: could not read the {what}: {exception.Message}"));
         }
     }
 }

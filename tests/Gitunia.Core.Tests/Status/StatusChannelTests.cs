@@ -33,6 +33,20 @@ public class StatusChannelTests
     }
 
     [Fact]
+    public void GivenSameMessageStillShowing_WhenPostingItAgain_ThenHistoryHasOneEntry()
+    {
+        var channel = new StatusChannel();
+        var changes = 0;
+        channel.Changed += () => changes++;
+
+        channel.Error("repo: could not read the stashes");
+        channel.Error("repo: could not read the stashes");
+
+        Assert.Single(channel.Log.History);
+        Assert.Equal(1, changes);
+    }
+
+    [Fact]
     public void GivenWarning_WhenPosting_ThenSeverityIsWarning()
     {
         var channel = new StatusChannel();

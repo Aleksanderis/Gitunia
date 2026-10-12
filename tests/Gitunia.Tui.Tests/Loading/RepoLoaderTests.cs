@@ -51,8 +51,11 @@ public class RepoLoaderTests
         using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        var statuses = new StatusChannel();
 
+        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
+        Assert.Empty(statuses.Log.History);
         Assert.True(session.IsLoading);
         Assert.Equal(0, session.Graph.Count);
     }
@@ -107,8 +110,8 @@ public class RepoLoaderTests
         await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         var texts = statuses.Log.History.Select(message => message.Text).ToList();
-        Assert.Contains(texts, text => text.StartsWith("Could not read the worktrees", StringComparison.Ordinal));
-        Assert.Contains(texts, text => text.StartsWith("Could not read the stashes", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.Contains("could not read the stashes", StringComparison.Ordinal));
         Assert.All(statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
     }
 }
