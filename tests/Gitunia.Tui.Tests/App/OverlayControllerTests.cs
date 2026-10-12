@@ -233,4 +233,14 @@ public sealed class OverlayControllerTests : IDisposable
 
         Assert.Equal([ActionIds.ListDown], routed);
     }
+
+    [Fact]
+    public void GivenPalette_WhenPressingAnUnboundKey_ThenItIsConsumedSoGraphKeysNeverLeakThrough()
+    {
+        Press(new Key(':'));
+
+        Assert.True(Press(Key.Home));
+        Assert.True(Press(Key.Tab));
+        Assert.Empty(routed);
+    }
 }

@@ -87,4 +87,12 @@ public class PaletteStateTests
     {
         Assert.True(FuzzyMatcher.Score("tab", "Next tab") > FuzzyMatcher.Score("tab", "Take a branch"));
     }
+
+    [Fact]
+    public void GivenTypedEmoji_WhenDeletingBack_ThenNoLoneSurrogateRemains()
+    {
+        var palette = Palette().Type("a").Type("\U0001F600").DeleteLast();
+
+        Assert.Equal("a", palette.Query);
+    }
 }

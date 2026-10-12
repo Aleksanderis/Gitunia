@@ -33,7 +33,7 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
 
     public PaletteState Type(string text) => this with { Query = Query + text, SelectedIndex = 0 };
 
-    public PaletteState DeleteLast() => Query.Length == 0 ? this : this with { Query = Query[..^1], SelectedIndex = 0 };
+    public PaletteState DeleteLast() => Query.Length == 0 ? this : this with { Query = TrimLastCodePoint(Query), SelectedIndex = 0 };
 
     /// <summary>Moves the highlight by <paramref name="delta"/> rows, stopping at the ends.</summary>
     public PaletteState Move(int delta)
@@ -41,6 +41,9 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
         var count = Visible().Count;
         return this with { SelectedIndex = count == 0 ? 0 : Math.Clamp(SelectedIndex + delta, 0, count - 1) };
     }
+
+    private static string TrimLastCodePoint(string text) =>
+        text.Length > 1 && char.IsLowSurrogate(text[^1]) ? text[..^2] : text[..^1];
 
     private int? BestScore(PaletteEntry entry)
     {
