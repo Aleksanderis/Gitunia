@@ -98,6 +98,30 @@ public class GraphSplicerTests
         Assert.Equal([newBranch], result[5].Decorations);
     }
 
+    [Fact]
+    public void GivenReusedTipThatLostItsOnlyRef_WhenSplicing_ThenItIsReportedAsPossiblyGone()
+    {
+        var branch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
+        var old = new[] { Commit(4, 3), Commit(3, 2), Commit(9, 2) with { Decorations = [branch] }, Commit(2) };
+        var updated = new[] { Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2) };
+        var splicer = new GraphSplicer(Entries(old));
+        var builder = new GraphLayoutBuilder();
+        var rows = new List<GraphEntry>();
+        var joinIndex = -1;
+        foreach (var commit in updated)
+        {
+            rows.Add(ToEntry(commit, builder.Append(commit)));
+            joinIndex = splicer.Observe(rows[^1]);
+            if (joinIndex >= 0)
+            {
+                break;
+            }
+        }
+
+        Assert.True(joinIndex >= 0);
+        Assert.Null(splicer.Splice(rows, joinIndex, NoDecorations));
+    }
+
     private static (List<GraphEntry> Result, int JoinIndex) Reload(
         IReadOnlyList<CommitInfo> old,
         IReadOnlyList<CommitInfo> updated,
@@ -112,7 +136,7 @@ public class GraphSplicerTests
             var joinIndex = splicer.Observe(rows[^1]);
             if (joinIndex >= 0)
             {
-                return (splicer.Splice(rows, joinIndex, decorations ?? NoDecorations), joinIndex);
+                return (splicer.Splice(rows, joinIndex, decorations ?? NoDecorations)!, joinIndex);
             }
         }
 

@@ -37,8 +37,9 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
     /// Builds the new graph: <paramref name="newRows"/> (the rows read, the last one being the join) followed by the previous rows
     /// below the join. Rows below the join get their refs from <paramref name="decorationsByCommit"/> (every commit that carries a ref
     /// now), since refs may have moved without the commits changing.
+    /// Returns null when a reused tip (a row without incoming edge) lost all its refs: it may be a commit that no longer exists, so the caller must read the whole log.
     /// </summary>
-    public List<GraphEntry> Splice(IReadOnlyList<GraphEntry> newRows, int joinIndex, IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
+    public List<GraphEntry>? Splice(IReadOnlyList<GraphEntry> newRows, int joinIndex, IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
     {
         var result = new List<GraphEntry>(newRows.Count + previous.Count - joinIndex - 1);
         result.AddRange(newRows);
@@ -54,6 +55,11 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
             }
             else if (entry.Decorations.Count > 0)
             {
+                if (!entry.Row.Edges.Any(edge => edge.Kind == GraphEdgeKind.Incoming))
+                {
+                    return null;
+                }
+
                 entry = entry with { Decorations = [] };
             }
 
@@ -64,7 +70,8 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
     }
 
     private static bool SameLayout(GraphRow old, GraphRow row) =>
-        old.Lane == row.Lane
+        old.LaneFingerprint != 0
+        && old.Lane == row.Lane
         && old.LaneCount == row.LaneCount
         && old.LaneFingerprint == row.LaneFingerprint
         && old.Edges.SequenceEqual(row.Edges);

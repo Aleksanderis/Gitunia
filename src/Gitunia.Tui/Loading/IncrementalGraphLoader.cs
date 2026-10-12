@@ -43,13 +43,18 @@ public static class IncrementalGraphLoader
         }
 
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
-        if (await CountCommitsAsync(repo, cancellationToken).ConfigureAwait(false) != expectedCount)
+        if (await CommitLogReader.CountAsync(repo, cancellationToken).ConfigureAwait(false) != expectedCount)
         {
             return await ReadAllAsync(repo, cancellationToken).ConfigureAwait(false);
         }
 
-        var decorations = await ReadTipDecorationsAsync(repo, cancellationToken).ConfigureAwait(false);
-        return new GraphReload(splicer.Splice(rows, joinIndex, decorations), previous.Count - joinIndex - 1);
+        var decorations = await CommitLogReader.ReadTipDecorationsAsync(repo, cancellationToken).ConfigureAwait(false);
+        var spliced = splicer.Splice(rows, joinIndex, decorations);
+
+        // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).
+        return spliced is null
+            ? await ReadAllAsync(repo, cancellationToken).ConfigureAwait(false)
+            : new GraphReload(spliced, previous.Count - joinIndex - 1);
     }
 
     private static async Task<GraphReload> ReadAllAsync(Repo repo, CancellationToken cancellationToken)
@@ -61,26 +66,5 @@ public static class IncrementalGraphLoader
         }
 
         return new GraphReload(entries, 0);
-    }
-
-    private static async Task<int> CountCommitsAsync(Repo repo, CancellationToken cancellationToken)
-    {
-        var result = await repo.RunAsync(["rev-list", "--count", "--exclude=refs/stash", "--all", "--"], new GitRunOptions(ReadOnly: true), cancellationToken).ConfigureAwait(false);
-        return int.TryParse(result.StandardOutputText.Trim(), out var count) ? count : -1;
-    }
-
-    // Only the commits that carry a ref (a few hundred at most): the same decoration text the full log prints for them.
-    private static async Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(Repo repo, CancellationToken cancellationToken)
-    {
-        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, ["--no-walk", "--exclude=refs/stash", "--all"], cancellationToken).ConfigureAwait(false))
-        {
-            if (commit.Decorations.Count > 0)
-            {
-                decorations[commit.Id] = commit.Decorations;
-            }
-        }
-
-        return decorations;
     }
 }

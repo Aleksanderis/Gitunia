@@ -85,6 +85,22 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenBranchDeletedAndOneCommitAdded_WhenReloading_ThenTheGoneCommitIsNotKept()
+    {
+        using var repository = LongHistory(20);
+        repository.CheckoutNewBranch("topic").Commit("only on topic", ("topic.txt", "1")).Checkout("main");
+        repository.Commit("main 1", ("m1.txt", "1"));
+        var previous = await ReadAllAsync(repository);
+        repository.Git("branch", "-D", "topic");
+        repository.Commit("new top", ("new.txt", "1"));
+
+        var reload = await ReloadAsync(repository, previous);
+
+        Assert.DoesNotContain(reload.Entries, entry => entry.Subject == "only on topic");
+        await AssertEqualToFullReadAsync(repository, reload);
+    }
+
+    [Fact]
     public async Task GivenMergeOfASideBranch_WhenReloading_ThenTheResultEqualsAFullRead()
     {
         using var repository = LongHistory(20);
