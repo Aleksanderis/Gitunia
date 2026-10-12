@@ -90,7 +90,7 @@ public sealed class SidebarActionHandler(
         }
     }
 
-    /// <summary>Selects the commit of the row under the cursor in the graph (after a click or <c>Enter</c>).</summary>
+    /// <summary>Selects the commit of the row under the cursor in the graph (the <c>Enter</c> path, which a click on a sidebar row takes too).</summary>
     public void ActivateCursor()
     {
         Message = string.Empty;

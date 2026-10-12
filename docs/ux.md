@@ -10,7 +10,7 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 - Working-tree layout (staging): selecting the status row (or a key from anywhere) switches the center and detail panes to unstaged files, staged files and a diff/hunk view. Whole files, hunks or selected lines are staged and unstaged from the diff itself, then the commit message is written and committed from the same screen. Details of this flow are specified as workflow 2 below, before M2.
 - Branches and worktrees are first-class, not a submenu: they are always visible in the sidebar and every branch shows which worktree holds it.
 - Destructive actions confirm and say what they will do and how to undo it.
-- Mouse is optional but complete: everything doable by keyboard is doable with the mouse (click to focus/select, double-click to open, wheel to scroll, clickable tabs, buttons and menus for actions, drag to select ranges and resize panes). Nothing is keyboard-only or mouse-only; mouse paths are listed in the keymap notes below and in each flow.
+- Mouse is optional but complete: everything doable by keyboard is doable with the mouse (click to focus/select, double-click to open, wheel to scroll, clickable tabs, buttons and menus for actions, drag to select ranges and resize panes). Nothing is keyboard-only or mouse-only; mouse paths are listed in the Mouse section below.
 
 ## Workspace and tabs
 
@@ -29,7 +29,7 @@ Normal (navigate, act), Visual (select a range of lines/commits), Insert (text i
 - Frequent actions are single keys per view (`Enter`, `y`, `/`); global actions use the `<space>` leader (`<space>o` open repo, `<space>p` pin, `<space>z` zoom pane). `g` and `]`/`[` start chords; counts prefix motions (`5j`, `3gt`).
 - Chord engine: a pending prefix shows in the status bar and, after 500 ms, a which-key popup listing the continuations; `Esc` cancels; there is no chord timeout. Bindings are data (mode, view, key sequence, action id), so remapping in M4 needs no redesign.
 - Help and palette (#20): `?` opens a help overlay with the keys of the focused view (its own bindings, then the inherited `Lists` and `Global` ones), generated from the keymap table and the action titles in `ActionCatalog`, never hand-written; `j`/`k`/`Ctrl-d`/`gg` scroll it and `Esc`, `q` or `?` close it (every other action is ignored while it is open). `:` or `Ctrl-p` opens the command palette in Command mode: typing filters every action fuzzily (title or action id), `Up`/`Down` move, `Enter` runs the highlighted action and `Esc` closes; each row shows its bindings, and the focused view's own actions come first. The which-key popup is the same kind of overlay, docked above the status bar.
-- Status messages (#93): background work that fails (worktree, stash or status reads of a tab, a failed session save, a session file that was reset at start-up) reports through one `StatusChannel` in `Gitunia.Core.Status`; later features post to it the same way. The newest message shows in the status bar between the position and the key hints (errors in the error colour) and stays until dismissed with `<space>x`, or `Esc` in the graph when nothing else claims it, or until a newer one replaces it. `<space>m` opens the history (the last 50, newest first) as an overlay; it is a snapshot taken on open, so reopen it to see newer messages. Tab-scoped messages start with the repository name, and a message equal to the one showing is not posted again. A key action's own one-off notice (`HEAD is not loaded yet`) still takes the place of the message while it lasts. The status bar hints end with `? :` (help and palette).
+- Status messages (#93): background work that fails (worktree, stash or status reads of a tab, a failed session save, a session file that was reset at start-up) reports through one `StatusChannel` in `Gitunia.Core.Status`; later features post to it the same way. The newest message shows in the status bar between the position and the key hints (errors in the error colour) and stays until dismissed with `<space>x`, or `Esc` in the graph when nothing else claims it, or until a newer one replaces it. `<space>m` opens the history (the last 50, newest first; long messages wrap) as an overlay; a failed graph load is posted there too; it is a snapshot taken on open, so reopen it to see newer messages. Tab-scoped messages start with the repository name, and a message equal to the one showing is not posted again. A key action's own one-off notice (`HEAD is not loaded yet`) still takes the place of the message while it lasts. The status bar hints end with `? :` (help and palette).
 - `Esc` precedence: cancel a pending chord, then leave Insert mode, then clear a filter or search highlight, then go back one pane level (diff to detail to graph); in the graph, when nothing else claims it, `Esc` dismisses the status message. `q` goes back one level the same way and quits only from the graph with nothing pending; `h` is back in Detail and Diff and collapse in Sidebar (Diff has no horizontal scroll).
 - In Insert mode (search box, picker input) printable keys are text; only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act, so the leader and chords never fire while typing.
 
@@ -131,5 +131,26 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Picker | `Alt-d` | Remove from recents |
 | Palette | `Up` `Down` | Move highlight (typing filters; `Enter` runs the action, `Esc` closes) |
 
-Mouse paths (all actions): click focuses a pane or selects a row, double-click opens (commit details, file diff, repo in picker), wheel scrolls, click a tab switches, click a sidebar ref selects it, click a hunk/file marker or use the pane header buttons to jump and zoom, picker rows open on double-click with pin/remove buttons per row. (More rows come with workflows 2-7.)
+Mouse paths are listed in the next section.
 
+## Mouse
+
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar and Diff.
+
+| View | Gesture | Action | Effect |
+|---|---|---|---|
+| Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
+| Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
+| Graph | Double-click | `graph.open-details` | Same as `Enter`: focus the commit details |
+| Detail | Double-click | `detail.open-diff` | Same as `Enter`: open the file diff |
+| Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
+| Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
+| Picker | Double-click | `picker.accept` | Open the repository of the row |
+| Picker | Wheel up | `picker.previous` | Move the highlight up one row |
+| Picker | Wheel down | `picker.next` | Move the highlight down one row |
+
+Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it. A click on empty space does nothing. The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`. A mouse action does not touch a pending count or chord typed before it. While the help, palette, status history or which-key overlay is open, panes and the picker ignore every mouse gesture (no focus change, no selection) (the keyboard closes the overlay with `Esc`).
+
+Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet. Verified (#64) by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build: clicks, double-clicks and the wheel arrive, a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only). Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals (tracked in #100). Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.
+
+Still to come in #100: drag to select a range, drag to resize panes, buttons and menu entries, and the rest of the diff view's mouse path (the wheel and a click on a row already work there; hunk and file markers, pane header buttons, picker pin/remove buttons).

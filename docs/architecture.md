@@ -29,8 +29,8 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
-  Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types: styled lines, graph and sidebar glyphs, frame composer), Views (Terminal.Gui views, palette), Input (key translation, keymap controller), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router)
+  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types: styled lines, graph and sidebar glyphs, frame composer), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/

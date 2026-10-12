@@ -87,6 +87,7 @@ public sealed class TabSession : IDisposable
     public void ReplaceGraph(IReadOnlyList<GraphEntry> entries)
     {
         GraphReplacing?.Invoke();
+        LoadError = string.Empty;
         Graph.Replace(entries);
         GraphVersion++;
         Source.NotifyAppended();

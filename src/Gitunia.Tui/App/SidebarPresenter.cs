@@ -7,7 +7,7 @@ namespace Gitunia.Tui.App;
 
 /// <summary>
 /// Keeps the sidebar list view in step with the active tab's state: rebuilds the rows after a change and moves the
-/// list selection to the state's cursor. A selection the user made with the mouse is sent back as a command.
+/// list selection to the state's cursor. A selection the user made with the mouse is sent back as a command (activating the row is the mouse map's job).
 /// </summary>
 public sealed class SidebarPresenter
 {
@@ -24,9 +24,6 @@ public sealed class SidebarPresenter
         host.Changed += Sync;
         list.ValueChanged += (_, _) => OnSelected();
     }
-
-    /// <summary>Raised after a click selected a row (the cursor is already in the state).</summary>
-    public event Action? Clicked;
 
     private void Sync()
     {
@@ -59,6 +56,5 @@ public sealed class SidebarPresenter
 
         host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Sidebar)));
         host.Dispatch(new TabCommand(tabId, new SetSidebarCursorCommand(item)));
-        Clicked?.Invoke();
     }
 }

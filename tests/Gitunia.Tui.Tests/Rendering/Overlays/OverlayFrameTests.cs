@@ -33,6 +33,61 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenLongMessage_WhenRenderingMessages_ThenItWrapsAndEveryWordIsReadable()
+    {
+        const string message = "fatal: unable to access the repository because the object database is corrupt and cannot be read";
+        var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", message)]) };
+        var state = OverlayState.OpenMessages(KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
+
+        var lines = Text(frame!).Split('\n');
+        Assert.All(lines, line => Assert.True(line.Length <= 40));
+        var joined = string.Join(' ', lines.Select(line => line.Trim('│', ' ')));
+        foreach (var word in message.Split(' '))
+        {
+            Assert.Contains(word, joined, StringComparison.Ordinal);
+        }
+
+        Assert.True(HelpFrameBuilder.ContentHeight(sections, 40) > 2);
+    }
+
+    [Fact]
+    public void GivenWordLongerThanALine_WhenRendering_ThenItIsCutWithoutSplittingSurrogatesOrCombiningMarks()
+    {
+        var word = string.Concat(Enumerable.Repeat("\U0001F600", 12)) + new string('e', 10) + "\u0301" + new string('x', 30);
+        var sections = new List<HelpSection> { new("S", [new HelpRow("k", word)]) };
+
+        var frame = HelpFrameBuilder.Build(sections, string.Empty, 0, 30, 30, GraphGlyphSet.Unicode);
+
+        var text = Text(frame);
+        Assert.DoesNotContain('\uFFFD', text);
+        Assert.DoesNotContain("\n│ \u0301", text, StringComparison.Ordinal);
+        Assert.All(text.Split('\n'), line => Assert.False(char.IsLowSurrogate(line.TrimEnd().LastOrDefault()) && !char.IsHighSurrogate(line.TrimEnd().Length > 1 ? line.TrimEnd()[^2] : 'a')));
+        Assert.Equal(string.Concat(Enumerable.Repeat("\U0001F600", 12)).Length, text.Split("\U0001F600").Length > 1 ? (text.Split("\U0001F600").Length - 1) * 2 : 0);
+    }
+
+    [Fact]
+    public void GivenEmptyDescription_WhenRendering_ThenTheRowTakesOneLine()
+    {
+        var sections = new List<HelpSection> { new("S", [new HelpRow("k", string.Empty)]) };
+
+        Assert.Equal(2, HelpFrameBuilder.ContentHeight(sections, 40));
+    }
+
+    [Fact]
+    public void GivenLongMessageAtTheLastRow_WhenScrolledToTheEnd_ThenTheTailShows()
+    {
+        var sections = new List<HelpSection> { new("S", [new HelpRow("e", string.Join(' ', Enumerable.Range(0, 60).Select(index => "word" + index)))]) };
+        var maximum = HelpFrameBuilder.MaximumScroll(sections, 30, 8);
+
+        var frame = HelpFrameBuilder.Build(sections, string.Empty, maximum + 10, 30, 8, GraphGlyphSet.Unicode);
+
+        Assert.True(maximum > 0);
+        Assert.Contains("word59", Text(frame), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenPalette_WhenRenderingAt80x24_ThenItListsActionsWithTheirKeys()
     {
         var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode);
@@ -139,7 +194,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("Zoom the fo", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("<space>m", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 

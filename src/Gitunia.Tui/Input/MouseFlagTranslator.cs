@@ -1,0 +1,44 @@
+using Gitunia.Core.Mouse;
+using Terminal.Gui.Input;
+
+namespace Gitunia.Tui.Input;
+
+/// <summary>Turns Terminal.Gui mouse flags into the renderer-agnostic <see cref="MouseGesture"/> the mouse map takes.</summary>
+public static class MouseFlagTranslator
+{
+    /// <summary>Returns false for events the mouse map has no use for (moves, presses, releases, other buttons, a sideways wheel).</summary>
+    public static bool TryTranslate(MouseFlags flags, out MouseGesture gesture)
+    {
+        // Terminal.Gui reports a sideways wheel as the vertical wheel plus Ctrl (WheeledLeft, WheeledRight) and Shift+wheel is the same idea.
+        var isSideways = flags.HasFlag(MouseFlags.Ctrl) || flags.HasFlag(MouseFlags.Shift);
+        if (isSideways && (flags.HasFlag(MouseFlags.WheeledUp) || flags.HasFlag(MouseFlags.WheeledDown)))
+        {
+            gesture = default;
+            return false;
+        }
+
+        if (flags.HasFlag(MouseFlags.WheeledUp))
+        {
+            gesture = MouseGesture.WheelUp;
+        }
+        else if (flags.HasFlag(MouseFlags.WheeledDown))
+        {
+            gesture = MouseGesture.WheelDown;
+        }
+        else if (flags.HasFlag(MouseFlags.LeftButtonDoubleClicked))
+        {
+            gesture = MouseGesture.DoubleClick;
+        }
+        else if (flags.HasFlag(MouseFlags.LeftButtonClicked))
+        {
+            gesture = MouseGesture.Click;
+        }
+        else
+        {
+            gesture = default;
+            return false;
+        }
+
+        return true;
+    }
+}
