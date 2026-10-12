@@ -55,7 +55,7 @@ stats() { sort -n | awk '{ v[NR] = $1 } END {
 rss_kib() {
   local pid
   pid="$(t display-message -t m -p '#{pane_pid}')"
-  ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || echo nan
+  ps -o rss= -p "$pid" 2>/dev/null | tr -d " " | grep . || echo nan
 }
 
 # Throwaway repos: linear history, one tiny file change per commit, built with fast-import.
