@@ -1,15 +1,17 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
+public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private DiffWrapMap? map;
+    private int paneWidth;
     private int gutterDigits = DiffRowRenderer.GutterDigits(0);
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -20,7 +22,19 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public string? Highlight { get; set; }
 
     /// <summary>The pane width in columns, set by the controller on every layout change; wrapping needs it. Zero shows the rows unwrapped.</summary>
-    public int Width { get; set; }
+    public int Width
+    {
+        get => paneWidth;
+        set
+        {
+            if (paneWidth != value && IsWrapped)
+            {
+                RangeInvalidated?.Invoke();
+            }
+
+            paneWidth = value;
+        }
+    }
 
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
@@ -32,10 +46,15 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
+    public RowRange? Range { get; set; }
+
+    public event Action? RangeInvalidated;
+
     /// <summary>Shows another document and tells the list.</summary>
     public void Update(DiffDocument document)
     {
         Document = document;
+        RangeInvalidated?.Invoke();
         map = null;
         gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
         Notify();
@@ -45,6 +64,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public void SetWrapped(bool isWrapped)
     {
         IsWrapped = isWrapped;
+        RangeInvalidated?.Invoke();
         map = null;
         Notify();
     }
@@ -66,6 +86,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var current = Map();
+        selected |= Range?.Contains(item) == true;
         var line = current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected && listView.HasFocus)
             : current is null && item >= 0 && item < Document.Rows.Count

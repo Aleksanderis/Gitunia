@@ -22,9 +22,7 @@ public static class PaletteFrameBuilder
         }
 
         var visible = palette.Visible();
-        var rowCount = Math.Max(1, Math.Min(maximumRows, visible.Count));
-        var selected = visible.Count == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visible.Count - 1);
-        var top = Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, visible.Count - rowCount));
+        var (rowCount, selected, top) = Window(palette, visible.Count, maximumRows);
 
         var lines = new List<StyledLine> { OverlayBox.Title(": " + palette.Query + "_", width, glyphs) };
         if (visible.Count == 0)
@@ -51,5 +49,21 @@ public static class PaletteFrameBuilder
             SegmentRole.Faint));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+    }
+
+    /// <summary>The index into <see cref="PaletteState.Visible"/> of the entry drawn on <paramref name="frameLine"/> of the frame, or null for the title, the footer or an empty row.</summary>
+    public static int? EntryIndexAt(PaletteState palette, int frameLine, int screenHeight)
+    {
+        var visibleCount = palette.Visible().Count;
+        var (rowCount, _, top) = Window(palette, visibleCount, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
+        var offset = frameLine - 1;
+        return offset >= 0 && offset < rowCount && top + offset < visibleCount ? top + offset : null;
+    }
+
+    private static (int RowCount, int Selected, int Top) Window(PaletteState palette, int visibleCount, int maximumRows)
+    {
+        var rowCount = Math.Max(1, Math.Min(maximumRows, visibleCount));
+        var selected = visibleCount == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visibleCount - 1);
+        return (rowCount, selected, Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, visibleCount - rowCount)));
     }
 }

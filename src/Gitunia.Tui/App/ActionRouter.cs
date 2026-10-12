@@ -25,6 +25,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
+    /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
+    public VisualRangeController? Visual { get; set; }
+
+    /// <summary>The pane resize keys.</summary>
+    public PaneSizeController? PaneSizes { get; set; }
+
     /// <summary>The diff pane's controller, which gets the actions after the sidebar and before the graph and detail lists.</summary>
     public DiffPaneController? Diff { get; set; }
 
@@ -54,6 +60,18 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.DetailRetry)
         {
             Message = activeSession()?.Details.Retry() == true ? "retrying..." : "nothing to retry";
+            return;
+        }
+
+        if (Visual?.TryExecute(action, count) == true)
+        {
+            Message = Visual.Notice;
+            return;
+        }
+
+        if (PaneSizes?.TryExecute(action, count) == true)
+        {
+            Message = PaneSizes.Notice;
             return;
         }
 

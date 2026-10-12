@@ -65,7 +65,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 ### 1c. Diff viewing
 
 1. In the detail pane select a file with `j`/`k` and press `Enter`: the diff pane opens with the whole commit's unified diff (against the first parent, so merge commits match the file list), puts the chosen file's header at the top and takes focus. The diff pane sits beside a compact detail pane (the file list on the left, a third of the width, 24-60 columns) on screens of 70 columns or more, so the file list and the diff are visible together at 80 columns, and replaces the detail pane only below 70 columns (`Tab` reaches the detail pane again once the diff is closed); screens under 14 rows open it zoomed. `<space>z` zooms the focused graph, detail or diff pane to the full area between the tab row and the status bar and back (the sidebar does not zoom; moving focus to another pane ends the zoom). While zoomed, `Tab` only reaches panes that are shown.
-2. `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G` scroll; `]c` / `[c` jump to the next / previous hunk and `]f` / `[f` to the next / previous file of the commit (counts work; at the last one the status bar says so). The title shows the commit, the file under the cursor and `file n/m  hunk n/m`. `/` opens a search box (Insert mode, case-insensitive substring over every row including headers; matches are highlighted while typing); `Enter` jumps to the first match at or after the cursor, `n`/`N` step through matches and wrap, `Esc` in the box cancels.
+2. `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G` scroll; `]c` / `[c` jump to the next / previous hunk and `]f` / `[f` to the next / previous file of the commit (counts work; at the last one the status bar says so). The title shows the commit, the file under the cursor and `file n/m  hunk n/m`. `/` opens a search box (Insert mode, case-insensitive substring over every row including headers; matches are highlighted while typing); `Enter` jumps to the first match at or after the cursor, `n`/`N` step through matches and wrap, `Esc` in the box cancels. Mouse: the buttons at the right of the title row (`[<f] [f>] [<h] [h>] [w] [z] [x]`) are `[f` `]f` `[c` `]c` `w` `<space>z` and `q`; a drag selects a range of rows (Mouse section).
 3. Rows are `old new` line numbers, a `+`/`-`/space marker and the text; text is cut with an ellipsis while word wrap is off (the default); `w` turns wrap on, and a long row then continues on the following screen lines under a blank gutter (`j`/`k` move by screen line, the title shows `[wrap]`; there is no horizontal scroll), tabs expand to 4-column stops and wide characters are never split. Binary files, renames without edits, mode changes and "no newline" markers get a note row; parser warnings (such as invalid UTF-8 in the patch) show as a red `!` row above the first file.
 4. `q`, `Esc` or `h` goes back: first it clears an active search, then closes the diff pane and returns focus to the file list. A diff is capped at 400,000 rows and 100,000 lines per file (the last row, or the file's note row, says it was cut short); `L` loads the same commit again without the caps (the cursor stays on the same file; with nothing cut it only says so). Binary files have no content to load, so `L` leaves them as a note. The diff follows the graph selection: while the pane is open, moving the graph (or a refresh that moves the selection) loads the newly selected commit once its details have arrived and keeps the cursor on the same file if the new commit touches it; the old diff stays until then. The status bar shows the keys of the focused pane (sidebar, graph, detail, diff).
 
@@ -80,7 +80,7 @@ Still to design before their milestones:
 
 ## Keymap
 
-The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `:name` is an ex command and not a key. Modes: rows apply to Normal; Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
+The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<lt>` a literal `<`, `:name` is an ex command and not a key. Modes: rows apply to Normal; Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
 
 | Mode/View | Key | Action |
 |---|---|---|
@@ -99,12 +99,15 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
+| Global | `Ctrl-w >` `Ctrl-w <lt>` | Focused pane wider / narrower: moves the divider beside it by 2 columns (a count multiplies; dragging a divider with the mouse does the same) |
+| Global | `Ctrl-w +` `Ctrl-w -` | Focused pane taller / shorter: moves the edge between the graph and the bottom panes by 1 row |
+| Global | `Ctrl-w =` | Reset the pane sizes to automatic |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
-| Lists | `v` | Start / end range selection (Visual mode) |
+| Lists | `v` | Start / end range selection (Visual mode: motions move the far end, `Esc` / `q` / `v` end it; graph, detail and diff only) |
 | Graph | `@` | Jump to HEAD |
 | Graph | `gr` | Jump to ref or hash (fuzzy) |
 | Graph | `Enter` | Focus commit details |
@@ -139,22 +142,47 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar and Diff.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar and Diff. `Header`, `Tabs`, `Picker`, the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `PickerButton.*`, one view per button) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
 | Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
 | Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
+| Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail and diff only |
+| Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
+| Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `graph.open-details` | Same as `Enter`: focus the commit details |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: open the file diff |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
+| Header | Click | `palette.open` | Open the command palette: the menu of the actions of the focused pane and the global ones, each with its keys |
+| Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane, the tab row or the header outside it closes it (like `Esc`); the double-click that follows is ignored |
+| Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
+| Palette | Wheel up | `palette.previous` | Move the highlight up one row |
+| Palette | Wheel down | `palette.next` | Move the highlight down one row |
+| Help | Wheel up | `list.up` | Scroll the help up 3 lines (wherever the pointer is while the overlay is open) |
+| Help | Wheel down | `list.down` | Scroll the help down 3 lines |
+| Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
+| Messages | Wheel down | `list.down` | Scroll the status history down 3 lines |
+| DiffButton.PreviousFile | Click | `diff.previous-file` | Button `[<f]` in the diff title row, same as `[f` |
+| DiffButton.NextFile | Click | `diff.next-file` | Button `[f>]`, same as `]f` |
+| DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `[<h]`, same as `[c` |
+| DiffButton.NextHunk | Click | `diff.next-hunk` | Button `[h>]`, same as `]c` |
+| DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `[w]`, same as `w` |
+| DiffButton.Zoom | Click | `pane.zoom` | Button `[z]`, same as `<space>z` |
+| DiffButton.Close | Click | `navigate.back` | Button `[x]`, same as `q`: clears a search, then closes the diff |
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |
+| PickerButton.Pin | Click | `picker.pin` | Button `[pin]` / `[unpin]` on the highlighted row, same as `Alt-p` |
+| PickerButton.Remove | Click | `picker.remove-recent` | Button `[remove]` on a highlighted recent row, same as `Alt-d` |
 
-Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it. A click on empty space does nothing. The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`. A mouse action does not touch a pending count or chord typed before it. While the help, palette, status history or which-key overlay is open, panes and the picker ignore every mouse gesture (no focus change, no selection) (the keyboard closes the overlay with `Esc`).
+Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it. A click on empty space does nothing. The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`. A mouse action does not touch a pending count or chord typed before it. While the help, palette or status history is open, panes and the picker ignore every mouse gesture (no focus change, no selection), except that the wheel scrolls the help or history (or moves the palette highlight) when the pointer is over a pane or the overlay, and a click on a pane, the tab row or the header closes it (`Backdrop` row), like `Esc`; the which-key popup does not block the mouse.
 
-Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet. Verified (#64) by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build: clicks, double-clicks and the wheel arrive, a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only). Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals (tracked in #100). Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.
+Drag to select: press a row of the graph, detail or diff pane and move the pointer; the pane takes focus, the pressed row becomes the anchor, Visual mode starts (status bar `VISUAL`) and the cursor follows the pointer, also above or below the pane while the button is held (no auto-scroll while the pointer rests: move it to keep going, #137). The range is drawn like the selected row. The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving focus to another pane or tab ends it. Nothing acts on a range yet: staging lines (#31) and copying the range (#140) will. The sidebar has no ranges (a drag there only moves its selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
 
-Still to come in #100: drag to select a range, drag to resize panes, buttons and menu entries, and the rest of the diff view's mouse path (the wheel and a click on a row already work there; hunk and file markers, pane header buttons, picker pin/remove buttons).
+Drag to resize: the divider between the sidebar and the graph, the divider between the detail and diff panes, and the title rows of the detail and diff panes (the edge between the graph and the bottom panes) follow the pointer while the button is held. Sizes are clamped to what fits (at least 12 columns for the sidebar and detail, 20 for the graph and diff, 3 rows for the bottom panes, 4 for the graph), belong to the tab and are not saved with the session (#138); `Ctrl-w =` (or `:`, then "Reset the pane sizes") returns to automatic, and `Ctrl-w >` `Ctrl-w <lt>` `Ctrl-w +` `Ctrl-w -` are the keyboard path. A zoomed pane has no dividers to drag.
+
+Clickable titles and buttons: a click on the title row of the detail or diff pane focuses that pane. The diff title row ends in buttons (see the table) when the pane is at least 30 columns wider than the buttons need; narrower panes show only the rightmost ones (`[x]`, `[z]`, `[w]` first), the keys stay available. The highlighted picker row shows `[pin]`/`[unpin]` and, for a recent repository, `[remove]` at its right edge (screens of 60 columns or more). Clicking the header bar (first row) opens the command palette, which lists the actions of the focused pane and the global ones, so every action without a button (for example `L` load anyway, the search keys, `r` refresh) can be run with the mouse; typing a search or a filter text needs the keyboard, as nothing else can enter text.
+
+Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet. Verified by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build (#64 and #100): clicks, double-clicks, the wheel, press-drag-release (reported as a press, position reports with the button held, a release and then a click at the release position, which the drag logic swallows), divider and title drags, header, palette and button clicks all arrive; a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only). Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals (tracked in #49). Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.

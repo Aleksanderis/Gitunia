@@ -26,6 +26,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
+    private const long OverlayDoubleClickGuardMilliseconds = 600;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
     private WorkspaceHost host = null!;
@@ -35,6 +36,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private ActionRouter router = null!;
     private KeyController keys = null!;
     private MouseController mouse = null!;
+    private long overlayClickTicks = long.MinValue / 2;
+    private VisualRangeController visual = null!;
     private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
@@ -90,6 +93,23 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome, clipboard);
         router.Diff = diffPane;
+        visual = new VisualRangeController(
+            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            pane => pane switch
+            {
+                PaneKind.Detail => view.Detail,
+                PaneKind.Diff => view.Diff,
+                PaneKind.Sidebar => view.Sidebar,
+                _ => view.Graph,
+            },
+            () => keys.Mode,
+            mode => keys.SetMode(mode));
+        router.Visual = visual;
+        router.PaneSizes = new PaneSizeController(
+            () => diffPane.Arrangement(),
+            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            () => view.ScreenSize,
+            ApplyPaneSizes);
         router.Refresh = () => host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
@@ -110,6 +130,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         host.Changed += view.RefreshChrome;
         host.Changed += binder.Sync;
         host.Changed += ApplyFocus;
+        host.Changed += visual.EndIfFocusMoved;
         keys.PendingChanged += view.RefreshChrome;
         keys.TextKeyPressed += OnTextKey;
         keys.TextKeyPressed += sidebar.OnKey;
@@ -121,7 +142,12 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(view.Diff, PaneKind.Diff);
         mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
         view.SuppressMouseWhen(() => overlays.State.IsOpen);
-        view.Gestured += (viewName, gesture, target) => mouse.Handle(viewName, gesture, target);
+        view.Gestured += OnGestured;
+        view.EdgeDragged += OnEdgeDragged;
+        view.OverlayLineClicked += OnOverlayLineClicked;
+        view.Graph.ValueChanged += (_, _) => visual.OnCursorMoved();
+        view.Detail.ValueChanged += (_, _) => visual.OnCursorMoved();
+        view.Diff.ValueChanged += (_, _) => visual.OnCursorMoved();
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
@@ -176,6 +202,77 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
     }
 
+    private void OnGestured(string viewName, MouseGesture gesture, int? target)
+    {
+        // A double-click whose first click closed an overlay must not act on the pane that is now under the pointer.
+        if (gesture == MouseGesture.DoubleClick && Environment.TickCount64 - overlayClickTicks < OverlayDoubleClickGuardMilliseconds)
+        {
+            return;
+        }
+
+        // The sidebar has no ranges; dragging there only moves its selection.
+        if (gesture == MouseGesture.DragStart && viewName == DefaultKeymap.SidebarView)
+        {
+            return;
+        }
+
+        // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
+        if (overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+        {
+            viewName = overlays.ViewName;
+        }
+
+        // A click anywhere outside an open overlay closes it, like Esc.
+        if (overlays.State.IsOpen && gesture == MouseGesture.Click)
+        {
+            viewName = DefaultMouseMap.BackdropView;
+            overlayClickTicks = Environment.TickCount64;
+        }
+
+        // A drag starts a fresh range; a click on a row ends the range (the click moved the cursor, a position).
+        if (gesture == MouseGesture.DragStart || (gesture is MouseGesture.Click or MouseGesture.DoubleClick && IsRangePane(viewName)))
+        {
+            visual.End();
+        }
+
+        mouse.Handle(viewName, gesture, target);
+
+        // A key redraws the chrome through the pending-keys event; a mouse action has no such path (titles, status bar, mode).
+        view.RefreshChrome();
+    }
+
+    private static bool IsRangePane(string viewName) =>
+        viewName is DefaultKeymap.GraphView or DefaultKeymap.DetailView or DefaultKeymap.DiffView;
+
+    private void OnEdgeDragged(PaneEdge edge, int column, int row)
+    {
+        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is not { } diff || diffPane.Arrangement().Zoomed is not null)
+        {
+            return;
+        }
+
+        ApplyPaneSizes(PaneResizer.Drag(diff.Sizes, edge, column, row, view.Window.Viewport.Height));
+    }
+
+    private void ApplyPaneSizes(PaneSizes sizes)
+    {
+        if (ActiveSession()?.Diff is { } diff && diff.Sizes != sizes)
+        {
+            diff.Sizes = sizes;
+            Relayout();
+        }
+    }
+
+    // A click on a palette row highlights it and runs it (the palette is the menu of every action).
+    private void OnOverlayLineClicked(int line)
+    {
+        if (overlays.SelectPaletteEntryAt(line))
+        {
+            overlayClickTicks = Environment.TickCount64;
+            mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
+        }
+    }
+
     private void RefreshOverlay()
     {
         view.Overlay.Show(overlays.CurrentFrame());
@@ -185,7 +282,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private PaneRects CurrentPaneRects()
     {
         var arrangement = diffPane.Arrangement();
-        return PaneLayout.Compute(view.Window.Viewport.Width, view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed);
+        return PaneLayout.Compute(view.Window.Viewport.Width, view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
     }
 
     private void Relayout()
@@ -312,6 +409,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             previous.Details.Changed -= RefreshDetail;
         }
 
+        visual.End();
         view.Detail.Source = current?.DetailSource;
         diffPane.OnTabSwitched(previous, current);
         if (current is not null)
@@ -348,6 +446,11 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnPickerChanged()
     {
+        if (picker.IsOpen)
+        {
+            visual.End();
+        }
+
         if (!overlays.State.IsOpen && picker.IsOpen != (keys.Mode == KeyMode.Insert))
         {
             keys.SetMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);

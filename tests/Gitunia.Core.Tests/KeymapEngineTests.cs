@@ -305,7 +305,7 @@ public class KeymapEngineTests
     }
 
     [Fact]
-    public void GivenCtrlWPending_WhenAskingForContinuations_ThenDirectionKeysAreListed()
+    public void GivenCtrlWPending_WhenAskingForContinuations_ThenDirectionResizeAndTabKeysAreListed()
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());
         var feeder = new KeyFeeder(engine);
@@ -313,6 +313,6 @@ public class KeymapEngineTests
 
         var names = engine.Continuations(feeder.State, DefaultKeymap.GraphView).Select(continuation => continuation.Key.Name).Order(StringComparer.Ordinal);
 
-        Assert.Equal(["c", "h", "j", "k", "l", "w"], names);
+        Assert.Equal(["+", "-", "<", "=", ">", "c", "h", "j", "k", "l", "w"], names);
     }
 }

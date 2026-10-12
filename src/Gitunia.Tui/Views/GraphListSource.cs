@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Search;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.Views;
 /// Append-only list source over a <see cref="CommitGraph"/>: rows are drawn on demand for the visible range only,
 /// so the cost of a frame does not depend on how many commits are loaded. Appending raises one change event per batch.
 /// </summary>
-public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource
+public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private GraphRowOptions? cachedOptions;
 
@@ -26,6 +27,15 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public SearchQuery? Highlight { get; set; }
 
     public bool SuspendCollectionChangedEvent { get; set; }
+
+    public RowRange? Range { get; set; }
+
+    // The graph only grows at the end, so a range over it never changes meaning.
+    public event Action? RangeInvalidated
+    {
+        add { }
+        remove { }
+    }
 
     /// <summary>The commit shown by a list item, or -1 for a reserved leading row or an item past the loaded end.</summary>
     public static int CommitIndexOf(int item) => item - ScreenLayout.ReservedLeadingRows;
@@ -51,6 +61,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     {
         var options = OptionsFor(width);
         var commitIndex = CommitIndexOf(item);
+        selected |= Range?.Contains(item) == true;
         var line = commitIndex >= 0 && commitIndex < graph.Count
             ? GraphRowRenderer.Render(graph[commitIndex], options, selected)
             : GraphRowRenderer.RenderEmpty(options, selected);

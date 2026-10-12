@@ -108,7 +108,7 @@ public class OverlayFrameTests
                 "│ Search                                                             / │",
                 "│ Next search match                                                  n │",
                 "│ Previous search match                                              N │",
-                "│ 1/74  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/79  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -136,6 +136,43 @@ public class OverlayFrameTests
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected).ToArray());
+    }
+
+    [Fact]
+    public void GivenThePalette_WhenAskingWhichEntryALineShows_ThenItIsTheEntryDrawnThere()
+    {
+        var palette = Palette();
+        var frame = PaletteFrameBuilder.Build(palette, 80, 24, GraphGlyphSet.Unicode)!;
+        var visible = palette.Visible();
+
+        // Line 0 is the query bar, the entries follow, the last two lines are the footer and the bottom border.
+        Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, 0, 24));
+        Assert.Equal(0, PaletteFrameBuilder.EntryIndexAt(palette, 1, 24));
+        Assert.Equal(3, PaletteFrameBuilder.EntryIndexAt(palette, 4, 24));
+        Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, frame.Height - 2, 24));
+        Assert.Contains(visible[3].Title, frame.Lines[4].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAScrolledPalette_WhenAskingWhichEntryALineShows_ThenTheScrollOffsetCounts()
+    {
+        var palette = Palette().Move(30);
+        var frame = PaletteFrameBuilder.Build(palette, 80, 24, GraphGlyphSet.Unicode)!;
+        var visible = palette.Visible();
+
+        var index = PaletteFrameBuilder.EntryIndexAt(palette, 2, 24);
+
+        Assert.NotNull(index);
+        Assert.True(index > 0);
+        Assert.Contains(visible[index.Value].Title, frame.Lines[2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAFilterWithFewMatches_WhenAskingForALinePastTheEntries_ThenThereIsNoEntry()
+    {
+        var palette = Palette().Type("zzzzqq");
+
+        Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, 1, 24));
     }
 
     [Fact]
@@ -181,7 +218,7 @@ public class OverlayFrameTests
                 "│  Ctrl-u / PageUp       Half page up                          │",
                 "│  v                     Start or end range selection          │",
                 "│                                                              │",
-                "│ 1-19/48  list keys scroll  Esc close                         │",
+                "│ 1-19/53  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Specialized;
+using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;
 
 /// <summary>List source over the rows of the detail pane; the whole content is replaced when another commit is selected or its details arrive.</summary>
-public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource
+public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -18,10 +19,15 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
+    public RowRange? Range { get; set; }
+
+    public event Action? RangeInvalidated;
+
     /// <summary>Shows other content and tells the list.</summary>
     public void Update(DetailContent content)
     {
         Content = content;
+        RangeInvalidated?.Invoke();
         if (!SuspendCollectionChangedEvent)
         {
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
@@ -39,7 +45,7 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var line = item >= 0 && item < Content.Rows.Count
-            ? DetailPaneRenderer.RenderRow(Content.Rows[item], selected && listView.HasFocus, width, glyphs)
+            ? DetailPaneRenderer.RenderRow(Content.Rows[item], (selected || Range?.Contains(item) == true) && listView.HasFocus, width, glyphs)
             : DetailPaneRenderer.RenderEmpty(width, glyphs);
         LinePainter.Paint(listView, line, col, row, listView.HasFocus);
     }

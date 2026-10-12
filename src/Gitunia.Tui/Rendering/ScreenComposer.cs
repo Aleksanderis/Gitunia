@@ -56,7 +56,7 @@ public static class ScreenComposer
         }
 
         var layout = arrangement ?? PaneArrangement.Normal;
-        var rects = PaneLayout.Compute(width, height, layout.IsDiffOpen && diff is not null, layout.Zoomed);
+        var rects = PaneLayout.Compute(width, height, layout.IsDiffOpen && diff is not null, layout.Zoomed, layout.Sizes);
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
         var graphHeight = rects.Graph.IsEmpty ? 0 : showDetail || showDiff ? rects.Graph.Height : ScreenLayout.GraphHeight(height);

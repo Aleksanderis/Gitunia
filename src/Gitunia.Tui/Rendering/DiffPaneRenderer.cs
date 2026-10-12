@@ -22,8 +22,32 @@ public static class DiffPaneRenderer
         return lines;
     }
 
-    /// <summary>The title: the commit, the file under the cursor and its position among the files and the hunks.</summary>
+    /// <summary>
+    /// The title: the commit, the file under the cursor and its position among the files and the hunks, then the buttons
+    /// (<see cref="DiffTitleButtons"/>) at the right end when the row is wide enough.
+    /// </summary>
     public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
+    {
+        var buttons = DiffTitleButtons.Layout(width);
+        if (buttons.Count == 0)
+        {
+            return RenderTitleText(pane, width, glyphs);
+        }
+
+        var segments = new List<StyledSegment>(RenderTitleText(pane, buttons[0].Start - 1, glyphs).Segments) { new(" ", SegmentRole.Plain) };
+        for (var index = 0; index < buttons.Count; index++)
+        {
+            segments.Add(new StyledSegment(buttons[index].Label, SegmentRole.Button));
+            if (index < buttons.Count - 1)
+            {
+                segments.Add(new StyledSegment(" ", SegmentRole.Plain));
+            }
+        }
+
+        return new StyledLine(segments);
+    }
+
+    private static StyledLine RenderTitleText(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
@@ -41,15 +65,24 @@ public static class DiffPaneRenderer
                 $"  file {(fileIndex + 1).ToString(CultureInfo.InvariantCulture)}/{fileCount.ToString(CultureInfo.InvariantCulture)}"
                 + $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
                 SegmentRole.Faint);
+            AppendWrapMarker(builder, pane);
             builder.Append("  " + pane.Document.FilePaths[fileIndex][0], SegmentRole.Plain);
         }
+        else
+        {
+            AppendWrapMarker(builder, pane);
+        }
 
+        return builder.Build(SegmentRole.Plain);
+    }
+
+    // Before the path: when the row is narrow the path is cut, not the marker.
+    private static void AppendWrapMarker(LineBuilder builder, DiffPaneModel pane)
+    {
         if (pane.IsWrapped)
         {
             builder.Append("  [wrap]", SegmentRole.Faint);
         }
-
-        return builder.Build(SegmentRole.Plain);
     }
 
     private static int HunksUpTo(IReadOnlyList<int> hunkRows, int row)

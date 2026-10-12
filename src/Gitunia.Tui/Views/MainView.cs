@@ -19,7 +19,11 @@ public sealed class MainView : IDisposable
     private readonly LineView detailTitle;
     private readonly LineView diffTitle;
     private readonly DividerView bottomDividerView;
+    /// <summary>The view name reported for the wheel over an overlay; the application maps it to the open overlay's own view.</summary>
+    public const string OverlayGestureView = "Overlay";
+
     private readonly Func<PaneArrangement> arrangement;
+    private Func<bool> suppressed = () => false;
 
     public MainView(
         Func<ScreenModel> model,
@@ -138,11 +142,21 @@ public sealed class MainView : IDisposable
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
         tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        header.Clicked += _ => Gestured?.Invoke(DefaultMouseMap.HeaderView, MouseGesture.Click, null);
         picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
-        Graph.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, null);
-        Sidebar.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, null);
-        Detail.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, null);
-        Diff.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, null);
+        picker.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        Graph.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, target);
+        Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
+        Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
+        Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
+        divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
+        bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
+        detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
+        diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
+        detailTitle.Clicked += _ => FocusFromTitle(Detail);
+        diffTitle.Clicked += OnDiffTitleClicked;
+        Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
+        Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
         Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
     }
 
@@ -151,6 +165,12 @@ public sealed class MainView : IDisposable
     /// the gesture and, for the tab row, the one-based number of the clicked tab.
     /// </summary>
     public event Action<string, MouseGesture, int?>? Gestured;
+
+    /// <summary>Raised while a divider or a pane title row is dragged: which edge and the pointer's screen column and row.</summary>
+    public event Action<PaneEdge, int, int>? EdgeDragged;
+
+    /// <summary>Raised with the frame line when the overlay box is clicked.</summary>
+    public event Action<int>? OverlayLineClicked;
 
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
     public event Action<int>? PickerRowClicked
@@ -180,6 +200,7 @@ public sealed class MainView : IDisposable
     /// <summary>Makes every pane and the picker swallow mouse input while <paramref name="isSuppressed"/> returns true (an overlay is open).</summary>
     public void SuppressMouseWhen(Func<bool> isSuppressed)
     {
+        suppressed = isSuppressed;
         Graph.IsSuppressed = isSuppressed;
         Sidebar.IsSuppressed = isSuppressed;
         Detail.IsSuppressed = isSuppressed;
@@ -227,9 +248,33 @@ public sealed class MainView : IDisposable
 
     private int ScreenHeight() => Window?.Viewport.Height ?? 0;
 
+    // A click on a pane's title row focuses the pane, like a click in its list.
+    private void FocusFromTitle(PaneListView pane)
+    {
+        if (!suppressed() && !pane.HasFocus)
+        {
+            pane.SetFocus();
+        }
+    }
+
+    private void OnDiffTitleClicked(int column)
+    {
+        if (suppressed())
+        {
+            return;
+        }
+
+        FocusFromTitle(Diff);
+        var buttons = DiffTitleButtons.Layout(diffTitle.Viewport.Width);
+        if (TitleButton.ViewAt(buttons, column) is { } buttonView)
+        {
+            Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        }
+    }
+
     private PaneRects Rects()
     {
         var current = arrangement();
-        return PaneLayout.Compute(ScreenWidth, ScreenHeight(), current.IsDiffOpen, current.Zoomed);
+        return PaneLayout.Compute(ScreenWidth, ScreenHeight(), current.IsDiffOpen, current.Zoomed, current.Sizes);
     }
 }

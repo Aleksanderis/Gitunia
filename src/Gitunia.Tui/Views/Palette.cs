@@ -45,6 +45,7 @@ public static class Palette
             SegmentRole.DiffHunk => new Attribute(Xterm(80), Color.None, selection),
             SegmentRole.DiffFile => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
             SegmentRole.OverlayTitle => Style(TextStyle.Bold | TextStyle.Reverse),
+            SegmentRole.Button => new Attribute(Xterm(75), Color.None, TextStyle.Bold),
             SegmentRole.OverlayKey => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
             _ => Style(selection),
         };

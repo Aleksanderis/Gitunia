@@ -80,7 +80,7 @@ public sealed class DiffPaneController : IPromptHandler
             diff.ZoomedPane = null;
         }
 
-        return new PaneArrangement(diff.IsOpen, diff.ZoomedPane);
+        return new PaneArrangement(diff.IsOpen, diff.ZoomedPane, diff.Sizes);
     }
 
     public bool TryExecute(ActionId action, int? count)
