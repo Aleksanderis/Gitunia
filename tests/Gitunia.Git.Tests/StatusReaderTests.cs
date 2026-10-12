@@ -20,6 +20,22 @@ public class StatusReaderTests
     private static string Numbered(int count) => string.Concat(Enumerable.Range(1, count).Select(number => number + "\n"));
 
     [Fact]
+    public async Task GivenUntrackedDirectory_WhenReadingWithNormalMode_ThenItIsOneEntryButStillDirty()
+    {
+        using var repository = TestRepositories.Linear(1);
+        repository.WriteFile("dir/one.txt", "1\n");
+        repository.WriteFile("dir/two.txt", "2\n");
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        var all = await StatusReader.ReadStatusAsync(repo, false, Token);
+        var normal = await StatusReader.ReadStatusAsync(repo, false, Token, UntrackedFilesMode.Normal);
+
+        Assert.Equal(2, all.Entries.Count);
+        var entry = Assert.Single(normal.Entries);
+        Assert.Equal(StatusEntryKind.Untracked, entry.Kind);
+    }
+
+    [Fact]
     public async Task GivenCleanRepository_WhenReadingStatus_ThenNoEntriesAndBranchHead()
     {
         using var repository = TestRepositories.Linear(2);

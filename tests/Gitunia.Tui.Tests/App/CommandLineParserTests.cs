@@ -1,3 +1,4 @@
+using Gitunia.Core.Workspaces;
 using Gitunia.Tui.App;
 using Xunit;
 
@@ -46,5 +47,40 @@ public class CommandLineParserTests
     public void GivenTwoPaths_WhenParsing_ThenErrorIsReported()
     {
         Assert.NotNull(CommandLineParser.Parse(["one", "two"]).Error);
+    }
+
+    [Fact]
+    public void GivenDiffAndZoom_WhenParsing_ThenTheyAreRead()
+    {
+        var options = CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--diff", "--zoom", "detail"]);
+
+        Assert.Null(options.Error);
+        Assert.True(options.OpenDiff);
+        Assert.Equal(PaneKind.Detail, options.Zoom);
+    }
+
+    [Fact]
+    public void GivenZoomedDiff_WhenParsing_ThenTheDiffIsOpen()
+    {
+        var options = CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--zoom", "diff"]);
+
+        Assert.True(options.OpenDiff);
+        Assert.Equal(PaneKind.Diff, options.Zoom);
+    }
+
+    [Theory]
+    [InlineData("--diff")]
+    [InlineData("--zoom", "graph")]
+    public void GivenFrameOptionsWithoutPrintFrame_WhenParsing_ThenErrorIsReported(params string[] arguments)
+    {
+        Assert.NotNull(CommandLineParser.Parse(["repo", .. arguments]).Error);
+    }
+
+    [Theory]
+    [InlineData("sidebar")]
+    [InlineData("")]
+    public void GivenUnknownZoomPane_WhenParsing_ThenErrorIsReported(string pane)
+    {
+        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--zoom", pane]).Error);
     }
 }

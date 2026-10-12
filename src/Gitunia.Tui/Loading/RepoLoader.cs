@@ -59,7 +59,7 @@ public static class RepoLoader
             var refs = await refsTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
             var status = await statusTask.ConfigureAwait(false);
-            var summary = new RepoStatusSummary(status.Entries.Count > 0, status.Branch.Ahead ?? 0, status.Branch.Behind ?? 0);
+            var summary = RepoStatusSummary.From(status);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary))));
         }
         catch (OperationCanceledException)

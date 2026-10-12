@@ -1,3 +1,4 @@
+using Gitunia.Core.Diff;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Sidebar;
@@ -18,7 +19,8 @@ public static class FramePrinter
         int height,
         GraphGlyphSet glyphs,
         TextWriter output,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PaneArrangement? arrangement = null)
     {
         var graph = new CommitGraph();
         var repo = new Repo(runner, location);
@@ -39,6 +41,9 @@ public static class FramePrinter
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
         }
 
+        var diff = arrangement is { IsDiffOpen: true } && selected is not null
+            ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
+            : null;
         var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState), 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
@@ -52,10 +57,25 @@ public static class FramePrinter
             false,
             string.Empty);
         var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
-        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar))
+        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, arrangement))
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }
+    }
+
+    private static async Task<DiffPaneModel> ReadDiffAsync(Repo repo, GraphEntry selected, CommitDetailsState detailState, CancellationToken cancellationToken)
+    {
+        // The diff needs the parents; the detail pane is not read when the terminal is too short for it.
+        var details = detailState.Details ?? await CommitDetailsReader.ReadAsync(repo, selected.Id, cancellationToken);
+        var firstParent = details is { Parents.Count: > 0 } ? details.Parents[0] : (ObjectId?)null;
+        var builder = new DiffDocumentBuilder();
+        var warnings = new List<string>();
+        await foreach (var file in DiffReader.ReadCommitAsync(repo, selected.Id, firstParent, cancellationToken, warnings))
+        {
+            builder.Add(file);
+        }
+
+        return new DiffPaneModel(builder.Build(warnings), selected.Id.ToString()[..7], 0, 0, false);
     }
 
     private static async Task<SidebarModel> ReadSidebarAsync(Repo repo, RepositoryLocation location, HeadState head, CancellationToken cancellationToken)
