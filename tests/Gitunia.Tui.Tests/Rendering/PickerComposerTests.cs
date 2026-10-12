@@ -92,7 +92,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenPendingListing_WhenComposing_ThenScanningIsShown()
     {
-        var picker = new PickerState("~/code/", 0, [], string.Empty, null, true);
+        var picker = new PickerState("~/code/", 0, [], string.Empty, null, true, true);
 
         var lines = PickerComposer.Compose(picker, Home, 60, 6, GraphGlyphSet.Unicode);
 

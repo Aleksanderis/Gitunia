@@ -4,15 +4,16 @@ namespace Gitunia.Tui.Rendering;
 
 /// <summary>
 /// Lays out the repo screen. Without a diff the detail pane spans the bottom (see <see cref="DetailLayout"/>). An open diff
-/// sits to the right of the detail pane on wide screens and replaces it on narrow ones. A zoomed pane takes the whole
-/// area between the tab row and the status bar and hides the others.
+/// sits to the right of a compact detail pane (the changed-files list, about a third of the width) and replaces it only on
+/// very narrow screens. A zoomed pane takes the whole area
+/// between the tab row and the status bar and hides the others.
 /// </summary>
 public static class PaneLayout
 {
-    /// <summary>Screens at least this wide show the detail pane and the diff side by side.</summary>
-    public const int MinimumWidthForSideBySide = 100;
+    /// <summary>Screens at least this wide show the detail pane and the diff side by side (at least 24 columns of file list and 45 of diff).</summary>
+    public const int MinimumWidthForSideBySide = 70;
 
-    private const int MinimumDetailWidth = 36;
+    private const int MinimumDetailWidth = 24;
     private const int MaximumDetailWidth = 60;
 
     /// <summary>Columns of the detail pane next to an open diff, 0 when the diff replaces it.</summary>
@@ -23,7 +24,7 @@ public static class PaneLayout
             return screenWidth;
         }
 
-        return screenWidth < MinimumWidthForSideBySide ? 0 : Math.Clamp(screenWidth * 2 / 5, MinimumDetailWidth, MaximumDetailWidth);
+        return screenWidth < MinimumWidthForSideBySide ? 0 : Math.Clamp(screenWidth / 3, MinimumDetailWidth, MaximumDetailWidth);
     }
 
     /// <summary>The diff shares the detail pane's strip, so screens too short for that strip cannot open it (zoom still shows it).</summary>

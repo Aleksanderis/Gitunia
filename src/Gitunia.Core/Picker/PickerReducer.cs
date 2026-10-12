@@ -25,8 +25,9 @@ public static class PickerReducer
         CompletePathCommand => state.IsPathMode && !state.IsListing ? WithQuery(state, PathCompleter.Complete(state.Query, state.Rows, state.Highlight), context) : state,
         SetMessageCommand message => state with { Message = message.Message },
         ListingCompletedCommand listing => listing.Query == state.Query && state.IsPathMode
-            ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message.Length > 0 ? listing.Message : state.Message, IsListing = false }
+            ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message.Length > 0 ? listing.Message : state.Message, IsListing = false, IsScanningShown = false }
             : state,
+        ShowScanningCommand scanning => scanning.Query == state.Query && state.IsListing ? state with { IsScanningShown = true } : state,
         RefreshRowsCommand => Refresh(state, context),
         _ => state,
     };
@@ -35,7 +36,14 @@ public static class PickerReducer
     private static PickerState WithQuery(PickerState state, string query, PickerContext context)
     {
         var isPath = PathQuery.IsPath(query);
-        return state with { Query = query, Rows = isPath ? [] : PickerRowBuilder.Build(query, context), Highlight = 0, Message = string.Empty, IsListing = isPath };
+        if (!isPath)
+        {
+            return state with { Query = query, Rows = PickerRowBuilder.Build(query, context), Highlight = 0, Message = string.Empty, IsListing = false, IsScanningShown = false };
+        }
+
+        // Previous path rows stay (and the highlight with them, clamped) until the new listing arrives, so typing does not flicker.
+        var rows = state.IsPathMode ? state.Rows : [];
+        return state with { Query = query, Rows = rows, Highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1)), Message = string.Empty, IsListing = true, IsScanningShown = false };
     }
 
     private static PickerState Refresh(PickerState state, PickerContext context)

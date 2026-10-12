@@ -42,3 +42,6 @@ public sealed record ScanProgressCommand(int Generation, ImmutableArray<int> Mat
 /// <param name="LoadedCount">Rows loaded now.</param>
 /// <param name="LoadComplete">The log has finished loading.</param>
 public sealed record GraphGrewCommand(int LoadedCount, bool LoadComplete) : GraphSearchCommand;
+
+/// <summary>The graph was replaced by a refreshed log: matches and scan progress are stale and the scan starts over.</summary>
+public sealed record GraphReplacedCommand(int LoadedCount) : GraphSearchCommand;

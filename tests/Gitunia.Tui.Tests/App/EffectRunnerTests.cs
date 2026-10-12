@@ -46,6 +46,60 @@ public class EffectRunnerTests
         Assert.Equal(1, effects.SessionOf(secondId)!.Graph.Count);
     }
 
+    [Fact]
+    public async Task GivenWatchedTab_WhenGitChangesExternally_ThenGraphAndTabStateFollow()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
+        var tabId = update.Workspace.Tabs[0].Id;
+        var host = new WorkspaceHost(Workspace.Empty);
+        var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
+        using var effects = new EffectRunner(runner, host, InlineUi.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: options);
+        host.Restore(update);
+        var session = effects.SessionOf(tabId)!;
+        await WaitUntilAsync(() => !session.IsLoading);
+        await WaitUntilAsync(() => host.Workspace.FindTab(tabId)!.Status is not null && host.Workspace.FindTab(tabId)!.Worktrees.Length > 0);
+        var replaced = 0;
+        session.GraphReplaced += () => replaced++;
+
+        repository.Commit("second", ("b.txt", "2"));
+        await WaitUntilAsync(() => session.Graph.Count == 2);
+        repository.WriteFile("a.txt", "changed");
+        await WaitUntilAsync(() => host.Workspace.FindTab(tabId)!.Status!.IsDirty);
+        repository.Git("stash", "push");
+        await WaitUntilAsync(() => host.Workspace.FindTab(tabId)!.Stashes.Length == 1);
+        repository.CheckoutNewBranch("topic");
+        await WaitUntilAsync(() => host.Workspace.FindTab(tabId)!.Head!.BranchName == "topic");
+
+        Assert.False(host.Workspace.FindTab(tabId)!.Status!.IsDirty);
+        Assert.Equal(2, replaced);
+    }
+
+    [Fact]
+    public async Task GivenLoadedTab_WhenRefreshingManually_ThenGraphIsReloaded()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
+        var tabId = update.Workspace.Tabs[0].Id;
+        var host = new WorkspaceHost(Workspace.Empty);
+        using var effects = new EffectRunner(runner, host, InlineUi.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        host.Restore(update);
+        var session = effects.SessionOf(tabId)!;
+        await WaitUntilAsync(() => !session.IsLoading);
+        var replaced = 0;
+        session.GraphReplaced += () => replaced++;
+
+        Assert.True(effects.Refresh(tabId));
+
+        await WaitUntilAsync(() => replaced == 1);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         var deadline = DateTime.UtcNow.AddSeconds(30);

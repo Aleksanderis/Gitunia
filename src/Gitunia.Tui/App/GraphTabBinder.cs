@@ -15,6 +15,8 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     private TabId? shownTabId;
     private TabSession? shownSession;
     private bool restorePending;
+    private int itemBeforeReplace;
+    private int rowBeforeReplace;
 
     /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
     public event Action<TabSession?, TabSession?>? Switched;
@@ -40,6 +42,8 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         if (previousSession is not null)
         {
             previousSession.Changed -= OnSessionChanged;
+            previousSession.GraphReplacing -= OnGraphReplacing;
+            previousSession.GraphReplaced -= OnGraphReplaced;
         }
 
         shownSession = activeId is { } id ? effects.SessionOf(id) : null;
@@ -53,6 +57,8 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
             if (shownSession is not null)
             {
                 shownSession.Changed += OnSessionChanged;
+                shownSession.GraphReplacing += OnGraphReplacing;
+                shownSession.GraphReplaced += OnGraphReplaced;
                 TryRestore();
             }
         }
@@ -63,6 +69,47 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
         GraphChanged?.Invoke();
         redraw();
+    }
+
+    private void OnGraphReplacing()
+    {
+        itemBeforeReplace = graph.SelectedItem ?? 0;
+        rowBeforeReplace = Math.Max(0, itemBeforeReplace - graph.Viewport.Y);
+    }
+
+    // A refreshed log keeps the selected commit selected and on the same screen row; when the commit is gone the old position stays.
+    private void OnGraphReplaced()
+    {
+        if (shownSession is not { } session)
+        {
+            return;
+        }
+
+        var count = session.Source.Count;
+        var wanted = host.Workspace.ActiveTab?.View.SelectedCommit;
+        var index = wanted is { } commit ? session.Graph.IndexOf(commit) : -1;
+        var item = index >= 0 ? index + ScreenLayout.ReservedLeadingRows : Math.Min(itemBeforeReplace, Math.Max(0, count - 1));
+        var top = Math.Clamp(item - rowBeforeReplace, 0, Math.Max(0, count - graph.Viewport.Height));
+        IsSuspended = index >= 0 || wanted is null;
+        try
+        {
+            graph.SelectedItem = item;
+            graph.Viewport = graph.Viewport with { Y = top };
+        }
+        finally
+        {
+            IsSuspended = false;
+        }
+
+        // The selected commit is gone: the row now shows another one, so the saved selection must follow even when the list raised no event.
+        if (index < 0 && wanted is not null && host.Workspace.ActiveTabId is { } tabId)
+        {
+            var commitIndex = item - ScreenLayout.ReservedLeadingRows;
+            if (commitIndex >= 0 && commitIndex < session.Graph.Count)
+            {
+                host.Dispatch(new TabCommand(tabId, new SelectCommitCommand(session.Graph[commitIndex].Id)));
+            }
+        }
     }
 
     private void OnSessionChanged()

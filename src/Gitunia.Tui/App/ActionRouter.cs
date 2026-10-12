@@ -14,10 +14,13 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="WorkspaceHost"/> as commands.
 /// </summary>
-public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses)
+public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
+
+    /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
+    public Func<bool>? Refresh { get; set; }
 
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
@@ -39,6 +42,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.StatusDismiss)
         {
             statuses.Dismiss();
+            return;
+        }
+
+        if (action == ActionIds.RepoRefresh)
+        {
+            Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
             return;
         }
 
@@ -81,6 +90,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         else if (action == ActionIds.GraphJumpToHead)
         {
             JumpToHead();
+        }
+        else if (action == ActionIds.GraphCopyHash && FocusedPane == PaneKind.Graph)
+        {
+            CopySelectedHash();
         }
         else if (action == ActionIds.GraphOpenDetails)
         {
@@ -142,6 +155,20 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         list.SelectedItem = item;
         list.EnsureSelectedItemVisible();
+    }
+
+    private void CopySelectedHash()
+    {
+        var session = activeSession();
+        var commitIndex = graphList.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        if (session is null || commitIndex < 0 || commitIndex >= session.Graph.Count)
+        {
+            Message = "No commit selected";
+            return;
+        }
+
+        var hash = session.Graph[commitIndex].Id.ToString();
+        clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
     }
 
     private void JumpToHead()

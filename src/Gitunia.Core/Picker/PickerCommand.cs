@@ -39,3 +39,6 @@ public sealed record RefreshRowsCommand : PickerCommand;
 /// <param name="Rows">The directory candidates.</param>
 /// <param name="Message">A notice such as a timeout, empty when none.</param>
 public sealed record ListingCompletedCommand(string Query, ImmutableArray<PickerRow> Rows, string Message = "") : PickerCommand;
+
+/// <summary>The listing of <paramref name="Query"/> is slow enough to show the scanning notice.</summary>
+public sealed record ShowScanningCommand(string Query) : PickerCommand;
