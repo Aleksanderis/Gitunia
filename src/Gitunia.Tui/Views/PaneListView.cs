@@ -26,12 +26,19 @@ public sealed class PaneListView : ListView
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
-        if (mouse.Flags.HasFlag(MouseFlags.LeftButtonReleased) && App?.Mouse.IsGrabbed(this) == true)
+        if (IsSuppressed())
         {
-            App.Mouse.UngrabMouse();
+            // Not acted on here (not even by the toolkit: no focus, no selection); the application may still use the wheel and the click for the overlay on top.
+            if (MouseFlagTranslator.TryTranslate(mouse.Flags, out var suppressedGesture))
+            {
+                GestureRaised?.Invoke(suppressedGesture, null);
+            }
+
+            return true;
         }
 
         var phase = mouse.Position is { } position ? drag.Feed(mouse.Flags, position.X, position.Y) : DragPhase.None;
+        DragGrab.Update(this, mouse.Flags, phase);
         if (phase != DragPhase.None)
         {
             return HandleDrag(phase, mouse);
@@ -40,13 +47,6 @@ public sealed class PaneListView : ListView
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
-        }
-
-        if (IsSuppressed())
-        {
-            // Not acted on here; the application may still send the wheel to the overlay on top.
-            GestureRaised?.Invoke(gesture, null);
-            return true;
         }
 
         FocusPane();
@@ -66,14 +66,8 @@ public sealed class PaneListView : ListView
             return true;
         }
 
-        if (IsSuppressed())
-        {
-            return true;
-        }
-
         if (phase == DragPhase.Press)
         {
-            App?.Mouse.GrabMouse(this);
             return base.OnMouseEvent(mouse);
         }
 

@@ -1,4 +1,3 @@
-using Terminal.Gui.App;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 
@@ -24,17 +23,12 @@ public sealed class EdgeDragHandler
     /// <summary>Handles a mouse event of <paramref name="view"/>; returns true when it was consumed.</summary>
     public bool Handle(View view, Mouse mouse)
     {
-        var mouseGrab = view.App?.Mouse;
-        if (mouse.Flags.HasFlag(MouseFlags.LeftButtonReleased) && mouseGrab?.IsGrabbed(view) == true)
-        {
-            mouseGrab.UngrabMouse();
-        }
-
         var screen = mouse.ScreenPosition;
-        switch (tracker.Feed(mouse.Flags, screen.X, screen.Y))
+        var phase = tracker.Feed(mouse.Flags, screen.X, screen.Y);
+        DragGrab.Update(view, mouse.Flags, phase);
+        switch (phase)
         {
             case DragPhase.Press:
-                mouseGrab?.GrabMouse(view);
                 return true;
             case DragPhase.Start or DragPhase.Move:
                 Dragged?.Invoke(screen.X, screen.Y);

@@ -202,6 +202,12 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             viewName = overlays.ViewName;
         }
 
+        // A click anywhere outside an open overlay closes it, like Esc.
+        if (overlays.State.IsOpen && gesture == MouseGesture.Click)
+        {
+            viewName = DefaultMouseMap.BackdropView;
+        }
+
         // A drag starts a fresh range; a click on a row ends the range (the click moved the cursor, a position).
         if (gesture == MouseGesture.DragStart || (gesture is MouseGesture.Click or MouseGesture.DoubleClick && IsRangePane(viewName)))
         {

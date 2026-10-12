@@ -11,6 +11,9 @@ public static class DefaultMouseMap
     /// <summary>The view of the header bar (the first row); a click opens the command palette, the menu of every action.</summary>
     public const string HeaderView = "Header";
 
+    /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
+    public const string BackdropView = "Backdrop";
+
     /// <summary>The buttons in the diff pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
     public const string DiffPreviousFileButton = "DiffButton.PreviousFile";
 
@@ -44,7 +47,7 @@ public static class DefaultMouseMap
     };
 
     /// <summary>The views of the overlays: their gestures run even though an open overlay otherwise suppresses the panes behind it.</summary>
-    public static IReadOnlyList<string> OverlayViews { get; } = [DefaultKeymap.HelpView, DefaultKeymap.MessagesView, DefaultKeymap.PaletteView];
+    public static IReadOnlyList<string> OverlayViews { get; } = [DefaultKeymap.HelpView, DefaultKeymap.MessagesView, DefaultKeymap.PaletteView, BackdropView];
 
     public static MouseMap Create() => new(CreateBindings(), ViewParents);
 
@@ -67,6 +70,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.HelpView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext),

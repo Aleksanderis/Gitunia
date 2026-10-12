@@ -77,6 +77,18 @@ public class MouseControllerTests
     }
 
     [Fact]
+    public void GivenAnOverlayIsOpen_WhenClickingOutsideIt_ThenItCancelsLikeEsc()
+    {
+        var controller = CreateController();
+        suppressed = true;
+
+        var ran = controller.Handle(DefaultMouseMap.BackdropView, MouseGesture.Click);
+
+        Assert.True(ran);
+        Assert.Equal([(ActionIds.Cancel, (int?)null)], executed);
+    }
+
+    [Fact]
     public void GivenAPaletteIsOpen_WhenClickingAnEntry_ThenTheEntryRuns()
     {
         var controller = CreateController();
