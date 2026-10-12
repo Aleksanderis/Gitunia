@@ -26,7 +26,22 @@ public sealed class TabSession : IDisposable
     /// <summary>Raised after rows were appended or the load state changed.</summary>
     public event Action? Changed;
 
+    /// <summary>Raised just before <see cref="ReplaceGraph"/> changes the rows, so the view can note its selection and scroll.</summary>
+    public event Action? GraphReplacing;
+
+    /// <summary>Raised after <see cref="ReplaceGraph"/> changed the rows, so the view can put its selection and scroll back.</summary>
+    public event Action? GraphReplaced;
+
+    /// <summary>Raised when the initial load ended, successfully or not.</summary>
+    public event Action? LoadFinished;
+
     public TabId TabId { get; }
+
+    /// <summary>Counts graph replacements; lets the search notice that its matches are stale.</summary>
+    public int GraphVersion { get; private set; }
+
+    /// <summary>The <see cref="GraphVersion"/> the search last scanned.</summary>
+    public int SearchGraphVersion { get; set; }
 
     public CommitGraph Graph { get; }
 
@@ -68,10 +83,22 @@ public sealed class TabSession : IDisposable
         Changed?.Invoke();
     }
 
+    /// <summary>Swaps in a refreshed log in one step.</summary>
+    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries)
+    {
+        GraphReplacing?.Invoke();
+        Graph.Replace(entries);
+        GraphVersion++;
+        Source.NotifyAppended();
+        GraphReplaced?.Invoke();
+        Changed?.Invoke();
+    }
+
     public void Complete()
     {
         IsLoading = false;
         Changed?.Invoke();
+        LoadFinished?.Invoke();
     }
 
     public void Fail(string message)
@@ -79,6 +106,7 @@ public sealed class TabSession : IDisposable
         IsLoading = false;
         LoadError = message;
         Changed?.Invoke();
+        LoadFinished?.Invoke();
     }
 
     public void Dispose()

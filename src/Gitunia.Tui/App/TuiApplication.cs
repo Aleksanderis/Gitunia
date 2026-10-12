@@ -86,6 +86,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome);
         router.Diff = diffPane;
+        router.Refresh = () => host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
         binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
@@ -154,6 +155,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     public void Dispose()
     {
         whichKeyTimer?.Dispose();
+        effects?.Dispose();
         view?.Dispose();
     }
 

@@ -306,4 +306,27 @@ public class GraphSearchReducerTests
 
         Assert.Equal([new RevealMatchEffect(100_000)], Step(state, true, 1, 99_999));
     }
+
+    [Fact]
+    public void GivenScannedSearch_WhenTheGraphIsReplaced_ThenMatchesResetAndANewScanStarts()
+    {
+        var state = Scanned("fix", 10, 2, 5);
+
+        var update = GraphSearchReducer.Reduce(state, new GraphReplacedCommand(12));
+
+        Assert.Empty(update.State.Matches);
+        Assert.Equal(0, update.State.Scanned);
+        Assert.False(update.State.IsComplete);
+        Assert.Equal(state.Generation + 1, update.State.Generation);
+        Assert.Equal(update.State.Generation, Assert.IsType<ScanSearchEffect>(Assert.Single(update.Effects)).Generation);
+    }
+
+    [Fact]
+    public void GivenNoQuery_WhenTheGraphIsReplaced_ThenNothingChanges()
+    {
+        var update = GraphSearchReducer.Reduce(GraphSearchState.Initial, new GraphReplacedCommand(3));
+
+        Assert.Equal(GraphSearchState.Initial, update.State);
+        Assert.Empty(update.Effects);
+    }
 }
