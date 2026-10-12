@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Sidebar;
 using Gitunia.Git;
 
 namespace Gitunia.Core.Workspaces;
@@ -9,6 +10,9 @@ namespace Gitunia.Core.Workspaces;
 /// <param name="Head">What HEAD points at, null until loaded.</param>
 /// <param name="Refs">Branches and tags, empty until loaded.</param>
 /// <param name="View">Selection, scroll, filter and focus.</param>
+/// <param name="Worktrees">The repository's worktrees, empty until loaded.</param>
+/// <param name="Stashes">The stash stack, newest first, empty until loaded.</param>
+/// <param name="Sidebar">Folded sections, name filter and cursor of the sidebar.</param>
 /// <param name="IsMissing">The repository directory disappeared; the tab stays so the user can locate or close it.</param>
 /// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
 public sealed record RepoState(
@@ -17,6 +21,9 @@ public sealed record RepoState(
     HeadState? Head,
     ImmutableArray<GitRef> Refs,
     RepoViewState View,
+    ImmutableArray<WorktreeInfo> Worktrees,
+    ImmutableArray<StashEntry> Stashes,
+    SidebarState Sidebar,
     bool IsMissing,
     RepoStatusSummary? Status = null)
 {
@@ -36,5 +43,5 @@ public sealed record RepoState(
 
     /// <summary>A newly opened tab with nothing loaded yet.</summary>
     public static RepoState Create(TabId id, RepositoryLocation location) =>
-        new(id, location, null, [], RepoViewState.Initial, false);
+        new(id, location, null, [], RepoViewState.Initial, [], [], SidebarState.Initial, false);
 }

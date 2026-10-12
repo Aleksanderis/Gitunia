@@ -49,12 +49,12 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
             execute(action, result.Count);
         }
 
-        if (result.Outcome == KeyOutcome.TextInput || (result.Outcome == KeyOutcome.Unbound && state.Mode == KeyMode.Command))
+        if (result.Outcome == KeyOutcome.TextInput || (result.Outcome == KeyOutcome.Unbound && state.Mode is KeyMode.Command or KeyMode.Insert))
         {
             TextKeyPressed?.Invoke(keyEvent);
         }
 
         PendingChanged?.Invoke();
-        return result.Outcome != KeyOutcome.Unbound || state.Mode == KeyMode.Command;
+        return result.Outcome != KeyOutcome.Unbound || state.Mode is KeyMode.Command or KeyMode.Insert;
     }
 }

@@ -22,6 +22,14 @@ public enum SegmentRole
 
     /// <summary>A failure notice.</summary>
     Error,
+    /// <summary>A sidebar section title.</summary>
+    SectionTitle,
+
+    /// <summary>The line between panes while neither side has focus.</summary>
+    Border,
+
+    /// <summary>The line between panes while the pane beside it has focus.</summary>
+    FocusedBorder,
     /// <summary>A file the commit added.</summary>
     FileAdded,
 

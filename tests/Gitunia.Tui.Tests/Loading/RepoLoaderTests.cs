@@ -4,6 +4,7 @@ using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Tests.App;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading;
@@ -25,7 +26,7 @@ public class RepoLoaderTests
         session.Changed += () => changes++;
 
         // Posting runs the action inline; the test thread owns the host and session while it awaits the load.
-        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
         Assert.Equal(string.Empty, session.LoadError);
@@ -49,7 +50,7 @@ public class RepoLoaderTests
         using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
-        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
 
         Assert.True(session.IsLoading);
         Assert.Equal(0, session.Graph.Count);

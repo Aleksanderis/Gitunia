@@ -17,6 +17,7 @@ public static class RepoLoader
     {
         var repo = new Repo(runner, location);
         var metadata = LoadMetadataAsync(repo, session.TabId, host, postToUi, token);
+        var sidebarData = SidebarDataLoader.LoadAsync(repo, session.TabId, host, postToUi, token);
         try
         {
             await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, null, token).ConfigureAwait(false))
@@ -37,6 +38,7 @@ public static class RepoLoader
         }
 
         await metadata.ConfigureAwait(false);
+        await sidebarData.ConfigureAwait(false);
     }
 
     private static async Task LoadMetadataAsync(Repo repo, TabId tabId, WorkspaceHost host, Action<Action> postToUi, CancellationToken token)
