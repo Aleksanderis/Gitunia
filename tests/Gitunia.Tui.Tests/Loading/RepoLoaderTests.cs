@@ -112,6 +112,8 @@ public class RepoLoaderTests
         var texts = statuses.Log.History.Select(message => message.Text).ToList();
         Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));
         Assert.Contains(texts, text => text.Contains("could not read the stashes", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.Contains(": could not load the graph:", StringComparison.Ordinal));
+        Assert.NotEqual(string.Empty, session.LoadError);
         Assert.All(statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
     }
 }
