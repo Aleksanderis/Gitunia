@@ -17,6 +17,7 @@ namespace Gitunia.Tui.App;
 public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
     private readonly StatusActionHandler statusActions = new(statuses, activeSession);
+    private readonly DetailPathCopier pathCopier = new(clipboard);
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -186,7 +187,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     }
 
     private void CopySelectedPath() =>
-        Message = new DetailPathCopier(clipboard).Copy(activeSession()?.DetailSource, detailList.SelectedItem);
+        Message = pathCopier.Copy(activeSession()?.DetailSource, detailList.SelectedItem);
 
     private void JumpToHead()
     {

@@ -391,6 +391,8 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffToggleWrap);
         harness.Execute(ActionIds.ListBottom);
         var source = harness.Session.Diff!.Source;
+
+        // The 150-character line wraps in the 60-wide pane, so the bottom item is a continuation line.
         Assert.True(harness.DiffList.SelectedItem > source.LineOf(source.RowOf(harness.DiffList.SelectedItem!.Value)));
 
         harness.Execute(ActionIds.DiffCopyLine);

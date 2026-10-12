@@ -68,6 +68,7 @@ public class SidebarActionHandlerTests
         Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
 
         Assert.NotNull(row.Path);
+        Assert.True(Path.IsPathRooted(row.Path));
         Assert.Equal(Path.GetFileName(worktreePath), Path.GetFileName(row.Path));
         Assert.Equal(Osc52Sequence(row.Path), harness.Clipboard.ToString());
     }
