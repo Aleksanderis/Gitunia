@@ -68,7 +68,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
     {
         var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
-        var isFocused = host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Detail;
+        var isFocused = view.Detail.HasFocus;
         return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
     }
 

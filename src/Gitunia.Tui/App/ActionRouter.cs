@@ -50,7 +50,8 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         }
     }
 
-    private PaneKind FocusedPane => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
+    // The toolkit's focus is the truth (a mouse click moves it without us), the tab's FocusedPane is kept in step by FocusPane.
+    private PaneKind FocusedPane => detailList.HasFocus ? PaneKind.Detail : PaneKind.Graph;
 
     private void FocusPane(PaneKind pane, ListView list)
     {

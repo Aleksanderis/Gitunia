@@ -79,7 +79,7 @@ public sealed class CommitDetailsStore : IDisposable
         {
             // A newer selection (or the tab closing) made this load obsolete.
         }
-        catch (Exception exception) when (exception is GitException or IOException)
+        catch (Exception exception)
         {
             postToUi(() => Complete(commit, null, exception.Message, token));
         }
