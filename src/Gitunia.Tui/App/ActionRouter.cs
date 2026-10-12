@@ -22,10 +22,16 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
-    /// <summary>The keymap view of the focused pane (<c>Graph</c> or <c>Detail</c>).</summary>
-    public string ViewName => host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar
-        ? DefaultKeymap.SidebarView
-        : FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView;
+    /// <summary>The diff pane's controller, which gets the actions after the sidebar and before the graph and detail lists.</summary>
+    public DiffPaneController? Diff { get; set; }
+
+    /// <summary>The keymap view of the focused pane (<c>Graph</c>, <c>Detail</c>, <c>Sidebar</c> or <c>Diff</c>).</summary>
+    public string ViewName => host.Workspace.ActiveTab?.View.FocusedPane switch
+    {
+        PaneKind.Sidebar => DefaultKeymap.SidebarView,
+        PaneKind.Diff => DefaultKeymap.DiffView,
+        _ => FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView,
+    };
 
     public void Execute(ActionId action, int? count)
     {
@@ -45,6 +51,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (sidebar.TryHandle(action, count))
         {
             Message = sidebar.Message;
+            return;
+        }
+
+        if (Diff?.TryExecute(action, count) == true)
+        {
+            Message = Diff.Notice;
             return;
         }
 

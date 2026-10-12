@@ -64,7 +64,8 @@ public sealed class EffectRunner
             previous.Dispose();
         }
 
-        var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(new Repo(runner, tab.Location), postToUi, detailDebounce));
+        var repo = new Repo(runner, tab.Location);
+        var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(repo, postToUi, detailDebounce), new DiffStore(repo, postToUi));
         sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, statuses, postToUi, token), CancellationToken.None);

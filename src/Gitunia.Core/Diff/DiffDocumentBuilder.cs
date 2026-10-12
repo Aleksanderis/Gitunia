@@ -1,0 +1,111 @@
+using System.Globalization;
+using Gitunia.Git;
+
+namespace Gitunia.Core.Diff;
+
+/// <summary>Flattens parsed <see cref="DiffFile"/>s into the rows of a <see cref="DiffDocument"/>, one file at a time so a stream can feed it.</summary>
+public sealed class DiffDocumentBuilder
+{
+    private readonly List<DiffRow> rows = [];
+    private readonly List<int> hunkRows = [];
+    private readonly List<int> fileRows = [];
+    private readonly List<IReadOnlyList<string>> filePaths = [];
+    private int maximumLineNumber;
+
+    /// <summary>Rows added so far.</summary>
+    public int RowCount => rows.Count;
+
+    /// <summary>The mark and path text of a file header, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
+    public static string DescribeFile(DiffFile file)
+    {
+        var mark = file.Status switch
+        {
+            DiffFileStatus.Added => "A",
+            DiffFileStatus.Deleted => "D",
+            DiffFileStatus.Renamed => "R" + file.Similarity?.ToString(CultureInfo.InvariantCulture),
+            DiffFileStatus.Copied => "C" + file.Similarity?.ToString(CultureInfo.InvariantCulture),
+            _ => "M",
+        };
+        return file.Status is DiffFileStatus.Renamed or DiffFileStatus.Copied && file.OldPath is { } oldPath
+            ? $"{mark} {oldPath} -> {file.Path}"
+            : $"{mark} {file.Path}";
+    }
+
+    public void Add(DiffFile file)
+    {
+        var fileIndex = fileRows.Count;
+        fileRows.Add(rows.Count);
+        filePaths.Add(file.OldPath is { } oldPath && oldPath != file.Path ? [file.Path, oldPath] : [file.Path]);
+        rows.Add(new DiffRow(DiffRowKind.FileHeader, DescribeFile(file), null, null, fileIndex));
+        AddNotes(file, fileIndex);
+        foreach (var hunk in file.Hunks)
+        {
+            hunkRows.Add(rows.Count);
+            rows.Add(new DiffRow(DiffRowKind.HunkHeader, hunk.HeaderText, null, null, fileIndex));
+            foreach (var line in hunk.Lines)
+            {
+                var kind = line.Kind switch
+                {
+                    DiffLineKind.Added => DiffRowKind.Added,
+                    DiffLineKind.Removed => DiffRowKind.Removed,
+                    _ => DiffRowKind.Context,
+                };
+                rows.Add(new DiffRow(kind, line.Text, line.OldLineNumber, line.NewLineNumber, fileIndex));
+                maximumLineNumber = Math.Max(maximumLineNumber, Math.Max(line.OldLineNumber ?? 0, line.NewLineNumber ?? 0));
+                if (line.NoNewlineAtEnd)
+                {
+                    rows.Add(new DiffRow(DiffRowKind.NoNewline, "No newline at end of file", null, null, fileIndex));
+                }
+            }
+        }
+    }
+
+    /// <summary>Adds a closing remark row, for example that the diff was cut short.</summary>
+    public void AddTrailingNote(string text) => rows.Add(new DiffRow(DiffRowKind.Note, text, null, null, fileRows.Count - 1));
+
+    /// <param name="warnings">Parser warnings; they become rows above the first file.</param>
+    public DiffDocument Build(IReadOnlyCollection<string> warnings)
+    {
+        var all = new List<DiffRow>(warnings.Count + rows.Count);
+        all.AddRange(warnings.Select(warning => new DiffRow(DiffRowKind.Warning, warning, null, null, -1)));
+        all.AddRange(rows);
+        var shift = warnings.Count;
+        return new DiffDocument(
+            all,
+            [.. hunkRows.Select(row => row + shift)],
+            [.. fileRows.Select(row => row + shift)],
+            filePaths,
+            maximumLineNumber);
+    }
+
+    private void AddNotes(DiffFile file, int fileIndex)
+    {
+        if (file.IsBinary)
+        {
+            rows.Add(Note("Binary file, content not shown", fileIndex));
+        }
+
+        if (file.IsModeChange)
+        {
+            rows.Add(Note($"mode {file.OldMode} -> {file.NewMode}", fileIndex));
+        }
+
+        if (!file.IsBinary && file.Hunks.Count == 0)
+        {
+            var text = file.Status switch
+            {
+                DiffFileStatus.Renamed => "Renamed without content changes",
+                DiffFileStatus.Copied => "Copied without content changes",
+                DiffFileStatus.Added => "Empty file added",
+                DiffFileStatus.Deleted => "Empty file deleted",
+                _ => file.IsModeChange ? string.Empty : "No content changes",
+            };
+            if (text.Length > 0)
+            {
+                rows.Add(Note(text, fileIndex));
+            }
+        }
+    }
+
+    private static DiffRow Note(string text, int fileIndex) => new(DiffRowKind.Note, text, null, null, fileIndex);
+}

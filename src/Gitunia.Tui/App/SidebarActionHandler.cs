@@ -25,6 +25,12 @@ public sealed class SidebarActionHandler(
     private bool isEditingFilter;
     private TabId editingTabId;
 
+    /// <summary>The graph is shown (it is hidden while the detail or diff pane is zoomed).</summary>
+    public Func<bool> IsGraphVisible { get; set; } = () => true;
+
+    /// <summary>The diff pane is shown.</summary>
+    public Func<bool> IsDiffVisible { get; set; } = () => false;
+
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
@@ -126,7 +132,11 @@ public sealed class SidebarActionHandler(
 
     private List<PaneKind> OpenPanes()
     {
-        var panes = new List<PaneKind> { PaneKind.Graph };
+        var panes = new List<PaneKind>();
+        if (IsGraphVisible())
+        {
+            panes.Add(PaneKind.Graph);
+        }
         if (isSidebarVisible())
         {
             panes.Insert(0, PaneKind.Sidebar);
@@ -135,6 +145,11 @@ public sealed class SidebarActionHandler(
         if (isDetailVisible())
         {
             panes.Add(PaneKind.Detail);
+        }
+
+        if (IsDiffVisible())
+        {
+            panes.Add(PaneKind.Diff);
         }
 
         return panes;

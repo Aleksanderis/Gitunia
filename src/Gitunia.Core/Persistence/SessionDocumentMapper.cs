@@ -30,7 +30,8 @@ public static class SessionDocumentMapper
                 SelectedCommit = tab.View.SelectedCommit?.ToString(),
                 ScrollOffset = tab.View.ScrollOffset,
                 FilterText = tab.View.FilterText,
-                FocusedPane = tab.View.FocusedPane.ToString(),
+                // The diff pane is not open after a restart, so a tab that had it focused comes back on the file list.
+                FocusedPane = (tab.View.FocusedPane == PaneKind.Diff ? PaneKind.Detail : tab.View.FocusedPane).ToString(),
             });
         }
 

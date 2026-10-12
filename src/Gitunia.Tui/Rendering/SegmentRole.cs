@@ -47,4 +47,16 @@ public enum SegmentRole
 
     /// <summary>Text that matches the active graph search.</summary>
     SearchMatch,
+
+    /// <summary>An added line of a diff.</summary>
+    DiffAdded,
+
+    /// <summary>A removed line of a diff.</summary>
+    DiffRemoved,
+
+    /// <summary>The <c>@@</c> line of a hunk.</summary>
+    DiffHunk,
+
+    /// <summary>The line that starts a file in a diff.</summary>
+    DiffFile,
 }
