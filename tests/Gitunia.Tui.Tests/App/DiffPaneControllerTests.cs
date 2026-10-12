@@ -409,23 +409,13 @@ public class DiffPaneControllerTests
 
         public async Task WaitForDiffAsync()
         {
-            var deadline = DateTime.UtcNow.AddSeconds(30);
-            while (Session.Diff!.Store.Status != DiffStatus.Loaded)
-            {
-                Assert.True(DateTime.UtcNow < deadline, "the diff did not load");
-                await Task.Delay(10, Token);
-            }
+            await WaitForAsync(handler => Session.Diff!.Store.Changed += handler, handler => Session.Diff!.Store.Changed -= handler, () => Session.Diff!.Store.Status == DiffStatus.Loaded, "the diff did not load");
         }
 
         public async Task SelectCommitAsync(ObjectId commit)
         {
             Session.Details.Select(commit);
-            var deadline = DateTime.UtcNow.AddSeconds(30);
-            while (Session.Details.Current.Status != CommitDetailsStatus.Loaded || Session.Details.Current.Commit != commit)
-            {
-                Assert.True(DateTime.UtcNow < deadline, "the details did not load");
-                await Task.Delay(10, Token);
-            }
+            await WaitForAsync(handler => Session.Details.Changed += handler, handler => Session.Details.Changed -= handler, () => Session.Details.Current.Status == CommitDetailsStatus.Loaded && Session.Details.Current.Commit == commit, "the details did not load");
         }
 
         public void Dispose()
@@ -441,15 +431,37 @@ public class DiffPaneControllerTests
                 ("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
                 ("b.txt", "b changed\n"));
 
+        private static async Task WaitForAsync(Action<Action> subscribe, Action<Action> unsubscribe, Func<bool> condition, string message)
+        {
+            var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnChanged()
+            {
+                if (condition())
+                {
+                    signal.TrySetResult();
+                }
+            }
+
+            subscribe(OnChanged);
+            try
+            {
+                OnChanged();
+                await signal.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                Assert.Fail(message);
+            }
+            finally
+            {
+                unsubscribe(OnChanged);
+            }
+        }
+
         private async Task ShowDetailsOfAsync(ObjectId commit)
         {
             Session.Details.Select(commit);
-            var deadline = DateTime.UtcNow.AddSeconds(30);
-            while (Session.Details.Current.Status != CommitDetailsStatus.Loaded)
-            {
-                Assert.True(DateTime.UtcNow < deadline, "the details did not load");
-                await Task.Delay(10, Token);
-            }
+            await WaitForAsync(handler => Session.Details.Changed += handler, handler => Session.Details.Changed -= handler, () => Session.Details.Current.Status == CommitDetailsStatus.Loaded, "the details did not load");
 
             var entry = Session.Graph[0];
             Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current));

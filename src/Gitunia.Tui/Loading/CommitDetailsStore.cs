@@ -16,6 +16,7 @@ public sealed class CommitDetailsStore : IDisposable
     private readonly Repo repo;
     private readonly Action<Action> postToUi;
     private readonly TimeSpan debounce;
+    private readonly Func<TimeSpan, CancellationToken, Task> delay;
     private readonly Dictionary<ObjectId, CommitDetails> cache = [];
     private readonly Queue<ObjectId> cacheOrder = new();
     private CancellationTokenSource? pending;
@@ -23,8 +24,10 @@ public sealed class CommitDetailsStore : IDisposable
     /// <param name="repo">The repository the commits belong to.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="debounce">How long a selection must stay put before git is asked.</param>
-    public CommitDetailsStore(Repo repo, Action<Action> postToUi, TimeSpan debounce)
+    /// <param name="delay">Waits out the debounce; tests inject one they control, the default is <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</param>
+    public CommitDetailsStore(Repo repo, Action<Action> postToUi, TimeSpan debounce, Func<TimeSpan, CancellationToken, Task>? delay = null)
     {
+        this.delay = delay ?? Task.Delay;
         this.repo = repo;
         this.postToUi = postToUi;
         this.debounce = debounce;
@@ -85,7 +88,7 @@ public sealed class CommitDetailsStore : IDisposable
     {
         try
         {
-            await Task.Delay(debounce, token).ConfigureAwait(false);
+            await delay(debounce, token).ConfigureAwait(false);
             var details = await CommitDetailsReader.ReadAsync(repo, commit, token).ConfigureAwait(false);
             postToUi(() => Complete(commit, details, string.Empty, token));
         }

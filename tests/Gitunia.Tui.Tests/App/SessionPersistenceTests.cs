@@ -87,18 +87,21 @@ public class SessionPersistenceTests
         try
         {
             var store = new SessionStore(directory);
+            var saved = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Directory.CreateDirectory(directory);
+            using var watcher = new FileSystemWatcher(directory);
+            watcher.Created += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
+            watcher.Renamed += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
+            watcher.Changed += (_, _) => { if (File.Exists(store.FilePath)) { saved.TrySetResult(); } };
+            watcher.EnableRaisingEvents = true;
             var host = new WorkspaceHost(Workspace.Empty);
             using var persistence = new SessionPersistence(store, host, TimeSpan.FromMilliseconds(30), new StatusChannel(), action => action());
             persistence.Start();
 
             host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
 
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (!File.Exists(store.FilePath))
-            {
-                Assert.True(DateTime.UtcNow < deadline, "the debounced save never happened");
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
+            await saved.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            Assert.True(File.Exists(store.FilePath));
         }
         finally
         {

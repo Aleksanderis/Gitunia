@@ -146,12 +146,30 @@ public class CommitDetailsStoreTests
         using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));
         var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
         var posted = 0;
-        var store = new CommitDetailsStore(repo, action => { posted++; action(); }, TimeSpan.FromMilliseconds(200));
+        var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var store = new CommitDetailsStore(
+            repo,
+            action => { Interlocked.Increment(ref posted); action(); },
+            TimeSpan.FromMilliseconds(200),
+            async (_, token) =>
+            {
+                waiting.TrySetResult();
+                try
+                {
+                    await Task.Delay(Timeout.Infinite, token);
+                }
+                finally
+                {
+                    cancelled.TrySetResult();
+                }
+            });
         store.Select(IdOf(repository, "HEAD"));
+        await waiting.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
         store.Dispose();
-        await Task.Delay(500, Token);
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
-        Assert.Equal(0, posted);
+        Assert.Equal(0, Volatile.Read(ref posted));
     }
 }

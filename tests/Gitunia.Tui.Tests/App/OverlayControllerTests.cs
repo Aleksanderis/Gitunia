@@ -13,6 +13,7 @@ public sealed class OverlayControllerTests : IDisposable
 {
     private readonly List<ActionId> routed = [];
     private readonly System.Collections.Concurrent.ConcurrentQueue<Action> posted = new();
+    private readonly SemaphoreSlim postedSignal = new(0);
     private readonly KeyController keys;
     private readonly OverlayController overlays;
     private readonly WhichKeyTimer timer;
@@ -24,13 +25,21 @@ public sealed class OverlayControllerTests : IDisposable
         var engine = new KeymapEngine(DefaultKeymap.Create());
         OverlayController? controller = null;
         keys = new KeyController(engine, (action, count) => RouteAction(controller!, action, count));
-        timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action => posted.Enqueue(action));
+        timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        {
+            posted.Enqueue(action);
+            postedSignal.Release();
+        });
         controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView, statuses);
         overlays = controller;
         overlays.Changed += () => changes++;
     }
 
-    public void Dispose() => timer.Dispose();
+    public void Dispose()
+    {
+        timer.Dispose();
+        postedSignal.Dispose();
+    }
 
     private void RunPosted()
     {
@@ -231,7 +240,7 @@ public sealed class OverlayControllerTests : IDisposable
     {
         Press(new Key('g'));
         Assert.False(overlays.State.WhichKeyVisible);
-        Assert.True(SpinWait.SpinUntil(() => !posted.IsEmpty, TimeSpan.FromSeconds(5)));
+        Assert.True(postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
         RunPosted();
 
         var shown = overlays.State.WhichKeyVisible;
@@ -249,7 +258,15 @@ public sealed class OverlayControllerTests : IDisposable
     {
         Press(new Key('g'));
         Press(Key.Esc);
-        Thread.Sleep(50);
+
+        // A sentinel timer started after the cancel and with the same delay fires after any late callback of the cancelled one.
+        using var sentinel = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
+        {
+            posted.Enqueue(action);
+            postedSignal.Release();
+        });
+        sentinel.Start(() => { });
+        Assert.True(postedSignal.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
         RunPosted();
 
         Assert.False(overlays.State.WhichKeyVisible);
