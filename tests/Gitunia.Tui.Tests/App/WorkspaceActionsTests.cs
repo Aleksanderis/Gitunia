@@ -62,7 +62,9 @@ public class WorkspaceActionsTests
             host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false)));
         }
 
-        var picker = new PickerController(new GitRunner(), host, Path.GetTempPath(), action => action());
+        // Background results are queued and never run: these tests are synchronous and must not race a scan on another thread.
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var picker = new PickerController(new GitRunner(), host, Path.GetTempPath(), pump.Post);
         return (new WorkspaceActions(host, picker, () => { }), host, picker);
     }
 }

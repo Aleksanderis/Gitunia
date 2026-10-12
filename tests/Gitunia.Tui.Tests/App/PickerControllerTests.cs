@@ -189,6 +189,8 @@ public class PickerControllerTests
         await pump.RunUntilAsync(() => !picker.State!.IsListing);
         release.Set();
 
+        // The cancelled listing posts nothing back (the unobserved pool task cannot be awaited, so this covers the
+        // outcome rather than the guard in isolation): the fresh rows must be intact.
         Assert.Equal("~/fast/", picker.State!.Query);
         Assert.Empty(picker.State.Message);
         Assert.Equal(["fresh"], picker.State.Rows.Select(row => row.Name));
@@ -242,10 +244,11 @@ public class PickerControllerTests
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "late")];
-        });
+        }, TimeSpan.Zero);
         picker.Open();
 
         picker.Apply(new TypeTextCommand("~/"));
+        await pump.RunUntilAsync(() => picker.State!.IsScanningShown);
         await pump.RunUntilAsync(() => !picker.State!.IsListing);
         release.Set();
 
