@@ -19,6 +19,12 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
     public KeyMode Mode => state.Mode;
 
+    /// <summary>
+    /// Gets the keys typed in Insert or Command mode that the keymap does not bind (printable text, <c>Backspace</c>,
+    /// <c>Ctrl-u</c> ...); returns true when it consumed the key.
+    /// </summary>
+    public Func<KeyEvent, bool>? TextKeyHandler { get; set; }
+
     public KeymapState State => state;
 
     /// <summary>Switches the input mode, dropping any pending chord or count.</summary>
@@ -47,6 +53,13 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })
         {
             execute(action, result.Count);
+        }
+        else if (result.Outcome is KeyOutcome.TextInput or KeyOutcome.Unbound
+            && state.Mode is KeyMode.Insert or KeyMode.Command
+            && TextKeyHandler?.Invoke(keyEvent) == true)
+        {
+            PendingChanged?.Invoke();
+            return true;
         }
 
         if (result.Outcome == KeyOutcome.TextInput || (result.Outcome == KeyOutcome.Unbound && state.Mode is KeyMode.Command or KeyMode.Insert))

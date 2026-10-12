@@ -5,6 +5,7 @@ using Gitunia.Platform;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
 
@@ -24,6 +25,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
     private OverlayController overlays = null!;
@@ -55,6 +57,9 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
         overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
+        prompts = CreatePrompts(app);
+        router.Prompts = prompts;
+        keys.TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key));
         var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
         host.Changed += view.RefreshChrome;
@@ -146,7 +151,44 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     }
 
     private ScreenModel CreateModel() =>
-        ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
+        ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem)
+        with
+        {
+            SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
+        };
+
+    // app.Invoke runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
+    private static Action<Action> DeferToNextIteration(IApplication app) => work => app.AddTimeout(
+        TimeSpan.Zero,
+        () =>
+        {
+            work();
+            return false;
+        });
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts(IApplication app)
+    {
+        var handle = new GraphViewHandle(
+            ActiveSession,
+            () => view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1,
+            row =>
+            {
+                view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
+                view.Graph.EnsureSelectedItemVisible();
+            },
+            keys.SetMode,
+            () =>
+            {
+                view.Graph.SetNeedsDraw();
+                view.RefreshChrome();
+            });
+        return
+        [
+            // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
+            new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
+            new SearchController(handle, DeferToNextIteration(app)),
+        ];
+    }
 
     private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
     {
@@ -160,6 +202,11 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         if (view.Graph.SelectedItem is null && (view.Graph.Source?.Count ?? 0) > 0)
         {
             view.Graph.SelectedItem = 0;
+        }
+
+        foreach (var prompt in prompts)
+        {
+            prompt.OnGraphChanged();
         }
 
         view.Graph.SetNeedsDraw();

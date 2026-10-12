@@ -42,4 +42,7 @@ public enum SegmentRole
 
     /// <summary>The keys column of an overlay.</summary>
     OverlayKey,
+
+    /// <summary>Text that matches the active graph search.</summary>
+    SearchMatch,
 }

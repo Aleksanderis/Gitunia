@@ -11,6 +11,7 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="LoadedCount">Rows loaded so far.</param>
 /// <param name="IsLoading">The log is still streaming in.</param>
 /// <param name="Message">A short notice such as "HEAD is not loaded yet", empty when none.</param>
+/// <param name="SearchLine">The open search or prompt (<c>/foo_  3/17</c>), shown instead of the position; empty when none.</param>
 public sealed record ScreenModel(
     string RepositoryName,
     string? BranchName,
@@ -21,4 +22,5 @@ public sealed record ScreenModel(
     int SelectedPosition,
     int LoadedCount,
     bool IsLoading,
-    string Message);
+    string Message,
+    string SearchLine = "");
