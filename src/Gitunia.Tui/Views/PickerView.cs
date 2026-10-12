@@ -1,14 +1,22 @@
+using Gitunia.Core.Mouse;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 
 namespace Gitunia.Tui.Views;
 
-/// <summary>The repo picker area: draws the composed picker and reports clicks on rows (a click highlights, a double-click opens).</summary>
+/// <summary>The repo picker area: draws the composed picker and reports clicks on rows (a click highlights) and the gestures the mouse map decides on.</summary>
 public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : View
 {
-    /// <summary>Raised with the row index and whether it was a double-click.</summary>
-    public event Action<int, bool>? RowClicked;
+    /// <summary>True while something modal owns the screen: mouse input is swallowed.</summary>
+    public Func<bool> IsSuppressed { get; set; } = () => false;
+
+    /// <summary>Raised with the row index when a row is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
+    public event Action<int>? RowClicked;
+
+    /// <summary>Raised for a double-click on a row and for the wheel.</summary>
+    public event Action<MouseGesture>? GestureRaised;
 
     protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
     {
@@ -28,9 +36,23 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
-        var isClick = mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked);
-        var isDoubleClick = mouse.Flags.HasFlag(MouseFlags.LeftButtonDoubleClicked);
-        if ((!isClick && !isDoubleClick) || mouse.Position is not { } position || model().Picker is not { } picker)
+        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
+        {
+            return base.OnMouseEvent(mouse);
+        }
+
+        if (IsSuppressed())
+        {
+            return true;
+        }
+
+        if (gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+        {
+            GestureRaised?.Invoke(gesture);
+            return true;
+        }
+
+        if (mouse.Position is not { } position || model().Picker is not { } picker)
         {
             return base.OnMouseEvent(mouse);
         }
@@ -42,7 +64,11 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             var index = PickerComposer.TopRow(picker.Highlight, listHeight) + listRow;
             if (index < picker.Rows.Length)
             {
-                RowClicked?.Invoke(index, isDoubleClick);
+                RowClicked?.Invoke(index);
+                if (gesture == MouseGesture.DoubleClick)
+                {
+                    GestureRaised?.Invoke(MouseGesture.DoubleClick);
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
@@ -32,6 +33,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private MouseController mouse = null!;
     private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
@@ -109,14 +111,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         keys.PendingChanged += view.RefreshChrome;
         keys.TextKeyPressed += OnTextKey;
         keys.TextKeyPressed += sidebar.OnKey;
-        presenter.Clicked += sidebar.ActivateCursor;
         picker.Changed += OnPickerChanged;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
         view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
         view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
         view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(view.Detail, PaneKind.Detail);
         view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(view.Diff, PaneKind.Diff);
-        view.TabClicked += OnTabClicked;
+        mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
+        view.SuppressMouseWhen(() => overlays.State.IsOpen);
+        view.Gestured += (viewName, gesture, target) => mouse.Handle(viewName, gesture, target);
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
@@ -354,23 +357,12 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.RefreshChrome();
     }
 
-    private void OnTabClicked(int number)
+    // A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.
+    private void OnPickerRowClicked(int index)
     {
-        picker.Close();
-        host.Dispatch(new GoToTabCommand(number));
-    }
-
-    private void OnPickerRowClicked(int index, bool isDoubleClick)
-    {
-        if (picker.State is not { } state)
+        if (picker.State is { } state)
         {
-            return;
-        }
-
-        picker.Apply(new MoveHighlightCommand(index - state.Highlight));
-        if (isDoubleClick)
-        {
-            picker.Accept();
+            picker.Apply(new MoveHighlightCommand(index - state.Highlight));
         }
     }
 
