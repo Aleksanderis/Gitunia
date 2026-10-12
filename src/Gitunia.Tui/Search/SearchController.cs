@@ -39,10 +39,7 @@ public sealed class SearchController(GraphViewHandle view, Action<Action> postTo
         }
 
         // A tab that was in the background while its log kept loading catches up here.
-        if (session.Search.Query is not null)
-        {
-            Dispatch(session, new GraphGrewCommand(session.Graph.Count, !session.IsLoading));
-        }
+        CatchUp(session);
 
         if (action == ActionIds.SearchOpen)
         {
@@ -90,7 +87,24 @@ public sealed class SearchController(GraphViewHandle view, Action<Action> postTo
 
     public void OnGraphChanged()
     {
-        if (view.ActiveSession() is { } session && session.Search.Query is not null)
+        if (view.ActiveSession() is { } session)
+        {
+            CatchUp(session);
+        }
+    }
+
+    private void CatchUp(TabSession session)
+    {
+        if (session.Search.Query is null)
+        {
+            session.SearchGraphVersion = session.GraphVersion;
+        }
+        else if (session.SearchGraphVersion != session.GraphVersion)
+        {
+            session.SearchGraphVersion = session.GraphVersion;
+            Dispatch(session, new GraphReplacedCommand(session.Graph.Count));
+        }
+        else
         {
             Dispatch(session, new GraphGrewCommand(session.Graph.Count, !session.IsLoading));
         }

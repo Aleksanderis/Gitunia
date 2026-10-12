@@ -3,8 +3,8 @@ using Gitunia.Git;
 namespace Gitunia.Core.Graph;
 
 /// <summary>
-/// The rows of one tab's graph, appended while the log streams in. Append-only: rows never change or move, so
-/// an index stays valid while loading continues. Not thread-safe; the owner appends from one thread (the UI thread).
+/// The rows of one tab's graph, appended while the log streams in. Append-only while loading: rows never change or move, so
+/// an index stays valid while loading continues; only a refresh replaces them all at once. Not thread-safe; the owner appends from one thread (the UI thread).
 /// </summary>
 public sealed class CommitGraph
 {
@@ -26,6 +26,14 @@ public sealed class CommitGraph
             entries.Add(entry);
             MaximumLaneCount = Math.Max(MaximumLaneCount, entry.Row.LaneCount);
         }
+    }
+
+    /// <summary>Replaces every row (a refreshed log); the lane width starts over so it can shrink again.</summary>
+    public void Replace(IReadOnlyList<GraphEntry> replacement)
+    {
+        entries.Clear();
+        MaximumLaneCount = 1;
+        AddRange(replacement);
     }
 
     /// <summary>Index of the commit, or -1 when it is not loaded (yet).</summary>

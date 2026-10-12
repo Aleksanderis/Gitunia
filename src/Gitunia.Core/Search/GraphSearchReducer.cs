@@ -22,6 +22,7 @@ public static class GraphSearchReducer
         StepMatchCommand step => Step(state, step),
         ScanProgressCommand progress => Progress(state, progress),
         GraphGrewCommand grew => Grew(state, grew),
+        GraphReplacedCommand => Replaced(state),
         _ => Plain(state),
     };
 
@@ -141,6 +142,17 @@ public static class GraphSearchReducer
         return grew.LoadComplete && !state.IsComplete
             ? Progress(state, new ScanProgressCommand(state.Generation, [], state.Scanned, grew.LoadedCount, true))
             : Plain(state);
+    }
+
+    private static GraphSearchUpdate Replaced(GraphSearchState state)
+    {
+        if (state.Query is null)
+        {
+            return Plain(state);
+        }
+
+        var next = state with { Matches = [], Scanned = 0, IsScanning = true, IsComplete = false, Generation = state.Generation + 1, JumpPending = false };
+        return new GraphSearchUpdate(next, [new ScanSearchEffect(next.Generation)]);
     }
 
     // Jumps to the first match after the anchor; waits for the scan when there is none yet and it is not finished.

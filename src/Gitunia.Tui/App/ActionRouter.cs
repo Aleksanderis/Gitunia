@@ -19,6 +19,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
+    /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
+    public Func<bool>? Refresh { get; set; }
+
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
@@ -39,6 +42,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.StatusDismiss)
         {
             statuses.Dismiss();
+            return;
+        }
+
+        if (action == ActionIds.RepoRefresh)
+        {
+            Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
             return;
         }
 
