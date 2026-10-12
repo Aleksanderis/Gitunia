@@ -23,9 +23,11 @@ public class GraphTabBinderTests
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
         harness.Graph.SelectedItem = 2;
 
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
         repository.Commit("four", ("a.txt", "4"));
         harness.Effects.Refresh(harness.TabId);
-        await WaitUntilAsync(() => harness.Session.Graph.Count == 4);
+        await WaitUntilAsync(() => replaced == 1);
 
         Assert.Equal(3, harness.Graph.SelectedItem);
         Assert.Equal(selected, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
@@ -42,13 +44,41 @@ public class GraphTabBinderTests
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
         harness.Graph.SelectedItem = 0;
 
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
         repository.Git("reset", "--hard", "HEAD~1");
         harness.Effects.Refresh(harness.TabId);
-        await WaitUntilAsync(() => harness.Session.Graph.Count == 2);
+        await WaitUntilAsync(() => replaced == 1);
 
         var current = harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id;
         Assert.NotEqual(selected, current);
         Assert.Equal(current, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenScrolledList_WhenCommitsArriveOnTop_ThenSelectionKeepsItsScreenRow()
+    {
+        using var repository = TestRepository.Create();
+        for (var index = 0; index < 30; index++)
+        {
+            repository.Commit("commit " + index, ("a.txt", index.ToString()));
+        }
+
+        using var harness = await Harness.LoadAsync(repository);
+        var selected = harness.Session.Graph[15].Id;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
+        harness.Graph.SelectedItem = 15;
+        harness.Graph.Viewport = harness.Graph.Viewport with { Y = 10 };
+        var rowBefore = 15 - harness.Graph.Viewport.Y;
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        repository.Commit("new", ("a.txt", "new"));
+        harness.Effects.Refresh(harness.TabId);
+        await WaitUntilAsync(() => replaced == 1);
+
+        Assert.Equal(16, harness.Graph.SelectedItem);
+        Assert.Equal(rowBefore, harness.Graph.SelectedItem - harness.Graph.Viewport.Y);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)

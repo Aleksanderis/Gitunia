@@ -18,11 +18,14 @@ public class TabRefresherTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("a.txt", "1"));
-        using var harness = await Harness.LoadAsync(repository);
+        using var harness = await Harness.LoadAsync(repository, start: false);
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
+        repository.WriteFile("a.txt", "changed");
 
-        await WaitUntilAsync(() => harness.Tab.Status is not null && harness.Tab.Worktrees.Length > 0);
+        harness.Refresher.Start();
+
+        await WaitUntilAsync(() => harness.Tab.Status!.IsDirty);
 
         Assert.Equal(0, replaced);
     }
@@ -129,7 +132,7 @@ public class TabRefresherTests
 
         public RepoState Tab => Host.Workspace.FindTab(TabId)!;
 
-        public static async Task<Harness> LoadAsync(TestRepository repository)
+        public static async Task<Harness> LoadAsync(TestRepository repository, bool start = true)
         {
             var runner = new GitRunner();
             var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
@@ -141,7 +144,11 @@ public class TabRefresherTests
             session.MarkStarted();
             await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             var refresher = new TabRefresher(runner, host, session, location, statuses, InlineUi.Post, new WatchBudget(), FastOptions);
-            refresher.Start();
+            if (start)
+            {
+                refresher.Start();
+            }
+
             return new Harness(host, tabId, session, refresher, statuses);
         }
 

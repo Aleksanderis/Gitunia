@@ -209,6 +209,7 @@ public sealed class TabRefresher : IDisposable
         isRunning = false;
         pending |= kinds;
         forceGraph |= reloadGraph;
+        announce |= isManual;
         if (isDisposed)
         {
             return;
