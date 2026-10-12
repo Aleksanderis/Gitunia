@@ -15,13 +15,17 @@ You are the orchestrator, not the implementer. Each issue is delivered by a suba
 - Lean prompts, never the orchestrator's context: the issue number, the branch name (`feature/<n>-<slug>`), the few docs sections the agent needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, "follow the `work-task` skill and CLAUDE.md", and a request for a report of at most 10 lines.
 - Rate limits: a limit error kills running agents and names the reset time. Launch nothing new and never delete the failed agents' worktrees or branches. After the reset resume the same agent with `SendMessage` (it keeps its context); only if impossible, relaunch it with a prompt that says to continue from its branch's existing commits. Schedule a wake-up for the reset time instead of idling.
 
+## 0. Readiness
+
+Look for a readiness report from the `work-readiness` skill for this milestone (the latest comment containing "Verdict:" on the milestone's tracking issue: the open issue labeled `tracking` in that milestone). If none exists from the last few days, tell the owner to run `/work-readiness <milestone>` first (or run it yourself if the owner said to just go) and stop on a `not ready` verdict. Use the report's suggested batches and answered decisions; do not redo its analysis.
+
 ## 1. Rebuild state from GitHub (never from memory)
 
 Run these, nothing else, to see where things are:
 
 - `gh issue list --state open --milestone "<milestone>" --json number,title,labels,body` and the `Blocked by:` lines (a blocker is closed when `gh issue view <n> --json state` says CLOSED). The `Blocked by:` line is the order.
 - `gh pr list --state open` (work awaiting merge or owner review) and `git worktree list` plus `git branch -a` (unfinished agents; their branches may hold pushed work-in-progress).
-- Skip `spike`, `destructive` and `needs-review` issues as `work-task` says.
+- Skip `spike`, `destructive` and `needs-review` issues as `work-task` says, and never pick the `tracking` issue as work.
 
 If a worktree or feature branch exists for an issue with no merged PR, that issue is in flight: resume it (`work-task`'s rate-limit rules), do not start it over.
 
@@ -45,7 +49,7 @@ Stop when any of these holds: the batch is done, nothing is unblocked, the sessi
 Before ending:
 
 1. Check `git worktree list`, `git branch -a` and `git fetch -p`: nothing of a merged PR may remain, and unmerged work is listed.
-2. Post a status comment as the final message (also on the milestone's tracking issue if one exists): issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
+2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
 3. Tell the owner: "start a new session with `work-orchestrator` to continue" and nothing else is needed, since GitHub holds the state.
 
 ## Rules
