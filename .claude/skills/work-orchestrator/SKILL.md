@@ -53,7 +53,7 @@ Stop when any of these holds: the batch is done, nothing is unblocked, the sessi
 Before ending:
 
 1. Check that every loose end from this session's agent reports is registered as an issue, then check `git worktree list`, `git branch -a` and `git fetch -p`: nothing of a merged PR may remain, and unmerged work is listed.
-2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
+2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing), in the same shape as the readiness report (a short plain-language summary on top, orchestrator details in a collapsed `<details>` block) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
 3. Tell the owner: "start a new session with `work-orchestrator` to continue" and nothing else is needed, since GitHub holds the state.
 
 ## Rules
