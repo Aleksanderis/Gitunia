@@ -11,9 +11,11 @@ public sealed class MainView : IDisposable
     private readonly LineView header;
     private readonly LineView tabs;
     private readonly LineView status;
+    private readonly LineView sidebarFilter;
+    private readonly DividerView divider;
     private readonly LineView detailTitle;
 
-    public MainView(Func<ScreenModel> model, Func<int, StyledLine> detailTitleLine, GraphGlyphSet glyphs)
+    public MainView(Func<ScreenModel> model, Func<int, StyledLine> detailTitleLine, GraphGlyphSet glyphs, SidebarListSource sidebarSource, Func<SidebarChrome> sidebarChrome)
     {
         header = new LineView(width => ChromeBuilder.Header(model(), width, glyphs))
         {
@@ -29,9 +31,36 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        Graph = new ListView
+        Sidebar = new ListView
         {
             X = 0,
+            Y = ScreenLayout.GraphTop,
+            Width = Dim.Func(_ => SidebarWidth),
+            Height = Dim.Func(_ => Math.Max(0, DetailLayout.GraphHeight(ScreenHeight()) - 1)),
+            CanFocus = true,
+            Source = sidebarSource,
+        };
+        sidebarFilter = new LineView(width =>
+        {
+            var chrome = sidebarChrome();
+            return SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, width, glyphs);
+        })
+        {
+            X = 0,
+            Y = Pos.Func(_ => ScreenLayout.GraphTop + Math.Max(0, DetailLayout.GraphHeight(ScreenHeight()) - 1)),
+            Width = Dim.Func(_ => SidebarWidth),
+            Height = 1,
+        };
+        divider = new DividerView(() => SidebarPane.Divider(sidebarChrome().IsFocused, glyphs))
+        {
+            X = Pos.Func(_ => SidebarWidth),
+            Y = ScreenLayout.GraphTop,
+            Width = Dim.Func(_ => SidebarWidth > 0 ? 1 : 0),
+            Height = Dim.Func(_ => DetailLayout.GraphHeight(ScreenHeight())),
+        };
+        Graph = new ListView
+        {
+            X = Pos.Func(_ => ScreenLayout.GraphLeft(ScreenWidth)),
             Y = ScreenLayout.GraphTop,
             Width = Dim.Fill(),
             Height = Dim.Func(_ => DetailLayout.GraphHeight(ScreenHeight())),
@@ -61,12 +90,14 @@ public sealed class MainView : IDisposable
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
-        Window.Add(header, tabs, Graph, detailTitle, Detail, status, Overlay);
+        Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, status, Overlay);
     }
 
     public Window Window { get; }
 
     public ListView Graph { get; }
+
+    public ListView Sidebar { get; }
 
     /// <summary>The commit detail pane below the graph.</summary>
     public ListView Detail { get; }
@@ -77,12 +108,19 @@ public sealed class MainView : IDisposable
     /// <summary>The terminal size in columns and rows.</summary>
     public (int Width, int Height) ScreenSize => (Window.Viewport.Width, Window.Viewport.Height);
 
+    private int ScreenWidth => Window.Viewport.Width;
+
+    private int SidebarWidth => ScreenLayout.SidebarWidth(ScreenWidth);
+
     /// <summary>Redraws the header, tab row and status bar after the model changed.</summary>
     public void RefreshChrome()
     {
         header.SetNeedsDraw();
         tabs.SetNeedsDraw();
         status.SetNeedsDraw();
+        sidebarFilter.SetNeedsDraw();
+        divider.SetNeedsDraw();
+        Sidebar.SetNeedsDraw();
         detailTitle.SetNeedsDraw();
     }
 

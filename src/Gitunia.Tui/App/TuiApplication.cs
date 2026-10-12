@@ -24,6 +24,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private SidebarActionHandler sidebar = null!;
+    private PaneKind appliedFocus = PaneKind.Graph;
     private OverlayController overlays = null!;
     private WhichKeyTimer whichKeyTimer = null!;
 
@@ -36,17 +38,34 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
-        view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs);
-        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop);
+        var sidebarSource = new SidebarListSource(glyphs);
+        sidebar = new SidebarActionHandler(
+            host,
+            sidebarSource,
+            ActiveSession,
+            () => view.Sidebar.Viewport.Height,
+            () => ScreenLayout.SidebarWidth(view.Window.Viewport.Width) > 0,
+            () => DetailLayout.PaneHeight(view.Window.Viewport.Height) > 0,
+            SelectGraphItem,
+            mode => keys.SetMode(mode));
+        view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs, sidebarSource, () => sidebar.Chrome);
+        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar);
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
         overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
+        var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
         host.Changed += view.RefreshChrome;
+        host.Changed += ApplyFocus;
         keys.PendingChanged += view.RefreshChrome;
+        keys.TextKeyPressed += sidebar.OnKey;
+        presenter.Clicked += sidebar.ActivateCursor;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
+        view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
+        view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
+        view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(view.Detail, PaneKind.Detail);
         app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, overlays.ViewName);
 
         host.Dispatch(new OpenRepositoryCommand(location));
@@ -85,6 +104,46 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     }
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
+
+    // The state decides which pane has focus; the toolkit focus follows it (a click goes the other way, see OnPaneFocused).
+    private void ApplyFocus()
+    {
+        var wanted = host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
+        if (wanted == appliedFocus)
+        {
+            return;
+        }
+
+        appliedFocus = wanted;
+        var pane = wanted switch
+        {
+            PaneKind.Sidebar => view.Sidebar,
+            PaneKind.Detail => view.Detail,
+            _ => view.Graph,
+        };
+        if (!pane.HasFocus)
+        {
+            pane.SetFocus();
+        }
+    }
+
+    // A click gave a view the focus: record it in the state so the keymap uses the right view.
+    private void OnPaneFocused(Terminal.Gui.ViewBase.View pane, PaneKind kind)
+    {
+        if (pane.HasFocus && host.Workspace.ActiveTabId is { } tabId && host.Workspace.ActiveTab?.View.FocusedPane != kind)
+        {
+            host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
+        }
+    }
+
+    private void SelectGraphItem(int item)
+    {
+        if ((view.Graph.Source?.Count ?? 0) > item)
+        {
+            view.Graph.SelectedItem = item;
+            view.Graph.EnsureSelectedItemVisible();
+        }
+    }
 
     private ScreenModel CreateModel() =>
         ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
