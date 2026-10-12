@@ -39,7 +39,7 @@ public class PickerComposerTests
                 " Open repository: _",
                 " type to filter, or a path starting with / ~/ ./ ../ (Tab completes)",
                 Sep(" alpha  open            ~/code/alpha"),
-                Sep(" beta   pinned          ~/code/beta"),
+                Sep(" beta   pinned          ~/code/beta").PadRight(62) + "[unpin]",
                 Sep(" gamma  recent          ~/code/gamma"),
                 Sep(" delta  found           ~/code/delta"),
                 string.Empty,
@@ -123,5 +123,44 @@ public class PickerComposerTests
         Assert.StartsWith(" Open repository: _", lines[2].Text, StringComparison.Ordinal);
         Assert.Contains("alpha", lines[4].Text, StringComparison.Ordinal);
         Assert.Contains("Alt-p pin", lines[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenARecentRowHighlighted_WhenComposing_ThenItShowsPinAndRemoveButtonsAtTheRightEdge()
+    {
+        var picker = new PickerState(string.Empty, 0, [Row("alpha", PickerTags.Recent), Row("beta", PickerTags.Recent)], string.Empty, null);
+
+        var lines = PickerComposer.Compose(picker, Home, 80, 6, GraphGlyphSet.Unicode);
+
+        Assert.EndsWith("[pin] [remove] ", lines[2].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[pin]", lines[3].Text, StringComparison.Ordinal);
+        Assert.Equal(80, lines[2].Text.Length);
+    }
+
+    [Fact]
+    public void GivenAPinnedRowHighlighted_WhenLayingOutTheButtons_ThenItOffersUnpinOnly()
+    {
+        var buttons = PickerRowButtons.Layout(Row("beta", PickerTags.Pinned), 80);
+
+        var button = Assert.Single(buttons);
+        Assert.Equal("[unpin]", button.Label);
+        Assert.Equal(Gitunia.Core.Mouse.DefaultMouseMap.PickerPinButton, TitleButton.ViewAt(buttons, button.Start));
+        Assert.Null(TitleButton.ViewAt(buttons, button.Start - 1));
+    }
+
+    [Fact]
+    public void GivenADirectoryOrANarrowScreen_WhenLayingOutTheButtons_ThenThereAreNone()
+    {
+        Assert.Empty(PickerRowButtons.Layout(Row("docs", PickerTags.Directory), 80));
+        Assert.Empty(PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), PickerRowButtons.MinimumWidth - 1));
+    }
+
+    [Fact]
+    public void GivenARecentRow_WhenLayingOutTheButtons_ThenRemoveSitsRightOfPin()
+    {
+        var buttons = PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), 80);
+
+        Assert.Equal([Gitunia.Core.Mouse.DefaultMouseMap.PickerPinButton, Gitunia.Core.Mouse.DefaultMouseMap.PickerRemoveButton], buttons.Select(button => button.View));
+        Assert.True(buttons[1].Start > buttons[0].Start + buttons[0].Width);
     }
 }

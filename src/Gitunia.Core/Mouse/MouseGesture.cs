@@ -14,4 +14,13 @@ public enum MouseGesture
 
     /// <summary>One wheel notch toward the user (the selection moves down).</summary>
     WheelDown,
+
+    /// <summary>The pointer moved with the left button held and left the row it pressed: a range selection starts at that row.</summary>
+    DragStart,
+
+    /// <summary>While dragging, the pointer is above the cursor row; the binding's count is how many rows above.</summary>
+    DragUp,
+
+    /// <summary>While dragging, the pointer is below the cursor row; the binding's count is how many rows below.</summary>
+    DragDown,
 }

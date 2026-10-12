@@ -79,6 +79,16 @@ public static class ActionIds
 
     public static ActionId PaneZoom { get; } = new("pane.zoom");
 
+    public static ActionId PaneWider { get; } = new("pane.wider");
+
+    public static ActionId PaneNarrower { get; } = new("pane.narrower");
+
+    public static ActionId PaneTaller { get; } = new("pane.taller");
+
+    public static ActionId PaneShorter { get; } = new("pane.shorter");
+
+    public static ActionId PaneResetSizes { get; } = new("pane.reset-sizes");
+
     public static ActionId PickerAccept { get; } = new("picker.accept");
 
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");

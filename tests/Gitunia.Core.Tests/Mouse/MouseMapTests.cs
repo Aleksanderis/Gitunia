@@ -106,6 +106,48 @@ public class MouseMapTests
     }
 
     [Fact]
+    public void GivenTheDefaultMap_WhenListingBindings_ThenEveryActionIsReachableByAKeyToo()
+    {
+        var keyed = DefaultKeymap.CreateBindings().Select(binding => binding.Action).ToHashSet();
+
+        var mouseOnly = DefaultMouseMap.CreateBindings()
+            .Where(binding => !keyed.Contains(binding.Action))
+            .Select(binding => $"{binding.View} {binding.Gesture} {binding.Action}")
+            .ToList();
+
+        Assert.Empty(mouseOnly);
+    }
+
+    [Theory]
+    [InlineData(DefaultMouseMap.DiffPreviousFileButton, "[f")]
+    [InlineData(DefaultMouseMap.DiffNextFileButton, "]f")]
+    [InlineData(DefaultMouseMap.DiffPreviousHunkButton, "[c")]
+    [InlineData(DefaultMouseMap.DiffNextHunkButton, "]c")]
+    [InlineData(DefaultMouseMap.DiffWrapButton, "w")]
+    [InlineData(DefaultMouseMap.DiffZoomButton, "<space>z")]
+    [InlineData(DefaultMouseMap.DiffCloseButton, "q")]
+    public void GivenADiffButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
+    {
+        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
+        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.DiffView).Feed(keys);
+
+        Assert.Equal(key.Action, binding?.Action);
+    }
+
+    [Fact]
+    public void GivenADragOnEveryListPane_WhenResolving_ThenItInheritsTheListsBindings()
+    {
+        var map = DefaultMouseMap.Create();
+
+        foreach (var view in new[] { DefaultKeymap.GraphView, DefaultKeymap.DetailView, DefaultKeymap.DiffView })
+        {
+            Assert.Equal(ActionIds.VisualToggle, map.Resolve(view, MouseGesture.DragStart)?.Action);
+            Assert.True(map.Resolve(view, MouseGesture.DragUp)?.UsesTarget);
+            Assert.True(map.Resolve(view, MouseGesture.DragDown)?.UsesTarget);
+        }
+    }
+
+    [Fact]
     public void GivenTheDefaultMap_WhenCheckedForDuplicates_ThenEveryViewAndGestureIsBoundOnce()
     {
         var duplicates = DefaultMouseMap.CreateBindings()

@@ -104,6 +104,24 @@ public sealed class OverlayController
         return true;
     }
 
+    /// <summary>Highlights the palette entry drawn on a line of the overlay frame (a mouse click); false when the line is not an entry.</summary>
+    public bool SelectPaletteEntryAt(int frameLine)
+    {
+        if (State is not { Kind: OverlayKind.Palette, Palette: { } palette })
+        {
+            return false;
+        }
+
+        if (PaletteFrameBuilder.EntryIndexAt(palette, frameLine, screenSize().Height) is not { } index)
+        {
+            return false;
+        }
+
+        State = State.WithPalette(palette with { SelectedIndex = index });
+        Changed?.Invoke();
+        return true;
+    }
+
     private bool OpenFor(ActionId action)
     {
         if (action == ActionIds.HelpShow)

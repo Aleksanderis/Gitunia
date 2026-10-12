@@ -34,6 +34,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private ActionRouter router = null!;
     private KeyController keys = null!;
     private MouseController mouse = null!;
+    private VisualRangeController visual = null!;
     private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
@@ -88,6 +89,23 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome);
         router.Diff = diffPane;
+        visual = new VisualRangeController(
+            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            pane => pane switch
+            {
+                PaneKind.Detail => view.Detail,
+                PaneKind.Diff => view.Diff,
+                PaneKind.Sidebar => view.Sidebar,
+                _ => view.Graph,
+            },
+            () => keys.Mode,
+            mode => keys.SetMode(mode));
+        router.Visual = visual;
+        router.PaneSizes = new PaneSizeController(
+            () => diffPane.Arrangement(),
+            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            () => view.ScreenSize,
+            ApplyPaneSizes);
         router.Refresh = () => host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
@@ -108,6 +126,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         host.Changed += view.RefreshChrome;
         host.Changed += binder.Sync;
         host.Changed += ApplyFocus;
+        host.Changed += visual.EndIfFocusMoved;
         keys.PendingChanged += view.RefreshChrome;
         keys.TextKeyPressed += OnTextKey;
         keys.TextKeyPressed += sidebar.OnKey;
@@ -119,7 +138,12 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(view.Diff, PaneKind.Diff);
         mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
         view.SuppressMouseWhen(() => overlays.State.IsOpen);
-        view.Gestured += (viewName, gesture, target) => mouse.Handle(viewName, gesture, target);
+        view.Gestured += OnGestured;
+        view.EdgeDragged += OnEdgeDragged;
+        view.OverlayLineClicked += OnOverlayLineClicked;
+        view.Graph.ValueChanged += (_, _) => visual.OnCursorMoved();
+        view.Detail.ValueChanged += (_, _) => visual.OnCursorMoved();
+        view.Diff.ValueChanged += (_, _) => visual.OnCursorMoved();
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
@@ -170,6 +194,57 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
     }
 
+    private void OnGestured(string viewName, MouseGesture gesture, int? target)
+    {
+        // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
+        if (overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+        {
+            viewName = overlays.ViewName;
+        }
+
+        // A drag starts a fresh range; a click on a row ends the range (the click moved the cursor, a position).
+        if (gesture == MouseGesture.DragStart || (gesture is MouseGesture.Click or MouseGesture.DoubleClick && IsRangePane(viewName)))
+        {
+            visual.End();
+        }
+
+        mouse.Handle(viewName, gesture, target);
+
+        // A key redraws the chrome through the pending-keys event; a mouse action has no such path (titles, status bar, mode).
+        view.RefreshChrome();
+    }
+
+    private static bool IsRangePane(string viewName) =>
+        viewName is DefaultKeymap.GraphView or DefaultKeymap.DetailView or DefaultKeymap.DiffView;
+
+    private void OnEdgeDragged(PaneEdge edge, int column, int row)
+    {
+        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is not { } diff || diffPane.Arrangement().Zoomed is not null)
+        {
+            return;
+        }
+
+        ApplyPaneSizes(PaneResizer.Drag(diff.Sizes, edge, column, row, view.Window.Viewport.Height));
+    }
+
+    private void ApplyPaneSizes(PaneSizes sizes)
+    {
+        if (ActiveSession()?.Diff is { } diff && diff.Sizes != sizes)
+        {
+            diff.Sizes = sizes;
+            Relayout();
+        }
+    }
+
+    // A click on a palette row highlights it and runs it (the palette is the menu of every action).
+    private void OnOverlayLineClicked(int line)
+    {
+        if (overlays.SelectPaletteEntryAt(line))
+        {
+            mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
+        }
+    }
+
     private void RefreshOverlay()
     {
         view.Overlay.Show(overlays.CurrentFrame());
@@ -179,7 +254,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private PaneRects CurrentPaneRects()
     {
         var arrangement = diffPane.Arrangement();
-        return PaneLayout.Compute(view.Window.Viewport.Width, view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed);
+        return PaneLayout.Compute(view.Window.Viewport.Width, view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
     }
 
     private void Relayout()
@@ -306,6 +381,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             previous.Details.Changed -= RefreshDetail;
         }
 
+        visual.End();
         view.Detail.Source = current?.DetailSource;
         diffPane.OnTabSwitched(previous, current);
         if (current is not null)

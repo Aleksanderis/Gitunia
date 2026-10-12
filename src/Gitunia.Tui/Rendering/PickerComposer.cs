@@ -78,14 +78,33 @@ public static class PickerComposer
         {
             var row = picker.Rows[index];
             var name = TextWidth.Fit(row.Name, nameWidth, glyphs.Ellipsis);
-            var builder = new LineBuilder(width, glyphs.Ellipsis)
+            var isHighlighted = index == picker.Highlight;
+            var buttons = isHighlighted ? PickerRowButtons.Layout(row, width) : [];
+            var builder = new LineBuilder(buttons.Count > 0 ? buttons[0].Start - 1 : width, glyphs.Ellipsis)
                 .Append(" " + name + new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name))) + "  ", SegmentRole.Plain)
                 .Append(Tags(row).PadRight(TagColumns), SegmentRole.Tag)
                 .Append(Abbreviate(row.Path, homeDirectory), SegmentRole.Faint);
-            lines.Add(builder.Build(SegmentRole.Plain, isSelected: index == picker.Highlight));
+            lines.Add(WithButtons(builder.Build(SegmentRole.Plain, isSelected: isHighlighted), buttons));
         }
 
         return lines;
+    }
+
+    private static StyledLine WithButtons(StyledLine line, IReadOnlyList<TitleButton> buttons)
+    {
+        if (buttons.Count == 0)
+        {
+            return line;
+        }
+
+        var segments = new List<StyledSegment>(line.Segments) { new(" ", SegmentRole.Plain) };
+        foreach (var button in buttons)
+        {
+            segments.Add(new StyledSegment(button.Label, SegmentRole.Button));
+            segments.Add(new StyledSegment(" ", SegmentRole.Plain));
+        }
+
+        return line with { Segments = segments };
     }
 
     private static string Tags(PickerRow row)

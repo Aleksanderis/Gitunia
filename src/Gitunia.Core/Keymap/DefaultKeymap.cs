@@ -75,6 +75,11 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "Ctrl-w w", ActionIds.PaneNext);
         Add(bindings, TextEntry, global, "Ctrl-^", ActionIds.TabLastActive);
         Add(bindings, NormalOnly, global, "<space><Tab>", ActionIds.TabLastActive);
+        Add(bindings, NormalOnly, global, "Ctrl-w >", ActionIds.PaneWider);
+        Add(bindings, NormalOnly, global, "Ctrl-w <lt>",ActionIds.PaneNarrower);
+        Add(bindings, NormalOnly, global, "Ctrl-w +", ActionIds.PaneTaller);
+        Add(bindings, NormalOnly, global, "Ctrl-w -", ActionIds.PaneShorter);
+        Add(bindings, NormalOnly, global, "Ctrl-w =", ActionIds.PaneResetSizes);
         Add(bindings, NormalOnly, global, "<space>z", ActionIds.PaneZoom);
         Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
         Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);

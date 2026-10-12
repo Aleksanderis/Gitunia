@@ -63,6 +63,58 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenAnOpenPalette_WhenAClickLandsOnAnEntryLine_ThenThatEntryIsHighlighted()
+    {
+        Press(new Key(':'));
+        var changesBefore = changes;
+
+        var selected = overlays.SelectPaletteEntryAt(4);
+
+        Assert.True(selected);
+        Assert.Equal(3, overlays.State.Palette!.SelectedIndex);
+        Assert.True(changes > changesBefore);
+    }
+
+    [Fact]
+    public void GivenAnOpenPalette_WhenAClickLandsOnTheQueryBar_ThenNothingIsHighlighted()
+    {
+        Press(new Key(':'));
+
+        Assert.False(overlays.SelectPaletteEntryAt(0));
+        Assert.Equal(0, overlays.State.Palette!.SelectedIndex);
+    }
+
+    [Fact]
+    public void GivenNoPalette_WhenAClickArrives_ThenNothingIsHighlighted()
+    {
+        Press(new Key('?'));
+
+        Assert.False(overlays.SelectPaletteEntryAt(2));
+    }
+
+    [Fact]
+    public void GivenAHelpOverlayScrolledWithTheWheelAction_WhenAskedToMoveDown_ThenItScrolls()
+    {
+        Press(new Key('?'));
+
+        overlays.Handle(ActionIds.ListDown, 3);
+
+        Assert.Equal(3, overlays.State.HelpScroll);
+    }
+
+    [Fact]
+    public void GivenAnOpenPalette_WhenTheWheelActionsArrive_ThenTheHighlightMoves()
+    {
+        Press(new Key(':'));
+
+        overlays.Handle(ActionIds.PaletteNext, null);
+        overlays.Handle(ActionIds.PaletteNext, null);
+        overlays.Handle(ActionIds.PalettePrevious, null);
+
+        Assert.Equal(1, overlays.State.Palette!.SelectedIndex);
+    }
+
+    [Fact]
     public void GivenOpenHelp_WhenPressingEscQuestionMarkOrQ_ThenItCloses()
     {
         foreach (var close in new[] { Key.Esc, new Key('?'), new Key('q') })

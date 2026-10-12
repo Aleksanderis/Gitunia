@@ -59,4 +59,7 @@ public enum SegmentRole
 
     /// <summary>The line that starts a file in a diff.</summary>
     DiffFile,
+
+    /// <summary>A clickable button in a pane title or on a picker row.</summary>
+    Button,
 }

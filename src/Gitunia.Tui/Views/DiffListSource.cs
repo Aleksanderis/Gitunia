@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;
 
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
-public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
+public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private DiffWrapMap? map;
     private int gutterDigits = DiffRowRenderer.GutterDigits(0);
@@ -31,6 +32,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public int MaxItemLength => 0;
 
     public bool SuspendCollectionChangedEvent { get; set; }
+
+    public RowRange? Range { get; set; }
 
     /// <summary>Shows another document and tells the list.</summary>
     public void Update(DiffDocument document)
@@ -66,6 +69,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var current = Map();
+        selected |= Range?.Contains(item) == true;
         var line = current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected && listView.HasFocus)
             : current is null && item >= 0 && item < Document.Rows.Count

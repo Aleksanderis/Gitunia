@@ -15,6 +15,9 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised with the row index when a row is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
     public event Action<int>? RowClicked;
 
+    /// <summary>Raised with the mouse-map view of a button (pin, remove) clicked on the highlighted row.</summary>
+    public event Action<string>? ButtonClicked;
+
     /// <summary>Raised for a double-click on a row and for the wheel.</summary>
     public event Action<MouseGesture>? GestureRaised;
 
@@ -64,6 +67,12 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             var index = PickerComposer.TopRow(picker.Highlight, listHeight) + listRow;
             if (index < picker.Rows.Length)
             {
+                if (gesture == MouseGesture.Click && index == picker.Highlight && ButtonAt(picker.Rows[index], position.X) is { } buttonView)
+                {
+                    ButtonClicked?.Invoke(buttonView);
+                    return true;
+                }
+
                 RowClicked?.Invoke(index);
                 if (gesture == MouseGesture.DoubleClick)
                 {
@@ -74,4 +83,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
         return true;
     }
+
+    private string? ButtonAt(Gitunia.Core.Picker.PickerRow row, int column) =>
+        TitleButton.ViewAt(PickerRowButtons.Layout(row, Viewport.Width), column);
 }
