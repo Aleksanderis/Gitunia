@@ -16,6 +16,8 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
+    private readonly StatusActionHandler statusActions = new(statuses, activeSession);
+
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
@@ -45,21 +47,15 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
-        if (action == ActionIds.StatusDismiss)
+        if (statusActions.TryHandle(action))
         {
-            statuses.Dismiss();
+            Message = statusActions.Message;
             return;
         }
 
         if (action == ActionIds.RepoRefresh)
         {
             Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
-            return;
-        }
-
-        if (action == ActionIds.DetailRetry)
-        {
-            Message = activeSession()?.Details.Retry() == true ? "retrying..." : "nothing to retry";
             return;
         }
 
@@ -132,13 +128,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
                 quit();
             }
         }
-        else if (action == ActionIds.Cancel)
+        else if (!statusActions.TryHandleFallback(action))
         {
-            // Nothing else claimed the Esc: it clears the status message.
-            statuses.Dismiss();
-        }
-        else
-        {
+            // Esc that nothing else claimed was handled above: it clears the status message.
             Message = ActionCatalog.Describe(action) + ": not implemented yet";
         }
     }
@@ -193,18 +185,8 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
     }
 
-    private void CopySelectedPath()
-    {
-        var source = activeSession()?.DetailSource;
-        var index = (detailList.SelectedItem ?? -1) - (source?.Content.FirstFileRow ?? 0);
-        if (source is null || index < 0 || index >= source.Content.Files.Count)
-        {
-            Message = "Select a file to copy its path";
-            return;
-        }
-
-        clipboard.Copy(source.Content.Files[index].Path, "file path");
-    }
+    private void CopySelectedPath() =>
+        Message = new DetailPathCopier(clipboard).Copy(activeSession()?.DetailSource, detailList.SelectedItem);
 
     private void JumpToHead()
     {

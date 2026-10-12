@@ -29,6 +29,50 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
+    public async Task GivenATagRow_WhenCopying_ThenItsNameGoesToTheClipboard()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.FocusRow("Tags");
+        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+
+        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+
+        Assert.Equal(Osc52Sequence("v2"), harness.Clipboard.ToString());
+    }
+
+    [Fact]
+    public async Task GivenAStashRow_WhenCopying_ThenItsNameGoesToTheClipboard()
+    {
+        using var repository = BranchyRepository();
+        repository.WriteFile("a.txt", "dirty");
+        repository.Git("stash", "push", "-q", "-m", "wip");
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.FocusRow("stash@{0}");
+
+        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+
+        Assert.Equal(Osc52Sequence("stash@{0}"), harness.Clipboard.ToString());
+    }
+
+    [Fact]
+    public async Task GivenAWorktreeRow_WhenCopying_ThenItsFullPathGoesToTheClipboard()
+    {
+        using var repository = BranchyRepository();
+        var worktreePath = repository.AddWorktree("wt-feature", "feature");
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.FocusRow("wt-feature");
+        var row = harness.Source.Rows.Single(candidate => candidate is { Kind: SidebarRowKind.Worktree, Label: "wt-feature" });
+
+        Assert.True(harness.Handler.TryHandle(ActionIds.SidebarCopy, null));
+
+        Assert.NotNull(row.Path);
+        Assert.Equal(Path.GetFileName(worktreePath), Path.GetFileName(row.Path));
+        Assert.Equal(Osc52Sequence(row.Path), harness.Clipboard.ToString());
+    }
+
+    [Fact]
     public async Task GivenASectionRow_WhenCopying_ThenNothingIsCopied()
     {
         using var repository = BranchyRepository();
@@ -310,4 +354,6 @@ public class SidebarActionHandlerTests
         Assert.Equal("wt-feature", current.Label);
         Assert.True(harness.Source.Rows.Single(row => row is { Kind: SidebarRowKind.LocalBranch, Label: "feature" }).IsCurrent);
     }
+
+    private static string Osc52Sequence(string text) => "\u001b]52;c;" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text)) + "\u001b\\";
 }
