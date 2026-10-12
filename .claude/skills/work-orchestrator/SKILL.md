@@ -15,6 +15,10 @@ You are the orchestrator, not the implementer. Each issue is delivered by a suba
 - Lean prompts, never the orchestrator's context: the issue number, the branch name (`feature/<n>-<slug>`), the few docs sections the agent needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, "follow the `work-task` skill and CLAUDE.md", and a request for a report of at most 10 lines.
 - Rate limits: a limit error kills running agents and names the reset time. Launch nothing new and never delete the failed agents' worktrees or branches. After the reset resume the same agent with `SendMessage` (it keeps its context); only if impossible, relaunch it with a prompt that says to continue from its branch's existing commits. Schedule a wake-up for the reset time instead of idling.
 
+## 0. Readiness
+
+Look for a readiness report from the `work-readiness` skill for this milestone (a comment containing "Verdict:" on its lowest-numbered open issue). If none exists from the last few days, tell the owner to run `/work-readiness <milestone>` first (or run it yourself if the owner said to just go) and stop on a `not ready` verdict. Use the report's suggested batches and answered decisions; do not redo its analysis.
+
 ## 1. Rebuild state from GitHub (never from memory)
 
 Run these, nothing else, to see where things are:
