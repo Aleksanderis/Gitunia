@@ -144,12 +144,12 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             return;
         }
 
+        host.Dispatch(new OpenRepositoryCommand(location));
         if (replacing is { } missing)
         {
             host.Dispatch(new CloseTabCommand(missing));
         }
 
-        host.Dispatch(new OpenRepositoryCommand(location));
         Close();
     }
 
@@ -178,7 +178,16 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         var roots = RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
         _ = Task.Run(() =>
         {
-            var found = RepositoryScanner.Scan(roots, RepositoryScanner.DefaultMaximumDepth, RepositoryScanner.DefaultMaximumResults, CancellationToken.None);
+            var found = ImmutableArray<string>.Empty;
+            try
+            {
+                found = RepositoryScanner.Scan(roots, RepositoryScanner.DefaultMaximumDepth, RepositoryScanner.DefaultMaximumResults, CancellationToken.None);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                // A scan that fails finds nothing; the next picker open tries again.
+            }
+
             postToUi(() =>
             {
                 isScanning = false;

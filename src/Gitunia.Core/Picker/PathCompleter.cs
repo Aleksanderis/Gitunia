@@ -11,21 +11,23 @@ public static class PathCompleter
         SplitTyped(text, out var directoryText, out var namePrefix);
         var directory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
         var comparison = namePrefix.Any(char.IsUpper) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        var rows = new List<PickerRow>();
+        var matches = new List<string>();
         foreach (var path in context.ListDirectories(directory))
         {
             var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
-            if (!name.StartsWith(namePrefix, comparison) || (name.StartsWith('.') && !namePrefix.StartsWith('.')))
+            if (name.StartsWith(namePrefix, comparison) && (!name.StartsWith('.') || namePrefix.StartsWith('.')))
             {
-                continue;
+                matches.Add(path);
             }
-
-            var tags = PickerTags.Directory | (context.IsRepository(path) ? PickerTags.Repository : PickerTags.None);
-            rows.Add(new PickerRow(path, name, tags));
         }
 
-        rows.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase));
-        return rows.Count > MaximumCandidates ? rows.GetRange(0, MaximumCandidates) : rows;
+        matches.Sort((left, right) => string.Compare(Path.GetFileName(left), Path.GetFileName(right), StringComparison.OrdinalIgnoreCase));
+
+        // Only the rows that are shown cost a file system check.
+        return [.. matches.Take(MaximumCandidates).Select(path => new PickerRow(
+            path,
+            Path.GetFileName(Path.TrimEndingDirectorySeparator(path)),
+            PickerTags.Directory | (context.IsRepository(path) ? PickerTags.Repository : PickerTags.None)))];
     }
 
     /// <summary>

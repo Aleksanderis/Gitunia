@@ -88,8 +88,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         using var persistence = new SessionPersistence(store, host, SaveDebounce);
         persistence.Start();
         view.Graph.SetFocus();
-        app.Run(view.Window);
-        persistence.Flush();
+        try
+        {
+            app.Run(view.Window);
+        }
+        finally
+        {
+            persistence.Flush();
+        }
+
         return 0;
     }
 
