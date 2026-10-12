@@ -32,11 +32,11 @@ Run these, nothing else, to see where things are:
 
 If a worktree or feature branch exists for an issue with no merged PR, that issue is in flight: resume it (`work-task`'s rate-limit rules), do not start it over.
 
-## 2. Run one bounded batch
+## 2. Run bounded batches
 
 - Pick up to 3 independent unblocked issues (different files, no shared contracts or keymap rows). Prefer finishing in-flight issues first. If issues touch the same shell files, run fewer at once.
 - Launch one subagent per issue with the lean prompt above. Do not paste docs or earlier reports into prompts.
-- A batch is at most 3 issues in total, not 3 at a time: when 3 have merged (or stopped for the owner), stop launching and go to step 4. This keeps the session short.
+- Work in batches of at most 3 issues, never more than 3 agents at once. When a batch is done (merged or stopped for the owner), clean up, re-run step 1 and start the next batch; keep going until a stop condition in step 4 holds. The session stays small because agents report in 10 lines and the details live in PR comments.
 - As each agent reports (max 10 lines, details are in its PR comments): confirm the PR is merged (`gh pr view <n> --json state`), stop the agent (`TaskStop`; ignore "not running"), then clean up: `git worktree remove -f -f <path>`, delete its local feature branch and its `worktree-agent-*` branch only after `git branch --merged main` confirms they are merged, then `git fetch -p`. Pull `main`. Then start the next queued issue.
 - Loose-end check: when an agent reports, make sure each item under "owner must know" or "Follow-ups" is registered as an issue or in an existing issue (see `work-task`); if one is only in a report, PR comment or `docs/decisions.md`, register it yourself (`gh issue create`/`gh issue edit`) before you stop the agent. Never end a session with unregistered loose ends.
 - Do not read PR diffs or agent output files yourself; trust the PR comments and CI. Open the PR only if an agent reports a problem.
@@ -48,7 +48,7 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 
 ## 4. Stop and hand over
 
-Stop when any of these holds: the batch is done, nothing is unblocked, the session context passes about 150k tokens (finish the running issues first, launch no new ones), or the owner asked you to stop.
+Stop when any of these holds: nothing is unblocked (every remaining issue is done, blocked or waiting for the owner), the session context passes about 150k tokens (finish the running issues first, launch no new ones), or the owner asked you to stop.
 
 Before ending:
 
