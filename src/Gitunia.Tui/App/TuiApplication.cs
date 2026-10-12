@@ -23,6 +23,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private SidebarActionHandler sidebar = null!;
+    private PaneKind appliedFocus = PaneKind.Graph;
 
     public int Run(RepositoryLocation location)
     {
@@ -33,14 +35,30 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
-        view = new MainView(CreateModel, glyphs);
-        router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop);
+        var sidebarSource = new SidebarListSource(glyphs);
+        sidebar = new SidebarActionHandler(
+            host,
+            sidebarSource,
+            ActiveSession,
+            () => view.Sidebar.Viewport.Height,
+            () => ScreenLayout.SidebarWidth(view.Window.Viewport.Width) > 0,
+            SelectGraphItem,
+            mode => keys.SetMode(mode));
+        view = new MainView(CreateModel, glyphs, sidebarSource, () => sidebar.Chrome);
+        router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop, sidebar);
         keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), router.Execute);
+        var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
         host.Changed += view.RefreshChrome;
+        host.Changed += ApplyFocus;
         keys.PendingChanged += view.RefreshChrome;
+        keys.TextTyped += sidebar.OnText;
+        keys.Erased += sidebar.OnErase;
+        presenter.Clicked += sidebar.ActivateCursor;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
-        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, DefaultKeymap.GraphView);
+        view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
+        view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
+        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, FocusedViewName());
 
         host.Dispatch(new OpenRepositoryCommand(location));
         var session = ActiveSession();
@@ -58,6 +76,45 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     public void Dispose() => view?.Dispose();
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
+
+    private string FocusedViewName() => host.Workspace.ActiveTab?.View.FocusedPane switch
+    {
+        PaneKind.Sidebar => DefaultKeymap.SidebarView,
+        PaneKind.Detail => DefaultKeymap.DetailView,
+        PaneKind.Diff => DefaultKeymap.DiffView,
+        _ => DefaultKeymap.GraphView,
+    };
+
+    // The state decides which pane has focus; the views follow it.
+    private void ApplyFocus()
+    {
+        var wanted = host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
+        if (wanted == appliedFocus)
+        {
+            return;
+        }
+
+        appliedFocus = wanted;
+        (wanted == PaneKind.Sidebar ? view.Sidebar : view.Graph).SetFocus();
+    }
+
+    // A click gave a view the focus: record it in the state so the keymap uses the right view.
+    private void OnPaneFocused(Terminal.Gui.ViewBase.View pane, PaneKind kind)
+    {
+        if (pane.HasFocus && host.Workspace.ActiveTabId is { } tabId && host.Workspace.ActiveTab?.View.FocusedPane != kind)
+        {
+            host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
+        }
+    }
+
+    private void SelectGraphItem(int item)
+    {
+        if ((view.Graph.Source?.Count ?? 0) > item)
+        {
+            view.Graph.SelectedItem = item;
+            view.Graph.EnsureSelectedItemVisible();
+        }
+    }
 
     private ScreenModel CreateModel() =>
         ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);

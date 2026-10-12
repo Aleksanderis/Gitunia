@@ -10,7 +10,7 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="WorkspaceHost"/> as commands.
 /// </summary>
-public sealed class ActionRouter(WorkspaceHost host, ListView graphList, Func<TabSession?> activeSession, Action quit)
+public sealed class ActionRouter(WorkspaceHost host, ListView graphList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -18,6 +18,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, Func<Ta
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (sidebar.TryHandle(action, count))
+        {
+            Message = sidebar.Message;
+            return;
+        }
+
         var itemCount = graphList.Source?.Count ?? 0;
         if (ListMotion.TryMove(action, count, graphList.SelectedItem ?? 0, itemCount, graphList.Viewport.Height, out var target))
         {
