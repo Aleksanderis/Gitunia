@@ -24,6 +24,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private OverlayController overlays = null!;
+    private WhichKeyTimer whichKeyTimer = null!;
 
     public int Run(RepositoryLocation location)
     {
@@ -36,12 +38,16 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
         view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs);
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop);
-        keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), router.Execute);
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        keys = new KeyController(engine, (action, count) => RouteAction(action, count));
+        whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
+        overlays.Changed += RefreshOverlay;
 
         host.Changed += view.RefreshChrome;
         keys.PendingChanged += view.RefreshChrome;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
-        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, router.ViewName);
+        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, overlays.ViewName);
 
         host.Dispatch(new OpenRepositoryCommand(location));
         var session = ActiveSession();
@@ -58,7 +64,25 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return 0;
     }
 
-    public void Dispose() => view?.Dispose();
+    public void Dispose()
+    {
+        whichKeyTimer?.Dispose();
+        view?.Dispose();
+    }
+
+    private void RouteAction(ActionId action, int? count)
+    {
+        if (!overlays.Handle(action, count))
+        {
+            router.Execute(action, count);
+        }
+    }
+
+    private void RefreshOverlay()
+    {
+        view.Overlay.Show(overlays.CurrentFrame());
+        view.RefreshChrome();
+    }
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 

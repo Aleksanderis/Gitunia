@@ -23,7 +23,7 @@ public static partial class UxKeymapReader
         throw new FileNotFoundException("docs/ux.md not found above " + AppContext.BaseDirectory);
     }
 
-    /// <summary>One binding per documented key token; Picker rows are Insert mode, all others Normal.</summary>
+    /// <summary>One binding per documented key token; Picker rows are Insert mode, Palette rows Command mode, all others Normal.</summary>
     public static IReadOnlyList<KeyBinding> ReadBindings()
     {
         var bindings = new List<KeyBinding>();
@@ -48,7 +48,12 @@ public static partial class UxKeymapReader
             }
 
             var view = cells[0];
-            var mode = view == DefaultKeymap.PickerView ? KeyMode.Insert : KeyMode.Normal;
+            var mode = view switch
+            {
+                DefaultKeymap.PickerView => KeyMode.Insert,
+                DefaultKeymap.PaletteView => KeyMode.Command,
+                _ => KeyMode.Normal,
+            };
             foreach (var token in ReadTokens(cells[1]))
             {
                 bindings.Add(new KeyBinding(mode, view, KeySequenceParser.Parse(token), new ActionId(cells[2])));

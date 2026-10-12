@@ -28,4 +28,10 @@ public enum SegmentRole
 
     /// <summary>A file the commit modified, renamed, copied or changed the type of.</summary>
     FileChanged,
+
+    /// <summary>The title bar of an overlay (palette, help, which-key).</summary>
+    OverlayTitle,
+
+    /// <summary>The keys column of an overlay.</summary>
+    OverlayKey,
 }

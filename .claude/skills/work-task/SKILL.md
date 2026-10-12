@@ -21,7 +21,10 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 ## 3. Implement
 
 - Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. Spikes use `spike/<n>-<slug>` and are never merged.
-- Run independent unblocked issues in parallel: one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
+- Run independent unblocked issues in parallel, at most 3 agents at a time (token budget): one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Queue the rest and start the next only when one finishes. Not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
+- Give each subagent a lean prompt, never the orchestrator's context: the issue number, the branch name, the few docs sections it needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, and the rules in this skill. Ask for a report of at most 10 lines (PR URL, merged yes/no, what the owner must know); details belong in the PR comments.
+- Subagents commit and push work-in-progress to their feature branch regularly, so an interruption never loses work.
+- Rate limits: a limit error kills running agents and the message names the reset time. Do not launch anything new, and never delete the failed agents' worktrees or branches. After the reset, resume the same agent with `SendMessage` (it keeps its context); only if that is impossible, relaunch it with a prompt that says to continue from its branch's existing commits. Schedule a wake-up for the reset time instead of idling.
 - Tests follow the `testing` skill; layering and cross-platform rules are in `CLAUDE.md`.
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
 - Run the AOT publish if you added a dependency or touched anything reflection-adjacent.

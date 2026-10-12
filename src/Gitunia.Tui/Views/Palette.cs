@@ -35,6 +35,8 @@ public static class Palette
             SegmentRole.FileAdded => new Attribute(Xterm(114), Color.None, selection | TextStyle.Bold),
             SegmentRole.FileDeleted => new Attribute(Xterm(203), Color.None, selection | TextStyle.Bold),
             SegmentRole.FileChanged => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
+            SegmentRole.OverlayTitle => Style(TextStyle.Bold | TextStyle.Reverse),
+            SegmentRole.OverlayKey => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
             _ => Style(selection),
         };
     }

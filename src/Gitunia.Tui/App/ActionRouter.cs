@@ -48,6 +48,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
                 quit();
             }
         }
+        else if (action != ActionIds.Cancel)
+        {
+            Message = ActionCatalog.Describe(action) + ": not implemented yet";
+        }
     }
 
     // The toolkit's focus is the truth (a mouse click moves it without us), the tab's FocusedPane is kept in step by FocusPane.
