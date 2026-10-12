@@ -249,7 +249,6 @@ public sealed class OverlayControllerTests : IDisposable
     {
         Press(new Key('g'));
         Press(Key.Esc);
-        Thread.Sleep(50);
         RunPosted();
 
         Assert.False(overlays.State.WhichKeyVisible);
