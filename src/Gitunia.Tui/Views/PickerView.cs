@@ -9,6 +9,9 @@ namespace Gitunia.Tui.Views;
 /// <summary>The repo picker area: draws the composed picker and reports clicks on rows (a click highlights) and the gestures the mouse map decides on.</summary>
 public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : View
 {
+    /// <summary>True while something modal owns the screen: mouse input is swallowed.</summary>
+    public Func<bool> IsSuppressed { get; set; } = () => false;
+
     /// <summary>Raised with the row index when a row is clicked (a double-click raises it before <see cref="GestureRaised"/>).</summary>
     public event Action<int>? RowClicked;
 
@@ -36,6 +39,11 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
+        }
+
+        if (IsSuppressed())
+        {
+            return true;
         }
 
         if (gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)

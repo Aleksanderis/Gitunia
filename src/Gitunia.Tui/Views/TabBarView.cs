@@ -1,3 +1,5 @@
+using Gitunia.Core.Mouse;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -18,7 +20,7 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
     protected override bool OnMouseEvent(Mouse mouse)
     {
-        if (!mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked) || mouse.Position is not { } position || model().Tabs is not { Count: > 0 } labels)
+        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture) || gesture != MouseGesture.Click || mouse.Position is not { } position || model().Tabs is not { Count: > 0 } labels)
         {
             return base.OnMouseEvent(mouse);
         }

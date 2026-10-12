@@ -114,6 +114,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(view.Detail, PaneKind.Detail);
         view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(view.Diff, PaneKind.Diff);
         mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
+        view.SuppressMouseWhen(() => overlays.State.IsOpen);
         view.Gestured += (viewName, gesture, target) => mouse.Handle(viewName, gesture, target);
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);

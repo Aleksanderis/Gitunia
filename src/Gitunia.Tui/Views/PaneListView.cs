@@ -12,6 +12,9 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class PaneListView : ListView
 {
+    /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
+    public Func<bool> IsSuppressed { get; set; } = () => false;
+
     /// <summary>Raised after the pane took the focus and (for clicks) selected the row under the pointer.</summary>
     public event Action<MouseGesture>? GestureRaised;
 
@@ -20,6 +23,11 @@ public sealed class PaneListView : ListView
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
+        }
+
+        if (IsSuppressed())
+        {
+            return true;
         }
 
         if (!HasFocus)

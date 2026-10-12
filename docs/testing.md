@@ -22,7 +22,7 @@ Test methods are named `Given<Context>_When<Action>_Then<Outcome>` in PascalCase
 | State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (test reads the keymap table) |
 | Rendering | snapshot tests of frames as text (`ScreenComposer`; `gitunia <repo> --print-frame WxH` prints the same frame) | Layout at several terminal sizes, wide chars, ASCII fallback |
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
-| Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos |
+| Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos; mouse: the Terminal.Gui views (`PaneListView`, `PickerView`) have no headless test, so check click, double-click and wheel in tmux by sending SGR sequences (`tmux send-keys -l $'\e[<0;X;YM\e[<0;X;Ym'`, wheel is button 64/65) or with a real mouse |
 
 CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run on linux-x64 for every PR and push to main; the OS matrix comes in M4.
 

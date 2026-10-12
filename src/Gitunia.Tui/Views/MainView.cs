@@ -177,6 +177,16 @@ public sealed class MainView : IDisposable
     /// <summary>The terminal size in columns and rows.</summary>
     public (int Width, int Height) ScreenSize => (Window.Viewport.Width, Window.Viewport.Height);
 
+    /// <summary>Makes every pane and the picker swallow mouse input while <paramref name="isSuppressed"/> returns true (an overlay is open).</summary>
+    public void SuppressMouseWhen(Func<bool> isSuppressed)
+    {
+        Graph.IsSuppressed = isSuppressed;
+        Sidebar.IsSuppressed = isSuppressed;
+        Detail.IsSuppressed = isSuppressed;
+        Diff.IsSuppressed = isSuppressed;
+        picker.IsSuppressed = isSuppressed;
+    }
+
     /// <summary>Shows the repo picker in place of the graph, or the graph again.</summary>
     public void ShowPicker(bool isOpen)
     {
