@@ -100,6 +100,16 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         {
             IsSuspended = false;
         }
+
+        // The selected commit is gone: the row now shows another one, so the saved selection must follow even when the list raised no event.
+        if (index < 0 && wanted is not null && host.Workspace.ActiveTabId is { } tabId)
+        {
+            var commitIndex = item - ScreenLayout.ReservedLeadingRows;
+            if (commitIndex >= 0 && commitIndex < session.Graph.Count)
+            {
+                host.Dispatch(new TabCommand(tabId, new SelectCommitCommand(session.Graph[commitIndex].Id)));
+            }
+        }
     }
 
     private void OnSessionChanged()

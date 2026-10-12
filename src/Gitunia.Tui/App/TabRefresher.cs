@@ -25,6 +25,7 @@ public sealed class TabRefresher : IDisposable
     private RepositoryChangeKinds pending;
     private bool forceGraph;
     private bool isReady;
+    private bool sawChange;
     private bool isRunning;
     private bool isDisposed;
     private string lastError = string.Empty;
@@ -86,6 +87,7 @@ public sealed class TabRefresher : IDisposable
 
         pending |= kinds;
         forceGraph |= reloadGraph;
+        sawChange = true;
         RunNext();
     }
 
@@ -97,7 +99,7 @@ public sealed class TabRefresher : IDisposable
         }
 
         var kinds = pending;
-        var reloadGraph = forceGraph;
+        var reloadGraph = forceGraph || (snapshot is null && (sawChange || watcher.IsStale));
         pending = RepositoryChangeKinds.None;
         forceGraph = false;
         isRunning = true;
@@ -116,9 +118,9 @@ public sealed class TabRefresher : IDisposable
             var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repo, token).ConfigureAwait(false)).Items : null;
             List<GraphEntry>? entries = null;
 
-            // The first pass only records the baseline: the initial load just read the same data.
+            // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph only when a change was seen meanwhile.
             var graphChanged = previous is null
-                ? kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || reloadGraph
+                ? reloadGraph
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
@@ -137,7 +139,7 @@ public sealed class TabRefresher : IDisposable
         }
         catch (Exception exception)
         {
-            postToUi(() => Fail(exception));
+            postToUi(() => Fail(exception, kinds, reloadGraph));
         }
     }
 
@@ -152,9 +154,8 @@ public sealed class TabRefresher : IDisposable
         lastError = string.Empty;
         snapshot = result.Snapshot;
         var tabId = session.TabId;
-        if (!isBaseline)
         {
-            var changed = result.Changed;
+            var changed = isBaseline ? RepositorySections.All : result.Changed;
             if (changed.HasFlag(RepositorySections.Head))
             {
                 host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(result.Snapshot.Head)));
@@ -191,9 +192,11 @@ public sealed class TabRefresher : IDisposable
         RunNext();
     }
 
-    private void Fail(Exception exception)
+    private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph)
     {
         isRunning = false;
+        pending |= kinds;
+        forceGraph |= reloadGraph;
         if (isDisposed)
         {
             return;
