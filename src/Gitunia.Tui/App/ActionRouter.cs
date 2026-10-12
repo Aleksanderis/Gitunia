@@ -158,7 +158,8 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             return;
         }
 
-        clipboard.Copy(session.Graph[commitIndex].Id.ToString(), "commit hash");
+        var hash = session.Graph[commitIndex].Id.ToString();
+        clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
     }
 
     private void JumpToHead()

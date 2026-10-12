@@ -82,7 +82,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             new DiffListSource(glyphs),
             () => SidebarPane.Divider(view.Diff.HasFocus || view.Detail.HasFocus, glyphs));
         var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
-        var clipboard = new ClipboardCopier(clipboardWriter, statuses, () => view.ScreenSize.Width);
+        var clipboard = new ClipboardCopier(clipboardWriter, statuses);
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome);
         router.Diff = diffPane;
