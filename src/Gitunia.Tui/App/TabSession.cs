@@ -46,11 +46,20 @@ public sealed class TabSession : IDisposable
 
     public CancellationTokenSource Cancellation { get; } = new();
 
+    /// <summary>The tab has not been activated since the session was restored, so its load has not started.</summary>
+    public bool IsPending { get; private set; } = true;
+
     /// <summary>The log is still streaming in.</summary>
     public bool IsLoading { get; private set; } = true;
 
     /// <summary>Why loading stopped early, empty when it did not.</summary>
     public string LoadError { get; private set; } = string.Empty;
+
+    public void MarkStarted()
+    {
+        IsPending = false;
+        Changed?.Invoke();
+    }
 
     public void Append(IReadOnlyList<GraphEntry> batch)
     {
