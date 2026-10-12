@@ -21,7 +21,7 @@ Test methods are named `Given<Context>_When<Action>_Then<Outcome>` in PascalCase
 | Git integration | xUnit, temp repos (see `testing` skill) | Commands end to end: branches, worktrees, stash, merge/rebase, partial staging |
 | Graph layout | xUnit, property tests | Lane assignment invariants, determinism, incremental == full |
 | State/keymap | xUnit | Command -> state transitions, modal behaviour, no binding conflicts (test reads the keymap table) |
-| Rendering | snapshot tests of frames as text (`ScreenComposer`; `gitunia <repo> --print-frame WxH [--diff] [--zoom graph|detail|diff]` prints the same frame) | Layout at several terminal sizes, wide chars, ASCII fallback |
+| Rendering | snapshot tests of frames as text (`ScreenComposer`; `gitunia <repo> --print-frame WxH [--diff] [--zoom <pane>]` prints the same frame) | Layout at several terminal sizes, wide chars, ASCII fallback |
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
 | Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos; mouse: the Terminal.Gui views (`PaneListView`, `PickerView`) have no headless test, so check click, double-click and wheel in tmux by sending SGR sequences (`tmux send-keys -l $'\e[<0;X;YM\e[<0;X;Ym'`, wheel is button 64/65; a drag is the press `0;X;Y` + `M`, one or more moves `32;X;Y` + `M`, then the release `0;X;Y` + `m`) or with a real mouse; the pure parts (`DragTracker`, `PaneResizer`, the button layouts, `VisualRangeController`) are unit-tested |
 

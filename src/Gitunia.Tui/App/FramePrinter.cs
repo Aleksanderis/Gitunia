@@ -41,7 +41,7 @@ public static class FramePrinter
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
         }
 
-        var diff = arrangement is { IsDiffOpen: true } && selected is not null
+        var diff = arrangement is { IsDiffOpen: true } && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
             ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
             : null;
         var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState), 0, 0, false);
@@ -57,7 +57,7 @@ public static class FramePrinter
             false,
             string.Empty);
         var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
-        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, arrangement))
+        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement))
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }
@@ -70,7 +70,7 @@ public static class FramePrinter
         var firstParent = details is { Parents.Count: > 0 } ? details.Parents[0] : (ObjectId?)null;
         var builder = new DiffDocumentBuilder();
         var warnings = new List<string>();
-        await foreach (var file in DiffReader.ReadCommitAsync(repo, selected.Id, firstParent, cancellationToken, warnings))
+        await foreach (var file in DiffReader.ReadCommitAsync(repo, selected.Id, firstParent, cancellationToken, warnings, DiffStore.DefaultFileLineLimit))
         {
             builder.Add(file);
         }
