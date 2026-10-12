@@ -1,4 +1,5 @@
 using Gitunia.Core.Persistence;
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Tui.App;
@@ -12,12 +13,19 @@ public sealed class SessionPersistence : IDisposable
     private readonly SessionStore store;
     private readonly WorkspaceHost host;
     private readonly TimeSpan debounce;
+    private readonly StatusChannel statuses;
+    private readonly Action<Action> postToUi;
     private readonly Timer timer;
     private readonly Lock saveLock = new();
     private Workspace? lastSaved;
+    private bool lastSaveFailed;
 
-    public SessionPersistence(SessionStore store, WorkspaceHost host, TimeSpan debounce)
+    /// <param name="statuses">Told when a save fails.</param>
+    /// <param name="postToUi">Runs an action on the UI thread; saves run on a timer thread.</param>
+    public SessionPersistence(SessionStore store, WorkspaceHost host, TimeSpan debounce, StatusChannel statuses, Action<Action> postToUi)
     {
+        this.statuses = statuses;
+        this.postToUi = postToUi;
         this.store = store;
         this.host = host;
         this.debounce = debounce;
@@ -59,6 +67,13 @@ public sealed class SessionPersistence : IDisposable
             if (store.SaveAsync(snapshot, CancellationToken.None).GetAwaiter().GetResult())
             {
                 lastSaved = snapshot;
+                lastSaveFailed = false;
+            }
+            else if (!lastSaveFailed)
+            {
+                // Once per failing streak: the next change retries silently, so the message does not repeat.
+                lastSaveFailed = true;
+                postToUi(() => statuses.Error("Could not save the session; open tabs will not be restored (retried on the next change)"));
             }
         }
     }

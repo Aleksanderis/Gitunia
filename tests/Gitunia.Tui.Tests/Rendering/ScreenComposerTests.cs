@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Graph;
 using Gitunia.Tui.Rendering;
 using Xunit;
@@ -33,7 +34,7 @@ public class ScreenComposerTests
                 "├─●  0000003 side work",
                 "●    0000001 root",
                 "",
-                " NORMAL  1/4  j/k gg G ^d ^u @ q"),
+                " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
     }
 
@@ -52,7 +53,7 @@ public class ScreenComposerTests
                 "|-*  0000003 side work",
                 "*    0000001 root",
                 "",
-                " NORMAL  1/4  j/k gg G ^d ^u @ q"),
+                " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
     }
 
@@ -83,7 +84,7 @@ public class ScreenComposerTests
     {
         var frame = Frame(Model(12, 3200, isLoading: true, pending: "5g"), Diamond(), 0, 0, 60, 4);
 
-        Assert.EndsWith(" NORMAL  5g 12/3200+ loading...  j/k gg G ^d ^u @ q", frame, StringComparison.Ordinal);
+        Assert.EndsWith(" NORMAL  5g 12/3200+ loading...  j/k gg G ^d ^u @ ? : q", frame, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -92,6 +93,18 @@ public class ScreenComposerTests
         var frame = Frame(Model(1, 4, message: "HEAD is not loaded yet"), Diamond(), 0, 0, 80, 4);
 
         Assert.Contains("HEAD is not loaded yet", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenErrorMessage_WhenComposing_ThenStatusLineShowsItBeforeTheHintsInTheErrorRole()
+    {
+        var model = Model(1, 4, message: "Could not read the stashes: boom") with { MessageSeverity = StatusSeverity.Error };
+
+        var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
+
+        var status = lines[^1];
+        Assert.Equal(" NORMAL  1/4  Could not read the stashes: boom  j/k gg G ^d ^u @ ? : q", status.Text.TrimEnd());
+        Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.Error && segment.Text.Contains("stashes", StringComparison.Ordinal));
     }
 
     [Fact]

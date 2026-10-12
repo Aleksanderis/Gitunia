@@ -14,6 +14,7 @@ public static class DefaultKeymap
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
     public const string HelpView = "Help";
+    public const string MessagesView = "Messages";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
     private static readonly KeyMode[] NormalOnly = [KeyMode.Normal];
@@ -30,6 +31,7 @@ public static class DefaultKeymap
         [PickerView] = KeyBindingTable.GlobalView,
         [PaletteView] = KeyBindingTable.GlobalView,
         [HelpView] = ListsView,
+        [MessagesView] = ListsView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -74,6 +76,8 @@ public static class DefaultKeymap
         Add(bindings, TextEntry, global, "Ctrl-^", ActionIds.TabLastActive);
         Add(bindings, NormalOnly, global, "<space><Tab>", ActionIds.TabLastActive);
         Add(bindings, NormalOnly, global, "<space>z", ActionIds.PaneZoom);
+        Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
+        Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -104,6 +108,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "r", ActionIds.RepoRefresh);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
+        Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
 

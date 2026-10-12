@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Git.Tests.Fixtures;
@@ -26,7 +27,7 @@ public class RepoLoaderTests
         session.Changed += () => changes++;
 
         // Posting runs the action inline; the test thread owns the host and session while it awaits the load.
-        await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
         Assert.Equal(string.Empty, session.LoadError);
@@ -50,7 +51,7 @@ public class RepoLoaderTests
         using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
-        await RepoLoader.RunAsync(runner, location, session, host, InlineUi.Post, session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.True(session.IsLoading);
         Assert.Equal(0, session.Graph.Count);
@@ -68,7 +69,7 @@ public class RepoLoaderTests
         var tabId = host.Workspace.ActiveTabId!.Value;
         using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), action => action(), session.Cancellation.Token);
 
         Assert.Equal(new RepoStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
@@ -85,8 +86,29 @@ public class RepoLoaderTests
         var tabId = host.Workspace.ActiveTabId!.Value;
         using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), action => action(), session.Cancellation.Token);
 
         Assert.Equal(new RepoStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+    }
+
+    [Fact]
+    public async Task GivenRepositoryThatVanished_WhenLoading_ThenTheFailedReadsAreReportedToTheStatusChannel()
+    {
+        var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var statuses = new StatusChannel();
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        repository.Dispose();
+
+        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
+        var texts = statuses.Log.History.Select(message => message.Text).ToList();
+        Assert.Contains(texts, text => text.StartsWith("Could not read the worktrees", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.StartsWith("Could not read the stashes", StringComparison.Ordinal));
+        Assert.All(statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
     }
 }

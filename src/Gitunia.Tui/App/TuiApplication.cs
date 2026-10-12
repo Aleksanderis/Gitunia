@@ -2,6 +2,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Platform;
@@ -39,7 +40,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private WorkspaceActions workspaceActions = null!;
     private GraphTabBinder binder = null!;
     private string homeDirectory = string.Empty;
-    private string startupNotice = string.Empty;
+    private readonly StatusChannel statuses = new();
 
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
@@ -49,14 +50,13 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
-        startupNotice = restored.Detail ?? string.Empty;
 
         using var app = Application.Create();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         app.Init();
 
         host = new WorkspaceHost(Workspace.Empty);
-        effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
+        effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs, statuses);
         var sidebarSource = new SidebarListSource(glyphs);
         sidebar = new SidebarActionHandler(
             host,
@@ -68,7 +68,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             SelectGraphItem,
             mode => keys.SetMode(mode));
         view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs, sidebarSource, () => sidebar.Chrome);
-        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar);
+        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
         binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
@@ -77,13 +77,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName, statuses);
         overlays.Changed += RefreshOverlay;
         prompts = CreatePrompts(app);
         router.Prompts = prompts;
         keys.TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key));
         var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
+        statuses.Changed += view.RefreshChrome;
         host.Changed += view.RefreshChrome;
         host.Changed += binder.Sync;
         host.Changed += ApplyFocus;
@@ -100,6 +101,11 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
+        if (restored.Detail is { Length: > 0 } restoreNotice)
+        {
+            statuses.Warning(restoreNotice);
+        }
+
         host.Restore(restored.Update);
         if (location is not null)
         {
@@ -112,7 +118,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             picker.Open();
         }
 
-        using var persistence = new SessionPersistence(store, host, SaveDebounce);
+        using var persistence = new SessionPersistence(store, host, SaveDebounce, statuses, action => app.Invoke(action));
         persistence.Start();
         view.Graph.SetFocus();
         try
@@ -195,13 +201,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             ActiveSession(),
             keys.Mode,
             keys.PendingText,
-            FirstNotEmpty(workspaceActions.Message, router.Message, startupNotice),
+            FirstNotEmpty(workspaceActions.Message, router.Message, statuses.Log.Latest?.Text ?? string.Empty),
             view.Graph.SelectedItem,
             TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId)?.IsLoading ?? false),
             picker.State,
             homeDirectory)
         with
         {
+            MessageSeverity = workspaceActions.Message.Length + router.Message.Length > 0 ? StatusSeverity.Info : statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
             SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 
@@ -273,7 +280,6 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private bool HandleKey(Key key)
     {
-        startupNotice = string.Empty;
         var view = picker.IsOpen && !overlays.State.IsOpen ? DefaultKeymap.PickerView : overlays.ViewName;
         return keys.Handle(key, view) || (picker.IsOpen && !overlays.State.IsOpen);
     }

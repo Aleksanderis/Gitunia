@@ -38,7 +38,7 @@ public class OverlayFrameTests
                 "│ Search                                                             / │",
                 "│ Next search match                                                  n │",
                 "│ Previous search match                                              N │",
-                "│ 1/65  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/68  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -111,7 +111,7 @@ public class OverlayFrameTests
                 "│  Ctrl-u / PageUp       Half page up                          │",
                 "│  v                     Start or end range selection          │",
                 "│                                                              │",
-                "│ 1-19/46  list keys scroll  Esc close                         │",
+                "│ 1-19/48  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

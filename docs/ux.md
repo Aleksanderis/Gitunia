@@ -29,6 +29,7 @@ Normal (navigate, act), Visual (select a range of lines/commits), Insert (text i
 - Frequent actions are single keys per view (`Enter`, `y`, `/`); global actions use the `<space>` leader (`<space>o` open repo, `<space>p` pin, `<space>z` zoom pane). `g` and `]`/`[` start chords; counts prefix motions (`5j`, `3gt`).
 - Chord engine: a pending prefix shows in the status bar and, after 500 ms, a which-key popup listing the continuations; `Esc` cancels; there is no chord timeout. Bindings are data (mode, view, key sequence, action id), so remapping in M4 needs no redesign.
 - Help and palette (#20): `?` opens a help overlay with the keys of the focused view (its own bindings, then the inherited `Lists` and `Global` ones), generated from the keymap table and the action titles in `ActionCatalog`, never hand-written; `j`/`k`/`Ctrl-d`/`gg` scroll it and `Esc`, `q` or `?` close it (every other action is ignored while it is open). `:` or `Ctrl-p` opens the command palette in Command mode: typing filters every action fuzzily (title or action id), `Up`/`Down` move, `Enter` runs the highlighted action and `Esc` closes; each row shows its bindings, and the focused view's own actions come first. The which-key popup is the same kind of overlay, docked above the status bar.
+- Status messages (#93): background work that fails (worktree, stash or status reads of a tab, a failed session save, a session file that was reset at start-up) reports through one `StatusChannel` in `Gitunia.Core.Status`; later features post to it the same way. The newest message shows in the status bar between the position and the key hints (errors in the error colour) and stays until dismissed with `<space>x`, or `Esc` in the graph when nothing else claims it, or until a newer one replaces it. `<space>m` opens the history (the last 50, newest first) as an overlay. A key action's own one-off notice (`HEAD is not loaded yet`) still takes the place of the message while it lasts. The status bar hints end with `? :` (help and palette).
 - `Esc` precedence: cancel a pending chord, then leave Insert mode, then clear a filter or search highlight, then go back one pane level (diff to detail to graph). `q` goes back one level the same way and quits only from the graph with nothing pending; `h` is back in Detail and Diff and collapse in Sidebar (Diff has no horizontal scroll).
 - In Insert mode (search box, picker input) printable keys are text; only `Esc`, `Enter`, `Ctrl-` and `Alt-` combinations act, so the leader and chords never fire while typing.
 
@@ -50,7 +51,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 
 1. A repo tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
 2. Move with `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G`, counts and the mouse wheel. `@` jumps to HEAD; `gr` opens a prompt in the status bar (Insert mode) that fuzzy-filters refs (branches, tags, remotes) and also accepts a hash prefix of at least 4 hex digits; the best candidate is shown, `Up`/`Down`/`Tab` cycle through the others, `Enter` selects that commit and `Esc` cancels.
-3. `Enter` on a commit moves focus to the detail pane (commit info and changed files); `Esc` or `h` returns to the graph. The detail pane also follows the graph selection while the graph is focused. The pane sits below the graph (hidden on screens under 14 rows) and lists, from the top: hash, author, committer (only when different), parents, refs, the full message and the changed files with their status (`A` `M` `D` `T`, `R<score> old -> new`, `C<score> old -> new`; merges show the changes against the first parent). While focused, `j`/`k` scroll through all rows and focusing lands on the first file row; opening a file's diff arrives with #25.
+3. `Enter` on a commit moves focus to the detail pane (commit info and changed files); `Esc` or `h` returns to the graph. The detail pane also follows the graph selection while the graph is focused. The pane sits below the graph (hidden on screens under 14 rows) and lists, from the top: hash, author, committer (only when different), parents, refs, the full message and the changed files with their status (`A` `M` `D` `T`, `R<score> old -> new`, `C<score> old -> new`; merges show the changes against the first parent). While focused, `j`/`k` scroll through all rows and focusing lands on the first file row; opening a file's diff arrives with #25. When the details fail to load the pane says so and `r` in the detail pane (or the palette) retries.
 4. `/` opens the search box (Insert mode). Plain text matches the commit subject (the message body is not searched yet: graph rows keep only the subject), `author:` matches the author name and `hash:` the start of the hash, all case-insensitive. Matches are highlighted in the rows while typing and the status bar shows the count (`/fix_  3/17`). `Enter` jumps to the first match at or after the selection and returns to Normal mode, `n`/`N` step through matches (counts work, the search wraps), `Esc` in the box cancels, `Esc` in Normal mode clears the highlight. The search scans the loaded commits in small slices between key presses and keeps scanning as the log streams in, so matches beyond the loaded range appear as they load and the status bar shows `searching N%` meanwhile. In the box `Backspace`, `Ctrl-u` and `Ctrl-w` edit the text.
 5. `y` copies the selected commit hash (OSC 52); `r` refreshes the repo now.
 
@@ -97,6 +98,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
+| Global | `<space>x` | Dismiss the status message |
+| Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -107,6 +110,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `y` | Copy commit hash |
 | Graph | `r` | Refresh repo |
 | Detail | `Enter` | Open file diff |
+| Detail | `r` | Retry loading the commit details after a failure |
 | Detail | `h` / `Esc` | Back to graph |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |

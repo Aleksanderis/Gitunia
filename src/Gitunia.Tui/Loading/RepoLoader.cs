@@ -1,3 +1,4 @@
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.App;
@@ -11,13 +12,14 @@ public static class RepoLoader
     /// <param name="location">The repository of the tab.</param>
     /// <param name="session">Receives the graph rows.</param>
     /// <param name="host">Receives HEAD and refs as tab commands.</param>
+    /// <param name="statuses">Told when a part of the load fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
-    public static async Task RunAsync(GitRunner runner, RepositoryLocation location, TabSession session, WorkspaceHost host, Action<Action> postToUi, CancellationToken token)
+    public static async Task RunAsync(GitRunner runner, RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
         var repo = new Repo(runner, location);
-        var metadata = LoadMetadataAsync(repo, session.TabId, host, postToUi, token);
-        var sidebarData = SidebarDataLoader.LoadAsync(repo, session.TabId, host, postToUi, token);
+        var metadata = LoadMetadataAsync(repo, session.TabId, host, statuses, postToUi, token);
+        var sidebarData = SidebarDataLoader.LoadAsync(repo, session.TabId, host, statuses, postToUi, token);
         try
         {
             await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, null, token).ConfigureAwait(false))
@@ -41,7 +43,7 @@ public static class RepoLoader
         await sidebarData.ConfigureAwait(false);
     }
 
-    private static async Task LoadMetadataAsync(Repo repo, TabId tabId, WorkspaceHost host, Action<Action> postToUi, CancellationToken token)
+    private static async Task LoadMetadataAsync(Repo repo, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
         try
         {
@@ -56,9 +58,14 @@ public static class RepoLoader
             var summary = new RepoStatusSummary(status.Entries.Count > 0, status.Branch.Ahead ?? 0, status.Branch.Behind ?? 0);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary))));
         }
-        catch (Exception exception) when (exception is OperationCanceledException or GitException)
+        catch (OperationCanceledException)
         {
-            // Cancelled with the tab, or git failed; the graph load reports its own failure.
+            // The tab was closed.
+        }
+        catch (GitException exception)
+        {
+            // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
+            postToUi(() => statuses.Error("Could not read the repository status: " + exception.Message));
         }
     }
 }

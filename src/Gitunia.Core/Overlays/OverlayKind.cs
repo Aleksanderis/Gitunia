@@ -6,4 +6,5 @@ public enum OverlayKind
     None,
     Help,
     Palette,
+    Messages,
 }
