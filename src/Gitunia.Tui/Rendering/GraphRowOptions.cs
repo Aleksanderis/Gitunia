@@ -1,10 +1,13 @@
+using Gitunia.Core.Search;
+
 namespace Gitunia.Tui.Rendering;
 
 /// <summary>How graph rows are drawn at the current terminal size.</summary>
 /// <param name="Width">Columns of the row.</param>
 /// <param name="LaneColumns">Lanes shown on the left, the same for every row so columns stay put while scrolling.</param>
 /// <param name="Glyphs">The characters to draw with.</param>
-public sealed record GraphRowOptions(int Width, int LaneColumns, GraphGlyphSet Glyphs)
+/// <param name="Highlight">The active graph search, whose matches are highlighted; null when none.</param>
+public sealed record GraphRowOptions(int Width, int LaneColumns, GraphGlyphSet Glyphs, SearchQuery? Highlight = null)
 {
     /// <summary>Longest lane area as a share of the width, so subjects keep room on narrow terminals.</summary>
     public const int MaximumLaneAreaPercent = 40;

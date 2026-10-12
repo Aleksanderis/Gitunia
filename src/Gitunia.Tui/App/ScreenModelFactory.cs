@@ -43,9 +43,9 @@ public static class ScreenModelFactory
             loaded,
             session?.IsLoading ?? false,
             message.Length > 0 ? message : session?.LoadError is { Length: > 0 } loadError ? loadError : picker is null ? MissingNotice(tab) : string.Empty,
-            tabs,
-            picker,
-            homeDirectory);
+            Tabs: tabs,
+            Picker: picker,
+            HomeDirectory: homeDirectory);
     }
 
     private static string MissingNotice(RepoState? tab) =>

@@ -33,6 +33,7 @@ public static class Palette
             SegmentRole.Status => Style(TextStyle.Faint | TextStyle.Reverse),
             SegmentRole.Faint => Style(TextStyle.Faint),
             SegmentRole.Error => new Attribute(Xterm(203), Color.None, TextStyle.Bold),
+            SegmentRole.SearchMatch => new Attribute(Xterm(16), Xterm(222), selection),
             SegmentRole.SectionTitle => new Attribute(Xterm(75), Color.None, selection | TextStyle.Bold),
             SegmentRole.Border => Style(TextStyle.Faint),
             SegmentRole.FocusedBorder => new Attribute(Xterm(75), Color.None, TextStyle.Bold),

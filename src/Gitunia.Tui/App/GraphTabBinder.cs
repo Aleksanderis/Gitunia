@@ -19,6 +19,9 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
     public event Action<TabSession?, TabSession?>? Switched;
 
+    /// <summary>Raised after rows were appended or the shown tab changed, so searches can look at the new rows.</summary>
+    public event Action? GraphChanged;
+
     /// <summary>True while the list is changed on purpose; selection changes then must not be written back to the workspace.</summary>
     public bool IsSuspended { get; private set; }
 
@@ -58,6 +61,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
             IsSuspended = false;
         }
 
+        GraphChanged?.Invoke();
         redraw();
     }
 
@@ -77,6 +81,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         }
 
         graph.SetNeedsDraw();
+        GraphChanged?.Invoke();
         redraw();
     }
 

@@ -9,7 +9,7 @@ public class TabBarTests
         new(number, name, branch, isActive, dirty, ahead, behind, missing, loading);
 
     private static ScreenModel Model(params TabLabel[] labels) =>
-        new("repo", "main", 1, labels.Length, "NORMAL", string.Empty, 0, 0, false, string.Empty, labels);
+        new("repo", "main", 1, labels.Length, "NORMAL", string.Empty, 0, 0, false, string.Empty, Tabs: labels);
 
     private static string Row(int width, GraphGlyphSet glyphs, params TabLabel[] labels) =>
         ChromeBuilder.Tabs(Model(labels), width, glyphs).Text.TrimEnd();

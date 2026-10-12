@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
@@ -16,6 +17,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
+
+    /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
+    public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
     /// <summary>The keymap view of the focused pane (<c>Graph</c> or <c>Detail</c>).</summary>
     public string ViewName => host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar
@@ -32,6 +36,18 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         }
 
         var list = FocusedPane == PaneKind.Detail ? detailList : graphList;
+        if (OffersToPrompts(action))
+        {
+            foreach (var prompt in Prompts)
+            {
+                if (prompt.TryExecute(action, count))
+                {
+                    Message = prompt.Notice;
+                    return;
+                }
+            }
+        }
+
         var itemCount = list.Source?.Count ?? 0;
         if (ListMotion.TryMove(action, count, list.SelectedItem ?? 0, itemCount, list.Viewport.Height, out var target))
         {
@@ -82,6 +98,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         list.SetNeedsDraw();
         graphList.SetNeedsDraw();
     }
+
+    // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply.
+    private bool OffersToPrompts(ActionId action) =>
+        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel;
 
     private static void Select(ListView list, int item)
     {

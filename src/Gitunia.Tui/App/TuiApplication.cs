@@ -8,6 +8,7 @@ using Gitunia.Platform;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
 using Terminal.Gui.Input;
@@ -29,6 +30,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
     private OverlayController overlays = null!;
@@ -71,11 +73,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
         binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
         binder.Switched += OnTabSwitched;
+        binder.GraphChanged += OnGraphChanged;
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
         overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
+        prompts = CreatePrompts(app);
+        router.Prompts = prompts;
+        keys.TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key));
         var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
         host.Changed += view.RefreshChrome;
@@ -193,15 +199,60 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             view.Graph.SelectedItem,
             TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId)?.IsLoading ?? false),
             picker.State,
-            homeDirectory);
+            homeDirectory)
+        with
+        {
+            SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
+        };
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
+
+    // app.Invoke runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
+    private static Action<Action> DeferToNextIteration(IApplication app) => work => app.AddTimeout(
+        TimeSpan.Zero,
+        () =>
+        {
+            work();
+            return false;
+        });
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts(IApplication app)
+    {
+        var handle = new GraphViewHandle(
+            ActiveSession,
+            () => view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1,
+            row =>
+            {
+                view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
+                view.Graph.EnsureSelectedItemVisible();
+            },
+            keys.SetMode,
+            () =>
+            {
+                view.Graph.SetNeedsDraw();
+                view.RefreshChrome();
+            });
+        return
+        [
+            // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
+            new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
+            new SearchController(handle, DeferToNextIteration(app)),
+        ];
+    }
 
     private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
     {
         var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
         var isFocused = view.Detail.HasFocus;
         return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
+    }
+
+    private void OnGraphChanged()
+    {
+        foreach (var prompt in prompts)
+        {
+            prompt.OnGraphChanged();
+        }
     }
 
     private void OnTabSwitched(TabSession? previous, TabSession? current)
@@ -223,26 +274,25 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private bool HandleKey(Key key)
     {
         startupNotice = string.Empty;
-        var handled = keys.Handle(key, picker.IsOpen && !overlays.State.IsOpen ? DefaultKeymap.PickerView : overlays.ViewName);
-        if (handled || !picker.IsOpen || overlays.State.IsOpen)
-        {
-            return handled;
-        }
-
-        // The picker's query is plain state, not a text widget: it edits itself with Backspace (some terminals send it as Ctrl-h) and swallows other keys.
-        if (KeyTranslator.TryTranslate(key, out var keyEvent) && keyEvent is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
-        {
-            picker.Apply(new BackspaceCommand());
-        }
-
-        return true;
+        var view = picker.IsOpen && !overlays.State.IsOpen ? DefaultKeymap.PickerView : overlays.ViewName;
+        return keys.Handle(key, view) || (picker.IsOpen && !overlays.State.IsOpen);
     }
 
     private void OnTextKey(KeyEvent keyEvent)
     {
-        if (picker.IsOpen && keys.Mode == KeyMode.Insert)
+        if (!picker.IsOpen || keys.Mode != KeyMode.Insert)
+        {
+            return;
+        }
+
+        // The picker's query is plain state, not a text widget: it takes printable keys and edits itself with Backspace (some terminals send it as Ctrl-h).
+        if (keyEvent.IsPrintable)
         {
             picker.Apply(new TypeTextCommand(keyEvent.Name));
+        }
+        else if (keyEvent is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
+        {
+            picker.Apply(new BackspaceCommand());
         }
     }
 

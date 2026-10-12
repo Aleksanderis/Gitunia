@@ -104,7 +104,7 @@ public class PickerComposerTests
     public void GivenOpenPickerInTheScreenModel_WhenComposingTheScreen_ThenItReplacesTheGraphAndStatusShowsPickerHints()
     {
         var picker = new PickerState(string.Empty, 0, [Row("alpha", PickerTags.Recent)], string.Empty, null);
-        var model = new ScreenModel(string.Empty, null, 0, 0, "INSERT", string.Empty, 0, 0, false, string.Empty, [], picker, Home);
+        var model = new ScreenModel(string.Empty, null, 0, 0, "INSERT", string.Empty, 0, 0, false, string.Empty, Tabs: [], Picker: picker, HomeDirectory: Home);
 
         var lines = ScreenComposer.Compose(model, new Gitunia.Core.Graph.CommitGraph(), 0, 0, 80, 8, GraphGlyphSet.Unicode);
 
