@@ -11,6 +11,7 @@ internal sealed class DiffFileBuilder
     private readonly List<DiffHunk> hunks = [];
     private readonly List<DiffLine> openLines = [];
     private readonly List<string> warnings;
+    private readonly int maximumLines;
 
     private string? headerOldPath;
     private string? headerNewPath;
@@ -28,6 +29,9 @@ internal sealed class DiffFileBuilder
     private bool isBinary;
     private bool inBinaryPatch;
     private bool skippingUnreadableHunk;
+    private int storedLineCount;
+    private bool lastLineStored;
+    private bool isTruncated;
 
     private string? openHeaderText;
     private int openOldStart;
@@ -40,9 +44,10 @@ internal sealed class DiffFileBuilder
     private int nextOldNumber;
     private int nextNewNumber;
 
-    public DiffFileBuilder(string headerLine, List<string> warnings)
+    public DiffFileBuilder(string headerLine, List<string> warnings, int maximumLines = int.MaxValue)
     {
         this.warnings = warnings;
+        this.maximumLines = maximumLines;
         headerLines.Add(headerLine);
         var paths = DiffPathText.SplitHeader(headerLine["diff --git ".Length..]);
         if (paths is null)
@@ -67,7 +72,7 @@ internal sealed class DiffFileBuilder
             return;
         }
 
-        if (openHeaderText is not null && line.StartsWith(NoNewlineMarker, StringComparison.Ordinal) && openLines.Count > 0)
+        if (openHeaderText is not null && line.StartsWith(NoNewlineMarker, StringComparison.Ordinal) && openLines.Count > 0 && lastLineStored)
         {
             openLines[^1] = openLines[^1] with { NoNewlineAtEnd = true };
             return;
@@ -119,7 +124,7 @@ internal sealed class DiffFileBuilder
             newPath = null;
         }
 
-        return new DiffFile(oldPath, newPath, status, oldMode, newMode, similarity, isBinary, headerLines, hunks);
+        return new DiffFile(oldPath, newPath, status, oldMode, newMode, similarity, isBinary, headerLines, hunks) { IsTruncated = isTruncated };
     }
 
     private void ParseHeaderLine(string line)
@@ -233,7 +238,7 @@ internal sealed class DiffFileBuilder
     {
         if (line.StartsWith(NoNewlineMarker, StringComparison.Ordinal))
         {
-            if (openLines.Count > 0)
+            if (openLines.Count > 0 && lastLineStored)
             {
                 openLines[^1] = openLines[^1] with { NoNewlineAtEnd = true };
             }
@@ -251,16 +256,16 @@ internal sealed class DiffFileBuilder
         switch (prefix)
         {
             case ' ':
-                openLines.Add(new DiffLine(DiffLineKind.Context, text, nextOldNumber++, nextNewNumber++, false));
+                Store(new DiffLine(DiffLineKind.Context, text, nextOldNumber++, nextNewNumber++, false));
                 remainingOld--;
                 remainingNew--;
                 break;
             case '-':
-                openLines.Add(new DiffLine(DiffLineKind.Removed, text, nextOldNumber++, null, false));
+                Store(new DiffLine(DiffLineKind.Removed, text, nextOldNumber++, null, false));
                 remainingOld--;
                 break;
             case '+':
-                openLines.Add(new DiffLine(DiffLineKind.Added, text, null, nextNewNumber++, false));
+                Store(new DiffLine(DiffLineKind.Added, text, null, nextNewNumber++, false));
                 remainingNew--;
                 break;
             default:
@@ -268,6 +273,20 @@ internal sealed class DiffFileBuilder
                 remainingOld = 0;
                 remainingNew = 0;
                 break;
+        }
+    }
+
+    private void Store(DiffLine line)
+    {
+        lastLineStored = storedLineCount < maximumLines;
+        if (lastLineStored)
+        {
+            openLines.Add(line);
+            storedLineCount++;
+        }
+        else
+        {
+            isTruncated = true;
         }
     }
 

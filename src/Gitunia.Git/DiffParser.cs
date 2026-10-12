@@ -9,7 +9,7 @@ namespace Gitunia.Git;
 /// bounded by the largest single file, not by the diff. Anything before the first <c>diff --git</c> line (such as the
 /// commit message of <c>git show</c>) is ignored. Combined diffs (<c>diff --cc</c>, merge commits) are skipped with a warning.
 /// </summary>
-public sealed class DiffParser
+public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
 {
     private const string FileHeaderPrefix = "diff --git ";
 
@@ -104,7 +104,7 @@ public sealed class DiffParser
             }
             else
             {
-                current = new DiffFileBuilder(line, warnings);
+                current = new DiffFileBuilder(line, warnings, maximumLinesPerFile);
             }
 
             return;

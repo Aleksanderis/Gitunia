@@ -211,6 +211,84 @@ public class DiffPaneControllerTests
         Assert.Equal(document.FileRows[document.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
     }
 
+    [Fact]
+    public async Task GivenALongLine_WhenTogglingWrap_ThenItTakesMoreLinesAndTheCursorKeepsItsRow()
+    {
+        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var harness = await DiffHarness.LoadAsync(repository);
+        await harness.OpenAsync("a.txt");
+        var source = harness.Session.Diff!.Source;
+        var rows = source.Document.Rows.Count;
+        harness.Execute(ActionIds.ListBottom);
+        var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
+
+        harness.Execute(ActionIds.DiffToggleWrap);
+
+        Assert.True(source.IsWrapped);
+        Assert.Equal(rows + 2, source.Count);
+        Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
+        Assert.Equal("Word wrap on", harness.Controller.Notice);
+        harness.Execute(ActionIds.DiffToggleWrap);
+        Assert.False(source.IsWrapped);
+        Assert.Equal(rows, source.Count);
+        Assert.Equal(row, harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenACutDiff_WhenLoadingAnyway_ThenTheWholeDiffLoadsAndTheFileKeepsTheCursor()
+    {
+        using var harness = await DiffHarness.LoadAsync(rowLimit: 8);
+        await harness.OpenAsync("a.txt");
+        var cutRows = harness.Session.Diff!.Source.Document.Rows.Count;
+        Assert.True(harness.Session.Diff.Store.IsCut);
+
+        harness.Execute(ActionIds.DiffLoadAnyway);
+        await harness.WaitForDiffAsync();
+
+        Assert.False(harness.Session.Diff.Store.IsCut);
+        Assert.True(harness.Session.Diff.Source.Document.Rows.Count > cutRows);
+        Assert.Equal(0, harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAnUncutDiff_WhenLoadingAnyway_ThenANoticeSaysNothingWasCut()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+
+        harness.Execute(ActionIds.DiffLoadAnyway);
+
+        Assert.Equal("Nothing was cut short", harness.Controller.Notice);
+    }
+
+    [Fact]
+    public async Task GivenAnOpenDiff_WhenTheSelectedCommitChanges_ThenTheDiffFollowsAndKeepsTheFile()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("b.txt");
+        var shown = harness.Session.Diff!.Store.Commit;
+
+        await harness.SelectCommitAsync(harness.Session.Graph[1].Id);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.NotEqual(shown, harness.Session.Diff.Store.Commit);
+        Assert.Equal(harness.Session.Graph[1].Id, harness.Session.Diff.Store.Commit);
+        var document = harness.Session.Diff.Source.Document;
+        Assert.Equal(document.FileRows[document.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAClosedDiff_WhenTheSelectedCommitChanges_ThenNothingLoads()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+
+        await harness.SelectCommitAsync(harness.Session.Graph[1].Id);
+        harness.Controller.FollowSelection();
+
+        Assert.Equal(DiffStatus.None, harness.Session.Diff!.Store.Status);
+    }
+
     private sealed class DiffHarness : IDisposable
     {
         private readonly TestRepository? ownedRepository;
@@ -223,7 +301,7 @@ public class DiffPaneControllerTests
             this.ownedRepository = ownedRepository;
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView();
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { });
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => 60, () => { }, () => { });
             Controller.OnTabSwitched(null, session);
         }
 
@@ -241,7 +319,7 @@ public class DiffPaneControllerTests
 
         public RepoState Tab => Host.Workspace.ActiveTab!;
 
-        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null)
+        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit)
         {
             var owned = repository is null ? CreateDefaultRepository() : null;
             var path = (repository ?? owned)!.Path;
@@ -255,7 +333,7 @@ public class DiffPaneControllerTests
                 tabId,
                 GraphGlyphSet.Unicode,
                 new CommitDetailsStore(repo, action => action(), TimeSpan.Zero),
-                new DiffStore(repo, action => action()));
+                new DiffStore(repo, action => action(), rowLimit));
             await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, owned);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
@@ -296,6 +374,17 @@ public class DiffPaneControllerTests
             while (Session.Diff!.Store.Status != DiffStatus.Loaded)
             {
                 Assert.True(DateTime.UtcNow < deadline, "the diff did not load");
+                await Task.Delay(10, Token);
+            }
+        }
+
+        public async Task SelectCommitAsync(ObjectId commit)
+        {
+            Session.Details.Select(commit);
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (Session.Details.Current.Status != CommitDetailsStatus.Loaded || Session.Details.Current.Commit != commit)
+            {
+                Assert.True(DateTime.UtcNow < deadline, "the details did not load");
                 await Task.Delay(10, Token);
             }
         }

@@ -4,7 +4,7 @@ using Gitunia.Core.Diff;
 
 namespace Gitunia.Tui.Rendering;
 
-/// <summary>Draws one row of the diff pane: line number gutter, change marker and the text, cut to the width. Text never wraps.</summary>
+/// <summary>Draws one row of the diff pane: line number gutter, change marker and the text, cut to the width, or wrapped over several screen lines (<see cref="RenderSegment"/>).</summary>
 public static class DiffRowRenderer
 {
     /// <summary>Width of a tab stop; tabs in the diff are shown as spaces up to the next stop.</summary>
@@ -45,6 +45,93 @@ public static class DiffRowRenderer
                 break;
         }
 
+        return builder.Build(SegmentRole.Plain, isSelected);
+    }
+
+    /// <summary>Columns taken before the text of <paramref name="row"/> (line numbers and marker, or the note prefix).</summary>
+    public static int PrefixWidth(DiffRow row, int gutterDigits) => row.Kind switch
+    {
+        DiffRowKind.FileHeader or DiffRowKind.HunkHeader => 0,
+        DiffRowKind.Warning or DiffRowKind.Note or DiffRowKind.NoNewline => 2,
+        _ => (2 * gutterDigits) + 3,
+    };
+
+    /// <summary>How many screen lines <paramref name="row"/> takes when its text wraps at <paramref name="width"/> columns.</summary>
+    public static int SegmentCount(DiffRow row, int width, int gutterDigits)
+    {
+        var columns = width - PrefixWidth(row, gutterDigits);
+        return columns <= 0 || row.Text.Length * 2 <= columns ? 1 : Chunks(ExpandTabs(row.Text), columns).Count;
+    }
+
+    /// <summary>Cuts <paramref name="shown"/> into pieces of at most <paramref name="columns"/> columns; a wide character is never split.</summary>
+    public static List<string> Chunks(string shown, int columns)
+    {
+        var chunks = new List<string>();
+        var builder = new StringBuilder();
+        var used = 0;
+        foreach (var rune in shown.EnumerateRunes())
+        {
+            var runeWidth = TextWidth.Of(rune);
+            if (used > 0 && used + runeWidth > columns)
+            {
+                chunks.Add(builder.ToString());
+                builder.Clear();
+                used = 0;
+            }
+
+            builder.Append(rune.ToString());
+            used += runeWidth;
+        }
+
+        chunks.Add(builder.ToString());
+        return chunks;
+    }
+
+    /// <summary>One screen line of a wrapped row: segment 0 carries the line numbers and marker, the others a blank prefix.</summary>
+    public static StyledLine RenderSegment(DiffRow row, int segment, int width, int gutterDigits, string? highlight, bool isSelected, GraphGlyphSet glyphs)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        var prefixWidth = PrefixWidth(row, gutterDigits);
+        var columns = width - prefixWidth;
+        var textRole = row.Kind switch
+        {
+            DiffRowKind.FileHeader => SegmentRole.DiffFile,
+            DiffRowKind.HunkHeader => SegmentRole.DiffHunk,
+            DiffRowKind.Warning => SegmentRole.Error,
+            DiffRowKind.Note or DiffRowKind.NoNewline => SegmentRole.Faint,
+            DiffRowKind.Added => SegmentRole.DiffAdded,
+            DiffRowKind.Removed => SegmentRole.DiffRemoved,
+            _ => SegmentRole.Plain,
+        };
+        if (columns <= 0)
+        {
+            return Render(row, width, gutterDigits, highlight, isSelected, glyphs);
+        }
+
+        if (segment == 0)
+        {
+            switch (row.Kind)
+            {
+                case DiffRowKind.Warning:
+                    builder.Append("! ", textRole);
+                    break;
+                case DiffRowKind.Note or DiffRowKind.NoNewline:
+                    builder.Append("  ", textRole);
+                    break;
+                case DiffRowKind.Context or DiffRowKind.Added or DiffRowKind.Removed:
+                    builder.Append(Number(row.OldLineNumber, gutterDigits) + " " + Number(row.NewLineNumber, gutterDigits) + " ", SegmentRole.Faint);
+                    var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
+                    builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
+                    break;
+            }
+        }
+        else
+        {
+            builder.Append(new string(' ', prefixWidth), SegmentRole.Plain);
+        }
+
+        var chunks = Chunks(ExpandTabs(row.Text), columns);
+        AppendHighlighted(builder, segment < chunks.Count ? chunks[segment] : string.Empty, textRole, highlight);
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
@@ -110,7 +197,11 @@ public static class DiffRowRenderer
 
     private static void AppendText(LineBuilder builder, string text, SegmentRole role, string? highlight)
     {
-        var shown = ExpandTabs(text);
+        AppendHighlighted(builder, ExpandTabs(text), role, highlight);
+    }
+
+    private static void AppendHighlighted(LineBuilder builder, string shown, SegmentRole role, string? highlight)
+    {
         if (highlight is not { Length: > 0 })
         {
             builder.Append(shown, role);

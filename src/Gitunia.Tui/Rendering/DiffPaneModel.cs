@@ -9,4 +9,5 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="TopRow">The first visible row.</param>
 /// <param name="IsFocused">The pane has focus.</param>
 /// <param name="Highlight">The diff search text to highlight, null for none.</param>
-public sealed record DiffPaneModel(DiffDocument Document, string ShortHash, int SelectedRow, int TopRow, bool IsFocused, string? Highlight = null);
+/// <param name="IsWrapped">Word wrap is on (shown in the title).</param>
+public sealed record DiffPaneModel(DiffDocument Document, string ShortHash, int SelectedRow, int TopRow, bool IsFocused, string? Highlight = null, bool IsWrapped = false);

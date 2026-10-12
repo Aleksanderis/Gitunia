@@ -9,6 +9,7 @@ namespace Gitunia.Tui.Views;
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
 public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
 {
+    private DiffWrapMap? map;
     private int gutterDigits = DiffRowRenderer.GutterDigits(0);
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -18,7 +19,14 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
 
-    public int Count => Document.Rows.Count;
+    /// <summary>Supplies the pane width in columns; wrapping needs it. Null or zero shows the rows unwrapped.</summary>
+    public Func<int>? WidthProvider { get; set; }
+
+    /// <summary>Text wraps over several screen lines instead of being cut.</summary>
+    public bool IsWrapped { get; private set; }
+
+    /// <summary>Screen lines: one per row, or more when wrapped.</summary>
+    public int Count => Map()?.Count ?? Document.Rows.Count;
 
     public int MaxItemLength => 0;
 
@@ -28,12 +36,24 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     public void Update(DiffDocument document)
     {
         Document = document;
+        map = null;
         gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
-        if (!SuspendCollectionChangedEvent)
-        {
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-        }
+        Notify();
     }
+
+    /// <summary>Turns wrapping on or off and tells the list.</summary>
+    public void SetWrapped(bool isWrapped)
+    {
+        IsWrapped = isWrapped;
+        map = null;
+        Notify();
+    }
+
+    /// <summary>The diff row shown on screen line <paramref name="line"/>.</summary>
+    public int RowOf(int line) => Map() is { } current ? current.RowOf(line) : line;
+
+    /// <summary>The first screen line of diff row <paramref name="row"/>.</summary>
+    public int LineOf(int row) => Map() is { } current ? current.StartOf(row) : row;
 
     public bool IsMarked(int item) => false;
 
@@ -45,13 +65,46 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
 
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
-        var line = item >= 0 && item < Document.Rows.Count
-            ? DiffRowRenderer.Render(Document.Rows[item], width, gutterDigits, Highlight, selected && listView.HasFocus, glyphs)
-            : new LineBuilder(width, glyphs.Ellipsis).Build();
+        var current = Map();
+        var line = current is not null && item >= 0 && item < current.Count
+            ? WrappedLine(current, item, width, selected && listView.HasFocus)
+            : current is null && item >= 0 && item < Document.Rows.Count
+                ? DiffRowRenderer.Render(Document.Rows[item], width, gutterDigits, Highlight, selected && listView.HasFocus, glyphs)
+                : new LineBuilder(width, glyphs.Ellipsis).Build();
         LinePainter.Paint(listView, line, col, row, listView.HasFocus);
     }
 
     public void Dispose()
     {
+    }
+
+    private DiffWrapMap? Map()
+    {
+        var width = IsWrapped && WidthProvider is not null ? WidthProvider() : 0;
+        if (width <= 0)
+        {
+            return null;
+        }
+
+        if (map is null || map.Width != width || !ReferenceEquals(map.Document, Document))
+        {
+            map = DiffWrapMap.Build(Document, width);
+        }
+
+        return map;
+    }
+
+    private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected)
+    {
+        var row = current.RowOf(item);
+        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, gutterDigits, Highlight, isSelected, glyphs);
+    }
+
+    private void Notify()
+    {
+        if (!SuspendCollectionChangedEvent)
+        {
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
     }
 }
