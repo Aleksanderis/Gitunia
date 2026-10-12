@@ -14,7 +14,7 @@ public static class ActionCatalog
         ["detail.copy-path"] = "Copy the file path",
         ["detail.open-diff"] = "Open the file diff",
         ["detail.retry"] = "Retry loading the commit details",
-        ["diff.copy-file"] = "Copy the diff of the current file",
+        ["diff.copy-file"] = "Copy the displayed rows of the current file",
         ["diff.copy-line"] = "Copy the current diff line",
         ["diff.load-anyway"] = "Load the whole diff (lift the size limits)",
         ["diff.next-file"] = "Next file",

@@ -26,7 +26,7 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly Func<int> screenHeight;
     private readonly Action relayout;
     private readonly Action refreshChrome;
-    private readonly ClipboardCopier? clipboard;
+    private readonly ClipboardCopier clipboard;
     private bool isRestoring;
     private bool isSyncing;
 
@@ -38,7 +38,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="screenHeight">Terminal rows, to tell whether the diff fits next to the graph.</param>
     /// <param name="relayout">Asks the views to lay out again after the pane arrangement changed.</param>
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
-    /// <param name="clipboard">Copies diff text; null disables the copy actions.</param>
+    /// <param name="clipboard">Copies diff text.</param>
     public DiffPaneController(
         WorkspaceHost host,
         Func<TabSession?> activeSession,
@@ -48,7 +48,7 @@ public sealed class DiffPaneController : IPromptHandler
         Func<int> screenHeight,
         Action relayout,
         Action refreshChrome,
-        ClipboardCopier? clipboard = null)
+        ClipboardCopier clipboard)
     {
         this.clipboard = clipboard;
         this.host = host;
@@ -320,7 +320,7 @@ public sealed class DiffPaneController : IPromptHandler
 
     private void Copy(DiffDocument document, int row, bool wholeFile)
     {
-        if (clipboard is null || row < 0 || row >= document.Rows.Count)
+        if (row < 0 || row >= document.Rows.Count || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
         {
             Notice = "Nothing to copy";
         }

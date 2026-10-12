@@ -125,7 +125,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Diff | `/` `n` `N` | Search in diff, next, previous |
 | Diff | `w` | Toggle word wrap (off by default; the cursor moves by screen line while on) |
 | Diff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
-| Diff | `Y` | Copy the diff of the file under the cursor |
+| Diff | `Y` | Copy the displayed rows of the file under the cursor (not a pasteable patch) |
 | Diff | `L` | Load anyway: reload the commit without the row and per-file limits |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
