@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;
+using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 
@@ -12,9 +13,11 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class TabSession : IDisposable
 {
-    public TabSession(TabId tabId, GraphGlyphSet glyphs)
+    public TabSession(TabId tabId, GraphGlyphSet glyphs, CommitDetailsStore details)
     {
         TabId = tabId;
+        Details = details;
+        DetailSource = new DetailListSource(glyphs);
         Graph = new CommitGraph();
         Source = new GraphListSource(Graph, glyphs);
     }
@@ -30,6 +33,12 @@ public sealed class TabSession : IDisposable
 
     /// <summary>The tab's graph search (the typed query, its matches and scan progress).</summary>
     public GraphSearchState Search { get; set; } = GraphSearchState.Initial;
+
+    /// <summary>The details of the commit selected in the graph, loaded on demand.</summary>
+    public CommitDetailsStore Details { get; }
+
+    /// <summary>The list source of the detail pane.</summary>
+    public DetailListSource DetailSource { get; }
 
     public CancellationTokenSource Cancellation { get; } = new();
 
@@ -61,6 +70,7 @@ public sealed class TabSession : IDisposable
 
     public void Dispose()
     {
+        Details.Dispose();
         Cancellation.Cancel();
         Cancellation.Dispose();
     }

@@ -50,7 +50,7 @@ public class SearchHighlightTests
     [Fact]
     public void GivenOpenSearch_WhenComposing_ThenTheStatusShowsItInsteadOfThePositionAndHints()
     {
-        var lines = ScreenComposer.Compose(Model("/fix_  2 found"), Graph(), 0, 0, 60, 6, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Message, "fix"));
+        var lines = ScreenComposer.Compose(Model("/fix_  2 found"), Graph(), 0, 0, 60, 6, GraphGlyphSet.Unicode, highlight: new SearchQuery(SearchField.Message, "fix"));
 
         Assert.Equal(" INSERT  /fix_  2 found", lines[^1].Text.TrimEnd());
         Assert.Equal("Fix", Highlighted(lines[2]));

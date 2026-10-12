@@ -1,6 +1,6 @@
 ---
 name: work-task
-description: Deliver one Gitunia GitHub issue end to end (pick, branch, implement, test, review, PR). Use when asked to work on the next issue, a specific issue number, or to run autonomously through the backlog.
+description: Deliver one Gitunia GitHub issue end to end (pick, branch, implement, test, review, PR). Use when asked to work on the next issue or a specific issue number (the work-orchestrator skill runs it through the backlog).
 ---
 
 # Work an issue
@@ -21,7 +21,7 @@ description: Deliver one Gitunia GitHub issue end to end (pick, branch, implemen
 ## 3. Implement
 
 - Branch from `main` as `feature/<n>-<slug>` or `fix/<n>-<slug>`; one issue per branch. Spikes use `spike/<n>-<slug>` and are never merged.
-- Run independent unblocked issues in parallel: one subagent per issue, each in its own worktree (`isolation: "worktree"`), each following this skill end to end including review and merge. Not for the same files, shared contracts or the same keymap rows. If a missing prerequisite appears, open a new issue instead of widening the PR.
+- When you run as a subagent of the `work-orchestrator` skill (parallel worktree agent): commit and push work-in-progress to your feature branch regularly so an interruption never loses work; stay inside the paths you were given; do not leave background processes (CI watches, servers) running when you finish; you cannot remove your own worktree, so report `merged, cleanup pending` with your worktree path and branch names; keep the final report to at most 10 lines (PR URL, merged yes/no, what the owner must know), since details belong in the PR comments. If a missing prerequisite appears, open a new issue instead of widening the PR.
 - Tests follow the `testing` skill; layering and cross-platform rules are in `CLAUDE.md`.
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
 - Run the AOT publish if you added a dependency or touched anything reflection-adjacent.

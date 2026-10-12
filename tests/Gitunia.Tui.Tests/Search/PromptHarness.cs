@@ -4,6 +4,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Input;
 
@@ -20,7 +21,9 @@ public sealed class PromptHarness : IDisposable
 
     public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null, Queue<Action>? deferred = null)
     {
-        Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode);
+        // Search never selects a commit, so the details store never runs a process in these tests.
+        var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
+        Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(new GitRunner(), location), action => action(), TimeSpan.Zero));
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         if (!isLoading)
         {
