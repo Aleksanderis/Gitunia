@@ -18,6 +18,7 @@ effort: medium
 
 - Settle questions from the docs, `docs/decisions.md`, issue comments or a sensible default; note the assumption in the PR.
 - If a real owner decision is needed, add it to "Open questions" in `docs/roadmap.md` (or open an issue labeled `question`) with your recommended default and what changes if it is wrong, then continue with the default or move to another issue. Don't wait.
+- Labels for the owner: `question` is a decision for a later milestone or a design choice; `needs-owner` is strictly the owner's now (a decision that blocks work or a manual check only the owner can do, such as a real terminal or clipboard). Use `needs-owner` only when it is actionable now. The owner answers in a comment and does not touch the label. The next agent that sees an answered `question` or `needs-owner` issue acts on it (implement, log it in `docs/decisions.md`, or close the issue), then removes the label and says so in a comment: the label means "still waiting on the owner".
 - If the same failure persists after three different attempts, comment on the issue with what you tried and move on.
 
 ## 3. Implement
