@@ -95,6 +95,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         {
             CopySelectedHash();
         }
+        else if (action == ActionIds.DetailCopyPath && FocusedPane == PaneKind.Detail)
+        {
+            CopySelectedPath();
+        }
         else if (action == ActionIds.GraphOpenDetails)
         {
             FocusPane(PaneKind.Detail, detailList);
@@ -169,6 +173,19 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         var hash = session.Graph[commitIndex].Id.ToString();
         clipboard.Copy(hash, $"commit hash {hash[..Math.Min(7, hash.Length)]}");
+    }
+
+    private void CopySelectedPath()
+    {
+        var source = activeSession()?.DetailSource;
+        var index = (detailList.SelectedItem ?? -1) - (source?.Content.FirstFileRow ?? 0);
+        if (source is null || index < 0 || index >= source.Content.Files.Count)
+        {
+            Message = "Select a file to copy its path";
+            return;
+        }
+
+        clipboard.Copy(source.Content.Files[index].Path, "file path");
     }
 
     private void JumpToHead()

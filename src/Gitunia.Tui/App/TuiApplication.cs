@@ -61,6 +61,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs, statuses);
+        var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
+        var clipboard = new ClipboardCopier(clipboardWriter, statuses);
         var sidebarSource = new SidebarListSource(glyphs);
         sidebar = new SidebarActionHandler(
             host,
@@ -70,7 +72,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             () => !CurrentPaneRects().Sidebar.IsEmpty,
             () => !CurrentPaneRects().Detail.IsEmpty,
             SelectGraphItem,
-            mode => keys.SetMode(mode));
+            mode => keys.SetMode(mode),
+            clipboard);
         sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
         sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
         view = new MainView(
@@ -83,10 +86,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             width => diffPane.TitleLine(width, glyphs),
             new DiffListSource(glyphs),
             () => SidebarPane.Divider(view.Diff.HasFocus || view.Detail.HasFocus, glyphs));
-        var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
-        var clipboard = new ClipboardCopier(clipboardWriter, statuses);
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
-        diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome);
+        diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome, clipboard);
         router.Diff = diffPane;
         router.Refresh = () => host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));

@@ -86,7 +86,7 @@ public static class SidebarBuilder
             + (worktree.IsLocked ? " locked" : string.Empty)
             + (worktree.IsPrunable ? " prunable" : string.Empty);
         var isCurrent = RepositoryPathComparer.Instance.Equals(worktree.Path, tab.CommandPath);
-        return new SidebarRow(SidebarRowKind.Worktree, SidebarSection.Worktrees, DirectoryName(worktree.Path), annotation, worktree.HeadHash, isCurrent, false, 0, null, null);
+        return new SidebarRow(SidebarRowKind.Worktree, SidebarSection.Worktrees, DirectoryName(worktree.Path), annotation, worktree.HeadHash, isCurrent, false, 0, null, null, worktree.Path);
     }
 
     private static SidebarRow StashRow(StashEntry stash) =>
