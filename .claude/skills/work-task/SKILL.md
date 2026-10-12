@@ -44,7 +44,7 @@ effort: medium
 
 ## Agent identity
 
-All agents act through the owner's GitHub login, so every artifact must say which agent made it. Roles: `orchestrator` (the main session: picks issues, opens PRs, merges), `implementer` (a per-issue subagent: code, tests, fix commits) and `reviewer` (the `reviewer` subagent).
+All agents act through the owner's GitHub login, so every artifact must say which agent made it. Roles: `orchestrator` (the main session: picks issues, opens PRs, merges), `implementer` (a per-issue subagent: code, tests, fix commits) and `reviewer` (the `reviewer` subagent) and `readiness` (the `work-readiness` skill: reports and issue edits).
 
 - **Commits:** author name is the role, email stays the owner's from git config (so GitHub still links the commit): `GIT_AUTHOR_NAME="Claude (implementer)" git commit ...`. The committer stays the owner. Add an `Agent: <role>` trailer above the `Co-Authored-By` line.
 - **PR comments, reviews, issue comments:** start with a header line, end with a signature line, and include a hidden marker so they can be filtered:
@@ -59,6 +59,6 @@ All agents act through the owner's GitHub login, so every artifact must say whic
   <sub>🔍 Reviewer agent · Claude · PR #<n> @ <short sha></sub>
   ```
 
-  Icons: orchestrator 🧭, implementer 🛠, reviewer 🔍. Header titles: `findings`, `fixes for review`, `spike findings`, `blocked`, etc. The signature names the role, "Claude", and the PR or issue plus commit it refers to.
+  Icons: orchestrator 🧭, implementer 🛠, reviewer 🔍, readiness 📋. Issues and issue comments created by an agent follow the same header and signature rules (a signature on a new issue body; edits to an existing issue body say who added the text). Header titles: `findings`, `fixes for review`, `spike findings`, `blocked`, etc. The signature names the role, "Claude", and the PR or issue plus commit it refers to.
 - **PR body:** the last line reads `Opened by 🧭 orchestrator agent` (or `🛠 implementer agent` when a subagent opens it). No "Generated with Claude Code" footer anywhere.
 - **Reviewer output:** the `reviewer` subagent is read-only, so it returns the complete comment (header, marker, body, signature) and whoever runs it posts it verbatim with `gh pr comment`. The fix-up comment is posted by the implementer with its own header and signature.
