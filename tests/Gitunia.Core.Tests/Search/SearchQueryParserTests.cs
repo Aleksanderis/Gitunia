@@ -1,0 +1,28 @@
+using Gitunia.Core.Search;
+using Xunit;
+
+namespace Gitunia.Core.Tests.Search;
+
+public class SearchQueryParserTests
+{
+    [Theory]
+    [InlineData("fix bug", SearchField.Message, "fix bug")]
+    [InlineData("author:Alice", SearchField.Author, "Alice")]
+    [InlineData("Author: alice ", SearchField.Author, "alice")]
+    [InlineData("hash:ABC12", SearchField.Hash, "ABC12")]
+    [InlineData("hash:author:x", SearchField.Hash, "author:x")]
+    [InlineData("authors", SearchField.Message, "authors")]
+    public void GivenText_WhenParsing_ThenFieldAndTextAreSplit(string input, SearchField field, string text)
+    {
+        Assert.Equal(new SearchQuery(field, text), SearchQueryParser.Parse(input));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("author:")]
+    [InlineData("hash:  ")]
+    public void GivenNothingToLookFor_WhenParsing_ThenThereIsNoQuery(string input)
+    {
+        Assert.Null(SearchQueryParser.Parse(input));
+    }
+}
