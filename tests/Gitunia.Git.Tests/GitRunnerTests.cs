@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Xunit;
 namespace Gitunia.Git.Tests;
 
@@ -156,7 +157,8 @@ public class GitRunnerTests
             new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(200)),
             TestContext.Current.CancellationToken))
         {
-            await Task.Delay(600, TestContext.Current.CancellationToken);
+            // Intrinsic wait: the consumer must be slower than the runner's timeout for the test to mean anything.
+            await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
             collected += chunk.Length;
         }
 
@@ -210,8 +212,25 @@ public class GitRunnerTests
 
     private static async Task AssertNeverMarkedAsync(string marker)
     {
-        // The fake would write the marker after two seconds had the process survived.
-        await Task.Delay(TimeSpan.FromSeconds(3));
+        // The fake would write the marker after two seconds had the process survived; wait for its exit rather than for the clock.
+        if (OperatingSystem.IsWindows())
+        {
+            // The cmd script cannot record its process id, so the only option is to outwait it.
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
+        else if (File.Exists(marker + ".pid") && int.TryParse((await File.ReadAllTextAsync(marker + ".pid")).Trim(), out var processId))
+        {
+            try
+            {
+                using var process = Process.GetProcessById(processId);
+                Assert.True(process.WaitForExit(TimeSpan.FromSeconds(30)), "the process was not killed");
+            }
+            catch (ArgumentException)
+            {
+                // Already gone.
+            }
+        }
+
         Assert.False(File.Exists(marker), "the process was not killed");
     }
 }

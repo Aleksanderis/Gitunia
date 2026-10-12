@@ -6,7 +6,7 @@
 - Real `git` against real temporary repos for the Git layer. No mocking the process runner except for timeout/cancellation/error-path tests.
 - State and keymap logic is pure and tested without a terminal.
 - No test touches the user's repos, global git config or network. Isolation recipe and fixture shapes are in the `testing` skill.
-- No new sleeps or polling loops to wait for background work (a few older ones remain, tracked in a follow-up issue). Wait on a signal: `UiPump` (queues posted UI callbacks and runs them on the test thread until a condition holds), a `TaskCompletionSource` completed from the store's `Changed` event or a file watcher, or an injected delay (e.g. the `delay` parameter of `CommitDetailsStore`, `scanningDelay` of `PickerController`). A guard timeout only bounds a hang.
+- No new sleeps or polling loops to wait for background work. Wait on a signal: `UiPump` (queues posted UI callbacks and runs them on the test thread until a condition holds), a `TaskCompletionSource` completed from the store's `Changed` event or a file watcher, or an injected delay (e.g. the `delay` parameter of `CommitDetailsStore`, `scanningDelay` of `PickerController`). A guard timeout only bounds a hang.
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Naming
