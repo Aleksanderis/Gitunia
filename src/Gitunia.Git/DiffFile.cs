@@ -22,5 +22,8 @@ public sealed record DiffFile(
     /// <summary>The path to show: the new path, or the old one for deleted files.</summary>
     public string Path => NewPath ?? OldPath ?? string.Empty;
 
+    /// <summary>Hunk lines beyond the parser's per-file limit were dropped; the hunks hold only the first lines.</summary>
+    public bool IsTruncated { get; init; }
+
     public bool IsModeChange => OldMode is not null && NewMode is not null && OldMode != NewMode;
 }

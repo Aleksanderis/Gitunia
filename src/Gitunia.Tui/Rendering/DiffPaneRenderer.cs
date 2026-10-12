@@ -44,6 +44,11 @@ public static class DiffPaneRenderer
             builder.Append("  " + pane.Document.FilePaths[fileIndex][0], SegmentRole.Plain);
         }
 
+        if (pane.IsWrapped)
+        {
+            builder.Append("  [wrap]", SegmentRole.Faint);
+        }
+
         return builder.Build(SegmentRole.Plain);
     }
 

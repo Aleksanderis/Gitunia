@@ -9,17 +9,25 @@ namespace Gitunia.Tui.Loading;
 /// commit costs nothing; asking for another one cancels the load in flight. UI thread only; results come back through
 /// <c>postToUi</c>.
 /// </summary>
-public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit = DiffStore.DefaultRowLimit) : IDisposable
+public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit = DiffStore.DefaultRowLimit, int fileLineLimit = DiffStore.DefaultFileLineLimit) : IDisposable
 {
     /// <summary>Rows kept before the diff is cut short; the pane then says so in a last row.</summary>
     public const int DefaultRowLimit = 400_000;
 
+    /// <summary>Hunk lines kept per file before the file is cut short.</summary>
+    public const int DefaultFileLineLimit = 100_000;
+
     private CancellationTokenSource? pending;
+    private ObjectId? firstParent;
+    private bool isUnlimited;
 
     /// <summary>Raised on the UI thread when <see cref="Document"/> or <see cref="Status"/> changed.</summary>
     public event Action? Changed;
 
     public ObjectId? Commit { get; private set; }
+
+    /// <summary>The loaded diff was cut short by the row or per-file limit, so <see cref="LoadAnyway"/> would show more.</summary>
+    public bool IsCut { get; private set; }
 
     public DiffStatus Status { get; private set; } = DiffStatus.None;
 
@@ -37,15 +45,38 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
             return false;
         }
 
+        isUnlimited = false;
+        Start(commit, firstParent);
+        return true;
+    }
+
+    /// <summary>Loads the shown commit again without the row and per-file limits.</summary>
+    /// <returns>False when nothing is shown or nothing was cut.</returns>
+    public bool LoadAnyway()
+    {
+        if (Commit is not { } commit || !IsCut || Status != DiffStatus.Loaded)
+        {
+            return false;
+        }
+
+        isUnlimited = true;
+        Start(commit, firstParent);
+        return true;
+    }
+
+    private void Start(ObjectId commit, ObjectId? firstParent)
+    {
         CancelPending();
+        this.firstParent = firstParent;
         Commit = commit;
+        IsCut = false;
         Status = DiffStatus.Loading;
         Document = DiffDocument.Message("Loading...");
         Changed?.Invoke();
         pending = new CancellationTokenSource();
         var token = pending.Token;
-        _ = Task.Run(() => LoadAsync(commit, firstParent, token), CancellationToken.None);
-        return true;
+        var limited = !isUnlimited;
+        _ = Task.Run(() => LoadAsync(commit, firstParent, limited, token), CancellationToken.None);
     }
 
     /// <summary>Forgets the diff (the pane was closed), cancelling a load in flight.</summary>
@@ -53,15 +84,13 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     {
         CancelPending();
         Commit = null;
+        firstParent = null;
+        IsCut = false;
         Status = DiffStatus.None;
         Document = DiffDocument.Empty;
     }
 
     public void Dispose() => CancelPending();
-
-    private static string[] CommandFor(ObjectId commit, ObjectId? firstParent) => firstParent is { } parent
-        ? ["diff", parent.ToString(), commit.ToString()]
-        : ["show", "--format=", commit.ToString()];
 
     private void CancelPending()
     {
@@ -70,17 +99,20 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         pending = null;
     }
 
-    private async Task LoadAsync(ObjectId commit, ObjectId? firstParent, CancellationToken token)
+    private async Task LoadAsync(ObjectId commit, ObjectId? firstParent, bool limited, CancellationToken token)
     {
         try
         {
             var builder = new DiffDocumentBuilder();
             var warnings = new List<string>();
             var truncated = false;
-            await foreach (var file in DiffReader.ReadAsync(repo, CommandFor(commit, firstParent), token, warnings).ConfigureAwait(false))
+            var fileCut = false;
+            var lineLimit = limited ? fileLineLimit : int.MaxValue;
+            await foreach (var file in DiffReader.ReadCommitAsync(repo, commit, firstParent, token, warnings, lineLimit).ConfigureAwait(false))
             {
                 builder.Add(file);
-                if (builder.RowCount >= rowLimit)
+                fileCut |= file.IsTruncated;
+                if (limited && builder.RowCount >= rowLimit)
                 {
                     // Leaving the loop disposes the stream, which stops git.
                     truncated = true;
@@ -90,11 +122,12 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
 
             if (truncated)
             {
-                builder.AddTrailingNote($"Diff cut short after {rowLimit} rows");
+                builder.AddTrailingNote($"Diff cut short after {rowLimit} rows (L loads all of it)");
             }
 
             var document = builder.Build(warnings);
-            postToUi(() => Complete(commit, document, string.Empty, token));
+            var isCut = truncated || fileCut;
+            postToUi(() => Complete(commit, document, string.Empty, isCut, token));
         }
         catch (OperationCanceledException)
         {
@@ -102,11 +135,11 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         }
         catch (Exception exception)
         {
-            postToUi(() => Complete(commit, null, exception.Message, token));
+            postToUi(() => Complete(commit, null, exception.Message, false, token));
         }
     }
 
-    private void Complete(ObjectId commit, DiffDocument? document, string error, CancellationToken token)
+    private void Complete(ObjectId commit, DiffDocument? document, string error, bool isCut, CancellationToken token)
     {
         if (token.IsCancellationRequested || Commit != commit)
         {
@@ -121,6 +154,7 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         else
         {
             Status = DiffStatus.Loaded;
+            IsCut = isCut;
             Document = document.Rows.Count == 0 ? DiffDocument.Message("No changes in this commit") : document;
         }
 

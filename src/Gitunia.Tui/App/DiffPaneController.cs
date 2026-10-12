@@ -27,6 +27,7 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly Action relayout;
     private readonly Action refreshChrome;
     private bool isRestoring;
+    private bool isSyncing;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -55,11 +56,12 @@ public sealed class DiffPaneController : IPromptHandler
         this.relayout = relayout;
         this.refreshChrome = refreshChrome;
         diffList.ValueChanged += (_, _) => RememberCursor();
+        diffList.ViewportChanged += (_, _) => SyncWidth();
     }
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(diffList.SelectedItem ?? 0) : string.Empty;
+    public string StatusLine => activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(CursorRow(diff)) : string.Empty;
 
     /// <summary>The panes' arrangement for the active tab; a zoom that no longer matches the focused pane is dropped here.</summary>
     public PaneArrangement Arrangement()
@@ -80,6 +82,7 @@ public sealed class DiffPaneController : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
+        SyncWidth();
         if (activeSession()?.Diff is not { } diff || host.Workspace.ActiveTab is not { } tab)
         {
             return false;
@@ -116,6 +119,29 @@ public sealed class DiffPaneController : IPromptHandler
         return true;
     }
 
+    /// <summary>
+    /// Makes an open diff follow the graph selection: when the selected commit's details have arrived and differ from the commit
+    /// the diff shows, the diff loads that commit and keeps the file under the cursor when the new commit has it. Does nothing while
+    /// the diff is closed or the details are still loading.
+    /// </summary>
+    public void FollowSelection()
+    {
+        if (activeSession() is not { Diff: { IsOpen: true } diff } session
+            || session.Details.Current is not { Details: { } loaded, Commit: { } commit }
+            || diff.Store.Commit == commit)
+        {
+            return;
+        }
+
+        if (diff.Store.Status == DiffStatus.Loaded)
+        {
+            // While another commit is still loading, the document has no files: keep the file remembered so far.
+            diff.PendingFilePath = CurrentFilePath(diff);
+        }
+
+        diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null);
+    }
+
     public void OnGraphChanged()
     {
     }
@@ -139,10 +165,11 @@ public sealed class DiffPaneController : IPromptHandler
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
+                diff.Source.Width = diffList.Viewport.Width;
                 if (diff.Source.Count > 0)
                 {
-                    diffList.SelectedItem = Math.Min(diff.SelectedRow, diff.Source.Count - 1);
-                    diffList.Viewport = diffList.Viewport with { Y = diff.TopRow };
+                    diffList.SelectedItem = Math.Min(diff.Source.LineOf(diff.SelectedRow), diff.Source.Count - 1);
+                    diffList.Viewport = diffList.Viewport with { Y = diff.Source.LineOf(diff.TopRow) };
                 }
             }
         }
@@ -168,7 +195,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var hash = diff.Store.Commit is { } commit ? commit.ToString()[..7] : string.Empty;
-        return new DiffPaneModel(diff.Source.Document, hash, diffList.SelectedItem ?? 0, diffList.Viewport.Y, isFocused, diff.Search.Highlight);
+        return new DiffPaneModel(diff.Source.Document, hash, CursorRow(diff), diff.Source.RowOf(diffList.Viewport.Y), isFocused, diff.Search.Highlight, diff.Source.IsWrapped);
     }
 
     private bool ExecuteInDiff(RepoState tab, DiffSession diff, ActionId action, int? count)
@@ -179,10 +206,20 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var document = diff.Source.Document;
-        var row = diffList.SelectedItem ?? 0;
-        if (ListMotion.TryMove(action, count, row, document.Rows.Count, diffList.Viewport.Height, out var target))
+        var row = CursorRow(diff);
+        if (ListMotion.TryMove(action, count, diffList.SelectedItem ?? 0, diff.Source.Count, diffList.Viewport.Height, out var target))
         {
-            Select(target, atTop: false);
+            SelectLine(target);
+        }
+        else if (action == ActionIds.DiffToggleWrap)
+        {
+            diff.Source.SetWrapped(!diff.Source.IsWrapped);
+            Select(row, atTop: true);
+            Notice = diff.Source.IsWrapped ? "Word wrap on" : "Word wrap off";
+        }
+        else if (action == ActionIds.DiffLoadAnyway)
+        {
+            LoadAnyway(diff);
         }
         else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
         {
@@ -226,7 +263,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (action == ActionIds.InputAccept)
         {
-            var update = DiffSearch.Accept(diff.Search, diff.Source.Document, diffList.SelectedItem ?? 0);
+            var update = DiffSearch.Accept(diff.Search, diff.Source.Document, CursorRow(diff));
             ApplySearch(diff, update);
             Notice = update.State.Notice;
         }
@@ -271,6 +308,28 @@ public sealed class DiffPaneController : IPromptHandler
             // The same commit is already loaded: only the cursor moves to the chosen file.
             Refresh(diff);
         }
+    }
+
+    private void LoadAnyway(DiffSession diff)
+    {
+        var path = CurrentFilePath(diff);
+        if (diff.Store.LoadAnyway())
+        {
+            diff.PendingFilePath = path;
+            Notice = "Loading the whole diff...";
+        }
+        else
+        {
+            Notice = "Nothing was cut short";
+        }
+    }
+
+    private string? CurrentFilePath(DiffSession diff)
+    {
+        var document = diff.Source.Document;
+        var row = CursorRow(diff);
+        var file = row >= 0 && row < document.Rows.Count ? document.Rows[row].FileIndex : -1;
+        return file >= 0 && file < document.FilePaths.Count ? document.FilePaths[file][0] : null;
     }
 
     private void Close(RepoState tab, DiffSession diff)
@@ -358,15 +417,64 @@ public sealed class DiffPaneController : IPromptHandler
         refreshChrome();
     }
 
-    private void Select(int row, bool atTop)
+    /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
+    private void SyncWidth()
     {
-        var count = diffList.Source?.Count ?? 0;
-        if (count == 0)
+        if (isSyncing || activeSession()?.Diff is not { } diff || diff.Source.Width == diffList.Viewport.Width)
         {
             return;
         }
 
-        var clamped = Math.Clamp(row, 0, count - 1);
+        isSyncing = true;
+        try
+        {
+            if (!diff.Source.IsWrapped)
+            {
+                diff.Source.Width = diffList.Viewport.Width;
+                return;
+            }
+
+            var row = CursorRow(diff);
+            var top = diff.Source.RowOf(diffList.Viewport.Y);
+            diff.Source.Width = diffList.Viewport.Width;
+            isRestoring = true;
+            try
+            {
+                Select(row, atTop: false);
+                diffList.Viewport = diffList.Viewport with { Y = Math.Min(diff.Source.LineOf(top), Math.Max(0, diff.Source.Count - diffList.Viewport.Height)) };
+            }
+            finally
+            {
+                isRestoring = false;
+            }
+        }
+        finally
+        {
+            isSyncing = false;
+        }
+    }
+
+    private int CursorRow(DiffSession diff) => diff.Source.RowOf(diffList.SelectedItem ?? 0);
+
+    private void SelectLine(int line)
+    {
+        var count = diffList.Source?.Count ?? 0;
+        if (count > 0)
+        {
+            diffList.SelectedItem = Math.Clamp(line, 0, count - 1);
+            diffList.EnsureSelectedItemVisible();
+        }
+    }
+
+    private void Select(int row, bool atTop)
+    {
+        var count = diffList.Source?.Count ?? 0;
+        if (count == 0 || activeSession()?.Diff is not { } diff)
+        {
+            return;
+        }
+
+        var clamped = Math.Clamp(diff.Source.LineOf(row), 0, count - 1);
         diffList.SelectedItem = clamped;
         if (atTop)
         {
@@ -382,8 +490,8 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (!isRestoring && activeSession()?.Diff is { } diff)
         {
-            diff.SelectedRow = diffList.SelectedItem ?? 0;
-            diff.TopRow = diffList.Viewport.Y;
+            diff.SelectedRow = CursorRow(diff);
+            diff.TopRow = diff.Source.RowOf(diffList.Viewport.Y);
         }
     }
 }

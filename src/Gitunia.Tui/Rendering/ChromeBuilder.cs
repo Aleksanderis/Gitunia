@@ -59,7 +59,7 @@ public static class ChromeBuilder
 
         if (model.SearchLine.Length == 0)
         {
-            builder.Append(" " + (model.Picker is null ? KeyHints : PickerHints), SegmentRole.Status);
+            builder.Append(" " + (model.Picker is not null ? PickerHints : model.Hints.Length > 0 ? model.Hints : KeyHints), SegmentRole.Status);
         }
 
         return builder.Build(SegmentRole.Status);

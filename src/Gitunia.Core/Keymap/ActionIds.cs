@@ -15,6 +15,8 @@ public static class ActionIds
 
     public static ActionId DetailRetry { get; } = new("detail.retry");
 
+    public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
+
     public static ActionId DiffNextFile { get; } = new("diff.next-file");
 
     public static ActionId DiffNextHunk { get; } = new("diff.next-hunk");
@@ -28,6 +30,8 @@ public static class ActionIds
     public static ActionId DiffSearchOpen { get; } = new("diff.search-open");
 
     public static ActionId DiffSearchPrevious { get; } = new("diff.search-previous");
+
+    public static ActionId DiffToggleWrap { get; } = new("diff.toggle-wrap");
 
     public static ActionId GraphCopyHash { get; } = new("graph.copy-hash");
 

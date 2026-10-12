@@ -245,6 +245,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         with
         {
             MessageSeverity = workspaceActions.Message.Length + router.Message.Length > 0 ? StatusSeverity.Info : statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
+            Hints = PaneHints.For(host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
             SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 
@@ -417,5 +418,6 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view.Detail.EnsureSelectedItemVisible();
         view.Detail.SetNeedsDraw();
         view.RefreshChrome();
+        diffPane.FollowSelection();
     }
 }

@@ -124,6 +124,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "q", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, DiffView, "w", ActionIds.DiffToggleWrap);
+        Add(bindings, NormalOnly, DiffView, "L", ActionIds.DiffLoadAnyway);
         Add(bindings, NormalOnly, DiffView, "/", ActionIds.DiffSearchOpen);
         Add(bindings, NormalOnly, DiffView, "n", ActionIds.DiffSearchNext);
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);

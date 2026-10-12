@@ -58,6 +58,11 @@ public sealed class DiffDocumentBuilder
                 }
             }
         }
+
+        if (file.IsTruncated)
+        {
+            rows.Add(Note("File cut short: only the first lines are shown", fileIndex));
+        }
     }
 
     /// <summary>Adds a closing remark row, for example that the diff was cut short.</summary>
