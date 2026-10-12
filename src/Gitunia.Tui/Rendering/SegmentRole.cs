@@ -19,4 +19,13 @@ public enum SegmentRole
     StatusMode,
     Status,
     Faint,
+
+    /// <summary>A file the commit added.</summary>
+    FileAdded,
+
+    /// <summary>A file the commit deleted.</summary>
+    FileDeleted,
+
+    /// <summary>A file the commit modified, renamed, copied or changed the type of.</summary>
+    FileChanged,
 }

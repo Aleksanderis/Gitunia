@@ -48,7 +48,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 
 1. A repo tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
 2. Move with `j`/`k`, `Ctrl-d`/`Ctrl-u`, `gg`/`G`, counts and the mouse wheel. `@` jumps to HEAD; `gr` opens a fuzzy ref list (branches, tags, remotes) that also accepts a hash prefix, and `Enter` selects that commit.
-3. `Enter` on a commit moves focus to the detail pane (commit info and changed files); `Esc` or `h` returns to the graph. The detail pane also follows the graph selection while the graph is focused.
+3. `Enter` on a commit moves focus to the detail pane (commit info and changed files); `Esc` or `h` returns to the graph. The detail pane also follows the graph selection while the graph is focused. The pane sits below the graph (hidden on screens under 14 rows) and lists, from the top: hash, author, committer (only when different), parents, refs, the full message and the changed files with their status (`A` `M` `D` `T`, `R<score> old -> new`, `C<score> old -> new`; merges show the changes against the first parent). While focused, `j`/`k` scroll through all rows and focusing lands on the first file row; opening a file's diff arrives with #25.
 4. `/` opens the search box (Insert mode). Plain text matches the subject and body; `author:` and `hash:` prefixes match the author or hash prefix. `Enter` jumps to the first match and returns to Normal mode, `n`/`N` step through matches, `Esc` in Normal mode clears the highlight. Matches outside the loaded range load on demand and show progress.
 5. `y` copies the selected commit hash (OSC 52); `r` refreshes the repo now.
 
