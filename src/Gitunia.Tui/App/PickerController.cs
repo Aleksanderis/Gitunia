@@ -17,6 +17,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private static readonly TimeSpan DefaultListingTimeout = TimeSpan.FromSeconds(5);
 
+    private static readonly TimeSpan ScanningDelay = TimeSpan.FromMilliseconds(150);
     private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
     private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
     private CancellationTokenSource? listingCancellation;
@@ -213,27 +214,40 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         var cancellation = new CancellationTokenSource();
         listingCancellation = cancellation;
         var context = CreateContext();
+        var timeout = listingTimeoutValue;
+
+        // The source is disposed on the UI thread (CancelListing or the completion callback), so a late Cancel never hits a disposed source.
         _ = Task.Run(async () =>
         {
-            var work = Task.Run(() => PathCompleter.ListCandidates(query, context, cancellation.Token));
             var rows = ImmutableArray<PickerRow>.Empty;
             var message = string.Empty;
+            using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
+            timeoutCancellation.CancelAfter(timeout);
+            var token = timeoutCancellation.Token;
             try
             {
-                var finished = await Task.WhenAny(work, Task.Delay(listingTimeoutValue, cancellation.Token)).ConfigureAwait(false);
-                if (finished == work)
+                var work = Task.Run(() => PathCompleter.ListCandidates(query, context, token), CancellationToken.None);
+                var first = await Task.WhenAny(work, Task.Delay(ScanningDelay, token)).ConfigureAwait(false);
+                if (first != work)
                 {
-                    rows = [.. await work.ConfigureAwait(false)];
+                    postToUi(() =>
+                    {
+                        if (ReferenceEquals(listingCancellation, cancellation) && IsOpen)
+                        {
+                            Apply(new ShowScanningCommand(query));
+                        }
+                    });
                 }
-                else
-                {
-                    message = "listing timed out: the file system is slow";
-                    await cancellation.CancelAsync().ConfigureAwait(false);
-                }
+
+                rows = [.. await work.WaitAsync(token).ConfigureAwait(false)];
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                return;
             }
             catch (OperationCanceledException)
             {
-                return;
+                message = "listing timed out: the file system is slow";
             }
             catch (Exception exception)
             {
@@ -246,6 +260,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
                 if (ReferenceEquals(listingCancellation, cancellation) && IsOpen)
                 {
                     listingCancellation = null;
+                    cancellation.Dispose();
                     Apply(new ListingCompletedCommand(query, rows, message));
                 }
             });
@@ -258,6 +273,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         {
             listingCancellation = null;
             cancellation.Cancel();
+            cancellation.Dispose();
         }
     }
 

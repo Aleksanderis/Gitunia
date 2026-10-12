@@ -93,6 +93,32 @@ public class PickerReducerTests
     }
 
     [Fact]
+    public void GivenListedPath_WhenTypingMore_ThenPreviousRowsAndHighlightStayUntilTheNewListingArrives()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/");
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
+        state = PickerReducer.Reduce(state, new MoveHighlightCommand(1), Context());
+
+        state = Type(state, "b");
+
+        Assert.True(state.IsListing);
+        Assert.Equal(["alpha", "beta"], state.Rows.Select(row => row.Name));
+        Assert.Equal(1, state.Highlight);
+    }
+
+    [Fact]
+    public void GivenPendingListing_WhenScanningIsShownForTheCurrentQuery_ThenTheNoticeFlagIsSet()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/");
+
+        var stale = PickerReducer.Reduce(state, new ShowScanningCommand("~/cod"), Context());
+        var shown = PickerReducer.Reduce(state, new ShowScanningCommand(state.Query), Context());
+
+        Assert.False(stale.IsScanningShown);
+        Assert.True(shown.IsScanningShown);
+    }
+
+    [Fact]
     public void GivenPendingListing_WhenPressingTab_ThenNothingChanges()
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/b");
