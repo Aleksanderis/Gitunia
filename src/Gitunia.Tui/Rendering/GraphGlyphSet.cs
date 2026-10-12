@@ -12,6 +12,9 @@ public sealed record GraphGlyphSet(char Node, char MergeNode, string Lines, stri
 
     public static GraphGlyphSet Ascii { get; } = new('*', 'o', " |||-/\\|-\\/|---+", "~");
 
+    /// <summary>Whether this is the box-drawing set (the terminal handles Unicode).</summary>
+    public bool IsUnicode => Node != '*';
+
     /// <summary>A horizontal connection.</summary>
     public char Horizontal => Lines[(int)(LineDirections.Left | LineDirections.Right)];
 

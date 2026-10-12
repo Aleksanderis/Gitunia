@@ -1,3 +1,5 @@
+using Gitunia.Core.Picker;
+
 namespace Gitunia.Tui.Rendering;
 
 /// <summary>Everything the chrome around the graph shows. Plain data, so a frame can be rendered without a terminal.</summary>
@@ -11,6 +13,9 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="LoadedCount">Rows loaded so far.</param>
 /// <param name="IsLoading">The log is still streaming in.</param>
 /// <param name="Message">A short notice such as "HEAD is not loaded yet", empty when none.</param>
+/// <param name="Tabs">One label per open tab for the tab row; empty falls back to a single label built from the fields above.</param>
+/// <param name="Picker">The open repo picker, which replaces the graph area; null when closed.</param>
+/// <param name="HomeDirectory">The home directory, shown as <c>~</c> in picker paths.</param>
 public sealed record ScreenModel(
     string RepositoryName,
     string? BranchName,
@@ -21,4 +26,7 @@ public sealed record ScreenModel(
     int SelectedPosition,
     int LoadedCount,
     bool IsLoading,
-    string Message);
+    string Message,
+    IReadOnlyList<TabLabel>? Tabs = null,
+    PickerState? Picker = null,
+    string HomeDirectory = "");

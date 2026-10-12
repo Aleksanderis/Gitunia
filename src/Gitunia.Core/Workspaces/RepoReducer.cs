@@ -12,6 +12,7 @@ public static class RepoReducer
         FocusPaneCommand focus => state with { View = state.View with { FocusedPane = focus.Pane } },
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
+        StatusLoadedCommand status => state with { Status = status.Summary },
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };

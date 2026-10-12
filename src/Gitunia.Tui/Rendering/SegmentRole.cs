@@ -19,4 +19,7 @@ public enum SegmentRole
     StatusMode,
     Status,
     Faint,
+
+    /// <summary>A failure notice.</summary>
+    Error,
 }

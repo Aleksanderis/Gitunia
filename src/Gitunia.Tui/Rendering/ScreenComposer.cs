@@ -32,6 +32,18 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
+        if (model.Picker is not null)
+        {
+            var pickerHeight = ScreenLayout.GraphHeight(height);
+            lines.AddRange(PickerComposer.Compose(model.Picker, model.HomeDirectory, width, pickerHeight, glyphs));
+            if (height > ScreenLayout.GraphTop)
+            {
+                lines.Add(ChromeBuilder.Status(model, width, glyphs));
+            }
+
+            return lines;
+        }
+
         var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs);
         for (var offset = 0; offset < ScreenLayout.GraphHeight(height); offset++)
         {

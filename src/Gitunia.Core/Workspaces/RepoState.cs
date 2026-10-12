@@ -10,13 +10,15 @@ namespace Gitunia.Core.Workspaces;
 /// <param name="Refs">Branches and tags, empty until loaded.</param>
 /// <param name="View">Selection, scroll, filter and focus.</param>
 /// <param name="IsMissing">The repository directory disappeared; the tab stays so the user can locate or close it.</param>
+/// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
 public sealed record RepoState(
     TabId Id,
     RepositoryLocation Location,
     HeadState? Head,
     ImmutableArray<GitRef> Refs,
     RepoViewState View,
-    bool IsMissing)
+    bool IsMissing,
+    RepoStatusSummary? Status = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;
