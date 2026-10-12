@@ -73,7 +73,7 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 | Switch back to an already loaded tab | ~10-30 ms (single sample, poll-bound) |
 | RSS after visiting all 12 tabs | ~46 MB (20 tabs: ~50 MB) |
 
-Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs show no dirty/ahead/behind markers until visited; a cheap status-only refresh for that is tracked in #129. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
+Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
 
 ### Verified numbers (graph view, #22)
 

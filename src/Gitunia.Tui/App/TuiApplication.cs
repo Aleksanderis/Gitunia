@@ -30,6 +30,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private WorkspaceHost host = null!;
     private EffectRunner effects = null!;
+    private BackgroundStatusPoller? statusPoller;
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
@@ -130,6 +131,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
 
         host.Restore(restored.Update);
+        statusPoller = new BackgroundStatusPoller(runner, host, action => app.Invoke(action));
+        statusPoller.Start();
         if (location is not null)
         {
             host.Dispatch(new OpenRepositoryCommand(location));
@@ -150,6 +153,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
         finally
         {
+            statusPoller.Dispose();
             persistence.Flush();
         }
 
@@ -159,6 +163,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     public void Dispose()
     {
         whichKeyTimer?.Dispose();
+        statusPoller?.Dispose();
         effects?.Dispose();
         view?.Dispose();
     }
