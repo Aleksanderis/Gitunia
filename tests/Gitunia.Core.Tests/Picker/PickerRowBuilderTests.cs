@@ -48,18 +48,4 @@ public class PickerRowBuilderTests
 
         Assert.Equal(["site"], rows.Select(row => row.Name));
     }
-
-    [Fact]
-    public void GivenPathQuery_WhenBuilding_ThenRowsAreTheDirectoriesOfThatPath()
-    {
-        var context = PickerFixtures.Context(
-            discovered: [PickerFixtures.PathOf("code", "alpha")],
-            directories: new Dictionary<string, string[]> { [PickerFixtures.PathOf("code")] = ["beta"] });
-
-        var rows = PickerRowBuilder.Build("~/code/", context);
-
-        var row = Assert.Single(rows);
-        Assert.Equal("beta", row.Name);
-        Assert.True(row.Tags.HasFlag(PickerTags.Directory));
-    }
 }

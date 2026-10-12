@@ -4,18 +4,13 @@ using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Core.Picker;
 
-/// <summary>Builds the picker list: open, pinned, recent and discovered repositories, filtered and ranked by the fuzzy query, or the directories of a typed path.</summary>
+/// <summary>Builds the picker list: open, pinned, recent and discovered repositories, filtered and ranked by the fuzzy query. Path queries are listed in the background by the picker controller, not here.</summary>
 public static class PickerRowBuilder
 {
     private const int NameWeight = 2;
 
     public static ImmutableArray<PickerRow> Build(string query, PickerContext context)
     {
-        if (PathQuery.IsPath(query))
-        {
-            return [.. PathCompleter.Candidates(query, context)];
-        }
-
         var entries = Collect(context);
         if (query.Length == 0)
         {
