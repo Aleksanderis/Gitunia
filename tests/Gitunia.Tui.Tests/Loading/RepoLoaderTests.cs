@@ -26,7 +26,7 @@ public class RepoLoaderTests
         var changes = 0;
         session.Changed += () => changes++;
 
-        // Posting runs the action inline; the test thread owns the host and session while it awaits the load.
+        // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
         await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
