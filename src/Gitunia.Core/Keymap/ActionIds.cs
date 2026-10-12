@@ -53,7 +53,11 @@ public static class ActionIds
 
     public static ActionId NavigateBack { get; } = new("navigate.back");
 
+    public static ActionId PaletteNext { get; } = new("palette.next");
+
     public static ActionId PaletteOpen { get; } = new("palette.open");
+
+    public static ActionId PalettePrevious { get; } = new("palette.previous");
 
     public static ActionId PaneFocusDown { get; } = new("pane.focus-down");
 

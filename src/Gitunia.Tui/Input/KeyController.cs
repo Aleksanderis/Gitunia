@@ -14,7 +14,19 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
     /// <summary>Raised after every key the keymap looked at, so the status bar can show the pending chord.</summary>
     public event Action? PendingChanged;
 
+    /// <summary>Raised for keys typed in a text mode (Insert, Command): printable text and unbound named keys such as Backspace.</summary>
+    public event Action<KeyEvent>? TextKeyPressed;
+
     public KeyMode Mode => state.Mode;
+
+    public KeymapState State => state;
+
+    /// <summary>Switches the input mode, dropping any pending chord or count.</summary>
+    public void SetMode(KeyMode mode)
+    {
+        state = state.WithMode(mode);
+        PendingChanged?.Invoke();
+    }
 
     /// <summary>The unfinished count and chord, such as <c>5g</c>; empty when nothing is pending.</summary>
     public string PendingText => (state.Count?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
@@ -37,7 +49,12 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
             execute(action, result.Count);
         }
 
+        if (result.Outcome == KeyOutcome.TextInput || (result.Outcome == KeyOutcome.Unbound && state.Mode == KeyMode.Command))
+        {
+            TextKeyPressed?.Invoke(keyEvent);
+        }
+
         PendingChanged?.Invoke();
-        return result.Outcome != KeyOutcome.Unbound;
+        return result.Outcome != KeyOutcome.Unbound || state.Mode == KeyMode.Command;
     }
 }
