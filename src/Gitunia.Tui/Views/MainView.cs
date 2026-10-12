@@ -12,8 +12,9 @@ public sealed class MainView : IDisposable
     private readonly TabBarView tabs;
     private readonly PickerView picker;
     private readonly LineView status;
+    private readonly LineView detailTitle;
 
-    public MainView(Func<ScreenModel> model, GraphGlyphSet glyphs)
+    public MainView(Func<ScreenModel> model, Func<int, StyledLine> detailTitleLine, GraphGlyphSet glyphs)
     {
         header = new LineView(width => ChromeBuilder.Header(model(), width, glyphs))
         {
@@ -34,7 +35,22 @@ public sealed class MainView : IDisposable
             X = 0,
             Y = ScreenLayout.GraphTop,
             Width = Dim.Fill(),
-            Height = Dim.Fill(1),
+            Height = Dim.Func(_ => DetailLayout.GraphHeight(ScreenHeight())),
+            CanFocus = true,
+        };
+        detailTitle = new LineView(detailTitleLine)
+        {
+            X = 0,
+            Y = Pos.Func(_ => ScreenLayout.GraphTop + DetailLayout.GraphHeight(ScreenHeight())),
+            Width = Dim.Fill(),
+            Height = Dim.Func(_ => Math.Min(1, DetailLayout.PaneHeight(ScreenHeight()))),
+        };
+        Detail = new ListView
+        {
+            X = 0,
+            Y = Pos.Func(_ => ScreenLayout.GraphTop + DetailLayout.GraphHeight(ScreenHeight()) + 1),
+            Width = Dim.Fill(),
+            Height = Dim.Func(_ => DetailLayout.ContentHeight(ScreenHeight())),
             CanFocus = true,
         };
         picker = new PickerView(model, glyphs)
@@ -54,7 +70,7 @@ public sealed class MainView : IDisposable
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
-        Window.Add(header, tabs, Graph, picker, status, Overlay);
+        Window.Add(header, tabs, Graph, detailTitle, Detail, picker, status, Overlay);
     }
 
     /// <summary>Raised with the one-based tab number when a tab in the tab row is clicked.</summary>
@@ -74,6 +90,9 @@ public sealed class MainView : IDisposable
     public Window Window { get; }
 
     public ListView Graph { get; }
+
+    /// <summary>The commit detail pane below the graph.</summary>
+    public ListView Detail { get; }
 
     /// <summary>The floating box for the help, the palette and the which-key popup; added last so it draws on top.</summary>
     public OverlayView Overlay { get; }
@@ -107,7 +126,10 @@ public sealed class MainView : IDisposable
         tabs.SetNeedsDraw();
         status.SetNeedsDraw();
         picker.SetNeedsDraw();
+        detailTitle.SetNeedsDraw();
     }
 
     public void Dispose() => Window.Dispose();
+
+    private int ScreenHeight() => Window?.Viewport.Height ?? 0;
 }

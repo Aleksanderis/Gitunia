@@ -16,6 +16,9 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     private TabSession? shownSession;
     private bool restorePending;
 
+    /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
+    public event Action<TabSession?, TabSession?>? Switched;
+
     /// <summary>True while the list is changed on purpose; selection changes then must not be written back to the workspace.</summary>
     public bool IsSuspended { get; private set; }
 
@@ -30,9 +33,10 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
         hasShown = true;
         shownTabId = activeId;
-        if (shownSession is not null)
+        var previousSession = shownSession;
+        if (previousSession is not null)
         {
-            shownSession.Changed -= OnSessionChanged;
+            previousSession.Changed -= OnSessionChanged;
         }
 
         shownSession = activeId is { } id ? effects.SessionOf(id) : null;
@@ -42,6 +46,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
             graph.Source = shownSession?.Source ?? emptySource;
             graph.SelectedItem = null;
             restorePending = shownSession is not null;
+            Switched?.Invoke(previousSession, shownSession);
             if (shownSession is not null)
             {
                 shownSession.Changed += OnSessionChanged;

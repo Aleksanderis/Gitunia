@@ -23,7 +23,7 @@ public sealed class OverlayController
     private readonly Action<ActionId, int?> run;
     private readonly Func<(int Width, int Height)> screenSize;
     private readonly GraphGlyphSet glyphs;
-    private readonly string baseView;
+    private readonly Func<string> baseView;
     private IReadOnlyList<HelpSection> helpSections = [];
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
@@ -32,7 +32,7 @@ public sealed class OverlayController
     /// <param name="run">Runs an action chosen in the palette.</param>
     /// <param name="screenSize">The current terminal size.</param>
     /// <param name="glyphs">The characters overlays are drawn with.</param>
-    /// <param name="baseView">The keymap view that is focused when no overlay is open.</param>
+    /// <param name="baseView">The keymap view that is focused when no overlay is open (asked each time: it follows the focused pane).</param>
     public OverlayController(
         KeymapEngine engine,
         KeyController keys,
@@ -40,7 +40,7 @@ public sealed class OverlayController
         Action<ActionId, int?> run,
         Func<(int Width, int Height)> screenSize,
         GraphGlyphSet glyphs,
-        string baseView)
+        Func<string> baseView)
     {
         this.engine = engine;
         this.keys = keys;
@@ -63,7 +63,7 @@ public sealed class OverlayController
     {
         OverlayKind.Help => DefaultKeymap.HelpView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
-        _ => baseView,
+        _ => baseView(),
     };
 
     /// <summary>The frame to draw over the screen, or null when nothing is showing.</summary>
@@ -102,14 +102,14 @@ public sealed class OverlayController
     {
         if (action == ActionIds.HelpShow)
         {
-            helpSections = HelpBuilder.Build(engine.Table, baseView);
-            Open(OverlayState.OpenHelp(baseView, keys.Mode), KeyMode.Normal);
+            helpSections = HelpBuilder.Build(engine.Table, baseView());
+            Open(OverlayState.OpenHelp(baseView(), keys.Mode), KeyMode.Normal);
             return true;
         }
 
         if (action == ActionIds.PaletteOpen)
         {
-            var palette = new PaletteState(PaletteEntryBuilder.Build(engine.Table, baseView));
+            var palette = new PaletteState(PaletteEntryBuilder.Build(engine.Table, baseView()));
             Open(OverlayState.OpenPalette(palette, keys.Mode), KeyMode.Command);
             return true;
         }

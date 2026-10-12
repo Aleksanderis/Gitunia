@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Platform;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
@@ -52,15 +53,16 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
-        view = new MainView(CreateModel, glyphs);
-        router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop);
+        view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs);
+        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop);
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
         binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
+        binder.Switched += OnTabSwitched;
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, DefaultKeymap.GraphView);
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
 
         host.Changed += view.RefreshChrome;
@@ -136,6 +138,29 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
+    private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
+    {
+        var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
+        var isFocused = view.Detail.HasFocus;
+        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
+    }
+
+    private void OnTabSwitched(TabSession? previous, TabSession? current)
+    {
+        if (previous is not null)
+        {
+            previous.Details.Changed -= RefreshDetail;
+        }
+
+        view.Detail.Source = current?.DetailSource;
+        if (current is not null)
+        {
+            current.Details.Changed += RefreshDetail;
+        }
+
+        RefreshDetail();
+    }
+
     private bool HandleKey(Key key)
     {
         startupNotice = string.Empty;
@@ -197,17 +222,52 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     {
         var session = ActiveSession();
         var tabId = host.Workspace.ActiveTabId;
-        if (binder.IsSuspended || session is null || tabId is null || view.Graph.SelectedItem is not { } item)
+        if (session is null || tabId is null || view.Graph.SelectedItem is not { } item)
         {
             return;
         }
 
+        // While the binder swaps or restores the list, the tab's saved selection must not be overwritten, but the details still follow.
+        var record = !binder.IsSuspended;
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
-            host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(session.Graph[commitIndex].Id)));
+            var entry = session.Graph[commitIndex];
+            if (record)
+            {
+                host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(entry.Id)));
+            }
+
+            // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
+            session.Details.Select(entry.Id);
+            RefreshDetail();
         }
 
-        host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(view.Graph.Viewport.Y)));
+        if (record)
+        {
+            host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(view.Graph.Viewport.Y)));
+        }
+    }
+
+    private void RefreshDetail()
+    {
+        var session = ActiveSession();
+        if (session is null)
+        {
+            return;
+        }
+
+        var commitIndex = view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
+        var previous = session.DetailSource.Content;
+        var content = DetailContentBuilder.Build(entry, session.Details.Current);
+        session.DetailSource.Update(content);
+
+        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place.
+        var selected = content.ShortHash == previous.ShortHash ? view.Detail.SelectedItem ?? 0 : 0;
+        view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
+        view.Detail.EnsureSelectedItemVisible();
+        view.Detail.SetNeedsDraw();
+        view.RefreshChrome();
     }
 }

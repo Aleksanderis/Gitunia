@@ -20,7 +20,7 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode);
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
         var changes = 0;
         session.Changed += () => changes++;
 
@@ -46,7 +46,7 @@ public class RepoLoaderTests
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode);
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
         await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
@@ -65,7 +65,7 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode);
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
         await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
 
@@ -82,7 +82,7 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode);
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
         await RepoLoader.RunAsync(runner, location, session, host, action => action(), session.Cancellation.Token);
 
