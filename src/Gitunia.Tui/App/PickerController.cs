@@ -9,10 +9,17 @@ namespace Gitunia.Tui.App;
 /// Owns the open repo picker: applies picker commands through the pure reducer, scans for repositories in the background
 /// and resolves what the user chose into workspace commands. UI thread only; results of background work are posted back.
 /// </summary>
-public sealed class PickerController(GitRunner runner, WorkspaceHost host, string homeDirectory, Action<Action> postToUi)
+public sealed class PickerController(GitRunner runner, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
+    TimeSpan? listingTimeout = null,
+    Func<string, IReadOnlyList<string>>? listDirectories = null)
 {
     private static readonly TimeSpan RescanInterval = TimeSpan.FromSeconds(30);
 
+    private static readonly TimeSpan DefaultListingTimeout = TimeSpan.FromSeconds(5);
+
+    private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
+    private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
+    private CancellationTokenSource? listingCancellation;
     private ImmutableArray<string> discovered = [];
     private DateTime lastScan = DateTime.MinValue;
     private bool isScanning;
@@ -31,7 +38,13 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     /// <param name="initialQuery">Text to start with.</param>
     public void Open(TabId? locatingTabId = null, string initialQuery = "")
     {
+        CancelListing();
         State = PickerReducer.Open(CreateContext(), locatingTabId, initialQuery);
+        if (State.IsListing)
+        {
+            StartListing(State.Query);
+        }
+
         StartScan();
         Changed?.Invoke();
     }
@@ -39,6 +52,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     public void Close()
     {
         openRequest++;
+        CancelListing();
         State = null;
         Changed?.Invoke();
     }
@@ -47,7 +61,17 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     {
         if (State is { } state)
         {
-            State = PickerReducer.Reduce(state, command, CreateContext());
+            var reduced = PickerReducer.Reduce(state, command, CreateContext());
+            State = reduced;
+            if (reduced.IsListing && (!state.IsListing || reduced.Query != state.Query))
+            {
+                StartListing(reduced.Query);
+            }
+            else if (!reduced.IsListing)
+            {
+                CancelListing();
+            }
+
             Changed?.Invoke();
         }
     }
@@ -164,7 +188,62 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     private string BaseDirectory() => host.Workspace.ActiveTab?.Location.RootPath ?? homeDirectory;
 
     private PickerContext CreateContext() =>
-        new(host.Workspace, discovered, homeDirectory, BaseDirectory(), ListDirectories, IsRepository);
+        new(host.Workspace, discovered, homeDirectory, BaseDirectory(), listDirectoriesFunction, IsRepository);
+
+    // Lists the candidates of a typed path on the thread pool; a newer keystroke cancels the older listing and a slow file system
+    // times out (the blocked directory call itself cannot be interrupted, it just finishes unobserved).
+    private void StartListing(string query)
+    {
+        CancelListing();
+        var cancellation = new CancellationTokenSource();
+        listingCancellation = cancellation;
+        var context = CreateContext();
+        _ = Task.Run(async () =>
+        {
+            var work = Task.Run(() => PathCompleter.ListCandidates(query, context, cancellation.Token));
+            var rows = ImmutableArray<PickerRow>.Empty;
+            var message = string.Empty;
+            try
+            {
+                var finished = await Task.WhenAny(work, Task.Delay(listingTimeoutValue, cancellation.Token)).ConfigureAwait(false);
+                if (finished == work)
+                {
+                    rows = [.. await work.ConfigureAwait(false)];
+                }
+                else
+                {
+                    message = "listing timed out: the file system is slow";
+                    await cancellation.CancelAsync().ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                message = exception.Message;
+            }
+
+            postToUi(() =>
+            {
+                if (ReferenceEquals(listingCancellation, cancellation) && IsOpen)
+                {
+                    listingCancellation = null;
+                    Apply(new ListingCompletedCommand(query, rows, message));
+                }
+            });
+        });
+    }
+
+    private void CancelListing()
+    {
+        if (listingCancellation is { } cancellation)
+        {
+            listingCancellation = null;
+            cancellation.Cancel();
+        }
+    }
 
     private void StartScan()
     {

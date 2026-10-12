@@ -76,10 +76,58 @@ public class PickerReducerTests
     public void GivenPathQuery_WhenPressingTab_ThenThePathIsCompleted()
     {
         var state = Type(PickerReducer.Open(Context()), "~/code/b");
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
 
         state = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
 
         Assert.Equal("~/code/beta/", state.Query);
+    }
+
+    [Fact]
+    public void GivenPathQuery_WhenTyping_ThenRowsAreEmptyAndListingIsPendingWithoutTouchingTheFileSystem()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/");
+
+        Assert.True(state.IsListing);
+        Assert.Empty(state.Rows);
+    }
+
+    [Fact]
+    public void GivenPendingListing_WhenPressingTab_ThenNothingChanges()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/b");
+
+        Assert.Equal(state, PickerReducer.Reduce(state, new CompletePathCommand(), Context()));
+    }
+
+    [Fact]
+    public void GivenListingForAnOlderQuery_WhenItCompletes_ThenItIsIgnored()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/");
+        var stale = new ListingCompletedCommand("~/cod", [.. PathCompleter.Candidates("~/code/", Context())]);
+
+        Assert.Equal(state, PickerReducer.Reduce(state, stale, Context()));
+    }
+
+    [Fact]
+    public void GivenListingForTheCurrentQuery_WhenItCompletes_ThenRowsAppearAndListingEnds()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/code/");
+
+        state = PickerReducer.Reduce(state, new ListingCompletedCommand(state.Query, [.. PathCompleter.Candidates(state.Query, Context())]), Context());
+
+        Assert.False(state.IsListing);
+        Assert.Equal(["alpha", "beta"], state.Rows.Select(row => row.Name));
+    }
+
+    [Fact]
+    public void GivenPathQuery_WhenLeavingPathMode_ThenListingEnds()
+    {
+        var state = Type(PickerReducer.Open(Context()), "~/");
+
+        state = PickerReducer.Reduce(state, new ClearQueryCommand(), Context());
+
+        Assert.False(state.IsListing);
     }
 
     [Fact]
@@ -124,6 +172,6 @@ public class PickerReducerTests
 
         Assert.Equal(new TabId(7), state.LocatingTabId);
         Assert.Equal("~/code/", state.Query);
-        Assert.Equal(["alpha", "beta"], state.Rows.Select(row => row.Name));
+        Assert.True(state.IsListing);
     }
 }

@@ -19,11 +19,14 @@ public class PickerControllerTests
         }
     }
 
-    private static (PickerController Picker, WorkspaceHost Host) Create(string home)
+    private static (PickerController Picker, WorkspaceHost Host) Create(
+        string home,
+        TimeSpan? listingTimeout = null,
+        Func<string, IReadOnlyList<string>>? listDirectories = null)
     {
         var host = new WorkspaceHost(Workspace.Empty);
         // Background results are posted back inline: the test thread only polls.
-        var picker = new PickerController(new GitRunner(), host, home, action => action());
+        var picker = new PickerController(new GitRunner(), host, home, action => action(), listingTimeout, listDirectories);
         return (picker, host);
     }
 
@@ -144,5 +147,74 @@ public class PickerControllerTests
 
         picker.TogglePin();
         Assert.False(host.Workspace.IsPinned(path));
+    }
+
+    [Fact]
+    public async Task GivenTypedPath_WhenListing_ThenScanningShowsUntilTheCandidatesArrive()
+    {
+        using var release = new ManualResetEventSlim();
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        {
+            release.Wait(TestContext.Current.CancellationToken);
+            return [Path.Combine(directory, "alpha")];
+        });
+        picker.Open();
+
+        picker.Apply(new TypeTextCommand("~/"));
+
+        Assert.True(picker.State!.IsListing);
+        Assert.Empty(picker.State.Rows);
+        release.Set();
+        await WaitForAsync(() => !picker.State!.IsListing);
+        Assert.Equal(["alpha"], picker.State!.Rows.Select(row => row.Name));
+    }
+
+    [Fact]
+    public async Task GivenSlowListing_WhenTypingAgain_ThenTheOlderListingIsDiscarded()
+    {
+        using var release = new ManualResetEventSlim();
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        {
+            if (directory.EndsWith("slow", StringComparison.Ordinal))
+            {
+                release.Wait(TestContext.Current.CancellationToken);
+                return [Path.Combine(directory, "stale")];
+            }
+
+            return [Path.Combine(directory, "fresh")];
+        });
+        picker.Open();
+        picker.Apply(new TypeTextCommand("~/slow"));
+        picker.Apply(new BackspaceCommand());
+        picker.Apply(new BackspaceCommand());
+        picker.Apply(new BackspaceCommand());
+        picker.Apply(new BackspaceCommand());
+        picker.Apply(new TypeTextCommand("fast/"));
+
+        await WaitForAsync(() => !picker.State!.IsListing);
+        release.Set();
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        Assert.Equal("~/fast/", picker.State!.Query);
+        Assert.Equal(["fresh"], picker.State.Rows.Select(row => row.Name));
+    }
+
+    [Fact]
+    public async Task GivenListingThatNeverFinishes_WhenTheTimeoutPasses_ThenAMessageReplacesScanning()
+    {
+        using var release = new ManualResetEventSlim();
+        var (picker, _) = Create(Path.GetTempPath(), TimeSpan.FromMilliseconds(100), directory =>
+        {
+            release.Wait(TestContext.Current.CancellationToken);
+            return [Path.Combine(directory, "late")];
+        });
+        picker.Open();
+
+        picker.Apply(new TypeTextCommand("~/"));
+        await WaitForAsync(() => !picker.State!.IsListing);
+        release.Set();
+
+        Assert.Contains("timed out", picker.State!.Message, StringComparison.Ordinal);
+        Assert.Empty(picker.State.Rows);
     }
 }
