@@ -204,6 +204,46 @@ public class PickerControllerTests
     }
 
     [Fact]
+    public async Task GivenSlowListing_WhenItTakesLongerThanTheDelay_ThenScanningIsShownAndOldRowsStayWhileTyping()
+    {
+        using var release = new ManualResetEventSlim();
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        {
+            release.Wait(TestContext.Current.CancellationToken);
+            return [Path.Combine(directory, "alpha")];
+        });
+        picker.Open();
+        picker.Apply(new TypeTextCommand("~/"));
+        Assert.False(picker.State!.IsScanningShown);
+
+        await WaitForAsync(() => picker.State!.IsScanningShown);
+        release.Set();
+        await WaitForAsync(() => !picker.State!.IsListing);
+        Assert.False(picker.State!.IsScanningShown);
+        Assert.Equal(["alpha"], picker.State.Rows.Select(row => row.Name));
+
+        release.Reset();
+        picker.Apply(new TypeTextCommand("a"));
+
+        Assert.True(picker.State!.IsListing);
+        Assert.Equal(["alpha"], picker.State.Rows.Select(row => row.Name));
+        release.Set();
+        await WaitForAsync(() => !picker.State!.IsListing);
+    }
+
+    [Fact]
+    public async Task GivenFastListing_WhenItCompletes_ThenScanningWasNeverShown()
+    {
+        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory => [Path.Combine(directory, "alpha")]);
+        picker.Open();
+
+        picker.Apply(new TypeTextCommand("~/"));
+        await WaitForAsync(() => !picker.State!.IsListing);
+
+        Assert.False(picker.State!.IsScanningShown);
+    }
+
+    [Fact]
     public async Task GivenListingThatNeverFinishes_WhenTheTimeoutPasses_ThenAMessageReplacesScanning()
     {
         using var release = new ManualResetEventSlim();

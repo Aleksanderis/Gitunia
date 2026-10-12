@@ -18,6 +18,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     private static readonly TimeSpan DefaultListingTimeout = TimeSpan.FromSeconds(5);
 
     private static readonly TimeSpan ScanningDelay = TimeSpan.FromMilliseconds(150);
+
     private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
     private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
     private CancellationTokenSource? listingCancellation;
@@ -215,13 +216,14 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         listingCancellation = cancellation;
         var context = CreateContext();
         var timeout = listingTimeoutValue;
+        var parentToken = cancellation.Token;
 
         // The source is disposed on the UI thread (CancelListing or the completion callback), so a late Cancel never hits a disposed source.
         _ = Task.Run(async () =>
         {
             var rows = ImmutableArray<PickerRow>.Empty;
             var message = string.Empty;
-            using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
+            using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(parentToken);
             timeoutCancellation.CancelAfter(timeout);
             var token = timeoutCancellation.Token;
             try
