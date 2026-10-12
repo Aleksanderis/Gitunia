@@ -22,6 +22,7 @@ public sealed class SidebarActionHandler(
     Action<KeyMode> setMode)
 {
     private bool isEditingFilter;
+    private TabId editingTabId;
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -43,6 +44,13 @@ public sealed class SidebarActionHandler(
             return false;
         }
 
+        if (isEditingFilter && editingTabId != tab.Id)
+        {
+            // The active tab changed while typing: the filter belongs to the old tab.
+            StopEditing();
+        }
+
+        // Up and Down are swallowed on purpose while only two side-by-side panes exist; revisit when detail and diff open.
         if (TryHandlePaneAction(tab, action))
         {
             return true;
@@ -59,7 +67,7 @@ public sealed class SidebarActionHandler(
     /// <summary>Appends typed text to the filter while it is being edited.</summary>
     public void OnText(string text)
     {
-        if (isEditingFilter && host.Workspace.ActiveTab is { } tab)
+        if (isEditingFilter && host.Workspace.ActiveTab is { } tab && tab.Id == editingTabId)
         {
             SetFilter(tab, tab.Sidebar.FilterText + text);
         }
@@ -68,7 +76,7 @@ public sealed class SidebarActionHandler(
     /// <summary>Removes the last character of the filter while it is being edited.</summary>
     public void OnErase()
     {
-        if (!isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Sidebar.FilterText.Length == 0)
+        if (!isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Id != editingTabId || tab.Sidebar.FilterText.Length == 0)
         {
             return;
         }
@@ -160,6 +168,7 @@ public sealed class SidebarActionHandler(
         else if (action == ActionIds.SidebarFilter)
         {
             isEditingFilter = true;
+            editingTabId = tab.Id;
             setMode(KeyMode.Insert);
         }
         else if (action == ActionIds.NavigateBack)

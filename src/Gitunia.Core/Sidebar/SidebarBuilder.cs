@@ -59,6 +59,7 @@ public static class SidebarBuilder
 
     private static IEnumerable<SidebarRow> References(RepoState tab, RefKind kind, SidebarSection section, SidebarRowKind rowKind) =>
         tab.Refs
+            // Symbolic refs such as origin/HEAD are aliases, not branches of their own.
             .Where(reference => reference.Kind == kind && reference.SymbolicTarget is null)
             .OrderBy(reference => reference.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(reference => reference.Name, StringComparer.Ordinal)
