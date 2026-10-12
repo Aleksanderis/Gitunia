@@ -130,15 +130,15 @@ public class SidebarActionHandlerTests
         harness.FocusRow("Branches");
 
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        harness.Handler.OnText("o");
-        harness.Handler.OnText("l");
+        harness.Handler.OnKey(new KeyEvent("o"));
+        harness.Handler.OnKey(new KeyEvent("l"));
 
         Assert.Equal(KeyMode.Insert, harness.Mode);
         Assert.True(harness.Handler.IsEditingFilter);
         Assert.Equal("ol", harness.Tab.Sidebar.FilterText);
         Assert.Equal(["Branches", "old"], harness.Source.Rows.Select(row => row.Label));
 
-        harness.Handler.OnErase();
+        harness.Handler.OnKey(new KeyEvent(KeyNames.Backspace));
         Assert.Equal("o", harness.Tab.Sidebar.FilterText);
 
         harness.Handler.TryHandle(ActionIds.InputAccept, null);
@@ -153,7 +153,7 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.Path);
         harness.FocusRow("Branches");
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        harness.Handler.OnText("zzz");
+        foreach (var letter in "zzz") { harness.Handler.OnKey(new KeyEvent(letter.ToString())); }
 
         harness.Handler.TryHandle(ActionIds.Cancel, null);
 
@@ -169,7 +169,7 @@ public class SidebarActionHandlerTests
         using var harness = await SidebarHarness.LoadAsync(repository.Path);
         harness.FocusRow("Branches");
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
-        harness.Handler.OnText("old");
+        foreach (var letter in "old") { harness.Handler.OnKey(new KeyEvent(letter.ToString())); }
         harness.Handler.TryHandle(ActionIds.InputAccept, null);
 
         harness.Handler.TryHandle(ActionIds.Cancel, null);

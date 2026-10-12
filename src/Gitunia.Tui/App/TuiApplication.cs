@@ -25,6 +25,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private KeyController keys = null!;
     private SidebarActionHandler sidebar = null!;
     private PaneKind appliedFocus = PaneKind.Graph;
+    private OverlayController overlays = null!;
+    private WhichKeyTimer whichKeyTimer = null!;
 
     public int Run(RepositoryLocation location)
     {
@@ -46,19 +48,22 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             mode => keys.SetMode(mode));
         view = new MainView(CreateModel, glyphs, sidebarSource, () => sidebar.Chrome);
         router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop, sidebar);
-        keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), router.Execute);
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        keys = new KeyController(engine, (action, count) => RouteAction(action, count));
+        whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, DefaultKeymap.GraphView);
+        overlays.Changed += RefreshOverlay;
         var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
 
         host.Changed += view.RefreshChrome;
         host.Changed += ApplyFocus;
         keys.PendingChanged += view.RefreshChrome;
-        keys.TextTyped += sidebar.OnText;
-        keys.Erased += sidebar.OnErase;
+        keys.TextKeyPressed += sidebar.OnKey;
         presenter.Clicked += sidebar.ActivateCursor;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
         view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
         view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
-        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, FocusedViewName());
+        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, overlays.ViewName);
 
         host.Dispatch(new OpenRepositoryCommand(location));
         var session = ActiveSession();
@@ -73,7 +78,25 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return 0;
     }
 
-    public void Dispose() => view?.Dispose();
+    public void Dispose()
+    {
+        whichKeyTimer?.Dispose();
+        view?.Dispose();
+    }
+
+    private void RouteAction(ActionId action, int? count)
+    {
+        if (!overlays.Handle(action, count))
+        {
+            router.Execute(action, count);
+        }
+    }
+
+    private void RefreshOverlay()
+    {
+        view.Overlay.Show(overlays.CurrentFrame());
+        view.RefreshChrome();
+    }
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 
@@ -95,6 +118,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
 
         appliedFocus = wanted;
+        overlays.BaseView = FocusedViewName();
         (wanted == PaneKind.Sidebar ? view.Sidebar : view.Graph).SetFocus();
     }
 

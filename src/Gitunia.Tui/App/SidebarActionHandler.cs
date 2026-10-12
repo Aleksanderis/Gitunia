@@ -64,26 +64,24 @@ public sealed class SidebarActionHandler(
         return tab.View.FocusedPane == PaneKind.Sidebar && HandleSidebarAction(tab, action, count);
     }
 
-    /// <summary>Appends typed text to the filter while it is being edited.</summary>
-    public void OnText(string text)
+    /// <summary>Edits the filter with a key typed in Insert mode: printable text is appended, Backspace removes the last character.</summary>
+    public void OnKey(KeyEvent key)
     {
-        if (isEditingFilter && host.Workspace.ActiveTab is { } tab && tab.Id == editingTabId)
-        {
-            SetFilter(tab, tab.Sidebar.FilterText + text);
-        }
-    }
-
-    /// <summary>Removes the last character of the filter while it is being edited.</summary>
-    public void OnErase()
-    {
-        if (!isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Id != editingTabId || tab.Sidebar.FilterText.Length == 0)
+        if (!isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Id != editingTabId)
         {
             return;
         }
 
         var text = tab.Sidebar.FilterText;
-        var length = text.Length > 1 && char.IsLowSurrogate(text[^1]) ? 2 : 1;
-        SetFilter(tab, text[..^length]);
+        if (key.IsPrintable)
+        {
+            SetFilter(tab, text + key.Name);
+        }
+        else if (key.Name == KeyNames.Backspace && text.Length > 0)
+        {
+            var length = text.Length > 1 && char.IsLowSurrogate(text[^1]) ? 2 : 1;
+            SetFilter(tab, text[..^length]);
+        }
     }
 
     /// <summary>Selects the commit of the row under the cursor in the graph (after a click or <c>Enter</c>).</summary>

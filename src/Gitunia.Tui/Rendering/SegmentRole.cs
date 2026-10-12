@@ -28,4 +28,9 @@ public enum SegmentRole
 
     /// <summary>The line between panes while the pane beside it has focus.</summary>
     FocusedBorder,
+    /// <summary>The title bar of an overlay (palette, help, which-key).</summary>
+    OverlayTitle,
+
+    /// <summary>The keys column of an overlay.</summary>
+    OverlayKey,
 }

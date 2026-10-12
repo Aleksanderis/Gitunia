@@ -55,7 +55,7 @@ Read the doc before working in its area; don't rely on memory of it.
 
 ## Working autonomously
 
-Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. Rules that must hold regardless:
+Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To work a whole milestone or the backlog, follow the `work-orchestrator` skill (`.claude/skills/work-orchestrator/`): it delegates issues to subagents in bounded batches of 3 and ends with a hand-over, so no single session carries a whole milestone. Rules that must hold regardless:
 
 - Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide). Don't start M1+ until the M0 decision issue is closed.
 - `spike`, `destructive` (can lose user data) and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; the others stop at an open PR for the owner. Keep working on other unblocked issues meanwhile.
