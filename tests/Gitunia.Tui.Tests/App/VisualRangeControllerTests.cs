@@ -149,6 +149,48 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.True(controller.IsActive);
     }
 
+    [Theory]
+    [InlineData(KeyMode.Insert)]
+    [InlineData(KeyMode.Command)]
+    [InlineData(KeyMode.Confirm)]
+    public void GivenAPromptOwnsTheKeys_WhenTogglingVisual_ThenNoRangeStartsAndTheModeStays(KeyMode promptMode)
+    {
+        list.SelectedItem = 4;
+        mode = promptMode;
+
+        controller.TryExecute(ActionIds.VisualToggle, null);
+
+        Assert.False(controller.IsActive);
+        Assert.Null(source.Range);
+        Assert.Equal(promptMode, mode);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenTheRowsChangeMeaning_ThenTheRangeEnds()
+    {
+        list.SelectedItem = 4;
+        controller.TryExecute(ActionIds.VisualToggle, null);
+
+        source.Invalidate();
+
+        Assert.False(controller.IsActive);
+        Assert.Null(source.Range);
+        Assert.Equal(KeyMode.Normal, mode);
+    }
+
+    [Fact]
+    public void GivenAnEndedRange_WhenTheRowsChangeMeaning_ThenNothingHappensAgain()
+    {
+        list.SelectedItem = 4;
+        controller.TryExecute(ActionIds.VisualToggle, null);
+        controller.End();
+        mode = KeyMode.Insert;
+
+        source.Invalidate();
+
+        Assert.Equal(KeyMode.Insert, mode);
+    }
+
     [Fact]
     public void GivenARangeEndedWhileInInsertMode_WhenEnding_ThenTheModeIsNotChanged()
     {
@@ -176,6 +218,10 @@ public sealed class VisualRangeControllerTests : IDisposable
         public bool SuspendCollectionChangedEvent { get; set; }
 
         public RowRange? Range { get; set; }
+
+        public event Action? RangeInvalidated;
+
+        public void Invalidate() => RangeInvalidated?.Invoke();
 
         public bool IsMarked(int item) => false;
 

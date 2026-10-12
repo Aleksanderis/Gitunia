@@ -90,6 +90,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
 
         if (source is not null)
         {
+            source.RangeInvalidated -= End;
             source.Range = null;
         }
 
@@ -105,6 +106,12 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
 
     private void Begin()
     {
+        if (currentMode() != KeyMode.Normal)
+        {
+            // A prompt or another modal state owns the keys: a range would strand it.
+            return;
+        }
+
         var focused = focusedPane();
         if (focused == PaneKind.Sidebar)
         {
@@ -121,6 +128,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
 
         pane = focused;
         source = rangeSource;
+        rangeSource.RangeInvalidated += End;
         IsActive = true;
         Show(list, new RowRange(item, item));
         setMode(KeyMode.Visual);

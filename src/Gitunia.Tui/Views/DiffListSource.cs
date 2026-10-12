@@ -11,6 +11,7 @@ namespace Gitunia.Tui.Views;
 public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private DiffWrapMap? map;
+    private int paneWidth;
     private int gutterDigits = DiffRowRenderer.GutterDigits(0);
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -21,7 +22,19 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public string? Highlight { get; set; }
 
     /// <summary>The pane width in columns, set by the controller on every layout change; wrapping needs it. Zero shows the rows unwrapped.</summary>
-    public int Width { get; set; }
+    public int Width
+    {
+        get => paneWidth;
+        set
+        {
+            if (paneWidth != value && IsWrapped)
+            {
+                RangeInvalidated?.Invoke();
+            }
+
+            paneWidth = value;
+        }
+    }
 
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
@@ -35,10 +48,13 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public RowRange? Range { get; set; }
 
+    public event Action? RangeInvalidated;
+
     /// <summary>Shows another document and tells the list.</summary>
     public void Update(DiffDocument document)
     {
         Document = document;
+        RangeInvalidated?.Invoke();
         map = null;
         gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
         Notify();
@@ -48,6 +64,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public void SetWrapped(bool isWrapped)
     {
         IsWrapped = isWrapped;
+        RangeInvalidated?.Invoke();
         map = null;
         Notify();
     }

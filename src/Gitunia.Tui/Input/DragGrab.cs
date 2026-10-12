@@ -12,18 +12,27 @@ public static class DragGrab
 {
     private static readonly TimeSpan ClickWait = TimeSpan.FromMilliseconds(300);
 
+    // Counts presses: a fallback timeout only lets go of the grab it was scheduled for, not of a newer drag's.
+    private static int generation;
+
     /// <summary>Grabs on a press, lets go on a release or when the click after a drag arrived, and schedules the fallback after a drag.</summary>
     public static void Update(View view, MouseFlags flags, DragPhase phase)
     {
         switch (phase)
         {
             case DragPhase.Press:
+                generation++;
                 view.App?.Mouse.GrabMouse(view);
                 break;
             case DragPhase.End:
+                var scheduledFor = generation;
                 view.App?.AddTimeout(ClickWait, () =>
                 {
-                    Release(view);
+                    if (scheduledFor == generation)
+                    {
+                        Release(view);
+                    }
+
                     return false;
                 });
                 break;

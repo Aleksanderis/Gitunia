@@ -21,10 +21,13 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
 
     public RowRange? Range { get; set; }
 
+    public event Action? RangeInvalidated;
+
     /// <summary>Shows other content and tells the list.</summary>
     public void Update(DetailContent content)
     {
         Content = content;
+        RangeInvalidated?.Invoke();
         if (!SuspendCollectionChangedEvent)
         {
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));

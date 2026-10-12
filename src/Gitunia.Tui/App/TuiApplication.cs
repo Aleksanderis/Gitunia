@@ -26,6 +26,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
+    private const long OverlayDoubleClickGuardMilliseconds = 600;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
     private WorkspaceHost host = null!;
@@ -34,6 +35,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private ActionRouter router = null!;
     private KeyController keys = null!;
     private MouseController mouse = null!;
+    private long overlayClickTicks = long.MinValue / 2;
     private VisualRangeController visual = null!;
     private IReadOnlyList<IPromptHandler> prompts = [];
     private SidebarActionHandler sidebar = null!;
@@ -197,6 +199,18 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnGestured(string viewName, MouseGesture gesture, int? target)
     {
+        // A double-click whose first click closed an overlay must not act on the pane that is now under the pointer.
+        if (gesture == MouseGesture.DoubleClick && Environment.TickCount64 - overlayClickTicks < OverlayDoubleClickGuardMilliseconds)
+        {
+            return;
+        }
+
+        // The sidebar has no ranges; dragging there only moves its selection.
+        if (gesture == MouseGesture.DragStart && viewName == DefaultKeymap.SidebarView)
+        {
+            return;
+        }
+
         // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
         if (overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {
@@ -207,6 +221,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         if (overlays.State.IsOpen && gesture == MouseGesture.Click)
         {
             viewName = DefaultMouseMap.BackdropView;
+            overlayClickTicks = Environment.TickCount64;
         }
 
         // A drag starts a fresh range; a click on a row ends the range (the click moved the cursor, a position).
@@ -248,6 +263,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     {
         if (overlays.SelectPaletteEntryAt(line))
         {
+            overlayClickTicks = Environment.TickCount64;
             mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
         }
     }
@@ -425,6 +441,11 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnPickerChanged()
     {
+        if (picker.IsOpen)
+        {
+            visual.End();
+        }
+
         if (!overlays.State.IsOpen && picker.IsOpen != (keys.Mode == KeyMode.Insert))
         {
             keys.SetMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);

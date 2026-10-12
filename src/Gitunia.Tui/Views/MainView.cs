@@ -19,6 +19,9 @@ public sealed class MainView : IDisposable
     private readonly LineView detailTitle;
     private readonly LineView diffTitle;
     private readonly DividerView bottomDividerView;
+    /// <summary>The view name reported for the wheel over an overlay; the application maps it to the open overlay's own view.</summary>
+    public const string OverlayGestureView = "Overlay";
+
     private readonly Func<PaneArrangement> arrangement;
     private Func<bool> suppressed = () => false;
 
@@ -153,7 +156,7 @@ public sealed class MainView : IDisposable
         detailTitle.Clicked += _ => FocusFromTitle(Detail);
         diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
-        Overlay.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, null);
+        Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
         Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
     }
 

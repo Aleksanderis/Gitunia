@@ -30,6 +30,13 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 
     public RowRange? Range { get; set; }
 
+    // The graph only grows at the end, so a range over it never changes meaning.
+    public event Action? RangeInvalidated
+    {
+        add { }
+        remove { }
+    }
+
     /// <summary>The commit shown by a list item, or -1 for a reserved leading row or an item past the loaded end.</summary>
     public static int CommitIndexOf(int item) => item - ScreenLayout.ReservedLeadingRows;
 
