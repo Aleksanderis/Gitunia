@@ -26,7 +26,7 @@ public class RepoLoaderTests
         var changes = 0;
         session.Changed += () => changes++;
 
-        // Posting runs the action inline; the test thread owns the host and session while it awaits the load.
+        // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
         await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
@@ -72,7 +72,7 @@ public class RepoLoaderTests
         var tabId = host.Workspace.ActiveTabId!.Value;
         using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.Equal(new RepoStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
@@ -89,7 +89,7 @@ public class RepoLoaderTests
         var tabId = host.Workspace.ActiveTabId!.Value;
         using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), action => action(), session.Cancellation.Token);
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.Equal(new RepoStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
