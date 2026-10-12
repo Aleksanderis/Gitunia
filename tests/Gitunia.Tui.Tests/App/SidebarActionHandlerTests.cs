@@ -44,6 +44,35 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
+    public async Task GivenDetailAndDiffBelow_WhenMovingDownAndUp_ThenFocusGoesToTheDetailPaneAndBackToTheGraph()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.DetailVisible = true;
+        harness.Handler.IsDiffVisible = () => true;
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.True(harness.Handler.TryHandle(ActionIds.PaneFocusDown, null));
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+        Assert.True(harness.Handler.TryHandle(ActionIds.PaneFocusUp, null));
+        Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenOnlyTheDiffBelow_WhenMovingDown_ThenTheDiffIsFocused()
+    {
+        using var repository = BranchyRepository();
+        using var harness = await SidebarHarness.LoadAsync(repository.Path);
+        harness.DetailVisible = false;
+        harness.Handler.IsDiffVisible = () => true;
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        harness.Handler.TryHandle(ActionIds.PaneFocusDown, null);
+
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
     public async Task GivenAZoomedPane_WhenTabbing_ThenHiddenPanesAreSkipped()
     {
         using var repository = BranchyRepository();

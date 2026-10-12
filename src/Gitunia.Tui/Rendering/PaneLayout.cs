@@ -5,8 +5,8 @@ namespace Gitunia.Tui.Rendering;
 /// <summary>
 /// Lays out the repo screen. Without a diff the detail pane spans the bottom (see <see cref="DetailLayout"/>). An open diff
 /// sits to the right of a compact detail pane (the changed-files list, about a third of the width) and replaces it only on
-/// very narrow screens. A zoomed pane takes the whole
-/// area between the tab row and the status bar and hides the others.
+/// very narrow screens. A zoomed pane takes the whole area
+/// between the tab row and the status bar and hides the others.
 /// </summary>
 public static class PaneLayout
 {

@@ -16,7 +16,7 @@ public static class ScreenComposer
     /// <param name="sidebar">The sidebar to show left of the graph (when the terminal is wide enough), or null for none.</param>
     /// <param name="highlight">The active graph search whose matches are highlighted, null when none.</param>
     /// <param name="detail">The commit detail pane below the graph, or null to leave it out (it is also left out on short screens).</param>
-    /// <param name="diff">The diff pane, or null when none is open.</param>
+    /// <param name="diff">The diff pane, or null when none is open (then <paramref name="arrangement"/> must not open or zoom the diff).</param>
     /// <param name="arrangement">Whether the diff is open and which pane is zoomed, null for the normal layout.</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
