@@ -10,7 +10,7 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 - Working-tree layout (staging): selecting the status row (or a key from anywhere) switches the center and detail panes to unstaged files, staged files and a diff/hunk view. Whole files, hunks or selected lines are staged and unstaged from the diff itself, then the commit message is written and committed from the same screen. Details of this flow are specified as workflow 2 below, before M2.
 - Branches and worktrees are first-class, not a submenu: they are always visible in the sidebar and every branch shows which worktree holds it.
 - Destructive actions confirm and say what they will do and how to undo it.
-- Mouse is optional but complete: everything doable by keyboard is doable with the mouse (click to focus/select, double-click to open, wheel to scroll, clickable tabs, buttons and menus for actions, drag to select ranges and resize panes). Nothing is keyboard-only or mouse-only; mouse paths are listed in the keymap notes below and in each flow.
+- Mouse is optional but complete: everything doable by keyboard is doable with the mouse (click to focus/select, double-click to open, wheel to scroll, clickable tabs, buttons and menus for actions, drag to select ranges and resize panes). Nothing is keyboard-only or mouse-only; mouse paths are listed in the Mouse section below.
 
 ## Workspace and tabs
 
@@ -129,5 +129,26 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Picker | `Alt-d` | Remove from recents |
 | Palette | `Up` `Down` | Move highlight (typing filters; `Enter` runs the action, `Esc` closes) |
 
-Mouse paths (all actions): click focuses a pane or selects a row, double-click opens (commit details, file diff, repo in picker), wheel scrolls, click a tab switches, click a sidebar ref selects it, click a hunk/file marker or use the pane header buttons to jump and zoom, picker rows open on double-click with pin/remove buttons per row. (More rows come with workflows 2-7.)
+Mouse paths are listed in the next section.
 
+## Mouse
+
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar and Diff.
+
+| View | Gesture | Action | Effect |
+|---|---|---|---|
+| Lists | Wheel up | `list.up` | Moves the selection up 3 rows (like `3k`) in the pane under the pointer, which gets focus |
+| Lists | Wheel down | `list.down` | Moves the selection down 3 rows (like `3j`) |
+| Graph | Double-click | `graph.open-details` | Same as `Enter`: focus the commit details |
+| Detail | Double-click | `detail.open-diff` | Same as `Enter`: open the file diff |
+| Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
+| Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
+| Picker | Double-click | `picker.accept` | Open the repository of the row |
+| Picker | Wheel up | `picker.previous` | Move the highlight up one row |
+| Picker | Wheel down | `picker.next` | Move the highlight down one row |
+
+Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it. A click on empty space does nothing. While the help, palette, status history or which-key overlay is open, panes ignore wheel and double-click gestures (the keyboard closes the overlay with `Esc`).
+
+Terminal.Gui turns on mouse reporting (SGR, mode 1006) at startup and turns it off on exit; there is no switch to disable it yet. Verified (#64) by writing SGR mouse sequences into the pane of a tmux 3.7c session running the Linux build: clicks, double-clicks and the wheel arrive, a double-click is delivered as a click followed by a double-click event (so a double-click on a sidebar section toggles it once), and a sideways wheel (Ctrl or Shift plus wheel) is ignored (unit-tested only). Not yet verified with a physical mouse, over ssh, or in kitty, Windows Terminal and macOS terminals (tracked in #100). Terminals or ssh paths that drop mouse sequences leave the keyboard path unaffected.
+
+Still to come in #100: drag to select a range, drag to resize panes, buttons and menu entries, and the rest of the diff view's mouse path (the wheel and a click on a row already work there; hunk and file markers, pane header buttons, picker pin/remove buttons).

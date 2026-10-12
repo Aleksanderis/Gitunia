@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -45,7 +47,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        Sidebar = new ListView
+        Sidebar = new PaneListView
         {
             X = 0,
             Y = ScreenLayout.GraphTop,
@@ -72,7 +74,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().SidebarDivider.Width),
             Height = Dim.Func(_ => Rects().SidebarDivider.Height),
         };
-        Graph = new ListView
+        Graph = new PaneListView
         {
             X = Pos.Func(_ => Rects().Graph.X),
             Y = ScreenLayout.GraphTop,
@@ -87,7 +89,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().DetailTitle.Width),
             Height = Dim.Func(_ => Rects().DetailTitle.Height),
         };
-        Detail = new ListView
+        Detail = new PaneListView
         {
             X = 0,
             Y = Pos.Func(_ => Rects().Detail.Y),
@@ -109,7 +111,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().DiffTitle.Width),
             Height = Dim.Func(_ => Rects().DiffTitle.Height),
         };
-        Diff = new ListView
+        Diff = new PaneListView
         {
             X = Pos.Func(_ => Rects().Diff.X),
             Y = Pos.Func(_ => Rects().Diff.Y),
@@ -135,18 +137,23 @@ public sealed class MainView : IDisposable
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
+        tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
+        Graph.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, null);
+        Sidebar.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, null);
+        Detail.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, null);
+        Diff.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, null);
         Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
     }
 
-    /// <summary>Raised with the one-based tab number when a tab in the tab row is clicked.</summary>
-    public event Action<int>? TabClicked
-    {
-        add => tabs.TabClicked += value;
-        remove => tabs.TabClicked -= value;
-    }
+    /// <summary>
+    /// Raised for a mouse gesture the mouse map decides on: the keymap view name of the pane (or <c>Tabs</c>, <c>Picker</c>),
+    /// the gesture and, for the tab row, the one-based number of the clicked tab.
+    /// </summary>
+    public event Action<string, MouseGesture, int?>? Gestured;
 
-    /// <summary>Raised with the row index and whether it was a double-click when a picker row is clicked.</summary>
-    public event Action<int, bool>? PickerRowClicked
+    /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
+    public event Action<int>? PickerRowClicked
     {
         add => picker.RowClicked += value;
         remove => picker.RowClicked -= value;
@@ -154,15 +161,15 @@ public sealed class MainView : IDisposable
 
     public Window Window { get; }
 
-    public ListView Graph { get; }
+    public PaneListView Graph { get; }
 
-    public ListView Sidebar { get; }
+    public PaneListView Sidebar { get; }
 
     /// <summary>The commit detail pane below the graph.</summary>
-    public ListView Detail { get; }
+    public PaneListView Detail { get; }
 
     /// <summary>The diff pane, beside or in place of the detail pane.</summary>
-    public ListView Diff { get; }
+    public PaneListView Diff { get; }
 
     /// <summary>The floating box for the help, the palette and the which-key popup; added last so it draws on top.</summary>
     public OverlayView Overlay { get; }
