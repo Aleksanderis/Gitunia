@@ -19,8 +19,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
 
-    /// <summary>Supplies the pane width in columns; wrapping needs it. Null or zero shows the rows unwrapped.</summary>
-    public Func<int>? WidthProvider { get; set; }
+    /// <summary>The pane width in columns, set by the controller on every layout change; wrapping needs it. Zero shows the rows unwrapped.</summary>
+    public int Width { get; set; }
 
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
@@ -80,7 +80,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource
 
     private DiffWrapMap? Map()
     {
-        var width = IsWrapped && WidthProvider is not null ? WidthProvider() : 0;
+        var width = IsWrapped ? Width : 0;
         if (width <= 0)
         {
             return null;

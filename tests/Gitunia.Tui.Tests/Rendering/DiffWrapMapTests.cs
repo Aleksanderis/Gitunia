@@ -47,5 +47,18 @@ public class DiffWrapMapTests
         Assert.Equal(["日本", "語日", "本語"], chunks);
     }
 
+    [Fact]
+    public void GivenATabHeavyRow_WhenCountingSegments_ThenEveryColumnOfTheExpandedTextIsReachable()
+    {
+        var row = new DiffRow(DiffRowKind.Added, new string('\t', 7) + "abcdefghijk", null, 1, 0);
+        var count = DiffRowRenderer.SegmentCount(row, 45, 3);
+
+        var text = string.Concat(Enumerable.Range(0, count).Select(segment =>
+            string.Concat(DiffRowRenderer.RenderSegment(row, segment, 45, 3, null, false, Glyphs).Segments.Select(part => part.Text))[9..].TrimEnd()));
+
+        Assert.Equal(2, count);
+        Assert.EndsWith("abcdefghijk", text, StringComparison.Ordinal);
+    }
+
     private static DiffDocument Document(params DiffRow[] rows) => new(rows, [], [0], [["f"]], 9);
 }

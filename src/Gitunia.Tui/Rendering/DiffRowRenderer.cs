@@ -60,7 +60,7 @@ public static class DiffRowRenderer
     public static int SegmentCount(DiffRow row, int width, int gutterDigits)
     {
         var columns = width - PrefixWidth(row, gutterDigits);
-        return columns <= 0 || row.Text.Length * 2 <= columns ? 1 : Chunks(ExpandTabs(row.Text), columns).Count;
+        return columns <= 0 || (row.Text.Length * 2 <= columns && !ContainsControl(row.Text)) ? 1 : Chunks(ExpandTabs(row.Text), columns).Count;
     }
 
     /// <summary>Cuts <paramref name="shown"/> into pieces of at most <paramref name="columns"/> columns; a wide character is never split.</summary>

@@ -24,10 +24,10 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly ListView diffList;
     private readonly Action<KeyMode> setMode;
     private readonly Func<int> screenHeight;
-    private readonly Func<int> diffWidth;
     private readonly Action relayout;
     private readonly Action refreshChrome;
     private bool isRestoring;
+    private bool isSyncing;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -35,7 +35,6 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="diffList">The diff pane's list.</param>
     /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="screenHeight">Terminal rows, to tell whether the diff fits next to the graph.</param>
-    /// <param name="diffWidth">Columns of the diff pane, so wrapped text knows where to break.</param>
     /// <param name="relayout">Asks the views to lay out again after the pane arrangement changed.</param>
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
     public DiffPaneController(
@@ -45,7 +44,6 @@ public sealed class DiffPaneController : IPromptHandler
         ListView diffList,
         Action<KeyMode> setMode,
         Func<int> screenHeight,
-        Func<int> diffWidth,
         Action relayout,
         Action refreshChrome)
     {
@@ -55,10 +53,10 @@ public sealed class DiffPaneController : IPromptHandler
         this.diffList = diffList;
         this.setMode = setMode;
         this.screenHeight = screenHeight;
-        this.diffWidth = diffWidth;
         this.relayout = relayout;
         this.refreshChrome = refreshChrome;
         diffList.ValueChanged += (_, _) => RememberCursor();
+        diffList.ViewportChanged += (_, _) => SyncWidth();
     }
 
     public string Notice { get; private set; } = string.Empty;
@@ -84,6 +82,7 @@ public sealed class DiffPaneController : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
+        SyncWidth();
         if (activeSession()?.Diff is not { } diff || host.Workspace.ActiveTab is not { } tab)
         {
             return false;
@@ -134,7 +133,12 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        diff.PendingFilePath = CurrentFilePath(diff);
+        if (diff.Store.Status == DiffStatus.Loaded)
+        {
+            // While another commit is still loading, the document has no files: keep the file remembered so far.
+            diff.PendingFilePath = CurrentFilePath(diff);
+        }
+
         diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null);
     }
 
@@ -161,7 +165,7 @@ public sealed class DiffPaneController : IPromptHandler
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
-                diff.Source.WidthProvider = diffWidth;
+                diff.Source.Width = diffList.Viewport.Width;
                 if (diff.Source.Count > 0)
                 {
                     diffList.SelectedItem = Math.Min(diff.Source.LineOf(diff.SelectedRow), diff.Source.Count - 1);
@@ -411,6 +415,43 @@ public sealed class DiffPaneController : IPromptHandler
 
         diffList.SetNeedsDraw();
         refreshChrome();
+    }
+
+    /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
+    private void SyncWidth()
+    {
+        if (isSyncing || activeSession()?.Diff is not { } diff || diff.Source.Width == diffList.Viewport.Width)
+        {
+            return;
+        }
+
+        isSyncing = true;
+        try
+        {
+            if (!diff.Source.IsWrapped)
+            {
+                diff.Source.Width = diffList.Viewport.Width;
+                return;
+            }
+
+            var row = CursorRow(diff);
+            var top = diff.Source.RowOf(diffList.Viewport.Y);
+            diff.Source.Width = diffList.Viewport.Width;
+            isRestoring = true;
+            try
+            {
+                Select(row, atTop: false);
+                diffList.Viewport = diffList.Viewport with { Y = Math.Min(diff.Source.LineOf(top), Math.Max(0, diff.Source.Count - diffList.Viewport.Height)) };
+            }
+            finally
+            {
+                isRestoring = false;
+            }
+        }
+        finally
+        {
+            isSyncing = false;
+        }
     }
 
     private int CursorRow(DiffSession diff) => diff.Source.RowOf(diffList.SelectedItem ?? 0);

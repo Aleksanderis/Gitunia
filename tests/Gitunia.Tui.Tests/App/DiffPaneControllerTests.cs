@@ -235,6 +235,44 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenWrapOn_WhenThePaneWidthChanges_ThenTheCursorStaysOnItsRow()
+    {
+        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var harness = await DiffHarness.LoadAsync(repository);
+        await harness.OpenAsync("a.txt");
+        var source = harness.Session.Diff!.Source;
+        harness.Execute(ActionIds.DiffToggleWrap);
+        harness.Execute(ActionIds.ListBottom);
+        var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
+
+        harness.DiffList.Width = 30;
+        harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
+        harness.Execute(ActionIds.ListUp);
+        harness.Execute(ActionIds.ListDown);
+
+        Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
+        Assert.True(source.Count > source.Document.Rows.Count + 4);
+    }
+
+    [Fact]
+    public async Task GivenTwoQuickSelectionChanges_WhenFollowing_ThenTheRememberedFileSurvives()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("b.txt");
+        var store = harness.Session.Diff!.Store;
+
+        await harness.SelectCommitAsync(harness.Session.Graph[1].Id);
+        harness.Controller.FollowSelection();
+        await harness.SelectCommitAsync(harness.Session.Graph[0].Id);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(harness.Session.Graph[0].Id, store.Commit);
+        var document = harness.Session.Diff.Source.Document;
+        Assert.Equal(document.FileRows[document.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
     public async Task GivenACutDiff_WhenLoadingAnyway_ThenTheWholeDiffLoadsAndTheFileKeepsTheCursor()
     {
         using var harness = await DiffHarness.LoadAsync(rowLimit: 8);
@@ -300,8 +338,9 @@ public class DiffPaneControllerTests
             Session = session;
             this.ownedRepository = ownedRepository;
             DetailList = new ListView { Source = session.DetailSource };
-            DiffList = new ListView();
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => 60, () => { }, () => { });
+            DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
+            DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { });
             Controller.OnTabSwitched(null, session);
         }
 
