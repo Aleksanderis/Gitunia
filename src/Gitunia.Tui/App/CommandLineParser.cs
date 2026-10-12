@@ -1,15 +1,19 @@
+using Gitunia.Core.Workspaces;
+
 namespace Gitunia.Tui.App;
 
-/// <summary>Parses <c>gitunia [path] [--print-frame WxH]</c>.</summary>
+/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff]]</c>.</summary>
 public static class CommandLineParser
 {
-    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows>]";
+    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff]]";
 
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
         string? path = null;
         int? width = null;
         int? height = null;
+        var openDiff = false;
+        PaneKind? zoom = null;
         for (var index = 0; index < arguments.Count; index++)
         {
             var argument = arguments[index];
@@ -24,6 +28,20 @@ public static class CommandLineParser
                 height = parsedHeight;
                 index++;
             }
+            else if (argument == "--diff")
+            {
+                openDiff = true;
+            }
+            else if (argument == "--zoom")
+            {
+                if (index + 1 >= arguments.Count || !TryParseZoom(arguments[index + 1], out var parsedZoom))
+                {
+                    return new CommandLineOptions(null, null, null, "--zoom needs graph, detail or diff");
+                }
+
+                zoom = parsedZoom;
+                index++;
+            }
             else if (argument.StartsWith('-') || path is not null)
             {
                 return new CommandLineOptions(null, null, null, $"unexpected argument '{argument}'");
@@ -34,7 +52,24 @@ public static class CommandLineParser
             }
         }
 
-        return new CommandLineOptions(path, width, height, null);
+        if ((openDiff || zoom is not null) && width is null)
+        {
+            return new CommandLineOptions(null, null, null, "--diff and --zoom need --print-frame");
+        }
+
+        return new CommandLineOptions(path, width, height, null, openDiff || zoom == PaneKind.Diff, zoom);
+    }
+
+    private static bool TryParseZoom(string text, out PaneKind zoom)
+    {
+        zoom = text switch
+        {
+            "graph" => PaneKind.Graph,
+            "detail" => PaneKind.Detail,
+            "diff" => PaneKind.Diff,
+            _ => PaneKind.Sidebar,
+        };
+        return zoom != PaneKind.Sidebar;
     }
 
     private static bool TryParseSize(string text, out int width, out int height)

@@ -51,7 +51,8 @@ public static class Program
                 options.FrameHeight!.Value,
                 GraphGlyphSet.For(capabilities.Unicode),
                 Console.Out,
-                CancellationToken.None).GetAwaiter().GetResult();
+                CancellationToken.None,
+                new PaneArrangement(options.OpenDiff, options.Zoom)).GetAwaiter().GetResult();
             return 0;
         }
 

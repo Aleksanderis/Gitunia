@@ -5,10 +5,15 @@ public static class StatusReader
 {
     private static readonly GitRunOptions PollingOptions = new(ReadOnly: true);
 
-    /// <summary>Runs <c>status --porcelain=v2 -z --branch</c> with every untracked file listed individually.</summary>
-    public static async Task<StatusSnapshot> ReadStatusAsync(Repo repo, bool includeIgnored, CancellationToken cancellationToken)
+    /// <summary>Runs <c>status --porcelain=v2 -z --branch</c>; untracked files are listed individually unless <paramref name="untrackedFiles"/> says otherwise.</summary>
+    public static async Task<StatusSnapshot> ReadStatusAsync(
+        Repo repo,
+        bool includeIgnored,
+        CancellationToken cancellationToken,
+        UntrackedFilesMode untrackedFiles = UntrackedFilesMode.All)
     {
-        var arguments = new List<string> { "status", "--porcelain=v2", "-z", "--branch", "--untracked-files=all" };
+        var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? "--untracked-files=all" : "--untracked-files=normal";
+        var arguments = new List<string> { "status", "--porcelain=v2", "-z", "--branch", untrackedArgument };
         if (includeIgnored)
         {
             arguments.Add("--ignored=traditional");
