@@ -3,6 +3,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Platform;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
@@ -35,12 +36,12 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
-        view = new MainView(CreateModel, glyphs);
-        router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop);
+        view = new MainView(CreateModel, width => DetailTitle(width, glyphs), glyphs);
+        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop);
         var engine = new KeymapEngine(DefaultKeymap.Create());
         keys = new KeyController(engine, (action, count) => RouteAction(action, count));
         whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, DefaultKeymap.GraphView);
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName);
         overlays.Changed += RefreshOverlay;
 
         host.Changed += view.RefreshChrome;
@@ -53,6 +54,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         if (session is not null)
         {
             view.Graph.Source = session.Source;
+            view.Detail.Source = session.DetailSource;
+            session.Details.Changed += RefreshDetail;
             session.Changed += OnSessionChanged;
         }
 
@@ -86,6 +89,13 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private ScreenModel CreateModel() =>
         ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
 
+    private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
+    {
+        var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
+        var isFocused = view.Detail.HasFocus;
+        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
+    }
+
     private void OnSessionChanged()
     {
         if (view.Graph.SelectedItem is null && (view.Graph.Source?.Count ?? 0) > 0)
@@ -109,9 +119,36 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
-            host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(session.Graph[commitIndex].Id)));
+            var entry = session.Graph[commitIndex];
+            host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(entry.Id)));
+
+            // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
+            session.Details.Select(entry.Id);
+            RefreshDetail();
         }
 
         host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(view.Graph.Viewport.Y)));
+    }
+
+    private void RefreshDetail()
+    {
+        var session = ActiveSession();
+        if (session is null)
+        {
+            return;
+        }
+
+        var commitIndex = view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
+        var previous = session.DetailSource.Content;
+        var content = DetailContentBuilder.Build(entry, session.Details.Current);
+        session.DetailSource.Update(content);
+
+        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place.
+        var selected = content.ShortHash == previous.ShortHash ? view.Detail.SelectedItem ?? 0 : 0;
+        view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
+        view.Detail.EnsureSelectedItemVisible();
+        view.Detail.SetNeedsDraw();
+        view.RefreshChrome();
     }
 }

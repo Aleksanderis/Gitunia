@@ -12,6 +12,7 @@ public static class ScreenComposer
     /// <param name="width">Terminal columns.</param>
     /// <param name="height">Terminal rows.</param>
     /// <param name="glyphs">The characters to draw the graph with.</param>
+    /// <param name="detail">The commit detail pane below the graph, or null to leave it out (it is also left out on short screens).</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -19,7 +20,8 @@ public static class ScreenComposer
         int topItem,
         int width,
         int height,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        DetailPaneModel? detail = null)
     {
         var lines = new List<StyledLine>(height);
         if (height > ScreenLayout.HeaderRow)
@@ -33,13 +35,20 @@ public static class ScreenComposer
         }
 
         var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs);
-        for (var offset = 0; offset < ScreenLayout.GraphHeight(height); offset++)
+        var showDetail = detail is not null && DetailLayout.PaneHeight(height) > 0;
+        var graphHeight = showDetail ? DetailLayout.GraphHeight(height) : ScreenLayout.GraphHeight(height);
+        for (var offset = 0; offset < graphHeight; offset++)
         {
             var item = topItem + offset;
             var commitIndex = item - ScreenLayout.ReservedLeadingRows;
             lines.Add(commitIndex >= 0 && commitIndex < graph.Count
                 ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
                 : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0));
+        }
+
+        if (showDetail)
+        {
+            lines.AddRange(DetailPaneRenderer.RenderPane(detail!, width, DetailLayout.ContentHeight(height), glyphs));
         }
 
         if (height > ScreenLayout.GraphTop)
