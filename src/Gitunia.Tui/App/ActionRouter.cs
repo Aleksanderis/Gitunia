@@ -13,7 +13,7 @@ namespace Gitunia.Tui.App;
 /// Maps the action ids the keymap produces to what they do in the graph view. Actions the first shell does not
 /// implement yet are ignored; an action's effects go through the <see cref="WorkspaceHost"/> as commands.
 /// </summary>
-public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit)
+public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -22,11 +22,19 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
     /// <summary>The keymap view of the focused pane (<c>Graph</c> or <c>Detail</c>).</summary>
-    public string ViewName => FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView;
+    public string ViewName => host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar
+        ? DefaultKeymap.SidebarView
+        : FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView;
 
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (sidebar.TryHandle(action, count))
+        {
+            Message = sidebar.Message;
+            return;
+        }
+
         var list = FocusedPane == PaneKind.Detail ? detailList : graphList;
         if (OffersToPrompts(action))
         {

@@ -27,7 +27,7 @@ Invoke as `/work-readiness M2` (resolve the milestone title with `gh api repos/{
 
 ## 3. Report
 
-Post one comment on the milestone's lowest-numbered open issue (and tell the owner the link): verdict `ready`, `ready with conditions` or `not ready`; then sections: blockers to fix first, decisions needed (with proposed defaults), proposed issue edits, suggested batches in order (up to 3 independent issues each, with the reason), risks and cost notes. Keep it under about 60 lines and link instead of quoting.
+Post one comment on the milestone's tracking issue (find it with `gh issue list --milestone "<title>" --label tracking --state open`; if missing, create it with `gh issue create --title "<milestone title>: tracking" --label tracking --milestone "<title>"` (create the `tracking` label first if it does not exist) and a one-line body saying it holds readiness reports and orchestrator status), and tell the owner the link: verdict `ready`, `ready with conditions` or `not ready`; then sections: blockers to fix first, decisions needed (with proposed defaults), proposed issue edits, suggested batches in order (up to 3 independent issues each, with the reason), risks and cost notes. Keep it under about 60 lines and link instead of quoting.
 
 ## 4. Fix what you may
 
