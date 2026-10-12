@@ -9,25 +9,17 @@ namespace Gitunia.Tui.Tests.App;
 
 public class PickerControllerTests
 {
-    private static async Task WaitForAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "timed out waiting for the picker to finish");
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
-    }
-
-    private static (PickerController Picker, WorkspaceHost Host) Create(
+    private static (PickerController Picker, WorkspaceHost Host, UiPump Pump) Create(
         string home,
         TimeSpan? listingTimeout = null,
-        Func<string, IReadOnlyList<string>>? listDirectories = null)
+        Func<string, IReadOnlyList<string>>? listDirectories = null,
+        TimeSpan? scanningDelay = null)
     {
         var host = new WorkspaceHost(Workspace.Empty);
-        // Background results are posted back inline: the test thread only polls.
-        var picker = new PickerController(new GitRunner(), host, home, action => action(), listingTimeout, listDirectories);
-        return (picker, host);
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        // Never show scanning by default: only the tests about it opt in, with a zero delay.
+        var picker = new PickerController(new GitRunner(), host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan);
+        return (picker, host, pump);
     }
 
     [Fact]
@@ -35,12 +27,12 @@ public class PickerControllerTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("a.txt", "1"));
-        var (picker, host) = Create(Path.GetTempPath());
+        var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(repository.Path));
 
         picker.Accept();
-        await WaitForAsync(() => !picker.IsOpen);
+        await pump.RunUntilAsync(() => !picker.IsOpen);
 
         var tab = Assert.Single(host.Workspace.Tabs);
         Assert.Equal(Path.GetFullPath(repository.Path), tab.Location.RootPath);
@@ -52,12 +44,12 @@ public class PickerControllerTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("sub/a.txt", "1"));
-        var (picker, host) = Create(Path.GetTempPath());
+        var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(Path.Combine(repository.Path, "sub")));
 
         picker.Accept();
-        await WaitForAsync(() => !picker.IsOpen);
+        await pump.RunUntilAsync(() => !picker.IsOpen);
 
         Assert.Equal(Path.GetFullPath(repository.Path), Assert.Single(host.Workspace.Tabs).Location.RootPath);
     }
@@ -69,12 +61,12 @@ public class PickerControllerTests
         Directory.CreateDirectory(empty);
         try
         {
-            var (picker, host) = Create(Path.GetTempPath());
+            var (picker, host, pump) = Create(Path.GetTempPath());
             picker.Open();
             picker.Apply(new TypeTextCommand(empty));
 
             picker.Accept();
-            await WaitForAsync(() => picker.State!.Message.Contains("repository", StringComparison.OrdinalIgnoreCase) && !picker.State.Message.StartsWith("opening", StringComparison.Ordinal));
+            await pump.RunUntilAsync(() => picker.State!.Message.Contains("repository", StringComparison.OrdinalIgnoreCase) && !picker.State.Message.StartsWith("opening", StringComparison.Ordinal));
 
             Assert.True(picker.IsOpen);
             Assert.Empty(host.Workspace.Tabs);
@@ -92,13 +84,13 @@ public class PickerControllerTests
         using var second = TestRepository.Create();
         first.Commit("root", ("a.txt", "1"));
         second.Commit("root", ("a.txt", "1"));
-        var (picker, host) = Create(Path.GetTempPath());
+        var (picker, host, pump) = Create(Path.GetTempPath());
         foreach (var repository in new[] { first, second })
         {
             picker.Open();
             picker.Apply(new TypeTextCommand(repository.Path));
             picker.Accept();
-            await WaitForAsync(() => !picker.IsOpen);
+            await pump.RunUntilAsync(() => !picker.IsOpen);
         }
 
         picker.Open();
@@ -115,11 +107,11 @@ public class PickerControllerTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("a.txt", "1"));
-        var (picker, host) = Create(Path.GetTempPath());
+        var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(repository.Path));
         picker.Accept();
-        await WaitForAsync(() => !picker.IsOpen);
+        await pump.RunUntilAsync(() => !picker.IsOpen);
         host.Dispatch(new CloseTabCommand(host.Workspace.ActiveTabId!.Value));
         picker.Open();
         picker.Apply(new TypeTextCommand(Path.GetFileName(repository.Path)));
@@ -137,7 +129,7 @@ public class PickerControllerTests
     {
         var home = Path.Combine(Path.GetTempPath(), "picker-controller-home");
         var path = Path.Combine(home, "code", "alpha");
-        var (picker, host) = Create(home);
+        var (picker, host, _) = Create(home);
         host.Restore(new WorkspaceUpdate(WorkspaceReducer.Reduce(Workspace.Empty, new RemoveRecentCommand(path)).Workspace with { Recents = [path] }, []));
         picker.Open();
 
@@ -153,7 +145,7 @@ public class PickerControllerTests
     public async Task GivenTypedPath_WhenListing_ThenScanningShowsUntilTheCandidatesArrive()
     {
         using var release = new ManualResetEventSlim();
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "alpha")];
@@ -165,7 +157,7 @@ public class PickerControllerTests
         Assert.True(picker.State!.IsListing);
         Assert.Empty(picker.State.Rows);
         release.Set();
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
         Assert.Equal(["alpha"], picker.State!.Rows.Select(row => row.Name));
     }
 
@@ -173,7 +165,7 @@ public class PickerControllerTests
     public async Task GivenSlowListing_WhenTypingAgain_ThenTheOlderListingIsDiscarded()
     {
         using var release = new ManualResetEventSlim();
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             if (directory.EndsWith("slow", StringComparison.Ordinal))
             {
@@ -194,10 +186,11 @@ public class PickerControllerTests
         picker.Apply(new BackspaceCommand());
         picker.Apply(new TypeTextCommand("fast/"));
 
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
         release.Set();
-        await Task.Delay(100, TestContext.Current.CancellationToken);
 
+        // The cancelled listing posts nothing back (the unobserved pool task cannot be awaited, so this covers the
+        // outcome rather than the guard in isolation): the fresh rows must be intact.
         Assert.Equal("~/fast/", picker.State!.Query);
         Assert.Empty(picker.State.Message);
         Assert.Equal(["fresh"], picker.State.Rows.Select(row => row.Name));
@@ -207,18 +200,18 @@ public class PickerControllerTests
     public async Task GivenSlowListing_WhenItTakesLongerThanTheDelay_ThenScanningIsShownAndOldRowsStayWhileTyping()
     {
         using var release = new ManualResetEventSlim();
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "alpha")];
-        });
+        }, scanningDelay: TimeSpan.Zero);
         picker.Open();
         picker.Apply(new TypeTextCommand("~/"));
         Assert.False(picker.State!.IsScanningShown);
 
-        await WaitForAsync(() => picker.State!.IsScanningShown);
+        await pump.RunUntilAsync(() => picker.State!.IsScanningShown);
         release.Set();
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
         Assert.False(picker.State!.IsScanningShown);
         Assert.Equal(["alpha"], picker.State.Rows.Select(row => row.Name));
 
@@ -228,17 +221,17 @@ public class PickerControllerTests
         Assert.True(picker.State!.IsListing);
         Assert.Equal(["alpha"], picker.State.Rows.Select(row => row.Name));
         release.Set();
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
     }
 
     [Fact]
     public async Task GivenFastListing_WhenItCompletes_ThenScanningWasNeverShown()
     {
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory => [Path.Combine(directory, "alpha")]);
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory => [Path.Combine(directory, "alpha")]);
         picker.Open();
 
         picker.Apply(new TypeTextCommand("~/"));
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
 
         Assert.False(picker.State!.IsScanningShown);
     }
@@ -247,15 +240,16 @@ public class PickerControllerTests
     public async Task GivenListingThatNeverFinishes_WhenTheTimeoutPasses_ThenAMessageReplacesScanning()
     {
         using var release = new ManualResetEventSlim();
-        var (picker, _) = Create(Path.GetTempPath(), TimeSpan.FromMilliseconds(100), directory =>
+        var (picker, _, pump) = Create(Path.GetTempPath(), TimeSpan.FromMilliseconds(100), directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "late")];
-        });
+        }, TimeSpan.Zero);
         picker.Open();
 
         picker.Apply(new TypeTextCommand("~/"));
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => picker.State!.IsScanningShown);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
         release.Set();
 
         Assert.Contains("timed out", picker.State!.Message, StringComparison.Ordinal);
@@ -265,11 +259,11 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenListingThatThrows_WhenTyping_ThenTheNoticeReplacesScanning()
     {
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: _ => throw new NotSupportedException("bad path"));
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: _ => throw new NotSupportedException("bad path"));
         picker.Open();
 
         picker.Apply(new TypeTextCommand("~/"));
-        await WaitForAsync(() => !picker.State!.IsListing);
+        await pump.RunUntilAsync(() => !picker.State!.IsListing);
 
         Assert.Equal("bad path", picker.State!.Message);
     }
@@ -278,7 +272,7 @@ public class PickerControllerTests
     public async Task GivenTabDuringListing_WhenTheListingCompletes_ThenThePathIsCompleted()
     {
         using var release = new ManualResetEventSlim();
-        var (picker, _) = Create(Path.GetTempPath(), listDirectories: directory =>
+        var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "alpha"), Path.Combine(directory, "beta")];
@@ -288,7 +282,7 @@ public class PickerControllerTests
 
         picker.Apply(new CompletePathCommand());
         release.Set();
-        await WaitForAsync(() => picker.State!.Query == "~/alpha/");
+        await pump.RunUntilAsync(() => picker.State!.Query == "~/alpha/");
 
         Assert.Equal("~/alpha/", picker.State!.Query);
     }
