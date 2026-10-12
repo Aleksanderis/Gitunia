@@ -34,7 +34,7 @@ public static class ChromeBuilder
             builder.Append(model.PendingKeys + " ", SegmentRole.StatusMode);
         }
 
-        builder.Append(position + " ", SegmentRole.Status);
+        builder.Append((model.SearchLine.Length > 0 ? model.SearchLine : position) + " ", SegmentRole.Status);
         if (model.IsLoading)
         {
             builder.Append("loading... ", SegmentRole.Status);
@@ -45,7 +45,11 @@ public static class ChromeBuilder
             builder.Append(" " + model.Message + " ", SegmentRole.Status);
         }
 
-        builder.Append(" " + KeyHints, SegmentRole.Status);
+        if (model.SearchLine.Length == 0)
+        {
+            builder.Append(" " + KeyHints, SegmentRole.Status);
+        }
+
         return builder.Build(SegmentRole.Status);
     }
 }

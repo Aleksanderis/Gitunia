@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Search;
 
 namespace Gitunia.Tui.Rendering;
 
@@ -12,6 +13,7 @@ public static class ScreenComposer
     /// <param name="width">Terminal columns.</param>
     /// <param name="height">Terminal rows.</param>
     /// <param name="glyphs">The characters to draw the graph with.</param>
+    /// <param name="highlight">The active graph search whose matches are highlighted, null when none.</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -19,7 +21,8 @@ public static class ScreenComposer
         int topItem,
         int width,
         int height,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        SearchQuery? highlight = null)
     {
         var lines = new List<StyledLine>(height);
         if (height > ScreenLayout.HeaderRow)
@@ -32,7 +35,7 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
-        var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs);
+        var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs, highlight);
         for (var offset = 0; offset < ScreenLayout.GraphHeight(height); offset++)
         {
             var item = topItem + offset;

@@ -4,6 +4,7 @@ using Gitunia.Git;
 using Gitunia.Platform;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
 
@@ -23,6 +24,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private IReadOnlyList<IPromptHandler> prompts = [];
 
     public int Run(RepositoryLocation location)
     {
@@ -36,6 +38,9 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         view = new MainView(CreateModel, glyphs);
         router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop);
         keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), router.Execute);
+        prompts = CreatePrompts(app);
+        router.Prompts = prompts;
+        keys.TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key));
 
         host.Changed += view.RefreshChrome;
         keys.PendingChanged += view.RefreshChrome;
@@ -60,13 +65,45 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 
     private ScreenModel CreateModel() =>
-        ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
+        ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem)
+        with
+        {
+            SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
+        };
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts(IApplication app)
+    {
+        var handle = new GraphViewHandle(
+            ActiveSession,
+            () => view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1,
+            row =>
+            {
+                view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
+                view.Graph.EnsureSelectedItemVisible();
+            },
+            keys.SetMode,
+            () =>
+            {
+                view.Graph.SetNeedsDraw();
+                view.RefreshChrome();
+            });
+        return
+        [
+            new SearchController(handle, action => app.Invoke(action)),
+            new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
+        ];
+    }
 
     private void OnSessionChanged()
     {
         if (view.Graph.SelectedItem is null && (view.Graph.Source?.Count ?? 0) > 0)
         {
             view.Graph.SelectedItem = 0;
+        }
+
+        foreach (var prompt in prompts)
+        {
+            prompt.OnGraphChanged();
         }
 
         view.Graph.SetNeedsDraw();

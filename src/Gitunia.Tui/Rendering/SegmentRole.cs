@@ -19,4 +19,7 @@ public enum SegmentRole
     StatusMode,
     Status,
     Faint,
+
+    /// <summary>Text that matches the active graph search.</summary>
+    SearchMatch,
 }

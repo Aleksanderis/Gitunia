@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Search;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
 
@@ -20,6 +21,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public int Count => ScreenLayout.ReservedLeadingRows + graph.Count;
 
     public int MaxItemLength => 0;
+
+    /// <summary>The active graph search whose matches are highlighted, null when none.</summary>
+    public SearchQuery? Highlight { get; set; }
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
@@ -60,9 +64,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     private GraphRowOptions OptionsFor(int width)
     {
         var laneColumns = GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width);
-        if (cachedOptions is null || cachedOptions.Width != width || cachedOptions.LaneColumns != laneColumns)
+        if (cachedOptions is null || cachedOptions.Width != width || cachedOptions.LaneColumns != laneColumns || cachedOptions.Highlight != Highlight)
         {
-            cachedOptions = new GraphRowOptions(width, laneColumns, glyphs);
+            cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight);
         }
 
         return cachedOptions;

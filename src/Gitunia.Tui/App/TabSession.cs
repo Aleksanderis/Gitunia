@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
@@ -26,6 +27,9 @@ public sealed class TabSession : IDisposable
     public CommitGraph Graph { get; }
 
     public GraphListSource Source { get; }
+
+    /// <summary>The tab's graph search (the typed query, its matches and scan progress).</summary>
+    public GraphSearchState Search { get; set; } = GraphSearchState.Initial;
 
     public CancellationTokenSource Cancellation { get; } = new();
 

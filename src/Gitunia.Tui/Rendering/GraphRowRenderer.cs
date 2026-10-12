@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Search;
 using Gitunia.Git;
 
 namespace Gitunia.Tui.Rendering;
@@ -13,16 +14,30 @@ public static class GraphRowRenderer
         var builder = new LineBuilder(options.Width, options.Glyphs.Ellipsis);
         AppendLanes(builder, LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs));
         builder.Append(" ", SegmentRole.Plain);
-        builder.Append(entry.Id.ToString()[..HashLength], SegmentRole.Hash);
+        var isMatch = options.Highlight is { } query && GraphSearchMatcher.IsMatch(query, entry);
+        builder.Append(entry.Id.ToString()[..HashLength], isMatch && options.Highlight!.Field != SearchField.Message ? SegmentRole.SearchMatch : SegmentRole.Hash);
         builder.Append(" ", SegmentRole.Plain);
         AppendDecorations(builder, entry.Decorations);
-        builder.Append(entry.Subject, SegmentRole.Plain);
+        AppendSubject(builder, entry.Subject, isMatch ? options.Highlight : null);
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
     /// <summary>A row without a commit: the slot reserved for the working-tree pseudo-row, and rows past the loaded end.</summary>
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
         new LineBuilder(options.Width, options.Glyphs.Ellipsis).Build(SegmentRole.Plain, isSelected);
+
+    private static void AppendSubject(LineBuilder builder, string subject, SearchQuery? highlight)
+    {
+        if (highlight is null || !GraphSearchMatcher.TryFindInSubject(highlight, subject, out var start, out var length))
+        {
+            builder.Append(subject, SegmentRole.Plain);
+            return;
+        }
+
+        builder.Append(subject[..start], SegmentRole.Plain);
+        builder.Append(subject.Substring(start, length), SegmentRole.SearchMatch);
+        builder.Append(subject[(start + length)..], SegmentRole.Plain);
+    }
 
     private static void AppendLanes(LineBuilder builder, GraphCell[] cells)
     {

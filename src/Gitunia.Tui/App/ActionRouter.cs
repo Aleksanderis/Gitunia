@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
 using Gitunia.Git;
+using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.Views;
 
@@ -15,9 +16,21 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, Func<Ta
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
+    /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
+    public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
+
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        foreach (var prompt in Prompts)
+        {
+            if (prompt.TryExecute(action, count))
+            {
+                Message = prompt.Notice;
+                return;
+            }
+        }
+
         var itemCount = graphList.Source?.Count ?? 0;
         if (ListMotion.TryMove(action, count, graphList.SelectedItem ?? 0, itemCount, graphList.Viewport.Height, out var target))
         {
