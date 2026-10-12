@@ -37,9 +37,9 @@ public sealed class FakeGitExecutable : IDisposable
     public static FakeGitExecutable Sleeping() =>
         Create("sleep 30", "ping -n 30 127.0.0.1 >nul");
 
-    /// <summary>Prints 'first', sleeps two seconds, then writes the marker file; a killed process never writes it.</summary>
+    /// <summary>Records its process id next to the marker (Unix only), prints 'first', sleeps two seconds, then writes the marker file; a killed process never writes it.</summary>
     public static FakeGitExecutable SleepingThenMarking(string markerPath) =>
-        Create($"printf first\nsleep 2\necho done > '{markerPath}'", $"<nul set /p =\"first\"\r\nping -n 3 127.0.0.1 >nul\r\necho done > \"{markerPath}\"");
+        Create($"echo $$ > '{markerPath}.pid'\nprintf first\nsleep 2\necho done > '{markerPath}'", $"<nul set /p =\"first\"\r\nping -n 3 127.0.0.1 >nul\r\necho done > \"{markerPath}\"");
 
     public static FakeGitExecutable EchoingArgumentsAndLocks() =>
         Create("printf '%s\\n' \"$@\"\nprintf 'LOCKS=%s' \"$GIT_OPTIONAL_LOCKS\"", "echo %*\r\n<nul set /p =\"LOCKS=%GIT_OPTIONAL_LOCKS%\"");

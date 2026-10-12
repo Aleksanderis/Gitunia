@@ -27,7 +27,7 @@ public class GraphTabBinderTests
         harness.Session.GraphReplaced += () => replaced++;
         repository.Commit("four", ("a.txt", "4"));
         harness.Effects.Refresh(harness.TabId);
-        await WaitUntilAsync(() => replaced == 1);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
 
         Assert.Equal(3, harness.Graph.SelectedItem);
         Assert.Equal(selected, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
@@ -48,7 +48,7 @@ public class GraphTabBinderTests
         harness.Session.GraphReplaced += () => replaced++;
         repository.Git("reset", "--hard", "HEAD~1");
         harness.Effects.Refresh(harness.TabId);
-        await WaitUntilAsync(() => replaced == 1);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
 
         var current = harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id;
         Assert.NotEqual(selected, current);
@@ -75,32 +75,24 @@ public class GraphTabBinderTests
 
         repository.Commit("new", ("a.txt", "new"));
         harness.Effects.Refresh(harness.TabId);
-        await WaitUntilAsync(() => replaced == 1);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
 
         Assert.Equal(16, harness.Graph.SelectedItem);
         Assert.Equal(rowBefore, harness.Graph.SelectedItem - harness.Graph.Viewport.Y);
     }
 
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
-        while (!condition() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20);
-        }
-
-        Assert.True(condition());
-    }
-
     private sealed class Harness : IDisposable
     {
-        private Harness(WorkspaceHost host, EffectRunner effects, TabId tabId, ListView graph)
+        private Harness(WorkspaceHost host, EffectRunner effects, TabId tabId, ListView graph, UiPump pump)
         {
+            Pump = pump;
             Host = host;
             Effects = effects;
             TabId = tabId;
             Graph = graph;
         }
+
+        public UiPump Pump { get; }
 
         public WorkspaceHost Host { get; }
 
@@ -118,15 +110,16 @@ public class GraphTabBinderTests
             var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
             var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
             var tabId = update.Workspace.Tabs[0].Id;
+            var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new WorkspaceHost(Workspace.Empty);
-            var effects = new EffectRunner(runner, host, InlineUi.Post, GraphGlyphSet.Unicode, new StatusChannel());
+            var effects = new EffectRunner(runner, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(host, effects, graph, new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode), () => { });
             host.Changed += binder.Sync;
             host.Restore(update);
             binder.Sync();
-            var harness = new Harness(host, effects, tabId, graph);
-            await WaitUntilAsync(() => !harness.Session.IsLoading);
+            var harness = new Harness(host, effects, tabId, graph, pump);
+            await pump.RunUntilAsync(() => !harness.Session.IsLoading);
             return harness;
         }
 
