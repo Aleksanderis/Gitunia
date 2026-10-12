@@ -30,4 +30,32 @@ public static class PaneNavigator
         var target = index + (toRight ? 1 : -1);
         return index < 0 || target < 0 || target >= ordered.Count ? current : ordered[target];
     }
+
+    /// <summary>
+    /// The open pane above (or below) <paramref name="current"/>: the sidebar and the graph form the top row, the detail and
+    /// diff panes the bottom row. Down from the top row goes to the detail pane (the diff when that is not open), up from the
+    /// bottom row to the graph (the sidebar when that is not open); otherwise <paramref name="current"/> stays.
+    /// </summary>
+    /// <param name="current">The focused pane.</param>
+    /// <param name="down">True to move down, false to move up.</param>
+    /// <param name="available">The open panes.</param>
+    public static PaneKind StepVertically(PaneKind current, bool down, IReadOnlyCollection<PaneKind> available)
+    {
+        var isTop = current is PaneKind.Sidebar or PaneKind.Graph;
+        if (isTop != down)
+        {
+            return current;
+        }
+
+        PaneKind[] targets = down ? [PaneKind.Detail, PaneKind.Diff] : [PaneKind.Graph, PaneKind.Sidebar];
+        foreach (var target in targets)
+        {
+            if (available.Contains(target))
+            {
+                return target;
+            }
+        }
+
+        return current;
+    }
 }

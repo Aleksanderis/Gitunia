@@ -35,4 +35,26 @@ public class PaneNavigatorTests
     [InlineData(PaneKind.Graph, true, PaneKind.Graph)]
     public void GivenSidebarAndGraph_WhenStepping_ThenFocusStopsAtTheEdges(PaneKind current, bool toRight, PaneKind expected) =>
         Assert.Equal(expected, PaneNavigator.Step(current, toRight, SidebarAndGraph));
+
+    [Theory]
+    [InlineData(PaneKind.Graph, true, PaneKind.Detail)]
+    [InlineData(PaneKind.Sidebar, true, PaneKind.Detail)]
+    [InlineData(PaneKind.Detail, false, PaneKind.Graph)]
+    [InlineData(PaneKind.Diff, false, PaneKind.Graph)]
+    [InlineData(PaneKind.Graph, false, PaneKind.Graph)]
+    [InlineData(PaneKind.Detail, true, PaneKind.Detail)]
+    public void GivenAllPanes_WhenSteppingVertically_ThenFocusMovesBetweenTheTopAndBottomRows(PaneKind current, bool down, PaneKind expected) =>
+        Assert.Equal(expected, PaneNavigator.StepVertically(current, down, AllPanes));
+
+    [Fact]
+    public void GivenOnlyTheDiffBelow_WhenSteppingDown_ThenTheDiffIsFocused() =>
+        Assert.Equal(PaneKind.Diff, PaneNavigator.StepVertically(PaneKind.Graph, true, [PaneKind.Graph, PaneKind.Diff]));
+
+    [Fact]
+    public void GivenNoBottomPane_WhenSteppingDown_ThenFocusStays() =>
+        Assert.Equal(PaneKind.Graph, PaneNavigator.StepVertically(PaneKind.Graph, true, SidebarAndGraph));
+
+    [Fact]
+    public void GivenNoGraph_WhenSteppingUp_ThenTheSidebarIsFocused() =>
+        Assert.Equal(PaneKind.Sidebar, PaneNavigator.StepVertically(PaneKind.Detail, false, [PaneKind.Sidebar, PaneKind.Detail]));
 }

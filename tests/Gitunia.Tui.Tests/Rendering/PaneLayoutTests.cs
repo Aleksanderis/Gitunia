@@ -32,13 +32,28 @@ public class PaneLayoutTests
     }
 
     [Fact]
-    public void GivenANarrowScreenWithADiff_WhenComputing_ThenTheDiffReplacesTheDetailPane()
+    public void GivenAVeryNarrowScreenWithADiff_WhenComputing_ThenTheDiffReplacesTheDetailPane()
     {
-        var rects = PaneLayout.Compute(80, 40, true, null);
+        var rects = PaneLayout.Compute(69, 40, true, null);
 
         Assert.True(rects.Detail.IsEmpty);
         Assert.Equal(0, rects.Diff.X);
-        Assert.Equal(80, rects.Diff.Width);
+        Assert.Equal(69, rects.Diff.Width);
+    }
+
+    [Theory]
+    [InlineData(70, 24)]
+    [InlineData(80, 26)]
+    [InlineData(100, 33)]
+    [InlineData(120, 40)]
+    public void GivenADiffAtCommonWidths_WhenComputing_ThenACompactFileListSitsBesideIt(int width, int detailWidth)
+    {
+        var rects = PaneLayout.Compute(width, 40, true, null);
+
+        Assert.Equal(detailWidth, rects.Detail.Width);
+        Assert.Equal(detailWidth, rects.BottomDivider.X);
+        Assert.Equal(width, rects.Diff.X + rects.Diff.Width);
+        Assert.True(rects.Diff.Width >= 45);
     }
 
     [Theory]

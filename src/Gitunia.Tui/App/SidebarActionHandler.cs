@@ -57,7 +57,6 @@ public sealed class SidebarActionHandler(
             StopEditing();
         }
 
-        // Up and Down are swallowed on purpose while only two side-by-side panes exist; revisit when detail and diff open.
         if (TryHandlePaneAction(tab, action))
         {
             return true;
@@ -127,7 +126,13 @@ public sealed class SidebarActionHandler(
             return true;
         }
 
-        return action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown;
+        if (action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown)
+        {
+            FocusPane(tab, PaneNavigator.StepVertically(focused, action == ActionIds.PaneFocusDown, available));
+            return true;
+        }
+
+        return false;
     }
 
     private List<PaneKind> OpenPanes()
