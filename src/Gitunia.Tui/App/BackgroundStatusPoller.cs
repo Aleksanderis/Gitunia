@@ -56,14 +56,17 @@ public sealed class BackgroundStatusPoller : IDisposable
             {
                 return;
             }
-            catch (GitException)
+            catch (Exception)
             {
-                // A background tab that cannot be read keeps its last markers; the error shows when the tab is opened.
+                // A background tab that cannot be read keeps its last markers (the error shows when the tab is opened); it must never stop the other tabs or the loop.
             }
         }
     }
 
-    public void Dispose() => cancellation.Cancel();
+    public void Dispose()
+    {
+        cancellation.Cancel();
+    }
 
     private async Task RunAsync(CancellationToken token)
     {
@@ -89,7 +92,8 @@ public sealed class BackgroundStatusPoller : IDisposable
 
     private void Apply(TabId tabId, RepoStatusSummary summary)
     {
-        if (cancellation.IsCancellationRequested || host.Workspace.FindTab(tabId) is not { } tab || tab.Status == summary)
+        // The tab may have been activated while the read ran; its own loader and refresher then own the status.
+        if (cancellation.IsCancellationRequested || host.Workspace.ActiveTabId == tabId || host.Workspace.FindTab(tabId) is not { } tab || tab.Status == summary)
         {
             return;
         }

@@ -152,6 +152,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
         finally
         {
+            statusPoller.Dispose();
             persistence.Flush();
         }
 
