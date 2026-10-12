@@ -11,15 +11,17 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class PickerController(GitRunner runner, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
     TimeSpan? listingTimeout = null,
-    Func<string, IReadOnlyList<string>>? listDirectories = null)
+    Func<string, IReadOnlyList<string>>? listDirectories = null,
+    TimeSpan? scanningDelay = null)
 {
     private static readonly TimeSpan RescanInterval = TimeSpan.FromSeconds(30);
 
     private static readonly TimeSpan DefaultListingTimeout = TimeSpan.FromSeconds(5);
 
-    private static readonly TimeSpan ScanningDelay = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan DefaultScanningDelay = TimeSpan.FromMilliseconds(150);
 
     private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
+    private readonly TimeSpan scanningDelayValue = scanningDelay ?? DefaultScanningDelay;
     private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
     private CancellationTokenSource? listingCancellation;
     private bool completeAfterListing;
@@ -229,7 +231,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             try
             {
                 var work = Task.Run(() => PathCompleter.ListCandidates(query, context, token), CancellationToken.None);
-                var first = await Task.WhenAny(work, Task.Delay(ScanningDelay, token)).ConfigureAwait(false);
+                var first = await Task.WhenAny(work, Task.Delay(scanningDelayValue, token)).ConfigureAwait(false);
                 if (first != work)
                 {
                     postToUi(() =>
