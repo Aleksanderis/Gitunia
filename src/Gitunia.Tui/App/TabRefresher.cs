@@ -24,6 +24,7 @@ public sealed class TabRefresher : IDisposable
     private RepositorySnapshot? snapshot;
     private RepositoryChangeKinds pending;
     private bool forceGraph;
+    private bool announce;
     private bool isReady;
     private bool sawChange;
     private bool isRunning;
@@ -62,7 +63,11 @@ public sealed class TabRefresher : IDisposable
     public void SetActive(bool isActive) => watcher.SetActive(isActive);
 
     /// <summary>Manual refresh: reads everything and reloads the graph.</summary>
-    public void RefreshNow() => Request(RepositoryChangeKinds.All, true);
+    public void RefreshNow()
+    {
+        announce = true;
+        Request(RepositoryChangeKinds.All, true);
+    }
 
     public void Dispose()
     {
@@ -99,16 +104,18 @@ public sealed class TabRefresher : IDisposable
         }
 
         var kinds = pending;
+        var isManual = announce;
+        announce = false;
         var reloadGraph = forceGraph || (snapshot is null && (sawChange || watcher.IsStale));
         pending = RepositoryChangeKinds.None;
         forceGraph = false;
         isRunning = true;
         var previous = snapshot;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => RefreshAsync(previous, kinds, reloadGraph, token), CancellationToken.None);
+        _ = Task.Run(() => RefreshAsync(previous, kinds, reloadGraph, isManual, token), CancellationToken.None);
     }
 
-    private async Task RefreshAsync(RepositorySnapshot? previous, RepositoryChangeKinds kinds, bool reloadGraph, CancellationToken token)
+    private async Task RefreshAsync(RepositorySnapshot? previous, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual, CancellationToken token)
     {
         try
         {
@@ -131,7 +138,7 @@ public sealed class TabRefresher : IDisposable
                 }
             }
 
-            postToUi(() => Apply(previous is null, result, stashes, entries));
+            postToUi(() => Apply(previous is null, isManual, result, stashes, entries));
         }
         catch (OperationCanceledException)
         {
@@ -139,11 +146,11 @@ public sealed class TabRefresher : IDisposable
         }
         catch (Exception exception)
         {
-            postToUi(() => Fail(exception, kinds, reloadGraph));
+            postToUi(() => Fail(exception, kinds, reloadGraph, isManual));
         }
     }
 
-    private void Apply(bool isBaseline, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, List<GraphEntry>? entries)
+    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, List<GraphEntry>? entries)
     {
         isRunning = false;
         if (isDisposed)
@@ -189,10 +196,15 @@ public sealed class TabRefresher : IDisposable
             session.ReplaceGraph(entries);
         }
 
+        if (isManual)
+        {
+            statuses.Post(RepositoryName() + ": refreshed");
+        }
+
         RunNext();
     }
 
-    private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph)
+    private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual)
     {
         isRunning = false;
         pending |= kinds;
@@ -203,11 +215,13 @@ public sealed class TabRefresher : IDisposable
         }
 
         // A repository that keeps failing (polling every few seconds) is reported once, not on every tick.
-        var message = Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)) + ": could not refresh: " + exception.Message;
-        if (message != lastError)
+        var message = RepositoryName() + ": could not refresh: " + exception.Message;
+        if (isManual || message != lastError)
         {
             lastError = message;
             statuses.Error(message);
         }
     }
+
+    private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath));
 }
