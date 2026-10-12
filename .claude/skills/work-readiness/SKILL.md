@@ -23,7 +23,8 @@ Invoke as `/work-readiness M2` (resolve the milestone title with `gh api repos/{
 5. **Overlap:** which issues touch the same files, shared contracts or keymap rows (check the keymap table in `docs/ux.md`), so the orchestrator knows which can run together (max 3 agents) and in what order.
 6. **Docs:** design issues still to be written (flows in `docs/ux.md`), docs that are stale for this area, keymap rows that will be needed.
 7. **Size and cost:** issues too big for one agent run (propose a split), and which large docs agents will have to load (suggest the sections to name in their prompts).
-8. **Environment:** the build, tests and AOT publish are green on `main`; CI is passing; nothing from the previous milestone is half-merged (stray worktrees, branches, open PRs awaiting the owner).
+8. **Loose ends:** known limits, deferred work and manual checks from earlier milestones that exist only in `docs/decisions.md`, PR comments or code comments (grep `docs/decisions.md` for 'known limit', 'follow-up', 'not wired', 'TODO'); each must be an issue or part of one. Register missing ones (new issue or edit an existing one) and list them in the report.
+9. **Environment:** the build, tests and AOT publish are green on `main`; CI is passing; nothing from the previous milestone is half-merged (stray worktrees, branches, open PRs awaiting the owner).
 
 ## 3. Report
 

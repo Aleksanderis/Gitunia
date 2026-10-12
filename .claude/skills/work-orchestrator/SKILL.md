@@ -35,6 +35,7 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 - Launch one subagent per issue with the lean prompt above. Do not paste docs or earlier reports into prompts.
 - A batch is at most 3 issues in total, not 3 at a time: when 3 have merged (or stopped for the owner), stop launching and go to step 4. This keeps the session short.
 - As each agent reports (max 10 lines, details are in its PR comments): confirm the PR is merged (`gh pr view <n> --json state`), stop the agent (`TaskStop`; ignore "not running"), then clean up: `git worktree remove -f -f <path>`, delete its local feature branch and its `worktree-agent-*` branch only after `git branch --merged main` confirms they are merged, then `git fetch -p`. Pull `main`. Then start the next queued issue.
+- Loose-end check: when an agent reports, make sure each item under "owner must know" or "Follow-ups" is registered as an issue or in an existing issue (see `work-task`); if one is only in a report, PR comment or `docs/decisions.md`, register it yourself (`gh issue create`/`gh issue edit`) before you stop the agent. Never end a session with unregistered loose ends.
 - Do not read PR diffs or agent output files yourself; trust the PR comments and CI. Open the PR only if an agent reports a problem.
 
 ## 3. Rate limits and failures
@@ -48,7 +49,7 @@ Stop when any of these holds: the batch is done, nothing is unblocked, the sessi
 
 Before ending:
 
-1. Check `git worktree list`, `git branch -a` and `git fetch -p`: nothing of a merged PR may remain, and unmerged work is listed.
+1. Check that every loose end from this session's agent reports is registered as an issue, then check `git worktree list`, `git branch -a` and `git fetch -p`: nothing of a merged PR may remain, and unmerged work is listed.
 2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
 3. Tell the owner: "start a new session with `work-orchestrator` to continue" and nothing else is needed, since GitHub holds the state.
 

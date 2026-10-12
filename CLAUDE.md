@@ -63,6 +63,7 @@ Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To
 - Independent unblocked issues run in parallel as subagents in separate worktrees (see the skill).
 - Everything else: `gh pr merge <n> --merge --delete-branch` once CI is green and the reviewer (subagent) has no open blockers. Merge commits only, never squash or rebase, never force-push.
 - Don't block on questions: decide from the docs or take the recommended default, log it in `docs/decisions.md` or `docs/roadmap.md` open questions, and say so in the PR.
+- Loose ends found while working (limits, deferred cases, unwired pieces, unrun manual checks, owner decisions) are registered as a new issue or added to an existing issue before the work ends; notes in docs, PR comments or reports do not count. List them in the PR body under "Follow-ups".
 - Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).
 - Build, test and lint commands (run from the repo root):
   - Build (analyzers on, warnings are errors, also the lint step): `dotnet build`
