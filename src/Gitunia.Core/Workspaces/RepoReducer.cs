@@ -1,3 +1,5 @@
+using Gitunia.Core.Sidebar;
+
 namespace Gitunia.Core.Workspaces;
 
 /// <summary>Pure transitions of one tab's state.</summary>
@@ -12,6 +14,9 @@ public static class RepoReducer
         FocusPaneCommand focus => state with { View = state.View with { FocusedPane = focus.Pane } },
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
+        WorktreesLoadedCommand worktrees => state with { Worktrees = worktrees.Worktrees },
+        StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
+        SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };
