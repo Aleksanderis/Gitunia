@@ -170,6 +170,6 @@ public class CommitDetailsStoreTests
         store.Dispose();
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
-        Assert.Equal(0, posted);
+        Assert.Equal(0, Volatile.Read(ref posted));
     }
 }
