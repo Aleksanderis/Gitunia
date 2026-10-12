@@ -14,7 +14,7 @@ public static class HelpFrameBuilder
     public static int ContentHeight(IReadOnlyList<HelpSection> sections, int screenWidth)
     {
         var descriptionWidth = DescriptionWidth(sections, WidthFor(screenWidth));
-        return sections.Sum(section => section.Rows.Sum(row => Math.Max(1, WrapText(row.Description, descriptionWidth).Count)) + 1) + Math.Max(0, sections.Count - 1);
+        return sections.Sum(section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1) + Math.Max(0, sections.Count - 1);
     }
 
     /// <summary>Content lines that fit the screen, 0 when the overlay cannot be shown.</summary>
@@ -66,12 +66,12 @@ public static class HelpFrameBuilder
     private static int DescriptionWidth(IReadOnlyList<HelpSection> sections, int width) =>
         Math.Max(1, OverlayBox.InnerWidth(width) - KeysWidth(sections) - 4);
 
-    // Greedy word wrap by display width; a word longer than a line is cut.
+    // Greedy word wrap by display width; a word longer than a line is cut between runes, keeping combining marks with their base.
     private static List<string> WrapText(string text, int columns)
     {
         var lines = new List<string>();
         var current = string.Empty;
-        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
         {
             var remaining = word;
             while (TextWidth.Of(remaining) > columns)
@@ -82,10 +82,18 @@ public static class HelpFrameBuilder
                     current = string.Empty;
                 }
 
-                var length = 1;
-                while (length < remaining.Length && TextWidth.Of(remaining[..(length + 1)]) <= columns)
+                var length = 0;
+                var width = 0;
+                foreach (var rune in remaining.EnumerateRunes())
                 {
-                    length++;
+                    var runeWidth = TextWidth.Of(rune);
+                    if (length > 0 && width + runeWidth > columns && runeWidth > 0)
+                    {
+                        break;
+                    }
+
+                    length += rune.Utf16SequenceLength;
+                    width += runeWidth;
                 }
 
                 lines.Add(remaining[..length]);
@@ -118,6 +126,8 @@ public static class HelpFrameBuilder
     private static List<StyledLine> Flatten(IReadOnlyList<HelpSection> sections, int keysWidth, int width, GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>();
+        var blankKeys = new string(' ', keysWidth);
+        var descriptionWidth = DescriptionWidth(sections, width);
         foreach (var section in sections)
         {
             if (lines.Count > 0)
@@ -130,8 +140,7 @@ public static class HelpFrameBuilder
             {
                 var keys = TextWidth.Fit(row.Keys, keysWidth, glyphs.Ellipsis);
                 var padded = keys + new string(' ', Math.Max(0, keysWidth - TextWidth.Of(keys)));
-                var blankKeys = new string(' ', keysWidth);
-                var wrapped = WrapText(row.Description, DescriptionWidth(sections, width));
+                                var wrapped = WrapText(row.Description, descriptionWidth);
                 for (var index = 0; index < wrapped.Count; index++)
                 {
                     lines.Add(KeysAndDescription(index == 0 ? padded : blankKeys, wrapped[index], width, glyphs));

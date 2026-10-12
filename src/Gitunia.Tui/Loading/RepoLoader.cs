@@ -38,7 +38,7 @@ public static class RepoLoader
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
             postToUi(() =>
             {
-                statuses.Error("Could not load the graph: " + exception.Message);
+                statuses.Error(Path.GetFileName(Path.TrimEndingDirectorySeparator(repo.Location.RootPath)) + ": could not load the graph: " + exception.Message);
                 session.Fail(exception.Message);
             });
         }
