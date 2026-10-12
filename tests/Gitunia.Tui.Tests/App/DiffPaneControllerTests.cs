@@ -1,3 +1,4 @@
+using Gitunia.Core.Clipboard;
 using Gitunia.Core.Status;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
@@ -327,6 +328,78 @@ public class DiffPaneControllerTests
         Assert.Equal(DiffStatus.None, harness.Session.Diff!.Store.Status);
     }
 
+    [Fact]
+    public async Task GivenAnAddedRow_WhenCopyingTheLine_ThenItGoesToTheClipboardWithItsPlusPrefix()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.SelectFirstRowOfKind(DiffRowKind.Added);
+
+        harness.Execute(ActionIds.DiffCopyLine);
+
+        Assert.Equal("+line 3 changed", harness.CopiedText());
+    }
+
+    [Fact]
+    public async Task GivenACursorInAFile_WhenCopyingTheFile_ThenOnlyThatFilesRowsAreCopied()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var document = harness.Session.Diff!.Source.Document;
+        harness.DiffList.SelectedItem = document.FileRows[document.FileIndexOf("b.txt")];
+
+        harness.Execute(ActionIds.DiffCopyFile);
+
+        var copied = harness.CopiedText();
+        Assert.Contains("-b\n", copied, StringComparison.Ordinal);
+        Assert.Contains("+b changed\n", copied, StringComparison.Ordinal);
+        Assert.DoesNotContain("line 3", copied, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenACursorAboveTheFirstFile_WhenCopyingTheFile_ThenANoticeSaysItIsNotInAFile()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.ShowWarningOnly("parser warning");
+
+        harness.Execute(ActionIds.DiffCopyFile);
+
+        Assert.Equal("The cursor is not in a file", harness.Controller.Notice);
+        Assert.Equal(string.Empty, harness.Clipboard.ToString());
+    }
+
+    [Fact]
+    public async Task GivenAWarningRow_WhenCopyingTheLine_ThenNothingIsCopied()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.ShowWarningOnly("parser warning");
+
+        harness.Execute(ActionIds.DiffCopyLine);
+
+        Assert.Equal("Nothing to copy", harness.Controller.Notice);
+        Assert.Equal(string.Empty, harness.Clipboard.ToString());
+    }
+
+    [Fact]
+    public async Task GivenWrapOnAndTheCursorOnAContinuationLine_WhenCopyingTheLine_ThenTheWholeRowIsCopied()
+    {
+        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var harness = await DiffHarness.LoadAsync(repository);
+        await harness.OpenAsync("a.txt");
+        harness.Execute(ActionIds.DiffToggleWrap);
+        harness.Execute(ActionIds.ListBottom);
+        var source = harness.Session.Diff!.Source;
+
+        // The 150-character line wraps in the 60-wide pane, so the bottom item is a continuation line.
+        Assert.True(harness.DiffList.SelectedItem > source.LineOf(source.RowOf(harness.DiffList.SelectedItem!.Value)));
+
+        harness.Execute(ActionIds.DiffCopyLine);
+
+        Assert.Equal("+" + new string('x', 150), harness.CopiedText());
+    }
+
     private sealed class DiffHarness : IDisposable
     {
         private readonly TestRepository? ownedRepository;
@@ -340,7 +413,7 @@ public class DiffPaneControllerTests
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { }, new ClipboardCopier(null, new Gitunia.Core.Status.StatusChannel()));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
             Controller.OnTabSwitched(null, session);
         }
 
@@ -353,6 +426,9 @@ public class DiffPaneControllerTests
         public ListView DiffList { get; }
 
         public DiffPaneController Controller { get; }
+
+        /// <summary>What the controller wrote to the terminal (OSC 52 sequences).</summary>
+        public StringWriter Clipboard { get; } = new();
 
         public KeyMode Mode => keys.Mode;
 
@@ -377,6 +453,29 @@ public class DiffPaneControllerTests
             var harness = new DiffHarness(host, session, owned);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
+        }
+
+        /// <summary>The text of the last OSC 52 copy, decoded.</summary>
+        public string CopiedText()
+        {
+            var sequence = Clipboard.ToString();
+            const string prefix = "\u001b]52;c;";
+            Assert.StartsWith(prefix, sequence, StringComparison.Ordinal);
+            var payload = sequence[prefix.Length..sequence.IndexOf('\u001b', prefix.Length)];
+            return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+        }
+
+        public void SelectFirstRowOfKind(DiffRowKind kind)
+        {
+            var rows = Session.Diff!.Source.Document.Rows;
+            DiffList.SelectedItem = rows.ToList().FindIndex(row => row.Kind == kind);
+        }
+
+        /// <summary>Swaps the shown document for one that only holds a parser warning row (the rows above the first file).</summary>
+        public void ShowWarningOnly(string warning)
+        {
+            Session.Diff!.Source.Update(new DiffDocumentBuilder().Build([warning]));
+            DiffList.SelectedItem = 0;
         }
 
         public void Send(RepoCommand command) => Host.Dispatch(new TabCommand(Tab.Id, command));
