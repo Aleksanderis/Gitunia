@@ -218,7 +218,11 @@ public class GitRunnerTests
             // The cmd script cannot record its process id, so the only option is to outwait it.
             await Task.Delay(TimeSpan.FromSeconds(3));
         }
-        else if (File.Exists(marker + ".pid") && int.TryParse((await File.ReadAllTextAsync(marker + ".pid")).Trim(), out var processId))
+        else if (!File.Exists(marker + ".pid"))
+        {
+            Assert.Fail("the fake never recorded its process id");
+        }
+        else if (int.TryParse((await File.ReadAllTextAsync(marker + ".pid")).Trim(), out var processId))
         {
             try
             {
