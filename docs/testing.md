@@ -38,6 +38,8 @@ A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load an
 
 `scripts/measure.sh <binary> <repo> [--runs N] [--keys N] [--marker T] [--oldest T] [--size WxH] [--only-start]` runs the binary as `<binary> <repo>` in a private tmux server and prints `key=value` lines. Requires bash >= 5 and tmux; Linux/macOS only. Timings are wall-clock ms from polling `capture-pane`, so they carry a 1-3 ms polling floor; compare binaries with the same harness rather than reading them as absolute.
 
+`scripts/measure-tabs.sh <binary> [--tabs N] [--commits N] [--runs N] [--size WxH]` measures a session restore: it builds N throwaway repos and a `session.json` under a temp `XDG_STATE_HOME`/`HOME` (nothing real is touched), runs the binary without arguments and prints cold start, RSS (active tab only, all tabs visited) and tab-switch times. Same tmux requirements and polling floor.
+
 Contract for a binary (spikes included):
 
 - Invoked as `<binary> <repo-path>`; renders in the alternate screen, fills the terminal.
