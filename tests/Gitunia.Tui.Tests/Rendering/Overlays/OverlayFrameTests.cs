@@ -108,7 +108,7 @@ public class OverlayFrameTests
                 "│ Search                                                             / │",
                 "│ Next search match                                                  n │",
                 "│ Previous search match                                              N │",
-                "│ 1/70  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/74  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);

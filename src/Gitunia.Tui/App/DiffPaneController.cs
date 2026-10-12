@@ -26,6 +26,7 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly Func<int> screenHeight;
     private readonly Action relayout;
     private readonly Action refreshChrome;
+    private readonly ClipboardCopier clipboard;
     private bool isRestoring;
     private bool isSyncing;
 
@@ -37,6 +38,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="screenHeight">Terminal rows, to tell whether the diff fits next to the graph.</param>
     /// <param name="relayout">Asks the views to lay out again after the pane arrangement changed.</param>
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
+    /// <param name="clipboard">Copies diff text.</param>
     public DiffPaneController(
         WorkspaceHost host,
         Func<TabSession?> activeSession,
@@ -45,8 +47,10 @@ public sealed class DiffPaneController : IPromptHandler
         Action<KeyMode> setMode,
         Func<int> screenHeight,
         Action relayout,
-        Action refreshChrome)
+        Action refreshChrome,
+        ClipboardCopier clipboard)
     {
+        this.clipboard = clipboard;
         this.host = host;
         this.activeSession = activeSession;
         this.detailList = detailList;
@@ -217,6 +221,10 @@ public sealed class DiffPaneController : IPromptHandler
             Select(row, atTop: true);
             Notice = diff.Source.IsWrapped ? "Word wrap on" : "Word wrap off";
         }
+        else if (action == ActionIds.DiffCopyLine || action == ActionIds.DiffCopyFile)
+        {
+            Copy(document, row, action == ActionIds.DiffCopyFile);
+        }
         else if (action == ActionIds.DiffLoadAnyway)
         {
             LoadAnyway(diff);
@@ -307,6 +315,26 @@ public sealed class DiffPaneController : IPromptHandler
         {
             // The same commit is already loaded: only the cursor moves to the chosen file.
             Refresh(diff);
+        }
+    }
+
+    private void Copy(DiffDocument document, int row, bool wholeFile)
+    {
+        if (row < 0 || row >= document.Rows.Count || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
+        {
+            Notice = "Nothing to copy";
+        }
+        else if (!wholeFile)
+        {
+            clipboard.Copy(DiffTextWriter.Line(document.Rows[row]), "diff line");
+        }
+        else if (document.Rows[row].FileIndex < 0)
+        {
+            Notice = "The cursor is not in a file";
+        }
+        else
+        {
+            clipboard.Copy(DiffTextWriter.File(document, document.Rows[row].FileIndex), "file diff");
         }
     }
 

@@ -20,7 +20,8 @@ public sealed class SidebarActionHandler(
     Func<bool> isSidebarVisible,
     Func<bool> isDetailVisible,
     Action<int> selectGraphItem,
-    Action<KeyMode> setMode)
+    Action<KeyMode> setMode,
+    ClipboardCopier? clipboard = null)
 {
     private bool isEditingFilter;
     private TabId editingTabId;
@@ -200,6 +201,10 @@ public sealed class SidebarActionHandler(
         {
             ActivateCursor();
         }
+        else if (action == ActionIds.SidebarCopy)
+        {
+            CopyCursor(tab);
+        }
         else if (action == ActionIds.SidebarFilter)
         {
             isEditingFilter = true;
@@ -227,6 +232,35 @@ public sealed class SidebarActionHandler(
         }
 
         return true;
+    }
+
+    private void CopyCursor(RepoState tab)
+    {
+        var rows = source.Rows;
+        if (rows.IsEmpty || clipboard is null)
+        {
+            Message = "Nothing to copy";
+            return;
+        }
+
+        var row = rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
+        if (row.IsSection)
+        {
+            Message = "Select an entry to copy";
+        }
+        else if (row.Kind == SidebarRowKind.Worktree)
+        {
+            clipboard.Copy(row.Path ?? row.Label, "worktree path");
+        }
+        else
+        {
+            clipboard.Copy(row.Label, row.Kind switch
+            {
+                SidebarRowKind.Tag => "tag name",
+                SidebarRowKind.Stash => "stash name",
+                _ => "branch name",
+            });
+        }
     }
 
     private void JumpToCommit(SidebarRow row)

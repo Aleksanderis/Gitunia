@@ -11,9 +11,15 @@ public static class ActionIds
 
     public static ActionId ConfirmYes { get; } = new("confirm.yes");
 
+    public static ActionId DetailCopyPath { get; } = new("detail.copy-path");
+
     public static ActionId DetailOpenDiff { get; } = new("detail.open-diff");
 
     public static ActionId DetailRetry { get; } = new("detail.retry");
+
+    public static ActionId DiffCopyFile { get; } = new("diff.copy-file");
+
+    public static ActionId DiffCopyLine { get; } = new("diff.copy-line");
 
     public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
 
@@ -106,6 +112,8 @@ public static class ActionIds
     public static ActionId SidebarActivate { get; } = new("sidebar.activate");
 
     public static ActionId SidebarCollapse { get; } = new("sidebar.collapse");
+
+    public static ActionId SidebarCopy { get; } = new("sidebar.copy");
 
     public static ActionId SidebarExpand { get; } = new("sidebar.expand");
 
