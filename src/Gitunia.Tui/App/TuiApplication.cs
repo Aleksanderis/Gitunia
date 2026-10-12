@@ -231,7 +231,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             keys.PendingText,
             FirstNotEmpty(workspaceActions.Message, router.Message, statuses.Log.Latest?.Text ?? string.Empty),
             view.Graph.SelectedItem,
-            TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId)?.IsLoading ?? false),
+            TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
             picker.State,
             homeDirectory)
         with

@@ -19,6 +19,7 @@ public sealed class EffectRunner
     private readonly GraphGlyphSet glyphs;
     private readonly TimeSpan detailDebounce;
     private readonly Dictionary<TabId, TabSession> sessions = [];
+    private readonly Dictionary<TabId, Action> pendingLoads = [];
 
     public EffectRunner(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null)
     {
@@ -29,6 +30,7 @@ public sealed class EffectRunner
         this.glyphs = glyphs;
         this.statuses = statuses;
         host.EffectRaised += Run;
+        host.Changed += StartActiveTabLoad;
     }
 
     /// <summary>The runtime session of an open tab, or null.</summary>
@@ -42,6 +44,7 @@ public sealed class EffectRunner
                 StartLoad(load);
                 break;
             case CancelLoadEffect cancel:
+                pendingLoads.Remove(cancel.TabId);
                 if (sessions.Remove(cancel.TabId, out var closed))
                 {
                     closed.Dispose();
@@ -59,6 +62,7 @@ public sealed class EffectRunner
             return;
         }
 
+        pendingLoads.Remove(load.TabId);
         if (sessions.Remove(load.TabId, out var previous))
         {
             previous.Dispose();
@@ -68,6 +72,29 @@ public sealed class EffectRunner
         var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(repo, postToUi, detailDebounce), new DiffStore(repo, postToUi));
         sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => RepoLoader.RunAsync(runner, tab.Location, session, host, statuses, postToUi, token), CancellationToken.None);
+        var location = tab.Location;
+        void Start()
+        {
+            session.MarkStarted();
+            _ = Task.Run(() => RepoLoader.RunAsync(runner, location, session, host, statuses, postToUi, token), CancellationToken.None);
+        }
+
+        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/architecture.md, "Many tabs").
+        if (host.Workspace.ActiveTabId == load.TabId)
+        {
+            Start();
+        }
+        else
+        {
+            pendingLoads[load.TabId] = Start;
+        }
+    }
+
+    private void StartActiveTabLoad()
+    {
+        if (pendingLoads.Count > 0 && host.Workspace.ActiveTabId is { } active && pendingLoads.Remove(active, out var start))
+        {
+            start();
+        }
     }
 }
