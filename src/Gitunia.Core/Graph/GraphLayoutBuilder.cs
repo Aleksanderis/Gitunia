@@ -78,7 +78,7 @@ public sealed class GraphLayoutBuilder
         }
 
         TrimFreeLanes();
-        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray());
+        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes());
         rows.Add(row);
         return row;
     }
@@ -122,6 +122,21 @@ public sealed class GraphLayoutBuilder
         }
 
         return lanes.Count;
+    }
+
+    // FNV-style mix over (lane index, waited-for commit) of the occupied lanes.
+    private ulong FingerprintLanes()
+    {
+        var hash = 14695981039346656037UL;
+        for (var lane = 0; lane < lanes.Count; lane++)
+        {
+            if (lanes[lane].IsValid)
+            {
+                hash = (hash ^ lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
+            }
+        }
+
+        return hash;
     }
 
     private void TrimFreeLanes()

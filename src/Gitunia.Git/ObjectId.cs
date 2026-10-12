@@ -28,6 +28,9 @@ public readonly struct ObjectId : IEquatable<ObjectId>
     /// <summary>Whether this is a real id (the default value is not).</summary>
     public bool IsValid => byteCount != 0;
 
+    /// <summary>A 64-bit mix of every byte of the id, for building fingerprints (not a stable format; do not persist it).</summary>
+    public ulong Hash64 => first ^ (second * 0x9E3779B97F4A7C15UL) ^ (third * 0xC2B2AE3D27D4EB4FUL) ^ (fourth * 0x165667B19E3779F9UL);
+
     /// <summary>Parses 40 (SHA-1) or 64 (SHA-256) hex digits given as ASCII bytes.</summary>
     public static bool TryParse(ReadOnlySpan<byte> hexDigits, out ObjectId objectId)
     {

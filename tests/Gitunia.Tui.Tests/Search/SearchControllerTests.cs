@@ -151,6 +151,29 @@ public class SearchControllerTests
     }
 
     [Fact]
+    public void GivenAcceptedSearch_WhenTheGraphIsReplacedByARefresh_ThenTheSearchRescansTheNewRows()
+    {
+        using var harness = new PromptHarness(Graph());
+        harness.Press(new Key('/'));
+        harness.Type("fix");
+        harness.Press(Key.Enter);
+        Assert.Equal(3, harness.Session.Search.Matches.Length);
+        var refreshed = CommitFactory.Graph(
+            CommitFactory.Commit(7, "Fix flaky test", [6]),
+            CommitFactory.Commit(6, "Fix parser crash", [5]),
+            CommitFactory.Commit(5, "Add search box", [4]),
+            CommitFactory.Commit(4, "Unrelated", []));
+
+        harness.Session.ReplaceGraph([.. Enumerable.Range(0, refreshed.Count).Select(index => refreshed[index])]);
+
+        Assert.Equal(2, harness.Session.Search.Matches.Length);
+        Assert.Equal(4, harness.Session.Search.Scanned);
+        Assert.True(harness.Session.Search.IsComplete);
+        Assert.Equal(harness.Session.GraphVersion, harness.Session.SearchGraphVersion);
+        Assert.Equal(0, harness.SelectedRow);
+    }
+
+    [Fact]
     public void GivenLargeGraph_WhenSearching_ThenSlicesRunUntilEveryRowWasScanned()
     {
         var commits = Enumerable.Range(1, 12_000)

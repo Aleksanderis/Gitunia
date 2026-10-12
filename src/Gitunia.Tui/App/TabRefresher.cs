@@ -9,7 +9,7 @@ namespace Gitunia.Tui.App;
 /// <summary>
 /// Keeps one tab current after its initial load: owns the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can
 /// affect, and applies the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
-/// refresh), and the view puts selection and scroll back. Runs one refresh at a time; changes arriving meanwhile are merged into the next.
+/// refresh); an automatic reload reads the log only down to the first row it shares with the old graph (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time; changes arriving meanwhile are merged into the next.
 /// Touched from the UI thread only; the watcher callback posts to it.
 /// </summary>
 public sealed class TabRefresher : IDisposable
@@ -112,10 +112,13 @@ public sealed class TabRefresher : IDisposable
         isRunning = true;
         var previous = snapshot;
         var token = session.Cancellation.Token;
-        _ = Task.Run(() => RefreshAsync(previous, kinds, reloadGraph, isManual, token), CancellationToken.None);
+
+        // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows.
+        IReadOnlyList<GraphEntry> previousRows = previous is not null && !reloadGraph ? session.Graph.ToArray() : [];
+        _ = Task.Run(() => RefreshAsync(previous, previousRows, kinds, reloadGraph, isManual, token), CancellationToken.None);
     }
 
-    private async Task RefreshAsync(RepositorySnapshot? previous, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual, CancellationToken token)
+    private async Task RefreshAsync(RepositorySnapshot? previous, IReadOnlyList<GraphEntry> previousRows, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual, CancellationToken token)
     {
         try
         {
@@ -131,11 +134,7 @@ public sealed class TabRefresher : IDisposable
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
-                entries = [];
-                await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, null, token).ConfigureAwait(false))
-                {
-                    entries.AddRange(batch);
-                }
+                entries = (await IncrementalGraphLoader.ReloadAsync(repo, previousRows, token).ConfigureAwait(false)).Entries;
             }
 
             postToUi(() => Apply(previous is null, isManual, result, stashes, entries));
