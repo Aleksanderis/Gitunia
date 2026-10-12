@@ -33,6 +33,8 @@ public static class Palette
             SegmentRole.Status => Style(TextStyle.Faint | TextStyle.Reverse),
             SegmentRole.Faint => Style(TextStyle.Faint),
             SegmentRole.Error => new Attribute(Xterm(203), Color.None, TextStyle.Bold),
+            SegmentRole.OverlayTitle => Style(TextStyle.Bold | TextStyle.Reverse),
+            SegmentRole.OverlayKey => new Attribute(Xterm(222), Color.None, selection | TextStyle.Bold),
             _ => Style(selection),
         };
     }

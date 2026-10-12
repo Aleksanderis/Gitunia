@@ -28,6 +28,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private OverlayController overlays = null!;
+    private WhichKeyTimer whichKeyTimer = null!;
     private PickerController picker = null!;
     private WorkspaceActions workspaceActions = null!;
     private GraphTabBinder binder = null!;
@@ -55,12 +57,16 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
         workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
         binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
-        keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), Execute);
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        keys = new KeyController(engine, (action, count) => RouteAction(action, count));
+        whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
+        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, DefaultKeymap.GraphView);
+        overlays.Changed += RefreshOverlay;
 
         host.Changed += view.RefreshChrome;
         host.Changed += binder.Sync;
         keys.PendingChanged += view.RefreshChrome;
-        keys.TextEntered += text => picker.Apply(new TypeTextCommand(text));
+        keys.TextKeyPressed += OnTextKey;
         picker.Changed += OnPickerChanged;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
         view.TabClicked += OnTabClicked;
@@ -87,7 +93,25 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return 0;
     }
 
-    public void Dispose() => view?.Dispose();
+    public void Dispose()
+    {
+        whichKeyTimer?.Dispose();
+        view?.Dispose();
+    }
+
+    private void RouteAction(ActionId action, int? count)
+    {
+        if (!overlays.Handle(action, count) && !workspaceActions.TryExecute(action, count))
+        {
+            router.Execute(action, count);
+        }
+    }
+
+    private void RefreshOverlay()
+    {
+        view.Overlay.Show(overlays.CurrentFrame());
+        view.RefreshChrome();
+    }
 
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 
@@ -108,8 +132,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private bool HandleKey(Key key)
     {
         startupNotice = string.Empty;
-        var handled = keys.Handle(key, picker.IsOpen ? DefaultKeymap.PickerView : DefaultKeymap.GraphView);
-        if (handled || !picker.IsOpen)
+        var handled = keys.Handle(key, picker.IsOpen && !overlays.State.IsOpen ? DefaultKeymap.PickerView : overlays.ViewName);
+        if (handled || !picker.IsOpen || overlays.State.IsOpen)
         {
             return handled;
         }
@@ -123,17 +147,17 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return true;
     }
 
-    private void Execute(ActionId action, int? count)
+    private void OnTextKey(KeyEvent keyEvent)
     {
-        if (!workspaceActions.TryExecute(action, count))
+        if (picker.IsOpen && keys.Mode == KeyMode.Insert)
         {
-            router.Execute(action, count);
+            picker.Apply(new TypeTextCommand(keyEvent.Name));
         }
     }
 
     private void OnPickerChanged()
     {
-        if (picker.IsOpen != (keys.Mode == KeyMode.Insert))
+        if (!overlays.State.IsOpen && picker.IsOpen != (keys.Mode == KeyMode.Insert))
         {
             keys.SetMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
         }

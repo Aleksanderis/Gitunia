@@ -53,7 +53,8 @@ public sealed class MainView : IDisposable
             Height = 1,
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
-        Window.Add(header, tabs, Graph, picker, status);
+        Overlay = new OverlayView();
+        Window.Add(header, tabs, Graph, picker, status, Overlay);
     }
 
     /// <summary>Raised with the one-based tab number when a tab in the tab row is clicked.</summary>
@@ -73,6 +74,12 @@ public sealed class MainView : IDisposable
     public Window Window { get; }
 
     public ListView Graph { get; }
+
+    /// <summary>The floating box for the help, the palette and the which-key popup; added last so it draws on top.</summary>
+    public OverlayView Overlay { get; }
+
+    /// <summary>The terminal size in columns and rows.</summary>
+    public (int Width, int Height) ScreenSize => (Window.Viewport.Width, Window.Viewport.Height);
 
     /// <summary>Shows the repo picker in place of the graph, or the graph again.</summary>
     public void ShowPicker(bool isOpen)

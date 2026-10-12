@@ -12,6 +12,8 @@ public static class DefaultKeymap
     public const string SidebarView = "Sidebar";
     public const string DiffView = "Diff";
     public const string PickerView = "Picker";
+    public const string PaletteView = "Palette";
+    public const string HelpView = "Help";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
     private static readonly KeyMode[] NormalOnly = [KeyMode.Normal];
@@ -26,6 +28,8 @@ public static class DefaultKeymap
         [DiffView] = ListsView,
         [ListsView] = KeyBindingTable.GlobalView,
         [PickerView] = KeyBindingTable.GlobalView,
+        [PaletteView] = KeyBindingTable.GlobalView,
+        [HelpView] = ListsView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -37,6 +41,7 @@ public static class DefaultKeymap
         AddLists(bindings);
         AddViews(bindings);
         AddPicker(bindings);
+        AddPalette(bindings);
         AddModals(bindings);
         return bindings;
     }
@@ -129,6 +134,12 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], PickerView, "Tab", ActionIds.PickerCompletePath);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-p", ActionIds.PickerPin);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-d", ActionIds.PickerRemoveRecent);
+    }
+
+    private static void AddPalette(List<KeyBinding> bindings)
+    {
+        Add(bindings, [KeyMode.Command], PaletteView, "Up", ActionIds.PalettePrevious);
+        Add(bindings, [KeyMode.Command], PaletteView, "Down", ActionIds.PaletteNext);
     }
 
     private static void AddModals(List<KeyBinding> bindings)

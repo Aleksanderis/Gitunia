@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Core.Picker;
