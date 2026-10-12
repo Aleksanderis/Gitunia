@@ -1,6 +1,8 @@
 ---
 name: work-task
 description: Deliver one Gitunia GitHub issue end to end (pick, branch, implement, test, review, PR). Use when asked to work on the next issue or a specific issue number (the work-orchestrator skill runs it through the backlog).
+model: sonnet
+effort: medium
 ---
 
 # Work an issue

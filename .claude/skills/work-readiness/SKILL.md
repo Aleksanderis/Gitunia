@@ -1,11 +1,13 @@
 ---
 name: work-readiness
 description: Check whether a Gitunia milestone is ready to start (issue quality, blockers, open decisions, missing prerequisites, file overlap, stale docs) and post a readiness report. Use before work-orchestrator starts a milestone, or when asked to prevalidate, groom or refine the next phase. Read-only except for issue edits the owner approves.
+model: sonnet
+effort: high
 ---
 
 # Milestone readiness
 
-Run this on Sonnet at high effort (the verdict steers a whole milestone, so it is the one place to spend thinking; the owner sets the effort before invoking). Invoke as `/work-readiness M2` (resolve the milestone title with `gh api repos/{owner}/{repo}/milestones --jq '.[]|"\(.number) \(.title)"'`; goals are in `docs/roadmap.md`). Do the whole job in this one session, cheaply: read GitHub and only the docs and code areas the milestone touches. Do not implement anything and do not launch implementation agents.
+This skill runs at high effort (see frontmatter): the verdict steers a whole milestone, so it is the one place to spend thinking. Invoke as `/work-readiness M2` (resolve the milestone title with `gh api repos/{owner}/{repo}/milestones --jq '.[]|"\(.number) \(.title)"'`; goals are in `docs/roadmap.md`). Do the whole job in this one session, cheaply: read GitHub and only the docs and code areas the milestone touches. Do not implement anything and do not launch implementation agents.
 
 ## 1. Gather
 
