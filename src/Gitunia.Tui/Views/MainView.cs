@@ -9,7 +9,8 @@ namespace Gitunia.Tui.Views;
 public sealed class MainView : IDisposable
 {
     private readonly LineView header;
-    private readonly LineView tabs;
+    private readonly TabBarView tabs;
+    private readonly PickerView picker;
     private readonly LineView status;
 
     public MainView(Func<ScreenModel> model, GraphGlyphSet glyphs)
@@ -21,7 +22,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
-        tabs = new LineView(width => ChromeBuilder.Tabs(model(), width, glyphs))
+        tabs = new TabBarView(model, glyphs)
         {
             X = 0,
             Y = ScreenLayout.TabRow,
@@ -36,6 +37,14 @@ public sealed class MainView : IDisposable
             Height = Dim.Fill(1),
             CanFocus = true,
         };
+        picker = new PickerView(model, glyphs)
+        {
+            X = 0,
+            Y = ScreenLayout.GraphTop,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(1),
+            Visible = false,
+        };
         status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
         {
             X = 0,
@@ -44,12 +53,45 @@ public sealed class MainView : IDisposable
             Height = 1,
         };
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
-        Window.Add(header, tabs, Graph, status);
+        Window.Add(header, tabs, Graph, picker, status);
+    }
+
+    /// <summary>Raised with the one-based tab number when a tab in the tab row is clicked.</summary>
+    public event Action<int>? TabClicked
+    {
+        add => tabs.TabClicked += value;
+        remove => tabs.TabClicked -= value;
+    }
+
+    /// <summary>Raised with the row index and whether it was a double-click when a picker row is clicked.</summary>
+    public event Action<int, bool>? PickerRowClicked
+    {
+        add => picker.RowClicked += value;
+        remove => picker.RowClicked -= value;
     }
 
     public Window Window { get; }
 
     public ListView Graph { get; }
+
+    /// <summary>Shows the repo picker in place of the graph, or the graph again.</summary>
+    public void ShowPicker(bool isOpen)
+    {
+        if (picker.Visible == isOpen)
+        {
+            return;
+        }
+
+        picker.Visible = isOpen;
+        Graph.Visible = !isOpen;
+        if (!isOpen)
+        {
+            Graph.SetFocus();
+        }
+
+        picker.SetNeedsDraw();
+        Graph.SetNeedsDraw();
+    }
 
     /// <summary>Redraws the header, tab row and status bar after the model changed.</summary>
     public void RefreshChrome()
@@ -57,6 +99,7 @@ public sealed class MainView : IDisposable
         header.SetNeedsDraw();
         tabs.SetNeedsDraw();
         status.SetNeedsDraw();
+        picker.SetNeedsDraw();
     }
 
     public void Dispose() => Window.Dispose();

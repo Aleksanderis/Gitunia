@@ -15,6 +15,18 @@ public sealed class WorkspaceHost(Workspace initial)
 
     public Workspace Workspace { get; private set; } = initial;
 
+    /// <summary>Replaces the workspace with a restored one (the saved session) and raises its effects, such as the load of every restored tab.</summary>
+    public void Restore(WorkspaceUpdate update)
+    {
+        Workspace = update.Workspace;
+        foreach (var effect in update.Effects)
+        {
+            EffectRaised?.Invoke(effect);
+        }
+
+        Changed?.Invoke();
+    }
+
     public void Dispatch(WorkspaceCommand command)
     {
         var update = WorkspaceReducer.Reduce(Workspace, command);

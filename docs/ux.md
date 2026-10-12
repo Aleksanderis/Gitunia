@@ -38,11 +38,12 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 ### 0. Open a repo, switch tabs, reopen the session
 
 1. `gitunia` restores the last session (tabs, active tab, per-tab selection/focus). With no session it opens the repo picker. `gitunia <path>` opens that path as a tab (subdirectory resolves to the repo root; a repo already open just gets focused) and keeps the other restored tabs.
-2. `Ctrl-t` or `<space>o` opens the repo picker (Insert mode, input focused). It lists open, pinned, recent and discovered repos, fuzzy-filtered as you type; `Up`/`Down` move (`Ctrl-j`/`Ctrl-k` only where Terminal.Gui reports them distinct from `Enter`; to be verified in the picker implementation); `Enter` opens in a new tab (or focuses the existing tab); `Esc` cancels.
-3. Typing something that starts with `/`, `~/`, `./`, `../` or `C:\` is treated as a path (a drive letter needs `C:\` or `C:/`; others need `/`, `~/`, `./` or `../`; anything else is a fuzzy query): `Tab` completes directories, `Enter` opens the resolved repo; a non-repo path shows an inline "not a git repository" message and stays open.
+2. `Ctrl-t` or `<space>o` opens the repo picker (Insert mode, input focused). It lists open, pinned, recent and discovered repos, fuzzy-filtered as you type; `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` opens in a new tab (or focuses the existing tab); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits instead, since there is nothing to go back to). Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped); configurable scan roots arrive with the config file in M4. Rows show tags (`open`, `pinned`, `recent`, `found`); a click highlights a row and a double-click opens it.
+3. Typing something that starts with `/`, `~/`, `./`, `../` or `C:\` is treated as a path (a drive letter needs `C:\` or `C:/`; others need `/`, `~/`, `./` or `../`; anything else is a fuzzy query): the list shows the matching directories (repositories marked), `Tab` completes to the common prefix and then to the highlighted directory, `Enter` opens the resolved path (relative paths are taken from the active repository, or the home directory, never from the process working directory); a non-repo path shows an inline "not a git repository" message and stays open.
 4. In the picker `Alt-p` pins or unpins the highlighted entry and `Alt-d` removes it from recents (never deletes anything on disk).
-5. Switch tabs with `gt` / `gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` or `<space><Tab>` for the previously active tab. Mouse: click a tab. `Ctrl-w c` closes the tab; closing the last tab shows the picker.
-6. A tab whose repo disappeared (moved or deleted) stays in the bar marked as missing; `Enter` on it offers to locate or close it.
+5. Switch tabs with `gt` / `gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` or `<space><Tab>` for the previously active tab. Mouse: click a tab. Tab bar format: ` N name  branch markers `, with `*` for a dirty working tree, `↑n` ahead, `↓n` behind (`+n`/`-n` without Unicode) and an ellipsis while the tab loads; two tabs with the same name show their parent directory; when the tabs do not fit the row scrolls to keep the active one visible (`<` marks hidden tabs on the left). Markers reflect the state when the tab was loaded (live refresh comes with file watching). `Ctrl-w c` closes the tab; closing the last tab shows the picker.
+6. A tab whose repo disappeared (moved or deleted) stays in the bar marked `! name (missing)`; `Enter` on it opens the picker (Locate repository, starting in the folder that held it) and the chosen repository replaces that tab, `Ctrl-w c` closes it.
+7. Terminal key caveats, verified against Terminal.Gui 2.5.0 under tmux: `Ctrl-j` (0x0A) arrives as `Ctrl+Enter`, distinct from `Enter` (0x0D), so it works as a picker alias for `Down` (the translator maps it to `Ctrl-j`; a terminal that sends the same byte for both would break the alias, `Down` still works); `Ctrl-^` (0x1E) arrives as `Ctrl+6` and is mapped to `Ctrl-^`, so it works, and `<space><Tab>` remains the fallback for terminals that swallow it; some terminals send `Backspace` as `Ctrl-h`, which the picker treats as `Backspace`.
 
 ### 1. Browse the graph, jump, search
 
@@ -113,7 +114,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Diff | `]f` `[f` | Next / previous file |
 | Diff | `q` / `Esc` / `h` | Back to file list |
 | Diff | `/` `n` `N` | Search in diff, next, previous |
-| Picker | `Up` `Down` | Move highlight (`Ctrl-j`/`Ctrl-k` aliases if distinguishable from `Enter`) |
+| Picker | `Up` `Down` | Move highlight |
+| Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` | Open repo (new tab or focus existing) |
 | Picker | `Tab` | Complete path |
 | Picker | `Alt-p` | Pin / unpin entry |

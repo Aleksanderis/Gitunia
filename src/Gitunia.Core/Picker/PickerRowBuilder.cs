@@ -33,7 +33,7 @@ public static class PickerRowBuilder
             }
         }
 
-        return [.. scored.OrderByDescending(item => item.Score).ThenBy(item => item.Order).Select(item => item.Row)];
+        return [.. scored.OrderByDescending(item => item.Score).ThenBy(item => item.Row.Name.Length).ThenBy(item => item.Order).Select(item => item.Row)];
     }
 
     // Open tabs first, then pins, recents (most recent first) and discovered repositories; a repository appears once with all its tags.

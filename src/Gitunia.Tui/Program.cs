@@ -19,31 +19,34 @@ public static class Program
         }
 
         var capabilities = PlatformInfo.Current.DetectConsole();
-        if (options.RepositoryPath is null)
+        if ((options.RepositoryPath is null && !capabilities.IsInteractive) || (options.RepositoryPath is null && options.PrintsFrame))
         {
-            // No session restore or repo picker yet: show the banner, like before the UI existed.
+            // Not attached to a terminal (a pipe, CI) and nothing to show: print the banner and the usage.
             Console.Out.Write(HelloFrame.Render(AppInfo.Banner, capabilities));
             Console.Out.WriteLine(CommandLineParser.Usage);
             return 0;
         }
 
         var runner = new GitRunner();
-        RepositoryLocation location;
-        try
+        RepositoryLocation? location = null;
+        if (options.RepositoryPath is not null)
         {
-            location = RepositoryDiscovery.DiscoverAsync(runner, options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
-        }
-        catch (GitException exception)
-        {
-            Console.Error.WriteLine($"gitunia: {exception.Message}");
-            return 1;
+            try
+            {
+                location = RepositoryDiscovery.DiscoverAsync(runner, options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (GitException exception)
+            {
+                Console.Error.WriteLine($"gitunia: {exception.Message}");
+                return 1;
+            }
         }
 
         if (options.PrintsFrame)
         {
             FramePrinter.PrintAsync(
                 runner,
-                location,
+                location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,
                 GraphGlyphSet.For(capabilities.Unicode),
@@ -52,7 +55,7 @@ public static class Program
             return 0;
         }
 
-        using var application = new TuiApplication(runner, capabilities);
+        using var application = new TuiApplication(runner, capabilities, PlatformInfo.Current);
         return application.Run(location);
     }
 }

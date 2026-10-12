@@ -1,4 +1,7 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Persistence;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Platform;
@@ -6,6 +9,7 @@ using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
+using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.App;
 
@@ -13,20 +17,33 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabilities) : IDisposable
+public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
+    private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
     private WorkspaceHost host = null!;
     private EffectRunner effects = null!;
     private MainView view = null!;
     private ActionRouter router = null!;
     private KeyController keys = null!;
+    private PickerController picker = null!;
+    private WorkspaceActions workspaceActions = null!;
+    private GraphTabBinder binder = null!;
+    private string homeDirectory = string.Empty;
+    private string startupNotice = string.Empty;
 
-    public int Run(RepositoryLocation location)
+    /// <summary>Runs the UI until the user quits.</summary>
+    /// <param name="location">A repository to open on top of the restored session, null for none.</param>
+    public int Run(RepositoryLocation? location)
     {
         var glyphs = GraphGlyphSet.For(capabilities.Unicode);
+        homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var store = new SessionStore(platform.StateDirectory);
+        var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
+        startupNotice = restored.Detail ?? string.Empty;
+
         using var app = Application.Create();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         app.Init();
@@ -35,23 +52,38 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs);
         view = new MainView(CreateModel, glyphs);
         router = new ActionRouter(host, view.Graph, ActiveSession, app.RequestStop);
-        keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), router.Execute);
+        picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
+        workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
+        binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
+        keys = new KeyController(new KeymapEngine(DefaultKeymap.Create()), Execute);
 
         host.Changed += view.RefreshChrome;
+        host.Changed += binder.Sync;
         keys.PendingChanged += view.RefreshChrome;
+        keys.TextEntered += text => picker.Apply(new TypeTextCommand(text));
+        picker.Changed += OnPickerChanged;
         view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
-        app.Keyboard.KeyDown += (_, key) => key.Handled = keys.Handle(key, DefaultKeymap.GraphView);
+        view.TabClicked += OnTabClicked;
+        view.PickerRowClicked += OnPickerRowClicked;
+        app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
-        host.Dispatch(new OpenRepositoryCommand(location));
-        var session = ActiveSession();
-        if (session is not null)
+        host.Restore(restored.Update);
+        if (location is not null)
         {
-            view.Graph.Source = session.Source;
-            session.Changed += OnSessionChanged;
+            host.Dispatch(new OpenRepositoryCommand(location));
         }
 
+        binder.Sync();
+        if (host.Workspace.Tabs.IsEmpty)
+        {
+            picker.Open();
+        }
+
+        using var persistence = new SessionPersistence(store, host, SaveDebounce);
+        persistence.Start();
         view.Graph.SetFocus();
         app.Run(view.Window);
+        persistence.Flush();
         return 0;
     }
 
@@ -60,24 +92,81 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
 
     private ScreenModel CreateModel() =>
-        ScreenModelFactory.Create(host.Workspace, ActiveSession(), keys.Mode, keys.PendingText, router.Message, view.Graph.SelectedItem);
+        ScreenModelFactory.Create(
+            host.Workspace,
+            ActiveSession(),
+            keys.Mode,
+            keys.PendingText,
+            FirstNotEmpty(workspaceActions.Message, router.Message, startupNotice),
+            view.Graph.SelectedItem,
+            TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId)?.IsLoading ?? false),
+            picker.State,
+            homeDirectory);
 
-    private void OnSessionChanged()
+    private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
+
+    private bool HandleKey(Key key)
     {
-        if (view.Graph.SelectedItem is null && (view.Graph.Source?.Count ?? 0) > 0)
+        startupNotice = string.Empty;
+        var handled = keys.Handle(key, picker.IsOpen ? DefaultKeymap.PickerView : DefaultKeymap.GraphView);
+        if (handled || !picker.IsOpen)
         {
-            view.Graph.SelectedItem = 0;
+            return handled;
         }
 
-        view.Graph.SetNeedsDraw();
+        // The picker's query is plain state, not a text widget: it edits itself with Backspace (some terminals send it as Ctrl-h) and swallows other keys.
+        if (KeyTranslator.TryTranslate(key, out var keyEvent) && keyEvent is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
+        {
+            picker.Apply(new BackspaceCommand());
+        }
+
+        return true;
+    }
+
+    private void Execute(ActionId action, int? count)
+    {
+        if (!workspaceActions.TryExecute(action, count))
+        {
+            router.Execute(action, count);
+        }
+    }
+
+    private void OnPickerChanged()
+    {
+        if (picker.IsOpen != (keys.Mode == KeyMode.Insert))
+        {
+            keys.SetMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
+        }
+
+        view.ShowPicker(picker.IsOpen);
         view.RefreshChrome();
+    }
+
+    private void OnTabClicked(int number)
+    {
+        picker.Close();
+        host.Dispatch(new GoToTabCommand(number));
+    }
+
+    private void OnPickerRowClicked(int index, bool isDoubleClick)
+    {
+        if (picker.State is not { } state)
+        {
+            return;
+        }
+
+        picker.Apply(new MoveHighlightCommand(index - state.Highlight));
+        if (isDoubleClick)
+        {
+            picker.Accept();
+        }
     }
 
     private void OnSelectionChanged()
     {
         var session = ActiveSession();
         var tabId = host.Workspace.ActiveTabId;
-        if (session is null || tabId is null || view.Graph.SelectedItem is not { } item)
+        if (binder.IsSuspended || session is null || tabId is null || view.Graph.SelectedItem is not { } item)
         {
             return;
         }

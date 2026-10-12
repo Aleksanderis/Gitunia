@@ -28,6 +28,20 @@ public static class KeyTranslator
         }
 
         var bare = key.NoCtrl.NoAlt.NoShift;
+        if (key.IsCtrl && bare.KeyCode == KeyCode.D6)
+        {
+            // Terminals send Ctrl-^ as 0x1E, which Terminal.Gui reports as Ctrl+6 (and a real Ctrl-6 is the same key).
+            keyEvent = new KeyEvent("^", KeyModifiers.Ctrl | (key.IsAlt ? KeyModifiers.Alt : KeyModifiers.None));
+            return true;
+        }
+
+        if (key.IsCtrl && bare.KeyCode == KeyCode.Enter)
+        {
+            // Ctrl-j is the line feed (0x0A); Terminal.Gui reports it as Ctrl+Enter, distinct from Enter (0x0D).
+            keyEvent = new KeyEvent("j", KeyModifiers.Ctrl | (key.IsAlt ? KeyModifiers.Alt : KeyModifiers.None));
+            return true;
+        }
+
         var named = NamedKey(bare.KeyCode);
         if (named is not null)
         {
