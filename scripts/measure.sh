@@ -140,6 +140,43 @@ start_app
 if ! wait_for "$marker"; then echo "app never showed marker; skipping navigation" >&2; exit 1; fi
 wait_stable || true
 
+# details latency: `j`, then the details pane header (`Details  Changes  Files  <hash>  n files`) must show another commit
+# and the pane must no longer say "Loading..." (#215). The pause between steps is a user reading before the next move, so
+# neighbour prefetch has time to finish; the step is the forward walk through the history.
+detail_header() { pane | grep -m1 'Details  Changes' || true; }
+details_ready() { # $1 = header before the key; true once another commit's details are shown
+  local cur
+  cur="$(pane)"
+  [ "$(printf '%s' "$cur" | grep -m1 'Details  Changes' || true)" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...'
+}
+vals=""
+for _ in $(seq "$keys"); do
+  base="$(detail_header)"
+  t0=$(now_us)
+  t send-keys -t m j
+  until details_ready "$base"; do
+    [ "$(now_us)" -gt $((t0 + timeout * 1000000)) ] && break
+  done
+  if [ "$(now_us)" -le $((t0 + timeout * 1000000)) ]; then vals+="$(ms $(( $(now_us) - t0 )))"$'\n'; fi
+  sleep 0.3
+done
+read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
+echo "details_step_ms_median=$med"
+echo "details_step_ms_p95=$p95"
+echo "details_step_ms_max=$max"
+echo "details_step_samples=$(printf '%s' "$vals" | grep -c . || true)"
+
+# details while holding `j`: 10 moves in one burst, time until the details of the commit it ended on are shown
+base="$(detail_header)"
+t0=$(now_us)
+t send-keys -t m -N 10 j
+sleep 0.05
+until details_ready "$base"; do
+  [ "$(now_us)" -gt $((t0 + timeout * 1000000)) ] && break
+done
+if [ "$(now_us)" -le $((t0 + timeout * 1000000)) ]; then echo "details_burst_10j_ms=$(ms $(( $(now_us) - t0 )))"; else echo "details_burst_10j_ms=nan"; fi
+wait_stable || true
+
 # key-to-frame latency: `j` must change the rendered frame (selection highlight counts, -e keeps attributes)
 vals=""
 for _ in $(seq "$keys"); do

@@ -1,7 +1,17 @@
 name: CI
 
+# Minutes are limited on the free plan: draft PRs and PRs into review-only bases do not run;
+# marking a PR ready runs it once.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches-ignore:
+      - 'review/**'
+    # Keep in sync with the paths-ignore list under push (Actions has no YAML anchors).
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.claude/**'
   push:
     branches: [main]
     # Skipped only when every changed file matches; a push that also touches code still runs.
@@ -19,6 +29,7 @@ concurrency:
 
 jobs:
   linux-x64:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

@@ -1,0 +1,3 @@
+<Project>
+  <!-- Standalone helper tool: deliberately not inheriting the repo-wide build rules. -->
+</Project>
