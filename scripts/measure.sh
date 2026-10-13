@@ -180,6 +180,7 @@ fi
 # jump_to_end_ms=nan in #192); the measured jump is then the pure jump.
 loaded_deadline=$(( $(now_us) + timeout * 1000000 ))
 while pane | grep -qE '[0-9]/[0-9]+\+' && [ "$(now_us)" -lt "$loaded_deadline" ]; do :; done
+if pane | grep -qE '[0-9]/[0-9]+\+'; then echo "log still streaming after ${timeout}s; jump_to_end_ms will be unreliable" >&2; fi
 wait_stable || true
 # jump to the end of history (G) until the oldest commit is visible, then back (gg)
 t0=$(now_us)
