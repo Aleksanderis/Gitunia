@@ -166,6 +166,80 @@ public class CommitDetailsPrefetchTests
         }
     }
 
+    [Fact]
+    public async Task GivenUncachedCommit_WhenItLoads_ThenThePrefetchWaitsForTheDebounceToo()
+    {
+        using var repository = ChainOfCommits(3);
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        var debounce = TimeSpan.FromMilliseconds(100);
+        var waits = new List<TimeSpan>();
+        var posted = new SemaphoreSlim(0);
+        using var store = new CommitDetailsStore(
+            repo,
+            action => { action(); posted.Release(); },
+            debounce,
+            (wait, _) =>
+            {
+                lock (waits)
+                {
+                    waits.Add(wait);
+                }
+
+                return Task.CompletedTask;
+            });
+
+        store.Select(IdOf(repository, "HEAD"), [IdOf(repository, "HEAD~1")]);
+        await WaitForPostsAsync(posted, 2);
+
+        lock (waits)
+        {
+            Assert.Equal([TimeSpan.Zero, debounce], waits);
+        }
+    }
+
+    [Fact]
+    public async Task GivenResultsQueuedForTheUiThread_WhenAnotherCommitIsSelectedBeforeTheyRun_ThenTheyAreDropped()
+    {
+        using var repository = ChainOfCommits(3);
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        var queued = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        var posted = new SemaphoreSlim(0);
+        using var store = new CommitDetailsStore(repo, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+
+        store.Select(IdOf(repository, "HEAD"), [IdOf(repository, "HEAD~1")]);
+        await WaitForPostsAsync(posted, 2);
+        var other = IdOf(repository, "HEAD~2");
+        store.Select(other);
+        while (queued.TryDequeue(out var action))
+        {
+            action();
+        }
+
+        Assert.Equal(other, store.Current.Commit);
+        Assert.Equal(CommitDetailsStatus.Loading, store.Current.Status);
+        Assert.Equal(0, store.CachedCount);
+    }
+
+    [Fact]
+    public async Task GivenPrefetchedDetailsAlreadyOnTheUiThread_WhenAnotherCommitIsSelected_ThenTheyStayCached()
+    {
+        using var repository = ChainOfCommits(3);
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        var queued = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        var posted = new SemaphoreSlim(0);
+        using var store = new CommitDetailsStore(repo, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        store.Select(IdOf(repository, "HEAD"), [IdOf(repository, "HEAD~1")]);
+        await WaitForPostsAsync(posted, 2);
+        while (queued.TryDequeue(out var action))
+        {
+            action();
+        }
+
+        store.Select(IdOf(repository, "HEAD~2"));
+
+        Assert.Equal(2, store.CachedCount);
+    }
+
     private static TestRepository ChainOfCommits(int count)
     {
         var repository = TestRepository.Create();

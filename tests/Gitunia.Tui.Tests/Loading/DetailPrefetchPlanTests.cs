@@ -1,3 +1,4 @@
+using Gitunia.Core.Graph;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Tests.Rendering;
 using Xunit;
@@ -40,7 +41,7 @@ public class DetailPrefetchPlanTests
         Assert.Empty(DetailPrefetchPlan.Around(Chain(10), index));
     }
 
-    private static Gitunia.Core.Graph.CommitGraph Chain(int count)
+    private static CommitGraph Chain(int count)
     {
         var commits = Enumerable.Range(0, count)
             .Select(number => CommitFactory.Commit(number, "commit " + number, number + 1 < count ? [number + 1] : []))

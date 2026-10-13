@@ -84,7 +84,7 @@ public sealed class CommitDetailsStore : IDisposable
     }
 
     /// <summary>Loads the selected commit again after its details failed to load. Does nothing in any other state.</summary>
-    /// <returns>True when a new load started.</returns>
+    /// <returns>True when a new load started (without prefetching neighbours: the next move does that).</returns>
     public bool Retry()
     {
         if (Current is not { Status: CommitDetailsStatus.Failed, Commit: { } commit })
@@ -189,9 +189,9 @@ public sealed class CommitDetailsStore : IDisposable
             return;
         }
 
-        if (details is not null)
+        if (details is not null && wanted.Length > 0)
         {
-            await PrefetchAsync(wanted, token).ConfigureAwait(false);
+            await PrefetchAfterDebounceAsync(wanted, token).ConfigureAwait(false);
         }
     }
 
