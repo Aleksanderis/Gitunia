@@ -5,8 +5,8 @@
 # Usage: scripts/measure.sh <binary> <repo> [options]
 #   --runs N          cold-start repetitions (default 5)
 #   --keys N          key-latency samples (default 20)
-#   --marker TEXT     text of the newest commit subject (default: read from <repo> HEAD)
-#   --oldest TEXT     text of the oldest commit subject (default: read from <repo> root)
+#   --marker TEXT     text of the newest commit subject (default: first 20 chars of the HEAD subject)
+#   --oldest TEXT     text of the oldest commit subject (default: first 20 chars of the root subject)
 #   --size WxH        terminal size (default 120x40)
 #   --only-start      stop after cold start + size (for binaries without navigation)
 #   --timeout SEC     per-wait timeout (default 10)
@@ -40,16 +40,24 @@ while [ $# -gt 0 ]; do
 done
 
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+# The app truncates long subjects with an ellipsis (the newest row also carries ref decorations),
+# so a full subject may never appear on screen. Defaults are 20-char prefixes; explicit
+# --marker/--oldest are used as given.
 if [ -z "$marker" ]; then
   marker="$(git -C "$repo" log -1 --format=%s HEAD)"
+  marker="${marker:0:20}"
 fi
 if [ -z "$oldest" ]; then
   oldest="$(git -C "$repo" log --max-parents=0 -1 --format=%s HEAD)"
+  oldest="${oldest:0:20}"
 fi
 
+# Private state/config dirs: a restored session (extra tabs, saved scroll position) would change
+# both what is on screen and the RSS. Linux honours XDG_*; macOS keeps state under ~/Library (not isolated here).
+isolated="$(mktemp -d)"; mkdir -p "$isolated/state" "$isolated/config"
 sock="gtm-$$"
 t() { tmux -L "$sock" -f /dev/null "$@"; }
-cleanup() { t kill-server 2>/dev/null || true; }
+cleanup() { t kill-server 2>/dev/null || true; rm -rf "$isolated"; }
 trap cleanup EXIT
 
 now_us() { local n="$EPOCHREALTIME"; echo "${n/./}"; }
@@ -67,7 +75,7 @@ start_server() {
   t start-server \; set -g exit-empty off \; set -g remain-on-exit on
 }
 start_app() { # starts the app in session "m"; the caller times around this
-  t new-session -d -s m -x "$cols" -y "$rows" "exec $(printf '%q %q' "$bin" "$repo")"
+  t new-session -d -s m -x "$cols" -y "$rows" "exec env XDG_STATE_HOME=$(printf '%q' "$isolated/state") XDG_CONFIG_HOME=$(printf '%q' "$isolated/config") $(printf '%q %q' "$bin" "$repo")"
 }
 stop_app() { t kill-session -t m 2>/dev/null || true; }
 
@@ -167,10 +175,17 @@ else
   echo "burst_200j_settle_ms=nan"
 fi
 
+# G goes to the last *loaded* commit, and the status bar shows `n/total+` while the log still streams
+# in (~1 s on 100k commits). Wait for the `+` to go away first, or G lands mid-history (the cause of
+# jump_to_end_ms=nan in #192); the measured jump is then the pure jump.
+loaded_deadline=$(( $(now_us) + timeout * 1000000 ))
+while pane | grep -qE '[0-9]/[0-9]+\+' && [ "$(now_us)" -lt "$loaded_deadline" ]; do :; done
+if pane | grep -qE '[0-9]/[0-9]+\+'; then echo "log still streaming after ${timeout}s; jump_to_end_ms will be unreliable" >&2; fi
+wait_stable || true
 # jump to the end of history (G) until the oldest commit is visible, then back (gg)
 t0=$(now_us)
 t send-keys -t m G
-if wait_for "$oldest"; then echo "jump_to_end_ms=$(ms $(( $(now_us) - t0 )))"; else echo "jump_to_end_ms=nan"; fi
+if wait_for "$oldest"; then echo "jump_to_end_ms=$(ms $(( $(now_us) - t0 )))"; else echo "jump_to_end_ms=nan"; echo "oldest='$oldest' not seen; pane:" >&2; pane >&2; fi
 t0=$(now_us)
 t send-keys -t m g g
 if wait_for "$marker"; then echo "jump_to_start_ms=$(ms $(( $(now_us) - t0 )))"; else echo "jump_to_start_ms=nan"; fi

@@ -1,5 +1,5 @@
-using Gitunia.CustomRenderTui.Demo.Graph;
 using Gitunia.CustomRenderTui;
+using Gitunia.CustomRenderTui.Demo.Graph;
 
 namespace Gitunia.CustomRenderTui.Demo.Views;
 

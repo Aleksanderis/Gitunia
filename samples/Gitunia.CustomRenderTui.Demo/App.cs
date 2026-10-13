@@ -1,6 +1,6 @@
 using System.Threading.Channels;
-using Gitunia.CustomRenderTui.Demo.Graph;
 using Gitunia.CustomRenderTui;
+using Gitunia.CustomRenderTui.Demo.Graph;
 using Gitunia.CustomRenderTui.Demo.Views;
 
 namespace Gitunia.CustomRenderTui.Demo;

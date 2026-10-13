@@ -4,6 +4,11 @@ on:
   pull_request:
   push:
     branches: [main]
+    # Skipped only when every changed file matches; a push that also touches code still runs.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.claude/**'
 
 permissions:
   contents: read
@@ -37,3 +42,9 @@ jobs:
           out="$(./out/gitunia)"
           echo "$out"
           echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"

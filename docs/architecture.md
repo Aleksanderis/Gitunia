@@ -29,8 +29,8 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
-  Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target)
+  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types: styled lines, graph and sidebar glyphs, frame composer), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/
@@ -60,6 +60,32 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 - Many tabs: background tabs hold only compact state and are refreshed lazily or on a throttled timer; only the active tab does continuous work. Tab switch is instant (no reload).
 - Memory: compact commit model (struct-of-arrays or interned hashes), virtualized lists.
 - Render: diff against the previous frame, write one buffered flush per frame.
+
+### Verified numbers (many restored tabs, #111)
+
+`scripts/measure-tabs.sh <binary> --tabs 12 --runs 7` builds throwaway repos (300 commits each) and a session file in a temp state directory, then restores them under tmux (120x40, Native AOT linux-x64, medians, 1-3 ms polling floor included):
+
+| Metric | Result |
+|---|---|
+| Cold start to the first frame of the active tab, 12 tabs restored | ~50 ms (max of 7 runs 57; run `--runs 20` for a real p95) |
+| RSS after start (only the active tab loaded) | ~36 MB (1 tab restored: ~52 ms, ~36.7 MB) |
+| First visit of a background tab (`gt`, includes its load) | ~37 ms (max 48) |
+| Switch back to an already loaded tab | ~10-30 ms (single sample, poll-bound) |
+| RSS after visiting all 12 tabs | ~46 MB (20 tabs: ~50 MB) |
+
+Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
+
+### Verified numbers (graph view, #22)
+
+Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit repo from `scripts/gen-big-repo.sh`, `scripts/measure.sh` medians (they include 1-3 ms of tmux polling), Terminal.Gui at 100 iterations per second:
+
+| Terminal | Cold start to first rows | `j` latency | `Ctrl-d` | 200 queued `j` settle | RSS with all 100k loaded |
+|---|---|---|---|---|---|
+| 80x24 | ~72 ms (p95 106) | ~7.5 ms | ~7 ms | ~15 ms | ~69 MB |
+| 120x40 | ~80 ms (p95 101) | ~7.3 ms | ~7.6 ms | ~14 ms | ~73 MB |
+| 200x60 | ~89 ms (p95 106) | ~8.8 ms | ~11.7 ms | ~16 ms | ~73 MB |
+
+The first 150 commits are on screen at once; the whole log streams in and is laid out in ~0.8 s without blocking input (the status bar shows `n/total+` while loading). A search over all 100k loaded commits (`/` then a query with no match) takes ~70 ms in 5000-row slices and does not change key latency (`j` ~7.4 ms, cold start ~82 ms, RSS ~73 MB). Idle CPU after loading is ~1%. Memory per loaded commit is ~340 bytes (ad hoc measurement: managed heap growth for 100k synthetic `GraphEntry` values with short subjects, not a repeatable script; a compact `GraphEntry`, not the full `CommitInfo`); an automatic refresh that moves HEAD or refs reloads incrementally (~105 ms for one new commit instead of ~840 ms, #126; the manual `r` always reads everything); frame cost depends on the visible rows only, not on the number of loaded commits. A narrow window cuts the newest subject, so the harness's resize check cannot find its marker there (`resize_ms=nan` at 80x24 is that, not a failure to redraw). RSS re-check (#191): a measurement reported ~107 MB, most likely taken with a restored session of the user (extra tabs, saved scroll position; it could not be reproduced). With state isolated, the build before the graph columns (#168) and the current one both give ~75 MB, so columns and author date cost nothing measurable (a hypothesis for the 107 MB, not a proven cause; per row they add a 16-byte date and a reference to an already interned name, ad hoc estimate ~2.4 MB per 100k rows); `scripts/measure.sh` now isolates state. `jump_to_end_ms=nan` (#192) was a harness fault, not an app bug: default markers are now 20-character prefixes (long subjects are ellipsized, the newest also carries ref decorations) and the jump waits for the log to finish streaming, since `G` goes to the last loaded commit (~25-30 ms afterwards). At 80x24 the newest row is cut inside the marker, so pass an explicit `--marker "Commit #97500"` there. Known limit: the wide-character table in `TextWidth` covers CJK and the main emoji blocks only, so some newer emoji count as one column and can make a row one cell too wide.
 
 ## Cross-platform
 

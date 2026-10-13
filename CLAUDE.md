@@ -22,6 +22,8 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Be conservative with destructive operations (reset --hard, force push, branch/worktree delete, stash drop, discarding changes): confirm in the UI and keep an undo path (reflog hint) where git allows.
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Names are spelled out: no truncated or single-letter names (`platform`, `dictionary`, `selection`, `buffer`, not `p`, `d`, `sel`, `buf`); loop indexes and well-known domain terms excepted. This applies to variables, parameters, members and test locals.
+- Locals are declared with `var` (built-in types, apparent and non-apparent types alike); enforced as a warning (error in the build) by `.editorconfig`. Explicit types stay in signatures, fields and members.
+- Member order: private methods come after all public/protected methods (fields, constructors and properties stay on top). Applies to test classes too: test methods first, private helpers last.
 - One type per file, named after the type. Models (records, enums, plain data) and classes with logic live in separate files; unrelated models get separate files too, unless they are closely related or inherited from each other.
 - Scripts (bash and PowerShell) live in `scripts/`; `tools/` holds small C# helper programs.
 - Every key binding goes in the keymap table in `docs/ux.md` in the same change that adds it. No binding conflicts.
@@ -31,8 +33,10 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 - Branches: `feature/<issue>-<slug>` for new work, `fix/<issue>-<slug>` for bug fixes. Branch from `main`; when working autonomously, no direct commits to it: changes arrive through merged PRs. Reference the issue in the PR body (`Closes #<n>`).
 - Ad-hoc requests from the owner: simple changes (e.g. a `.gitignore` entry, a doc tweak) go straight to `main`, no branch or PR. If it isn't obvious whether a change is simple enough, ask.
+- Pushing: never push to any remote without the owner's confirmation. Ad-hoc changes (to `main`, a branch or docs alike) are committed locally; end the task with "committed locally, not pushed" and a one-line summary, and push everything pending in one push once the owner says so (this keeps CI runs down). The autonomous PR flow (agents pushing their `feature/`/`fix/` branches, opening and merging PRs) is unaffected. GitHub issue and comment edits are not pushes and need no confirmation.
 - Changes that address PR review comments (code, docs, skills, CLAUDE.md alike) all go through a PR branch, never straight to `main`. The straight-to-`main` exception above applies only to standalone requests from the owner.
 - After a PR is merged, nothing of it remains: remove its worktree and delete the branch locally and on the remote (spike branches are the exception and stay).
+- Agent identity: every commit, PR body and GitHub comment says which agent (orchestrator, implementer, reviewer) produced it: author-name convention, `Agent:` trailer, header and signature. Details in the `work-task` skill, "Agent identity". Never add the "🤖 Generated with Claude Code" line to PR bodies or comments.
 - Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `ci:`), optional scope, imperative subject.
 
 ## Which doc to read
@@ -52,12 +56,16 @@ Read the doc before working in its area; don't rely on memory of it.
 
 ## Working autonomously
 
-Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. Rules that must hold regardless:
+Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To work a whole milestone or the backlog, follow the `work-orchestrator` skill (`.claude/skills/work-orchestrator/`): it delegates issues to subagents in bounded batches of 3 and ends with a hand-over, so no single session carries a whole milestone. Before starting a milestone, the `work-readiness` skill prevalidates it (blockers, open decisions, issue quality) and posts a report the orchestrator checks. Rules that must hold regardless:
 
 - Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide). Don't start M1+ until the M0 decision issue is closed.
 - `spike`, `destructive` (can lose user data) and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; the others stop at an open PR for the owner. Keep working on other unblocked issues meanwhile.
+- Every PR gets the reviewer's findings posted as a PR comment (and a follow-up comment on what was fixed); the review must be visible on GitHub, not only in the session.
+- Independent unblocked issues run in parallel as subagents in separate worktrees (see the skill).
 - Everything else: `gh pr merge <n> --merge --delete-branch` once CI is green and the reviewer (subagent) has no open blockers. Merge commits only, never squash or rebase, never force-push.
 - Don't block on questions: decide from the docs or take the recommended default, log it in `docs/decisions.md` or `docs/roadmap.md` open questions, and say so in the PR.
+- Models: use Sonnet for every role, not Opus. Cost is tuned with reasoning effort, set in the skill and agent frontmatter, not repeated in prose.
+- Loose ends found while working (limits, deferred cases, unwired pieces, unrun manual checks, owner decisions) are registered as a new issue or added to an existing issue before the work ends; notes in docs, PR comments or reports do not count. List them in the PR body under "Follow-ups".
 - Never: spend money or create paid resources/accounts, delete branches you didn't create, touch anything outside this repo and the scratchpad, or experiment in the owner's real repos (use the `testing` skill's throwaway repos).
 - Build, test and lint commands (run from the repo root):
   - Build (analyzers on, warnings are errors, also the lint step): `dotnet build`
