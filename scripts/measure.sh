@@ -143,11 +143,11 @@ wait_stable || true
 # details latency: `j`, then the details pane header (`Details  Changes  Files  <hash>  n files`) must show another commit
 # and the pane must no longer say "Loading..." (#215). The pause between steps is a user reading before the next move, so
 # neighbour prefetch has time to finish; the step is the forward walk through the history.
-detail_header() { pane | grep -m1 'Details  Changes' || true; }
+detail_header() { t capture-pane -t m -p | grep -m1 'Details ─ Changes' || true; }
 details_ready() { # $1 = header before the key; true once another commit's details are shown
   local cur
-  cur="$(pane)"
-  [ "$(printf '%s' "$cur" | grep -m1 'Details  Changes' || true)" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...'
+  cur="$(t capture-pane -t m -p)"
+  [ "$(printf '%s' "$cur" | grep -m1 'Details ─ Changes' || true)" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...'
 }
 vals=""
 for _ in $(seq "$keys"); do
@@ -165,6 +165,31 @@ echo "details_step_ms_median=$med"
 echo "details_step_ms_p95=$p95"
 echo "details_step_ms_max=$max"
 echo "details_step_samples=$(printf '%s' "$vals" | grep -c . || true)"
+
+# diff latency (#225): `j`, then the diff pane (beside the Changes file list) must show the diff of another commit: its title
+# hash changed, no "Loading..." and a hunk header is on screen. Same 300 ms pause between steps as the details metric.
+diff_hash() { t capture-pane -t m -p | grep -m1 -o 'Diff  [0-9a-f]\{7\}' || true; }
+diff_ready() { # $1 = diff title hash before the key
+  local cur
+  cur="$(t capture-pane -t m -p)"
+  [ "$(printf '%s' "$cur" | grep -m1 -o 'Diff  [0-9a-f]\{7\}' || true)" != "$1" ] && ! printf '%s' "$cur" | grep -qF 'Loading...' && printf '%s' "$cur" | grep -qF '@@'
+}
+vals=""
+for _ in $(seq "$keys"); do
+  base="$(diff_hash)"
+  t0=$(now_us)
+  t send-keys -t m j
+  until diff_ready "$base"; do
+    [ "$(now_us)" -gt $((t0 + timeout * 1000000)) ] && break
+  done
+  if [ "$(now_us)" -le $((t0 + timeout * 1000000)) ]; then vals+="$(ms $(( $(now_us) - t0 )))"$'\n'; fi
+  sleep 0.3
+done
+read -r med p95 max <<<"$(printf '%s' "$vals" | stats)"
+echo "diff_step_ms_median=$med"
+echo "diff_step_ms_p95=$p95"
+echo "diff_step_ms_max=$max"
+echo "diff_step_samples=$(printf '%s' "$vals" | grep -c . || true)"
 
 # details while holding `j`: 10 moves in one burst, time until the details of the commit it ended on are shown
 base="$(detail_header)"

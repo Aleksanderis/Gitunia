@@ -89,6 +89,8 @@ The first 150 commits are on screen at once; the whole log streams in and is lai
 
 Commit details while moving (#215): stepping to the next commit shows its details in ~20 ms (harness floor ~16 ms; was ~118 ms) because `CommitDetailsStore` reads the next 3 and previous 1 commits ahead into an LRU cache (64 entries, 20,000 changed files in total) and starts a selection that follows a pause without the 80 ms debounce. Holding a key still waits for the debounce (~110-130 ms to the last commit's details) and cancels stale reads. Details: `docs/decisions.md`.
 
+Diff while moving (#225): with the diff pane beside the Changes file list, `j`/`k` to the filled diff took ~37 ms (details plus one diff run). `DiffStore` now keeps a bounded LRU `DiffCache` (12 diffs, 16,000 rows in total, a few MB; a diff over the budget alone is not cached) and, once the shown diff has loaded, reads the same neighbours as the details prefetch (3 ahead, 1 behind, one at a time, after an 80 ms pause, cancelled when the selection moves) with at most 4,000 rows each; bigger neighbours load on demand as before. Result ~20 ms (harness floor ~16 ms) on the 100k repo and on a repo of 3,000-row commits; cold start and RSS unchanged on the 100k repo (+~6 MB on the 3,000-row repo). A tab that is switched away from drops its cache. Details: `docs/decisions.md`.
+
 ## Cross-platform
 
 - Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first, and add Windows/macOS to CI in M4.
