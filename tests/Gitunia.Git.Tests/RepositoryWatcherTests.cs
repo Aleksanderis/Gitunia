@@ -89,6 +89,56 @@ public class RepositoryWatcherTests
     }
 
     [Fact]
+    public async Task GivenBackgroundTab_WhenSeveralChangesArrive_ThenBecameStaleIsRaisedOnceAndRearmsAfterActivation()
+    {
+        using var repository = TestRepositories.Linear(1);
+        var recorder = new ChangeRecorder();
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var queued = new List<Action>();
+        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record, queued.Add);
+        var raised = 0;
+        watcher.BecameStale += () => raised++;
+
+        watcher.SetActive(false);
+        watcher.ReportChange(RepositoryChangeKinds.Refs);
+        watcher.ReportChange(RepositoryChangeKinds.Index);
+        watcher.ReportChange(RepositoryChangeKinds.Refs);
+
+        Assert.Single(queued);
+        RunQueued(queued);
+        Assert.Equal(1, raised);
+
+        watcher.SetActive(true);
+        watcher.SetActive(false);
+        Assert.Empty(queued);
+
+        watcher.ReportChange(RepositoryChangeKinds.Refs);
+        watcher.ReportChange(RepositoryChangeKinds.Refs);
+
+        Assert.Single(queued);
+        RunQueued(queued);
+        Assert.Equal(2, raised);
+    }
+
+    [Fact]
+    public async Task GivenActiveTabWithPendingChange_WhenHidden_ThenBecameStaleIsRaisedOnce()
+    {
+        using var repository = TestRepositories.Linear(1);
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var queued = new List<Action>();
+        var slowOptions = new RepositoryWatcherOptions(TimeSpan.FromHours(1), TimeSpan.FromHours(2), TimeSpan.FromHours(1));
+        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), slowOptions, _ => { }, queued.Add);
+
+        watcher.ReportChange(RepositoryChangeKinds.Refs);
+        Assert.Empty(queued);
+
+        watcher.SetActive(false);
+        watcher.SetActive(false);
+
+        Assert.Single(queued);
+    }
+
+    [Fact]
     public async Task GivenBackgroundTab_WhenNothingChanged_ThenActivationReportsNothing()
     {
         using var repository = TestRepositories.Linear(1);
@@ -203,6 +253,16 @@ public class RepositoryWatcherTests
         clone.Git("push", "-q", origin.Path, "main");
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Refs, Token);
+    }
+
+    private static void RunQueued(List<Action> queued)
+    {
+        foreach (var work in queued.ToArray())
+        {
+            work();
+        }
+
+        queued.Clear();
     }
 
     private static async Task RunGitAsync(string path, params string[] arguments)
