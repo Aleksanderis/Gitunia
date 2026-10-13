@@ -40,6 +40,9 @@ public sealed class PaletteTable
     /// <summary>The header and status bar, <see cref="Color.None"/> for none.</summary>
     public required Color BarBackground { get; init; }
 
+    /// <summary>The background of the bottom pane's content, a step off the graph's, <see cref="Color.None"/> for none (then the frame and the tab buttons separate the pane).</summary>
+    public required Color PanelBackground { get; init; }
+
     /// <summary>The selected row of the focused pane.</summary>
     public required Color SelectionFocused { get; init; }
 
@@ -100,6 +103,7 @@ public sealed class PaletteTable
         MutedOnSelection = Rgb(0xa6adc8),
         Border = Rgb(0x6c7086),
         BarBackground = Rgb(0x181825),
+        PanelBackground = Rgb(0x181825),
         SelectionFocused = Rgb(0x313244),
         SelectionDim = Rgb(0x262637),
         ChipForeground = Rgb(0x11111b),
@@ -121,6 +125,7 @@ public sealed class PaletteTable
         MutedOnSelection = Rgb(0x5f6175),
         Border = Rgb(0x7c7f93),
         BarBackground = Rgb(0xe6e9ef),
+        PanelBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),
         SelectionDim = Rgb(0xe9ecf1),
         ChipForeground = Rgb(0xeff1f5),
@@ -145,6 +150,7 @@ public sealed class PaletteTable
         MutedOnSelection = Named(ColorName16.Gray),
         Border = Named(ColorName16.DarkGray),
         BarBackground = Color.None,
+        PanelBackground = Color.None,
         SelectionFocused = Named(ColorName16.DarkGray),
         SelectionDim = Color.None,
         ChipForeground = Named(ColorName16.Black),
@@ -168,6 +174,7 @@ public sealed class PaletteTable
         MutedOnSelection = Named(ColorName16.DarkGray),
         Border = Named(ColorName16.DarkGray),
         BarBackground = Color.None,
+        PanelBackground = Color.None,
         SelectionFocused = Named(ColorName16.Gray),
         SelectionDim = Color.None,
         ChipForeground = Named(ColorName16.White),
@@ -192,6 +199,7 @@ public sealed class PaletteTable
         MutedOnSelection = Color.None,
         Border = Color.None,
         BarBackground = Color.None,
+        PanelBackground = Color.None,
         SelectionFocused = Color.None,
         SelectionDim = Color.None,
         ChipForeground = Color.None,

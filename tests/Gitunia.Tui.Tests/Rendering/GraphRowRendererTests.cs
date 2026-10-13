@@ -102,7 +102,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  (🌳 main ☁, topic, tag: v1) release", row);
+        Assert.StartsWith("●  (◆ main ↔, topic, tag: v1) release", row);
     }
 
     [Fact]

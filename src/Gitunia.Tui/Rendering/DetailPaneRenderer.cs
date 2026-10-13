@@ -13,9 +13,9 @@ public static class DetailPaneRenderer
         {
             var row = pane.TopRow + offset;
             var textWidth = PanePadding.TextWidth(width);
-            lines.Add(PanePadding.Wrap(row >= 0 && row < pane.Content.Rows.Count
+            lines.Add(OnPanel(PanePadding.Wrap(row >= 0 && row < pane.Content.Rows.Count
                 ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, textWidth, glyphs)
-                : RenderEmpty(textWidth, glyphs)));
+                : RenderEmpty(textWidth, glyphs))));
         }
 
         return lines;
@@ -34,7 +34,7 @@ public static class DetailPaneRenderer
         {
             builder.Append(new string(glyphs.Horizontal, button.Start - column), SegmentRole.Rule);
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
-            builder.Append(button.Label, isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.Faint);
+            builder.Append(ButtonText(button.Label, glyphs), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.TabButton);
             column = button.Start + button.Width;
         }
 
@@ -63,6 +63,13 @@ public static class DetailPaneRenderer
     /// <summary>A row past the last one: blank.</summary>
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Build(SegmentRole.Plain);
+
+    // The ASCII tier shows a padded button as [Name], so it is a button without colours too; the width stays the same.
+    private static string ButtonText(string label, GraphGlyphSet glyphs) =>
+        glyphs.IsAscii && label.Length > 2 && label[0] == ' ' && label[^1] == ' ' ? "[" + label[1..^1] + "]" : label;
+
+    private static StyledLine OnPanel(StyledLine line) =>
+        line with { Segments = [.. line.Segments.Select(segment => segment with { OnPanel = true })] };
 
     // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static string FileCountText(int? count) => count switch

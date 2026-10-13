@@ -141,6 +141,35 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GivenTrueColorScheme_WhenDrawingThePanelAndTabButtons_ThenThePanelHasABackgroundAndAButtonDiffersFromPlainText(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
+        var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
+        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+
+        Assert.NotEqual(plain.Background, panel.Background);
+        Assert.NotEqual(plain.Background, button.Background);
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.None)]
+    public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsUnderlinedAndThePanelHasNoBackground(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+        var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
+
+        Assert.True(button.Style.HasFlag(TextStyle.Underline));
+        Assert.Equal(Color.None, panel.Background);
+    }
+
+    [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenSelectingInAPaneWithoutFocus_ThenTheTintIsDifferentFromTheFocusedOne(bool isLight)
     {

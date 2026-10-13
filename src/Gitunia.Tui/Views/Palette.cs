@@ -31,7 +31,7 @@ public static class Palette
         var (foreground, background, style, keepsBackground) = Role(segment, colors);
         if (!isSelected)
         {
-            return new Attribute(foreground, background, style);
+            return new Attribute(foreground, segment.OnPanel && background == Color.None ? colors.PanelBackground : background, style);
         }
 
         if (!keepsBackground)
@@ -63,6 +63,7 @@ public static class Palette
             SegmentRole.Status => (colors.Muted, colors.BarBackground, muted, true),
             SegmentRole.StatusError => (colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => (colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
+            SegmentRole.TabButton => (colors.Muted, colors.BarBackground, colors.SelectionDimStyle, true),
             SegmentRole.InactiveTab => (Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
             SegmentRole.Error => (colors.Bad, Color.None, TextStyle.Bold, false),
             SegmentRole.SearchMatch => (colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),

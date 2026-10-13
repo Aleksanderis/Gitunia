@@ -55,7 +55,7 @@ public class DetailPaneComposerTests
                 "│                                                │",
                 "│                                                │",
                 "│                                                │",
-                "├─ Details  Changes  Files ─ 0000002 ─ 2 files ──┤",
+                "├─ Details ─ Changes ─ Files ─ 0000002 ─ 2 files ┤",
                 "│ commit    00000020000000000000000000000000000… │",
                 "│ author    Ann <ann@x.org>  2026-01-02 03:04 +… │",
                 "│ parents   0000001                              │",
@@ -75,7 +75,7 @@ public class DetailPaneComposerTests
 
         Assert.Equal(
             [
-                "─ Details  Changes  Files ─ 0000002 ─ 2 files",
+                "─ Details ─ Changes ─ Files ─ 0000002 ─ 2 files",
                 " 2 files changed",
                 " A a.txt",
                 " M b.txt",
@@ -94,7 +94,7 @@ public class DetailPaneComposerTests
 
         Assert.Equal(
             [
-                "─ Details  Changes  Files ─ 0000002 ─ 2 files",
+                "─ Details ─ Changes ─ Files ─ 0000002 ─ 2 files",
                 " The file tree is not implemented yet",
                 "",
                 "",
@@ -117,7 +117,7 @@ public class DetailPaneComposerTests
         var roles = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Changes" or "Files").Select(segment => segment.Role).ToArray();
         Assert.Equal(3, roles.Length);
         Assert.Equal(SegmentRole.ActiveTab, roles[expectedIndex]);
-        Assert.Equal(2, roles.Count(role => role == SegmentRole.Faint));
+        Assert.Equal(2, roles.Count(role => role == SegmentRole.TabButton));
     }
 
     [Fact]
@@ -149,15 +149,38 @@ public class DetailPaneComposerTests
         var wide = DetailTabStrip.Layout(50);
         var narrow = DetailTabStrip.Layout(24);
 
-        Assert.Equal([1, 10, 19], wide.Select(button => button.Start));
+        Assert.Equal([1, 11, 21], wide.Select(button => button.Start));
         Assert.Equal("DetailTab.Details", TitleButton.ViewAt(wide, 3));
-        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(wide, 10));
-        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(wide, 25));
-        Assert.Null(TitleButton.ViewAt(wide, 26));
+        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(wide, 12));
+        Assert.Null(TitleButton.ViewAt(wide, 10));
+        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(wide, 24));
+        Assert.Null(TitleButton.ViewAt(wide, 28));
         Assert.Null(TitleButton.ViewAt(wide, 0));
         Assert.Equal([1, 9, 17], narrow.Select(button => button.Start));
         Assert.Null(TitleButton.ViewAt(narrow, 8));
         Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(narrow, 12));
+    }
+
+    [Fact]
+    public void GivenTheAsciiSet_WhenRenderingTheTitle_ThenEachTabIsABracketedButtonOfTheSameWidth()
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Changes);
+
+        var title = DetailPaneRenderer.RenderTitle(content, true, 50, GraphGlyphSet.Ascii);
+
+        Assert.Equal(50, TextWidth.Of(title.Text));
+        Assert.StartsWith("-[Details]-[Changes]-[Files]-", title.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenALoadedPane_WhenRendering_ThenEveryContentCellIsOnThePanelButTheTitleIsNot()
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Details);
+
+        var lines = DetailPaneRenderer.RenderPane(new DetailPaneModel(content, 0, 0, false), 40, 4, GraphGlyphSet.Unicode);
+
+        Assert.DoesNotContain(lines[0].Segments, segment => segment.OnPanel);
+        Assert.All(lines.Skip(1), line => Assert.All(line.Segments, segment => Assert.True(segment.OnPanel)));
     }
 
     [Fact]

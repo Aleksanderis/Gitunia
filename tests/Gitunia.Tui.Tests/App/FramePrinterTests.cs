@@ -20,7 +20,7 @@ public class FramePrinterTests
 
         var lines = await PrintAsync(repository, 100, 30, null);
 
-        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
     }
 
@@ -35,7 +35,7 @@ public class FramePrinterTests
 
         var lines = await PrintAsync(repository, width, 30, new PaneArrangement(true, null));
 
-        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("two added", StringComparison.Ordinal));
     }
 
@@ -48,7 +48,7 @@ public class FramePrinterTests
         var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff));
 
         Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
-        Assert.DoesNotContain(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("Details", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class FramePrinterTests
         Assert.DoesNotContain(changes, line => line.StartsWith("│ author ", StringComparison.Ordinal));
         Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
         Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
-        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details  Changes  Files ", StringComparison.Ordinal)));
+        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details ─ Changes ─ Files ", StringComparison.Ordinal)));
     }
 
     [Fact]

@@ -107,7 +107,7 @@ public sealed class FrameGrid
 
     private static void Append(List<StyledSegment> cells, StyledSegment cell)
     {
-        if (cells.Count > 0 && cells[^1].Role == cell.Role && cells[^1].ColorIndex == cell.ColorIndex && cells[^1].Selection == cell.Selection)
+        if (cells.Count > 0 && cells[^1].Role == cell.Role && cells[^1].ColorIndex == cell.ColorIndex && cells[^1].Selection == cell.Selection && cells[^1].OnPanel == cell.OnPanel)
         {
             cells[^1] = cells[^1] with { Text = cells[^1].Text + cell.Text };
         }
