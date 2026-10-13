@@ -117,5 +117,39 @@ public class DiffWrapMapTests
         Assert.Equal(line, map.Count);
     }
 
+    [Theory]
+    [InlineData(7)]
+    [InlineData(12)]
+    [InlineData(19)]
+    [InlineData(31)]
+    [InlineData(80)]
+    public void GivenTabbedAccentedAndWideRows_WhenResizing_ThenLinesMatchTheRendererCount(int width)
+    {
+        var texts = new List<string>();
+        foreach (var length in new[] { 0, 1, 5, 6, 7, 8, 9, 20, 40, 41 })
+        {
+            texts.Add(new string('\t', length / 4) + new string('a', length % 4));
+            texts.Add(new string('\u00e9', length));
+            texts.Add("\t" + new string('\u00fc', length) + "\t");
+            texts.Add(new string('\u65e5', length));
+            texts.Add("e\u0301" + new string('x', length));
+            texts.Add("a\u0001b" + new string('\t', length % 3));
+        }
+
+        var rows = texts.Select(text => new DiffRow(DiffRowKind.Added, text, null, 1, 0)).ToArray();
+        var document = Document(rows);
+        var map = DiffWrapMap.Build(document, 33).Resize(width);
+        var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
+
+        var line = 0;
+        for (var index = 0; index < rows.Length; index++)
+        {
+            Assert.Equal(line, map.StartOf(index));
+            line += DiffRowRenderer.SegmentCount(rows[index], width, digits);
+        }
+
+        Assert.Equal(line, map.Count);
+    }
+
     private static DiffDocument Document(params DiffRow[] rows) => new(rows, [], [0], [["f"]], 9);
 }

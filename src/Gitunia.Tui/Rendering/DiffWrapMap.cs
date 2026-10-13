@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Core.Diff;
 
 namespace Gitunia.Tui.Rendering;
@@ -5,7 +6,7 @@ namespace Gitunia.Tui.Rendering;
 /// <summary>
 /// Maps the rows of a diff to the screen lines they take when text wraps at a given pane width.
 /// The per-row text widths are measured once per document and shared by every width.
-/// A resize only does arithmetic for printable-ASCII rows; the other rows keep the exact slow path.
+/// A resize only does arithmetic for rows whose every character takes one column once tabs are expanded (ASCII, tab-indented, accented or other narrow text); rows with wide or zero-width characters also need no chunking while they fit one line, and only longer ones keep the exact slow path.
 /// </summary>
 public sealed class DiffWrapMap
 {
@@ -32,7 +33,7 @@ public sealed class DiffWrapMap
         var textColumns = new int[document.Rows.Count];
         for (var index = 0; index < textColumns.Length; index++)
         {
-            textColumns[index] = PrintableAsciiLength(document.Rows[index].Text);
+            textColumns[index] = DisplayColumns(document.Rows[index].Text);
         }
 
         return Layout(document, width, textColumns);
@@ -73,15 +74,23 @@ public sealed class DiffWrapMap
         {
             var row = document.Rows[index];
             var length = textColumns[index];
+            var columns = width - DiffRowRenderer.PrefixWidth(row, digits);
             int segments;
-            if (length < 0)
+            if (columns <= 0)
             {
-                segments = DiffRowRenderer.SegmentCount(row, width, digits);
+                segments = 1;
+            }
+            else if (length >= 0)
+            {
+                segments = Math.Max(1, (length + columns - 1) / columns);
+            }
+            else if (~length <= columns)
+            {
+                segments = 1;
             }
             else
             {
-                var columns = width - DiffRowRenderer.PrefixWidth(row, digits);
-                segments = columns <= 0 ? 1 : Math.Max(1, (length + columns - 1) / columns);
+                segments = DiffRowRenderer.SegmentCount(row, width, digits);
             }
 
             starts[index + 1] = starts[index] + segments;
@@ -90,17 +99,37 @@ public sealed class DiffWrapMap
         return new DiffWrapMap(document, width, starts, textColumns);
     }
 
-    /// <summary>The length of <paramref name="text"/> when every character is a one-column printable ASCII one, otherwise -1 (the text needs the full wrapping logic).</summary>
-    private static int PrintableAsciiLength(string text)
+    /// <summary>
+    /// The columns <paramref name="text"/> takes once tabs are expanded. Non-negative when every character is one column wide
+    /// (wrapping is then plain division); otherwise the bitwise complement of the width (a wide or zero-width character needs the
+    /// full chunking logic unless the whole text fits one line).
+    /// </summary>
+    private static int DisplayColumns(string text)
     {
-        foreach (var character in text)
+        var column = 0;
+        var simple = true;
+        foreach (var rune in text.EnumerateRunes())
         {
-            if (character is < ' ' or > '~')
+            if (rune.Value == '\t')
             {
-                return -1;
+                column += DiffRowRenderer.TabWidth - (column % DiffRowRenderer.TabWidth);
+            }
+            else if (rune.Value is >= ' ' and < 0x7F)
+            {
+                column++;
+            }
+            else if (Rune.IsControl(rune))
+            {
+                column++;
+            }
+            else
+            {
+                var runeWidth = TextWidth.Of(rune);
+                simple &= runeWidth == 1;
+                column += runeWidth;
             }
         }
 
-        return text.Length;
+        return simple ? column : ~column;
     }
 }
