@@ -1,0 +1,119 @@
+using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
+using Gitunia.Git;
+using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Tui.App;
+using Gitunia.Tui.Loading;
+using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Tests.App;
+using Xunit;
+
+namespace Gitunia.Tui.Tests.Loading;
+
+public class RepoLoaderTests
+{
+    [Fact]
+    public async Task GivenOpenedTab_WhenLoading_ThenGraphHeadAndRefsArriveAndLoadingEnds()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1")).Commit("second", ("a.txt", "2")).Tag("v1");
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        var changes = 0;
+        session.Changed += () => changes++;
+
+        // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+
+        Assert.False(session.IsLoading);
+        Assert.Equal(string.Empty, session.LoadError);
+        Assert.Equal(2, session.Graph.Count);
+        Assert.Equal(2, session.Source.Count);
+        Assert.True(changes >= 2);
+        var tab = host.Workspace.FindTab(tabId)!;
+        Assert.Equal("main", tab.Head!.BranchName);
+        Assert.Contains(tab.Refs, reference => reference.Name == "v1");
+    }
+
+    [Fact]
+    public async Task GivenCancelledTab_WhenLoading_ThenSessionStaysLoadingAndNothingThrows()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        await session.Cancellation.CancelAsync();
+
+        var statuses = new StatusChannel();
+
+        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
+        Assert.Empty(statuses.Log.History);
+        Assert.True(session.IsLoading);
+        Assert.Equal(0, session.Graph.Count);
+    }
+
+    [Fact]
+    public async Task GivenDirtyRepository_WhenLoading_ThenTheStatusSummaryArrivesForTheTabBar()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1")).WriteFile("untracked.txt", "x");
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+
+        Assert.Equal(new RepoStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+    }
+
+    [Fact]
+    public async Task GivenCleanRepository_WhenLoading_ThenTheStatusSummaryIsNotDirty()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var tabId = host.Workspace.ActiveTabId!.Value;
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+
+        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+
+        Assert.Equal(new RepoStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+    }
+
+    [Fact]
+    public async Task GivenRepositoryThatVanished_WhenLoading_ThenTheFailedReadsAreReportedToTheStatusChannel()
+    {
+        var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var host = new WorkspaceHost(Workspace.Empty);
+        host.Dispatch(new OpenRepositoryCommand(location));
+        var statuses = new StatusChannel();
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        repository.Dispose();
+
+        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
+        var texts = statuses.Log.History.Select(message => message.Text).ToList();
+        Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.Contains("could not read the stashes", StringComparison.Ordinal));
+        Assert.Contains(texts, text => text.Contains(": could not load the graph:", StringComparison.Ordinal));
+        Assert.NotEqual(string.Empty, session.LoadError);
+        Assert.All(statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
+    }
+}
