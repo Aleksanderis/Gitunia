@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Loading;
 /// Reloads a graph after a refresh without reading the whole log: reads the new log from the top and stops at the first row that
 /// is the same as in the previous graph (see <see cref="GraphSplicer"/>), then reuses the rest. A cheap commit count guards the
 /// reused part; when it disagrees, or no row joins, the whole log is read as before. A reload from here can in theory differ from a
-/// full read when history below the join was rewritten without changing the number of commits, so the manual refresh (which does a
+/// full read when a `git replace` ref changes history below the join without changing the number of commits, so the manual refresh (which does a
 /// full read) stays the way to resynchronize.
 /// </summary>
 public static class IncrementalGraphLoader
