@@ -9,8 +9,8 @@ public static class CommitLogFormat
     /// <summary>Commits are terminated by NUL (<c>log -z</c>).</summary>
     public const byte RecordTerminator = 0;
 
-    /// <summary>Hash, parents, author name, author email, author time (unix), decorations, subject.</summary>
-    public const string Format = "tformat:%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%D%x1f%s";
+    /// <summary>Hash, parents, author name, author email, author time (raw: unix seconds and UTC offset), decorations, subject.</summary>
+    public const string Format = "tformat:%H%x1f%P%x1f%an%x1f%ae%x1f%ad%x1f%D%x1f%s";
 
     /// <summary>Arguments for <c>git log</c>: parseable output, children before parents, full ref names in decorations.</summary>
     public static IReadOnlyList<string> Arguments(CommitOrder order, IEnumerable<string> revisions)
@@ -20,6 +20,7 @@ public static class CommitLogFormat
             "log",
             "-z",
             "--format=" + Format,
+            "--date=raw",
             "--decorate=full",
             "--no-color",
             "--no-show-signature",

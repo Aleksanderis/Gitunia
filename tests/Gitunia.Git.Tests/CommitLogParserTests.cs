@@ -18,6 +18,22 @@ public class CommitLogParserTests
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000), commits[0].AuthorTime);
     }
 
+    [Theory]
+    [InlineData("1700000000 -0500", -300)]
+    [InlineData("1700000000 +0530", 330)]
+    [InlineData("1700000000 +0000", 0)]
+    [InlineData("1700000000", 0)]
+    [InlineData("1700000000 bogus", 0)]
+    public void GivenRawAuthorDate_WhenParsing_ThenTheAuthorOffsetIsKept(string raw, int offsetMinutes)
+    {
+        var text = string.Join('\x1f', HashFor(1), string.Empty, "A", "a@b", raw, string.Empty, "Subject") + "\0";
+
+        var commits = ParseAll(text, 1000, out _);
+
+        Assert.Equal(TimeSpan.FromMinutes(offsetMinutes), commits[0].AuthorTime.Offset);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000), commits[0].AuthorTime);
+    }
+
     [Fact]
     public void GivenSha256Hashes_WhenParsing_ThenFullLengthIsKept()
     {
