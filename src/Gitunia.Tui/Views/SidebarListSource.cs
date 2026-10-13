@@ -62,10 +62,11 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
 
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
+        width = PanePadding.TextWidth(width);
         var line = item >= 0 && item < Rows.Length
             ? SidebarRowRenderer.Render(Rows[item], width, selected, glyphs)
             : new LineBuilder(width, glyphs.Ellipsis).Build();
-        LinePainter.Paint(listView, line, col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
 
     public void Dispose()

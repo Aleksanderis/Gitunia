@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Workspaces;
 using Gitunia.Tui.Rendering;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -7,23 +8,29 @@ using Window = Terminal.Gui.Views.Window;
 
 namespace Gitunia.Tui.Views;
 
-/// <summary>The first screen: header, tab row, the graph list and the status bar, laid out like <see cref="ScreenLayout"/>.</summary>
+/// <summary>The first screen: tab row, the framed panes and the status bar, laid out like <see cref="ScreenLayout"/>.</summary>
 public sealed class MainView : IDisposable
 {
-    private readonly LineView header;
     private readonly TabBarView tabs;
     private readonly PickerView picker;
     private readonly LineView status;
     private readonly LineView sidebarFilter;
-    private readonly DividerView divider;
+    private readonly FrameStripView divider;
+    private readonly FrameStripView[] edges;
     private readonly LineView detailTitle;
     private readonly LineView diffTitle;
-    private readonly DividerView bottomDividerView;
+    private readonly FrameStripView bottomDividerView;
     /// <summary>The view name reported for the wheel over an overlay; the application maps it to the open overlay's own view.</summary>
     public const string OverlayGestureView = "Overlay";
 
+    private static readonly PaneRect Empty = new(0, 0, 0, 0);
+
+    private readonly Func<ScreenModel> model;
+    private readonly GraphGlyphSet glyphs;
     private readonly Func<PaneArrangement> arrangement;
     private Func<bool> suppressed = () => false;
+    private (int Width, int Height, PaneRects Rects, PaneKind? Focused, string Title, bool IsPicker, bool IsAscii)? gridKey;
+    private FrameGrid? grid;
 
     public MainView(
         Func<ScreenModel> model,
@@ -33,17 +40,11 @@ public sealed class MainView : IDisposable
         Func<SidebarChrome> sidebarChrome,
         Func<PaneArrangement> arrangement,
         Func<int, StyledLine> diffTitleLine,
-        DiffListSource diffSource,
-        Func<StyledSegment> bottomDivider)
+        DiffListSource diffSource)
     {
         this.arrangement = arrangement;
-        header = new LineView(width => ChromeBuilder.Header(model(), width, glyphs))
-        {
-            X = 0,
-            Y = ScreenLayout.HeaderRow,
-            Width = Dim.Fill(),
-            Height = 1,
-        };
+        this.model = model;
+        this.glyphs = glyphs;
         tabs = new TabBarView(model, glyphs)
         {
             X = 0,
@@ -53,7 +54,7 @@ public sealed class MainView : IDisposable
         };
         Sidebar = new PaneListView
         {
-            X = 0,
+            X = 1,
             Y = ScreenLayout.GraphTop,
             Width = Dim.Func(_ => Rects().Sidebar.Width),
             Height = Dim.Func(_ => Rects().Sidebar.Height),
@@ -63,15 +64,22 @@ public sealed class MainView : IDisposable
         sidebarFilter = new LineView(width =>
         {
             var chrome = sidebarChrome();
-            return SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, width, glyphs);
+            return PanePadding.Wrap(SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, PanePadding.TextWidth(width), glyphs));
         })
         {
-            X = 0,
+            X = 1,
             Y = Pos.Func(_ => Rects().SidebarFilter.Y),
             Width = Dim.Func(_ => Rects().SidebarFilter.Width),
             Height = Dim.Func(_ => Rects().SidebarFilter.Height),
         };
-        divider = new DividerView(() => SidebarPane.Divider(sidebarChrome().IsFocused, glyphs))
+        edges =
+        [
+            new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
+            new FrameStripView(CurrentGrid) { X = 0, Y = Pos.Func(_ => ScreenLayout.FrameBottom(ScreenHeight())), Width = Dim.Fill(), Height = 1 },
+            new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
+            new FrameStripView(CurrentGrid) { X = Pos.Func(_ => Math.Max(0, ScreenWidth - 1)), Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
+        ];
+        divider = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().SidebarDivider.X),
             Y = ScreenLayout.GraphTop,
@@ -86,29 +94,29 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Graph.Height),
             CanFocus = true,
         };
-        detailTitle = new LineView(detailTitleLine)
+        detailTitle = new LineView(width => CurrentGrid().ResolveRules(detailTitleLine(width), Rects().DetailTitle.Y, Rects().DetailTitle.X))
         {
-            X = 0,
+            X = Pos.Func(_ => Rects().DetailTitle.X),
             Y = Pos.Func(_ => Rects().DetailTitle.Y),
             Width = Dim.Func(_ => Rects().DetailTitle.Width),
             Height = Dim.Func(_ => Rects().DetailTitle.Height),
         };
         Detail = new PaneListView
         {
-            X = 0,
+            X = Pos.Func(_ => Rects().Detail.X),
             Y = Pos.Func(_ => Rects().Detail.Y),
             Width = Dim.Func(_ => Rects().Detail.Width),
             Height = Dim.Func(_ => Rects().Detail.Height),
             CanFocus = true,
         };
-        bottomDividerView = new DividerView(bottomDivider)
+        bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),
             Y = Pos.Func(_ => Rects().BottomDivider.Y),
             Width = Dim.Func(_ => Rects().BottomDivider.Width),
             Height = Dim.Func(_ => Rects().BottomDivider.Height),
         };
-        diffTitle = new LineView(diffTitleLine)
+        diffTitle = new LineView(width => CurrentGrid().ResolveRules(diffTitleLine(width), Rects().DiffTitle.Y, Rects().DiffTitle.X))
         {
             X = Pos.Func(_ => Rects().DiffTitle.X),
             Y = Pos.Func(_ => Rects().DiffTitle.Y),
@@ -126,10 +134,10 @@ public sealed class MainView : IDisposable
         };
         picker = new PickerView(model, glyphs)
         {
-            X = 0,
+            X = 1,
             Y = ScreenLayout.GraphTop,
-            Width = Dim.Fill(),
-            Height = Dim.Fill(1),
+            Width = Dim.Func(_ => ScreenLayout.InnerWidth(ScreenWidth)),
+            Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())),
             Visible = false,
         };
         status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
@@ -142,7 +150,7 @@ public sealed class MainView : IDisposable
         Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
         tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
-        header.Clicked += _ => Gestured?.Invoke(DefaultMouseMap.HeaderView, MouseGesture.Click, null);
+        tabs.CommandsClicked += () => Gestured?.Invoke(DefaultMouseMap.CommandsButton, MouseGesture.Click, null);
         picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
         picker.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         Graph.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, target);
@@ -157,7 +165,7 @@ public sealed class MainView : IDisposable
         diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
-        Window.Add(header, tabs, Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
+        Window.Add(tabs, edges[0], edges[1], edges[2], edges[3], Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
     }
 
     /// <summary>
@@ -229,15 +237,19 @@ public sealed class MainView : IDisposable
 
     private int ScreenWidth => Window?.Viewport.Width ?? 0;
 
-    /// <summary>Redraws the header, tab row and status bar after the model changed.</summary>
+    /// <summary>Redraws the tab row, frame and status bar after the model changed.</summary>
     public void RefreshChrome()
     {
-        header.SetNeedsDraw();
         tabs.SetNeedsDraw();
         status.SetNeedsDraw();
         picker.SetNeedsDraw();
         sidebarFilter.SetNeedsDraw();
         divider.SetNeedsDraw();
+        foreach (var edge in edges)
+        {
+            edge.SetNeedsDraw();
+        }
+
         Sidebar.SetNeedsDraw();
         detailTitle.SetNeedsDraw();
         diffTitle.SetNeedsDraw();
@@ -284,6 +296,24 @@ public sealed class MainView : IDisposable
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         }
+    }
+
+    private FrameGrid CurrentGrid()
+    {
+        var isPicker = picker.Visible;
+        var rects = isPicker
+            ? new PaneRects(Empty, Empty, Empty, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(ScreenWidth), ScreenLayout.GraphHeight(ScreenHeight())), Empty, Empty, Empty, Empty, Empty)
+            : Rects();
+        PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
+        var title = model().RepositoryName.Length > 0 ? model().RepositoryName : "Repo";
+        var key = (ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, glyphs.IsAscii);
+        if (grid is null || gridKey != key)
+        {
+            grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
+            gridKey = key;
+        }
+
+        return grid;
     }
 
     private PaneRects Rects()

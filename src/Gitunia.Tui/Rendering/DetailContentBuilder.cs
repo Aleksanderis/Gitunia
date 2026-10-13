@@ -12,7 +12,7 @@ public static class DetailContentBuilder
     private const int HashLength = 7;
     private const string TimeFormat = "yyyy-MM-dd HH:mm zzz";
     private const string Indent = "  ";
-    private const string FilesPlaceholder = "  The file tree is not implemented yet";
+    private const string FilesPlaceholder = "The file tree is not implemented yet";
 
     /// <param name="entry">The selected graph row, null when nothing is selected. Its subject and refs show before the details arrive.</param>
     /// <param name="state">The loading state of the commit's details.</param>
@@ -32,7 +32,7 @@ public static class DetailContentBuilder
             _ => BuildFilesPlaceholder(),
         };
         var firstFileRow = tab == BottomTab.Changes && details is not null ? 1 : rows.Count;
-        return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab);
+        return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
 
     /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
@@ -160,7 +160,7 @@ public static class DetailContentBuilder
             var mark = Mark(file);
             var text = DescribeFile(file);
             rows.Add(new DetailRow([
-                new StyledSegment(Indent + mark, role),
+                new StyledSegment(mark, role),
                 new StyledSegment(text[mark.Length..], SegmentRole.Plain),
             ]));
         }

@@ -11,7 +11,7 @@ public class PaneLayoutTests
     {
         var rects = PaneLayout.Compute(120, 40, false, null);
 
-        Assert.Equal(120, rects.Detail.Width);
+        Assert.Equal(118, rects.Detail.Width);
         Assert.True(rects.Diff.IsEmpty);
         Assert.Equal(DetailLayout.GraphHeight(40), rects.Graph.Height);
         Assert.Equal(rects.Graph.Y + rects.Graph.Height, rects.DetailTitle.Y);
@@ -25,24 +25,24 @@ public class PaneLayoutTests
 
         Assert.False(rects.Detail.IsEmpty);
         Assert.False(rects.Diff.IsEmpty);
-        Assert.Equal(rects.Detail.Width, rects.BottomDivider.X);
+        Assert.Equal(rects.Detail.X + rects.Detail.Width, rects.BottomDivider.X);
         Assert.Equal(rects.BottomDivider.X + 1, rects.Diff.X);
-        Assert.Equal(140, rects.Diff.X + rects.Diff.Width);
+        Assert.Equal(139, rects.Diff.X + rects.Diff.Width);
         Assert.Equal(rects.Detail.Y, rects.Diff.Y);
     }
 
     [Fact]
     public void GivenAVeryNarrowScreenWithADiff_WhenComputing_ThenTheDiffReplacesTheDetailPane()
     {
-        var rects = PaneLayout.Compute(69, 40, true, null);
+        var rects = PaneLayout.Compute(71, 40, true, null);
 
         Assert.True(rects.Detail.IsEmpty);
-        Assert.Equal(0, rects.Diff.X);
+        Assert.Equal(1, rects.Diff.X);
         Assert.Equal(69, rects.Diff.Width);
     }
 
     [Theory]
-    [InlineData(70, 24)]
+    [InlineData(72, 24)]
     [InlineData(80, 26)]
     [InlineData(100, 33)]
     [InlineData(120, 40)]
@@ -51,8 +51,8 @@ public class PaneLayoutTests
         var rects = PaneLayout.Compute(width, 40, true, null);
 
         Assert.Equal(detailWidth, rects.Detail.Width);
-        Assert.Equal(detailWidth, rects.BottomDivider.X);
-        Assert.Equal(width, rects.Diff.X + rects.Diff.Width);
+        Assert.Equal(detailWidth + 1, rects.BottomDivider.X);
+        Assert.Equal(width - 1, rects.Diff.X + rects.Diff.Width);
         Assert.True(rects.Diff.Width >= 45);
     }
 
@@ -71,8 +71,9 @@ public class PaneLayoutTests
             PaneKind.Detail => rects.Detail,
             _ => rects.Graph,
         };
-        Assert.Equal(100, shown.Width);
-        Assert.Equal(pane == PaneKind.Graph ? area : area - 1, shown.Height);
+        Assert.Equal(98, shown.Width);
+        Assert.Equal(area, shown.Height);
+        Assert.Equal(1, shown.X);
         Assert.True(rects.Sidebar.IsEmpty);
         Assert.Equal(pane != PaneKind.Graph, rects.Graph.IsEmpty);
         Assert.Equal(pane != PaneKind.Detail, rects.Detail.IsEmpty);

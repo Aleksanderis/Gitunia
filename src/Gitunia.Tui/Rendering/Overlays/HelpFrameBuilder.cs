@@ -135,7 +135,7 @@ public static class HelpFrameBuilder
                 lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
             }
 
-            lines.Add(OverlayBox.Text(section.Title, width, glyphs, SegmentRole.OverlayTitle));
+            lines.Add(OverlayBox.Text(section.Title, width, glyphs, SegmentRole.SectionTitle));
             foreach (var row in section.Rows)
             {
                 var keys = TextWidth.Fit(row.Keys, keysWidth, glyphs.Ellipsis);

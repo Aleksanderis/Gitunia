@@ -119,8 +119,9 @@ public class PickerComposerTests
         var lines = ScreenComposer.Compose(model, new Gitunia.Core.Graph.CommitGraph(), 0, 0, 80, 8, GraphGlyphSet.Unicode);
 
         Assert.Equal(8, lines.Count);
-        Assert.StartsWith(" no repository open", lines[1].Text, StringComparison.Ordinal);
-        Assert.StartsWith(" Open repository: _", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith(" no repository open", lines[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("╭", lines[1].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│ Open repository: _", lines[2].Text, StringComparison.Ordinal);
         Assert.Contains("alpha", lines[4].Text, StringComparison.Ordinal);
         Assert.Contains("Alt-p pin", lines[^1].Text, StringComparison.Ordinal);
     }

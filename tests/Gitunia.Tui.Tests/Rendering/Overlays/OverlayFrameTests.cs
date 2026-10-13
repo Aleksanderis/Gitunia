@@ -108,7 +108,7 @@ public class OverlayFrameTests
                 "│ Show the Files tab                                                gf │",
                 "│ Move down                                                   j / Down │",
                 "│ Move up                                                       k / Up │",
-                "│ 1/85  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/86  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -132,7 +132,7 @@ public class OverlayFrameTests
                 "│ Go to tab 3                                      Alt-3 │",
                 "│ Go to tab 4                                      Alt-4 │",
                 "│ Go to tab 5                                      Alt-5 │",
-                "│ 2/21  Up/Down choose  Enter run  Esc close             │",
+                "│ 2/22  Up/Down choose  Enter run  Esc close             │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected).ToArray());
@@ -218,7 +218,7 @@ public class OverlayFrameTests
                 "│  G                     Go to the bottom                      │",
                 "│  /                     Search                                │",
                 "│  n                     Next search match                     │",
-                "│ 1-19/58  list keys scroll  Esc close                         │",
+                "│ 1-19/59  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

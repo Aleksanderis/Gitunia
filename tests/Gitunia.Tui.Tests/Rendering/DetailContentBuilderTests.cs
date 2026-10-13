@@ -137,13 +137,14 @@ public class DetailContentBuilderTests
         Assert.Equal(
             [
                 "3 files changed",
-                "  M src/a.cs",
-                "  A new.txt",
-                "  R90 a.txt -> b ünï.txt",
+                "M src/a.cs",
+                "A new.txt",
+                "R90 a.txt -> b ünï.txt",
             ],
             Lines(content));
         Assert.Equal(1, content.FirstFileRow);
         Assert.Equal(files, content.Files);
+        Assert.Equal(3, content.FileCount);
     }
 
     [Theory]
@@ -157,7 +158,7 @@ public class DetailContentBuilderTests
 
         var content = DetailContentBuilder.Build(entry, state, BottomTab.Files);
 
-        Assert.Equal(["  The file tree is not implemented yet"], Lines(content));
+        Assert.Equal(["The file tree is not implemented yet"], Lines(content));
         Assert.Equal(content.Rows.Count, content.FirstFileRow);
     }
 

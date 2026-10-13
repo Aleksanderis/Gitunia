@@ -13,14 +13,14 @@ public class DiffTitleButtonsTests
         var buttons = DiffTitleButtons.Layout(80);
 
         Assert.Equal(["[<f]", "[f>]", "[<h]", "[h>]", "[w]", "[z]", "[x]"], buttons.Select(button => button.Label));
-        Assert.Equal(80, buttons[^1].Start + buttons[^1].Width);
+        Assert.Equal(78, buttons[^1].Start + buttons[^1].Width);
         Assert.Equal(1, buttons[1].Start - (buttons[0].Start + buttons[0].Width));
     }
 
     [Fact]
     public void GivenANarrowTitleRow_WhenLayingOut_ThenOnlyTheMostUsefulButtonsRemainAndTheTitleKeepsItsWidth()
     {
-        var buttons = DiffTitleButtons.Layout(42);
+        var buttons = DiffTitleButtons.Layout(44);
 
         Assert.Equal(["[w]", "[z]", "[x]"], buttons.Select(button => button.Label));
         Assert.True(buttons[0].Start >= DiffTitleButtons.MinimumTitleWidth);
@@ -52,7 +52,7 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(pane, 80, GraphGlyphSet.Unicode);
 
         Assert.Equal(80, TextWidth.Of(title.Text));
-        Assert.EndsWith("[<f] [f>] [<h] [h>] [w] [z] [x]", title.Text, StringComparison.Ordinal);
+        Assert.EndsWith("[<f] [f>] [<h] [h>] [w] [z] [x] ─", title.Text, StringComparison.Ordinal);
         Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
         Assert.Equal(7, title.Segments.Count(segment => segment.Role == SegmentRole.Button));
     }

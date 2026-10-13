@@ -13,7 +13,10 @@ public enum SegmentRole
     CurrentBranch,
     RemoteBranch,
     Tag,
-    Header,
+    BarButton,
+
+    /// <summary>A tab of the bottom pane that is not showing: a button on the bar background (underlined where there is no background).</summary>
+    TabButton,
     ActiveTab,
     InactiveTab,
     StatusMode,
@@ -22,6 +25,10 @@ public enum SegmentRole
 
     /// <summary>A failure notice.</summary>
     Error,
+
+    /// <summary>A failure notice in the status bar (the bar's own background).</summary>
+    StatusError,
+
     /// <summary>A sidebar section title.</summary>
     SectionTitle,
 
@@ -30,6 +37,10 @@ public enum SegmentRole
 
     /// <summary>The line between panes while the pane beside it has focus.</summary>
     FocusedBorder,
+
+    /// <summary>A stretch of a pane's top edge inside a title row; <see cref="FrameGrid.ResolveRules"/> replaces it by the frame's own cells.</summary>
+    Rule,
+
     /// <summary>A file the commit added.</summary>
     FileAdded,
 

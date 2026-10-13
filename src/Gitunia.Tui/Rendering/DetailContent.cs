@@ -9,7 +9,8 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="FirstFileRow">Index of the first file row; equals the row count when there are no files or the tab lists none.</param>
 /// <param name="Files">The changed files (also on tabs that do not list them, for the title); on the Changes tab file row <c>FirstFileRow + n</c> shows <c>Files[n]</c>.</param>
 /// <param name="Tab">The tab these rows belong to.</param>
-public sealed record DetailContent(string ShortHash, IReadOnlyList<DetailRow> Rows, int FirstFileRow, IReadOnlyList<CommitFileChange> Files, BottomTab Tab)
+/// <param name="FileCount">The number of changed files, null while the details are not loaded (the title shows <c>.. files</c> then instead of a count that would flicker from 0).</param>
+public sealed record DetailContent(string ShortHash, IReadOnlyList<DetailRow> Rows, int FirstFileRow, IReadOnlyList<CommitFileChange> Files, BottomTab Tab, int? FileCount = null)
 {
     /// <summary>No commit selected, on the Changes tab.</summary>
     public static DetailContent Empty { get; } = EmptyFor(BottomTab.Changes);
