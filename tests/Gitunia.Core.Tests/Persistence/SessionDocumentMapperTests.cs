@@ -37,6 +37,22 @@ public class SessionDocumentMapperTests
     }
 
     [Fact]
+    public void GivenARenamedTab_WhenRoundTripped_ThenTheCustomNameSurvivesAndABlankOneIsDropped()
+    {
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha", "beta");
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(workspace.Tabs[0].Id, new SetTabNameCommand(" Billing "))).Workspace;
+        var document = SessionDocumentMapper.ToDocument(workspace);
+
+        var restored = SessionDocumentMapper.ToWorkspace(document, _ => true).Workspace;
+        var blank = SessionDocumentMapper.ToWorkspace(document with { Tabs = [document.Tabs![0] with { CustomName = "   " }, document.Tabs[1]] }, _ => true).Workspace;
+
+        Assert.Equal("Billing", document.Tabs![0].CustomName);
+        Assert.Null(document.Tabs[1].CustomName);
+        Assert.Equal(["Billing", "beta"], restored.Tabs.Select(tab => tab.Title));
+        Assert.Equal(["alpha", "beta"], blank.Tabs.Select(tab => tab.Title));
+    }
+
+    [Fact]
     public void GivenTabWhoseDirectoryIsGone_WhenRestoring_ThenTabIsKeptAsMissingWithoutLoadEffect()
     {
         var workspace = SessionFixtures.Open(Workspace.Empty, "alpha", "beta");
