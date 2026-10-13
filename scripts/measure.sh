@@ -49,7 +49,7 @@ fi
 
 # Private state/config dirs: a restored session (extra tabs, saved scroll position) would change
 # both what is on screen and the RSS. Linux honours XDG_*; macOS keeps state under ~/Library (not isolated here).
-isolated="$(mktemp -d)"
+isolated="$(mktemp -d)"; mkdir -p "$isolated/state" "$isolated/config"
 sock="gtm-$$"
 t() { tmux -L "$sock" -f /dev/null "$@"; }
 cleanup() { t kill-server 2>/dev/null || true; rm -rf "$isolated"; }
