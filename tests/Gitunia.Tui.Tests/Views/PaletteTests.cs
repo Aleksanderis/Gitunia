@@ -11,10 +11,10 @@ namespace Gitunia.Tui.Tests.Views;
 public class PaletteTests
 {
     // What a terminal typically draws behind and in front of default text.
-    private const int DarkBackground = 0x0d1117;
-    private const int DarkText = 0xc9d1d9;
-    private const int LightBackground = 0xffffff;
-    private const int LightText = 0x24292f;
+    private const int DarkBackground = 0x1e1e2e;
+    private const int DarkText = 0xcdd6f4;
+    private const int LightBackground = 0xeff1f5;
+    private const int LightText = 0x4c4f69;
 
     private const double ReadableRatio = 4.5;
     private const double DecorationRatio = 3.0;

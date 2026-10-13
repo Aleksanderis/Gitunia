@@ -76,7 +76,7 @@ public sealed class PaletteTable
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
-    /// <summary>The table for a terminal: a GitHub-like 24-bit set (dark and light variants), the 16 named colours, or styles only.</summary>
+    /// <summary>The table for a terminal: a Catppuccin 24-bit set (Mocha, Latte) (dark and light variants), the 16 named colours, or styles only.</summary>
     public static PaletteTable For(PaletteSettings settings) => settings.Depth switch
     {
         ColorDepth.None => Monochrome(),
@@ -84,44 +84,45 @@ public sealed class PaletteTable
         _ => settings.IsLightBackground ? TrueColorLight() : TrueColorDark(),
     };
 
+    // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/decisions.md).
     private static PaletteTable TrueColorDark() => new()
     {
-        Accent = Rgb(0x58a6ff),
-        Good = Rgb(0x3fb950),
-        Bad = Rgb(0xff7b72),
-        Warn = Rgb(0xd29922),
-        Info = Rgb(0x39c5cf),
-        Muted = Rgb(0x8b949e),
-        MutedOnSelection = Rgb(0xa5adb7),
-        Border = Rgb(0x6e7681),
-        BarBackground = Rgb(0x161b22),
-        SelectionFocused = Rgb(0x1c2d4a),
-        SelectionDim = Rgb(0x242b35),
-        ChipForeground = Rgb(0x0d1117),
-        ChipBackground = Rgb(0x58a6ff),
-        MatchForeground = Rgb(0x0d1117),
-        MatchBackground = Rgb(0xe3b341),
-        Lanes = Rgbs(0x58a6ff, 0x3fb950, 0xd29922, 0xbc8cff, 0xff7b72, 0x39c5cf, 0xf0883e, 0xf778ba, 0x79c0ff, 0x56d364, 0xe3b341, 0xd2a8ff),
+        Accent = Rgb(0x89b4fa),
+        Good = Rgb(0xa6e3a1),
+        Bad = Rgb(0xf38ba8),
+        Warn = Rgb(0xf9e2af),
+        Info = Rgb(0x89dceb),
+        Muted = Rgb(0x9399b2),
+        MutedOnSelection = Rgb(0xa6adc8),
+        Border = Rgb(0x6c7086),
+        BarBackground = Rgb(0x181825),
+        SelectionFocused = Rgb(0x313244),
+        SelectionDim = Rgb(0x262637),
+        ChipForeground = Rgb(0x11111b),
+        ChipBackground = Rgb(0x89b4fa),
+        MatchForeground = Rgb(0x11111b),
+        MatchBackground = Rgb(0xf9e2af),
+        Lanes = Rgbs(0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5, 0xfab387, 0xf5c2e7, 0x74c7ec, 0xb4befe, 0xeba0ac, 0xf2cdcd),
     };
 
     private static PaletteTable TrueColorLight() => new()
     {
-        Accent = Rgb(0x0550ae),
-        Good = Rgb(0x116329),
-        Bad = Rgb(0xa40e26),
-        Warn = Rgb(0x7d4e00),
-        Info = Rgb(0x0e6169),
-        Muted = Rgb(0x57606a),
-        MutedOnSelection = Rgb(0x424a53),
-        Border = Rgb(0x7d8590),
-        BarBackground = Rgb(0xeaeef2),
-        SelectionFocused = Rgb(0xdce9f9),
-        SelectionDim = Rgb(0xe8ebef),
-        ChipForeground = Rgb(0xffffff),
-        ChipBackground = Rgb(0x0550ae),
-        MatchForeground = Rgb(0x1f2328),
-        MatchBackground = Rgb(0xffd33d),
-        Lanes = Rgbs(0x0550ae, 0x116329, 0x7d4e00, 0x6639ba, 0xa40e26, 0x0e6169, 0x953800, 0x99286e, 0x0a3069, 0x0b4f1d, 0x633c01, 0x512a97),
+        Accent = Rgb(0x1a59d7),
+        Good = Rgb(0x2c6f1e),
+        Bad = Rgb(0xc30d35),
+        Warn = Rgb(0x8a5811),
+        Info = Rgb(0x116d72),
+        Muted = Rgb(0x5f6175),
+        MutedOnSelection = Rgb(0x5c5f77),
+        Border = Rgb(0x7c7f93),
+        BarBackground = Rgb(0xe6e9ef),
+        SelectionFocused = Rgb(0xdce0e8),
+        SelectionDim = Rgb(0xe9ecf1),
+        ChipForeground = Rgb(0xeff1f5),
+        ChipBackground = Rgb(0x1a59d7),
+        MatchForeground = Rgb(0x232634),
+        MatchBackground = Rgb(0xf2c97a),
+        Lanes = Rgbs(0x1a59d7, 0x2c6f1e, 0x8a5811, 0x7f35e0, 0xc30d35, 0x116d72, 0xa74107, 0x91497d, 0x156c7b, 0x4d5bac, 0xb1353f, 0x914f4f),
     };
 
     // The 16 named colours: the terminal's theme maps them, so they stay readable whatever it is. The selection uses
