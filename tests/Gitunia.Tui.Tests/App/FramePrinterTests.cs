@@ -1,0 +1,92 @@
+using Gitunia.Core.Workspaces;
+using Gitunia.Git;
+using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Tui.App;
+using Gitunia.Tui.Rendering;
+using Xunit;
+
+namespace Gitunia.Tui.Tests.App;
+
+public class FramePrinterTests
+{
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task GivenNoArrangement_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, null);
+
+        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(80)]
+    [InlineData(100)]
+    public async Task GivenAnOpenDiff_WhenPrinting_ThenFileListAndDiffRowsShareTheFrame(int width)
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("second", ("a.txt", "one\ntwo added\n"));
+
+        var lines = await PrintAsync(repository, width, 30, new PaneArrangement(true, null));
+
+        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("two added", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenAZoomedDiffOfARootCommit_WhenPrinting_ThenTheDiffFillsTheFrame()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "first line\n"));
+
+        var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff));
+
+        Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenEachTab_WhenPrinting_ThenThePaneShowsThatTabsContent()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root commit message", ("a.txt", "one\n"));
+
+        var details = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
+        var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
+        var files = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
+
+        Assert.Contains(details, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.DoesNotContain(details, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.Contains(changes, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.DoesNotContain(changes, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
+        Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details  Changes  Files ", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenThePlaceholderSitsBesideTheDiff()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "first line\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(true, null), BottomTab.Files);
+
+        Assert.Contains(lines, line => line.Contains("The file tree", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
+    }
+
+    private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes)
+    {
+        var runner = new GitRunner();
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, Token);
+        using var writer = new StringWriter();
+        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement, tab);
+        return [.. writer.ToString().Split('\n')];
+    }
+}
