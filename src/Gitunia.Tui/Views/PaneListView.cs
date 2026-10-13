@@ -8,14 +8,13 @@ namespace Gitunia.Tui.Views;
 /// <summary>
 /// A list pane that reports its mouse input as <see cref="MouseGesture"/>s instead of scrolling by itself: the toolkit
 /// still selects the clicked row, but the wheel, the double-click and the drag are decided by the shared mouse map, so they run the same
-/// actions as keys. A gesture first gives the pane the focus. A drag grabs the mouse (so it goes on outside the pane; resting outside auto-scrolls, see <see cref="DragAutoScroll"/>), selects the row it
-/// started on and then reports how many rows the pointer is above or below the cursor.
+/// actions as keys. A gesture first gives the pane the focus. A drag grabs the mouse (so it goes on outside the pane; resting outside
+/// auto-scrolls, see <see cref="DragAutoScroll"/>), selects the row it started on and then reports how many rows the pointer is above or below the cursor.
 /// </summary>
 public sealed class PaneListView : ListView
 {
     private readonly DragTracker drag = new();
     private int lastPointerRow;
-    private int autoScrollGeneration;
     private bool isAutoScrolling;
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
@@ -71,6 +70,7 @@ public sealed class PaneListView : ListView
 
         if (phase == DragPhase.Press)
         {
+            isAutoScrolling = false;
             return base.OnMouseEvent(mouse);
         }
 
@@ -107,11 +107,10 @@ public sealed class PaneListView : ListView
         }
 
         isAutoScrolling = true;
-        var generation = ++autoScrollGeneration;
         App.AddTimeout(DragAutoScroll.Interval, () =>
         {
             var step = DragAutoScroll.Step(lastPointerRow, Viewport.Height);
-            if (generation != autoScrollGeneration || !drag.IsPressed || step == 0 || IsSuppressed())
+            if (!drag.IsPressed || step == 0 || IsSuppressed())
             {
                 isAutoScrolling = false;
                 return false;
@@ -119,6 +118,12 @@ public sealed class PaneListView : ListView
 
             var count = Source?.Count ?? 0;
             var target = Math.Clamp((SelectedItem ?? 0) + step, 0, Math.Max(count - 1, 0));
+            if (target == (SelectedItem ?? 0))
+            {
+                isAutoScrolling = false;
+                return false;
+            }
+
             ExtendTo(target - Viewport.Y);
             return true;
         });
