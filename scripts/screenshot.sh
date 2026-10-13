@@ -47,6 +47,7 @@ while [ $# -gt 0 ]; do
 done
 
 branch_name="screenshots"
+work="" socket=""
 
 make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with branches, a merge, tags and real diffs
   local dir="$1" day=0
@@ -101,7 +102,7 @@ render() {
   [ -x "$binary" ] || { echo "binary not found or not executable: $binary" >&2; exit 2; }
   binary="$(cd "$(dirname "$binary")" && pwd)/$(basename "$binary")"
   mkdir -p "$out_dir" "$cache_dir"
-  local converter work repo socket
+  local converter repo
   converter="$(build_converter)"
   work="$(mktemp -d)"
   socket="gtshot-$$"
@@ -169,7 +170,7 @@ repository_slug() { gh repo view --json nameWithOwner -q .nameWithOwner; }
 publish() {
   [ -n "$pull_request" ] || { echo "--pr <number> is required" >&2; exit 2; }
   ls "$out_dir"/*.png >/dev/null 2>&1 || { echo "no PNGs in $out_dir; run render first" >&2; exit 2; }
-  local work slug stamp target file pinned
+  local slug stamp target file pinned
   work="$(mktemp -d)"
   trap 'rm -rf "$work"' EXIT
   with_branch "$work/clone"
@@ -179,8 +180,10 @@ publish() {
   mkdir -p "$work/clone/$target"
   cp "$out_dir"/*.png "$work/clone/$target/"
   git -C "$work/clone" add -A
-  git -C "$work/clone" commit -q -m "chore: screenshots for PR #$pull_request @ $stamp"
-  git -C "$work/clone" push -q origin "$branch_name"
+  if ! git -C "$work/clone" diff --cached --quiet; then
+    git -C "$work/clone" commit -q -m "chore: screenshots for PR #$pull_request @ $stamp"
+    git -C "$work/clone" push -q origin "$branch_name"
+  fi
   pinned="$(git -C "$work/clone" rev-parse HEAD)"
   echo "pushed to $branch_name ($target @ ${pinned:0:7})" >&2
   for file in "$out_dir"/*.png; do
@@ -193,7 +196,7 @@ publish() {
 }
 
 clean() {
-  local work directory number state removed=0
+  local directory number state removed=0
   work="$(mktemp -d)"
   trap 'rm -rf "$work"' EXIT
   with_branch "$work/clone"
