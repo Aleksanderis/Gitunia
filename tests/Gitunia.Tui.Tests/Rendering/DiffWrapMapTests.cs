@@ -82,5 +82,40 @@ public class DiffWrapMapTests
         Assert.Equal(Enumerable.Range(0, 6).Select(fresh.StartOf), Enumerable.Range(0, 6).Select(resized.StartOf));
     }
 
+    [Theory]
+    [InlineData(5)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(19)]
+    [InlineData(80)]
+    public void GivenEveryRowKindAndBoundaryLengths_WhenResizing_ThenLinesMatchTheRendererCount(int width)
+    {
+        var kinds = new[] { DiffRowKind.Context, DiffRowKind.Added, DiffRowKind.Removed, DiffRowKind.Warning, DiffRowKind.Note, DiffRowKind.NoNewline, DiffRowKind.FileHeader, DiffRowKind.HunkHeader };
+        var rows = new List<DiffRow>();
+        foreach (var kind in kinds)
+        {
+            foreach (var length in new[] { 0, 1, 9, 10, 11, 20, 21, 40, 41 })
+            {
+                rows.Add(new DiffRow(kind, new string('z', length), 1, 1, 0));
+            }
+        }
+
+        var document = Document([.. rows]);
+        var map = DiffWrapMap.Build(document, 33).Resize(width);
+        var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
+
+        var line = 0;
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var expected = DiffRowRenderer.SegmentCount(rows[index], width, digits);
+            Assert.Equal(line, map.StartOf(index));
+            Assert.Equal(index, map.RowOf(line));
+            Assert.Equal(index, map.RowOf(line + expected - 1));
+            line += expected;
+        }
+
+        Assert.Equal(line, map.Count);
+    }
+
     private static DiffDocument Document(params DiffRow[] rows) => new(rows, [], [0], [["f"]], 9);
 }

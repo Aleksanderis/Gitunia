@@ -4,7 +4,8 @@ namespace Gitunia.Tui.Rendering;
 
 /// <summary>
 /// Maps the rows of a diff to the screen lines they take when text wraps at a given pane width.
-/// The per-row text widths are measured once per document and shared by every width, so a resize only does arithmetic for printable-ASCII rows (the slow path stays for the rest).
+/// The per-row text widths are measured once per document and shared by every width.
+/// A resize only does arithmetic for printable-ASCII rows; the other rows keep the exact slow path.
 /// </summary>
 public sealed class DiffWrapMap
 {
