@@ -8,8 +8,8 @@ namespace Gitunia.Tui.App;
 
 /// <summary>
 /// Visual mode: <c>v</c> (or a mouse drag) anchors a range at the cursor row of the graph, detail or diff pane, the motions (or the
-/// pointer) move the other end, and <c>v</c>, <c>Esc</c> or <c>q</c> (or a click) ends it. The range is drawn like the selected row; nothing
-/// copies it with <c>y</c> (staging lines will act on it in M2). The sidebar has no ranges.
+/// pointer) move the other end, and <c>v</c>, <c>Esc</c> or <c>q</c> (or a click) ends it. The range is drawn like the selected row;
+/// <c>y</c> copies it and ends it (staging lines will act on it in M2). The sidebar has no ranges.
 /// </summary>
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="listOf">The list of a pane.</param>
