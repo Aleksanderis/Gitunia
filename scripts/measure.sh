@@ -47,9 +47,12 @@ if [ -z "$oldest" ]; then
   oldest="$(git -C "$repo" log --max-parents=0 -1 --format=%s HEAD)"
 fi
 
+# Private state/config dirs: a restored session (extra tabs, saved scroll position) would change
+# both what is on screen and the RSS. Linux honours XDG_*; macOS keeps state under ~/Library (not isolated here).
+isolated="$(mktemp -d)"
 sock="gtm-$$"
 t() { tmux -L "$sock" -f /dev/null "$@"; }
-cleanup() { t kill-server 2>/dev/null || true; }
+cleanup() { t kill-server 2>/dev/null || true; rm -rf "$isolated"; }
 trap cleanup EXIT
 
 now_us() { local n="$EPOCHREALTIME"; echo "${n/./}"; }
@@ -67,7 +70,7 @@ start_server() {
   t start-server \; set -g exit-empty off \; set -g remain-on-exit on
 }
 start_app() { # starts the app in session "m"; the caller times around this
-  t new-session -d -s m -x "$cols" -y "$rows" "exec $(printf '%q %q' "$bin" "$repo")"
+  t new-session -d -s m -x "$cols" -y "$rows" "exec env XDG_STATE_HOME=$(printf '%q' "$isolated/state") XDG_CONFIG_HOME=$(printf '%q' "$isolated/config") $(printf '%q %q' "$bin" "$repo")"
 }
 stop_app() { t kill-session -t m 2>/dev/null || true; }
 
