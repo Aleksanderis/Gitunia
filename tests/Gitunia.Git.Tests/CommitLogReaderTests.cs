@@ -26,6 +26,20 @@ public class CommitLogReaderTests
     }
 
     [Fact]
+    public async Task GivenCommitWithWestOffset_WhenReadingLog_ThenAuthorOffsetAndLocalDateAreKept()
+    {
+        using var repository = TestRepositories.Linear(1);
+        repository.Git("commit", "--allow-empty", "-m", "late", "--date=2026-10-13T23:30:00-0500");
+        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+
+        var commits = await ReadAllAsync(repo);
+
+        var late = commits.Single(commit => commit.Subject == "late");
+        Assert.Equal(TimeSpan.FromHours(-5), late.AuthorTime.Offset);
+        Assert.Equal(new DateTime(2026, 10, 13, 23, 30, 0), late.AuthorTime.DateTime);
+    }
+
+    [Fact]
     public async Task GivenMergeCommit_WhenReadingLog_ThenHasTwoParentsAndDecorations()
     {
         using var repository = TestRepositories.Branchy();

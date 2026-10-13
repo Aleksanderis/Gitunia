@@ -33,7 +33,7 @@ public static class GraphRowRenderer
 
         if (columns.DateWidth > 0)
         {
-            AppendColumn(builder, entry.AuthorTime.UtcDateTime.ToString(DateFormat, CultureInfo.InvariantCulture), columns.DateWidth, SegmentRole.Faint, ellipsis);
+            AppendColumn(builder, entry.AuthorTime.DateTime.ToString(DateFormat, CultureInfo.InvariantCulture), columns.DateWidth, SegmentRole.Faint, ellipsis);
         }
 
         if (columns.HashWidth > 0)

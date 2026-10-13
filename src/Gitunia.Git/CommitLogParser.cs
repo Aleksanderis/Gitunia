@@ -166,7 +166,7 @@ public sealed class CommitLogParser
             return;
         }
 
-        if (!long.TryParse(record[fields[4]], out var unixSeconds))
+        if (!TryParseAuthorTime(record[fields[4]], out var authorTime))
         {
             warnings.Add($"Commit {id} has an invalid author time");
         }
@@ -176,9 +176,61 @@ public sealed class CommitLogParser
             parents,
             Intern(record[fields[2]]),
             Intern(record[fields[3]]),
-            DateTimeOffset.FromUnixTimeSeconds(unixSeconds),
+            authorTime,
             Encoding.UTF8.GetString(record[fields[6]]),
             ParseDecorations(Encoding.UTF8.GetString(record[fields[5]]))));
+    }
+
+    // Raw date: "<unix seconds> <+|-HHMM>"; a bare number counts as UTC.
+    private static bool TryParseAuthorTime(ReadOnlySpan<byte> field, out DateTimeOffset result)
+    {
+        var space = field.IndexOf((byte)' ');
+        var secondsField = space < 0 ? field : field[..space];
+        if (!long.TryParse(secondsField, out var unixSeconds) || unixSeconds < -62_135_596_800L || unixSeconds > 253_402_300_799L)
+        {
+            result = DateTimeOffset.UnixEpoch;
+            return false;
+        }
+
+        var offset = TimeSpan.Zero;
+        if (space >= 0 && field.Length - space == 6 && (field[space + 1] == (byte)'+' || field[space + 1] == (byte)'-'))
+        {
+            var digits = field[(space + 2)..];
+            if (IsDigits(digits) && int.TryParse(digits[..2], out var hours) && int.TryParse(digits[2..], out var minutes) && hours <= 14 && minutes < 60)
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (field[space + 1] == (byte)'-')
+                {
+                    offset = -offset;
+                }
+            }
+        }
+
+        var instant = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+        try
+        {
+            result = instant.ToOffset(offset);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // Local time would leave years 1..9999 (a forged date at the edge): keep the UTC instant.
+            result = instant;
+        }
+
+        return true;
+    }
+
+    private static bool IsDigits(ReadOnlySpan<byte> text)
+    {
+        foreach (var value in text)
+        {
+            if (value < (byte)'0' || value > (byte)'9')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static ObjectId[]? ParseParents(ReadOnlySpan<byte> field)
