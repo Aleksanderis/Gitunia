@@ -43,6 +43,27 @@ public sealed record RepoState(
         }
     }
 
+    /// <summary>Longest tab name; longer names are cut so one tab cannot take the whole tab row.</summary>
+    public const int MaximumNameLength = 40;
+
+    /// <summary>A name as stored: trimmed, cut to <see cref="MaximumNameLength"/> without splitting a surrogate pair, null when blank.</summary>
+    public static string? NormalizeName(string? name)
+    {
+        var trimmed = name?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Length > MaximumNameLength)
+        {
+            var length = char.IsHighSurrogate(trimmed[MaximumNameLength - 1]) ? MaximumNameLength - 1 : MaximumNameLength;
+            trimmed = trimmed[..length].TrimEnd();
+        }
+
+        return trimmed;
+    }
+
     /// <summary>What the tab bar calls the tab: the name the user gave it, else the repository name.</summary>
     public string Title => CustomName ?? DisplayName;
 

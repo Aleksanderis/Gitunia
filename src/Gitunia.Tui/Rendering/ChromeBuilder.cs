@@ -3,7 +3,7 @@ using Gitunia.Core.Status;
 
 namespace Gitunia.Tui.Rendering;
 
-/// <summary>Builds the header, tab row and status bar lines.</summary>
+/// <summary>Builds the tab row and status bar lines.</summary>
 public static class ChromeBuilder
 {
     private const string KeyHints = "j/k gg G ^d ^u @ ? : q";

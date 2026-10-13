@@ -28,15 +28,16 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return base.OnMouseEvent(mouse);
         }
 
+        // The button only exists when the row shows tabs.
+        if (model().Tabs is not { Count: > 0 } labels)
+        {
+            return base.OnMouseEvent(mouse);
+        }
+
         if (TabBarLayout.IsOnCommands(Viewport.Width, position.X))
         {
             CommandsClicked?.Invoke();
             return true;
-        }
-
-        if (model().Tabs is not { Count: > 0 } labels)
-        {
-            return base.OnMouseEvent(mouse);
         }
 
         // The row starts with "< " when tabs are cut off on the left; the layout already counts it in the cell columns.

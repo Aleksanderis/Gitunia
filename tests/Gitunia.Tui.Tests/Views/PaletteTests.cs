@@ -75,6 +75,22 @@ public class PaletteTests
     [InlineData(ColorDepth.TrueColor, true)]
     [InlineData(ColorDepth.Ansi16, false)]
     [InlineData(ColorDepth.Ansi16, true)]
+    public void GivenAColourScheme_WhenColouringRefs_ThenRemoteBranchesLocalBranchesTagsAndTheCurrentBranchAllDiffer(ColorDepth depth, bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+
+        var foregrounds = new[] { SegmentRole.RemoteBranch, SegmentRole.LocalBranch, SegmentRole.Tag, SegmentRole.CurrentBranch }
+            .Select(role => Palette.For(new StyledSegment("x", role), false, false, colors).Foreground)
+            .ToArray();
+
+        Assert.Equal(4, foregrounds.Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
     public void GivenAColourScheme_WhenSelectingARow_ThenNoRoleUsesInverseVideo(ColorDepth depth, bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));

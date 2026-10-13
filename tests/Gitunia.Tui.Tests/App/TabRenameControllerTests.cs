@@ -18,7 +18,7 @@ public class TabRenameControllerTests
 
         Assert.True(controller.TryExecute(ActionIds.TabRename, null));
         Assert.Equal(KeyMode.Insert, mode);
-        Assert.StartsWith("rename tab: alpha_", controller.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("alpha_", controller.StatusLine, StringComparison.Ordinal);
         Type(controller, "-2");
         controller.TryExecute(ActionIds.InputAccept, null);
 

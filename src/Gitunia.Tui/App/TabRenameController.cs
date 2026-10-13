@@ -16,7 +16,7 @@ public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setM
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => renaming is null ? string.Empty : "rename tab: " + text + "_  (empty: repository name)";
+    public string StatusLine => renaming is null ? string.Empty : "rename tab (empty: repository name): " + text + "_";
 
     public bool TryExecute(ActionId action, int? count)
     {

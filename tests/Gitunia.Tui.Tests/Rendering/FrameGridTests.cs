@@ -98,6 +98,56 @@ public class FrameGridTests
         Assert.Equal(width, TextWidth.Of(grid.Row(0, 0, width).Text));
     }
 
+    [Theory]
+    [InlineData("日本語")]
+    [InlineData("a🙂b")]
+    [InlineData("a-very-long-repository-name-that-does-not-fit-in-the-sidebar-title")]
+    public void GivenWideOrLongTitles_WhenBuilding_ThenEveryEdgeRowKeepsTheScreenWidth(string title)
+    {
+        var rects = PaneLayout.Compute(Width, Height, true, null);
+        var grid = FrameGrid.Build(Width, Height, rects, PaneKind.Sidebar, GraphGlyphSet.Unicode, title, title);
+
+        Assert.Equal(Width, TextWidth.Of(grid.Row(ScreenLayout.FrameTop, 0, Width).Text));
+        Assert.Equal("╮", grid.Cell(Width - 1, ScreenLayout.FrameTop).Text);
+        Assert.Equal("┬", grid.Cell(rects.SidebarDivider.X, ScreenLayout.FrameTop).Text);
+        Assert.DoesNotContain(grid.Row(ScreenLayout.FrameTop, 0, Width).Text, character => char.IsSurrogate(character) && !title.Contains(character, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(PaneEdge.Detail)]
+    [InlineData(PaneEdge.Bottom)]
+    [InlineData(PaneEdge.Sidebar)]
+    public void GivenADragOntoTheDrawnLine_WhenComputingTheLayout_ThenTheLineStaysWhereItWasDrawn(PaneEdge edge)
+    {
+        var rects = PaneLayout.Compute(Width, Height, true, null);
+        var (column, row) = edge switch
+        {
+            PaneEdge.Detail => (rects.BottomDivider.X, rects.BottomDivider.Y + 2),
+            PaneEdge.Bottom => (10, rects.DetailTitle.Y),
+            _ => (rects.SidebarDivider.X, 5),
+        };
+
+        var sizes = PaneResizer.Drag(PaneSizes.Automatic, edge, column, row, Height);
+
+        Assert.Equal(rects, PaneLayout.Compute(Width, Height, true, null, sizes));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(4, 4)]
+    [InlineData(7, 5)]
+    [InlineData(30, 6)]
+    public void GivenATinyTerminal_WhenComposingAScreen_ThenEveryLineFillsTheWidth(int width, int height)
+    {
+        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "root", []));
+        var model = new ScreenModel("日本語", "main", 1, 1, "NORMAL", string.Empty, 1, 1, false, string.Empty);
+
+        var lines = ScreenComposer.Compose(model, graph, 0, 0, width, height, GraphGlyphSet.Unicode);
+
+        Assert.All(lines, line => Assert.Equal(width, TextWidth.Of(line.Text)));
+    }
+
     [Fact]
     public void GivenAPaneWidth_WhenPadding_ThenTheTextWidthLosesBothSidesAndTheSelectionStaysOnTheLine()
     {

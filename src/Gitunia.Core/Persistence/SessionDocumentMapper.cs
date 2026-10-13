@@ -73,7 +73,7 @@ public static class SessionDocumentMapper
 
             var id = new TabId(nextNumber++);
             var isMissing = !directoryExists(location.CommandPath);
-            var tab = RepoState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = string.IsNullOrWhiteSpace(documentTabs[index].CustomName) ? null : documentTabs[index].CustomName!.Trim() };
+            var tab = RepoState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = RepoState.NormalizeName(documentTabs[index].CustomName) };
             tabs.Add(tab);
             if (!isMissing)
             {

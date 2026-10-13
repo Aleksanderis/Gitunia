@@ -180,24 +180,29 @@ public sealed class FrameGrid
     }
 
     // " Title " as a chip after one stretch of line, when there is room for it and a stretch of line after it.
+    // A long title is cut with an ellipsis; a wide character takes its first column and leaves the next one empty.
     private void PlaceTitle(string title, int left, int row, int innerWidth, bool isFocused)
     {
-        var chip = " " + title + " ";
-        if (title.Length == 0 || TextWidth.Of(chip) + 2 > innerWidth)
+        var fitted = TextWidth.Fit(title, innerWidth - 4, glyphs.Ellipsis);
+        if (fitted.Length == 0)
         {
             return;
         }
 
         var role = isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab;
         var column = left + 2;
-        foreach (var character in chip)
+        foreach (var rune in (" " + fitted + " ").EnumerateRunes())
         {
-            if (column >= 0 && column < width && row >= 0 && row < height)
+            var runeWidth = TextWidth.Of(rune);
+            for (var offset = 0; offset < Math.Max(1, runeWidth); offset++)
             {
-                titleCells[row * width + column] = new StyledSegment(character.ToString(), role, Selection: SegmentSelection.None);
+                if (column + offset >= 0 && column + offset < width && row >= 0 && row < height)
+                {
+                    titleCells[row * width + column + offset] = new StyledSegment(offset == 0 ? rune.ToString() : string.Empty, role, Selection: SegmentSelection.None);
+                }
             }
 
-            column++;
+            column += Math.Max(1, runeWidth);
         }
     }
 }

@@ -161,7 +161,7 @@ public sealed class PaletteTable
         Accent = Named(ColorName16.Blue),
         Good = Named(ColorName16.Green),
         Bad = Named(ColorName16.Red),
-        Remote = Named(ColorName16.Magenta),
+        Remote = Named(ColorName16.Blue),
         Warn = Named(ColorName16.Magenta),
         Info = Named(ColorName16.Cyan),
         Muted = Named(ColorName16.DarkGray),
