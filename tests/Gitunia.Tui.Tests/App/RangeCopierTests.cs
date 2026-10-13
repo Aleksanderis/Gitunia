@@ -21,7 +21,7 @@ public class RangeCopierTests : IDisposable
     {
         var copier = CreateCopier(null);
 
-        Assert.Equal("Nothing to copy", copier.Copy(PaneKind.Graph, new RowRange(0, 1)));
+        Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), copier.Copy(PaneKind.Graph, new RowRange(0, 1)));
         Assert.Equal(string.Empty, terminal.ToString());
     }
 
@@ -31,9 +31,9 @@ public class RangeCopierTests : IDisposable
         using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
         using var session = await CreateSessionAsync(repository);
 
-        var notice = CreateCopier(session).Copy(PaneKind.Graph, new RowRange(0, 1));
+        var result = CreateCopier(session).Copy(PaneKind.Graph, new RowRange(0, 1));
 
-        Assert.Equal(string.Empty, notice);
+        Assert.Equal(new RangeCopyResult(true, string.Empty), result);
         var text = CommitFactory.Id(2) + "\n" + CommitFactory.Id(1) + "\n";
         Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text)) + "\u001b\\", terminal.ToString());
     }
@@ -44,9 +44,24 @@ public class RangeCopierTests : IDisposable
         using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
         using var session = await CreateSessionAsync(repository);
 
-        Assert.Equal("Nothing to copy", CreateCopier(session).Copy(PaneKind.Graph, new RowRange(5, 6)));
-        Assert.Equal("Nothing to copy", CreateCopier(session).Copy(PaneKind.Sidebar, new RowRange(0, 0)));
+        Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), CreateCopier(session).Copy(PaneKind.Graph, new RowRange(5, 6)));
+        Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), CreateCopier(session).Copy(PaneKind.Sidebar, new RowRange(0, 0)));
         Assert.Equal(string.Empty, terminal.ToString());
+    }
+
+    [Fact]
+    public async Task GivenAClipboardThatRefusesTheText_WhenCopying_ThenTheResultSaysNotCopied()
+    {
+        using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var session = await CreateSessionAsync(repository);
+        var statuses = new StatusChannel();
+        var copier = new RangeCopier(new ClipboardCopier(new ClipboardWriter(terminal, new Osc52Options(Osc52Mode.Direct, 10)), statuses), () => session);
+
+        var result = copier.Copy(PaneKind.Graph, new RowRange(0, 1));
+
+        Assert.False(result.Copied);
+        Assert.Equal(string.Empty, terminal.ToString());
+        Assert.Equal(StatusSeverity.Warning, statuses.Log.Latest?.Severity);
     }
 
     public void Dispose()

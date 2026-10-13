@@ -50,7 +50,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 ### 1. Browse the graph, jump, search
 
 1. A repo tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
-   A graph row is a table (#168): branch lanes, message (ref decorations then subject), author, date (`yyyy-MM-dd`, UTC) and short hash (dimmed). The message column is the flexible one and grows up to 100 columns, so on a wide terminal the other columns stay beside it; author is 16 columns (ellipsis when longer), date 10, hash 7. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then date, then author; they return when the terminal widens (`gitunia <repo> --print-frame WxH` shows any width). Example at 120 columns (without the sidebar):
+   A graph row is a table (#168): branch lanes, message (ref decorations then subject), author, date (`yyyy-MM-dd`, the author's local date) and short hash (dimmed). The message column is the flexible one and grows up to 100 columns, so on a wide terminal the other columns stay beside it; author is 16 columns (ellipsis when longer), date 10, hash 7. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then date, then author; they return when the terminal widens (`gitunia <repo> --print-frame WxH` shows any width). Example at 120 columns (without the sidebar):
    ```
    ●  Fix parser crash on empty input                      Ada Lovelace     2026-10-13 7a21f84
    ●  (origin/main) Merge branch 'topic'                   Alexander the G… 2026-10-12 ee3f455
@@ -113,7 +113,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
 | Lists | `v` | Start / end range selection (Visual mode: motions move the far end, `Esc` / `q` / `v` end it; graph, detail and diff only) |
-| Lists (Visual) | `y` | Copy the selected range (OSC 52) and end it: graph one hash per line, detail the rows' text, diff the rows with their `+`/`-`/space prefix and no gutter (a wrapped row once; notes skipped); text too large for OSC 52 (about 75 KB) is refused with a warning |
+| Lists (Visual) | `y` | Copy the selected range (OSC 52) and end it when the copy worked (a refused or failed copy keeps the range): graph one hash per line, detail the rows' text, diff the rows with their `+`/`-`/space prefix and no gutter (a wrapped row once; notes skipped); text too large for OSC 52 (about 75 KB) is refused with a warning |
 | Graph | `@` | Jump to HEAD |
 | Graph | `gr` | Jump to ref or hash (fuzzy) |
 | Graph | `Enter` | Focus commit details |
