@@ -5,7 +5,10 @@ public static class PathCompleter
 {
     private const int MaximumCandidates = 500;
 
-    /// <summary>The subdirectories that continue the typed path, sorted by name; hidden ones only when the typed name starts with a dot.</summary>
+    /// <summary>
+    /// The subdirectories that continue the typed path, sorted by name; hidden ones only when the typed name starts with a dot.
+    /// The typed name matches in any case on every platform: it only selects suggestions, the completed text uses the directory's real case.
+    /// </summary>
     public static IReadOnlyList<PickerRow> Candidates(string text, PickerContext context) => ListCandidates(text, context, CancellationToken.None);
 
     /// <summary>Like <see cref="Candidates"/>, but stops with <see cref="OperationCanceledException"/> when cancelled (checked between entries).</summary>
@@ -13,13 +16,12 @@ public static class PathCompleter
     {
         SplitTyped(text, out var directoryText, out var namePrefix);
         var directory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
-        var comparison = namePrefix.Any(char.IsUpper) ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var matches = new List<string>();
         foreach (var path in context.ListDirectories(directory))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
-            if (name.StartsWith(namePrefix, comparison) && (!name.StartsWith('.') || namePrefix.StartsWith('.')))
+            if (name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase) && (!name.StartsWith('.') || namePrefix.StartsWith('.')))
             {
                 matches.Add(path);
             }
@@ -53,7 +55,13 @@ public static class PathCompleter
         }
 
         SplitTyped(text, out var directoryText, out var namePrefix);
-        var common = CommonPrefix(candidates.Select(candidate => candidate.Name).ToList());
+        var common = CommonPrefix(candidates.Select(candidate => candidate.Name).ToList(), StringComparison.OrdinalIgnoreCase);
+        if (common.Length > namePrefix.Length && !candidates.All(candidate => candidate.Name.StartsWith(common, StringComparison.Ordinal)))
+        {
+            // Names that differ in case only (Docs, docs2): keep to the part they share exactly, so the text stays a real name.
+            common = CommonPrefix(candidates.Select(candidate => candidate.Name).ToList(), StringComparison.Ordinal);
+        }
+
         if (common.Length > namePrefix.Length)
         {
             return directoryText + common + (candidates.Count == 1 ? Separator(text) : string.Empty);
@@ -80,13 +88,13 @@ public static class PathCompleter
 
     private static string Separator(string text) => text.Contains('\\') ? "\\" : "/";
 
-    private static string CommonPrefix(List<string> names)
+    private static string CommonPrefix(List<string> names, StringComparison comparison)
     {
         var prefix = names[0];
         foreach (var name in names.Skip(1))
         {
             var length = 0;
-            while (length < prefix.Length && length < name.Length && char.ToLowerInvariant(prefix[length]) == char.ToLowerInvariant(name[length]))
+            while (length < prefix.Length && length < name.Length && string.Equals(prefix.Substring(length, 1), name.Substring(length, 1), comparison))
             {
                 length++;
             }

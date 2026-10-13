@@ -59,7 +59,7 @@ public static class ActionCatalog
         ["pane.wider"] = "Make the focused pane wider",
         ["pane.zoom"] = "Zoom the focused pane",
         ["picker.accept"] = "Open the repository",
-        ["picker.complete-path"] = "Complete the path",
+        ["picker.complete-path"] = "Accept the suggestion / complete the path",
         ["picker.next"] = "Next picker entry",
         ["picker.open"] = "Open the repository picker",
         ["picker.pin"] = "Pin to the top of the picker (toggle)",

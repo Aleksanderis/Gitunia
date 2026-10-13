@@ -157,13 +157,31 @@ public class PickerReducerTests
     }
 
     [Fact]
-    public void GivenFuzzyQuery_WhenPressingTab_ThenNothingChanges()
+    public void GivenFuzzyQuery_WhenPressingTab_ThenTheHighlightedSuggestionIsAcceptedWithItsRealPath()
     {
-        var state = Type(PickerReducer.Open(Context()), "be");
+        var state = Type(PickerReducer.Open(Context()), "BE");
 
         var completed = PickerReducer.Reduce(state, new CompletePathCommand(), Context());
 
-        Assert.Equal(state, completed);
+        Assert.Equal(PickerFixtures.PathOf("code", "beta") + Path.DirectorySeparatorChar, completed.Query);
+        Assert.True(completed.IsPathMode);
+        Assert.True(completed.IsListing);
+    }
+
+    [Fact]
+    public void GivenFuzzyQueryWithoutMatches_WhenPressingTab_ThenNothingChanges()
+    {
+        var state = Type(PickerReducer.Open(Context()), "zzz");
+
+        Assert.Equal(state, PickerReducer.Reduce(state, new CompletePathCommand(), Context()));
+    }
+
+    [Fact]
+    public void GivenUppercaseQuery_WhenTyping_ThenSuggestionsMatchRegardlessOfCase()
+    {
+        var state = Type(PickerReducer.Open(Context()), "ALPHA");
+
+        Assert.Equal(["alpha"], state.Rows.Select(row => row.Name));
     }
 
     [Fact]

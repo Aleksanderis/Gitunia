@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Rendering;
 public static class ChromeBuilder
 {
     private const string KeyHints = "j/k gg G ^d ^u @ ? : q";
-    private const string PickerHints = "Enter open  Tab complete  Alt-p pin to top  Alt-d forget  Esc close";
+    private const string PickerHints = "Enter open  Tab accept  Alt-p pin to top  Alt-d forget  Esc close";
 
     public static StyledLine Tabs(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
@@ -75,6 +75,8 @@ public static class ChromeBuilder
             builder.Append(cells[index].Text, cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.Status);
         }
 
+        builder.Append(" ", SegmentRole.Status);
+        builder.Append(TabBarLayout.NewTabLabel, SegmentRole.BarButton);
         if (TabBarLayout.CommandsStart(width) is { } commandsStart)
         {
             builder.Append(new string(' ', Math.Max(0, commandsStart - (width - builder.Remaining))), SegmentRole.Status);

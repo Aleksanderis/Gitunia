@@ -10,6 +10,8 @@ public static class DefaultMouseMap
 
     /// <summary>The commands button at the right end of the tab row; a click opens the command palette, the menu of every action.</summary>
     public const string CommandsButton = "CommandsButton";
+    /// <summary>The "+" button after the last tab; a click opens the repository picker for a new tab, like <c>Ctrl-t</c>.</summary>
+    public const string NewTabButton = "NewTabButton";
 
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
     public const string BackdropView = "Backdrop";
@@ -73,6 +75,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
+        new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(DefaultKeymap.HelpView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.HelpView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),

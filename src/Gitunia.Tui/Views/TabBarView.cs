@@ -15,6 +15,9 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised when the commands button at the right end of the row is clicked.</summary>
     public event Action? CommandsClicked;
 
+    /// <summary>Raised when the "+" button after the last tab is clicked.</summary>
+    public event Action? NewTabClicked;
+
     protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
     {
         LinePainter.Paint(this, ChromeBuilder.Tabs(model(), Viewport.Width, glyphs), 0, 0, isFocused: false);
@@ -40,8 +43,15 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return true;
         }
 
+        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs);
+        if (TabBarLayout.IsOnNewTab(cells, position.X))
+        {
+            NewTabClicked?.Invoke();
+            return true;
+        }
+
         // The row starts with "< " when tabs are cut off on the left; the layout already counts it in the cell columns.
-        if (TabBarLayout.NumberAt(TabBarLayout.Layout(labels, Viewport.Width, glyphs), position.X) is { } number)
+        if (TabBarLayout.NumberAt(cells, position.X) is { } number)
         {
             TabClicked?.Invoke(number);
         }

@@ -12,6 +12,9 @@ public static class TabBarLayout
     /// <summary>The button at the right end of the row that opens the command palette, the mouse path of <c>:</c> (#221).</summary>
     public const string CommandsLabel = " : commands ";
 
+    /// <summary>The button right after the last tab that opens the repository picker in a new tab, the mouse path of <c>Ctrl-t</c> (#232).</summary>
+    public const string NewTabLabel = " + ";
+
     /// <summary>Rows narrower than this have no commands button.</summary>
     public const int MinimumWidthForCommands = 44;
 
@@ -27,10 +30,17 @@ public static class TabBarLayout
     /// <summary>Whether <paramref name="column"/> is on the commands button of a row of <paramref name="width"/> columns.</summary>
     public static bool IsOnCommands(int width, int column) => CommandsStart(width) is { } start && column >= start && column < start + CommandsLabel.Length;
 
+    /// <summary>The first column of the new tab button: one blank column after the last tab (or after the margin when there is none).</summary>
+    public static int NewTabStart(IReadOnlyList<TabCell> cells) => cells.Count == 0 ? LeftMargin : cells[^1].Start + cells[^1].Width + GapColumns;
+
+    /// <summary>Whether <paramref name="column"/> is on the new tab button that follows <paramref name="cells"/>.</summary>
+    public static bool IsOnNewTab(IReadOnlyList<TabCell> cells, int column) => column >= NewTabStart(cells) && column < NewTabStart(cells) + NewTabLabel.Length;
+
     /// <summary>The cells visible in a row of <paramref name="width"/> columns, in order, with their start columns.</summary>
     public static IReadOnlyList<TabCell> Layout(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)
     {
-        var available = (CommandsStart(width) ?? width) - GapColumns;
+        // The new tab button follows the last tab, so its room is kept free.
+        var available = (CommandsStart(width) ?? width) - GapColumns - NewTabLabel.Length - GapColumns;
         var texts = labels.Select(label => Describe(label, glyphs)).ToList();
         var activeIndex = Math.Max(0, labels.ToList().FindIndex(label => label.IsActive));
         var first = 0;

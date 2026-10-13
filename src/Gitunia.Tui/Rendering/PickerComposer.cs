@@ -34,7 +34,7 @@ public static class PickerComposer
         if (height > 1)
         {
             lines.Add(new LineBuilder(width, glyphs.Ellipsis)
-                .Append(" type to filter, or a path starting with / ~/ ./ ../ (Tab completes)", SegmentRole.Faint)
+                .Append(" type to filter, or a path starting with / ~/ ./ ../ (Tab or Right accepts)", SegmentRole.Faint)
                 .Build());
         }
 

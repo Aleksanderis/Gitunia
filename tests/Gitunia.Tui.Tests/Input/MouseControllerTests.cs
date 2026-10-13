@@ -132,6 +132,16 @@ public class MouseControllerTests
     }
 
     [Fact]
+    public void GivenAClickOnTheNewTabButton_WhenHandled_ThenThePickerOpens()
+    {
+        var controller = CreateController();
+
+        controller.Handle(DefaultMouseMap.NewTabButton, MouseGesture.Click);
+
+        Assert.Equal([(ActionIds.PickerOpen, (int?)null)], executed);
+    }
+
+    [Fact]
     public void GivenAnOverlayIsOpen_WhenClickingTheCommandsButton_ThenNothingRuns()
     {
         var controller = CreateController();

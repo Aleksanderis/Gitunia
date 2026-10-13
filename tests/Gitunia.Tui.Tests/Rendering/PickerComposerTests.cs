@@ -37,7 +37,7 @@ public class PickerComposerTests
             string.Join(
                 '\n',
                 " Open repository: _",
-                " type to filter, or a path starting with / ~/ ./ ../ (Tab completes)",
+                " type to filter, or a path starting with / ~/ ./ ../ (Tab or Right accepts)",
                 Sep(" alpha  open            ~/code/alpha"),
                 Sep(" beta   pinned          ~/code/beta").PadRight(62) + "[unpin]",
                 Sep(" gamma  recent          ~/code/gamma"),
