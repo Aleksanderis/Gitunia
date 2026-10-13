@@ -153,7 +153,7 @@ public sealed class MainView : IDisposable
         bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
-        detailTitle.Clicked += _ => FocusFromTitle(Detail);
+        detailTitle.Clicked += OnDetailTitleClicked;
         diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
@@ -254,6 +254,20 @@ public sealed class MainView : IDisposable
         if (!suppressed() && !pane.HasFocus)
         {
             pane.SetFocus();
+        }
+    }
+
+    private void OnDetailTitleClicked(int column)
+    {
+        if (suppressed())
+        {
+            return;
+        }
+
+        FocusFromTitle(Detail);
+        if (TitleButton.ViewAt(DetailTabStrip.Layout(detailTitle.Viewport.Width), column) is { } tabView)
+        {
+            Gestured?.Invoke(tabView, MouseGesture.Click, null);
         }
     }
 

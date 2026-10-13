@@ -52,7 +52,8 @@ public static class Program
                 GraphGlyphSet.For(capabilities.Unicode),
                 Console.Out,
                 CancellationToken.None,
-                new PaneArrangement(options.OpenDiff, options.Zoom)).GetAwaiter().GetResult();
+                new PaneArrangement(options.OpenDiff, options.Zoom),
+                options.Tab).GetAwaiter().GetResult();
             return 0;
         }
 

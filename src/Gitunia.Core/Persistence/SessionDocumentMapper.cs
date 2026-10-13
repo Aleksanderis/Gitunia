@@ -35,6 +35,7 @@ public static class SessionDocumentMapper
                 SidebarWidth = tab.View.SidebarWidth,
                 BottomHeight = tab.View.BottomHeight,
                 DetailWidth = tab.View.DetailWidth,
+                BottomTab = tab.View.BottomTab.ToString(),
             });
         }
 
@@ -117,7 +118,10 @@ public static class SessionDocumentMapper
         var pane = Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
             ? parsed
             : PaneKind.Graph;
-        return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth));
+        var bottomTab = Enum.TryParse<BottomTab>(tab.BottomTab, ignoreCase: false, out var parsedTab) && Enum.IsDefined(parsedTab)
+            ? parsedTab
+            : RepoViewState.Initial.BottomTab;
+        return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
     }
 
     // The layout clamps to what fits; here only negative values falls back to automatic.

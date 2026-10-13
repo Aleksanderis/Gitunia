@@ -34,6 +34,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
 
+    /// <summary>The bottom pane tab keys.</summary>
+    public DetailTabController? DetailTabs { get; set; }
+
     /// <summary>The diff pane's controller, which gets the actions after the sidebar and before the graph and detail lists.</summary>
     public DiffPaneController? Diff { get; set; }
 
@@ -69,6 +72,11 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (PaneSizes?.TryExecute(action, count) == true)
         {
             Message = PaneSizes.Notice;
+            return;
+        }
+
+        if (DetailTabs?.TryExecute(action) == true)
+        {
             return;
         }
 
@@ -146,9 +154,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(pane)));
         }
 
-        if (pane == PaneKind.Detail && list.Source is DetailListSource { Content.Files.Count: > 0 } source)
+        if (pane == PaneKind.Detail && list.Source is DetailListSource { Content: { Tab: BottomTab.Changes, Files.Count: > 0 } } source)
         {
-            // Land on the first file: the rows above it only describe the commit.
+            // Land on the first file: the row above it only counts them.
             Select(list, source.Content.FirstFileRow);
         }
 

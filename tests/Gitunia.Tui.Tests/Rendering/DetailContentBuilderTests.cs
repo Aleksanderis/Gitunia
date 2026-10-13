@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
@@ -32,7 +33,10 @@ public class DetailContentBuilderTests
     [Fact]
     public void GivenNoSelection_WhenBuilding_ThenContentIsEmpty()
     {
-        Assert.Same(DetailContent.Empty, DetailContentBuilder.Build(null, CommitDetailsState.Empty));
+        var content = DetailContentBuilder.Build(null, CommitDetailsState.Empty, BottomTab.Files);
+
+        Assert.Empty(content.Rows);
+        Assert.Equal(BottomTab.Files, content.Tab);
     }
 
     [Fact]
@@ -41,7 +45,7 @@ public class DetailContentBuilderTests
         var entry = Entry(new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
         var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loading, null, string.Empty);
 
-        var content = DetailContentBuilder.Build(entry, state);
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Details);
 
         var lines = Lines(content);
         Assert.Contains("refs      HEAD -> main", lines);
@@ -56,9 +60,22 @@ public class DetailContentBuilderTests
     {
         var entry = Entry();
 
-        var content = DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Failed, null, "git exploded"));
+        var content = DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Failed, null, "git exploded"), BottomTab.Details);
 
         Assert.Equal("Could not load the commit (r retries): git exploded", Lines(content)[^1]);
+    }
+
+    [Theory]
+    [InlineData(BottomTab.Details)]
+    [InlineData(BottomTab.Changes)]
+    public void GivenDetailsStillLoading_WhenBuildingAnyListingTab_ThenItEndsInTheLoadingNotice(BottomTab tab)
+    {
+        var entry = Entry();
+
+        var content = DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loading, null, string.Empty), tab);
+
+        Assert.Equal("Loading...", Lines(content)[^1]);
+        Assert.Equal(tab, content.Tab);
     }
 
     [Fact]
@@ -67,14 +84,14 @@ public class DetailContentBuilderTests
         var entry = Entry();
         var other = new CommitDetailsState(CommitFactory.Id(9), CommitDetailsStatus.Loaded, Details("stale"), string.Empty);
 
-        var lines = Lines(DetailContentBuilder.Build(entry, other));
+        var lines = Lines(DetailContentBuilder.Build(entry, other, BottomTab.Details));
 
         Assert.DoesNotContain("  stale", lines);
         Assert.Equal("Loading...", lines[^1]);
     }
 
     [Fact]
-    public void GivenLoadedDetails_WhenBuilding_ThenInfoMessageAndFilesAreListedInOrder()
+    public void GivenLoadedDetails_WhenBuildingTheDetailsTab_ThenInfoAndMessageAreListedWithoutFiles()
     {
         var entry = Entry(new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false));
         var files = new[]
@@ -85,7 +102,7 @@ public class DetailContentBuilderTests
         };
         var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, Details("Fix the thing\n\nBody text", files), string.Empty);
 
-        var content = DetailContentBuilder.Build(entry, state);
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Details);
 
         Assert.Equal(
             [
@@ -97,15 +114,51 @@ public class DetailContentBuilderTests
                 "  Fix the thing",
                 string.Empty,
                 "  Body text",
-                string.Empty,
+            ],
+            Lines(content));
+        Assert.Equal(content.Rows.Count, content.FirstFileRow);
+        Assert.Equal(files, content.Files);
+    }
+
+    [Fact]
+    public void GivenLoadedDetails_WhenBuildingTheChangesTab_ThenOnlyTheFilesAreListed()
+    {
+        var entry = Entry();
+        var files = new[]
+        {
+            new CommitFileChange("src/a.cs", null, FileChangeKind.Modified, null),
+            new CommitFileChange("new.txt", null, FileChangeKind.Added, null),
+            new CommitFileChange("b ünï.txt", "a.txt", FileChangeKind.Renamed, 90),
+        };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, Details("Fix the thing\n\nBody text", files), string.Empty);
+
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Changes);
+
+        Assert.Equal(
+            [
                 "3 files changed",
                 "  M src/a.cs",
                 "  A new.txt",
                 "  R90 a.txt -> b ünï.txt",
             ],
             Lines(content));
-        Assert.Equal(10, content.FirstFileRow);
+        Assert.Equal(1, content.FirstFileRow);
         Assert.Equal(files, content.Files);
+    }
+
+    [Theory]
+    [InlineData(CommitDetailsStatus.Loading)]
+    [InlineData(CommitDetailsStatus.Loaded)]
+    public void GivenAnyLoadState_WhenBuildingTheFilesTab_ThenItShowsThePlaceholderAndNoFileRows(CommitDetailsStatus status)
+    {
+        var entry = Entry();
+        var loaded = status == CommitDetailsStatus.Loaded;
+        var state = new CommitDetailsState(entry.Id, status, loaded ? Details("m", new CommitFileChange("a", null, FileChangeKind.Added, null)) : null, string.Empty);
+
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Files);
+
+        Assert.Equal(["  The file tree is not implemented yet"], Lines(content));
+        Assert.Equal(content.Rows.Count, content.FirstFileRow);
     }
 
     [Fact]
@@ -114,7 +167,7 @@ public class DetailContentBuilderTests
         var entry = Entry();
         var details = Details("m") with { CommitterName = "Bob", CommitterEmail = "bob@x.org" };
 
-        var lines = Lines(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty)));
+        var lines = Lines(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty), BottomTab.Details));
 
         Assert.Contains(lines, line => line.StartsWith("committer Bob <bob@x.org>", StringComparison.Ordinal));
     }
@@ -125,10 +178,10 @@ public class DetailContentBuilderTests
         var entry = Entry();
         var details = Details("m") with { Parents = [] };
 
-        var lines = Lines(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty)));
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty);
 
-        Assert.Contains("parents   none (root commit)", lines);
-        Assert.Equal("no files changed", lines[^1]);
+        Assert.Contains("parents   none (root commit)", Lines(DetailContentBuilder.Build(entry, state, BottomTab.Details)));
+        Assert.Equal(["no files changed"], Lines(DetailContentBuilder.Build(entry, state, BottomTab.Changes)));
     }
 
     [Fact]
@@ -143,7 +196,7 @@ public class DetailContentBuilderTests
         };
         var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, Details("m", files), string.Empty);
 
-        var content = DetailContentBuilder.Build(entry, state);
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Changes);
 
         Assert.Equal(
             [SegmentRole.FileAdded, SegmentRole.FileDeleted, SegmentRole.FileChanged],

@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
@@ -14,7 +15,7 @@ public class DetailPaneComposerTests
         CommitFactory.Commit(2, "second", [1]),
         CommitFactory.Commit(1, "root", []));
 
-    private static DetailContent LoadedContent(CommitGraph graph)
+    private static DetailContent LoadedContent(CommitGraph graph, BottomTab tab = BottomTab.Details)
     {
         var details = new CommitDetails(
             CommitFactory.Id(2),
@@ -27,7 +28,7 @@ public class DetailPaneComposerTests
             new DateTimeOffset(2026, 1, 2, 3, 4, 0, TimeSpan.Zero),
             "second\n\nwith a body",
             [new CommitFileChange("a.txt", null, FileChangeKind.Added, null), new CommitFileChange("b.txt", null, FileChangeKind.Modified, null)]);
-        return DetailContentBuilder.Build(graph[0], new CommitDetailsState(graph[0].Id, CommitDetailsStatus.Loaded, details, string.Empty));
+        return DetailContentBuilder.Build(graph[0], new CommitDetailsState(graph[0].Id, CommitDetailsStatus.Loaded, details, string.Empty), tab);
     }
 
     private static IReadOnlyList<StyledLine> Compose(DetailPaneModel? detail, int width, int height) =>
@@ -55,7 +56,7 @@ public class DetailPaneComposerTests
                 "",
                 "",
                 "",
-                " Details  0000002  2 files",
+                " Details  Changes  Files   0000002  2 files",
                 "commit    0000002000000000000000000000000000000000",
                 "author    Ann <ann@x.org>  2026-01-02 03:04 +00:00",
                 "parents   0000001",
@@ -66,19 +67,98 @@ public class DetailPaneComposerTests
     }
 
     [Fact]
+    public void GivenTheChangesTab_WhenComposingAt50x20_ThenThePaneListsTheFiles()
+    {
+        var graph = TwoCommits();
+
+        var pane = PaneLines(new DetailPaneModel(LoadedContent(graph, BottomTab.Changes), 0, 0, false));
+
+        Assert.Equal(
+            [
+                " Details  Changes  Files   0000002  2 files",
+                "2 files changed",
+                "  A a.txt",
+                "  M b.txt",
+                "",
+                "",
+            ],
+            pane);
+    }
+
+    [Fact]
+    public void GivenTheFilesTab_WhenComposingAt50x20_ThenThePaneShowsThePlaceholder()
+    {
+        var graph = TwoCommits();
+
+        var pane = PaneLines(new DetailPaneModel(LoadedContent(graph, BottomTab.Files), 0, 0, false));
+
+        Assert.Equal(
+            [
+                " Details  Changes  Files   0000002  2 files",
+                "  The file tree is not implemented yet",
+                "",
+                "",
+                "",
+                "",
+            ],
+            pane.Select(line => line.Length > 50 ? line[..50] : line));
+    }
+
+    [Theory]
+    [InlineData(BottomTab.Details, 0)]
+    [InlineData(BottomTab.Changes, 1)]
+    [InlineData(BottomTab.Files, 2)]
+    public void GivenAFocusedPane_WhenComposing_ThenOnlyTheSelectedTabLabelIsMarkedActive(BottomTab tab, int expectedIndex)
+    {
+        var graph = TwoCommits();
+
+        var title = Compose(new DetailPaneModel(LoadedContent(graph, tab), 0, 0, true), 50, 20)[^7];
+
+        var roles = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Changes" or "Files").Select(segment => segment.Role).ToArray();
+        Assert.Equal(3, roles.Length);
+        Assert.Equal(SegmentRole.ActiveTab, roles[expectedIndex]);
+        Assert.Equal(2, roles.Count(role => role == SegmentRole.Faint));
+    }
+
+    [Fact]
+    public void GivenAPaneTooNarrowForPaddedLabels_WhenRenderingTheTitle_ThenTheLabelsLoseTheirPaddingAndStillFit()
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Changes);
+
+        var title = DetailPaneRenderer.RenderTitle(content, true, 24, GraphGlyphSet.Unicode);
+
+        Assert.Equal(24, TextWidth.Of(title.Text));
+        Assert.StartsWith(" Details Changes Files", title.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheTabStrip_WhenLookingForTheLabelUnderAColumn_ThenItMatchesWhatTheTitleDraws()
+    {
+        var wide = DetailTabStrip.Layout(50);
+        var narrow = DetailTabStrip.Layout(24);
+
+        Assert.Equal([0, 9, 18], wide.Select(button => button.Start));
+        Assert.Equal("DetailTab.Details", TitleButton.ViewAt(wide, 3));
+        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(wide, 9));
+        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(wide, 24));
+        Assert.Null(TitleButton.ViewAt(wide, 25));
+        Assert.Equal([1, 9, 17], narrow.Select(button => button.Start));
+        Assert.Null(TitleButton.ViewAt(narrow, 8));
+        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(narrow, 12));
+    }
+
+    [Fact]
     public void GivenScrolledAndFocusedPane_WhenComposing_ThenRowsStartAtTheTopRowAndOnlyTheCursorRowIsSelected()
     {
         var graph = TwoCommits();
-        var content = LoadedContent(graph);
+        var content = LoadedContent(graph, BottomTab.Changes);
 
-        var lines = Compose(new DetailPaneModel(content, content.FirstFileRow, content.FirstFileRow - 3, true), 50, 20);
+        var lines = Compose(new DetailPaneModel(content, content.FirstFileRow, 1, true), 50, 20);
 
         var pane = lines.Skip(lines.Count - 6).Take(5).ToArray();
-        Assert.StartsWith("  with a body", pane[0].Text, StringComparison.Ordinal);
-        Assert.Equal("", pane[1].Text.Trim());
-        Assert.StartsWith("2 files changed", pane[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("  A a.txt", pane[3].Text, StringComparison.Ordinal);
-        Assert.Equal([false, false, false, true, false], pane.Select(line => line.IsSelected));
+        Assert.StartsWith("  A a.txt", pane[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("  M b.txt", pane[1].Text, StringComparison.Ordinal);
+        Assert.Equal([true, false, false, false, false], pane.Select(line => line.IsSelected));
     }
 
     [Fact]
@@ -137,5 +217,11 @@ public class DetailPaneComposerTests
     public void GivenScreenHeight_WhenAskingForPaneHeight_ThenItIsBoundedAndHiddenOnShortScreens(int screenHeight, int expected)
     {
         Assert.Equal(expected, DetailLayout.PaneHeight(screenHeight));
+    }
+
+    private static string[] PaneLines(DetailPaneModel detail)
+    {
+        var lines = Compose(detail, 50, 20);
+        return [.. lines.Skip(lines.Count - 7).Take(6).Select(line => line.Text.TrimEnd())];
     }
 }

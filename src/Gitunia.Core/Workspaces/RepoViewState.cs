@@ -10,6 +10,7 @@ namespace Gitunia.Core.Workspaces;
 /// <param name="SidebarWidth">Columns of the sidebar the user set, null for automatic. A wish: the pane layout clamps it.</param>
 /// <param name="BottomHeight">Rows of the bottom strip the user set, null for automatic.</param>
 /// <param name="DetailWidth">Columns of the detail pane beside an open diff the user set, null for automatic.</param>
+/// <param name="BottomTab">The tab of the bottom detail pane that is showing.</param>
 public sealed record RepoViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -17,7 +18,8 @@ public sealed record RepoViewState(
     PaneKind FocusedPane,
     int? SidebarWidth = null,
     int? BottomHeight = null,
-    int? DetailWidth = null)
+    int? DetailWidth = null,
+    BottomTab BottomTab = BottomTab.Changes)
 {
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
     public static RepoViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);

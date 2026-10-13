@@ -44,6 +44,21 @@ public class DiffPaneControllerTests
         Assert.Equal("Select a file to see its diff", harness.Controller.Notice);
     }
 
+    [Theory]
+    [InlineData(BottomTab.Details)]
+    [InlineData(BottomTab.Files)]
+    public async Task GivenATabWithoutFileRows_WhenOpeningTheDiff_ThenNothingOpensAndTheNoticeNamesTheChangesTab(BottomTab tab)
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        harness.ShowTab(tab);
+        harness.DetailList.SelectedItem = 0;
+
+        harness.Execute(ActionIds.DetailOpenDiff);
+
+        Assert.False(harness.Session.Diff!.IsOpen);
+        Assert.Equal("Open the Changes tab (gc) to pick a file", harness.Controller.Notice);
+    }
+
     [Fact]
     public async Task GivenAnOpenDiff_WhenJumpingBetweenHunksAndFiles_ThenTheCursorLandsOnTheirHeaders()
     {
@@ -591,6 +606,12 @@ public class DiffPaneControllerTests
             }
         }
 
+        public void ShowTab(BottomTab tab)
+        {
+            Session.DetailSource.Update(DetailContentBuilder.Build(Session.Graph[0], Session.Details.Current, tab));
+            Send(new FocusPaneCommand(PaneKind.Detail));
+        }
+
         public void SelectFile(string path)
         {
             Send(new FocusPaneCommand(PaneKind.Detail));
@@ -664,7 +685,7 @@ public class DiffPaneControllerTests
             await WaitForAsync(handler => Session.Details.Changed += handler, handler => Session.Details.Changed -= handler, () => Session.Details.Current.Status == CommitDetailsStatus.Loaded, "the details did not load");
 
             var entry = Session.Graph[0];
-            Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current));
+            Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current, BottomTab.Changes));
             Send(new FocusPaneCommand(PaneKind.Detail));
         }
     }

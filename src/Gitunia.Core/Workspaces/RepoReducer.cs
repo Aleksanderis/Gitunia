@@ -13,6 +13,7 @@ public static class RepoReducer
         SetFilterCommand filter => state with { View = state.View with { FilterText = filter.Text } },
         FocusPaneCommand focus => state with { View = state.View with { FocusedPane = focus.Pane } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
+        SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
         StatusLoadedCommand status => state with { Status = status.Summary },

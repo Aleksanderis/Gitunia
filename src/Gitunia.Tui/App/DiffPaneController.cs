@@ -332,6 +332,12 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
+        if (source.Content.Tab != BottomTab.Changes)
+        {
+            Notice = "Open the Changes tab (gc) to pick a file";
+            return;
+        }
+
         var index = (detailList.SelectedItem ?? -1) - source.Content.FirstFileRow;
         if (index < 0 || index >= source.Content.Files.Count)
         {

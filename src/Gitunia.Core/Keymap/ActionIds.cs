@@ -13,9 +13,19 @@ public static class ActionIds
 
     public static ActionId DetailCopyPath { get; } = new("detail.copy-path");
 
+    public static ActionId DetailNextTab { get; } = new("detail.next-tab");
+
     public static ActionId DetailOpenDiff { get; } = new("detail.open-diff");
 
+    public static ActionId DetailPreviousTab { get; } = new("detail.previous-tab");
+
     public static ActionId DetailRetry { get; } = new("detail.retry");
+
+    public static ActionId DetailTabChanges { get; } = new("detail.tab-changes");
+
+    public static ActionId DetailTabDetails { get; } = new("detail.tab-details");
+
+    public static ActionId DetailTabFiles { get; } = new("detail.tab-files");
 
     public static ActionId DiffCopyFile { get; } = new("diff.copy-file");
 
