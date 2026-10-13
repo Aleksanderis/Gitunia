@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Workspaces;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Tests.Rendering;
@@ -57,7 +58,7 @@ public class RangeTextBuilderTests
     public void GivenARangeOverDetailRows_WhenBuildingDetailText_ThenItHasTheRowTextWithoutTrailingSpaces()
     {
         using var source = new DetailListSource(GraphGlyphSet.Unicode);
-        source.Update(new DetailContent("abc1234", [Row("Author: Ann  "), Row("Date: today"), Row("last")], 0, []));
+        source.Update(new DetailContent("abc1234", [Row("Author: Ann  "), Row("Date: today"), Row("last")], 0, [], BottomTab.Details));
 
         var text = RangeTextBuilder.Detail(source, new RowRange(0, 1));
 

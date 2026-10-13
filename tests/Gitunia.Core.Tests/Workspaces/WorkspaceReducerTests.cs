@@ -337,6 +337,18 @@ public class WorkspaceReducerTests
         Assert.Null(Workspace.Empty.ActiveTab);
     }
 
+    [Fact]
+    public void GivenATab_WhenSelectingABottomTab_ThenOnlyThatTabsViewChanges()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta");
+        var alpha = IdOf(workspace, "alpha");
+
+        var update = WorkspaceReducer.Reduce(workspace, new TabCommand(alpha, new SetBottomTabCommand(BottomTab.Files))).Workspace;
+
+        Assert.Equal(BottomTab.Files, update.Tabs.Single(tab => tab.Id == alpha).View.BottomTab);
+        Assert.Equal(BottomTab.Changes, update.Tabs.Single(tab => tab.Id != alpha).View.BottomTab);
+    }
+
     private static RepositoryLocation Location(string name)
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-tests", name);

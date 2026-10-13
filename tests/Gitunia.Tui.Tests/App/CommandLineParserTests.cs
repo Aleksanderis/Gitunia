@@ -69,7 +69,35 @@ public class CommandLineParserTests
     }
 
     [Theory]
+    [InlineData("details", BottomTab.Details)]
+    [InlineData("changes", BottomTab.Changes)]
+    [InlineData("files", BottomTab.Files)]
+    public void GivenATab_WhenParsing_ThenItIsRead(string name, BottomTab expected)
+    {
+        var options = CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--tab", name]);
+
+        Assert.Null(options.Error);
+        Assert.Equal(expected, options.Tab);
+    }
+
+    [Fact]
+    public void GivenNoTab_WhenParsing_ThenTheDefaultIsChanges()
+    {
+        Assert.Equal(BottomTab.Changes, CommandLineParser.Parse(["repo", "--print-frame", "80x24"]).Tab);
+    }
+
+    [Theory]
+    [InlineData("tree")]
+    [InlineData("")]
+    public void GivenUnknownTab_WhenParsing_ThenErrorIsReported(string name)
+    {
+        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--tab", name]).Error);
+        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--tab"]).Error);
+    }
+
+    [Theory]
     [InlineData("--diff")]
+    [InlineData("--tab", "files")]
     [InlineData("--zoom", "graph")]
     public void GivenFrameOptionsWithoutPrintFrame_WhenParsing_ThenErrorIsReported(params string[] arguments)
     {

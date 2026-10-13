@@ -50,12 +50,43 @@ public class FramePrinterTests
         Assert.DoesNotContain(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
     }
 
-    private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement)
+    [Fact]
+    public async Task GivenEachTab_WhenPrinting_ThenThePaneShowsThatTabsContent()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root commit message", ("a.txt", "one\n"));
+
+        var details = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
+        var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
+        var files = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
+
+        Assert.Contains(details, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.DoesNotContain(details, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.Contains(changes, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.DoesNotContain(changes, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
+        Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details  Changes  Files ", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenThePlaceholderSitsBesideTheDiff()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "first line\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(true, null), BottomTab.Files);
+
+        Assert.Contains(lines, line => line.Contains("The file tree", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
+    }
+
+    private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes)
     {
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, Token);
         using var writer = new StringWriter();
-        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement);
+        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement, tab);
         return [.. writer.ToString().Split('\n')];
     }
 }

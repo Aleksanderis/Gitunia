@@ -59,6 +59,9 @@ public sealed class TabSession : IDisposable
     /// <summary>The list source of the detail pane.</summary>
     public DetailListSource DetailSource { get; }
 
+    /// <summary>The detail row last selected on each bottom tab for the commit shown; cleared when another commit is selected.</summary>
+    public Dictionary<BottomTab, int> DetailSelections { get; } = [];
+
     public CancellationTokenSource Cancellation { get; } = new();
 
     /// <summary>The tab has not been activated since the session was restored, so its load has not started.</summary>

@@ -89,7 +89,7 @@ public class DiffFrameTests
             new DateTimeOffset(2026, 1, 2, 3, 4, 0, TimeSpan.Zero),
             "commit two",
             [new CommitFileChange("a.txt", null, FileChangeKind.Added, null)]);
-        var content = DetailContentBuilder.Build(graph[0], new CommitDetailsState(graph[0].Id, CommitDetailsStatus.Loaded, details, string.Empty));
+        var content = DetailContentBuilder.Build(graph[0], new CommitDetailsState(graph[0].Id, CommitDetailsStatus.Loaded, details, string.Empty), BottomTab.Changes);
         var document = new DiffDocument(
             [new DiffRow(DiffRowKind.FileHeader, "a.txt", null, null, 0), new DiffRow(DiffRowKind.Added, "added line", null, 1, 0)],
             [],

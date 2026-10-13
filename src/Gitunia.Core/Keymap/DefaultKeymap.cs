@@ -112,12 +112,14 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
         Add(bindings, NormalOnly, GraphView, "r", ActionIds.RepoRefresh);
+        AddBottomTabKeys(bindings, GraphView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
+        AddBottomTabKeys(bindings, DetailView);
 
         Add(bindings, NormalOnly, SidebarView, "l", ActionIds.SidebarExpand);
         Add(bindings, NormalOnly, SidebarView, "Enter", ActionIds.SidebarActivate);
@@ -139,6 +141,16 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
         Add(bindings, NormalOnly, DiffView, "y", ActionIds.DiffCopyLine);
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
+    }
+
+    // The graph feeds the bottom pane with its selection, so the tabs switch from there too.
+    private static void AddBottomTabKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "]", ActionIds.DetailNextTab);
+        Add(bindings, NormalOnly, view, "[", ActionIds.DetailPreviousTab);
+        Add(bindings, NormalOnly, view, "gd", ActionIds.DetailTabDetails);
+        Add(bindings, NormalOnly, view, "gc", ActionIds.DetailTabChanges);
+        Add(bindings, NormalOnly, view, "gf", ActionIds.DetailTabFiles);
     }
 
     private static void AddPicker(List<KeyBinding> bindings)

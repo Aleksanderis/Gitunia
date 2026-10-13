@@ -29,6 +29,13 @@ public static class DefaultMouseMap
 
     public const string DiffCloseButton = "DiffButton.Close";
 
+    /// <summary>The tab labels in the detail pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
+    public const string DetailDetailsTab = "DetailTab.Details";
+
+    public const string DetailChangesTab = "DetailTab.Changes";
+
+    public const string DetailFilesTab = "DetailTab.Files";
+
     /// <summary>Picker row buttons, shown on the highlighted row.</summary>
     public const string PickerPinButton = "PickerButton.Pin";
 
@@ -81,6 +88,9 @@ public static class DefaultMouseMap
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),
         new(DiffZoomButton, MouseGesture.Click, ActionIds.PaneZoom),
         new(DiffCloseButton, MouseGesture.Click, ActionIds.NavigateBack),
+        new(DetailDetailsTab, MouseGesture.Click, ActionIds.DetailTabDetails),
+        new(DetailChangesTab, MouseGesture.Click, ActionIds.DetailTabChanges),
+        new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),
         new(PickerPinButton, MouseGesture.Click, ActionIds.PickerPin),
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
     ];

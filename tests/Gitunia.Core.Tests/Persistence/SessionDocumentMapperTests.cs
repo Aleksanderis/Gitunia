@@ -86,6 +86,40 @@ public class SessionDocumentMapperTests
         Assert.Empty(restored.Pins);
     }
 
+    [Theory]
+    [InlineData(BottomTab.Details)]
+    [InlineData(BottomTab.Changes)]
+    [InlineData(BottomTab.Files)]
+    public void GivenABottomTab_WhenRoundTripped_ThenTheTabIsRestored(BottomTab tab)
+    {
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha");
+        var id = workspace.ActiveTabId!.Value;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetBottomTabCommand(tab))).Workspace;
+
+        var restored = SessionDocumentMapper.ToWorkspace(SessionDocumentMapper.ToDocument(workspace), _ => true).Workspace;
+
+        Assert.Equal(tab, restored.ActiveTab!.View.BottomTab);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("Nonsense")]
+    [InlineData("99")]
+    public void GivenAnOldFileOrABadBottomTab_WhenRestoring_ThenTheTabIsChanges(string? name)
+    {
+        var location = SessionFixtures.Location("alpha");
+        var document = new SessionDocument
+        {
+            Version = SessionDocument.CurrentVersion,
+            Tabs = [new SessionTabDocument { WorkingTreePath = location.WorkingTreePath, GitDirectory = location.GitDirectory, BottomTab = name }],
+        };
+
+        var restored = SessionDocumentMapper.ToWorkspace(document, _ => true).Workspace;
+
+        Assert.Equal(BottomTab.Changes, restored.ActiveTab!.View.BottomTab);
+    }
+
     [Fact]
     public void GivenNoTabs_WhenRestoring_ThenWorkspaceHasNoActiveTab()
     {

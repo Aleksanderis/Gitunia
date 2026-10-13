@@ -20,7 +20,8 @@ public static class FramePrinter
         GraphGlyphSet glyphs,
         TextWriter output,
         CancellationToken cancellationToken,
-        PaneArrangement? arrangement = null)
+        PaneArrangement? arrangement = null,
+        BottomTab tab = BottomTab.Changes)
     {
         var graph = new CommitGraph();
         var repo = new Repo(runner, location);
@@ -44,7 +45,7 @@ public static class FramePrinter
         var diff = arrangement is { IsDiffOpen: true } && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
             ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
             : null;
-        var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState), 0, 0, false);
+        var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState, tab), 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
             head.BranchName,

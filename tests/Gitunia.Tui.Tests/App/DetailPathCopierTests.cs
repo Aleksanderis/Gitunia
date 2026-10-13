@@ -1,5 +1,6 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Loading;
@@ -71,7 +72,7 @@ public class DetailPathCopierTests : IDisposable
         var files = paths.Select(path => new CommitFileChange(path, null, FileChangeKind.Modified, null)).ToArray();
         var details = new CommitDetails(CommitFactory.Id(2), [CommitFactory.Id(1)], "Ann", "ann@x.org", when, "Ann", "ann@x.org", when, "Fix the thing", files);
         var source = new DetailListSource(GraphGlyphSet.Unicode);
-        source.Update(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty)));
+        source.Update(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty), BottomTab.Changes));
         return source;
     }
 

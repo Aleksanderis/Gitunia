@@ -22,11 +22,20 @@ public static class DetailPaneRenderer
 
     public static StyledLine RenderTitle(DetailContent content, bool isFocused, int width, GraphGlyphSet glyphs)
     {
-        var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" Details ", isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        var strip = DetailTabStrip.Layout(width);
+        var column = 0;
+        foreach (var button in strip)
+        {
+            builder.Append(new string(' ', button.Start - column), SegmentRole.Plain);
+            var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
+            builder.Append(button.Label, isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.Faint);
+            column = button.Start + button.Width;
+        }
+
         if (content.ShortHash.Length > 0)
         {
-            builder.Append(" " + content.ShortHash, SegmentRole.Hash);
+            builder.Append("  " + content.ShortHash, SegmentRole.Hash);
             builder.Append("  " + content.Files.Count.ToString(CultureInfo.InvariantCulture) + (content.Files.Count == 1 ? " file" : " files"), SegmentRole.Faint);
         }
 

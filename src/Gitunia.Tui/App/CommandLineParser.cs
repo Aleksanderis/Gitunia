@@ -2,10 +2,10 @@ using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Tui.App;
 
-/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff]]</c>.</summary>
+/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files]]</c>.</summary>
 public static class CommandLineParser
 {
-    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff]]";
+    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files]]";
 
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -14,6 +14,7 @@ public static class CommandLineParser
         int? height = null;
         var openDiff = false;
         PaneKind? zoom = null;
+        BottomTab? tab = null;
         for (var index = 0; index < arguments.Count; index++)
         {
             var argument = arguments[index];
@@ -42,6 +43,16 @@ public static class CommandLineParser
                 zoom = parsedZoom;
                 index++;
             }
+            else if (argument == "--tab")
+            {
+                if (index + 1 >= arguments.Count || !TryParseTab(arguments[index + 1], out var parsedTab))
+                {
+                    return new CommandLineOptions(null, null, null, "--tab needs details, changes or files");
+                }
+
+                tab = parsedTab;
+                index++;
+            }
             else if (argument.StartsWith('-') || path is not null)
             {
                 return new CommandLineOptions(null, null, null, $"unexpected argument '{argument}'");
@@ -52,12 +63,30 @@ public static class CommandLineParser
             }
         }
 
-        if ((openDiff || zoom is not null) && width is null)
+        if ((openDiff || zoom is not null || tab is not null) && width is null)
         {
-            return new CommandLineOptions(null, null, null, "--diff and --zoom need --print-frame");
+            return new CommandLineOptions(null, null, null, "--diff, --zoom and --tab need --print-frame");
         }
 
-        return new CommandLineOptions(path, width, height, null, openDiff || zoom == PaneKind.Diff, zoom);
+        return new CommandLineOptions(path, width, height, null, openDiff || zoom == PaneKind.Diff, zoom, tab ?? BottomTab.Changes);
+    }
+
+    private static bool TryParseTab(string text, out BottomTab tab)
+    {
+        tab = BottomTab.Changes;
+        switch (text)
+        {
+            case "details":
+                tab = BottomTab.Details;
+                return true;
+            case "changes":
+                return true;
+            case "files":
+                tab = BottomTab.Files;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool TryParseZoom(string text, out PaneKind zoom)

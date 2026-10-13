@@ -1,13 +1,19 @@
+using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 
 namespace Gitunia.Tui.Rendering;
 
-/// <summary>What the detail pane lists for the selected commit: info rows first, then one row per changed file.</summary>
+/// <summary>What the detail pane lists for the selected commit on its selected tab.</summary>
 /// <param name="ShortHash">The short hash of the commit, empty when no commit is selected.</param>
 /// <param name="Rows">All rows, top to bottom.</param>
-/// <param name="FirstFileRow">Index of the first file row; equals the row count when there are no files.</param>
-/// <param name="Files">The changed files; file row <c>FirstFileRow + n</c> shows <c>Files[n]</c>.</param>
-public sealed record DetailContent(string ShortHash, IReadOnlyList<DetailRow> Rows, int FirstFileRow, IReadOnlyList<CommitFileChange> Files)
+/// <param name="FirstFileRow">Index of the first file row; equals the row count when there are no files or the tab lists none.</param>
+/// <param name="Files">The changed files (also on tabs that do not list them, for the title); on the Changes tab file row <c>FirstFileRow + n</c> shows <c>Files[n]</c>.</param>
+/// <param name="Tab">The tab these rows belong to.</param>
+public sealed record DetailContent(string ShortHash, IReadOnlyList<DetailRow> Rows, int FirstFileRow, IReadOnlyList<CommitFileChange> Files, BottomTab Tab)
 {
-    public static DetailContent Empty { get; } = new(string.Empty, [], 0, []);
+    /// <summary>No commit selected, on the Changes tab.</summary>
+    public static DetailContent Empty { get; } = EmptyFor(BottomTab.Changes);
+
+    /// <summary>No commit selected, on <paramref name="tab"/>.</summary>
+    public static DetailContent EmptyFor(BottomTab tab) => new(string.Empty, [], 0, [], tab);
 }

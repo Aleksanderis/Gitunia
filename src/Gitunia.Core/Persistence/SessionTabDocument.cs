@@ -38,4 +38,7 @@ public sealed record SessionTabDocument
 
     /// <summary>Detail pane columns beside the diff the user set; null is automatic.</summary>
     public int? DetailWidth { get; init; }
+
+    /// <summary>Name of the bottom detail pane tab (<c>Details</c>, <c>Changes</c>, <c>Files</c>); null or unknown (older files) is <c>Changes</c>.</summary>
+    public string? BottomTab { get; init; }
 }

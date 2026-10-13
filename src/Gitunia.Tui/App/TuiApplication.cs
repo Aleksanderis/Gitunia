@@ -93,6 +93,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome, clipboard);
         router.Diff = diffPane;
+        router.DetailTabs = new DetailTabController(host);
         visual = new VisualRangeController(
             () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             pane => pane switch
@@ -131,6 +132,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         host.Changed += view.RefreshChrome;
         host.Changed += binder.Sync;
         host.Changed += ApplyFocus;
+        host.Changed += OnBottomTabMaybeChanged;
         host.Changed += visual.EndIfFocusMoved;
         keys.PendingChanged += view.RefreshChrome;
         keys.TextKeyPressed += OnTextKey;
@@ -508,6 +510,15 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
     }
 
+    // The tab of the bottom pane is repo tab state: whoever changed it (key, click, restored session), the rows follow.
+    private void OnBottomTabMaybeChanged()
+    {
+        if (ActiveSession() is { } session && host.Workspace.ActiveTab is { } tab && session.DetailSource.Content.Tab != tab.View.BottomTab)
+        {
+            RefreshDetail();
+        }
+    }
+
     private void RefreshDetail()
     {
         var session = ActiveSession();
@@ -519,11 +530,28 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         var commitIndex = view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
         var previous = session.DetailSource.Content;
-        var content = DetailContentBuilder.Build(entry, session.Details.Current);
+        var content = DetailContentBuilder.Build(entry, session.Details.Current, host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes);
         session.DetailSource.Update(content);
 
-        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place.
-        var selected = content.ShortHash == previous.ShortHash ? view.Detail.SelectedItem ?? 0 : 0;
+        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place,
+        // and each tab remembers its own place while the commit stays selected.
+        var selected = 0;
+        if (content.ShortHash != previous.ShortHash)
+        {
+            session.DetailSelections.Clear();
+        }
+        else if (previous.Tab != content.Tab)
+        {
+            session.DetailSelections[previous.Tab] = view.Detail.SelectedItem ?? 0;
+            selected = session.DetailSelections.TryGetValue(content.Tab, out var remembered)
+                ? remembered
+                : content.Files.Count > 0 && content.Tab == BottomTab.Changes ? content.FirstFileRow : 0;
+        }
+        else
+        {
+            selected = view.Detail.SelectedItem ?? 0;
+        }
+
         view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
         view.Detail.EnsureSelectedItemVisible();
         view.Detail.SetNeedsDraw();

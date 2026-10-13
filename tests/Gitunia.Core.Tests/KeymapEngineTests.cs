@@ -299,7 +299,7 @@ public class KeymapEngineTests
 
         var continuations = engine.Continuations(feeder.State, DefaultKeymap.GraphView);
 
-        Assert.Equal(["T", "g", "r", "t"], continuations.Select(continuation => continuation.Key.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(["T", "c", "d", "f", "g", "r", "t"], continuations.Select(continuation => continuation.Key.Name).Order(StringComparer.Ordinal));
         Assert.Equal(ActionIds.ListTop, continuations.Single(continuation => continuation.Key.Name == "g").Action);
         Assert.All(continuations, continuation => Assert.False(continuation.HasMore));
     }
