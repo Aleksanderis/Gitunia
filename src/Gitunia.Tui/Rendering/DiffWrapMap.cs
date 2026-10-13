@@ -2,16 +2,21 @@ using Gitunia.Core.Diff;
 
 namespace Gitunia.Tui.Rendering;
 
-/// <summary>Maps the rows of a diff to the screen lines they take when text wraps at a given pane width.</summary>
+/// <summary>
+/// Maps the rows of a diff to the screen lines they take when text wraps at a given pane width.
+/// The per-row text widths are measured once per document and shared by every width, so a resize only does arithmetic for printable-ASCII rows (the slow path stays for the rest).
+/// </summary>
 public sealed class DiffWrapMap
 {
     private readonly int[] starts;
+    private readonly int[] textColumns;
 
-    private DiffWrapMap(DiffDocument document, int width, int[] starts)
+    private DiffWrapMap(DiffDocument document, int width, int[] starts, int[] textColumns)
     {
         Document = document;
         Width = width;
         this.starts = starts;
+        this.textColumns = textColumns;
     }
 
     public DiffDocument Document { get; }
@@ -23,15 +28,17 @@ public sealed class DiffWrapMap
 
     public static DiffWrapMap Build(DiffDocument document, int width)
     {
-        var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
-        var starts = new int[document.Rows.Count + 1];
-        for (var index = 0; index < document.Rows.Count; index++)
+        var textColumns = new int[document.Rows.Count];
+        for (var index = 0; index < textColumns.Length; index++)
         {
-            starts[index + 1] = starts[index] + DiffRowRenderer.SegmentCount(document.Rows[index], width, digits);
+            textColumns[index] = PrintableAsciiLength(document.Rows[index].Text);
         }
 
-        return new DiffWrapMap(document, width, starts);
+        return Layout(document, width, textColumns);
     }
+
+    /// <summary>The same document at another pane width, reusing the measured row widths instead of scanning every row's text again.</summary>
+    public DiffWrapMap Resize(int width) => width == Width ? this : Layout(Document, width, textColumns);
 
     /// <summary>First screen line of <paramref name="row"/>.</summary>
     public int StartOf(int row) => starts[Math.Clamp(row, 0, starts.Length - 1)];
@@ -55,5 +62,44 @@ public sealed class DiffWrapMap
         }
 
         return Math.Max(0, low);
+    }
+
+    private static DiffWrapMap Layout(DiffDocument document, int width, int[] textColumns)
+    {
+        var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
+        var starts = new int[textColumns.Length + 1];
+        for (var index = 0; index < textColumns.Length; index++)
+        {
+            var row = document.Rows[index];
+            var length = textColumns[index];
+            int segments;
+            if (length < 0)
+            {
+                segments = DiffRowRenderer.SegmentCount(row, width, digits);
+            }
+            else
+            {
+                var columns = width - DiffRowRenderer.PrefixWidth(row, digits);
+                segments = columns <= 0 ? 1 : Math.Max(1, (length + columns - 1) / columns);
+            }
+
+            starts[index + 1] = starts[index] + segments;
+        }
+
+        return new DiffWrapMap(document, width, starts, textColumns);
+    }
+
+    /// <summary>The length of <paramref name="text"/> when every character is a one-column printable ASCII one, otherwise -1 (the text needs the full wrapping logic).</summary>
+    private static int PrintableAsciiLength(string text)
+    {
+        foreach (var character in text)
+        {
+            if (character is < ' ' or > '~')
+            {
+                return -1;
+            }
+        }
+
+        return text.Length;
     }
 }

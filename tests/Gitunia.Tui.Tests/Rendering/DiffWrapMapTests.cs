@@ -60,5 +60,27 @@ public class DiffWrapMapTests
         Assert.EndsWith("abcdefghijk", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(10)]
+    [InlineData(19)]
+    [InlineData(29)]
+    [InlineData(80)]
+    public void GivenMixedRows_WhenResizing_ThenTheMapEqualsAFreshBuild(int width)
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Context, "", 1, 1, 0),
+            new DiffRow(DiffRowKind.Added, new string('x', 100), null, 2, 0),
+            new DiffRow(DiffRowKind.Added, "日本語日本語日本語", null, 3, 0),
+            new DiffRow(DiffRowKind.Added, "\tindented\ttabs", null, 4, 0),
+            new DiffRow(DiffRowKind.Removed, new string('y', 41), 5, null, 0));
+
+        var resized = DiffWrapMap.Build(document, 40).Resize(width);
+        var fresh = DiffWrapMap.Build(document, width);
+
+        Assert.Equal(width, resized.Width);
+        Assert.Equal(fresh.Count, resized.Count);
+        Assert.Equal(Enumerable.Range(0, 6).Select(fresh.StartOf), Enumerable.Range(0, 6).Select(resized.StartOf));
+    }
+
     private static DiffDocument Document(params DiffRow[] rows) => new(rows, [], [0], [["f"]], 9);
 }

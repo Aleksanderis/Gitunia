@@ -107,9 +107,13 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             return null;
         }
 
-        if (map is null || map.Width != width || !ReferenceEquals(map.Document, Document))
+        if (map is null || !ReferenceEquals(map.Document, Document))
         {
             map = DiffWrapMap.Build(Document, width);
+        }
+        else if (map.Width != width)
+        {
+            map = map.Resize(width);
         }
 
         return map;
