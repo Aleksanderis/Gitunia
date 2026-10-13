@@ -141,6 +141,8 @@ public static class ActionIds
 
     public static ActionId TabPrevious { get; } = new("tab.previous");
 
+    public static ActionId VisualCopy { get; } = new("visual.copy");
+
     public static ActionId VisualToggle { get; } = new("visual.toggle");
 
     /// <summary>Jump to tab <paramref name="number"/> (1-based).</summary>

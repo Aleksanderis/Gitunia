@@ -9,13 +9,14 @@ namespace Gitunia.Tui.App;
 /// <summary>
 /// Visual mode: <c>v</c> (or a mouse drag) anchors a range at the cursor row of the graph, detail or diff pane, the motions (or the
 /// pointer) move the other end, and <c>v</c>, <c>Esc</c> or <c>q</c> (or a click) ends it. The range is drawn like the selected row; nothing
-/// acts on it yet (staging lines will, in M2). The sidebar has no ranges.
+/// copies it with <c>y</c> (staging lines will act on it in M2). The sidebar has no ranges.
 /// </summary>
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="listOf">The list of a pane.</param>
 /// <param name="currentMode">The input mode now.</param>
 /// <param name="setMode">Switches the input mode (Visual while a range is active).</param>
-public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode)
+/// <param name="copyRange">Copies the rows of a range, returns a notice when nothing was copied; null disables <c>y</c>.</param>
+public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode, Func<PaneKind, RowRange, string>? copyRange = null)
 {
     private PaneKind pane;
     private IRangeSource? source;
@@ -43,6 +44,17 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
                 Begin();
             }
 
+            return true;
+        }
+
+        if (IsActive && action == ActionIds.VisualCopy)
+        {
+            if (Range is { } range && copyRange is not null)
+            {
+                Notice = copyRange(pane, range);
+            }
+
+            End();
             return true;
         }
 

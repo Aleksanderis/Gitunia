@@ -17,6 +17,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     private readonly ListView sidebarList = new();
     private readonly VisualRangeController controller;
     private PaneKind focused = PaneKind.Graph;
+    private (PaneKind Pane, RowRange Range)? copied;
     private KeyMode mode = KeyMode.Normal;
 
     public VisualRangeControllerTests()
@@ -26,7 +27,12 @@ public sealed class VisualRangeControllerTests : IDisposable
             () => focused,
             pane => pane == PaneKind.Sidebar ? sidebarList : list,
             () => mode,
-            newMode => mode = newMode);
+            newMode => mode = newMode,
+            (pane, range) =>
+            {
+                copied = (pane, range);
+                return "copy notice";
+            });
     }
 
     public void Dispose()
@@ -79,6 +85,30 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.False(controller.IsActive);
         Assert.Null(source.Range);
         Assert.Equal(KeyMode.Normal, mode);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenCopying_ThenTheRangeIsCopiedAndEnds()
+    {
+        list.SelectedItem = 4;
+        controller.TryExecute(ActionIds.VisualToggle, null);
+        list.SelectedItem = 6;
+        controller.OnCursorMoved();
+
+        var handled = controller.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.True(handled);
+        Assert.Equal((PaneKind.Graph, new RowRange(4, 6)), copied);
+        Assert.Equal("copy notice", controller.Notice);
+        Assert.False(controller.IsActive);
+        Assert.Equal(KeyMode.Normal, mode);
+    }
+
+    [Fact]
+    public void GivenNoRange_WhenCopying_ThenNothingIsCopiedAndTheActionIsLeftToOthers()
+    {
+        Assert.False(controller.TryExecute(ActionIds.VisualCopy, null));
+        Assert.Null(copied);
     }
 
     [Fact]

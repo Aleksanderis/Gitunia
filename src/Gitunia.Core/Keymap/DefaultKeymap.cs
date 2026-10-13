@@ -102,6 +102,7 @@ public static class DefaultKeymap
         Add(bindings, Navigation, ListsView, "PageDown", ActionIds.ListHalfPageDown);
         Add(bindings, Navigation, ListsView, "PageUp", ActionIds.ListHalfPageUp);
         Add(bindings, Navigation, ListsView, "v", ActionIds.VisualToggle);
+        Add(bindings, [KeyMode.Visual], ListsView, "y", ActionIds.VisualCopy);
     }
 
     private static void AddViews(List<KeyBinding> bindings)
