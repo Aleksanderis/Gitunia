@@ -31,6 +31,19 @@ public class GraphColumnLayoutTests
         Assert.True(author == 0 || columns.MessageWidth >= GraphColumnLayout.MinimumMessageWidth);
     }
 
+    [Theory]
+    [InlineData(1, 139, 16, 103)]
+    [InlineData(1, 140, 20, 100)]
+    [InlineData(3, 139, 16, 103)]
+    [InlineData(3, 140, 20, 100)]
+    public void GivenSpaceAfterTheLanes_WhenComputing_ThenAuthorWidensAtTheThresholdOnly(int laneColumns, int available, int author, int message)
+    {
+        var columns = GraphColumnLayout.Compute(available + laneColumns * 2 + 1, laneColumns);
+
+        Assert.Equal(author, columns.AuthorWidth);
+        Assert.Equal(message, columns.MessageWidth);
+    }
+
     [Fact]
     public void GivenGrowingWidth_WhenComputing_ThenColumnsComeBackInOrderAndAuthorWidensOnWideRows()
     {

@@ -32,12 +32,13 @@ public class GraphColumnsFrameTests
     [Fact]
     public void GivenCommits_WhenRenderingAt200_ThenMessageTakesTheWholeWidthAndAuthorIsWider()
     {
-        var rows = Trimmed(200);
-
-        Assert.Equal(200, TextWidth.Of(Rows(200)[2]));
-        Assert.StartsWith("●  A message that is much too long for the column we have for it, so it is cut with an ellipsis", rows[2], StringComparison.Ordinal);
-        Assert.EndsWith("Alexander the Great… 2026-10-11 0000001", rows[2], StringComparison.Ordinal);
-        Assert.EndsWith("Ada Lovelace         2026-10-13 0000003", rows[0], StringComparison.Ordinal);
+        Assert.Equal(
+            [
+                "●  Add the graph columns" + new string(' ', 137) + "Ada Lovelace         2026-10-13 0000003",
+                "●  修正バグ in the parser" + new string(' ', 136) + "山田太郎             2026-10-12 0000002",
+                "●  A message that is much too long for the column we have for it, so it is cut with an ellipsis" + new string(' ', 66) + "Alexander the Great… 2026-10-11 0000001",
+            ],
+            Trimmed(200));
     }
 
     [Fact]
