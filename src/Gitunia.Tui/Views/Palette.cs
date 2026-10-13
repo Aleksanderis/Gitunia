@@ -14,13 +14,9 @@ public static class Palette
 {
     private static PaletteTable table = PaletteTable.For(PaletteSettings.Default);
 
-    /// <summary>The scheme in use.</summary>
-    public static PaletteSettings Settings { get; private set; } = PaletteSettings.Default;
-
     /// <summary>Chooses the colour scheme; called once before the first frame (the UI is single-threaded).</summary>
     public static void Configure(PaletteSettings settings)
     {
-        Settings = settings;
         table = PaletteTable.For(settings);
     }
 
@@ -60,7 +56,7 @@ public static class Palette
             SegmentRole.Hash or SegmentRole.Faint => (colors.Muted, Color.None, muted, false),
             SegmentRole.Punctuation => (colors.Muted, Color.None, muted, false),
             SegmentRole.LocalBranch => (colors.Good, Color.None, TextStyle.Bold, false),
-            SegmentRole.CurrentBranch => (colors.Info, Color.None, TextStyle.Bold, false),
+            SegmentRole.CurrentBranch => (colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),
             SegmentRole.RemoteBranch => (colors.Bad, Color.None, TextStyle.Bold, false),
             SegmentRole.Tag => (colors.Warn, Color.None, TextStyle.Bold, false),
             SegmentRole.Header => (colors.Accent, colors.BarBackground, TextStyle.Bold, true),
@@ -69,7 +65,7 @@ public static class Palette
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => (colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
             SegmentRole.InactiveTab => (Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
             SegmentRole.Error => (colors.Bad, Color.None, TextStyle.Bold, false),
-            SegmentRole.SearchMatch => (colors.MatchForeground, colors.MatchBackground, TextStyle.None, true),
+            SegmentRole.SearchMatch => (colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
             SegmentRole.SectionTitle => (colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.Border => (colors.Border, Color.None, TextStyle.None, false),
             SegmentRole.FocusedBorder => (colors.Accent, Color.None, TextStyle.Bold, false),

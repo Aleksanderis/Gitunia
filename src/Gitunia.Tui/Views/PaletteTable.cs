@@ -67,6 +67,12 @@ public sealed class PaletteTable
     /// <summary>Added to muted text (faint where there is no colour to mute it with).</summary>
     public TextStyle MutedStyle { get; init; } = TextStyle.None;
 
+    /// <summary>Added to search matches (bold and underlined where there is no colour to mark them with).</summary>
+    public TextStyle MatchStyle { get; init; } = TextStyle.None;
+
+    /// <summary>Added to the current branch (underlined where there is no colour to tell it from other branches).</summary>
+    public TextStyle CurrentStyle { get; init; } = TextStyle.None;
+
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
@@ -188,6 +194,8 @@ public sealed class PaletteTable
         SelectionDimStyle = TextStyle.Underline,
         MutedStyle = TextStyle.Faint,
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,
+        MatchStyle = TextStyle.Bold | TextStyle.Underline,
+        CurrentStyle = TextStyle.Underline,
     };
 
     private static Color Rgb(int value) => new(value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);

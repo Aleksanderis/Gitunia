@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Views;
 
 /// <summary>
 /// Writes a composed frame with the colours the <see cref="Palette"/> would give it, as ANSI escape sequences
-/// (<c>--print-frame --ansi</c>): a way to look at the colours of any scheme without starting the UI.
+/// (<c>--print-frame --colors</c>): a way to look at the colours of any scheme without starting the UI.
 /// </summary>
 public static class AnsiFrameWriter
 {

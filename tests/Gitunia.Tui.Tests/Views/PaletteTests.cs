@@ -184,6 +184,46 @@ public class PaletteTests
         }
     }
 
+    [Theory]
+    [InlineData(ColorDepth.None, false)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
+    [InlineData(ColorDepth.TrueColor, false)]
+    public void GivenAnyScheme_WhenColouringRolesThatCarryMeaning_ThenTheyLookDifferentFromPlainText(ColorDepth depth, bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+        var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
+
+        foreach (var role in new[] { SegmentRole.SearchMatch, SegmentRole.ActiveTab, SegmentRole.InactiveTab, SegmentRole.FocusedBorder, SegmentRole.CurrentBranch, SegmentRole.StatusMode })
+        {
+            Assert.NotEqual(plain, Palette.For(new StyledSegment("x", role), false, false, colors));
+        }
+
+        Assert.NotEqual(
+            Palette.For(new StyledSegment("x", SegmentRole.ActiveTab), false, false, colors),
+            Palette.For(new StyledSegment("x", SegmentRole.InactiveTab), false, false, colors));
+        Assert.NotEqual(
+            Palette.For(new StyledSegment("x", SegmentRole.LocalBranch), false, false, colors),
+            Palette.For(new StyledSegment("x", SegmentRole.CurrentBranch), false, false, colors));
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenColouringLanesOnASelectedRow_ThenEveryLaneIsReadable(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        for (var lane = 0; lane < colors.Lanes.Length; lane++)
+        {
+            foreach (var isFocused in new[] { true, false })
+            {
+                var attribute = Palette.For(new StyledSegment("x", SegmentRole.Lane, lane), true, isFocused, colors);
+
+                Assert.True(Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background)) >= ReadableRatio, $"lane {lane}, focused {isFocused}");
+            }
+        }
+    }
+
     [Fact]
     public void GivenMoreLanesThanColours_WhenColouring_ThenTheColoursCycle()
     {

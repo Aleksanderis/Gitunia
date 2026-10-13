@@ -75,8 +75,9 @@ public abstract class PlatformBase : IPlatform
             return false;
         }
 
-        var background = value[(value.LastIndexOf(';') + 1)..];
-        return background is "7" or "15";
+        // "foreground;background" (a three-part value has the background last); a lone number is a foreground only.
+        var separator = value.LastIndexOf(';');
+        return separator >= 0 && value[(separator + 1)..] is "7" or "15";
     }
 
     public bool DetectUnicode()

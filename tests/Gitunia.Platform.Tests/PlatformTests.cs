@@ -40,6 +40,8 @@ public class DetectionTests
     [InlineData("12;7", true)]
     [InlineData("7;0", false)]
     [InlineData("garbage", false)]
+    [InlineData("15", false)]
+    [InlineData("7", false)]
     public void GivenColorFgBg_WhenDetectingBackground_ThenOnlyLightBackgroundsAreLight(string value, bool expected) =>
         Assert.Equal(expected, With(("COLORFGBG", value)).DetectLightBackground());
 
