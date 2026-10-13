@@ -56,6 +56,7 @@ public sealed class OverlayController
         this.statuses = statuses;
         keys.PendingChanged += OnPendingChanged;
         keys.TextKeyPressed += OnTextKey;
+        statuses.Changed += OnStatusChanged;
     }
 
     /// <summary>Raised when what the overlay layer shows may have changed.</summary>
@@ -212,6 +213,17 @@ public sealed class OverlayController
                 run(chosen.Action, null);
             }
         }
+    }
+
+    private void OnStatusChanged()
+    {
+        if (State.Kind != OverlayKind.Messages)
+        {
+            return;
+        }
+
+        helpSections = [MessageSection()];
+        Changed?.Invoke();
     }
 
     private void OnTextKey(KeyEvent key)
