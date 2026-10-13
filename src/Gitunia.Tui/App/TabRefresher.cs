@@ -180,7 +180,7 @@ public sealed class TabRefresher : IDisposable
             if (changed.HasFlag(RepositorySections.Status))
             {
                 var status = result.Snapshot.Status;
-                var summary = new RepoStatusSummary(status.Entries.Count > 0, status.Branch.Ahead ?? 0, status.Branch.Behind ?? 0);
+                var summary = RepoStatusSummary.From(status);
                 host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
             }
 
