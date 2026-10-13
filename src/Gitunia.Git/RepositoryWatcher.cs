@@ -67,7 +67,7 @@ public sealed class RepositoryWatcher : IDisposable
 
     /// <summary>
     /// Raised on a thread pool thread when a background tab turns stale (its first unreported change arrives), so callers and tests
-    /// need not poll <see cref="IsStale"/>. Not raised again until the changes were reported.
+    /// need not poll <see cref="IsStale"/>. Also raised when a tab with unreported changes is hidden. Not raised again until the changes were reported. Handlers must not throw.
     /// </summary>
     public event Action? BecameStale;
 
@@ -142,6 +142,11 @@ public sealed class RepositoryWatcher : IDisposable
             }
 
             _isActive = isActive;
+            if (!isActive && _pending != RepositoryChangeKinds.None)
+            {
+                ThreadPool.QueueUserWorkItem(_ => BecameStale?.Invoke());
+            }
+
             if (!isActive || _pending == RepositoryChangeKinds.None)
             {
                 return;
