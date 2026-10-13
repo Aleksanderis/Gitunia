@@ -6,10 +6,14 @@ namespace Gitunia.Tui.Loading;
 /// <summary>
 /// Tells whether a loaded graph still shows the refs and HEAD of a snapshot read later. The refresher's baseline pass uses it to
 /// catch a change made between the initial graph load and the baseline read, which the watcher event can no longer reveal (the
-/// baseline snapshot already contains it, so the next refresh diffs equal).
+/// baseline snapshot already contains it, so the next refresh diffs equal). The current-branch marker counts too. A ref that can
+/// never be decorated in the log (a tag on a non-commit object) makes the check report a difference once per baseline, which costs
+/// one incremental reload and cannot loop.
 /// </summary>
 public static class GraphRefCheck
 {
+    private const string CurrentKey = "current branch";
+
     /// <summary>True when a branch, tag or detached HEAD in the snapshot is not decorated the same way in <paramref name="rows"/>, or the other way round.</summary>
     public static bool Differs(IReadOnlyList<GraphEntry> rows, RepositorySnapshot snapshot)
     {
@@ -21,6 +25,10 @@ public static class GraphRefCheck
                 if (IsComparable(decoration.FullName, decoration.Kind))
                 {
                     shown[decoration.FullName] = row.Id.ToString();
+                    if (decoration.IsCurrent && decoration.Kind == RefKind.LocalBranch)
+                    {
+                        shown[CurrentKey] = decoration.FullName;
+                    }
                 }
             }
         }
@@ -32,6 +40,11 @@ public static class GraphRefCheck
             {
                 expected[reference.FullName] = reference.CommitHash;
             }
+        }
+
+        if (snapshot.Head.Kind == HeadKind.Branch && snapshot.Head.BranchName is not null)
+        {
+            expected[CurrentKey] = "refs/heads/" + snapshot.Head.BranchName;
         }
 
         if (snapshot.Head.Kind == HeadKind.Detached && snapshot.Head.CommitHash is not null)
