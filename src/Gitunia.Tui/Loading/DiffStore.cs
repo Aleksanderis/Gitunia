@@ -36,6 +36,7 @@ public sealed class DiffStore(
     private IReadOnlyList<ObjectId> wanted = [];
     private ObjectId? firstParent;
     private bool isUnlimited;
+    private bool isReleased;
 
     /// <summary>Raised on the UI thread when <see cref="Document"/> or <see cref="Status"/> changed.</summary>
     public event Action? Changed;
@@ -66,6 +67,7 @@ public sealed class DiffStore(
         }
 
         isUnlimited = false;
+        isReleased = false;
         wanted = prefetch ?? [];
         if (cache.TryGet(commit, out var known))
         {
@@ -103,6 +105,7 @@ public sealed class DiffStore(
     {
         CancelPending();
         CancelPrefetch();
+        isReleased = false;
         this.firstParent = firstParent;
         Commit = commit;
         IsCut = false;
@@ -132,6 +135,7 @@ public sealed class DiffStore(
     /// <summary>Drops the cached diffs and stops reading neighbours (the tab is not shown); the diff on show stays.</summary>
     public void ReleaseCache()
     {
+        isReleased = true;
         CancelPrefetch();
         cache.Clear();
     }
@@ -190,7 +194,7 @@ public sealed class DiffStore(
             {
                 token.ThrowIfCancellationRequested();
                 var parent = await FirstParentOfAsync(commit, token).ConfigureAwait(false);
-                var document = await ReadAsync(commit, parent, PrefetchRowLimit, fileLineLimit, token).ConfigureAwait(false);
+                var document = await ReadAsync(commit, parent, PrefetchRowLimit, Math.Min(fileLineLimit, PrefetchRowLimit), token).ConfigureAwait(false);
                 if (document is { IsCut: false })
                 {
                     postToUi(() => RememberPrefetched(commit, document.Document, token));
@@ -283,14 +287,14 @@ public sealed class DiffStore(
             Status = DiffStatus.Loaded;
             IsCut = isCut;
             Document = Present(document);
-            if (!isCut)
+            if (!isCut && !isReleased)
             {
                 cache.Add(commit, document);
             }
         }
 
         Changed?.Invoke();
-        if (Status == DiffStatus.Loaded)
+        if (Status == DiffStatus.Loaded && !isReleased)
         {
             StartPrefetch();
         }

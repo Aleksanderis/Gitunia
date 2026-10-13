@@ -178,17 +178,76 @@ public class DiffStoreTests
             .Commit("third", ("a.txt", "three\n"));
         var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
         var gate = new TaskCompletionSource();
-        using var store = new DiffStore(repo, action => action(), delay: async (_, token) => await gate.Task.WaitAsync(token));
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var store = new DiffStore(repo, action => action(), delay: async (_, token) =>
+        {
+            try
+            {
+                await gate.Task.WaitAsync(token);
+            }
+            catch (OperationCanceledException)
+            {
+                cancelled.TrySetResult();
+                throw;
+            }
+        });
         store.Load(IdOf(repository, "HEAD"), IdOf(repository, "HEAD~1"), [IdOf(repository, "HEAD~1")]);
         await WaitUntilAsync(() => store.Status == DiffStatus.Loaded);
 
         store.Load(IdOf(repository, "HEAD~2"), null);
-        gate.SetResult();
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
         await WaitUntilAsync(() => store.Status == DiffStatus.Loaded && store.Commit == IdOf(repository, "HEAD~2"));
-        await Task.Delay(300, Token);
 
         Assert.Equal(2, store.CachedCount);
         store.Clear();
+        Assert.Equal(0, store.CachedCount);
+    }
+
+    [Fact]
+    public async Task GivenANeighbourOverThePrefetchRowLimit_WhenPrefetching_ThenItIsSkippedAndTheNextOneIsRead()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("root", ("a.txt", "one\n"))
+            .Commit("big", ("big.txt", string.Concat(Enumerable.Range(0, DiffStore.PrefetchRowLimit + 100).Select(index => $"line {index}\n"))))
+            .Commit("small", ("a.txt", "two\n"))
+            .Commit("tip", ("a.txt", "three\n"));
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        using var store = new DiffStore(repo, action => action(), delay: (_, _) => Task.CompletedTask);
+
+        store.Load(IdOf(repository, "HEAD"), IdOf(repository, "HEAD~1"), [IdOf(repository, "HEAD~2"), IdOf(repository, "HEAD~1")]);
+        await WaitUntilAsync(() => store.CachedCount == 2);
+        await LoadedAsync(store, IdOf(repository, "HEAD"));
+
+        Assert.Equal(2, store.CachedCount);
+        Assert.True(store.Load(IdOf(repository, "HEAD~1"), IdOf(repository, "HEAD~2")));
+        Assert.Equal(DiffStatus.Loaded, store.Status);
+    }
+
+    [Fact]
+    public async Task GivenACutDiff_WhenItLoads_ThenItIsNotCached()
+    {
+        using var repository = TestRepository.Create().Commit("root", ("big.txt", "start\n"));
+        repository.Commit("big", ("big.txt", string.Concat(Enumerable.Range(0, 2000).Select(index => $"line {index}\n"))));
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        using var store = new DiffStore(repo, action => action(), rowLimit: 100);
+
+        await LoadAsync(store, repository, "HEAD", "HEAD~1");
+
+        Assert.True(store.IsCut);
+        Assert.Equal(0, store.CachedCount);
+    }
+
+    [Fact]
+    public async Task GivenACacheReleasedWhileLoading_WhenTheLoadFinishes_ThenNothingIsCached()
+    {
+        using var repository = TestRepository.Create().Commit("root", ("a.txt", "one\n")).Commit("second", ("a.txt", "two\n"));
+        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
+        using var store = new DiffStore(repo, action => action(), delay: (_, _) => Task.CompletedTask);
+
+        store.Load(IdOf(repository, "HEAD"), IdOf(repository, "HEAD~1"), [IdOf(repository, "HEAD~1")]);
+        store.ReleaseCache();
+        await WaitUntilAsync(() => store.Status == DiffStatus.Loaded);
+
         Assert.Equal(0, store.CachedCount);
     }
 
@@ -221,6 +280,9 @@ public class DiffStoreTests
         Assert.Equal(0, store.CachedCount);
         Assert.Equal(DiffStatus.Loaded, store.Status);
     }
+
+    private static Task LoadedAsync(DiffStore store, ObjectId commit) =>
+        WaitUntilAsync(() => store.Commit == commit && store.Status == DiffStatus.Loaded);
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
