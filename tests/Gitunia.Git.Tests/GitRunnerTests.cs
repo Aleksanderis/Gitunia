@@ -109,6 +109,7 @@ public class GitRunnerTests
         });
     }
 
+    // The idle timer also covers process start-up before the first chunk, so the timeout needs a wide margin under CPU load.
     [Fact]
     public async Task GivenStalledStream_WhenIdleTimeoutElapses_ThenTimeoutAfterFirstChunk()
     {
@@ -120,7 +121,7 @@ public class GitRunnerTests
             await foreach (var unused in RunnerFor(fake).StreamAsync(
                 AnyDirectory,
                 ["log"],
-                new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(500)),
+                new GitRunOptions(Timeout: TimeSpan.FromSeconds(2)),
                 TestContext.Current.CancellationToken))
             {
                 chunks += unused.Length > 0 ? 1 : 0;

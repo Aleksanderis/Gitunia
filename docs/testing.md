@@ -7,7 +7,7 @@
 - State and keymap logic is pure and tested without a terminal.
 - No test touches the user's repos, global git config or network. Isolation recipe and fixture shapes are in the `testing` skill.
 - No new sleeps or polling loops to wait for background work. Wait on a signal: `UiPump` (queues posted UI callbacks and runs them on the test thread until a condition holds), a `TaskCompletionSource` completed from the store's `Changed` event or a file watcher, or an injected delay (e.g. the `delay` parameter of `CommitDetailsStore`, `scanningDelay` of `PickerController`). A guard timeout only bounds a hang. `RepositoryWatcher.BecameStale` is the signal for a background tab turning stale.
-- Accepted intrinsic timer waits (the wait is the thing under test): in `GitRunnerTests`, the slow-consumer test (consumer sleeps 600 ms against a 200 ms runner timeout) and, on Windows only, `AssertNeverMarkedAsync` outwaiting 3 s because the cmd fake cannot record its pid. On Linux/macOS that helper waits for the process to exit.
+- Accepted intrinsic timer waits (the wait is the thing under test): in `GitRunnerTests`, the slow-consumer test (consumer sleeps 600 ms against a 200 ms runner timeout) and the stalled-stream test (the fake prints once, then sleeps; the idle timeout is 2 s, not 500 ms, because the timer also covers process start-up, which can exceed 500 ms under CPU load so the first chunk never arrives) and, on Windows only, `AssertNeverMarkedAsync` outwaiting 3 s because the cmd fake cannot record its pid. On Linux/macOS that helper waits for the process to exit.
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Naming
