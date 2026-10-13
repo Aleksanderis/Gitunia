@@ -61,13 +61,14 @@ public sealed class DiffPaneController : IPromptHandler
         this.refreshChrome = refreshChrome;
         diffList.ValueChanged += (_, _) => RememberCursor();
         diffList.ViewportChanged += (_, _) => SyncWidth();
+        host.Changed += OnWorkspaceChanged;
     }
 
     public string Notice { get; private set; } = string.Empty;
 
     public string StatusLine => activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(CursorRow(diff)) : string.Empty;
 
-    /// <summary>The panes' arrangement for the active tab; a zoom that no longer matches the focused pane is dropped here.</summary>
+    /// <summary>The panes' arrangement for the active tab; a zoom that does not match the focused pane is not part of it. Has no side effects (see <see cref="ReleaseStaleZoom"/>).</summary>
     public PaneArrangement Arrangement()
     {
         if (activeSession()?.Diff is not { } diff)
@@ -75,12 +76,17 @@ public sealed class DiffPaneController : IPromptHandler
             return PaneArrangement.Normal;
         }
 
-        if (diff.ZoomedPane != host.Workspace.ActiveTab?.View.FocusedPane)
+        var zoomed = diff.ZoomedPane == host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;
+        return new PaneArrangement(diff.IsOpen, zoomed, diff.Sizes);
+    }
+
+    /// <summary>Forgets the active tab's zoom when focus moved to another pane, so returning to the zoomed pane does not zoom it again. Runs after every workspace command.</summary>
+    public void ReleaseStaleZoom()
+    {
+        if (activeSession()?.Diff is { ZoomedPane: { } zoomed } diff && zoomed != host.Workspace.ActiveTab?.View.FocusedPane)
         {
             diff.ZoomedPane = null;
         }
-
-        return new PaneArrangement(diff.IsOpen, diff.ZoomedPane, diff.Sizes);
     }
 
     public bool TryExecute(ActionId action, int? count)
@@ -160,6 +166,7 @@ public sealed class DiffPaneController : IPromptHandler
         if (previous?.Diff is { } old)
         {
             old.Store.Changed -= OnStoreChanged;
+            AbandonTypedSearch(old);
         }
 
         isRestoring = true;
@@ -189,6 +196,30 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         relayout();
+    }
+
+    private void OnWorkspaceChanged()
+    {
+        ReleaseStaleZoom();
+        if (activeSession()?.Diff is { Search.Phase: DiffSearchPhase.Editing } diff && host.Workspace.ActiveTab?.View.FocusedPane != PaneKind.Diff)
+        {
+            // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
+            AbandonTypedSearch(diff);
+        }
+    }
+
+    /// <summary>Drops a search that is still being typed (not an accepted one) and leaves Insert mode.</summary>
+    private void AbandonTypedSearch(DiffSession diff)
+    {
+        if (diff.Search.Phase != DiffSearchPhase.Editing)
+        {
+            return;
+        }
+
+        diff.Search = DiffSearchState.Idle;
+        diff.Source.Highlight = null;
+        setMode(KeyMode.Normal);
+        diffList.SetNeedsDraw();
     }
 
     private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused)

@@ -11,6 +11,7 @@ public static class DiffRowRenderer
     public const int TabWidth = 4;
 
     private const int MinimumGutterDigits = 3;
+    private const int CutMargin = 16;
 
     /// <summary>Digits each line number column needs for a document whose largest line number is <paramref name="maximumLineNumber"/>.</summary>
     public static int GutterDigits(int maximumLineNumber) =>
@@ -28,20 +29,20 @@ public static class DiffRowRenderer
         switch (row.Kind)
         {
             case DiffRowKind.FileHeader:
-                AppendText(builder, row.Text, SegmentRole.DiffFile, highlight);
+                AppendText(builder, row.Text, SegmentRole.DiffFile, highlight, width);
                 break;
             case DiffRowKind.HunkHeader:
-                AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight);
+                AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight, width);
                 break;
             case DiffRowKind.Warning:
-                AppendText(builder, "! " + row.Text, SegmentRole.Error, highlight);
+                AppendText(builder, "! " + row.Text, SegmentRole.Error, highlight, width);
                 break;
             case DiffRowKind.Note:
             case DiffRowKind.NoNewline:
-                AppendText(builder, "  " + row.Text, SegmentRole.Faint, highlight);
+                AppendText(builder, "  " + row.Text, SegmentRole.Faint, highlight, width);
                 break;
             default:
-                AppendChange(builder, row, gutterDigits, highlight);
+                AppendChange(builder, row, width, gutterDigits, highlight);
                 break;
         }
 
@@ -181,7 +182,7 @@ public static class DiffRowRenderer
         return false;
     }
 
-    private static void AppendChange(LineBuilder builder, DiffRow row, int gutterDigits, string? highlight)
+    private static void AppendChange(LineBuilder builder, DiffRow row, int width, int gutterDigits, string? highlight)
     {
         var (marker, role) = row.Kind switch
         {
@@ -192,12 +193,28 @@ public static class DiffRowRenderer
         var gutter = Number(row.OldLineNumber, gutterDigits) + " " + Number(row.NewLineNumber, gutterDigits) + " ";
         builder.Append(gutter, SegmentRole.Faint);
         builder.Append(marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
-        AppendText(builder, row.Text, role, highlight);
+        AppendText(builder, row.Text, role, highlight, width);
     }
 
-    private static void AppendText(LineBuilder builder, string text, SegmentRole role, string? highlight)
+    private static void AppendText(LineBuilder builder, string text, SegmentRole role, string? highlight, int width)
     {
-        AppendHighlighted(builder, ExpandTabs(text), role, highlight);
+        AppendHighlighted(builder, ExpandTabs(CutToWidth(text, width)), role, highlight);
+    }
+
+    /// <summary>
+    /// Keeps the start of <paramref name="text"/> that can reach into <paramref name="width"/> columns (every character takes at
+    /// least one column, so twice the width plus a margin for zero-width marks is enough), so a minified line of megabytes costs
+    /// no more per draw than a short one. Still longer than the pane after expanding, so the ellipsis shows (not for pathological lines of mostly zero-width marks, which show cut without it).
+    /// </summary>
+    private static string CutToWidth(string text, int width)
+    {
+        var limit = (Math.Max(width, 0) * 2) + CutMargin;
+        if (text.Length <= limit)
+        {
+            return text;
+        }
+
+        return char.IsHighSurrogate(text[limit - 1]) ? text[..(limit - 1)] : text[..limit];
     }
 
     private static void AppendHighlighted(LineBuilder builder, string shown, SegmentRole role, string? highlight)
