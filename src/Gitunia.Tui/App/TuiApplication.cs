@@ -247,19 +247,19 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
-        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is not { } diff || diffPane.Arrangement().Zoomed is not null)
+        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is null || diffPane.Arrangement().Zoomed is not null)
         {
             return;
         }
 
-        ApplyPaneSizes(PaneResizer.Drag(diff.Sizes, edge, column, row, view.Window.Viewport.Height));
+        ApplyPaneSizes(PaneResizer.Drag(diffPane.SizesOfActiveTab(), edge, column, row, view.Window.Viewport.Height));
     }
 
     private void ApplyPaneSizes(PaneSizes sizes)
     {
-        if (ActiveSession()?.Diff is { } diff && diff.Sizes != sizes)
+        if (host.Workspace.ActiveTabId is { } tabId && diffPane.SizesOfActiveTab() != sizes)
         {
-            diff.Sizes = sizes;
+            host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
         }
     }

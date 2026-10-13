@@ -32,6 +32,9 @@ public static class SessionDocumentMapper
                 FilterText = tab.View.FilterText,
                 // The diff pane is not open after a restart, so a tab that had it focused comes back on the file list.
                 FocusedPane = (tab.View.FocusedPane == PaneKind.Diff ? PaneKind.Detail : tab.View.FocusedPane).ToString(),
+                SidebarWidth = tab.View.SidebarWidth,
+                BottomHeight = tab.View.BottomHeight,
+                DetailWidth = tab.View.DetailWidth,
             });
         }
 
@@ -114,8 +117,11 @@ public static class SessionDocumentMapper
         var pane = Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
             ? parsed
             : PaneKind.Graph;
-        return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane);
+        return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth));
     }
+
+    // The layout clamps to what fits; here only negative values falls back to automatic.
+    private static int? PositiveOrNull(int? value) => value is >= 0 ? value : null;
 
     private static ImmutableArray<string> ReadPaths(List<string>? paths, int limit)
     {

@@ -23,6 +23,12 @@ public sealed record ScrollToCommand(int Offset) : RepoCommand;
 /// <param name="Text">The filter; empty clears it.</param>
 public sealed record SetFilterCommand(string Text) : RepoCommand;
 
+/// <summary>Set the pane sizes the user chose (null is automatic).</summary>
+/// <param name="SidebarWidth">Columns of the sidebar.</param>
+/// <param name="BottomHeight">Rows of the bottom strip.</param>
+/// <param name="DetailWidth">Columns of the detail pane beside the diff.</param>
+public sealed record SetPaneSizesCommand(int? SidebarWidth, int? BottomHeight, int? DetailWidth) : RepoCommand;
+
 /// <summary>Move focus to a pane.</summary>
 /// <param name="Pane">The pane.</param>
 public sealed record FocusPaneCommand(PaneKind Pane) : RepoCommand;
