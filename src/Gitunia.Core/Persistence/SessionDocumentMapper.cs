@@ -120,8 +120,8 @@ public static class SessionDocumentMapper
         return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth));
     }
 
-    // The layout clamps to what fits; here only nonsense (zero, negative) falls back to automatic.
-    private static int? PositiveOrNull(int? value) => value is > 0 ? value : null;
+    // The layout clamps to what fits; here only negative values falls back to automatic.
+    private static int? PositiveOrNull(int? value) => value is >= 0 ? value : null;
 
     private static ImmutableArray<string> ReadPaths(List<string>? paths, int limit)
     {

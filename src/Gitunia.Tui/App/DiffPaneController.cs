@@ -73,7 +73,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (activeSession()?.Diff is not { } diff)
         {
-            return PaneArrangement.Normal;
+            return PaneArrangement.Normal with { Sizes = SizesOfActiveTab() };
         }
 
         var zoomed = diff.ZoomedPane == host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;

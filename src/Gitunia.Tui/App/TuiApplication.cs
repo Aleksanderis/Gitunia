@@ -246,7 +246,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
-        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is not { } diff || diffPane.Arrangement().Zoomed is not null)
+        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is null || diffPane.Arrangement().Zoomed is not null)
         {
             return;
         }
