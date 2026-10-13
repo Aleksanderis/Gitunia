@@ -6,14 +6,15 @@ namespace Gitunia.Tui.Tests.Rendering;
 public class GraphColumnLayoutTests
 {
     [Theory]
-    [InlineData(80, 2, 39)]
-    [InlineData(120, 2, 79)]
-    [InlineData(200, 2, 100)]
-    public void GivenWideEnoughTerminal_WhenComputing_ThenAllColumnsShowAndMessageStopsAtItsCap(int width, int laneColumns, int message)
+    [InlineData(80, 2, 16, 39)]
+    [InlineData(120, 2, 16, 79)]
+    [InlineData(200, 2, 20, 155)]
+    [InlineData(400, 2, 20, 355)]
+    public void GivenWideEnoughTerminal_WhenComputing_ThenAllColumnsShowAndMessageTakesTheRest(int width, int laneColumns, int author, int message)
     {
         var columns = GraphColumnLayout.Compute(width, laneColumns);
 
-        Assert.Equal(new GraphColumns(laneColumns * 2, message, GraphColumnLayout.AuthorWidth, GraphColumnLayout.DateWidth, GraphColumnLayout.HashWidth), columns);
+        Assert.Equal(new GraphColumns(laneColumns * 2, message, author, GraphColumnLayout.DateWidth, GraphColumnLayout.HashWidth), columns);
     }
 
     [Theory]
@@ -31,17 +32,17 @@ public class GraphColumnLayoutTests
     }
 
     [Fact]
-    public void GivenGrowingWidth_WhenComputing_ThenColumnsOnlyComeBackInOrder()
+    public void GivenGrowingWidth_WhenComputing_ThenColumnsComeBackInOrderAndAuthorWidensOnWideRows()
     {
-        var shown = Enumerable.Range(10, 191)
-            .Select(width => GraphColumnLayout.Compute(width, 1))
+        var all = Enumerable.Range(10, 391).Select(width => GraphColumnLayout.Compute(width, 1)).ToArray();
+        var shown = all
             .Select(columns => (columns.AuthorWidth > 0 ? 1 : 0) + (columns.DateWidth > 0 ? 2 : 0) + (columns.HashWidth > 0 ? 4 : 0))
             .ToArray();
 
         Assert.Equal(shown.Order(), shown);
         Assert.All(shown, mask => Assert.True(mask is 0 or 1 or 3 or 7, $"mask {mask}"));
-        Assert.Equal(0, shown[0]);
-        Assert.Equal(7, shown[^1]);
+        Assert.Equal(GraphColumnLayout.WideAuthorWidth, all[^1].AuthorWidth);
+        Assert.Equal(357, all[^1].MessageWidth);
     }
 
     [Theory]
