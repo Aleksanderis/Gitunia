@@ -70,12 +70,15 @@ public class RepositoryWatcherTests
         var recorder = new ChangeRecorder();
         var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
         using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var stale = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        watcher.BecameStale += () => stale.TrySetResult();
         watcher.Start();
         watcher.SetActive(false);
 
         repository.Commit("while hidden", ("hidden.txt", "x"));
 
-        await recorder.WaitUntilAsync(() => watcher.IsStale, "stale", Token);
+        await stale.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        Assert.True(watcher.IsStale);
         Assert.Equal(0, recorder.CallCount);
 
         watcher.SetActive(true);
