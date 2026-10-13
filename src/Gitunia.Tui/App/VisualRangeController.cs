@@ -9,14 +9,14 @@ namespace Gitunia.Tui.App;
 /// <summary>
 /// Visual mode: <c>v</c> (or a mouse drag) anchors a range at the cursor row of the graph, detail or diff pane, the motions (or the
 /// pointer) move the other end, and <c>v</c>, <c>Esc</c> or <c>q</c> (or a click) ends it. The range is drawn like the selected row;
-/// <c>y</c> copies it and ends it (staging lines will act on it in M2). The sidebar has no ranges.
+/// <c>y</c> copies it and ends it when the copy worked (a failed copy keeps it; staging lines will act on it in M2). The sidebar has no ranges.
 /// </summary>
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="listOf">The list of a pane.</param>
 /// <param name="currentMode">The input mode now.</param>
 /// <param name="setMode">Switches the input mode (Visual while a range is active).</param>
-/// <param name="copyRange">Copies the rows of a range, returns a notice when nothing was copied; null disables <c>y</c>.</param>
-public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode, Func<PaneKind, RowRange, string>? copyRange = null)
+/// <param name="copyRange">Copies the rows of a range, the range ends only when it was copied; null disables <c>y</c>.</param>
+public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode, Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null)
 {
     private PaneKind pane;
     private IRangeSource? source;
@@ -51,7 +51,13 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
         {
             if (Range is { } range && copyRange is not null)
             {
-                Notice = copyRange(pane, range);
+                var result = copyRange(pane, range);
+                Notice = result.Notice;
+                if (!result.Copied)
+                {
+                    // Keep the range so the user can retry (or leave it with Esc).
+                    return true;
+                }
             }
 
             End();

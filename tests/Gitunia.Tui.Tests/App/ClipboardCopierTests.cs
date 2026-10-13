@@ -14,7 +14,7 @@ public class ClipboardCopierTests
         var statuses = new StatusChannel();
         var copier = new ClipboardCopier(new ClipboardWriter(output, new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
 
-        copier.Copy("abc", "commit hash");
+        Assert.True(copier.Copy("abc", "commit hash"));
 
         Assert.Equal("\u001b]52;c;YWJj\u001b\\", output.ToString());
         Assert.Equal(StatusSeverity.Info, statuses.Log.Latest?.Severity);
@@ -28,7 +28,7 @@ public class ClipboardCopierTests
         var statuses = new StatusChannel();
         var writer = new ClipboardWriter(output, Osc52Environment.Detect(name => name == "TERM" ? "dumb" : null));
 
-        new ClipboardCopier(writer, statuses).Copy("abc", "commit hash");
+        Assert.False(new ClipboardCopier(writer, statuses).Copy("abc", "commit hash"));
 
         Assert.Equal(string.Empty, output.ToString());
         Assert.Equal(StatusSeverity.Warning, statuses.Log.Latest?.Severity);
@@ -39,7 +39,7 @@ public class ClipboardCopierTests
     {
         var statuses = new StatusChannel();
 
-        new ClipboardCopier(null, statuses).Copy("abc", "commit hash");
+        Assert.False(new ClipboardCopier(null, statuses).Copy("abc", "commit hash"));
 
         Assert.Equal(ClipboardCopier.NotInteractiveMessage, statuses.Log.Latest?.Text);
     }
