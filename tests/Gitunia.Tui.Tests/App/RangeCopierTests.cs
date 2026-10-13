@@ -49,6 +49,21 @@ public class RangeCopierTests : IDisposable
         Assert.Equal(string.Empty, terminal.ToString());
     }
 
+    [Fact]
+    public async Task GivenAClipboardThatRefusesTheText_WhenCopying_ThenTheResultSaysNotCopied()
+    {
+        using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var session = await CreateSessionAsync(repository);
+        var statuses = new StatusChannel();
+        var copier = new RangeCopier(new ClipboardCopier(new ClipboardWriter(terminal, new Osc52Options(Osc52Mode.Direct, 10)), statuses), () => session);
+
+        var result = copier.Copy(PaneKind.Graph, new RowRange(0, 1));
+
+        Assert.False(result.Copied);
+        Assert.Equal(string.Empty, terminal.ToString());
+        Assert.Equal(StatusSeverity.Warning, statuses.Log.Latest?.Severity);
+    }
+
     public void Dispose()
     {
         terminal.Dispose();
