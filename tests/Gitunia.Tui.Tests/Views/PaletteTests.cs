@@ -156,6 +156,21 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.None, false)]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    public void GivenAnUnfocusedPane_WhenDrawingTabs_ThenTheSelectedTabLooksDifferentFromTheOthers(ColorDepth depth, bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+
+        var selected = Palette.For(new StyledSegment(" Files ", SegmentRole.InactiveTab), false, false, colors);
+        var other = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+
+        Assert.NotEqual(selected, other);
+    }
+
+    [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
     public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsUnderlinedAndThePanelHasNoBackground(ColorDepth depth)

@@ -5,7 +5,8 @@ namespace Gitunia.Tui.Rendering;
 
 /// <summary>
 /// The tab labels at the left end of the detail pane's title row. The same layout draws them and finds the one under a click, so the
-/// two never disagree. The row is the top edge of the pane's box, so the labels start after one stretch of line. Each label is a button: padded with a space on each side, one column of line between them; narrow rows drop the padding.
+/// two never disagree. The row is the top edge of the pane's box, so the labels start after one stretch of line.
+/// Each label is a button: padded with a space on each side, one column of line between them; narrow rows drop the padding.
 /// </summary>
 public static class DetailTabStrip
 {

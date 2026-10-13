@@ -40,7 +40,7 @@ public sealed class PaletteTable
     /// <summary>The header and status bar, <see cref="Color.None"/> for none.</summary>
     public required Color BarBackground { get; init; }
 
-    /// <summary>The background of the bottom pane's content, a step off the graph's, <see cref="Color.None"/> for none (then the frame and the tab buttons separate the pane).</summary>
+    /// <summary>The background of the bottom pane's content, the bar colour, <see cref="Color.None"/> for none (then the frame and the tab buttons separate the pane).</summary>
     public required Color PanelBackground { get; init; }
 
     /// <summary>The selected row of the focused pane.</summary>
