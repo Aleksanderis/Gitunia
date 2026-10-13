@@ -109,6 +109,22 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
+    public void GivenAColourScheme_WhenColouringRemoteBranches_ThenTheyDoNotUseTheColourOfErrorsAndDeletions(ColorDepth depth, bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+
+        var remote = Palette.For(new StyledSegment("origin/main", SegmentRole.RemoteBranch), false, false, colors).Foreground;
+
+        Assert.NotEqual(Palette.For(new StyledSegment("x", SegmentRole.Error), false, false, colors).Foreground, remote);
+        Assert.NotEqual(Palette.For(new StyledSegment("x", SegmentRole.DiffRemoved), false, false, colors).Foreground, remote);
+        Assert.NotEqual(Palette.For(new StyledSegment("x", SegmentRole.FileDeleted), false, false, colors).Foreground, remote);
+    }
+
+    [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenSelectingInAPaneWithoutFocus_ThenTheTintIsDifferentFromTheFocusedOne(bool isLight)
     {

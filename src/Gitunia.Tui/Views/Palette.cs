@@ -57,7 +57,7 @@ public static class Palette
             SegmentRole.Punctuation => (colors.Muted, Color.None, muted, false),
             SegmentRole.LocalBranch => (colors.Good, Color.None, TextStyle.Bold, false),
             SegmentRole.CurrentBranch => (colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),
-            SegmentRole.RemoteBranch => (colors.Bad, Color.None, TextStyle.Bold, false),
+            SegmentRole.RemoteBranch => (colors.Remote, Color.None, TextStyle.Bold, false),
             SegmentRole.Tag => (colors.Warn, Color.None, TextStyle.Bold, false),
             SegmentRole.Header => (colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.Status => (colors.Muted, colors.BarBackground, muted, true),

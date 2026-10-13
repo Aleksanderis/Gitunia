@@ -16,8 +16,11 @@ public sealed class PaletteTable
     /// <summary>Added, local branches.</summary>
     public required Color Good { get; init; }
 
-    /// <summary>Removed, remote branches, errors.</summary>
+    /// <summary>Removed lines and files, errors: red means something to look at, never a plain control.</summary>
     public required Color Bad { get; init; }
+
+    /// <summary>Remote branches (#222).</summary>
+    public required Color Remote { get; init; }
 
     /// <summary>Tags, modified files, overlay keys.</summary>
     public required Color Warn { get; init; }
@@ -90,6 +93,7 @@ public sealed class PaletteTable
         Accent = Rgb(0x89b4fa),
         Good = Rgb(0xa6e3a1),
         Bad = Rgb(0xf38ba8),
+        Remote = Rgb(0xcba6f7),
         Warn = Rgb(0xf9e2af),
         Info = Rgb(0x89dceb),
         Muted = Rgb(0x9399b2),
@@ -110,6 +114,7 @@ public sealed class PaletteTable
         Accent = Rgb(0x1a59d7),
         Good = Rgb(0x2c6f1e),
         Bad = Rgb(0xc30d35),
+        Remote = Rgb(0x7f35e0),
         Warn = Rgb(0x8a5811),
         Info = Rgb(0x116d72),
         Muted = Rgb(0x5f6175),
@@ -133,6 +138,7 @@ public sealed class PaletteTable
         Accent = Named(ColorName16.BrightBlue),
         Good = Named(ColorName16.BrightGreen),
         Bad = Named(ColorName16.BrightRed),
+        Remote = Named(ColorName16.BrightMagenta),
         Warn = Named(ColorName16.BrightYellow),
         Info = Named(ColorName16.BrightCyan),
         Muted = Named(ColorName16.DarkGray),
@@ -155,6 +161,7 @@ public sealed class PaletteTable
         Accent = Named(ColorName16.Blue),
         Good = Named(ColorName16.Green),
         Bad = Named(ColorName16.Red),
+        Remote = Named(ColorName16.Magenta),
         Warn = Named(ColorName16.Magenta),
         Info = Named(ColorName16.Cyan),
         Muted = Named(ColorName16.DarkGray),
@@ -178,6 +185,7 @@ public sealed class PaletteTable
         Accent = Color.None,
         Good = Color.None,
         Bad = Color.None,
+        Remote = Color.None,
         Warn = Color.None,
         Info = Color.None,
         Muted = Color.None,
