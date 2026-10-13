@@ -196,7 +196,7 @@ public sealed class CommitLogParser
         if (space >= 0 && field.Length - space == 6 && (field[space + 1] == (byte)'+' || field[space + 1] == (byte)'-'))
         {
             var digits = field[(space + 2)..];
-            if (int.TryParse(digits[..2], out var hours) && int.TryParse(digits[2..], out var minutes) && hours <= 14 && minutes < 60)
+            if (IsDigits(digits) && int.TryParse(digits[..2], out var hours) && int.TryParse(digits[2..], out var minutes) && hours <= 14 && minutes < 60)
             {
                 offset = new TimeSpan(hours, minutes, 0);
                 if (field[space + 1] == (byte)'-')
@@ -206,7 +206,30 @@ public sealed class CommitLogParser
             }
         }
 
-        result = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).ToOffset(offset);
+        var instant = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
+        try
+        {
+            result = instant.ToOffset(offset);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // Local time would leave years 1..9999 (a forged date at the edge): keep the UTC instant.
+            result = instant;
+        }
+
+        return true;
+    }
+
+    private static bool IsDigits(ReadOnlySpan<byte> text)
+    {
+        foreach (var value in text)
+        {
+            if (value < (byte)'0' || value > (byte)'9')
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 

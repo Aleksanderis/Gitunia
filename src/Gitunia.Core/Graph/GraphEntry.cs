@@ -9,7 +9,7 @@ namespace Gitunia.Core.Graph;
 /// <param name="Id">The commit id.</param>
 /// <param name="Subject">First line of the message.</param>
 /// <param name="AuthorName">Author name.</param>
-/// <param name="AuthorTime">Author time.</param>
+/// <param name="AuthorTime">Author time with its original UTC offset (the graph shows the local date).</param>
 /// <param name="Decorations">Refs pointing at the commit.</param>
 /// <param name="Row">Lane layout of the commit.</param>
 public sealed record GraphEntry(

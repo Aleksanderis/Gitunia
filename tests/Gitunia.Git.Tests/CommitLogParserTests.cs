@@ -24,6 +24,9 @@ public class CommitLogParserTests
     [InlineData("1700000000 +0000", 0)]
     [InlineData("1700000000", 0)]
     [InlineData("1700000000 bogus", 0)]
+    [InlineData("1700000000 +-105", 0)]
+    [InlineData("253402300799 +0500", 0)]
+    [InlineData("-62135596800 -0500", 0)]
     public void GivenRawAuthorDate_WhenParsing_ThenTheAuthorOffsetIsKept(string raw, int offsetMinutes)
     {
         var text = string.Join('\x1f', HashFor(1), string.Empty, "A", "a@b", raw, string.Empty, "Subject") + "\0";
@@ -31,7 +34,7 @@ public class CommitLogParserTests
         var commits = ParseAll(text, 1000, out _);
 
         Assert.Equal(TimeSpan.FromMinutes(offsetMinutes), commits[0].AuthorTime.Offset);
-        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000), commits[0].AuthorTime);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(long.Parse(raw.Split(' ')[0])), commits[0].AuthorTime);
     }
 
     [Fact]
