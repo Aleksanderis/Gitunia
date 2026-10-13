@@ -81,7 +81,23 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  (HEAD -> main, topic, origin/main, tag: v1) release", row);
+        Assert.StartsWith("●  (🌳 main ☁, topic, tag: v1) release", row);
+    }
+
+    [Fact]
+    public void GivenAsciiGlyphs_WhenRenderingMergedBranch_ThenAsciiMarkersAreUsed()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false),
+            new CommitDecoration("refs/remotes/origin/HEAD", "origin/HEAD", RefKind.RemoteBranch, false));
+
+        var row = Rows(GraphGlyphSet.Ascii, 120, commit)[0];
+
+        Assert.StartsWith("*  (HEAD -> main (r)) release", row);
     }
 
     [Fact]

@@ -21,7 +21,7 @@ public static class GraphRowRenderer
         builder.Append(" ", SegmentRole.Plain);
 
         var message = new LineBuilder(columns.MessageWidth, ellipsis);
-        AppendDecorations(message, entry.Decorations);
+        AppendDecorations(message, entry.Decorations, options.Glyphs);
         AppendSubject(message, entry.Subject, isMatch ? options.Highlight : null);
         builder.Append(message.Build());
 
@@ -91,42 +91,48 @@ public static class GraphRowRenderer
         }
     }
 
-    private static void AppendDecorations(LineBuilder builder, IReadOnlyList<CommitDecoration> decorations)
+    private static void AppendDecorations(LineBuilder builder, IReadOnlyList<CommitDecoration> decorations, GraphGlyphSet glyphs)
     {
-        if (decorations.Count == 0)
+        var labels = RefLabelBuilder.Build(decorations);
+        if (labels.Count == 0)
         {
             return;
         }
 
         builder.Append("(", SegmentRole.Punctuation);
-        for (var index = 0; index < decorations.Count; index++)
+        for (var index = 0; index < labels.Count; index++)
         {
             if (index > 0)
             {
                 builder.Append(", ", SegmentRole.Punctuation);
             }
 
-            var decoration = decorations[index];
-            switch (decoration.Kind)
+            var label = labels[index];
+            switch (label.Kind)
             {
-                case RefKind.LocalBranch when decoration.IsCurrent:
-                    builder.Append("HEAD -> ", SegmentRole.CurrentBranch).Append(decoration.Name, SegmentRole.CurrentBranch);
+                case RefKind.LocalBranch when label.IsCurrent:
+                    builder.Append(glyphs.CurrentBranch, SegmentRole.CurrentBranch).Append(label.Name, SegmentRole.CurrentBranch);
                     break;
                 case RefKind.LocalBranch:
-                    builder.Append(decoration.Name, SegmentRole.LocalBranch);
+                    builder.Append(label.Name, SegmentRole.LocalBranch);
                     break;
                 case RefKind.RemoteBranch:
-                    builder.Append(decoration.Name, SegmentRole.RemoteBranch);
+                    builder.Append(label.Name, SegmentRole.RemoteBranch);
                     break;
                 case RefKind.Tag:
-                    builder.Append("tag: " + decoration.Name, SegmentRole.Tag);
+                    builder.Append("tag: " + label.Name, SegmentRole.Tag);
                     break;
                 case RefKind.Head:
                     builder.Append("HEAD", SegmentRole.CurrentBranch);
                     break;
                 default:
-                    builder.Append(decoration.Name, SegmentRole.Faint);
+                    builder.Append(label.Name, SegmentRole.Faint);
                     break;
+            }
+
+            if (label.HasRemote)
+            {
+                builder.Append(glyphs.Remote, SegmentRole.RemoteBranch);
             }
         }
 
