@@ -76,12 +76,40 @@ public class TabBarTests
         var wide = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 80, GraphGlyphSet.Unicode);
         var narrow = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 40, GraphGlyphSet.Unicode);
 
-        Assert.Equal(TabBarLayout.CommandsLabel, wide.Segments.Single(segment => segment.Role == SegmentRole.BarButton).Text);
+        Assert.Equal(TabBarLayout.CommandsLabel, wide.Segments.Last(segment => segment.Role == SegmentRole.BarButton).Text);
         Assert.EndsWith(TabBarLayout.CommandsLabel + " ", wide.Text, StringComparison.Ordinal);
         Assert.True(TabBarLayout.IsOnCommands(80, 70));
         Assert.False(TabBarLayout.IsOnCommands(80, 10));
-        Assert.DoesNotContain(narrow.Segments, segment => segment.Role == SegmentRole.BarButton);
+        Assert.DoesNotContain(narrow.Segments, segment => segment.Role == SegmentRole.BarButton && segment.Text == TabBarLayout.CommandsLabel);
         Assert.False(TabBarLayout.IsOnCommands(40, 35));
+    }
+
+    [Fact]
+    public void GivenTabs_WhenRendering_ThenThePlusButtonFollowsTheLastTabAndIsClickable()
+    {
+        var labels = new[] { Label(1, "alpha", isActive: true, branch: null), Label(2, "beta", branch: null) };
+        var cells = TabBarLayout.Layout(labels, 80, GraphGlyphSet.Unicode);
+        var line = ChromeBuilder.Tabs(Model(labels), 80, GraphGlyphSet.Unicode);
+
+        var start = TabBarLayout.NewTabStart(cells);
+        Assert.Equal(TabBarLayout.NewTabLabel, line.Text.Substring(start, TabBarLayout.NewTabLabel.Length));
+        Assert.True(TabBarLayout.IsOnNewTab(cells, start + 1));
+        Assert.False(TabBarLayout.IsOnNewTab(cells, start - 1));
+        Assert.Null(TabBarLayout.NumberAt(cells, start));
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(20)]
+    [InlineData(60)]
+    [InlineData(100)]
+    public void GivenTooManyTabs_WhenLayingOut_ThenThePlusButtonStaysInsideTheRowBeforeTheCommands(int width)
+    {
+        var labels = Enumerable.Range(1, 14).Select(number => Label(number, "repo" + number, isActive: number == 1, branch: null)).ToArray();
+        var cells = TabBarLayout.Layout(labels, width, GraphGlyphSet.Unicode);
+
+        var end = TabBarLayout.NewTabStart(cells) + TabBarLayout.NewTabLabel.Length;
+        Assert.True(end <= (TabBarLayout.CommandsStart(width) ?? width));
     }
 
     [Fact]

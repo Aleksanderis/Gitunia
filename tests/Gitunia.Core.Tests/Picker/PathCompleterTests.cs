@@ -64,6 +64,31 @@ public class PathCompleterTests
     }
 
     [Fact]
+    public void GivenUppercasePrefix_WhenListingCandidates_ThenLowercaseDirectoriesStillMatch()
+    {
+        var candidates = PathCompleter.Candidates("~/code/ALP", Context());
+
+        Assert.Equal(["alpha", "alpine"], candidates.Select(candidate => candidate.Name));
+    }
+
+    [Fact]
+    public void GivenWrongCaseTyped_WhenCompleting_ThenTheRealCaseOfTheDirectoryIsUsed()
+    {
+        var candidates = PathCompleter.Candidates("~/code/ze", Context());
+
+        Assert.Equal("~/code/Zed/", PathCompleter.Complete("~/code/ze", candidates, 0));
+    }
+
+    [Fact]
+    public void GivenNamesDifferingInCaseOnly_WhenCompleting_ThenNoMixedCaseNameIsInvented()
+    {
+        var context = PickerFixtures.Context(directories: new Dictionary<string, string[]> { [PickerFixtures.PathOf("code")] = ["Docs", "docs2"] });
+        var candidates = PathCompleter.Candidates("~/code/d", context);
+
+        Assert.Equal("~/code/Docs/", PathCompleter.Complete("~/code/d", candidates, 0));
+    }
+
+    [Fact]
     public void GivenSingleCandidate_WhenCompleting_ThenNameAndSeparatorAreAdded()
     {
         var candidates = PathCompleter.Candidates("~/code/b", Context());

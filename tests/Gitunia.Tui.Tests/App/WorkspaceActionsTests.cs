@@ -1,3 +1,4 @@
+using Gitunia.Core.Picker;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
@@ -51,6 +52,18 @@ public class WorkspaceActionsTests
         var handled = actions.TryExecute(ActionIds.PickerAccept, null);
 
         Assert.True(handled);
+    }
+
+    [Fact]
+    public void GivenAnOpenPickerWithAQuery_WhenPickerOpenRunsAgain_ThenTheStateIsKept()
+    {
+        var (actions, _, picker) = Create(1);
+        picker.Open();
+        picker.Apply(new TypeTextCommand("abc"));
+
+        actions.TryExecute(ActionIds.PickerOpen, null);
+
+        Assert.Equal("abc", picker.State!.Query);
     }
 
     private static (WorkspaceActions Actions, WorkspaceHost Host, PickerController Picker) Create(int tabCount)

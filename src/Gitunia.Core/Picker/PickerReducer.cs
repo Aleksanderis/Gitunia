@@ -22,7 +22,7 @@ public static class PickerReducer
         BackspaceCommand => WithQuery(state, RemoveLastCharacter(state.Query), context),
         ClearQueryCommand => WithQuery(state, string.Empty, context),
         MoveHighlightCommand move => state with { Highlight = Math.Clamp(state.Highlight + move.Delta, 0, Math.Max(0, state.Rows.Length - 1)) },
-        CompletePathCommand => state.IsPathMode && !state.IsListing ? WithQuery(state, PathCompleter.Complete(state.Query, state.Rows, state.Highlight), context) : state,
+        CompletePathCommand => Complete(state, context),
         SetMessageCommand message => state with { Message = message.Message },
         ListingCompletedCommand listing => listing.Query == state.Query && state.IsPathMode
             ? state with { Rows = listing.Rows, Highlight = 0, Message = listing.Message.Length > 0 ? listing.Message : state.Message, IsListing = false, IsScanningShown = false }
@@ -44,6 +44,17 @@ public static class PickerReducer
         // Previous path rows stay (and the highlight with them, clamped) until the new listing arrives, so typing does not flicker.
         var rows = state.IsPathMode ? state.Rows : [];
         return state with { Query = query, Rows = rows, Highlight = Math.Clamp(state.Highlight, 0, Math.Max(0, rows.Length - 1)), Message = string.Empty, IsListing = true, IsScanningShown = false };
+    }
+
+    // In a path the completion extends the typed name; in a fuzzy query it accepts the highlighted suggestion (its real path, with its own case).
+    private static PickerState Complete(PickerState state, PickerContext context)
+    {
+        if (state.IsPathMode)
+        {
+            return state.IsListing ? state : WithQuery(state, PathCompleter.Complete(state.Query, state.Rows, state.Highlight), context);
+        }
+
+        return state.Query.Length > 0 && state.HighlightedRow is { } row ? WithQuery(state, Path.TrimEndingDirectorySeparator(row.Path) + Path.DirectorySeparatorChar, context) : state;
     }
 
     private static PickerState Refresh(PickerState state, PickerContext context)

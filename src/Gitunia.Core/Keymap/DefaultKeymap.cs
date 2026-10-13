@@ -163,6 +163,7 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], PickerView, "Ctrl-k", ActionIds.PickerPrevious);
         Add(bindings, [KeyMode.Insert], PickerView, "Enter", ActionIds.PickerAccept);
         Add(bindings, [KeyMode.Insert], PickerView, "Tab", ActionIds.PickerCompletePath);
+        Add(bindings, [KeyMode.Insert], PickerView, "Right", ActionIds.PickerCompletePath);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-p", ActionIds.PickerPin);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-d", ActionIds.PickerRemoveRecent);
     }
