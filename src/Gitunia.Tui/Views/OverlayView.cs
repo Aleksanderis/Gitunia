@@ -69,7 +69,7 @@ public sealed class OverlayView : View
 
         for (var row = 0; row < frame.Lines.Count; row++)
         {
-            LinePainter.Paint(this, frame.Lines[row], 0, row, isFocused: false);
+            LinePainter.Paint(this, frame.Lines[row], 0, row, isFocused: true);
         }
 
         return true;

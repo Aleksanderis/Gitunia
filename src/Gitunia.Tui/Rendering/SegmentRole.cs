@@ -22,6 +22,10 @@ public enum SegmentRole
 
     /// <summary>A failure notice.</summary>
     Error,
+
+    /// <summary>A failure notice in the status bar (the bar's own background).</summary>
+    StatusError,
+
     /// <summary>A sidebar section title.</summary>
     SectionTitle,
 

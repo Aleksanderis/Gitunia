@@ -54,7 +54,7 @@ public static class ChromeBuilder
 
         if (model.Message.Length > 0)
         {
-            builder.Append(" " + model.Message + " ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.Error : SegmentRole.Status);
+            builder.Append(" " + model.Message + " ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.StatusError : SegmentRole.Status);
         }
 
         if (model.SearchLine.Length == 0)

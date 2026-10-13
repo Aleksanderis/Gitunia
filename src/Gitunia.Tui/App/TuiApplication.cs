@@ -62,6 +62,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         using var app = Application.Create();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         app.Init();
+        var driver = app.Driver;
+        var palette = PaletteSettings.Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false });
+        if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
+        {
+            driver.Force16Colors = true;
+        }
+
+        Palette.Configure(palette);
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs, statuses);

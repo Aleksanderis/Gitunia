@@ -83,6 +83,29 @@ Still to design before their milestones:
 6. Stash push/apply/pop/drop.
 7. Fetch/pull/push with visible progress and cancel.
 
+## Look and colours
+
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme (#46, #47, #61) later swaps the table and nothing else. There is no config file yet. Layout, titles and dividers are unchanged (panes are separated by one-column dividers and title rows, not boxes: a box would cost two rows and two columns of every pane).
+
+**Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours (branch, hash, diff colours stay readable). The focused pane's selection uses the full tint (blue), a pane without focus keeps a quieter grey tint, so the cursor stays findable. This holds for the graph, sidebar, detail, diff, picker rows, overlay rows and the Visual range. Focus is also shown by the title row of the detail and diff panes (the focused one's label is a filled accent chip, the other's a dim chip) and by the divider beside the focused sidebar or bottom pane (accent, bold; otherwise a quiet line). The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the header and status bar sit on a slightly lighter bar. An overlay's frame is drawn in the accent colour.
+
+**Roles to colours** (accent blue, green, red, yellow, cyan, muted grey):
+
+| Role | Colour |
+|---|---|
+| Section titles, buttons, diff file header, focused divider | accent, bold |
+| Graph lanes | a cycle of 12 colours (6 in 16-colour mode) |
+| Local branch / current branch (HEAD) / remote branch / tag | green / cyan / red / yellow, bold (the familiar `git log --decorate` colours) |
+| Hash, date, line numbers, hints, counts, punctuation | muted |
+| Added line or file / removed / modified | green / red / yellow; hunk header cyan |
+| Errors | red, bold (in the status bar on its own bar) |
+| Search match | dark text on yellow (kept on a selected row) |
+| Overlay key column | yellow, bold |
+
+**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): a GitHub-like palette, checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused). Light backgrounds are recognised from `COLORFGBG` (background 7 or 15) and get darker accents and light tints; a terminal that does not set it is assumed dark.
+
+**Looking at it without the UI.** `gitunia <repo> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
+
 ## Keymap
 
 The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<lt>` a literal `<`, `:name` is an ex command and not a key. Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mode only); Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.

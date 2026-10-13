@@ -104,7 +104,7 @@ public class ScreenComposerTests
 
         var status = lines[^1];
         Assert.Equal(" NORMAL  1/4  Could not read the stashes: boom  j/k gg G ^d ^u @ ? : q", status.Text.TrimEnd());
-        Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.Error && segment.Text.Contains("stashes", StringComparison.Ordinal));
+        Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.StatusError && segment.Text.Contains("stashes", StringComparison.Ordinal));
     }
 
     [Fact]

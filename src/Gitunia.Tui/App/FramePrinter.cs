@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App;
 
@@ -21,7 +22,8 @@ public static class FramePrinter
         TextWriter output,
         CancellationToken cancellationToken,
         PaneArrangement? arrangement = null,
-        BottomTab tab = BottomTab.Changes)
+        BottomTab tab = BottomTab.Changes,
+        PaletteSettings? colors = null)
     {
         var graph = new CommitGraph();
         var repo = new Repo(runner, location);
@@ -58,7 +60,14 @@ public static class FramePrinter
             false,
             string.Empty);
         var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
-        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement))
+        var lines = ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement);
+        if (colors is not null)
+        {
+            await output.WriteAsync(AnsiFrameWriter.Render(lines, colors).AsMemory(), cancellationToken);
+            return;
+        }
+
+        foreach (var line in lines)
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }

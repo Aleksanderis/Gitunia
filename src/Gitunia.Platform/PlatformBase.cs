@@ -16,7 +16,7 @@ public abstract class PlatformBase : IPlatform
     public ConsoleCapabilities DetectConsole()
     {
         var interactive = !Console.IsOutputRedirected && !Console.IsInputRedirected;
-        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode());
+        return new ConsoleCapabilities(interactive, DetectColor(interactive), DetectUnicode(), DetectLightBackground());
     }
 
     /// <summary>User home; falls back to the temp directory so paths never become cwd-relative.</summary>
@@ -61,6 +61,22 @@ public abstract class PlatformBase : IPlatform
         }
 
         return term is "dumb" ? ColorDepth.None : ColorDepth.Ansi16;
+    }
+
+    /// <summary>
+    /// True when <c>COLORFGBG</c> ("foreground;background" palette indexes, set by rxvt, Konsole and some others) names a light
+    /// background (index 7 or 15). Dark and unknown both give false: the default look assumes a dark terminal.
+    /// </summary>
+    public bool DetectLightBackground()
+    {
+        var value = ReadEnvironment("COLORFGBG");
+        if (value is null)
+        {
+            return false;
+        }
+
+        var background = value[(value.LastIndexOf(';') + 1)..];
+        return background is "7" or "15";
     }
 
     public bool DetectUnicode()

@@ -33,6 +33,20 @@ public class DetectionTests
     public void GivenNonInteractiveConsole_WhenDetectingColor_ThenNone() =>
         Assert.Equal(ColorDepth.None, With(("COLORTERM", "truecolor")).DetectColor(false));
 
+    [Theory]
+    [InlineData("15;0", false)]
+    [InlineData("0;15", true)]
+    [InlineData("0;default;15", true)]
+    [InlineData("12;7", true)]
+    [InlineData("7;0", false)]
+    [InlineData("garbage", false)]
+    public void GivenColorFgBg_WhenDetectingBackground_ThenOnlyLightBackgroundsAreLight(string value, bool expected) =>
+        Assert.Equal(expected, With(("COLORFGBG", value)).DetectLightBackground());
+
+    [Fact]
+    public void GivenNoColorFgBg_WhenDetectingBackground_ThenDark() =>
+        Assert.False(With().DetectLightBackground());
+
     [Fact]
     public void GivenLocale_WhenDetectingUnicode_ThenUtf8LocalesAreSupported()
     {

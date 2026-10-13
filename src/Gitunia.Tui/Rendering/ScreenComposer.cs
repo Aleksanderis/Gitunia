@@ -71,7 +71,7 @@ public static class ScreenComposer
             var graphLine = commitIndex >= 0 && commitIndex < graph.Count
                 ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
                 : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
-            lines.Add(sidebarWidth > 0 ? Beside(sidebarLines[offset], SidebarPane.Divider(sidebar!.IsFocused, glyphs), graphLine) : graphLine);
+            lines.Add(sidebarWidth > 0 ? Beside(sidebarLines[offset], sidebar!.IsFocused, SidebarPane.Divider(sidebar.IsFocused, glyphs), graphLine) : graphLine);
         }
 
         if (showDetail && showDiff)
@@ -81,7 +81,7 @@ public static class ScreenComposer
             var bottomDivider = SidebarPane.Divider(detail!.IsFocused || diff!.IsFocused, glyphs);
             for (var offset = 0; offset < detailLines.Count; offset++)
             {
-                lines.Add(Beside(detailLines[offset], bottomDivider, diffLines[offset]));
+                lines.Add(Beside(detailLines[offset], detail.IsFocused, bottomDivider, diffLines[offset]));
             }
         }
         else if (showDetail)
@@ -101,6 +101,12 @@ public static class ScreenComposer
         return lines;
     }
 
-    private static StyledLine Beside(StyledLine sidebarLine, StyledSegment divider, StyledLine graphLine) =>
-        new([.. sidebarLine.Segments, divider, .. graphLine.Segments], graphLine.IsSelected);
+    // The left part keeps its own selection (dim without focus); the line is selected as the right part is.
+    private static StyledLine Beside(StyledLine leftLine, bool isLeftFocused, StyledSegment divider, StyledLine rightLine)
+    {
+        var leftSelection = !leftLine.IsSelected ? SegmentSelection.None : isLeftFocused ? SegmentSelection.Focused : SegmentSelection.Dim;
+        return new StyledLine(
+            [.. leftLine.Segments.Select(segment => segment with { Selection = leftSelection }), divider with { Selection = SegmentSelection.None }, .. rightLine.Segments],
+            rightLine.IsSelected);
+    }
 }

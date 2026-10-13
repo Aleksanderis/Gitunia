@@ -53,7 +53,8 @@ public static class Program
                 Console.Out,
                 CancellationToken.None,
                 new PaneArrangement(options.OpenDiff, options.Zoom),
-                options.Tab).GetAwaiter().GetResult();
+                options.Tab,
+                options.Colors).GetAwaiter().GetResult();
             return 0;
         }
 

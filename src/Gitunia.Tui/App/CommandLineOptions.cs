@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App;
 
@@ -9,8 +10,9 @@ namespace Gitunia.Tui.App;
 /// <param name="OpenDiff">With a printed frame: open the diff of the newest commit (the diff pane shows the whole commit from its first line).</param>
 /// <param name="Zoom">With a printed frame: the pane that fills the screen, null for the normal layout. <c>diff</c> implies <see cref="OpenDiff"/>.</param>
 /// <param name="Tab">With a printed frame: the tab of the detail pane (default Changes, what a fresh tab shows).</param>
+/// <param name="Colors">With a printed frame: write ANSI colour sequences for this scheme instead of plain text, null for plain text.</param>
 /// <param name="Error">Why the arguments are invalid, null when they are fine.</param>
-public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes)
+public sealed record CommandLineOptions(string? RepositoryPath, int? FrameWidth, int? FrameHeight, string? Error, bool OpenDiff = false, PaneKind? Zoom = null, BottomTab Tab = BottomTab.Changes, PaletteSettings? Colors = null)
 {
     public bool PrintsFrame => FrameWidth is not null && FrameHeight is not null;
 }
