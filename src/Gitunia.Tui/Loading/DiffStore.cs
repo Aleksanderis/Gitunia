@@ -9,7 +9,13 @@ namespace Gitunia.Tui.Loading;
 /// commit costs nothing; asking for another one cancels the load in flight. UI thread only; results come back through
 /// <c>postToUi</c>.
 /// </summary>
-public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit = DiffStore.DefaultRowLimit, int fileLineLimit = DiffStore.DefaultFileLineLimit) : IDisposable
+public sealed class DiffStore(
+    Repo repo,
+    Action<Action> postToUi,
+    int rowLimit = DiffStore.DefaultRowLimit,
+    int fileLineLimit = DiffStore.DefaultFileLineLimit,
+    DiffCache? cache = null,
+    Func<TimeSpan, CancellationToken, Task>? delay = null) : IDisposable
 {
     /// <summary>Rows kept before the diff is cut short; the pane then says so in a last row.</summary>
     public const int DefaultRowLimit = 400_000;
@@ -17,7 +23,17 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     /// <summary>Hunk lines kept per file before the file is cut short.</summary>
     public const int DefaultFileLineLimit = 100_000;
 
+    /// <summary>Rows a prefetched diff may have; a bigger one is left to be loaded when it is selected, so a background read never builds a huge document.</summary>
+    public const int PrefetchRowLimit = 4_000;
+
+    /// <summary>How long the shown diff must stay put before the neighbours are read, so passing over a commit starts no process.</summary>
+    public static readonly TimeSpan PrefetchDelay = TimeSpan.FromMilliseconds(80);
+
+    private readonly DiffCache cache = cache ?? new DiffCache();
+    private readonly Func<TimeSpan, CancellationToken, Task> delay = delay ?? Task.Delay;
     private CancellationTokenSource? pending;
+    private CancellationTokenSource? prefetching;
+    private IReadOnlyList<ObjectId> wanted = [];
     private ObjectId? firstParent;
     private bool isUnlimited;
 
@@ -29,6 +45,9 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     /// <summary>The loaded diff was cut short by the row or per-file limit, so <see cref="LoadAnyway"/> would show more.</summary>
     public bool IsCut { get; private set; }
 
+    /// <summary>The number of diffs cached right now (bounded, see <see cref="DiffCache"/>).</summary>
+    public int CachedCount => cache.Count;
+
     public DiffStatus Status { get; private set; } = DiffStatus.None;
 
     /// <summary>The rows to show: a remark while loading or after a failure, the diff once loaded.</summary>
@@ -37,8 +56,9 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     /// <summary>Starts loading the diff of <paramref name="commit"/> unless it is the one shown (or loading) already.</summary>
     /// <param name="commit">The commit.</param>
     /// <param name="firstParent">The first parent to compare against, null for a root commit.</param>
-    /// <returns>True when a load was started.</returns>
-    public bool Load(ObjectId commit, ObjectId? firstParent)
+    /// <param name="prefetch">Commits likely to be selected next, most likely first; their diffs are read in the background into the cache once this one is shown. Null or empty prefetches nothing.</param>
+    /// <returns>True when a load was started or the diff came from the cache.</returns>
+    public bool Load(ObjectId commit, ObjectId? firstParent, IReadOnlyList<ObjectId>? prefetch = null)
     {
         if (Commit == commit && Status != DiffStatus.Failed)
         {
@@ -46,6 +66,21 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         }
 
         isUnlimited = false;
+        wanted = prefetch ?? [];
+        if (cache.TryGet(commit, out var known))
+        {
+            CancelPending();
+            CancelPrefetch();
+            this.firstParent = firstParent;
+            Commit = commit;
+            IsCut = false;
+            Status = DiffStatus.Loaded;
+            Document = Present(known);
+            Changed?.Invoke();
+            StartPrefetch();
+            return true;
+        }
+
         Start(commit, firstParent);
         return true;
     }
@@ -67,6 +102,7 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     private void Start(ObjectId commit, ObjectId? firstParent)
     {
         CancelPending();
+        CancelPrefetch();
         this.firstParent = firstParent;
         Commit = commit;
         IsCut = false;
@@ -83,6 +119,9 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
     public void Clear()
     {
         CancelPending();
+        CancelPrefetch();
+        cache.Clear();
+        wanted = [];
         Commit = null;
         firstParent = null;
         IsCut = false;
@@ -90,7 +129,18 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         Document = DiffDocument.Empty;
     }
 
-    public void Dispose() => CancelPending();
+    /// <summary>Drops the cached diffs and stops reading neighbours (the tab is not shown); the diff on show stays.</summary>
+    public void ReleaseCache()
+    {
+        CancelPrefetch();
+        cache.Clear();
+    }
+
+    public void Dispose()
+    {
+        CancelPending();
+        CancelPrefetch();
+    }
 
     private void CancelPending()
     {
@@ -99,35 +149,112 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         pending = null;
     }
 
+    private static DiffDocument Present(DiffDocument document) =>
+        document.Rows.Count == 0 ? DiffDocument.Message("No changes in this commit") : document;
+
+    private void CancelPrefetch()
+    {
+        prefetching?.Cancel();
+        prefetching?.Dispose();
+        prefetching = null;
+    }
+
+    private void StartPrefetch()
+    {
+        var commits = wanted.Where(candidate => candidate != Commit && !cache.Contains(candidate)).Distinct().ToArray();
+        if (commits.Length == 0)
+        {
+            return;
+        }
+
+        prefetching = new CancellationTokenSource();
+        var token = prefetching.Token;
+        _ = Task.Run(() => PrefetchAsync(commits, token), CancellationToken.None);
+    }
+
+    /// <summary>Reads the neighbours one after the other. Best effort: a cancelled, failed or oversized read is dropped, since the commit is loaded (and its error shown) when it is selected.</summary>
+    private async Task PrefetchAsync(ObjectId[] commits, CancellationToken token)
+    {
+        try
+        {
+            await delay(PrefetchDelay, token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        foreach (var commit in commits)
+        {
+            try
+            {
+                token.ThrowIfCancellationRequested();
+                var parent = await FirstParentOfAsync(commit, token).ConfigureAwait(false);
+                var document = await ReadAsync(commit, parent, PrefetchRowLimit, fileLineLimit, token).ConfigureAwait(false);
+                if (document is { IsCut: false })
+                {
+                    postToUi(() => RememberPrefetched(commit, document.Document, token));
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Another commit was selected, so these neighbours are not the ones that matter any more.
+                return;
+            }
+            catch (Exception)
+            {
+                // Dropped on purpose, see the summary; the other neighbours are still worth reading.
+            }
+        }
+    }
+
+    private async Task<ObjectId?> FirstParentOfAsync(ObjectId commit, CancellationToken token)
+    {
+        var result = await repo.RunAsync(["rev-list", "--parents", "-n", "1", commit.ToString()], new GitRunOptions(ReadOnly: true), token).ConfigureAwait(false);
+        var fields = result.StandardOutputText.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        return fields.Length > 1 && ObjectId.TryParse(fields[1], out var parent) ? parent : null;
+    }
+
+    private void RememberPrefetched(ObjectId commit, DiffDocument document, CancellationToken token)
+    {
+        if (!token.IsCancellationRequested)
+        {
+            cache.Add(commit, document);
+        }
+    }
+
+    private async Task<DiffReadResult> ReadAsync(ObjectId commit, ObjectId? firstParent, int rows, int lineLimit, CancellationToken token)
+    {
+        var builder = new DiffDocumentBuilder();
+        var warnings = new List<string>();
+        var truncated = false;
+        var fileCut = false;
+        await foreach (var file in DiffReader.ReadCommitAsync(repo, commit, firstParent, token, warnings, lineLimit).ConfigureAwait(false))
+        {
+            builder.Add(file);
+            fileCut |= file.IsTruncated;
+            if (builder.RowCount >= rows)
+            {
+                // Leaving the loop disposes the stream, which stops git.
+                truncated = true;
+                break;
+            }
+        }
+
+        if (truncated)
+        {
+            builder.AddTrailingNote($"Diff cut short after {rows} rows (L loads all of it)");
+        }
+
+        return new DiffReadResult(builder.Build(warnings), truncated || fileCut);
+    }
+
     private async Task LoadAsync(ObjectId commit, ObjectId? firstParent, bool limited, CancellationToken token)
     {
         try
         {
-            var builder = new DiffDocumentBuilder();
-            var warnings = new List<string>();
-            var truncated = false;
-            var fileCut = false;
-            var lineLimit = limited ? fileLineLimit : int.MaxValue;
-            await foreach (var file in DiffReader.ReadCommitAsync(repo, commit, firstParent, token, warnings, lineLimit).ConfigureAwait(false))
-            {
-                builder.Add(file);
-                fileCut |= file.IsTruncated;
-                if (limited && builder.RowCount >= rowLimit)
-                {
-                    // Leaving the loop disposes the stream, which stops git.
-                    truncated = true;
-                    break;
-                }
-            }
-
-            if (truncated)
-            {
-                builder.AddTrailingNote($"Diff cut short after {rowLimit} rows (L loads all of it)");
-            }
-
-            var document = builder.Build(warnings);
-            var isCut = truncated || fileCut;
-            postToUi(() => Complete(commit, document, string.Empty, isCut, token));
+            var read = await ReadAsync(commit, firstParent, limited ? rowLimit : int.MaxValue, limited ? fileLineLimit : int.MaxValue, token).ConfigureAwait(false);
+            postToUi(() => Complete(commit, read.Document, string.Empty, read.IsCut, token));
         }
         catch (OperationCanceledException)
         {
@@ -155,9 +282,17 @@ public sealed class DiffStore(Repo repo, Action<Action> postToUi, int rowLimit =
         {
             Status = DiffStatus.Loaded;
             IsCut = isCut;
-            Document = document.Rows.Count == 0 ? DiffDocument.Message("No changes in this commit") : document;
+            Document = Present(document);
+            if (!isCut)
+            {
+                cache.Add(commit, document);
+            }
         }
 
         Changed?.Invoke();
+        if (Status == DiffStatus.Loaded)
+        {
+            StartPrefetch();
+        }
     }
 }

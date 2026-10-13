@@ -161,7 +161,8 @@ public sealed class DiffPaneController : IPromptHandler
             diff.PendingFilePath = CurrentFilePath(diff);
         }
 
-        diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null);
+        var neighbours = DetailPrefetchPlan.Around(session.Graph, session.Graph.IndexOf(commit));
+        diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null, neighbours);
     }
 
     public void OnGraphChanged()
@@ -203,6 +204,7 @@ public sealed class DiffPaneController : IPromptHandler
         if (previous?.Diff is { } old)
         {
             old.Store.Changed -= OnStoreChanged;
+            old.Store.ReleaseCache();
             AbandonTypedSearch(old);
         }
 
