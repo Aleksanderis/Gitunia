@@ -1,0 +1,59 @@
+using Gitunia.Core.Search;
+using Xunit;
+
+namespace Gitunia.Core.Tests.Search;
+
+public class GraphSearchScannerTests
+{
+    [Fact]
+    public void GivenMessageQuery_WhenScanning_ThenMatchesIgnoreCaseAndSubstring()
+    {
+        var graph = SearchTestGraph.Build(("Fix the Parser", "Bob"), ("Add tests", "Bob"), ("fix typo", "Alice"));
+
+        var result = GraphSearchScanner.Scan(new SearchQuery(SearchField.Message, "FIX"), graph, 0, 100);
+
+        Assert.Equal([0, 2], result.Matches);
+        Assert.Equal(3, result.NextIndex);
+    }
+
+    [Fact]
+    public void GivenAuthorAndHashQueries_WhenScanning_ThenTheyMatchThoseFields()
+    {
+        var graph = SearchTestGraph.Build(("one", "Bob Builder"), ("two", "Alice"), ("three", "bobby"));
+
+        Assert.Equal([0, 2], GraphSearchScanner.Scan(new SearchQuery(SearchField.Author, "bob"), graph, 0, 100).Matches);
+        Assert.Equal([1], GraphSearchScanner.Scan(new SearchQuery(SearchField.Hash, "0000000000000000000000000000000000000002"), graph, 0, 100).Matches);
+        Assert.Empty(GraphSearchScanner.Scan(new SearchQuery(SearchField.Hash, "zz"), graph, 0, 100).Matches);
+    }
+
+    [Fact]
+    public void GivenSmallSlices_WhenScanningRepeatedly_ThenTheResultEqualsOneFullScan()
+    {
+        var graph = SearchTestGraph.Numbered(1000);
+        var query = new SearchQuery(SearchField.Message, "#7");
+        var expected = GraphSearchScanner.Scan(query, graph, 0, 1_000_000).Matches;
+
+        var matches = new List<int>();
+        var next = 0;
+        while (next < graph.Count)
+        {
+            var slice = GraphSearchScanner.Scan(query, graph, next, 64);
+            matches.AddRange(slice.Matches);
+            next = slice.NextIndex;
+        }
+
+        Assert.Equal(expected, matches);
+        Assert.NotEmpty(matches);
+    }
+
+    [Fact]
+    public void GivenStartAtTheEnd_WhenScanning_ThenNothingIsFoundAndTheIndexStays()
+    {
+        var graph = SearchTestGraph.Numbered(5);
+
+        var result = GraphSearchScanner.Scan(new SearchQuery(SearchField.Message, "Commit"), graph, 5, 10);
+
+        Assert.Empty(result.Matches);
+        Assert.Equal(5, result.NextIndex);
+    }
+}
