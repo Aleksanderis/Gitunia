@@ -96,10 +96,59 @@ public class TabRefresherTests
         Assert.Equal(1, replaced);
     }
 
+    [Fact]
+    public async Task GivenQuietTab_WhenACommitArrivesAutomatically_ThenTheGraphReloadReusesTheOldRows()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("third", ("c.txt", "3"));
+        repository.Commit("fourth", ("d.txt", "4"));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+
+        repository.Commit("fifth", ("e.txt", "5"));
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        Assert.True(harness.Reloads[0].ReusedCount > 0);
+        Assert.Equal(5, harness.Session.Graph.Count);
+    }
+
+    [Fact]
+    public async Task GivenManualRefresh_WhenItReloadsTheGraph_ThenNoRowIsReused()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("second", ("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+
+        harness.Refresher.RefreshNow();
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        Assert.Equal(0, harness.Reloads[0].ReusedCount);
+    }
+
+    [Fact]
+    public async Task GivenChangeBeforeTheBaseline_WhenTheBaselineRuns_ThenTheGraphIsReadInFull()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("second", ("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository, start: false);
+        harness.Refresher.Start();
+        repository.Commit("third", ("c.txt", "3"));
+
+        await harness.Pump.RunUntilAsync(() => harness.Session.Graph.Count == 3 && !harness.Refresher.IsRefreshing);
+
+        Assert.All(harness.Reloads, reload => Assert.Equal(0, reload.ReusedCount));
+    }
+
     private sealed class Harness : IDisposable
     {
-        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump)
+        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump, List<GraphReload> reloads)
         {
+            Reloads = reloads;
             Pump = pump;
             Host = host;
             TabId = tabId;
@@ -109,6 +158,8 @@ public class TabRefresherTests
         }
 
         public UiPump Pump { get; }
+
+        public List<GraphReload> Reloads { get; }
 
         public WorkspaceHost Host { get; }
 
@@ -134,13 +185,14 @@ public class TabRefresherTests
             session.MarkStarted();
             await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             var pump = new UiPump(TestContext.Current.CancellationToken);
-            var refresher = new TabRefresher(runner, host, session, location, statuses, pump.Post, new WatchBudget(), FastOptions);
+            var reloads = new List<GraphReload>();
+            var refresher = new TabRefresher(runner, host, session, location, statuses, pump.Post, new WatchBudget(), FastOptions, reloads.Add);
             if (start)
             {
                 refresher.Start();
             }
 
-            return new Harness(host, tabId, session, refresher, statuses, pump);
+            return new Harness(host, tabId, session, refresher, statuses, pump, reloads);
         }
 
         public void Dispose()

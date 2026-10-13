@@ -10,7 +10,7 @@ namespace Gitunia.Tui.App;
 /// Keeps one tab current after its initial load: owns the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can
 /// affect, and applies the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
 /// refresh); an automatic reload reads the log only down to the first row it shares with the old graph (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time; changes arriving meanwhile are merged into the next.
-/// Touched from the UI thread only; the watcher callback posts to it.
+/// Touched from the UI thread only; the watcher callback posts to it. The optional <c>graphReloaded</c> callback runs on the UI thread after each graph replacement, so tests can tell an incremental reload (<see cref="GraphReload.ReusedCount"/> above 0) from a full read.
 /// </summary>
 public sealed class TabRefresher : IDisposable
 {
@@ -21,6 +21,7 @@ public sealed class TabRefresher : IDisposable
     private readonly StatusChannel statuses;
     private readonly Action<Action> postToUi;
     private readonly RepositoryWatcher watcher;
+    private readonly Action<GraphReload>? graphReloaded;
     private RepositorySnapshot? snapshot;
     private RepositoryChangeKinds pending;
     private bool forceGraph;
@@ -31,8 +32,9 @@ public sealed class TabRefresher : IDisposable
     private bool isDisposed;
     private string lastError = string.Empty;
 
-    public TabRefresher(GitRunner runner, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options)
+    public TabRefresher(GitRunner runner, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
     {
+        this.graphReloaded = graphReloaded;
         this.runner = runner;
         this.host = host;
         this.session = session;
@@ -126,7 +128,7 @@ public sealed class TabRefresher : IDisposable
             var result = await RepositoryRefresher.RefreshAsync(repo, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repo, token).ConfigureAwait(false)).Items : null;
-            List<GraphEntry>? entries = null;
+            GraphReload? reload = null;
 
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph only when a change was seen meanwhile.
             var graphChanged = previous is null
@@ -134,10 +136,10 @@ public sealed class TabRefresher : IDisposable
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
-                entries = (await IncrementalGraphLoader.ReloadAsync(repo, previousRows, token).ConfigureAwait(false)).Entries;
+                reload = await IncrementalGraphLoader.ReloadAsync(repo, previousRows, token).ConfigureAwait(false);
             }
 
-            postToUi(() => Apply(previous is null, isManual, result, stashes, entries));
+            postToUi(() => Apply(previous is null, isManual, result, stashes, reload));
         }
         catch (OperationCanceledException)
         {
@@ -149,7 +151,7 @@ public sealed class TabRefresher : IDisposable
         }
     }
 
-    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, List<GraphEntry>? entries)
+    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload)
     {
         isRunning = false;
         if (isDisposed)
@@ -190,9 +192,10 @@ public sealed class TabRefresher : IDisposable
             }
         }
 
-        if (entries is not null)
+        if (reload is not null)
         {
-            session.ReplaceGraph(entries);
+            session.ReplaceGraph(reload.Entries);
+            graphReloaded?.Invoke(reload);
         }
 
         if (isManual)
