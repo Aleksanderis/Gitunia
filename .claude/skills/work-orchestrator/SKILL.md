@@ -28,7 +28,7 @@ Run these, nothing else, to see where things are:
 
 - `gh issue list --state open --milestone "<milestone>" --json number,title,labels,body` and the `Blocked by:` lines (a blocker is closed when `gh issue view <n> --json state` says CLOSED). The `Blocked by:` line is the order.
 - `gh pr list --state open` (work awaiting merge or owner review) and `git worktree list` plus `git branch -a` (unfinished agents; their branches may hold pushed work-in-progress).
-- `gh issue list --state open --label needs-owner` and `--label question`: read the new comments on each. If the owner has answered, act on it (see "Labels for the owner" in `work-task`: implement, log, or close, then remove the label and comment). Never leave an answered issue labelled.
+- `gh issue list --state open --label needs-owner` and `--label question`: for each, read the latest comment. If it has no `<!-- agent:` marker, the owner has answered (same GitHub account, so the marker is the only signal): act on it (see "Labels for the owner" in `work-task`: implement, log, or close) and reply with an agent-marked comment. Do not remove the label; do not list an answered issue as "waiting for the owner" in the status comment.
 - Skip `spike`, `destructive` and `needs-review` issues as `work-task` says, and never pick the `tracking` issue as work.
 
 If a worktree or feature branch exists for an issue with no merged PR, that issue is in flight: resume it (`work-task`'s rate-limit rules), do not start it over.
