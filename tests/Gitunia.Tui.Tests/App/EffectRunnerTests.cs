@@ -67,7 +67,7 @@ public class EffectRunnerTests
         var replaced = 0;
         session.GraphReplaced += () => replaced++;
 
-        // A manual refresh is the baseline barrier: the refresher runs one pass at a time, so once its forced reload has landed the
+        // A manual refresh is the baseline barrier: the refresher runs one pass at a time, so once a forced reload has landed the
         // baseline read is done and a later commit cannot be folded into it (which would leave the graph without a replacement).
         Assert.True(effects.Refresh(tabId));
         await pump.RunUntilAsync(() => replaced >= 1);
