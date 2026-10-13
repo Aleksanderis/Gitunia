@@ -16,7 +16,7 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 
 - The app opens with or without a repo: `gitunia` (restore last session, or repo picker if none), `gitunia <path>` (open that repo as a tab, also from outside any repo; a subdirectory resolves to its repo root).
 - Tab bar shows repo name (path on disambiguation), branch and a dirty/ahead/behind marker, and background-activity state.
-- Repo picker: fuzzy search over recent, pinned and discovered repos (configurable scan roots), open by typing a path, close/pin entries. Opening an already-open repo focuses its tab.
+- Repo picker: fuzzy search over recent, pinned and discovered repos (configurable scan roots), open by typing a path, close/pin entries. Pinning (#218) keeps a repository at the top of the picker, right after the open tabs and above recents and discovered repositories, however long ago it was opened; pins are saved in the session file and never expire (recents are limited to the last 50). Opening an already-open repo focuses its tab.
 - Each tab keeps its own selection, scroll, filters and focused pane.  Closing the active tab activates its right neighbour (left if it was last).
 
 ## Modes
@@ -42,7 +42,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 1. `gitunia` restores the last session (tabs, active tab, per-tab selection/focus). With no session it opens the repo picker. `gitunia <path>` opens that path as a tab (subdirectory resolves to the repo root; a repo already open just gets focused) and keeps the other restored tabs.
 2. `Ctrl-t` or `<space>o` opens the repo picker (Insert mode, input focused). It lists open, pinned, recent and discovered repos, fuzzy-filtered as you type; `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` opens in a new tab (or focuses the existing tab); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits instead, since there is nothing to go back to). Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped); configurable scan roots arrive with the config file in M4. A typed path is listed off the UI thread: the previous rows stay until the new listing arrives (`scanning...` appears after about 150 ms when there are none), a newer keystroke cancels the older listing, and a listing slower than 5 s ends with a "timed out" notice. Rows show tags (`open`, `pinned`, `recent`, `found`); a click highlights a row and a double-click opens it.
 3. Typing something that starts with `/`, `~/`, `./`, `../` or `C:\` is treated as a path (a drive letter needs `C:\` or `C:/`; others need `/`, `~/`, `./` or `../`; anything else is a fuzzy query): the list shows the matching directories (repositories marked), `Tab` completes to the common prefix and then to the highlighted directory, `Enter` opens the resolved path (relative paths are taken from the active repository, or the home directory, never from the process working directory); a non-repo path shows an inline "not a git repository" message and stays open.
-4. In the picker `Alt-p` pins or unpins the highlighted entry and `Alt-d` removes it from recents (never deletes anything on disk).
+4. In the picker `Alt-p` (or the `[pin]` / `[unpin]` button on the highlighted row) pins the highlighted entry to the top of the list or unpins it (a pinned row is tagged `pinned`; `<space>p` does the same for the repository of the active tab) and `Alt-d` removes it from recents (never deletes anything on disk).
 5. Switch tabs with `gt` / `gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` or `<space><Tab>` for the previously active tab. Mouse: click a tab. Tab bar (#219, #220, #221): one row on the bar background (the status bar's, so the screen is bracketed by the two bars), a margin, then every tab as a chip with two columns of padding on each side, ` N name markers `, and one blank column between tabs. The active tab is the filled accent chip, the others are muted text on the bar, so the active one is clear without colour too (it is the only padded chip with a background; with `NO_COLOR` the chip is reverse video). The name is the repository name, or the name you gave the tab with `Ctrl-w r` (a status bar prompt that starts with the current name; `Enter` saves it, an empty name restores the repository name, `Esc` cancels; the name is saved with the tab in the session file). The branch is not part of the tab (it made tabs very long; the sidebar marks the current branch with `*`); `TabLabelFactory` has a switch for showing it that a future config option can set (#47 area). Markers: `*` for a dirty working tree, `↑n` ahead, `↓n` behind (`+n`/`-n` without Unicode) and an ellipsis while the tab loads; two tabs with the same name show their parent directory; when the tabs do not fit the row scrolls to keep the active one visible (`<` marks hidden tabs on the left). Markers follow external git activity (file watching; `r` refreshes manually). `Ctrl-w c` closes the tab; closing the last tab shows the picker.
 6. A tab whose repo disappeared (moved or deleted) stays in the bar marked `! name (missing)`; `Enter` on it opens the picker (Locate repository, starting in the folder that held it) and the chosen repository replaces that tab, `Ctrl-w c` closes it.
 7. Terminal key caveats, verified against Terminal.Gui 2.5.0 under tmux: `Ctrl-j` (0x0A) arrives as `Ctrl+Enter`, distinct from `Enter` (0x0D), so it works as a picker alias for `Down` (the translator maps it to `Ctrl-j`; a terminal that sends the same byte for both would break the alias, `Down` still works); `Ctrl-^` (0x1E) arrives as `Ctrl+6` and is mapped to `Ctrl-^`, so it works, and `<space><Tab>` remains the fallback for terminals that swallow it; some terminals send `Backspace` as `Ctrl-h`, which the picker treats as `Backspace`.
@@ -141,7 +141,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Alt-1`..`Alt-9` | Jump to tab N |
 | Global | `Ctrl-t` / `<space>o` | Open repo picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
-| Global | `<space>p` | Pin/unpin repo |
+| Global | `<space>p` | Pin the repository to the top of the picker / unpin it |
 | Global | `Ctrl-w r` | Rename the tab (status bar prompt, `Enter` saves, an empty name restores the repository name) |
 | Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
 | Global | `Ctrl-w w` | Next pane |
@@ -187,7 +187,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` | Open repo (new tab or focus existing) |
 | Picker | `Tab` | Complete path |
-| Picker | `Alt-p` | Pin / unpin entry |
+| Picker | `Alt-p` | Pin the entry to the top of the list / unpin it |
 | Picker | `Alt-d` | Remove from recents |
 | Palette | `Up` `Down` | Move highlight (typing filters; `Enter` runs the action, `Esc` closes) |
 

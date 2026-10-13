@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Rendering;
 public static class ChromeBuilder
 {
     private const string KeyHints = "j/k gg G ^d ^u @ ? : q";
-    private const string PickerHints = "Enter open  Tab complete  Alt-p pin  Alt-d forget  Esc close";
+    private const string PickerHints = "Enter open  Tab complete  Alt-p pin to top  Alt-d forget  Esc close";
 
     public static StyledLine Tabs(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
