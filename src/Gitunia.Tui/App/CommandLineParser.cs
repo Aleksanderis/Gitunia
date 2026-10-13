@@ -1,11 +1,13 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Platform;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App;
 
-/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files]]</c>.</summary>
+/// <summary>Parses <c>gitunia [path] [--print-frame WxH [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]</c>.</summary>
 public static class CommandLineParser
 {
-    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files]]";
+    public const string Usage = "usage: gitunia <repository path> [--print-frame <columns>x<rows> [--diff] [--zoom graph|detail|diff] [--tab details|changes|files] [--colors truecolor|16|none [--light]]]";
 
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -15,6 +17,8 @@ public static class CommandLineParser
         var openDiff = false;
         PaneKind? zoom = null;
         BottomTab? tab = null;
+        ColorDepth? colors = null;
+        var isLight = false;
         for (var index = 0; index < arguments.Count; index++)
         {
             var argument = arguments[index];
@@ -53,6 +57,20 @@ public static class CommandLineParser
                 tab = parsedTab;
                 index++;
             }
+            else if (argument == "--colors")
+            {
+                if (index + 1 >= arguments.Count || !TryParseColors(arguments[index + 1], out var parsedColors))
+                {
+                    return new CommandLineOptions(null, null, null, "--colors needs truecolor, 16 or none");
+                }
+
+                colors = parsedColors;
+                index++;
+            }
+            else if (argument == "--light")
+            {
+                isLight = true;
+            }
             else if (argument.StartsWith('-') || path is not null)
             {
                 return new CommandLineOptions(null, null, null, $"unexpected argument '{argument}'");
@@ -63,12 +81,43 @@ public static class CommandLineParser
             }
         }
 
-        if ((openDiff || zoom is not null || tab is not null) && width is null)
+        if ((openDiff || zoom is not null || tab is not null || colors is not null || isLight) && width is null)
         {
-            return new CommandLineOptions(null, null, null, "--diff, --zoom and --tab need --print-frame");
+            return new CommandLineOptions(null, null, null, "--diff, --zoom, --tab, --colors and --light need --print-frame");
         }
 
-        return new CommandLineOptions(path, width, height, null, openDiff || zoom == PaneKind.Diff, zoom, tab ?? BottomTab.Changes);
+        if (isLight && colors is null)
+        {
+            return new CommandLineOptions(null, null, null, "--light needs --colors");
+        }
+
+        return new CommandLineOptions(
+            path,
+            width,
+            height,
+            null,
+            openDiff || zoom == PaneKind.Diff,
+            zoom,
+            tab ?? BottomTab.Changes,
+            colors is { } depth ? new PaletteSettings(depth, isLight) : null);
+    }
+
+    private static bool TryParseColors(string text, out ColorDepth depth)
+    {
+        depth = ColorDepth.None;
+        switch (text)
+        {
+            case "truecolor":
+                depth = ColorDepth.TrueColor;
+                return true;
+            case "16":
+                depth = ColorDepth.Ansi16;
+                return true;
+            case "none":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool TryParseTab(string text, out BottomTab tab)

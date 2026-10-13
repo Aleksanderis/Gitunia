@@ -62,6 +62,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         using var app = Application.Create();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         app.Init();
+        var driver = app.Driver;
+        var palette = PaletteSettings.Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false });
+        if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
+        {
+            driver.Force16Colors = true;
+        }
+
+        Palette.Configure(palette);
 
         host = new WorkspaceHost(Workspace.Empty);
         effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs, statuses);
@@ -88,10 +96,9 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             () => sidebar.Chrome,
             () => diffPane.Arrangement(),
             width => diffPane.TitleLine(width, glyphs),
-            new DiffListSource(glyphs),
-            () => SidebarPane.Divider(view.Diff.HasFocus || view.Detail.HasFocus, glyphs));
+            new DiffListSource(glyphs));
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
-        diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome, clipboard);
+        diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.ScreenSize, Relayout, view.RefreshChrome, clipboard);
         router.Diff = diffPane;
         router.DetailTabs = new DetailTabController(host);
         visual = new VisualRangeController(
@@ -146,10 +153,16 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
         view.SuppressMouseWhen(() => overlays.State.IsOpen);
         view.Gestured += OnGestured;
+        view.Window.ViewportChanged += (_, _) => app.AddTimeout(TimeSpan.Zero, () =>
+        {
+            diffPane.OnScreenResized();
+            return false;
+        });
         view.EdgeDragged += OnEdgeDragged;
         view.OverlayLineClicked += OnOverlayLineClicked;
         view.Graph.ValueChanged += (_, _) => visual.OnCursorMoved();
         view.Detail.ValueChanged += (_, _) => visual.OnCursorMoved();
+        view.Detail.ValueChanged += (_, _) => diffPane.OnDetailCursorMoved();
         view.Diff.ValueChanged += (_, _) => visual.OnCursorMoved();
         view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
@@ -385,6 +398,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
+            new TabRenameController(host, keys.SetMode, () => view.RefreshChrome()),
             new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration(app)),
         ];
@@ -500,7 +514,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             }
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
-            session.Details.Select(entry.Id);
+            session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
             RefreshDetail();
         }
 
@@ -536,20 +550,27 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         // A different commit starts at the top; the same commit whose details just arrived keeps the user's place,
         // and each tab remembers its own place while the commit stays selected.
         var selected = 0;
+        var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;
         if (content.ShortHash != previous.ShortHash)
         {
             session.DetailSelections.Clear();
+            selected = landing;
         }
         else if (previous.Tab != content.Tab)
         {
             session.DetailSelections[previous.Tab] = view.Detail.SelectedItem ?? 0;
             selected = session.DetailSelections.TryGetValue(content.Tab, out var remembered)
                 ? remembered
-                : content.Files.Count > 0 && content.Tab == BottomTab.Changes ? content.FirstFileRow : 0;
+                : landing;
         }
         else
         {
             selected = view.Detail.SelectedItem ?? 0;
+            if (previous.Files.Count == 0 && selected < landing)
+            {
+                // The files of the commit just arrived: the cursor goes to the first one, whose diff is shown.
+                selected = landing;
+            }
         }
 
         view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);

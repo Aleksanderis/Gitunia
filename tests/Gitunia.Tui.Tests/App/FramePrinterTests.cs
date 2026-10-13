@@ -3,6 +3,7 @@ using Gitunia.Git;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -12,14 +13,37 @@ public class FramePrinterTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task GivenNoArrangement_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
+    public async Task GivenNoArrangementOnTheDetailsTab_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
+
+        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenNoArrangementOnTheChangesTab_WhenPrinting_ThenTheDiffOfTheFirstFileSitsBesideTheFileList()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 
-        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Changes", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("+one", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenANarrowScreenOnTheChangesTab_WhenPrinting_ThenTheDiffStaysClosed()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 71, 30, null);
+
         Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
     }
 
@@ -34,7 +58,7 @@ public class FramePrinterTests
 
         var lines = await PrintAsync(repository, width, 30, new PaneArrangement(true, null));
 
-        Assert.Contains(lines, line => line.Contains(" Details ", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("two added", StringComparison.Ordinal));
     }
 
@@ -47,7 +71,7 @@ public class FramePrinterTests
         var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff));
 
         Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
-        Assert.DoesNotContain(lines, line => line.Contains(" Details ", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("Details", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -60,13 +84,13 @@ public class FramePrinterTests
         var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
         var files = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
 
-        Assert.Contains(details, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.Contains(details, line => line.StartsWith("│ author ", StringComparison.Ordinal));
         Assert.DoesNotContain(details, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.Contains(changes, line => line.Contains("A a.txt", StringComparison.Ordinal));
-        Assert.DoesNotContain(changes, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.DoesNotContain(changes, line => line.StartsWith("│ author ", StringComparison.Ordinal));
         Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
         Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
-        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details  Changes  Files ", StringComparison.Ordinal)));
+        Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details ─ Changes ─ Files ", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -81,12 +105,42 @@ public class FramePrinterTests
         Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
     }
 
-    private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes)
+    [Fact]
+    public async Task GivenColours_WhenPrinting_ThenTheGraphRowHasTheFocusedTintAndTheSidebarCursorTheDimOne()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Branch("topic");
+        var table = PaletteTable.For(PaletteSettings.Default);
+
+        var lines = await PrintAsync(repository, 100, 30, null, colors: PaletteSettings.Default);
+
+        var focusedTint = $"48;2;{table.SelectionFocused.R};{table.SelectionFocused.G};{table.SelectionFocused.B}";
+        var dimTint = $"48;2;{table.SelectionDim.R};{table.SelectionDim.G};{table.SelectionDim.B}";
+        var firstRow = lines[2];
+        Assert.Contains(dimTint, firstRow, StringComparison.Ordinal);
+        Assert.Contains(focusedTint, firstRow, StringComparison.Ordinal);
+        Assert.True(firstRow.IndexOf(dimTint, StringComparison.Ordinal) < firstRow.IndexOf(focusedTint, StringComparison.Ordinal), "the sidebar part comes first");
+        Assert.DoesNotContain(lines.Skip(3).Take(5), line => line.Contains(focusedTint, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenNoColours_WhenPrinting_ThenTheFrameHasNoEscapeSequences()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, null);
+
+        Assert.DoesNotContain(lines, line => line.Contains('\u001b', StringComparison.Ordinal));
+    }
+
+    private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes, PaletteSettings? colors = null)
     {
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, Token);
         using var writer = new StringWriter();
-        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement, tab);
+        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement, tab, colors);
         return [.. writer.ToString().Split('\n')];
     }
 }

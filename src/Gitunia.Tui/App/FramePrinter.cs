@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Git;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App;
 
@@ -21,7 +22,8 @@ public static class FramePrinter
         TextWriter output,
         CancellationToken cancellationToken,
         PaneArrangement? arrangement = null,
-        BottomTab tab = BottomTab.Changes)
+        BottomTab tab = BottomTab.Changes,
+        PaletteSettings? colors = null)
     {
         var graph = new CommitGraph();
         var repo = new Repo(runner, location);
@@ -42,10 +44,18 @@ public static class FramePrinter
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
         }
 
-        var diff = arrangement is { IsDiffOpen: true } && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
+        // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
+        arrangement ??= PaneArrangement.Normal;
+        if (PaneLayout.ShowsDiffWithChanges(width, height, tab))
+        {
+            arrangement = arrangement with { IsDiffOpen = true };
+        }
+
+        var diff = arrangement.IsDiffOpen && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
             ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
             : null;
-        var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState, tab), 0, 0, false);
+        var content = DetailContentBuilder.Build(selected, detailState, tab);
+        var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
             head.BranchName,
@@ -58,7 +68,14 @@ public static class FramePrinter
             false,
             string.Empty);
         var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
-        foreach (var line in ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement))
+        var lines = ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement);
+        if (colors is not null)
+        {
+            await output.WriteAsync(AnsiFrameWriter.Render(lines, colors).AsMemory(), cancellationToken);
+            return;
+        }
+
+        foreach (var line in lines)
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }
