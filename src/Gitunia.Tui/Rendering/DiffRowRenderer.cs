@@ -204,7 +204,7 @@ public static class DiffRowRenderer
     /// <summary>
     /// Keeps the start of <paramref name="text"/> that can reach into <paramref name="width"/> columns (every character takes at
     /// least one column, so twice the width plus a margin for zero-width marks is enough), so a minified line of megabytes costs
-    /// no more per draw than a short one. Still longer than the pane after expanding, so the ellipsis shows.
+    /// no more per draw than a short one. Still longer than the pane after expanding, so the ellipsis shows (not for pathological lines of mostly zero-width marks, which show cut without it).
     /// </summary>
     private static string CutToWidth(string text, int width)
     {

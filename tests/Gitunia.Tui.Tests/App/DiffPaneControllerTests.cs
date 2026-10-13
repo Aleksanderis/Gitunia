@@ -224,12 +224,12 @@ public class DiffPaneControllerTests
         var source = harness.Session.Diff!.Source;
         harness.Execute(ActionIds.DiffToggleWrap);
         harness.Execute(ActionIds.ListBottom);
-        harness.Execute(ActionIds.ListUp);
         var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
 
         harness.DiffList.Width = 30;
         harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
 
+        Assert.Equal(30, source.Width);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
     }
 

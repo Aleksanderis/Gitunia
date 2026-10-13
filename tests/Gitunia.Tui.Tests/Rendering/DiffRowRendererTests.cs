@@ -61,12 +61,12 @@ public class DiffRowRendererTests
     [Fact]
     public void GivenALongLineEndingInASurrogatePair_WhenRendering_ThenThePairIsNeverSplit()
     {
-        var text = new string('a', 30) + string.Concat(Enumerable.Repeat("\U0001F600", 100));
+        var text = new string('a', 31) + string.Concat(Enumerable.Repeat("\U0001F600", 100));
         var row = new DiffRow(DiffRowKind.Context, text, 1, 1, 0);
 
         var line = DiffRowRenderer.Render(row, 10, 3, null, false, Glyphs);
 
-        Assert.DoesNotContain(line.Segments, segment => segment.Text.Any(char.IsLowSurrogate) && !segment.Text.Any(char.IsHighSurrogate));
+        Assert.DoesNotContain(line.Segments, segment => segment.Text.Length > 0 && (char.IsHighSurrogate(segment.Text[^1]) || char.IsLowSurrogate(segment.Text[0])));
     }
 
     [Fact]
