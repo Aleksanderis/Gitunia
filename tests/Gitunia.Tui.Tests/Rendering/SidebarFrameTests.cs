@@ -42,8 +42,8 @@ public class SidebarFrameTests
                 '\n',
                 " ● Gitunia  ─  repo",
                 " 1 repo  main",
-                " ▾ Branches 3       │●  0000002 second",
-                "  * main ↑2↓1 wt:re…│●  0000001 first",
+                " ▾ Branches 3       │●  second                                  Author",
+                "  * main ↑2↓1 wt:re…│●  first                                   Author",
                 "    feature… wt:wt-…│",
                 "    old             │",
                 " ▸ Tags 12          │",
@@ -62,8 +62,8 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 8, GraphGlyphSet.Ascii);
 
-        Assert.Equal(" v Branches 1       |*  0000002 second", frame[2]);
-        Assert.Equal("  * main +1-3       |*  0000001 first", frame[3]);
+        Assert.Equal(" v Branches 1       |*  second                                  Author", frame[2]);
+        Assert.Equal("  * main +1-3       |*  first                                   Author", frame[3]);
         Assert.Equal(" > Tags 2           |", frame[4]);
     }
 
@@ -153,6 +153,6 @@ public class SidebarFrameTests
 
         var frame = Frame(model, 80, 6);
 
-        Assert.Equal("                    │●  0000002 second", frame[2]);
+        Assert.Equal("                    │●  second                                  Author", frame[2]);
     }
 }

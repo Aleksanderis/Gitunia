@@ -29,10 +29,10 @@ public class GraphRowRendererTests
 
         Assert.Equal(
             [
-                "○─╮  0000004 merge side",
-                "● │  0000002 main work",
-                "├─●  0000003 side work",
-                "●    0000001 root",
+                "○─╮  merge side",
+                "● │  main work",
+                "├─●  side work",
+                "●    root",
             ],
             rows);
     }
@@ -44,10 +44,10 @@ public class GraphRowRendererTests
 
         Assert.Equal(
             [
-                "o-\\  0000004 merge side",
-                "* |  0000002 main work",
-                "|-*  0000003 side work",
-                "*    0000001 root",
+                "o-\\  merge side",
+                "* |  main work",
+                "|-*  side work",
+                "*    root",
             ],
             rows);
     }
@@ -64,7 +64,7 @@ public class GraphRowRendererTests
             CommitFactory.Commit(22, "c", [12]),
             CommitFactory.Commit(12, "d", [10]));
 
-        Assert.Equal("├─┼─●  000000c d", rows[3]);
+        Assert.Equal("├─┼─●  d", rows[3]);
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public class GraphRowRendererTests
             new CommitDecoration("refs/remotes/origin/main", "origin/main", RefKind.RemoteBranch, false),
             new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false));
 
-        var row = Rows(GraphGlyphSet.Unicode, 80, commit)[0];
+        var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  0000001 (HEAD -> main, topic, origin/main, tag: v1) release", row);
+        Assert.StartsWith("●  (HEAD -> main, topic, origin/main, tag: v1) release", row);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public class GraphRowRendererTests
     {
         var commit = CommitFactory.Commit(1, "x", [], new CommitDecoration("HEAD", "HEAD", RefKind.Head, true));
 
-        Assert.StartsWith("●  0000001 (HEAD) x", Rows(GraphGlyphSet.Unicode, 40, commit)[0]);
+        Assert.StartsWith("●  (HEAD) x", Rows(GraphGlyphSet.Unicode, 40, commit)[0]);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 24, commit)[0];
 
-        Assert.Equal("●  0000001 a very long …", row);
+        Assert.Equal("●  a very long subject …", row);
         Assert.Equal(24, TextWidth.Of(row));
     }
 
@@ -108,10 +108,10 @@ public class GraphRowRendererTests
     {
         var commit = CommitFactory.Commit(1, "修正バグ修正バグ", []);
 
-        var row = Rows(GraphGlyphSet.Unicode, 20, commit)[0];
+        var row = Rows(GraphGlyphSet.Unicode, 16, commit)[0];
 
-        Assert.Equal("●  0000001 修正バグ…", row);
-        Assert.Equal(20, TextWidth.Of(row));
+        Assert.Equal("●  修正バグ修正…", row);
+        Assert.Equal(16, TextWidth.Of(row));
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class GraphRowRendererTests
     public void GivenHash_WhenRendering_ThenItHasItsOwnRoleAndLanesCarryTheirLane()
     {
         var graph = CommitFactory.Graph(Diamond());
-        var options = new GraphRowOptions(40, 2, GraphGlyphSet.Unicode);
+        var options = new GraphRowOptions(100, 2, GraphGlyphSet.Unicode);
 
         var line = GraphRowRenderer.Render(graph[2], options, false);
 

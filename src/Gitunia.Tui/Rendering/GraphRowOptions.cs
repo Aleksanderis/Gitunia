@@ -9,6 +9,9 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="Highlight">The active graph search, whose matches are highlighted; null when none.</param>
 public sealed record GraphRowOptions(int Width, int LaneColumns, GraphGlyphSet Glyphs, SearchQuery? Highlight = null)
 {
+    /// <summary>Where the columns of the row sit, computed once per options instead of once per row; build a new instance instead of using <c>with</c> on Width or LaneColumns.</summary>
+    public GraphColumns Columns { get; } = GraphColumnLayout.Compute(Width, LaneColumns);
+
     /// <summary>Longest lane area as a share of the width, so subjects keep room on narrow terminals.</summary>
     public const int MaximumLaneAreaPercent = 40;
 

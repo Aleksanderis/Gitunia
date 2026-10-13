@@ -24,6 +24,9 @@ public static class CommitFactory
             subject,
             decorations);
 
+    public static CommitInfo CommitBy(int number, string subject, int[] parents, string author, DateTimeOffset time) =>
+        new(Id(number), parents.Select(Id).ToArray(), author, "author@example.com", time, subject, []);
+
     /// <summary>Lays out the commits (children first) and pairs each with its row.</summary>
     public static CommitGraph Graph(params CommitInfo[] commits)
     {

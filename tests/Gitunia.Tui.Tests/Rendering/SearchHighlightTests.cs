@@ -42,9 +42,27 @@ public class SearchHighlightTests
     public void GivenHashQuery_WhenRendering_ThenTheHashIsMarked()
     {
         var graph = Graph();
-        var options = new GraphRowOptions(40, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Hash, "000000"));
+        var options = new GraphRowOptions(100, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Hash, "000000"));
 
         Assert.Equal("0000003", Highlighted(GraphRowRenderer.Render(graph[0], options, false)));
+    }
+
+    [Fact]
+    public void GivenAuthorQueryAndNarrowRow_WhenRendering_ThenNothingIsMarked()
+    {
+        var graph = Graph();
+        var options = new GraphRowOptions(40, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Author, "auth"));
+
+        Assert.Equal(string.Empty, Highlighted(GraphRowRenderer.Render(graph[0], options, false)));
+    }
+
+    [Fact]
+    public void GivenAuthorQuery_WhenRendering_ThenTheAuthorIsMarked()
+    {
+        var graph = Graph();
+        var options = new GraphRowOptions(100, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Author, "auth"));
+
+        Assert.Equal("Author", Highlighted(GraphRowRenderer.Render(graph[0], options, false)).TrimEnd());
     }
 
     [Fact]

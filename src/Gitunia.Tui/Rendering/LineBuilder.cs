@@ -27,6 +27,18 @@ public sealed class LineBuilder(int width, string ellipsis)
         return this;
     }
 
+    /// <summary>Adds a finished line (one column of a table row) as it is; it must not be wider than the remaining columns.</summary>
+    public LineBuilder Append(StyledLine line)
+    {
+        foreach (var segment in line.Segments)
+        {
+            segments.Add(segment);
+            used += TextWidth.Of(segment.Text);
+        }
+
+        return this;
+    }
+
     /// <summary>Pads the rest of the line with spaces of <paramref name="fillRole"/> and returns it.</summary>
     public StyledLine Build(SegmentRole fillRole = SegmentRole.Plain, bool isSelected = false)
     {

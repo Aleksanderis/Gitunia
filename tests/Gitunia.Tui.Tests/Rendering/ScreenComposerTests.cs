@@ -29,10 +29,10 @@ public class ScreenComposerTests
                 '\n',
                 " ● Gitunia  ─  repo",
                 " 1 repo  main",
-                "○─╮  0000004 merge side",
-                "● │  0000002 main work",
-                "├─●  0000003 side work",
-                "●    0000001 root",
+                "○─╮  merge side",
+                "● │  main work",
+                "├─●  side work",
+                "●    root",
                 "",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
@@ -48,10 +48,10 @@ public class ScreenComposerTests
                 '\n',
                 " * Gitunia  -  repo",
                 " 1 repo  main",
-                "o-\\  0000004 merge side",
-                "* |  0000002 main work",
-                "|-*  0000003 side work",
-                "*    0000001 root",
+                "o-\\  merge side",
+                "* |  main work",
+                "|-*  side work",
+                "*    root",
                 "",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
@@ -64,8 +64,8 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(3, 4), graph, 2, 1, 40, 6, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith("● │  0000002", lines[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("├─●  0000003", lines[3].Text, StringComparison.Ordinal);
+        Assert.StartsWith("● │  ", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("├─●  ", lines[3].Text, StringComparison.Ordinal);
         Assert.Equal([false, true, false], lines.Skip(2).Take(3).Select(line => line.IsSelected).ToArray());
     }
 
@@ -141,8 +141,8 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(1, 2), graph, 0, 0, 30, 5, GraphGlyphSet.Unicode);
 
-        Assert.Equal("●  0000002 修正バグ", lines[2].Text.TrimEnd());
-        Assert.Equal("●  0000001 emoji 🎉 ok", lines[3].Text.TrimEnd());
+        Assert.Equal("●  修正バグ", lines[2].Text.TrimEnd());
+        Assert.Equal("●  emoji 🎉 ok", lines[3].Text.TrimEnd());
         Assert.All(lines, line => Assert.Equal(30, TextWidth.Of(line.Text)));
     }
 }
