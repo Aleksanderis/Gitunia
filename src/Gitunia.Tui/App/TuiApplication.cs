@@ -153,6 +153,11 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
         view.SuppressMouseWhen(() => overlays.State.IsOpen);
         view.Gestured += OnGestured;
+        view.Window.ViewportChanged += (_, _) => app.AddTimeout(TimeSpan.Zero, () =>
+        {
+            diffPane.OnScreenResized();
+            return false;
+        });
         view.EdgeDragged += OnEdgeDragged;
         view.OverlayLineClicked += OnOverlayLineClicked;
         view.Graph.ValueChanged += (_, _) => visual.OnCursorMoved();

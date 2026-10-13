@@ -150,7 +150,7 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        if (SelectedFilePath() is { } selected)
+        if (ShowsWithChanges() && SelectedFilePath() is { } selected)
         {
             // Beside the file list the diff always shows the file under its cursor.
             diff.PendingFilePath = selected;
@@ -168,13 +168,20 @@ public sealed class DiffPaneController : IPromptHandler
     {
     }
 
+    /// <summary>The terminal changed size: loads the diff that now has room, and takes focus off a diff pane that no longer fits.</summary>
+    public void OnScreenResized()
+    {
+        ReleaseHiddenFocus();
+        FollowSelection();
+    }
+
     /// <summary>
     /// The file list's cursor moved: the diff beside it shows that file at once (the whole commit is loaded already, so this only
     /// scrolls; while the commit is still loading the file is remembered and shown when it arrives).
     /// </summary>
     public void OnDetailCursorMoved()
     {
-        if (isFileSyncing || activeSession() is not { Diff: { } diff } session || !IsShown(diff) || SelectedFilePath() is not { } path)
+        if (isFileSyncing || activeSession() is not { Diff: { } diff } session || !ShowsWithChanges() || SelectedFilePath() is not { } path)
         {
             return;
         }
@@ -226,15 +233,14 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         relayout();
+        FollowSelection();
     }
 
     private void OnWorkspaceChanged()
     {
         ReleaseStaleZoom();
-        if (activeSession()?.Diff is { } shown && host.Workspace.ActiveTab is { } active && active.View.FocusedPane == PaneKind.Diff && !IsShown(shown))
+        if (ReleaseHiddenFocus())
         {
-            // The Changes tab was left while the diff had focus: the diff is hidden now, so focus goes back to the file list.
-            host.Dispatch(new TabCommand(active.Id, new FocusPaneCommand(PaneKind.Detail)));
             return;
         }
 
@@ -243,6 +249,18 @@ public sealed class DiffPaneController : IPromptHandler
             // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
             AbandonTypedSearch(diff);
         }
+    }
+
+    // The Changes tab was left (or the screen shrank) while the diff had focus: the diff is hidden now, so focus goes back to the file list.
+    private bool ReleaseHiddenFocus()
+    {
+        if (activeSession()?.Diff is not { } shown || host.Workspace.ActiveTab is not { } active || active.View.FocusedPane != PaneKind.Diff || IsShown(shown))
+        {
+            return false;
+        }
+
+        host.Dispatch(new TabCommand(active.Id, new FocusPaneCommand(PaneKind.Detail)));
+        return true;
     }
 
     /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
