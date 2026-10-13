@@ -12,8 +12,9 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App;
 
 /// <summary>
-/// Runs the diff pane of the active tab: opens a file's diff from the detail pane, scrolls and jumps through it, searches it
-/// and zooms panes. It is also the diff's search prompt (the box in Insert mode), so it plugs into the same prompt list as the
+/// Runs the diff pane of the active tab. The diff is part of the Changes tab: where the screen has room the pane is always shown
+/// beside the file list and follows its cursor (see <see cref="PaneLayout.ShowsDiffWithChanges"/>); on narrow or short screens
+/// <c>Enter</c> opens it on demand. It scrolls and jumps through the diff, searches it and zooms panes. It is also the diff's search prompt (the box in Insert mode), so it plugs into the same prompt list as the
 /// graph search. Everything it changes about focus goes through workspace commands.
 /// </summary>
 public sealed class DiffPaneController : IPromptHandler
@@ -23,10 +24,11 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly ListView detailList;
     private readonly ListView diffList;
     private readonly Action<KeyMode> setMode;
-    private readonly Func<int> screenHeight;
+    private readonly Func<(int Width, int Height)> screenSize;
     private readonly Action relayout;
     private readonly Action refreshChrome;
     private readonly ClipboardCopier clipboard;
+    private bool isFileSyncing;
     private bool isRestoring;
     private bool isSyncing;
 
@@ -35,7 +37,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <param name="detailList">The detail pane's list, where a file is picked.</param>
     /// <param name="diffList">The diff pane's list.</param>
     /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
-    /// <param name="screenHeight">Terminal rows, to tell whether the diff fits next to the graph.</param>
+    /// <param name="screenSize">Terminal columns and rows, to tell whether the diff fits next to the file list and the graph.</param>
     /// <param name="relayout">Asks the views to lay out again after the pane arrangement changed.</param>
     /// <param name="refreshChrome">Redraws the pane titles and the status bar after the diff changed on its own (it finished loading).</param>
     /// <param name="clipboard">Copies diff text.</param>
@@ -45,7 +47,7 @@ public sealed class DiffPaneController : IPromptHandler
         ListView detailList,
         ListView diffList,
         Action<KeyMode> setMode,
-        Func<int> screenHeight,
+        Func<(int Width, int Height)> screenSize,
         Action relayout,
         Action refreshChrome,
         ClipboardCopier clipboard)
@@ -56,7 +58,7 @@ public sealed class DiffPaneController : IPromptHandler
         this.detailList = detailList;
         this.diffList = diffList;
         this.setMode = setMode;
-        this.screenHeight = screenHeight;
+        this.screenSize = screenSize;
         this.relayout = relayout;
         this.refreshChrome = refreshChrome;
         diffList.ValueChanged += (_, _) => RememberCursor();
@@ -77,7 +79,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var zoomed = diff.ZoomedPane == host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;
-        return new PaneArrangement(diff.IsOpen, zoomed, SizesOfActiveTab());
+        return new PaneArrangement(IsShown(diff), zoomed, SizesOfActiveTab());
     }
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
@@ -96,6 +98,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         Notice = string.Empty;
         SyncWidth();
+        FollowSelection();
         if (activeSession()?.Diff is not { } diff || host.Workspace.ActiveTab is not { } tab)
         {
             return false;
@@ -139,14 +142,20 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void FollowSelection()
     {
-        if (activeSession() is not { Diff: { IsOpen: true } diff } session
+        if (activeSession() is not { Diff: { } diff } session
+            || !IsShown(diff)
             || session.Details.Current is not { Details: { } loaded, Commit: { } commit }
             || diff.Store.Commit == commit)
         {
             return;
         }
 
-        if (diff.Store.Status == DiffStatus.Loaded)
+        if (SelectedFilePath() is { } selected)
+        {
+            // Beside the file list the diff always shows the file under its cursor.
+            diff.PendingFilePath = selected;
+        }
+        else if (diff.Store.Status == DiffStatus.Loaded)
         {
             // While another commit is still loading, the document has no files: keep the file remembered so far.
             diff.PendingFilePath = CurrentFilePath(diff);
@@ -157,6 +166,24 @@ public sealed class DiffPaneController : IPromptHandler
 
     public void OnGraphChanged()
     {
+    }
+
+    /// <summary>
+    /// The file list's cursor moved: the diff beside it shows that file at once (the whole commit is loaded already, so this only
+    /// scrolls; while the commit is still loading the file is remembered and shown when it arrives).
+    /// </summary>
+    public void OnDetailCursorMoved()
+    {
+        if (isFileSyncing || activeSession() is not { Diff: { } diff } session || !IsShown(diff) || SelectedFilePath() is not { } path)
+        {
+            return;
+        }
+
+        diff.PendingFilePath = path;
+        if (diff.Store.Status == DiffStatus.Loaded && session.Details.Current is { Commit: { } commit } && diff.Store.Commit == commit)
+        {
+            Refresh(diff);
+        }
     }
 
     /// <summary>The diff pane's title row for the active tab.</summary>
@@ -204,11 +231,39 @@ public sealed class DiffPaneController : IPromptHandler
     private void OnWorkspaceChanged()
     {
         ReleaseStaleZoom();
+        if (activeSession()?.Diff is { } shown && host.Workspace.ActiveTab is { } active && active.View.FocusedPane == PaneKind.Diff && !IsShown(shown))
+        {
+            // The Changes tab was left while the diff had focus: the diff is hidden now, so focus goes back to the file list.
+            host.Dispatch(new TabCommand(active.Id, new FocusPaneCommand(PaneKind.Detail)));
+            return;
+        }
+
         if (activeSession()?.Diff is { Search.Phase: DiffSearchPhase.Editing } diff && host.Workspace.ActiveTab?.View.FocusedPane != PaneKind.Diff)
         {
             // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
             AbandonTypedSearch(diff);
         }
+    }
+
+    /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
+    private bool IsShown(DiffSession diff) => diff.IsOpen || ShowsWithChanges();
+
+    private bool ShowsWithChanges()
+    {
+        var (width, height) = screenSize();
+        return host.Workspace.ActiveTab is { } tab && PaneLayout.ShowsDiffWithChanges(width, height, tab.View.BottomTab);
+    }
+
+    /// <summary>The path of the file under the cursor of the Changes list, null when the cursor is not on a file.</summary>
+    private string? SelectedFilePath()
+    {
+        if (activeSession()?.DetailSource is not { Content: { Tab: BottomTab.Changes } content })
+        {
+            return null;
+        }
+
+        var index = (detailList.SelectedItem ?? -1) - content.FirstFileRow;
+        return index >= 0 && index < content.Files.Count ? content.Files[index].Path : null;
     }
 
     /// <summary>Drops a search that is still being typed (not an accepted one) and leaves Insert mode.</summary>
@@ -270,6 +325,7 @@ public sealed class DiffPaneController : IPromptHandler
         else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
         {
             Jump(document.FileRows, row, action == ActionIds.DiffNextFile, count, "file");
+            SelectFileInList(diff);
         }
         else if (action == ActionIds.DiffSearchOpen)
         {
@@ -345,9 +401,10 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        diff.IsOpen = true;
+        // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
+        diff.IsOpen = !ShowsWithChanges();
         diff.PendingFilePath = source.Content.Files[index].Path;
-        diff.ZoomedPane = PaneLayout.CanOpenDiff(screenHeight()) ? null : PaneKind.Diff;
+        diff.ZoomedPane = PaneLayout.CanOpenDiff(screenSize().Height) ? null : PaneKind.Diff;
         var started = diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null);
         relayout();
         host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
@@ -402,6 +459,16 @@ public sealed class DiffPaneController : IPromptHandler
 
     private void Close(RepoState tab, DiffSession diff)
     {
+        if (ShowsWithChanges())
+        {
+            // The diff belongs to the Changes tab and stays: going back only returns to the file list.
+            diff.IsOpen = false;
+            diff.ZoomedPane = null;
+            host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Detail)));
+            relayout();
+            return;
+        }
+
         diff.IsOpen = false;
         diff.ZoomedPane = null;
         diff.PendingFilePath = null;
@@ -423,6 +490,34 @@ public sealed class DiffPaneController : IPromptHandler
 
         diff.ZoomedPane = PaneZoom.Toggle(Arrangement().Zoomed, focused);
         relayout();
+    }
+
+    // The file list follows a jump to another file, so its cursor and the diff stay on the same file.
+    private void SelectFileInList(DiffSession diff)
+    {
+        if (!ShowsWithChanges() || CurrentFilePath(diff) is not { } path || activeSession()?.DetailSource is not { Content: { Tab: BottomTab.Changes } content })
+        {
+            return;
+        }
+
+        for (var index = 0; index < content.Files.Count; index++)
+        {
+            if (content.Files[index].Path == path)
+            {
+                isFileSyncing = true;
+                try
+                {
+                    detailList.SelectedItem = content.FirstFileRow + index;
+                    detailList.EnsureSelectedItemVisible();
+                }
+                finally
+                {
+                    isFileSyncing = false;
+                }
+
+                return;
+            }
+        }
     }
 
     private void Jump(IReadOnlyList<int> anchors, int row, bool forward, int? count, string what)

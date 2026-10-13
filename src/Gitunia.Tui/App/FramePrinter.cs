@@ -44,10 +44,18 @@ public static class FramePrinter
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
         }
 
-        var diff = arrangement is { IsDiffOpen: true } && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
+        // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
+        arrangement ??= PaneArrangement.Normal;
+        if (PaneLayout.ShowsDiffWithChanges(width, height, tab))
+        {
+            arrangement = arrangement with { IsDiffOpen = true };
+        }
+
+        var diff = arrangement.IsDiffOpen && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
             ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
             : null;
-        var detail = new DetailPaneModel(DetailContentBuilder.Build(selected, detailState, tab), 0, 0, false);
+        var content = DetailContentBuilder.Build(selected, detailState, tab);
+        var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
             head.BranchName,

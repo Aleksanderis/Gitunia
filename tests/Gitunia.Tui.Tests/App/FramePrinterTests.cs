@@ -13,14 +13,37 @@ public class FramePrinterTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task GivenNoArrangement_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
+    public async Task GivenNoArrangementOnTheDetailsTab_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
+
+        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenNoArrangementOnTheChangesTab_WhenPrinting_ThenTheDiffOfTheFirstFileSitsBesideTheFileList()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", ("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 
-        Assert.Contains(lines, line => line.Contains("Details", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Changes", StringComparison.Ordinal) && line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("+one", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenANarrowScreenOnTheChangesTab_WhenPrinting_ThenTheDiffStaysClosed()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 71, 30, null);
+
         Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
     }
 

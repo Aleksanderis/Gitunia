@@ -116,6 +116,7 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, GraphView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
+        Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);

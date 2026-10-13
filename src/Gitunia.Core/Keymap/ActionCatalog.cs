@@ -13,7 +13,7 @@ public static class ActionCatalog
         ["confirm.yes"] = "Answer yes",
         ["detail.copy-path"] = "Copy the file path",
         ["detail.next-tab"] = "Next bottom pane tab",
-        ["detail.open-diff"] = "Open the file diff",
+        ["detail.open-diff"] = "Go to the file diff",
         ["detail.previous-tab"] = "Previous bottom pane tab",
         ["detail.retry"] = "Retry loading the commit details",
         ["detail.tab-changes"] = "Show the Changes tab",

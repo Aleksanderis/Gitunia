@@ -88,6 +88,13 @@ public static class PaneLayout
     /// <summary>The diff shares the detail pane's strip, so screens too short for that strip cannot open it (zoom still shows it).</summary>
     public static bool CanOpenDiff(int screenHeight) => DetailLayout.PaneHeight(screenHeight) > 0;
 
+    /// <summary>
+    /// The Changes tab always shows the diff of the selected file beside its file list, as long as the screen has room for both
+    /// (see <see cref="MinimumWidthForSideBySide"/>) and for the bottom strip. Narrower or shorter screens open the diff on demand instead.
+    /// </summary>
+    public static bool ShowsDiffWithChanges(int screenWidth, int screenHeight, BottomTab tab) =>
+        tab == BottomTab.Changes && screenWidth >= MinimumWidthForSideBySide && CanOpenDiff(screenHeight);
+
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="isDiffOpen">The diff pane is open.</param>
