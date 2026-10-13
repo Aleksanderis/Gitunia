@@ -61,6 +61,16 @@ public class GraphColumnsFrameTests
     }
 
     [Fact]
+    public void GivenLateEveningCommitWestOfUtc_WhenRendering_ThenTheUtcDateIsShown()
+    {
+        var graph = CommitFactory.Graph(
+            CommitFactory.CommitBy(1, "late", [], "Ada", new DateTimeOffset(2026, 10, 13, 23, 30, 0, TimeSpan.FromHours(-5)).ToUniversalTime()));
+        var options = new GraphRowOptions(100, 1, GraphGlyphSet.Unicode);
+
+        Assert.Contains("2026-10-14", GraphRowRenderer.Render(graph[0], options, false).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAnyWidth_WhenRendering_ThenEveryRowFillsTheWidthExactly()
     {
         for (var width = 10; width <= 210; width++)

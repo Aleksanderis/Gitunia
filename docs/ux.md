@@ -50,7 +50,7 @@ Each later workflow (2-7 at the end of this section) needs a written step-by-ste
 ### 1. Browse the graph, jump, search
 
 1. A repo tab opens with focus on the graph, the newest commit selected and HEAD marked. Commits stream in; the list is usable immediately and the status bar shows loading progress.
-   A graph row is a table (#168): branch lanes, message (ref decorations then subject), author, date (`yyyy-MM-dd`) and short hash (dimmed). The message column is the flexible one and grows up to 100 columns, so on a wide terminal the other columns stay beside it; author is 16 columns (ellipsis when longer), date 10, hash 7. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then date, then author; they return when the terminal widens (`gitunia <repo> --print-frame WxH` shows any width). Example at 120 columns (without the sidebar):
+   A graph row is a table (#168): branch lanes, message (ref decorations then subject), author, date (`yyyy-MM-dd`, UTC) and short hash (dimmed). The message column is the flexible one and grows up to 100 columns, so on a wide terminal the other columns stay beside it; author is 16 columns (ellipsis when longer), date 10, hash 7. Narrow terminals drop columns instead of squeezing the message below 30 columns: hash first, then date, then author; they return when the terminal widens (`gitunia <repo> --print-frame WxH` shows any width). Example at 120 columns (without the sidebar):
    ```
    ●  Fix parser crash on empty input                      Ada Lovelace     2026-10-13 7a21f84
    ●  (origin/main) Merge branch 'topic'                   Alexander the G… 2026-10-12 ee3f455

@@ -48,6 +48,15 @@ public class SearchHighlightTests
     }
 
     [Fact]
+    public void GivenAuthorQueryAndNarrowRow_WhenRendering_ThenNothingIsMarked()
+    {
+        var graph = Graph();
+        var options = new GraphRowOptions(40, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Author, "auth"));
+
+        Assert.Equal(string.Empty, Highlighted(GraphRowRenderer.Render(graph[0], options, false)));
+    }
+
+    [Fact]
     public void GivenAuthorQuery_WhenRendering_ThenTheAuthorIsMarked()
     {
         var graph = Graph();
