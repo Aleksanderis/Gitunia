@@ -8,11 +8,11 @@ namespace Gitunia.Tui.App;
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
 public sealed class RangeCopier(ClipboardCopier clipboard, Func<TabSession?> activeSession)
 {
-    private const string NothingToCopy = "Nothing to copy";
+    private static readonly RangeCopyResult NothingToCopy = new(false, "Nothing to copy");
 
     /// <summary>Copies the range of <paramref name="pane"/>.</summary>
-    /// <returns>A notice for the status bar when nothing was copied, empty when the text was copied.</returns>
-    public string Copy(PaneKind pane, RowRange range)
+    /// <returns>Whether the text was copied, with a notice for the status bar when nothing was copied (a failed copy posts its own warning).</returns>
+    public RangeCopyResult Copy(PaneKind pane, RowRange range)
     {
         var session = activeSession();
         if (session is null)
@@ -46,7 +46,7 @@ public sealed class RangeCopier(ClipboardCopier clipboard, Func<TabSession?> act
         }
 
         var lines = text.Count(character => character == '\n');
-        clipboard.Copy(text, lines == 1 ? $"1 line of {description}" : $"{lines} lines of {description}");
-        return string.Empty;
+        var copied = clipboard.Copy(text, lines == 1 ? $"1 line of {description}" : $"{lines} lines of {description}");
+        return new RangeCopyResult(copied, string.Empty);
     }
 }

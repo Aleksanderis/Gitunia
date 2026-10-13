@@ -13,12 +13,13 @@ public sealed class ClipboardCopier(ClipboardWriter? writer, StatusChannel statu
 {
     public const string NotInteractiveMessage = "Cannot copy: the console is not interactive.";
 
-    public void Copy(string text, string description)
+    /// <returns>True when the text was copied, false when a warning was posted instead.</returns>
+    public bool Copy(string text, string description)
     {
         if (writer is null)
         {
             statuses.Warning(NotInteractiveMessage);
-            return;
+            return false;
         }
 
         var outcome = writer.Run(new CopyToClipboardEffect(text, description));
@@ -26,10 +27,12 @@ public sealed class ClipboardCopier(ClipboardWriter? writer, StatusChannel statu
         if (outcome.Succeeded)
         {
             statuses.Post(message);
+            return true;
         }
         else
         {
             statuses.Warning(message);
+            return false;
         }
     }
 }

@@ -19,6 +19,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     private PaneKind focused = PaneKind.Graph;
     private (PaneKind Pane, RowRange Range)? copied;
     private KeyMode mode = KeyMode.Normal;
+    private bool copySucceeds = true;
 
     public VisualRangeControllerTests()
     {
@@ -31,7 +32,7 @@ public sealed class VisualRangeControllerTests : IDisposable
             (pane, range) =>
             {
                 copied = (pane, range);
-                return "copy notice";
+                return new RangeCopyResult(copySucceeds, "copy notice");
             });
     }
 
@@ -102,6 +103,22 @@ public sealed class VisualRangeControllerTests : IDisposable
         Assert.Equal("copy notice", controller.Notice);
         Assert.False(controller.IsActive);
         Assert.Equal(KeyMode.Normal, mode);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenCopyFails_ThenTheRangeStays()
+    {
+        copySucceeds = false;
+        list.SelectedItem = 4;
+        controller.TryExecute(ActionIds.VisualToggle, null);
+
+        var handled = controller.TryExecute(ActionIds.VisualCopy, null);
+
+        Assert.True(handled);
+        Assert.Equal((PaneKind.Graph, new RowRange(4, 4)), copied);
+        Assert.True(controller.IsActive);
+        Assert.Equal(new RowRange(4, 4), source.Range);
+        Assert.Equal(KeyMode.Visual, mode);
     }
 
     [Fact]
