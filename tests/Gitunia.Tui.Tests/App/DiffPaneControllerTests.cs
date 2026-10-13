@@ -244,7 +244,7 @@ public class DiffPaneControllerTests
         harness.DiffList.Width = 30;
         harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
 
-        Assert.Equal(30, source.Width);
+        Assert.Equal(28, source.Width);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
     }
 
@@ -342,7 +342,7 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffToggleWrap);
 
         Assert.True(source.IsWrapped);
-        Assert.Equal(rows + 2, source.Count);
+        Assert.Equal(rows + 3, source.Count);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
         Assert.Equal("Word wrap on", harness.Controller.Notice);
         harness.Execute(ActionIds.DiffToggleWrap);

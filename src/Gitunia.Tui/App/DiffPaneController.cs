@@ -179,7 +179,7 @@ public sealed class DiffPaneController : IPromptHandler
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
-                diff.Source.Width = diffList.Viewport.Width;
+                diff.Source.Width = PanePadding.TextWidth(diffList.Viewport.Width);
                 if (diff.Source.Count > 0)
                 {
                     diffList.SelectedItem = Math.Min(diff.Source.LineOf(diff.SelectedRow), diff.Source.Count - 1);
@@ -488,7 +488,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
     private void SyncWidth()
     {
-        if (isSyncing || activeSession()?.Diff is not { } diff || diff.Source.Width == diffList.Viewport.Width)
+        if (isSyncing || activeSession()?.Diff is not { } diff || diff.Source.Width == PanePadding.TextWidth(diffList.Viewport.Width))
         {
             return;
         }
@@ -498,13 +498,13 @@ public sealed class DiffPaneController : IPromptHandler
         {
             if (!diff.Source.IsWrapped)
             {
-                diff.Source.Width = diffList.Viewport.Width;
+                diff.Source.Width = PanePadding.TextWidth(diffList.Viewport.Width);
                 return;
             }
 
             var row = CursorRow(diff);
             var top = diff.Source.RowOf(diffList.Viewport.Y);
-            diff.Source.Width = diffList.Viewport.Width;
+            diff.Source.Width = PanePadding.TextWidth(diffList.Viewport.Width);
             isRestoring = true;
             try
             {

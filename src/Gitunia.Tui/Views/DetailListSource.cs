@@ -44,10 +44,11 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
 
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
+        width = PanePadding.TextWidth(width);
         var line = item >= 0 && item < Content.Rows.Count
             ? DetailPaneRenderer.RenderRow(Content.Rows[item], selected || Range?.Contains(item) == true, width, glyphs)
             : DetailPaneRenderer.RenderEmpty(width, glyphs);
-        LinePainter.Paint(listView, line, col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
 
     public void Dispose()

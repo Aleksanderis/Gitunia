@@ -9,11 +9,6 @@ public static class ChromeBuilder
     private const string KeyHints = "j/k gg G ^d ^u @ ? : q";
     private const string PickerHints = "Enter open  Tab complete  Alt-p pin  Alt-d forget  Esc close";
 
-    public static StyledLine Header(ScreenModel model, int width, GraphGlyphSet glyphs) =>
-        new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" " + glyphs.Node + " Gitunia  " + glyphs.Horizontal + "  " + model.RepositoryName, SegmentRole.Header)
-            .Build(SegmentRole.Header);
-
     public static StyledLine Tabs(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
         if (model.Tabs is { Count: > 0 } labels)

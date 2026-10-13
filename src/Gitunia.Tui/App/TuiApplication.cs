@@ -96,8 +96,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             () => sidebar.Chrome,
             () => diffPane.Arrangement(),
             width => diffPane.TitleLine(width, glyphs),
-            new DiffListSource(glyphs),
-            () => SidebarPane.Divider(view.Diff.HasFocus || view.Detail.HasFocus, glyphs));
+            new DiffListSource(glyphs));
         router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
         diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.Window.Viewport.Height, Relayout, view.RefreshChrome, clipboard);
         router.Diff = diffPane;

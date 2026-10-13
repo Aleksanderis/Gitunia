@@ -5,21 +5,26 @@ namespace Gitunia.Tui.Rendering;
 /// <summary>Draws the detail pane's title and rows, cut to the width.</summary>
 public static class DetailPaneRenderer
 {
-    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at the pane's top row.</summary>
+    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at the pane's top row; the rows are padded (<see cref="PanePadding"/>).</summary>
     public static IReadOnlyList<StyledLine> RenderPane(DetailPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane.Content, pane.IsFocused, width, glyphs) };
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
-            lines.Add(row >= 0 && row < pane.Content.Rows.Count
-                ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, width, glyphs)
-                : RenderEmpty(width, glyphs));
+            var textWidth = PanePadding.TextWidth(width);
+            lines.Add(PanePadding.Wrap(row >= 0 && row < pane.Content.Rows.Count
+                ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, textWidth, glyphs)
+                : RenderEmpty(textWidth, glyphs)));
         }
 
         return lines;
     }
 
+    /// <summary>
+    /// The title row, which is the top edge of the pane's box: a stretch of line, the tabs, the commit and its file count, and line
+    /// again to the end (the line is <see cref="SegmentRole.Rule"/>, drawn by the frame in the colour of the focus).
+    /// </summary>
     public static StyledLine RenderTitle(DetailContent content, bool isFocused, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
@@ -27,7 +32,7 @@ public static class DetailPaneRenderer
         var column = 0;
         foreach (var button in strip)
         {
-            builder.Append(new string(' ', button.Start - column), SegmentRole.Plain);
+            builder.Append(new string(glyphs.Horizontal, button.Start - column), SegmentRole.Rule);
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
             builder.Append(button.Label, isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.Faint);
             column = button.Start + button.Width;
@@ -35,11 +40,13 @@ public static class DetailPaneRenderer
 
         if (content.ShortHash.Length > 0)
         {
-            builder.Append("  " + content.ShortHash, SegmentRole.Hash);
-            builder.Append("  " + content.Files.Count.ToString(CultureInfo.InvariantCulture) + (content.Files.Count == 1 ? " file" : " files"), SegmentRole.Faint);
+            builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
+            builder.Append(" " + content.ShortHash + " ", SegmentRole.Hash);
+            builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
+            builder.Append(" " + content.Files.Count.ToString(CultureInfo.InvariantCulture) + (content.Files.Count == 1 ? " file " : " files "), SegmentRole.Faint);
         }
 
-        return builder.Build(SegmentRole.Plain);
+        return builder.BuildRule(glyphs.Horizontal);
     }
 
     public static StyledLine RenderRow(DetailRow row, bool isSelected, int width, GraphGlyphSet glyphs)

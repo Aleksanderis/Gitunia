@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
+using Gitunia.Core.Workspaces;
 
 namespace Gitunia.Tui.Rendering;
 
@@ -33,67 +34,35 @@ public static class ScreenComposer
         PaneArrangement? arrangement = null)
     {
         var lines = new List<StyledLine>(height);
-        if (height > ScreenLayout.HeaderRow)
-        {
-            lines.Add(ChromeBuilder.Header(model, width, glyphs));
-        }
-
         if (height > ScreenLayout.TabRow)
         {
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
-        if (model.Picker is not null)
-        {
-            var pickerHeight = ScreenLayout.GraphHeight(height);
-            lines.AddRange(PickerComposer.Compose(model.Picker, model.HomeDirectory, width, pickerHeight, glyphs));
-            if (height > ScreenLayout.GraphTop)
-            {
-                lines.Add(ChromeBuilder.Status(model, width, glyphs));
-            }
-
-            return lines;
-        }
-
         var layout = arrangement ?? PaneArrangement.Normal;
-        var rects = PaneLayout.Compute(width, height, layout.IsDiffOpen && diff is not null, layout.Zoomed, layout.Sizes);
-        var showDetail = detail is not null && !rects.Detail.IsEmpty;
-        var showDiff = diff is not null && !rects.Diff.IsEmpty;
-        var graphHeight = rects.Graph.IsEmpty ? 0 : showDetail || showDiff ? rects.Graph.Height : ScreenLayout.GraphHeight(height);
-        var sidebarWidth = sidebar is null ? 0 : rects.Sidebar.Width;
-        var graphWidth = rects.Graph.IsEmpty ? 0 : width - (sidebarWidth > 0 ? sidebarWidth + 1 : 0);
-        var sidebarLines = sidebarWidth > 0 ? SidebarPane.Compose(sidebar!, sidebarWidth, graphHeight, glyphs) : [];
-        var options = new GraphRowOptions(graphWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, graphWidth), glyphs, highlight);
-        for (var offset = 0; offset < graphHeight; offset++)
+        var isPicker = model.Picker is not null;
+        var rects = isPicker
+            ? PickerRects(width, height)
+            : PaneLayout.Compute(width, height, layout.IsDiffOpen && diff is not null, layout.Zoomed, layout.Sizes);
+        var focused = FocusedPane(sidebar, detail, diff);
+        var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repo";
+        var grid = FrameGrid.Build(width, height, rects, isPicker ? PaneKind.Graph : focused, glyphs, isPicker ? string.Empty : sidebarTitle, isPicker ? string.Empty : "History");
+        var overlays = new List<PaneLines>();
+        if (isPicker)
         {
-            var item = topItem + offset;
-            var commitIndex = item - ScreenLayout.ReservedLeadingRows;
-            var graphLine = commitIndex >= 0 && commitIndex < graph.Count
-                ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
-                : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
-            lines.Add(sidebarWidth > 0 ? Beside(sidebarLines[offset], sidebar!.IsFocused, SidebarPane.Divider(sidebar.IsFocused, glyphs), graphLine) : graphLine);
+            overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, PickerComposer.Compose(model.Picker!, model.HomeDirectory, rects.Graph.Width, rects.Graph.Height, glyphs), SegmentSelection.Focused));
+        }
+        else
+        {
+            AddPanes(overlays, model, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects, height);
         }
 
-        if (showDetail && showDiff)
+        for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
-            var detailLines = DetailPaneRenderer.RenderPane(detail!, rects.DetailTitle.Width, rects.Detail.Height, glyphs);
-            var diffLines = DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs);
-            var bottomDivider = SidebarPane.Divider(detail!.IsFocused || diff!.IsFocused, glyphs);
-            for (var offset = 0; offset < detailLines.Count; offset++)
-            {
-                lines.Add(Beside(detailLines[offset], detail.IsFocused, bottomDivider, diffLines[offset]));
-            }
-        }
-        else if (showDetail)
-        {
-            lines.AddRange(DetailPaneRenderer.RenderPane(detail!, rects.DetailTitle.Width, rects.Detail.Height, glyphs));
-        }
-        else if (showDiff)
-        {
-            lines.AddRange(DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs));
+            lines.Add(BuildRow(grid, row, width, overlays));
         }
 
-        if (height > ScreenLayout.GraphTop)
+        if (height > ScreenLayout.TabRow + 1)
         {
             lines.Add(ChromeBuilder.Status(model, width, glyphs));
         }
@@ -101,12 +70,90 @@ public static class ScreenComposer
         return lines;
     }
 
-    // The left part keeps its own selection (dim without focus); the line is selected as the right part is.
-    private static StyledLine Beside(StyledLine leftLine, bool isLeftFocused, StyledSegment divider, StyledLine rightLine)
+    private static void AddPanes(
+        List<PaneLines> overlays,
+        ScreenModel model,
+        CommitGraph graph,
+        int selectedItem,
+        int topItem,
+        GraphGlyphSet glyphs,
+        DetailPaneModel? detail,
+        SidebarModel? sidebar,
+        SearchQuery? highlight,
+        DiffPaneModel? diff,
+        PaneRects rects,
+        int height)
     {
-        var leftSelection = !leftLine.IsSelected ? SegmentSelection.None : isLeftFocused ? SegmentSelection.Focused : SegmentSelection.Dim;
-        return new StyledLine(
-            [.. leftLine.Segments.Select(segment => segment with { Selection = leftSelection }), divider with { Selection = SegmentSelection.None }, .. rightLine.Segments],
-            rightLine.IsSelected);
+        var showDetail = detail is not null && !rects.Detail.IsEmpty;
+        var showDiff = diff is not null && !rects.Diff.IsEmpty;
+        if (!rects.Graph.IsEmpty)
+        {
+            var graphHeight = rects.Graph.Height;
+            var textWidth = PanePadding.TextWidth(rects.Graph.Width);
+            var options = new GraphRowOptions(textWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth), glyphs, highlight);
+            var graphLines = new List<StyledLine>(graphHeight);
+            for (var offset = 0; offset < graphHeight; offset++)
+            {
+                var item = topItem + offset;
+                var commitIndex = item - ScreenLayout.ReservedLeadingRows;
+                graphLines.Add(PanePadding.Wrap(commitIndex >= 0 && commitIndex < graph.Count
+                    ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
+                    : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0)));
+            }
+
+            overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
+        }
+
+        if (sidebar is not null && !rects.Sidebar.IsEmpty)
+        {
+            var sidebarLines = SidebarPane.Compose(sidebar, PanePadding.TextWidth(rects.Sidebar.Width), rects.Sidebar.Height + rects.SidebarFilter.Height, glyphs);
+            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. sidebarLines.Select(PanePadding.Wrap)], sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
+        }
+
+        if (showDetail)
+        {
+            overlays.Add(new PaneLines(rects.DetailTitle.X, rects.DetailTitle.Y, DetailPaneRenderer.RenderPane(detail!, rects.DetailTitle.Width, rects.Detail.Height, glyphs), SegmentSelection.Focused));
+        }
+
+        if (showDiff)
+        {
+            overlays.Add(new PaneLines(rects.DiffTitle.X, rects.DiffTitle.Y, DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs), SegmentSelection.Focused));
+        }
+    }
+
+    // The picker takes the place of the panes: one box between the edges.
+    private static PaneRects PickerRects(int width, int height)
+    {
+        var none = new PaneRect(0, 0, 0, 0);
+        return new PaneRects(none, none, none, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(width), ScreenLayout.GraphHeight(height)), none, none, none, none, none);
+    }
+
+    private static PaneKind FocusedPane(SidebarModel? sidebar, DetailPaneModel? detail, DiffPaneModel? diff) =>
+        sidebar is { IsFocused: true } ? PaneKind.Sidebar : detail is { IsFocused: true } ? PaneKind.Detail : diff is { IsFocused: true } ? PaneKind.Diff : PaneKind.Graph;
+
+    // One screen row: the frame's cells with the panes' lines laid over them where they sit.
+    private static StyledLine BuildRow(FrameGrid grid, int row, int width, List<PaneLines> overlays)
+    {
+        var segments = new List<StyledSegment>();
+        var column = 0;
+        foreach (var overlay in overlays.Where(overlay => row >= overlay.Top && row < overlay.Top + overlay.Lines.Count).OrderBy(overlay => overlay.Left))
+        {
+            if (overlay.Left > column)
+            {
+                segments.AddRange(grid.Row(row, column, overlay.Left - column).Segments);
+            }
+
+            var line = grid.ResolveRules(overlay.Lines[row - overlay.Top], row, overlay.Left);
+            var selection = line.IsSelected ? overlay.Selection : SegmentSelection.None;
+            segments.AddRange(line.Segments.Select(segment => segment with { Selection = selection }));
+            column = overlay.Left + line.Segments.Sum(segment => TextWidth.Of(segment.Text));
+        }
+
+        if (column < width)
+        {
+            segments.AddRange(grid.Row(row, column, width - column).Segments);
+        }
+
+        return new StyledLine(segments);
     }
 }

@@ -43,25 +43,25 @@ public class DetailPaneComposerTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " ● Gitunia  ─  repo",
                 " 1 repo  main",
-                "●  second                         Author",
-                "●  root                           Author",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                " Details  Changes  Files   0000002  2 files",
-                "commit    0000002000000000000000000000000000000000",
-                "author    Ann <ann@x.org>  2026-01-02 03:04 +00:00",
-                "parents   0000001",
-                "",
-                "  second",
+                "╭─ History ──────────────────────────────────────╮",
+                "│ ●  second                                      │",
+                "│ ●  root                                        │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "│                                                │",
+                "├─ Details  Changes  Files ─ 0000002 ─ 2 files ──┤",
+                "│ commit    00000020000000000000000000000000000… │",
+                "│ author    Ann <ann@x.org>  2026-01-02 03:04 +… │",
+                "│ parents   0000001                              │",
+                "│                                                │",
+                "│   second                                       │",
+                "╰────────────────────────────────────────────────╯",
                 " NORMAL  1/2  j/k gg G ^d ^u @ ? : q"),
             frame);
     }
@@ -75,10 +75,10 @@ public class DetailPaneComposerTests
 
         Assert.Equal(
             [
-                " Details  Changes  Files   0000002  2 files",
-                "2 files changed",
-                "  A a.txt",
-                "  M b.txt",
+                "─ Details  Changes  Files ─ 0000002 ─ 2 files",
+                " 2 files changed",
+                "   A a.txt",
+                "   M b.txt",
                 "",
                 "",
             ],
@@ -94,14 +94,14 @@ public class DetailPaneComposerTests
 
         Assert.Equal(
             [
-                " Details  Changes  Files   0000002  2 files",
-                "  The file tree is not implemented yet",
+                "─ Details  Changes  Files ─ 0000002 ─ 2 files",
+                "   The file tree is not implemented yet",
                 "",
                 "",
                 "",
                 "",
             ],
-            pane.Select(line => line.Length > 50 ? line[..50] : line));
+            pane);
     }
 
     [Theory]
@@ -112,7 +112,7 @@ public class DetailPaneComposerTests
     {
         var graph = TwoCommits();
 
-        var title = Compose(new DetailPaneModel(LoadedContent(graph, tab), 0, 0, true), 50, 20)[^7];
+        var title = Compose(new DetailPaneModel(LoadedContent(graph, tab), 0, 0, true), 50, 20)[^8];
 
         var roles = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Changes" or "Files").Select(segment => segment.Role).ToArray();
         Assert.Equal(3, roles.Length);
@@ -128,7 +128,7 @@ public class DetailPaneComposerTests
         var title = DetailPaneRenderer.RenderTitle(content, true, 24, GraphGlyphSet.Unicode);
 
         Assert.Equal(24, TextWidth.Of(title.Text));
-        Assert.StartsWith(" Details Changes Files", title.Text, StringComparison.Ordinal);
+        Assert.StartsWith("─Details─Changes─Files", title.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,11 +137,12 @@ public class DetailPaneComposerTests
         var wide = DetailTabStrip.Layout(50);
         var narrow = DetailTabStrip.Layout(24);
 
-        Assert.Equal([0, 9, 18], wide.Select(button => button.Start));
+        Assert.Equal([1, 10, 19], wide.Select(button => button.Start));
         Assert.Equal("DetailTab.Details", TitleButton.ViewAt(wide, 3));
-        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(wide, 9));
-        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(wide, 24));
-        Assert.Null(TitleButton.ViewAt(wide, 25));
+        Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(wide, 10));
+        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(wide, 25));
+        Assert.Null(TitleButton.ViewAt(wide, 26));
+        Assert.Null(TitleButton.ViewAt(wide, 0));
         Assert.Equal([1, 9, 17], narrow.Select(button => button.Start));
         Assert.Null(TitleButton.ViewAt(narrow, 8));
         Assert.Equal("DetailTab.Changes", TitleButton.ViewAt(narrow, 12));
@@ -155,10 +156,10 @@ public class DetailPaneComposerTests
 
         var lines = Compose(new DetailPaneModel(content, content.FirstFileRow, 1, true), 50, 20);
 
-        var pane = lines.Skip(lines.Count - 6).Take(5).ToArray();
-        Assert.StartsWith("  A a.txt", pane[0].Text, StringComparison.Ordinal);
-        Assert.StartsWith("  M b.txt", pane[1].Text, StringComparison.Ordinal);
-        Assert.Equal([true, false, false, false, false], pane.Select(line => line.IsSelected));
+        var pane = lines.Skip(lines.Count - 7).Take(5).ToArray();
+        Assert.StartsWith("│   A a.txt", pane[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│   M b.txt", pane[1].Text, StringComparison.Ordinal);
+        Assert.Equal([true, false, false, false, false], pane.Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)));
     }
 
     [Fact]
@@ -168,7 +169,7 @@ public class DetailPaneComposerTests
 
         var lines = Compose(new DetailPaneModel(LoadedContent(graph), 2, 0, false), 50, 20);
 
-        Assert.DoesNotContain(lines.Skip(lines.Count - 6), line => line.IsSelected);
+        Assert.DoesNotContain(lines.Skip(lines.Count - 7), line => line.Segments.Any(segment => segment.Selection is SegmentSelection.Focused or SegmentSelection.Dim));
     }
 
     [Fact]
@@ -176,11 +177,12 @@ public class DetailPaneComposerTests
     {
         var graph = TwoCommits();
 
-        var focused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, true), 50, 20)[^7];
-        var unfocused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, false), 50, 20)[^7];
+        var focused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, true), 50, 20)[^8];
+        var unfocused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, false), 50, 20)[^8];
 
-        Assert.Equal(SegmentRole.ActiveTab, focused.Segments[0].Role);
-        Assert.Equal(SegmentRole.InactiveTab, unfocused.Segments[0].Role);
+        Assert.Contains(focused.Segments, segment => segment.Role == SegmentRole.ActiveTab && segment.Text == " Details ");
+        Assert.Contains(unfocused.Segments, segment => segment.Role == SegmentRole.InactiveTab && segment.Text == " Details ");
+        Assert.Equal(SegmentRole.FocusedBorder, focused.Segments[0].Role);
     }
 
     [Fact]
@@ -222,6 +224,6 @@ public class DetailPaneComposerTests
     private static string[] PaneLines(DetailPaneModel detail)
     {
         var lines = Compose(detail, 50, 20);
-        return [.. lines.Skip(lines.Count - 7).Take(6).Select(line => line.Text.TrimEnd())];
+        return [.. lines.Skip(lines.Count - 8).Take(6).Select(line => line.Text[1..^1].TrimEnd(' ', '─'))];
     }
 }

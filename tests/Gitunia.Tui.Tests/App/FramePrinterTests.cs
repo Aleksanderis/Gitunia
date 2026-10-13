@@ -61,10 +61,10 @@ public class FramePrinterTests
         var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
         var files = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
 
-        Assert.Contains(details, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.Contains(details, line => line.StartsWith("│ author ", StringComparison.Ordinal));
         Assert.DoesNotContain(details, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.Contains(changes, line => line.Contains("A a.txt", StringComparison.Ordinal));
-        Assert.DoesNotContain(changes, line => line.StartsWith("author ", StringComparison.Ordinal));
+        Assert.DoesNotContain(changes, line => line.StartsWith("│ author ", StringComparison.Ordinal));
         Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
         Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details  Changes  Files ", StringComparison.Ordinal)));

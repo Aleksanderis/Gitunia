@@ -5,7 +5,7 @@ namespace Gitunia.Tui.Rendering;
 
 /// <summary>
 /// The tab labels at the left end of the detail pane's title row. The same layout draws them and finds the one under a click, so the
-/// two never disagree. Narrow rows drop the padding around the labels.
+/// two never disagree. The row is the top edge of the pane's box, so the labels start after one stretch of line. Narrow rows drop the padding around the labels.
 /// </summary>
 public static class DetailTabStrip
 {
@@ -19,9 +19,9 @@ public static class DetailTabStrip
     /// <summary>The tab labels for a title row of <paramref name="width"/> columns, left to right.</summary>
     public static IReadOnlyList<TitleButton> Layout(int width)
     {
-        var padded = Tabs.Sum(tab => tab.Name.Length + 2) <= width;
+        var padded = Tabs.Sum(tab => tab.Name.Length + 2) + 1 <= width;
         var buttons = new List<TitleButton>(Tabs.Length);
-        var column = padded ? 0 : 1;
+        var column = 1;
         foreach (var tab in Tabs)
         {
             var label = padded ? " " + tab.Name + " " : tab.Name;

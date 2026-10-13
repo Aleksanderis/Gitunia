@@ -26,8 +26,4 @@ public static class SidebarPane
 
         return lines;
     }
-
-    /// <summary>The line between the sidebar and the graph.</summary>
-    public static StyledSegment Divider(bool isFocused, GraphGlyphSet glyphs) =>
-        new(SidebarGlyphs.For(glyphs).Divider.ToString(), isFocused ? SegmentRole.FocusedBorder : SegmentRole.Border);
 }

@@ -3,7 +3,8 @@ using Gitunia.Core.Workspaces;
 namespace Gitunia.Tui.Rendering;
 
 /// <summary>
-/// Lays out the repo screen. Without a diff the detail pane spans the bottom (see <see cref="DetailLayout"/>). An open diff
+/// Lays out the repo screen inside the frame (the first and last column and the rows of the top and bottom edge belong to
+/// <see cref="FrameGrid"/>, and so does the line between two panes). Without a diff the detail pane spans the bottom (see <see cref="DetailLayout"/>). An open diff
 /// sits to the right of a compact detail pane (the changed-files list, about a third of the width) and replaces it only on
 /// very narrow screens. A zoomed pane takes the whole area
 /// between the tab row and the status bar and hides the others.
@@ -11,7 +12,7 @@ namespace Gitunia.Tui.Rendering;
 public static class PaneLayout
 {
     /// <summary>Screens at least this wide show the detail pane and the diff side by side (at least 24 columns of file list and 45 of diff).</summary>
-    public const int MinimumWidthForSideBySide = 70;
+    public const int MinimumWidthForSideBySide = 72;
 
     /// <summary>Narrowest sidebar the user can drag to.</summary>
     public const int MinimumSidebarWidth = 12;
@@ -39,7 +40,7 @@ public static class PaneLayout
     {
         if (!isDiffOpen)
         {
-            return screenWidth;
+            return ScreenLayout.InnerWidth(screenWidth);
         }
 
         return screenWidth < MinimumWidthForSideBySide ? 0 : Math.Clamp(screenWidth / 3, MinimumDetailWidth, MaximumDetailWidth);
@@ -54,7 +55,7 @@ public static class PaneLayout
             return automatic;
         }
 
-        var maximum = Math.Max(MinimumResizedDetailWidth, screenWidth - 1 - MinimumDiffWidth);
+        var maximum = Math.Max(MinimumResizedDetailWidth, ScreenLayout.InnerWidth(screenWidth) - 1 - MinimumDiffWidth);
         return Math.Clamp(wanted, MinimumResizedDetailWidth, maximum);
     }
 
@@ -67,7 +68,7 @@ public static class PaneLayout
             return automatic;
         }
 
-        var maximum = Math.Max(MinimumSidebarWidth, screenWidth - 1 - MinimumGraphWidth);
+        var maximum = Math.Max(MinimumSidebarWidth, ScreenLayout.InnerWidth(screenWidth) - 1 - MinimumGraphWidth);
         return Math.Clamp(wanted, MinimumSidebarWidth, maximum);
     }
 
@@ -103,38 +104,41 @@ public static class PaneLayout
 
         var paneHeight = isDiffOpen && !CanOpenDiff(screenHeight) ? 0 : BottomHeight(screenHeight, sizes);
         var graphHeight = Math.Max(0, area - paneHeight);
+        var inner = ScreenLayout.InnerWidth(screenWidth);
         var sidebarWidth = SidebarWidth(screenWidth, sizes);
-        var graphLeft = sidebarWidth > 0 ? sidebarWidth + 1 : 0;
+        var graphLeft = sidebarWidth > 0 ? sidebarWidth + 2 : 1;
         var listHeight = Math.Max(0, graphHeight - 1);
         var contentHeight = Math.Max(0, paneHeight - 1);
         var bottomTop = top + graphHeight;
         var showDiff = isDiffOpen && paneHeight > 0;
-        var detailWidth = showDiff ? DetailWidth(screenWidth, true, sizes) : screenWidth;
-        var diffLeft = detailWidth > 0 ? detailWidth + 1 : 0;
-        var diffWidth = showDiff ? Math.Max(0, screenWidth - diffLeft) : 0;
+        var detailWidth = showDiff ? DetailWidth(screenWidth, true, sizes) : inner;
+        var diffLeft = detailWidth > 0 ? detailWidth + 2 : 1;
+        var diffWidth = showDiff ? Math.Max(0, detailWidth > 0 ? inner - detailWidth - 1 : inner) : 0;
         var none = new PaneRect(0, 0, 0, 0);
         return new PaneRects(
-            new PaneRect(0, top, sidebarWidth, listHeight),
-            new PaneRect(0, top + listHeight, sidebarWidth, sidebarWidth > 0 && graphHeight > 0 ? 1 : 0),
-            new PaneRect(sidebarWidth, top, sidebarWidth > 0 ? 1 : 0, graphHeight),
-            new PaneRect(graphLeft, top, screenWidth - graphLeft, graphHeight),
-            paneHeight > 0 && detailWidth > 0 ? new PaneRect(0, bottomTop, detailWidth, 1) : none,
-            paneHeight > 0 && detailWidth > 0 ? new PaneRect(0, bottomTop + 1, detailWidth, contentHeight) : none,
-            showDiff && detailWidth > 0 ? new PaneRect(detailWidth, bottomTop, 1, paneHeight) : none,
+            new PaneRect(1, top, sidebarWidth, listHeight),
+            new PaneRect(1, top + listHeight, sidebarWidth, sidebarWidth > 0 && graphHeight > 0 ? 1 : 0),
+            new PaneRect(sidebarWidth + 1, top, sidebarWidth > 0 ? 1 : 0, graphHeight),
+            new PaneRect(graphLeft, top, Math.Max(0, screenWidth - 1 - graphLeft), graphHeight),
+            paneHeight > 0 && detailWidth > 0 ? new PaneRect(1, bottomTop, detailWidth, 1) : none,
+            paneHeight > 0 && detailWidth > 0 ? new PaneRect(1, bottomTop + 1, detailWidth, contentHeight) : none,
+            showDiff && detailWidth > 0 ? new PaneRect(detailWidth + 1, bottomTop, 1, paneHeight) : none,
             showDiff ? new PaneRect(diffLeft, bottomTop, diffWidth, 1) : none,
             showDiff ? new PaneRect(diffLeft, bottomTop + 1, diffWidth, contentHeight) : none);
     }
 
+    // The zoomed detail and diff panes use the top edge row as their title row.
     private static PaneRects Zoomed(PaneKind pane, int width, int top, int area)
     {
         var none = new PaneRect(0, 0, 0, 0);
-        var title = new PaneRect(0, top, width, area > 0 ? 1 : 0);
-        var content = new PaneRect(0, top + 1, width, Math.Max(0, area - 1));
+        var inner = ScreenLayout.InnerWidth(width);
+        var title = new PaneRect(1, ScreenLayout.FrameTop, inner, area > 0 ? 1 : 0);
+        var content = new PaneRect(1, top, inner, area);
         return new PaneRects(
             none,
             none,
             none,
-            pane == PaneKind.Graph ? new PaneRect(0, top, width, area) : none,
+            pane == PaneKind.Graph ? new PaneRect(1, top, inner, area) : none,
             pane == PaneKind.Detail ? title : none,
             pane == PaneKind.Detail ? content : none,
             none,

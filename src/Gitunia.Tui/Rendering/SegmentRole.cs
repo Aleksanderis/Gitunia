@@ -34,6 +34,10 @@ public enum SegmentRole
 
     /// <summary>The line between panes while the pane beside it has focus.</summary>
     FocusedBorder,
+
+    /// <summary>A stretch of a pane's top edge inside a title row; <see cref="FrameGrid.ResolveRules"/> replaces it by the frame's own cells.</summary>
+    Rule,
+
     /// <summary>A file the commit added.</summary>
     FileAdded,
 
