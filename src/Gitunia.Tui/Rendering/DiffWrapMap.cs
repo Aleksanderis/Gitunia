@@ -108,17 +108,24 @@ public sealed class DiffWrapMap
     {
         var column = 0;
         var simple = true;
+        var asciiLength = 0;
+        while (asciiLength < text.Length && text[asciiLength] is >= ' ' and <= '~')
+        {
+            asciiLength++;
+        }
+
+        if (asciiLength == text.Length)
+        {
+            return asciiLength;
+        }
+
         foreach (var rune in text.EnumerateRunes())
         {
             if (rune.Value == '\t')
             {
                 column += DiffRowRenderer.TabWidth - (column % DiffRowRenderer.TabWidth);
             }
-            else if (rune.Value is >= ' ' and < 0x7F)
-            {
-                column++;
-            }
-            else if (Rune.IsControl(rune))
+            else if (rune.Value is >= ' ' and < 0x7F || Rune.IsControl(rune))
             {
                 column++;
             }

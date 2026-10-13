@@ -136,7 +136,8 @@ public class DiffWrapMapTests
             texts.Add("a\u0001b" + new string('\t', length % 3));
         }
 
-        var rows = texts.Select(text => new DiffRow(DiffRowKind.Added, text, null, 1, 0)).ToArray();
+        var kinds = new[] { DiffRowKind.Added, DiffRowKind.HunkHeader, DiffRowKind.Note };
+        var rows = texts.Select((text, index) => new DiffRow(kinds[index % kinds.Length], text, null, 1, 0)).ToArray();
         var document = Document(rows);
         var map = DiffWrapMap.Build(document, 33).Resize(width);
         var digits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
