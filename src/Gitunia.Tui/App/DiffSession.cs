@@ -20,9 +20,6 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs) : IDispos
     /// <summary>The pane that fills the screen, null for the normal layout.</summary>
     public PaneKind? ZoomedPane { get; set; }
 
-    /// <summary>The pane sizes the user dragged or set with the resize keys; not saved with the session.</summary>
-    public PaneSizes Sizes { get; set; } = PaneSizes.Automatic;
-
     public DiffSearchState Search { get; set; } = DiffSearchState.Idle;
 
     /// <summary>The cursor row, remembered so switching tabs and back keeps the place.</summary>

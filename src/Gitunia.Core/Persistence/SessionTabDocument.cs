@@ -29,4 +29,13 @@ public sealed record SessionTabDocument
 
     /// <summary>Name of the focused pane.</summary>
     public string? FocusedPane { get; init; }
+
+    /// <summary>Sidebar columns the user set; null (or absent in older files) is automatic.</summary>
+    public int? SidebarWidth { get; init; }
+
+    /// <summary>Bottom strip rows the user set; null is automatic.</summary>
+    public int? BottomHeight { get; init; }
+
+    /// <summary>Detail pane columns beside the diff the user set; null is automatic.</summary>
+    public int? DetailWidth { get; init; }
 }
