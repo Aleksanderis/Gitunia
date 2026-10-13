@@ -25,7 +25,7 @@ case "$(uname -s)" in
   *) echo "screenshot.sh is unsupported on this OS (needs tmux); use the snapshot tests or --print-frame instead" >&2; exit 2 ;;
 esac
 
-usage() { sed -n '2,13p' "$0" >&2; exit 2; }
+usage() { sed -n '2,12p' "$0" >&2; exit 2; }
 need() { # need TOOL HINT
   command -v "$1" >/dev/null 2>&1 || { echo "missing tool '$1': $2" >&2; exit 3; }
 }
@@ -37,11 +37,16 @@ out_dir="$cache_dir/out"
 binary="" scenarios="default,diff,narrow,light" source_repo="" pull_request=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --binary) binary="$2"; shift 2 ;;
-    --out) out_dir="$2"; shift 2 ;;
-    --scenarios) scenarios="$2"; shift 2 ;;
-    --repo) source_repo="$2"; shift 2 ;;
-    --pr) pull_request="$2"; shift 2 ;;
+    --binary|--out|--scenarios|--repo|--pr)
+      [ $# -ge 2 ] || { echo "$1 needs a value" >&2; usage; }
+      case "$1" in
+        --binary) binary="$2" ;;
+        --out) out_dir="$2" ;;
+        --scenarios) scenarios="$2" ;;
+        --repo) source_repo="$2" ;;
+        --pr) pull_request="$2" ;;
+      esac
+      shift 2 ;;
     *) echo "unknown option $1" >&2; usage ;;
   esac
 done
@@ -51,6 +56,7 @@ work="" socket=""
 
 make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with branches, a merge, tags and real diffs
   local dir="$1" day=0
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
   export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
   export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
   git init -q -b main "$dir"
@@ -76,22 +82,31 @@ make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with
   printf 'int Divide(int left, int right) => left / right;\n' >>"$dir/src/math.txt"
   printf 'Division truncates.\n' >>"$dir/README.md"
   commit "Add divide with a very long subject that has to be truncated when the terminal is narrow"
-  export GIT_AUTHOR_DATE="2026-03-20T12:00:00Z" GIT_COMMITTER_DATE="2026-03-20T12:00:00Z"
+  day=$((day + 1))
+  export GIT_AUTHOR_DATE="2026-03-$(printf '%02d' "$day")T12:00:00Z" GIT_COMMITTER_DATE="2026-03-$(printf '%02d' "$day")T12:00:00Z"
   git -C "$dir" merge -q --no-ff -m "Merge feature/multiply" feature/multiply
   printf 'int Modulo(int left, int right) => left %% right;\n' >>"$dir/src/math.txt"
   commit "Add modulo"
   git -C "$dir" switch -q -c fix/overflow
   git -C "$dir" switch -q main
+  )
 }
 
 build_converter() { # prints the converter dll path
   local dll="$cache_dir/AnsiToSvg/AnsiToSvg.dll"
   if [ ! -f "$dll" ] || [ "$repo_root/tools/AnsiToSvg/Program.cs" -nt "$dll" ]; then
     echo "building tools/AnsiToSvg ..." >&2
-    dotnet build "$repo_root/tools/AnsiToSvg" -c Release -o "$cache_dir/AnsiToSvg" -v quiet -nologo >&2
+    dotnet build "$repo_root/tools/AnsiToSvg" -c Release -o "$cache_dir/AnsiToSvg" -v quiet -nologo >&2 || { echo "converter build failed" >&2; exit 3; }
   fi
   echo "$dll"
 }
+
+cleanup() {
+  [ -n "${socket:-}" ] && tmux -L "$socket" kill-server 2>/dev/null
+  [ -n "${work:-}" ] && rm -rf "$work"
+  return 0
+}
+trap cleanup EXIT
 
 render() {
   need tmux "install tmux"
@@ -101,15 +116,15 @@ render() {
   [ -n "$binary" ] || { echo "--binary <path to gitunia> is required (build: dotnet build src/Gitunia.Tui -c Release -o <dir>)" >&2; exit 2; }
   [ -x "$binary" ] || { echo "binary not found or not executable: $binary" >&2; exit 2; }
   binary="$(cd "$(dirname "$binary")" && pwd)/$(basename "$binary")"
-  mkdir -p "$out_dir" "$cache_dir"
-  local converter repo
-  converter="$(build_converter)"
   work="$(mktemp -d)"
   socket="gtshot-$$"
+  mkdir -p "$out_dir" "$cache_dir"
+  rm -f "$out_dir"/*.png # stale images of earlier runs must never be published
+  local converter repo
+  build_converter >/dev/null
+  converter="$cache_dir/AnsiToSvg/AnsiToSvg.dll"
   repo="$source_repo"
   tmux_cmd() { tmux -L "$socket" -f /dev/null "$@"; }
-  cleanup() { tmux_cmd kill-server 2>/dev/null || true; rm -rf "$work"; }
-  trap cleanup EXIT
   if [ -z "$repo" ]; then repo="$work/repo"; make_throwaway_repo "$repo"; fi
   mkdir -p "$work/state" "$work/config"
   tmux_cmd start-server \; set -g exit-empty off \; set -g remain-on-exit on \; set -g escape-time 0 \; set -ga terminal-features ',*:RGB' \; set -ga terminal-overrides ',*:Tc'
@@ -126,11 +141,16 @@ render() {
     esac
     tmux_cmd kill-session -t shot 2>/dev/null || true
     tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$repo")"
-    wait_stable "$socket" 0
+    wait_stable "$socket"
     if [ -n "$keys" ]; then
       # shellcheck disable=SC2086
       tmux_cmd send-keys -t shot $keys
-      wait_stable "$socket" 1
+      sleep 0.5
+      wait_stable "$socket"
+    fi
+    if [ "$(tmux_cmd display-message -p -t shot '#{pane_dead}')" = "1" ]; then
+      echo "the binary exited during scenario '$scenario'; no screenshot taken" >&2
+      exit 1
     fi
     tmux_cmd capture-pane -t shot -p -e >"$work/$scenario.ansi"
     dotnet "$converter" --theme "$theme" --columns "$columns" --rows "$rows" <"$work/$scenario.ansi" >"$work/$scenario.svg"
@@ -139,7 +159,7 @@ render() {
   done
 }
 
-wait_stable() { # wait_stable SOCKET MINIMUM_POLLS: until three identical captures in a row (about 10 s at most)
+wait_stable() { # wait_stable SOCKET: until three identical captures in a row (about 10 s at most)
   local socket="$1" previous="" current same=0 attempt
   for attempt in $(seq 100); do
     sleep 0.1
@@ -161,18 +181,25 @@ with_branch() { # with_branch DIR: checks the orphan screenshots branch out into
     git init -q -b "$branch_name" "$dir"
     git -C "$dir" remote add origin "$remote_url"
   fi
-  git -C "$dir" config user.name "$(git -C "$repo_root" config user.name)"
+  git -C "$dir" config user.name "Claude (${GITUNIA_AGENT_ROLE:-implementer})"
   git -C "$dir" config user.email "$(git -C "$repo_root" config user.email)"
 }
 
-repository_slug() { gh repo view --json nameWithOwner -q .nameWithOwner; }
+repository_slug() { # owner/name of origin, independent of the process working directory
+  git -C "$repo_root" remote get-url origin | sed -E 's#^.*[:/]([^/:]+/[^/]+)$#\1#; s#\.git$##'
+}
+
+push_with_retry() { # push_with_retry DIR: plain push, rebased once on a concurrent publish or clean (never forced)
+  git -C "$1" push -q origin "$branch_name" 2>/dev/null && return 0
+  git -C "$1" pull -q --rebase origin "$branch_name"
+  git -C "$1" push -q origin "$branch_name"
+}
 
 publish() {
   [ -n "$pull_request" ] || { echo "--pr <number> is required" >&2; exit 2; }
   ls "$out_dir"/*.png >/dev/null 2>&1 || { echo "no PNGs in $out_dir; run render first" >&2; exit 2; }
   local slug stamp target file pinned
   work="$(mktemp -d)"
-  trap 'rm -rf "$work"' EXIT
   with_branch "$work/clone"
   slug="$(repository_slug)"
   stamp="$(git -C "$repo_root" rev-parse --short HEAD)"
@@ -181,8 +208,8 @@ publish() {
   cp "$out_dir"/*.png "$work/clone/$target/"
   git -C "$work/clone" add -A
   if ! git -C "$work/clone" diff --cached --quiet; then
-    git -C "$work/clone" commit -q -m "chore: screenshots for PR #$pull_request @ $stamp"
-    git -C "$work/clone" push -q origin "$branch_name"
+    git -C "$work/clone" commit -q -m "chore: screenshots for PR #$pull_request @ $stamp" -m "Agent: ${GITUNIA_AGENT_ROLE:-implementer}"
+    push_with_retry "$work/clone"
   fi
   pinned="$(git -C "$work/clone" rev-parse HEAD)"
   echo "pushed to $branch_name ($target @ ${pinned:0:7})" >&2
@@ -198,12 +225,11 @@ publish() {
 clean() {
   local directory number state removed=0
   work="$(mktemp -d)"
-  trap 'rm -rf "$work"' EXIT
   with_branch "$work/clone"
   for directory in "$work"/clone/pr-*; do
     [ -d "$directory" ] || continue
     number="${directory##*/pr-}"
-    state="$(gh pr view "$number" --json state -q .state 2>/dev/null || echo UNKNOWN)"
+    state="$(gh pr view "$number" -R "$(repository_slug)" --json state -q .state 2>/dev/null || echo UNKNOWN)"
     if [ "$state" = "MERGED" ] || [ "$state" = "CLOSED" ]; then
       git -C "$work/clone" rm -rq "pr-$number"
       removed=$((removed + 1))
@@ -211,8 +237,8 @@ clean() {
     fi
   done
   if [ "$removed" -gt 0 ]; then
-    git -C "$work/clone" commit -q -m "chore: remove screenshots of merged or closed PRs"
-    git -C "$work/clone" push -q origin "$branch_name"
+    git -C "$work/clone" commit -q -m "chore: remove screenshots of merged or closed PRs" -m "Agent: ${GITUNIA_AGENT_ROLE:-implementer}"
+    push_with_retry "$work/clone"
   else
     echo "nothing to clean" >&2
   fi

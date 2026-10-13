@@ -116,6 +116,12 @@ for (var row = 0; row < lines.Count; row++)
 
         var rune = Rune.GetRuneAt(line, position);
         position += rune.Utf16SequenceLength;
+        var category = Rune.GetUnicodeCategory(rune);
+        if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.Format)
+        {
+            continue; // zero width: skipped so the columns after it stay aligned
+        }
+
         var width = IsWide(rune.Value) ? 2 : 1;
         var foregroundColor = currentForeground ?? defaultForeground;
         var backgroundColor = currentBackground ?? defaultBackground;
@@ -185,4 +191,4 @@ string Escape(string value) => value.Replace("&", "&amp;", StringComparison.Ordi
 int CubeLevel(int value) => value == 0 ? 0 : 55 + (value * 40);
 
 bool IsWide(int codePoint) =>
-    codePoint is (>= 0x1100 and <= 0x115f) or (>= 0x2e80 and <= 0xa4cf) or (>= 0xac00 and <= 0xd7a3) or (>= 0xf900 and <= 0xfaff) or (>= 0xfe30 and <= 0xfe6f) or (>= 0xff00 and <= 0xff60) or (>= 0xffe0 and <= 0xffe6) or (>= 0x1f300 and <= 0x1f64f) or (>= 0x1f900 and <= 0x1f9ff) or (>= 0x20000 and <= 0x3fffd);
+    codePoint is (>= 0x1100 and <= 0x115f) or (>= 0x2e80 and <= 0xa4cf) or (>= 0xac00 and <= 0xd7a3) or (>= 0xf900 and <= 0xfaff) or (>= 0xfe30 and <= 0xfe6f) or (>= 0xff00 and <= 0xff60) or (>= 0xffe0 and <= 0xffe6) or (>= 0x1f300 and <= 0x1f64f) or (>= 0x1f680 and <= 0x1f6ff) or (>= 0x1f900 and <= 0x1f9ff) or (>= 0x20000 and <= 0x3fffd);
