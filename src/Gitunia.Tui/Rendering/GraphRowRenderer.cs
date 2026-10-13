@@ -11,16 +11,24 @@ public static class GraphRowRenderer
     private const int HashLength = 7;
     private const string DateFormat = "yyyy-MM-dd";
 
+    // Blank columns between a row's own lines and its message.
+    private const int MinimumLaneGap = 2;
+
     public static StyledLine Render(GraphEntry entry, GraphRowOptions options, bool isSelected)
     {
         var columns = options.Columns;
         var ellipsis = options.Glyphs.Ellipsis;
         var isMatch = options.Highlight is { } query && GraphSearchMatcher.IsMatch(query, entry);
         var builder = new LineBuilder(options.Width, ellipsis);
-        AppendLanes(builder, LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs));
-        builder.Append(" ", SegmentRole.Plain);
+        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs);
+        var usedLaneWidth = UsedLaneWidth(cells);
+        var areaWidth = columns.LaneWidth + 1;
+        var gap = Math.Min(MinimumLaneGap, areaWidth - usedLaneWidth);
+        AppendLanes(builder, cells[..usedLaneWidth]);
+        builder.Append(new string(' ', gap), SegmentRole.Plain);
 
-        var message = new LineBuilder(columns.MessageWidth, ellipsis);
+        // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
+        var message = new LineBuilder(columns.MessageWidth + areaWidth - usedLaneWidth - gap, ellipsis);
         AppendDecorations(message, entry.Decorations, options.Glyphs);
         AppendSubject(message, entry.Subject, isMatch ? options.Highlight : null);
         builder.Append(message.Build());
@@ -48,6 +56,18 @@ public static class GraphRowRenderer
     /// <summary>A row without a commit: the slot reserved for the working-tree pseudo-row, and rows past the loaded end.</summary>
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
         new LineBuilder(options.Width, options.Glyphs.Ellipsis).Build(SegmentRole.Plain, isSelected);
+
+    // Columns from the left up to the last one that has a line; at least one, for the node.
+    private static int UsedLaneWidth(GraphCell[] cells)
+    {
+        var used = cells.Length;
+        while (used > 1 && cells[used - 1].Glyph == ' ')
+        {
+            used--;
+        }
+
+        return used;
+    }
 
     // One column after a space: the text clipped to the column and padded so the next column lines up.
     private static void AppendColumn(LineBuilder builder, string text, int width, SegmentRole role, string ellipsis)

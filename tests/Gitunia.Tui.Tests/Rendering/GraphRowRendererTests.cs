@@ -32,7 +32,7 @@ public class GraphRowRendererTests
                 "○─╮  merge side",
                 "● │  main work",
                 "├─●  side work",
-                "●    root",
+                "●  root",
             ],
             rows);
     }
@@ -47,9 +47,30 @@ public class GraphRowRendererTests
                 "o-\\  merge side",
                 "* |  main work",
                 "|-*  side work",
-                "*    root",
+                "*  root",
             ],
             rows);
+    }
+
+    [Fact]
+    public void GivenManyLanesElsewhere_WhenRenderingARowWithFewLines_ThenTheMessageStartsRightAfterItsOwnLinesAndTheColumnsStayAligned()
+    {
+        var graph = CommitFactory.Graph(
+            CommitFactory.Commit(20, "first", [10]),
+            CommitFactory.Commit(21, "second", [11]),
+            CommitFactory.Commit(22, "third", [12]),
+            CommitFactory.Commit(10, "fourth", []),
+            CommitFactory.Commit(11, "fifth", []),
+            CommitFactory.Commit(12, "sixth", []));
+        var options = new GraphRowOptions(100, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, 100), GraphGlyphSet.Unicode);
+
+        var rows = Enumerable.Range(0, graph.Count).Select(index => GraphRowRenderer.Render(graph[index], options, false).Text).ToArray();
+
+        Assert.True(graph.MaximumLaneCount >= 3);
+        Assert.Equal(3, rows[0].IndexOf("first", StringComparison.Ordinal));
+        Assert.Equal(5, rows[1].IndexOf("second", StringComparison.Ordinal));
+        Assert.All(rows, row => Assert.Equal(TextWidth.Of(rows[0]), TextWidth.Of(row)));
+        Assert.Equal(rows[0].IndexOf("Author", StringComparison.Ordinal), rows[4].IndexOf("Author", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -32,7 +32,7 @@ public class ScreenComposerTests
                 "│ ○─╮  merge side                      │",
                 "│ ● │  main work                       │",
                 "│ ├─●  side work                       │",
-                "│ ●    root                            │",
+                "│ ●  root                              │",
                 "╰──────────────────────────────────────╯",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
@@ -51,7 +51,7 @@ public class ScreenComposerTests
                 "| o-\\  merge side                      |",
                 "| * |  main work                       |",
                 "| |-*  side work                       |",
-                "| *    root                            |",
+                "| *  root                              |",
                 "+--------------------------------------+",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
