@@ -6,12 +6,13 @@
 #
 # Usage:
 #   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,narrow,light] [--repo <dir>]
-#   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the orphan `screenshots` branch,
+#   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
-#   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from `screenshots`
-# The repo is private: links are github.com/<repo>/raw/<commit>/... (render for logged-in viewers; raw.githubusercontent.com needs
-# a token). They are pinned to the screenshots-branch commit, so later pushes never break them; `clean` deletes the files of
-# merged PRs from the branch tip, but old commits stay reachable until GitHub garbage-collects them, so old links may keep working for a while.
+#   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
+# Images live in a separate repository, <owner>/<repo>-screenshots (override: GITUNIA_SCREENSHOTS_REPO=owner/name), branch main,
+# so the code repository never carries them. It is private: links are github.com/<screenshots repo>/raw/<commit>/... (render for
+# logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
+# them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
 # Scenarios: default (120x36), diff (diff pane open), narrow (64x30), light (light terminal background).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -51,7 +52,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-branch_name="screenshots"
+branch_name="main"
 work="" socket=""
 
 make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with branches, a merge, tags and real diffs
@@ -171,22 +172,21 @@ wait_stable() { # wait_stable SOCKET: until three identical captures in a row (a
   echo "frame did not settle within 10 s; capturing anyway" >&2
 }
 
-with_branch() { # with_branch DIR: checks the orphan screenshots branch out into DIR (a temporary clone, never touches this worktree)
+with_branch() { # with_branch DIR: clones the screenshots repository into DIR (a temporary clone, never touches this worktree)
   need gh "install the GitHub CLI"
-  local dir="$1" remote_url
-  remote_url="$(git -C "$repo_root" remote get-url origin)"
-  if git -C "$repo_root" ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
-    git clone -q --branch "$branch_name" --single-branch --depth 1 "$remote_url" "$dir"
-  else
-    git init -q -b "$branch_name" "$dir"
-    git -C "$dir" remote add origin "$remote_url"
-  fi
+  local dir="$1"
+  gh repo clone "$(screenshots_slug)" "$dir" -- -q --branch "$branch_name" --single-branch --depth 1 \
+    || { echo "cannot clone $(screenshots_slug); create it first (private, with a $branch_name branch)" >&2; exit 4; }
   git -C "$dir" config user.name "Claude (${GITUNIA_AGENT_ROLE:-implementer})"
   git -C "$dir" config user.email "$(git -C "$repo_root" config user.email)"
 }
 
 repository_slug() { # owner/name of origin, independent of the process working directory
   git -C "$repo_root" remote get-url origin | sed -E 's#^.*[:/]([^/:]+/[^/]+)$#\1#; s#\.git$##'
+}
+
+screenshots_slug() { # owner/name of the screenshots repository
+  echo "${GITUNIA_SCREENSHOTS_REPO:-$(repository_slug)-screenshots}"
 }
 
 push_with_retry() { # push_with_retry DIR: plain push, rebased once on a concurrent publish or clean (never forced)
@@ -201,7 +201,7 @@ publish() {
   local slug stamp target file pinned
   work="$(mktemp -d)"
   with_branch "$work/clone"
-  slug="$(repository_slug)"
+  slug="$(screenshots_slug)"
   stamp="$(git -C "$repo_root" rev-parse --short HEAD)"
   target="pr-$pull_request/$stamp"
   mkdir -p "$work/clone/$target"
@@ -212,7 +212,7 @@ publish() {
     push_with_retry "$work/clone"
   fi
   pinned="$(git -C "$work/clone" rev-parse HEAD)"
-  echo "pushed to $branch_name ($target @ ${pinned:0:7})" >&2
+  echo "pushed to $slug ($target @ ${pinned:0:7})" >&2
   for file in "$out_dir"/*.png; do
     local name; name="$(basename "$file" .png)"
     echo "**$name**"
