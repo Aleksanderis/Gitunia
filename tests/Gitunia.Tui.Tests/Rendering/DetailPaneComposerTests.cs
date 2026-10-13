@@ -77,8 +77,8 @@ public class DetailPaneComposerTests
             [
                 "─ Details  Changes  Files ─ 0000002 ─ 2 files",
                 " 2 files changed",
-                "   A a.txt",
-                "   M b.txt",
+                " A a.txt",
+                " M b.txt",
                 "",
                 "",
             ],
@@ -95,7 +95,7 @@ public class DetailPaneComposerTests
         Assert.Equal(
             [
                 "─ Details  Changes  Files ─ 0000002 ─ 2 files",
-                "   The file tree is not implemented yet",
+                " The file tree is not implemented yet",
                 "",
                 "",
                 "",
@@ -118,6 +118,18 @@ public class DetailPaneComposerTests
         Assert.Equal(3, roles.Length);
         Assert.Equal(SegmentRole.ActiveTab, roles[expectedIndex]);
         Assert.Equal(2, roles.Count(role => role == SegmentRole.Faint));
+    }
+
+    [Fact]
+    public void GivenDetailsThatHaveNotArrived_WhenRenderingTheTitle_ThenTheFileCountIsAPlaceholderInsteadOfZero()
+    {
+        var graph = TwoCommits();
+        var state = new CommitDetailsState(graph[0].Id, CommitDetailsStatus.Loading, null, string.Empty);
+
+        var title = DetailPaneRenderer.RenderTitle(DetailContentBuilder.Build(graph[0], state, BottomTab.Changes), true, 60, GraphGlyphSet.Unicode);
+
+        Assert.Contains(" .. files ", title.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 files", title.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -157,8 +169,8 @@ public class DetailPaneComposerTests
         var lines = Compose(new DetailPaneModel(content, content.FirstFileRow, 1, true), 50, 20);
 
         var pane = lines.Skip(lines.Count - 7).Take(5).ToArray();
-        Assert.StartsWith("│   A a.txt", pane[0].Text, StringComparison.Ordinal);
-        Assert.StartsWith("│   M b.txt", pane[1].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│ A a.txt", pane[0].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│ M b.txt", pane[1].Text, StringComparison.Ordinal);
         Assert.Equal([true, false, false, false, false], pane.Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)));
     }
 

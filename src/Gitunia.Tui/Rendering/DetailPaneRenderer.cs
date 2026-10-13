@@ -43,7 +43,7 @@ public static class DetailPaneRenderer
             builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
             builder.Append(" " + content.ShortHash + " ", SegmentRole.Hash);
             builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
-            builder.Append(" " + content.Files.Count.ToString(CultureInfo.InvariantCulture) + (content.Files.Count == 1 ? " file " : " files "), SegmentRole.Faint);
+            builder.Append(" " + FileCountText(content.FileCount) + " ", SegmentRole.Faint);
         }
 
         return builder.BuildRule(glyphs.Horizontal);
@@ -63,4 +63,12 @@ public static class DetailPaneRenderer
     /// <summary>A row past the last one: blank.</summary>
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Build(SegmentRole.Plain);
+
+    // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
+    private static string FileCountText(int? count) => count switch
+    {
+        null => ".. files",
+        1 => "1 file",
+        { } number => number.ToString(CultureInfo.InvariantCulture) + " files",
+    };
 }
