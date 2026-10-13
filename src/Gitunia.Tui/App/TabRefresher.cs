@@ -115,8 +115,9 @@ public sealed class TabRefresher : IDisposable
         var previous = snapshot;
         var token = session.Cancellation.Token;
 
-        // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows.
-        IReadOnlyList<GraphEntry> previousRows = previous is not null && !reloadGraph ? session.Graph.ToArray() : [];
+        // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows
+        // (the baseline needs them too, to compare the graph with its snapshot).
+        IReadOnlyList<GraphEntry> previousRows = reloadGraph ? [] : session.Graph.ToArray();
         _ = Task.Run(() => RefreshAsync(previous, previousRows, kinds, reloadGraph, isManual, token), CancellationToken.None);
     }
 
@@ -130,9 +131,10 @@ public sealed class TabRefresher : IDisposable
             var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repo, token).ConfigureAwait(false)).Items : null;
             GraphReload? reload = null;
 
-            // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph only when a change was seen meanwhile.
+            // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
+            // when a change was seen meanwhile or when the loaded graph no longer matches the baseline refs (a change between the load and this read leaves no event to diff).
             var graphChanged = previous is null
-                ? reloadGraph
+                ? reloadGraph || GraphRefCheck.Differs(previousRows, result.Snapshot)
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {

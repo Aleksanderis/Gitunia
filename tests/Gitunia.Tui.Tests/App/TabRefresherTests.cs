@@ -148,6 +148,38 @@ public class TabRefresherTests
         Assert.Equal(5, harness.Session.Graph.Count);
     }
 
+    [Fact]
+    public async Task GivenCommitBetweenTheLoadAndTheBaselineRead_WhenTheBaselineRuns_ThenTheGraphIsReloadedIncrementally()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("third", ("c.txt", "3"));
+        using var harness = await Harness.LoadAsync(repository, start: false);
+        repository.Commit("fourth", ("d.txt", "4"));
+
+        harness.Refresher.Start();
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        Assert.True(harness.Reloads[0].ReusedCount > 0);
+        Assert.Equal(4, harness.Session.Graph.Count);
+    }
+
+    [Fact]
+    public async Task GivenBranchCreatedBetweenTheLoadAndTheBaselineRead_WhenTheBaselineRuns_ThenTheGraphShowsIt()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("second", ("b.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository, start: false);
+        repository.Git("branch", "topic", "HEAD~1");
+
+        harness.Refresher.Start();
+
+        await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
+        Assert.Contains(harness.Session.Graph.ToArray(), entry => entry.Decorations.Any(decoration => decoration.Name == "topic"));
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly Func<int> postedCount;
