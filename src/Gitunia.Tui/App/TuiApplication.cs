@@ -500,7 +500,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             }
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
-            session.Details.Select(entry.Id);
+            session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
             RefreshDetail();
         }
 
