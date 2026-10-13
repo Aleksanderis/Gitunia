@@ -8,12 +8,14 @@ namespace Gitunia.Tui.Views;
 /// <summary>
 /// A list pane that reports its mouse input as <see cref="MouseGesture"/>s instead of scrolling by itself: the toolkit
 /// still selects the clicked row, but the wheel, the double-click and the drag are decided by the shared mouse map, so they run the same
-/// actions as keys. A gesture first gives the pane the focus. A drag grabs the mouse (so it goes on outside the pane), selects the row it
-/// started on and then reports how many rows the pointer is above or below the cursor.
+/// actions as keys. A gesture first gives the pane the focus. A drag grabs the mouse (so it goes on outside the pane; resting outside
+/// auto-scrolls, see <see cref="DragAutoScroll"/>), selects the row it started on and then reports how many rows the pointer is above or below the cursor.
 /// </summary>
 public sealed class PaneListView : ListView
 {
     private readonly DragTracker drag = new();
+    private int lastPointerRow;
+    private bool isAutoScrolling;
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public Func<bool> IsSuppressed { get; set; } = () => false;
@@ -68,6 +70,7 @@ public sealed class PaneListView : ListView
 
         if (phase == DragPhase.Press)
         {
+            isAutoScrolling = false;
             return base.OnMouseEvent(mouse);
         }
 
@@ -80,10 +83,50 @@ public sealed class PaneListView : ListView
 
         if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } position)
         {
-            ExtendTo(position.Y);
+            lastPointerRow = position.Y;
+            var visibleRows = Viewport.Height;
+            if (DragAutoScroll.Step(position.Y, visibleRows) == 0)
+            {
+                ExtendTo(position.Y);
+            }
+            else
+            {
+                StartAutoScroll();
+            }
         }
 
         return true;
+    }
+
+    // While the pointer rests above or below the pane no events arrive, so a timer keeps moving the cursor until it is back inside or released.
+    private void StartAutoScroll()
+    {
+        if (isAutoScrolling || App is null)
+        {
+            return;
+        }
+
+        isAutoScrolling = true;
+        App.AddTimeout(DragAutoScroll.Interval, () =>
+        {
+            var step = DragAutoScroll.Step(lastPointerRow, Viewport.Height);
+            if (!drag.IsPressed || step == 0 || IsSuppressed())
+            {
+                isAutoScrolling = false;
+                return false;
+            }
+
+            var count = Source?.Count ?? 0;
+            var target = Math.Clamp((SelectedItem ?? 0) + step, 0, Math.Max(count - 1, 0));
+            if (target == (SelectedItem ?? 0))
+            {
+                isAutoScrolling = false;
+                return false;
+            }
+
+            ExtendTo(target - Viewport.Y);
+            return true;
+        });
     }
 
     // The pointer's row may be above or below the pane while the mouse is grabbed; the list clamps it.
