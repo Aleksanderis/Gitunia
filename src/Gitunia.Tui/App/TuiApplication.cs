@@ -103,7 +103,8 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
                 _ => view.Graph,
             },
             () => keys.Mode,
-            mode => keys.SetMode(mode));
+            mode => keys.SetMode(mode),
+            new RangeCopier(clipboard, ActiveSession).Copy);
         router.Visual = visual;
         router.PaneSizes = new PaneSizeController(
             () => diffPane.Arrangement(),

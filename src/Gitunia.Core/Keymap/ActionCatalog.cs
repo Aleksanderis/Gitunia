@@ -76,6 +76,7 @@ public static class ActionCatalog
         ["tab.last-active"] = "Previously active tab",
         ["tab.next"] = "Next tab",
         ["tab.previous"] = "Previous tab",
+        ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
     };
 
