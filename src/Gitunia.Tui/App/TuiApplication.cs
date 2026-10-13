@@ -251,14 +251,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             return;
         }
 
-        ApplyPaneSizes(PaneResizer.Drag(diff.Sizes, edge, column, row, view.Window.Viewport.Height));
+        ApplyPaneSizes(PaneResizer.Drag(diffPane.SizesOfActiveTab(), edge, column, row, view.Window.Viewport.Height));
     }
 
     private void ApplyPaneSizes(PaneSizes sizes)
     {
-        if (ActiveSession()?.Diff is { } diff && diff.Sizes != sizes)
+        if (host.Workspace.ActiveTabId is { } tabId && diffPane.SizesOfActiveTab() != sizes)
         {
-            diff.Sizes = sizes;
+            host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
         }
     }

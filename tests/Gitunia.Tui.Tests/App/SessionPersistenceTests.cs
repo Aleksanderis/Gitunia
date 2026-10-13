@@ -111,4 +111,65 @@ public class SessionPersistenceTests
             }
         }
     }
+
+    [Fact]
+    public async Task GivenChangedPaneSizes_WhenFlushingAndLoading_ThenTheTabHasTheSizes()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new SessionStore(directory, _ => true);
+            var host = new WorkspaceHost(Workspace.Empty);
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            persistence.Start();
+            host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
+            host.Dispatch(new TabCommand(host.Workspace.ActiveTabId!.Value, new SetPaneSizesCommand(30, 12, 40)));
+
+            persistence.Flush();
+
+            var loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
+            var view = Assert.Single(loaded.Update.Workspace.Tabs).View;
+            Assert.Equal((30, 12, 40), (view.SidebarWidth, view.BottomHeight, view.DetailWidth));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GivenSessionFileWithoutSizes_WhenLoading_ThenTheTabHasAutomaticSizes()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(directory);
+            var root = Path.Combine(directory, "alpha");
+            var gitDirectory = Path.Combine(root, ".git");
+            var store = new SessionStore(directory, _ => true);
+            var escapedRoot = root.Replace("\\", "\\\\", StringComparison.Ordinal);
+            var escapedGitDirectory = gitDirectory.Replace("\\", "\\\\", StringComparison.Ordinal);
+            var json = $$"""
+                {"version":1,"activeTabIndex":0,"tabs":[{"workingTreePath":"{{escapedRoot}}","gitDirectory":"{{escapedGitDirectory}}","commonDirectory":"{{escapedGitDirectory}}","scrollOffset":3,"sidebarWidth":-5}]}
+                """;
+            await File.WriteAllTextAsync(store.FilePath, json, TestContext.Current.CancellationToken);
+
+            var loaded = await store.LoadAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(SessionLoadStatus.Restored, loaded.Status);
+            var view = Assert.Single(loaded.Update.Workspace.Tabs).View;
+            Assert.Equal(3, view.ScrollOffset);
+            Assert.Equal((null, null, null), (view.SidebarWidth, view.BottomHeight, view.DetailWidth));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
 }

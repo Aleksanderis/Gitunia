@@ -77,8 +77,11 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var zoomed = diff.ZoomedPane == host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;
-        return new PaneArrangement(diff.IsOpen, zoomed, diff.Sizes);
+        return new PaneArrangement(diff.IsOpen, zoomed, SizesOfActiveTab());
     }
+
+    /// <summary>The pane sizes saved in the active tab's view state.</summary>
+    public PaneSizes SizesOfActiveTab() => host.Workspace.ActiveTab?.View is { } view ? new PaneSizes(view.SidebarWidth, view.BottomHeight, view.DetailWidth) : PaneSizes.Automatic;
 
     /// <summary>Forgets the active tab's zoom when focus moved to another pane, so returning to the zoomed pane does not zoom it again. Runs after every workspace command.</summary>
     public void ReleaseStaleZoom()
