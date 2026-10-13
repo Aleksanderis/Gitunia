@@ -72,23 +72,5 @@ public sealed class ChangeRecorder
         }
     }
 
-    /// <summary>Polls a condition that has no signal of its own (for example a hidden watcher turning stale, which reports nothing).</summary>
-    public async Task WaitUntilAsync(Func<bool> condition, string description, CancellationToken cancellationToken)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(Timeout);
-        while (!condition())
-        {
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(10), timeout.Token);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                throw new TimeoutException($"Timed out waiting for {description}; saw {Seen}.");
-            }
-        }
-    }
-
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
