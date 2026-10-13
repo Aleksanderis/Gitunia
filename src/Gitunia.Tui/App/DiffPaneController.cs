@@ -219,7 +219,7 @@ public sealed class DiffPaneController : IPromptHandler
             isRestoring = false;
         }
 
-        if (current?.Diff is { IsOpen: true } open)
+        if (current?.Diff is { } open && IsShown(open))
         {
             // The load may have finished while the tab was in the background.
             Refresh(open);
