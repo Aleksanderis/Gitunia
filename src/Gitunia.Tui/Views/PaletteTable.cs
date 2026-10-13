@@ -76,7 +76,7 @@ public sealed class PaletteTable
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
-    /// <summary>The table for a terminal: a Catppuccin 24-bit set (Mocha, Latte) (dark and light variants), the 16 named colours, or styles only.</summary>
+    /// <summary>The table for a terminal: a Catppuccin 24-bit set (Mocha dark, Latte light), the 16 named colours, or styles only.</summary>
     public static PaletteTable For(PaletteSettings settings) => settings.Depth switch
     {
         ColorDepth.None => Monochrome(),
@@ -113,7 +113,7 @@ public sealed class PaletteTable
         Warn = Rgb(0x8a5811),
         Info = Rgb(0x116d72),
         Muted = Rgb(0x5f6175),
-        MutedOnSelection = Rgb(0x5c5f77),
+        MutedOnSelection = Rgb(0x5f6175),
         Border = Rgb(0x7c7f93),
         BarBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),

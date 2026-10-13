@@ -14,6 +14,11 @@ public static class RefLabelBuilder
     /// </summary>
     public static IReadOnlyList<RefLabel> Build(IReadOnlyList<CommitDecoration> decorations)
     {
+        if (decorations.Count == 0)
+        {
+            return [];
+        }
+
         var labels = new List<RefLabel>(decorations.Count);
         foreach (var decoration in decorations)
         {
@@ -32,8 +37,9 @@ public static class RefLabelBuilder
         return labels;
     }
 
+    // Remote names rarely contain a slash, so the first segment is taken as the remote and the rest as the branch.
     private static bool IsSymbolicRemoteHead(CommitDecoration decoration) =>
-        decoration.Name.EndsWith("/" + SymbolicRemoteHeadName, StringComparison.Ordinal);
+        BranchPart(decoration.Name) == SymbolicRemoteHeadName;
 
     private static bool HasLocalBranch(IReadOnlyList<CommitDecoration> decorations, CommitDecoration remote) =>
         decorations.Any(other => other.Kind == RefKind.LocalBranch && IsRemoteOf(remote, other));
@@ -42,5 +48,8 @@ public static class RefLabelBuilder
         decorations.Any(other => other.Kind == RefKind.RemoteBranch && !IsSymbolicRemoteHead(other) && IsRemoteOf(other, local));
 
     private static bool IsRemoteOf(CommitDecoration remote, CommitDecoration local) =>
-        remote.Name.EndsWith("/" + local.Name, StringComparison.Ordinal);
+        BranchPart(remote.Name) == local.Name;
+
+    private static string BranchPart(string remoteBranchName) =>
+        remoteBranchName[(remoteBranchName.IndexOf('/', StringComparison.Ordinal) + 1)..];
 }
