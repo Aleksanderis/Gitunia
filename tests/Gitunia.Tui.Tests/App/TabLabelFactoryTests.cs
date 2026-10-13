@@ -41,12 +41,32 @@ public class TabLabelFactoryTests
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "feature", null)))).Workspace;
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new StatusLoadedCommand(new RepoStatusSummary(true, 2, 5)))).Workspace;
 
-        var label = Assert.Single(TabLabelFactory.Create(workspace, _ => false));
+        var label = Assert.Single(TabLabelFactory.Create(workspace, _ => false, showBranch: true));
 
         Assert.Equal("feature", label.Branch);
         Assert.True(label.IsDirty);
         Assert.Equal((2, 5), (label.Ahead, label.Behind));
         Assert.True(label.IsActive);
+    }
+
+    [Fact]
+    public void GivenABranch_WhenLabellingByDefault_ThenTheTabHasNoBranch()
+    {
+        var workspace = Open(["a"]);
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(workspace.Tabs[0].Id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "feature", null)))).Workspace;
+
+        Assert.Null(Assert.Single(TabLabelFactory.Create(workspace, _ => false)).Branch);
+    }
+
+    [Fact]
+    public void GivenARenamedTab_WhenLabelling_ThenTheCustomNameIsUsedEvenWhenAnotherTabHasTheRepositoryName()
+    {
+        var workspace = Open(["work", "app"], ["home", "app"]);
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(workspace.Tabs[0].Id, new SetTabNameCommand("  Billing  "))).Workspace;
+
+        var labels = TabLabelFactory.Create(workspace, _ => false);
+
+        Assert.Equal(["Billing", "app"], labels.Select(label => label.Name));
     }
 
     [Fact]

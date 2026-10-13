@@ -13,7 +13,7 @@ public enum SegmentRole
     CurrentBranch,
     RemoteBranch,
     Tag,
-    Header,
+    BarButton,
     ActiveTab,
     InactiveTab,
     StatusMode,

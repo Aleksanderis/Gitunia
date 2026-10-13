@@ -18,14 +18,14 @@ public static class ChromeBuilder
 
         if (model.TabCount == 0)
         {
-            return new LineBuilder(width, glyphs.Ellipsis).Append(" no repository open", SegmentRole.Faint).Build(SegmentRole.Plain);
+            return new LineBuilder(width, glyphs.Ellipsis).Append(" no repository open", SegmentRole.Status).Build(SegmentRole.Status);
         }
 
-        var label = model.BranchName is { } branch ? $" {model.TabNumber} {model.RepositoryName}  {branch} " : $" {model.TabNumber} {model.RepositoryName} ";
         return new LineBuilder(width, glyphs.Ellipsis)
-            .Append(label, SegmentRole.ActiveTab)
-            .Append(model.TabCount > 1 ? $"  {model.TabCount} tabs" : string.Empty, SegmentRole.Faint)
-            .Build(SegmentRole.Plain);
+            .Append(" ", SegmentRole.Status)
+            .Append($"  {model.TabNumber} {model.RepositoryName}  ", SegmentRole.ActiveTab)
+            .Append(model.TabCount > 1 ? $"  {model.TabCount} tabs" : string.Empty, SegmentRole.Status)
+            .Build(SegmentRole.Status);
     }
 
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
@@ -63,18 +63,24 @@ public static class ChromeBuilder
     private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)
     {
         var cells = TabBarLayout.Layout(labels, width, glyphs);
-        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(new string(' ', TabBarLayout.LeftMargin), SegmentRole.Status);
         if (cells.Count > 0 && cells[0].Number > 1)
         {
-            builder.Append("< ", SegmentRole.Faint);
+            builder.Append("< ", SegmentRole.Status);
         }
 
         for (var index = 0; index < cells.Count; index++)
         {
-            builder.Append(index > 0 ? " " : string.Empty, SegmentRole.Plain);
-            builder.Append(cells[index].Text, cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
+            builder.Append(index > 0 ? " " : string.Empty, SegmentRole.Status);
+            builder.Append(cells[index].Text, cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.Status);
         }
 
-        return builder.Build(SegmentRole.Plain);
+        if (TabBarLayout.CommandsStart(width) is { } commandsStart)
+        {
+            builder.Append(new string(' ', Math.Max(0, commandsStart - (width - builder.Remaining))), SegmentRole.Status);
+            builder.Append(TabBarLayout.CommandsLabel, SegmentRole.BarButton);
+        }
+
+        return builder.Build(SegmentRole.Status);
     }
 }

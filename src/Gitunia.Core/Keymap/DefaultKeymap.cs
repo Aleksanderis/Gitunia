@@ -67,6 +67,7 @@ public static class DefaultKeymap
         Add(bindings, TextEntry, global, "Ctrl-t", ActionIds.PickerOpen);
         Add(bindings, NormalOnly, global, "<space>o", ActionIds.PickerOpen);
         Add(bindings, NormalOnly, global, "Ctrl-w c", ActionIds.TabClose);
+        Add(bindings, NormalOnly, global, "Ctrl-w r", ActionIds.TabRename);
         Add(bindings, NormalOnly, global, "<space>p", ActionIds.RepoPin);
         Add(bindings, NormalOnly, global, "Ctrl-w h", ActionIds.PaneFocusLeft);
         Add(bindings, NormalOnly, global, "Ctrl-w j", ActionIds.PaneFocusDown);

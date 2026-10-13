@@ -27,7 +27,7 @@ public class ScreenComposerTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " 1 repo  main",
+                "   1 repo",
                 "╭─ History ────────────────────────────╮",
                 "│ ○─╮  merge side                      │",
                 "│ ● │  main work                       │",
@@ -46,7 +46,7 @@ public class ScreenComposerTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " 1 repo  main",
+                "   1 repo",
                 "+- History ----------------------------+",
                 "| o-\\  merge side                      |",
                 "| * |  main work                       |",

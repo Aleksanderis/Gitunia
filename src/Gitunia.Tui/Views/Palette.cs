@@ -59,7 +59,7 @@ public static class Palette
             SegmentRole.CurrentBranch => (colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),
             SegmentRole.RemoteBranch => (colors.Remote, Color.None, TextStyle.Bold, false),
             SegmentRole.Tag => (colors.Warn, Color.None, TextStyle.Bold, false),
-            SegmentRole.Header => (colors.Accent, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.BarButton => (colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.Status => (colors.Muted, colors.BarBackground, muted, true),
             SegmentRole.StatusError => (colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => (colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),

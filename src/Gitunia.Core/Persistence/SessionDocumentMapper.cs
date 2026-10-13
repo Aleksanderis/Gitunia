@@ -36,6 +36,7 @@ public static class SessionDocumentMapper
                 BottomHeight = tab.View.BottomHeight,
                 DetailWidth = tab.View.DetailWidth,
                 BottomTab = tab.View.BottomTab.ToString(),
+                CustomName = tab.CustomName,
             });
         }
 
@@ -72,7 +73,7 @@ public static class SessionDocumentMapper
 
             var id = new TabId(nextNumber++);
             var isMissing = !directoryExists(location.CommandPath);
-            var tab = RepoState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing };
+            var tab = RepoState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = string.IsNullOrWhiteSpace(documentTabs[index].CustomName) ? null : documentTabs[index].CustomName!.Trim() };
             tabs.Add(tab);
             if (!isMissing)
             {

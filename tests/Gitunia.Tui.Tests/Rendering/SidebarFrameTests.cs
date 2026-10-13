@@ -37,7 +37,7 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 10);
 
-        Assert.Equal(" 1 repo  main", frame[0]);
+        Assert.Equal("   1 repo", frame[0]);
         Assert.StartsWith("╭─ repo ─────────────┬─ History ─", frame[1], StringComparison.Ordinal);
         Assert.StartsWith("│  ▾ Branches 3      │ ●  second", frame[2], StringComparison.Ordinal);
         Assert.StartsWith("│   * main ↑2↓1 wt:… │ ●  first", frame[3], StringComparison.Ordinal);

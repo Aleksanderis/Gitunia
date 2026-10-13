@@ -43,7 +43,7 @@ public class DetailPaneComposerTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " 1 repo  main",
+                "   1 repo",
                 "╭─ History ──────────────────────────────────────╮",
                 "│ ●  second                                      │",
                 "│ ●  root                                        │",

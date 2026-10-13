@@ -392,6 +392,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
+            new TabRenameController(host, keys.SetMode, () => view.RefreshChrome()),
             new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration(app)),
         ];

@@ -21,6 +21,21 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
+    public void GivenATab_WhenRenaming_ThenTheTitleChangesAndABlankNameRestoresTheRepositoryName()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = workspace.Tabs[0].Id;
+
+        var renamed = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetTabNameCommand("  Billing "))).Workspace;
+        var restored = WorkspaceReducer.Reduce(renamed, new TabCommand(id, new SetTabNameCommand("  "))).Workspace;
+
+        Assert.Equal("Billing", renamed.Tabs[0].Title);
+        Assert.Equal("alpha", renamed.Tabs[0].DisplayName);
+        Assert.Equal("alpha", restored.Tabs[0].Title);
+        Assert.Null(restored.Tabs[0].CustomName);
+    }
+
+    [Fact]
     public void GivenOpenRepository_WhenOpeningItAgain_ThenItsTabIsFocusedWithoutDuplicateOrEffect()
     {
         var workspace = Open(Workspace.Empty, "alpha", "beta");

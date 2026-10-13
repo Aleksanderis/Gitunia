@@ -8,9 +8,11 @@ public static class TabLabelFactory
 {
     /// <param name="workspace">The workspace.</param>
     /// <param name="isLoading">Whether a tab is still loading in the background.</param>
-    public static IReadOnlyList<TabLabel> Create(Workspace workspace, Func<TabId, bool> isLoading)
+    /// <param name="showBranch">Whether the checked-out branch is part of the tab (off by default, #219: it makes tabs long).</param>
+    public static IReadOnlyList<TabLabel> Create(Workspace workspace, Func<TabId, bool> isLoading, bool showBranch = false)
     {
         var duplicates = workspace.Tabs
+            .Where(tab => tab.CustomName is null)
             .GroupBy(tab => tab.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
@@ -21,8 +23,8 @@ public static class TabLabelFactory
             var tab = workspace.Tabs[index];
             labels.Add(new TabLabel(
                 index + 1,
-                duplicates.Contains(tab.DisplayName) ? WithParent(tab) : tab.DisplayName,
-                tab.Head?.BranchName,
+                tab.CustomName is null && duplicates.Contains(tab.DisplayName) ? WithParent(tab) : tab.Title,
+                showBranch ? tab.Head?.BranchName : null,
                 tab.Id == workspace.ActiveTabId,
                 tab.Status?.IsDirty ?? false,
                 tab.Status?.Ahead ?? 0,
