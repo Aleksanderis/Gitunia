@@ -67,8 +67,14 @@ public class EffectRunnerTests
         var replaced = 0;
         session.GraphReplaced += () => replaced++;
 
+        // A manual refresh is the baseline barrier: the refresher runs one pass at a time, so once its forced reload has landed the
+        // baseline read is done and a later commit cannot be folded into it (which would leave the graph without a replacement).
+        Assert.True(effects.Refresh(tabId));
+        await pump.RunUntilAsync(() => replaced >= 1);
+
         repository.Commit("second", ("b.txt", "2"));
         await pump.RunUntilAsync(() => session.Graph.Count == 2);
+        var replacedBeforeTopic = replaced;
         repository.WriteFile("a.txt", "changed");
         await pump.RunUntilAsync(() => host.Workspace.FindTab(tabId)!.Status!.IsDirty);
         repository.Git("stash", "push");
@@ -77,7 +83,7 @@ public class EffectRunnerTests
         await pump.RunUntilAsync(() => host.Workspace.FindTab(tabId)!.Head!.BranchName == "topic");
 
         Assert.False(host.Workspace.FindTab(tabId)!.Status!.IsDirty);
-        Assert.Equal(2, replaced);
+        Assert.True(replaced > replacedBeforeTopic);
     }
 
     [Fact]
