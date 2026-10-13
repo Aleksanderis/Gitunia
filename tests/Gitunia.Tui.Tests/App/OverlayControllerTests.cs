@@ -170,6 +170,24 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenOpenHistory_WhenAMessageIsPosted_ThenItShowsWithoutReopening()
+    {
+        statuses.Error("first failure");
+        Press(new Key(' '));
+        Press(new Key('m'));
+        var changes = 0;
+        overlays.Changed += () => changes++;
+
+        statuses.Warning("late warning");
+        var lines = overlays.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
+
+        Assert.Equal(OverlayKind.Messages, overlays.State.Kind);
+        Assert.Equal(1, changes);
+        Assert.Contains("late warning", lines[2], StringComparison.Ordinal);
+        Assert.Contains("first failure", lines[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenNoMessages_WhenOpeningTheHistory_ThenItSaysSo()
     {
         Press(new Key(' '));
