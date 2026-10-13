@@ -20,6 +20,7 @@ public static class RepoReducer
         WorktreesLoadedCommand worktrees => state with { Worktrees = worktrees.Worktrees },
         StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
+        SetTabNameCommand rename => state with { CustomName = RepoState.NormalizeName(rename.Name) },
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };
