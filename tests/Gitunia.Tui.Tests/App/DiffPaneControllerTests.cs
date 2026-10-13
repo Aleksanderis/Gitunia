@@ -133,6 +133,107 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenAShortScreen_WhenOpeningTheDiff_ThenItOpensZoomedAndFocusLeavingEndsTheZoom()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenHeight: 10);
+
+        await harness.OpenAsync("a.txt");
+
+        Assert.Equal(PaneKind.Diff, harness.Controller.Arrangement().Zoomed);
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+    }
+
+    [Fact]
+    public async Task GivenATallScreen_WhenOpeningTheDiff_ThenItIsNotZoomed()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenHeight: 40);
+
+        await harness.OpenAsync("a.txt");
+
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+    }
+
+    [Fact]
+    public async Task GivenAZoomedPane_WhenAskingForTheArrangement_ThenNothingChanges()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.Execute(ActionIds.PaneZoom);
+
+        // A zoom that does not match the focus is hidden by the arrangement but only released by the workspace change.
+        harness.Session.Diff!.ZoomedPane = PaneKind.Graph;
+
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.Equal(PaneKind.Graph, harness.Session.Diff.ZoomedPane);
+    }
+
+    [Fact]
+    public async Task GivenASearchBeingTyped_WhenAClickMovesFocusToAnotherPane_ThenTheSearchEndsAndTheModeIsNormal()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.Execute(ActionIds.DiffSearchOpen);
+        harness.Type("line");
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Null(harness.Session.Diff!.Source.Highlight);
+    }
+
+    [Fact]
+    public async Task GivenAnAcceptedSearch_WhenAClickMovesFocusToAnotherPane_ThenTheSearchStays()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.Execute(ActionIds.DiffSearchOpen);
+        harness.Type("line");
+        harness.Execute(ActionIds.InputAccept);
+
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.Equal("line", harness.Session.Diff!.Source.Highlight);
+    }
+
+    [Fact]
+    public async Task GivenASearchBeingTyped_WhenTheTabChanges_ThenTheSearchEndsAndTheModeIsNormal()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.Execute(ActionIds.DiffSearchOpen);
+        harness.Type("line");
+
+        harness.Controller.OnTabSwitched(harness.Session, null);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Session.Diff!.Search.IsOpen);
+        Assert.Null(harness.Session.Diff.Source.Highlight);
+    }
+
+    [Fact]
+    public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
+    {
+        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var harness = await DiffHarness.LoadAsync(repository);
+        await harness.OpenAsync("a.txt");
+        var source = harness.Session.Diff!.Source;
+        harness.Execute(ActionIds.DiffToggleWrap);
+        harness.Execute(ActionIds.ListBottom);
+        harness.Execute(ActionIds.ListUp);
+        var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
+
+        harness.DiffList.Width = 30;
+        harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
+
+        Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
+    }
+
+    [Fact]
     public async Task GivenAFocusedPane_WhenZooming_ThenItFillsTheScreenUntilZoomedAgainOrFocusLeaves()
     {
         using var harness = await DiffHarness.LoadAsync();
@@ -405,7 +506,7 @@ public class DiffPaneControllerTests
         private readonly TestRepository? ownedRepository;
         private readonly KeyHolder keys = new();
 
-        private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository)
+        private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository, int screenHeight)
         {
             Host = host;
             Session = session;
@@ -413,7 +514,7 @@ public class DiffPaneControllerTests
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => 40, () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => screenHeight, () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
             Controller.OnTabSwitched(null, session);
         }
 
@@ -434,7 +535,7 @@ public class DiffPaneControllerTests
 
         public RepoState Tab => Host.Workspace.ActiveTab!;
 
-        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit)
+        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40)
         {
             var owned = repository is null ? CreateDefaultRepository() : null;
             var path = (repository ?? owned)!.Path;
@@ -450,7 +551,7 @@ public class DiffPaneControllerTests
                 new CommitDetailsStore(repo, action => action(), TimeSpan.Zero),
                 new DiffStore(repo, action => action(), rowLimit));
             await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
-            var harness = new DiffHarness(host, session, owned);
+            var harness = new DiffHarness(host, session, owned, screenHeight);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
         }

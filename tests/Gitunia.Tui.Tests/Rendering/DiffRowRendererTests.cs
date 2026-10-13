@@ -45,6 +45,31 @@ public class DiffRowRendererTests
     }
 
     [Fact]
+    public void GivenAVeryLongLine_WhenRendering_ThenItIsCutToTheWidthWithAnEllipsisAndMatchesInViewStayHighlighted()
+    {
+        var text = "needle" + string.Concat(Enumerable.Repeat("\tx", 500_000));
+        var row = new DiffRow(DiffRowKind.Added, text, null, 1, 0);
+
+        var line = DiffRowRenderer.Render(row, 40, 3, "needle", false, Glyphs);
+
+        var shown = string.Concat(line.Segments.Select(segment => segment.Text));
+        Assert.Equal(40, TextWidth.Of(shown));
+        Assert.EndsWith(Glyphs.Ellipsis, shown, StringComparison.Ordinal);
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.SearchMatch && segment.Text == "needle");
+    }
+
+    [Fact]
+    public void GivenALongLineEndingInASurrogatePair_WhenRendering_ThenThePairIsNeverSplit()
+    {
+        var text = new string('a', 30) + string.Concat(Enumerable.Repeat("\U0001F600", 100));
+        var row = new DiffRow(DiffRowKind.Context, text, 1, 1, 0);
+
+        var line = DiffRowRenderer.Render(row, 10, 3, null, false, Glyphs);
+
+        Assert.DoesNotContain(line.Segments, segment => segment.Text.Any(char.IsLowSurrogate) && !segment.Text.Any(char.IsHighSurrogate));
+    }
+
+    [Fact]
     public void GivenTabsInTheText_WhenRendering_ThenTheyExpandToTabStops()
     {
         Assert.Equal("a   b       c", DiffRowRenderer.ExpandTabs("a\tb\t\tc"));
