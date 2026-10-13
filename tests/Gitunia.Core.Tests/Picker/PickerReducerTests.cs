@@ -177,6 +177,14 @@ public class PickerReducerTests
     }
 
     [Fact]
+    public void GivenEmptyQuery_WhenPressingTab_ThenNothingChanges()
+    {
+        var state = PickerReducer.Open(Context());
+
+        Assert.Equal(state, PickerReducer.Reduce(state, new CompletePathCommand(), Context()));
+    }
+
+    [Fact]
     public void GivenUppercaseQuery_WhenTyping_ThenSuggestionsMatchRegardlessOfCase()
     {
         var state = Type(PickerReducer.Open(Context()), "ALPHA");

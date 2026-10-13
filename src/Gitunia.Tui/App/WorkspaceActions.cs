@@ -25,7 +25,11 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
 
         if (action == ActionIds.PickerOpen)
         {
-            picker.Open();
+            // An open picker stays as it is (a second click on "+" must not drop the query or the locate mode).
+            if (!picker.IsOpen)
+            {
+                picker.Open();
+            }
         }
         else if (action == ActionIds.TabNext)
         {

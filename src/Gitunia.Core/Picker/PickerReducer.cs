@@ -54,7 +54,7 @@ public static class PickerReducer
             return state.IsListing ? state : WithQuery(state, PathCompleter.Complete(state.Query, state.Rows, state.Highlight), context);
         }
 
-        return state.HighlightedRow is { } row ? WithQuery(state, Path.TrimEndingDirectorySeparator(row.Path) + Path.DirectorySeparatorChar, context) : state;
+        return state.Query.Length > 0 && state.HighlightedRow is { } row ? WithQuery(state, Path.TrimEndingDirectorySeparator(row.Path) + Path.DirectorySeparatorChar, context) : state;
     }
 
     private static PickerState Refresh(PickerState state, PickerContext context)

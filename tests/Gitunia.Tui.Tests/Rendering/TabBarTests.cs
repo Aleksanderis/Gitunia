@@ -99,6 +99,7 @@ public class TabBarTests
     }
 
     [Theory]
+    [InlineData(8)]
     [InlineData(20)]
     [InlineData(60)]
     [InlineData(100)]

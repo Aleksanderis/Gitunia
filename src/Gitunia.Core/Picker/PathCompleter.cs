@@ -88,13 +88,16 @@ public static class PathCompleter
 
     private static string Separator(string text) => text.Contains('\\') ? "\\" : "/";
 
+    private static bool CharactersEqual(char left, char right, StringComparison comparison) =>
+        comparison == StringComparison.Ordinal ? left == right : char.ToLowerInvariant(left) == char.ToLowerInvariant(right);
+
     private static string CommonPrefix(List<string> names, StringComparison comparison)
     {
         var prefix = names[0];
         foreach (var name in names.Skip(1))
         {
             var length = 0;
-            while (length < prefix.Length && length < name.Length && string.Equals(prefix.Substring(length, 1), name.Substring(length, 1), comparison))
+            while (length < prefix.Length && length < name.Length && CharactersEqual(prefix[length], name[length], comparison))
             {
                 length++;
             }
