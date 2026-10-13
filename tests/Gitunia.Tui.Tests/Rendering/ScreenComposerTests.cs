@@ -20,20 +20,20 @@ public class ScreenComposerTests
         CommitFactory.Commit(1, "root", []));
 
     [Fact]
-    public void GivenSmallGraph_WhenComposingAt40x8_ThenFrameHasHeaderTabsGraphAndStatus()
+    public void GivenSmallGraph_WhenComposingAt40x8_ThenFrameHasTabsAFramedGraphAndStatus()
     {
         var frame = Frame(Model(1, 4), Diamond(), 0, 0, 40, 8);
 
         Assert.Equal(
             string.Join(
                 '\n',
-                " ● Gitunia  ─  repo",
-                " 1 repo  main",
-                "○─╮  merge side",
-                "● │  main work",
-                "├─●  side work",
-                "●    root",
-                "",
+                "   1 repo",
+                "╭─ History ────────────────────────────╮",
+                "│ ○─╮  merge side                      │",
+                "│ ● │  main work                       │",
+                "│ ├─●  side work                       │",
+                "│ ●  root                              │",
+                "╰──────────────────────────────────────╯",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
     }
@@ -46,13 +46,13 @@ public class ScreenComposerTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " * Gitunia  -  repo",
-                " 1 repo  main",
-                "o-\\  merge side",
-                "* |  main work",
-                "|-*  side work",
-                "*    root",
-                "",
+                "   1 repo",
+                "+- History ----------------------------+",
+                "| o-\\  merge side                      |",
+                "| * |  main work                       |",
+                "| |-*  side work                       |",
+                "| *  root                              |",
+                "+--------------------------------------+",
                 " NORMAL  1/4  j/k gg G ^d ^u @ ? : q"),
             frame);
     }
@@ -62,21 +62,21 @@ public class ScreenComposerTests
     {
         var graph = Diamond();
 
-        var lines = ScreenComposer.Compose(Model(3, 4), graph, 2, 1, 40, 6, GraphGlyphSet.Unicode);
+        var lines = ScreenComposer.Compose(Model(3, 4), graph, 2, 1, 40, 8, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith("● │  ", lines[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("├─●  ", lines[3].Text, StringComparison.Ordinal);
-        Assert.Equal([false, true, false], lines.Skip(2).Take(3).Select(line => line.IsSelected).ToArray());
+        Assert.StartsWith("│ ● │  ", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│ ├─●  ", lines[3].Text, StringComparison.Ordinal);
+        Assert.Equal([false, true, false], lines.Skip(2).Take(3).Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)).ToArray());
     }
 
     [Fact]
     public void GivenGraphShorterThanScreen_WhenComposing_ThenRestOfThePaneIsBlankAndUnselected()
     {
-        var lines = ScreenComposer.Compose(Model(1, 4), Diamond(), 0, 0, 30, 10, GraphGlyphSet.Unicode);
+        var lines = ScreenComposer.Compose(Model(1, 4), Diamond(), 0, 0, 30, 12, GraphGlyphSet.Unicode);
 
-        Assert.Equal(10, lines.Count);
-        Assert.All(lines.Skip(6).Take(3), line => Assert.Equal(new string(' ', 30), line.Text));
-        Assert.All(lines.Skip(6).Take(3), line => Assert.False(line.IsSelected));
+        Assert.Equal(12, lines.Count);
+        Assert.All(lines.Skip(6).Take(4), line => Assert.Equal("│" + new string(' ', 28) + "│", line.Text));
+        Assert.All(lines.Skip(6).Take(4), line => Assert.DoesNotContain(line.Segments, segment => segment.Selection is SegmentSelection.Focused or SegmentSelection.Dim));
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class ScreenComposerTests
 
         var status = lines[^1];
         Assert.Equal(" NORMAL  1/4  Could not read the stashes: boom  j/k gg G ^d ^u @ ? : q", status.Text.TrimEnd());
-        Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.Error && segment.Text.Contains("stashes", StringComparison.Ordinal));
+        Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.StatusError && segment.Text.Contains("stashes", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class ScreenComposerTests
 
         Assert.Equal(6, lines.Count);
         Assert.All(lines, line => Assert.Equal(40, TextWidth.Of(line.Text)));
-        Assert.DoesNotContain(lines, line => line.IsSelected);
+        Assert.DoesNotContain(lines, line => line.Segments.Any(segment => segment.Selection is SegmentSelection.Focused or SegmentSelection.Dim));
         Assert.Contains("0/0+ loading...", lines[^1].Text, StringComparison.Ordinal);
     }
 
@@ -139,10 +139,10 @@ public class ScreenComposerTests
             CommitFactory.Commit(2, "修正バグ", [1]),
             CommitFactory.Commit(1, "emoji 🎉 ok", []));
 
-        var lines = ScreenComposer.Compose(Model(1, 2), graph, 0, 0, 30, 5, GraphGlyphSet.Unicode);
+        var lines = ScreenComposer.Compose(Model(1, 2), graph, 0, 0, 30, 7, GraphGlyphSet.Unicode);
 
-        Assert.Equal("●  修正バグ", lines[2].Text.TrimEnd());
-        Assert.Equal("●  emoji 🎉 ok", lines[3].Text.TrimEnd());
+        Assert.Equal("│ ●  修正バグ                │", lines[2].Text);
+        Assert.Equal("│ ●  emoji 🎉 ok             │", lines[3].Text);
         Assert.All(lines, line => Assert.Equal(30, TextWidth.Of(line.Text)));
     }
 }

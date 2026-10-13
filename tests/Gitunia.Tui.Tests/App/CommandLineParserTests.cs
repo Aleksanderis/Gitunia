@@ -1,5 +1,7 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Platform;
 using Gitunia.Tui.App;
+using Gitunia.Tui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -110,5 +112,38 @@ public class CommandLineParserTests
     public void GivenUnknownZoomPane_WhenParsing_ThenErrorIsReported(string pane)
     {
         Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--zoom", pane]).Error);
+    }
+
+    [Theory]
+    [InlineData("truecolor", ColorDepth.TrueColor)]
+    [InlineData("16", ColorDepth.Ansi16)]
+    [InlineData("none", ColorDepth.None)]
+    public void GivenColors_WhenParsing_ThenTheSchemeIsRead(string name, ColorDepth expected)
+    {
+        var options = CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--colors", name, "--light"]);
+
+        Assert.Null(options.Error);
+        Assert.Equal(new PaletteSettings(expected, true), options.Colors);
+    }
+
+    [Fact]
+    public void GivenNoColors_WhenParsing_ThenTheFrameIsPlainText()
+    {
+        Assert.Null(CommandLineParser.Parse(["repo", "--print-frame", "80x24"]).Colors);
+    }
+
+    [Theory]
+    [InlineData("--colors", "rainbow")]
+    [InlineData("--colors")]
+    [InlineData("--light")]
+    public void GivenBadColorOptions_WhenParsing_ThenErrorIsReported(params string[] arguments)
+    {
+        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", .. arguments]).Error);
+    }
+
+    [Fact]
+    public void GivenColorsWithoutPrintFrame_WhenParsing_ThenErrorIsReported()
+    {
+        Assert.NotNull(CommandLineParser.Parse(["repo", "--colors", "16"]).Error);
     }
 }

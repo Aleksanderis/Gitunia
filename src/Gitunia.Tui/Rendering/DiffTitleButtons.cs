@@ -5,7 +5,7 @@ namespace Gitunia.Tui.Rendering;
 /// <summary>
 /// The buttons at the right end of the diff pane's title row: previous and next file and hunk, word wrap, zoom and close. They
 /// are the mouse path of <c>[f</c> <c>]f</c> <c>[c</c> <c>]c</c> <c>w</c> <c>&lt;space&gt;z</c> and <c>q</c>. Narrow panes show only the
-/// last ones (the title keeps at least <see cref="MinimumTitleWidth"/> columns).
+/// last ones (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box: a space and a stretch of line follow the last button.
 /// </summary>
 public static class DiffTitleButtons
 {
@@ -32,7 +32,7 @@ public static class DiffTitleButtons
         foreach (var candidate in Candidates)
         {
             var needed = TextWidth.Of(candidate.Label) + (chosen.Count > 0 ? 1 : 0);
-            if (width - used - needed < MinimumTitleWidth)
+            if (width - 2 - used - needed < MinimumTitleWidth)
             {
                 break;
             }
@@ -42,7 +42,7 @@ public static class DiffTitleButtons
         }
 
         var buttons = new List<TitleButton>(chosen.Count);
-        var column = width - used;
+        var column = width - 2 - used;
         for (var index = chosen.Count - 1; index >= 0; index--)
         {
             buttons.Add(new TitleButton(chosen[index].View, chosen[index].Label, column));

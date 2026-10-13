@@ -10,7 +10,11 @@ public enum ColorDepth
 }
 
 /// <summary>What the attached terminal can do. Detected, never assumed.</summary>
-public sealed record ConsoleCapabilities(bool IsInteractive, ColorDepth Color, bool Unicode);
+/// <param name="IsInteractive">Input and output are a terminal.</param>
+/// <param name="Color">The colour depth.</param>
+/// <param name="Unicode">The terminal can show box-drawing and similar characters.</param>
+/// <param name="IsLightBackground">The terminal reports a light background (<c>COLORFGBG</c>); false for dark and for unknown.</param>
+public sealed record ConsoleCapabilities(bool IsInteractive, ColorDepth Color, bool Unicode, bool IsLightBackground = false);
 
 /// <summary>
 /// The only place OS-specific behaviour lives. Every member has an implementation

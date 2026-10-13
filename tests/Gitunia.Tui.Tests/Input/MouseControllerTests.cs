@@ -122,22 +122,22 @@ public class MouseControllerTests
     }
 
     [Fact]
-    public void GivenAClickOnTheHeader_WhenHandled_ThenThePaletteOpens()
+    public void GivenAClickOnTheCommandsButton_WhenHandled_ThenThePaletteOpens()
     {
         var controller = CreateController();
 
-        controller.Handle(DefaultMouseMap.HeaderView, MouseGesture.Click);
+        controller.Handle(DefaultMouseMap.CommandsButton, MouseGesture.Click);
 
         Assert.Equal([(ActionIds.PaletteOpen, (int?)null)], executed);
     }
 
     [Fact]
-    public void GivenAnOverlayIsOpen_WhenClickingTheHeader_ThenNothingRuns()
+    public void GivenAnOverlayIsOpen_WhenClickingTheCommandsButton_ThenNothingRuns()
     {
         var controller = CreateController();
         suppressed = true;
 
-        Assert.False(controller.Handle(DefaultMouseMap.HeaderView, MouseGesture.Click));
+        Assert.False(controller.Handle(DefaultMouseMap.CommandsButton, MouseGesture.Click));
     }
 
     [Theory]

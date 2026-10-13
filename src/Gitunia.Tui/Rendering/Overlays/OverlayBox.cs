@@ -48,12 +48,12 @@ public static class OverlayBox
         var text = (ascii ? '+' : glyphs.For(LineDirections.Up | LineDirections.Right))
             + new string(rule, Math.Max(0, width - BorderWidth))
             + (ascii ? '+' : glyphs.For(LineDirections.Up | LineDirections.Left));
-        return new LineBuilder(width, glyphs.Ellipsis).Append(text, SegmentRole.Punctuation).Build();
+        return new LineBuilder(width, glyphs.Ellipsis).Append(text, SegmentRole.FocusedBorder).Build();
     }
 
     public static StyledLine Wrap(StyledLine inner, GraphGlyphSet glyphs, bool isSelected = false)
     {
-        var side = new StyledSegment(glyphs.For(LineDirections.Up | LineDirections.Down).ToString(), SegmentRole.Punctuation);
+        var side = new StyledSegment(glyphs.For(LineDirections.Up | LineDirections.Down).ToString(), SegmentRole.FocusedBorder);
         return new StyledLine([side, .. inner.Segments, side], isSelected);
     }
 }

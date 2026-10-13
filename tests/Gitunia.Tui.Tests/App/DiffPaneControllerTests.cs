@@ -172,6 +172,182 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenAWideScreenOnChanges_WhenTheDetailsHaveArrived_ThenTheDiffOfTheFirstFileIsShownWithoutOpeningIt()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.False(harness.Session.Diff!.IsOpen);
+        var document = harness.Session.Diff.Source.Document;
+        Assert.Equal(document.FileRows[0], harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAShownDiff_WhenTheFileCursorMoves_ThenTheDiffShowsThatFileAtOnceWithoutLoadingAgain()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        var loaded = harness.Session.Diff!.Source.Document;
+
+        harness.SelectFile("b.txt");
+
+        Assert.Same(loaded, harness.Session.Diff.Source.Document);
+        Assert.Equal(loaded.FileRows[loaded.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
+    }
+
+    [Theory]
+    [InlineData(BottomTab.Details)]
+    [InlineData(BottomTab.Files)]
+    public async Task GivenAWideScreen_WhenAnotherTabIsShown_ThenTheDiffIsNotShown(BottomTab tab)
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+
+        harness.Send(new SetBottomTabCommand(tab));
+
+        Assert.False(harness.Controller.Arrangement().IsDiffOpen);
+    }
+
+    [Fact]
+    public async Task GivenANarrowScreen_WhenOnChanges_ThenTheDiffStaysClosedUntilOpened()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 71);
+        harness.SelectFirstFile();
+
+        harness.Controller.FollowSelection();
+
+        Assert.False(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.Equal(DiffStatus.None, harness.Session.Diff!.Store.Status);
+    }
+
+    [Fact]
+    public async Task GivenAShownDiff_WhenEnterIsPressedAndThenBack_ThenFocusMovesToTheDiffAndBackAndTheDiffStays()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFile("b.txt");
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        harness.Execute(ActionIds.DetailOpenDiff);
+
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+        Assert.False(harness.Session.Diff!.IsOpen);
+        harness.Execute(ActionIds.NavigateBack);
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.Equal(DiffStatus.Loaded, harness.Session.Diff.Store.Status);
+    }
+
+    [Fact]
+    public async Task GivenTheDiffHasFocus_WhenJumpingToTheNextFile_ThenTheFileListFollowsWithoutMovingTheDiffAway()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DetailOpenDiff);
+        var document = harness.Session.Diff!.Source.Document;
+
+        harness.Execute(ActionIds.DiffNextFile);
+
+        Assert.Equal(document.FileRows[1], harness.DiffList.SelectedItem);
+        Assert.Equal(harness.Session.DetailSource.Content.FirstFileRow + 1, harness.DetailList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenTheDiffHasFocus_WhenTheChangesTabIsLeft_ThenFocusReturnsToTheDetailPane()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DetailOpenDiff);
+
+        harness.Send(new SetBottomTabCommand(BottomTab.Details));
+
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAShownDiff_WhenAnotherCommitIsSelected_ThenTheDiffLoadsItAtItsFirstFile()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFile("b.txt");
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        var second = harness.Session.Graph[1].Id;
+
+        await harness.ShowCommitAsync(1);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(second, harness.Session.Diff!.Store.Commit);
+        var document = harness.Session.Diff.Source.Document;
+        Assert.Equal(document.FileRows[0], harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAnOnDemandDiffOnANarrowScreen_WhenTheFileCursorResetsOnANewCommit_ThenTheDiffKeepsItsFile()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 60);
+        await harness.OpenAsync("b.txt");
+
+        await harness.ShowCommitAsync(1);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(harness.Session.Graph[1].Id, harness.Session.Diff!.Store.Commit);
+    }
+
+    [Fact]
+    public async Task GivenANarrowScreenWithTheDiffNotLoaded_WhenTheScreenGrowsWide_ThenTheDiffLoadsWithoutAKey()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 60);
+        harness.SelectFirstFile();
+
+        harness.ScreenWidth = 100;
+        harness.Controller.OnScreenResized();
+        await harness.WaitForDiffAsync();
+
+        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+    }
+
+    [Fact]
+    public async Task GivenTheDiffHasFocus_WhenTheScreenShrinksBelowSideBySide_ThenFocusReturnsToTheFileList()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DetailOpenDiff);
+
+        harness.ScreenWidth = 60;
+        harness.Controller.OnScreenResized();
+
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAWideTabWhoseDiffLoadedInTheBackground_WhenItIsShownAgain_ThenTheLoadedDiffIsApplied()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.Controller.OnTabSwitched(harness.Session, null);
+        harness.Session.Diff!.Source.Update(DiffDocument.Empty);
+
+        harness.Controller.OnTabSwitched(null, harness.Session);
+
+        Assert.Same(harness.Session.Diff.Store.Document, harness.Session.Diff.Source.Document);
+    }
+
+    [Fact]
     public async Task GivenAZoomedPane_WhenAskingForTheArrangement_ThenNothingChanges()
     {
         using var harness = await DiffHarness.LoadAsync();
@@ -244,7 +420,7 @@ public class DiffPaneControllerTests
         harness.DiffList.Width = 30;
         harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
 
-        Assert.Equal(30, source.Width);
+        Assert.Equal(28, source.Width);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
     }
 
@@ -342,7 +518,7 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffToggleWrap);
 
         Assert.True(source.IsWrapped);
-        Assert.Equal(rows + 2, source.Count);
+        Assert.Equal(rows + 3, source.Count);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
         Assert.Equal("Word wrap on", harness.Controller.Notice);
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -521,17 +697,22 @@ public class DiffPaneControllerTests
         private readonly TestRepository? ownedRepository;
         private readonly KeyHolder keys = new();
 
-        private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository, int screenHeight)
+        private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
             Host = host;
             Session = session;
             this.ownedRepository = ownedRepository;
+            ScreenWidth = screenWidth;
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => screenHeight, () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => (ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
             Controller.OnTabSwitched(null, session);
+            DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
         }
+
+        /// <summary>The terminal width the controller sees; tests change it to simulate a resize.</summary>
+        public int ScreenWidth { get; set; }
 
         public WorkspaceHost Host { get; }
 
@@ -550,7 +731,7 @@ public class DiffPaneControllerTests
 
         public RepoState Tab => Host.Workspace.ActiveTab!;
 
-        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40)
+        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40, int screenWidth = 60)
         {
             var owned = repository is null ? CreateDefaultRepository() : null;
             var path = (repository ?? owned)!.Path;
@@ -566,7 +747,7 @@ public class DiffPaneControllerTests
                 new CommitDetailsStore(repo, action => action(), TimeSpan.Zero),
                 new DiffStore(repo, action => action(), rowLimit));
             await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
-            var harness = new DiffHarness(host, session, owned, screenHeight);
+            var harness = new DiffHarness(host, session, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
         }
@@ -619,6 +800,21 @@ public class DiffPaneControllerTests
             var index = content.Files.ToList().FindIndex(file => file.Path == path);
             Assert.True(index >= 0, $"{path} is not in the file list");
             DetailList.SelectedItem = content.FirstFileRow + index;
+        }
+
+        public void SelectFirstFile()
+        {
+            Send(new FocusPaneCommand(PaneKind.Detail));
+            DetailList.SelectedItem = Session.DetailSource.Content.FirstFileRow;
+        }
+
+        /// <summary>Shows the commit's changes in the file list the way the application does, with the cursor on its first file.</summary>
+        public async Task ShowCommitAsync(int graphIndex)
+        {
+            var entry = Session.Graph[graphIndex];
+            await SelectCommitAsync(entry.Id);
+            Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current, BottomTab.Changes));
+            DetailList.SelectedItem = Session.DetailSource.Content.FirstFileRow;
         }
 
         public async Task OpenAsync(string path)

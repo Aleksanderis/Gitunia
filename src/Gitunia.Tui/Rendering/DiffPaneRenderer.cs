@@ -6,7 +6,7 @@ namespace Gitunia.Tui.Rendering;
 /// <summary>Draws the diff pane's title row and rows (a frame without a terminal, for tests and the text frame).</summary>
 public static class DiffPaneRenderer
 {
-    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <paramref name="topRow"/>.</summary>
+    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <paramref name="topRow"/>; the rows are padded (<see cref="PanePadding"/>).</summary>
     public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs) };
@@ -14,9 +14,10 @@ public static class DiffPaneRenderer
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
-            lines.Add(row >= 0 && row < pane.Document.Rows.Count
-                ? DiffRowRenderer.Render(pane.Document.Rows[row], width, digits, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
-                : new LineBuilder(width, glyphs.Ellipsis).Build());
+            var textWidth = PanePadding.TextWidth(width);
+            lines.Add(PanePadding.Wrap(row >= 0 && row < pane.Document.Rows.Count
+                ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, digits, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
+                : new LineBuilder(textWidth, glyphs.Ellipsis).Build()));
         }
 
         return lines;
@@ -38,18 +39,17 @@ public static class DiffPaneRenderer
         for (var index = 0; index < buttons.Count; index++)
         {
             segments.Add(new StyledSegment(buttons[index].Label, SegmentRole.Button));
-            if (index < buttons.Count - 1)
-            {
-                segments.Add(new StyledSegment(" ", SegmentRole.Plain));
-            }
+            segments.Add(new StyledSegment(" ", SegmentRole.Plain));
         }
 
+        segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         return new StyledLine(segments);
     }
 
     private static StyledLine RenderTitleText(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
+            .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
             .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
         if (pane.ShortHash.Length > 0)
         {
@@ -66,14 +66,14 @@ public static class DiffPaneRenderer
                 + $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
                 SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
-            builder.Append("  " + pane.Document.FilePaths[fileIndex][0], SegmentRole.Plain);
+            builder.Append("  " + pane.Document.FilePaths[fileIndex][0] + " ", SegmentRole.Plain);
         }
         else
         {
             AppendWrapMarker(builder, pane);
         }
 
-        return builder.Build(SegmentRole.Plain);
+        return builder.BuildRule(glyphs.Horizontal);
     }
 
     // Before the path: when the row is narrow the path is cut, not the marker.

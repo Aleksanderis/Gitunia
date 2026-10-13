@@ -15,6 +15,7 @@ namespace Gitunia.Core.Workspaces;
 /// <param name="Sidebar">Folded sections, name filter and cursor of the sidebar.</param>
 /// <param name="IsMissing">The repository directory disappeared; the tab stays so the user can locate or close it.</param>
 /// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
+/// <param name="CustomName">The name the user gave the tab (#219), null to show the repository name.</param>
 public sealed record RepoState(
     TabId Id,
     RepositoryLocation Location,
@@ -25,7 +26,8 @@ public sealed record RepoState(
     ImmutableArray<StashEntry> Stashes,
     SidebarState Sidebar,
     bool IsMissing,
-    RepoStatusSummary? Status = null)
+    RepoStatusSummary? Status = null,
+    string? CustomName = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;
@@ -40,6 +42,30 @@ public sealed record RepoState(
             return name.Length == 0 ? trimmed : name;
         }
     }
+
+    /// <summary>Longest tab name; longer names are cut so one tab cannot take the whole tab row.</summary>
+    public const int MaximumNameLength = 40;
+
+    /// <summary>A name as stored: trimmed, cut to <see cref="MaximumNameLength"/> without splitting a surrogate pair, null when blank.</summary>
+    public static string? NormalizeName(string? name)
+    {
+        var trimmed = name?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        if (trimmed.Length > MaximumNameLength)
+        {
+            var length = char.IsHighSurrogate(trimmed[MaximumNameLength - 1]) ? MaximumNameLength - 1 : MaximumNameLength;
+            trimmed = trimmed[..length].TrimEnd();
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>What the tab bar calls the tab: the name the user gave it, else the repository name.</summary>
+    public string Title => CustomName ?? DisplayName;
 
     /// <summary>A newly opened tab with nothing loaded yet.</summary>
     public static RepoState Create(TabId id, RepositoryLocation location) =>

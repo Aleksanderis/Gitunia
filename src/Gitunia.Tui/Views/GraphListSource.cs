@@ -59,13 +59,13 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
-        var options = OptionsFor(width);
+        var options = OptionsFor(PanePadding.TextWidth(width));
         var commitIndex = CommitIndexOf(item);
         selected |= Range?.Contains(item) == true;
         var line = commitIndex >= 0 && commitIndex < graph.Count
             ? GraphRowRenderer.Render(graph[commitIndex], options, selected)
             : GraphRowRenderer.RenderEmpty(options, selected);
-        LinePainter.Paint(listView, line, col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
 
     public void Dispose()

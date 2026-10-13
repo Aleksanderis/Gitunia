@@ -86,13 +86,14 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var current = Map();
+        width = PanePadding.TextWidth(width);
         selected |= Range?.Contains(item) == true;
         var line = current is not null && item >= 0 && item < current.Count
-            ? WrappedLine(current, item, width, selected && listView.HasFocus)
+            ? WrappedLine(current, item, width, selected)
             : current is null && item >= 0 && item < Document.Rows.Count
-                ? DiffRowRenderer.Render(Document.Rows[item], width, gutterDigits, Highlight, selected && listView.HasFocus, glyphs)
+                ? DiffRowRenderer.Render(Document.Rows[item], width, gutterDigits, Highlight, selected, glyphs)
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
-        LinePainter.Paint(listView, line, col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
 
     public void Dispose()

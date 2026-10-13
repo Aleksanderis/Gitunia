@@ -35,21 +35,19 @@ public class SidebarFrameTests
             Branch("old"),
             Section(SidebarSection.Tags, "Tags", 12, isExpanded: false));
 
-        var frame = Frame(sidebar, 80, 9);
+        var frame = Frame(sidebar, 80, 10);
 
-        Assert.Equal(
-            string.Join(
-                '\n',
-                " ● Gitunia  ─  repo",
-                " 1 repo  main",
-                " ▾ Branches 3       │●  second                                  Author",
-                "  * main ↑2↓1 wt:re…│●  first                                   Author",
-                "    feature… wt:wt-…│",
-                "    old             │",
-                " ▸ Tags 12          │",
-                "                    │",
-                " NORMAL  1/2  j/k gg G ^d ^u @ ? : q"),
-            string.Join('\n', frame));
+        Assert.Equal("   1 repo", frame[0]);
+        Assert.StartsWith("╭─ repo ─────────────┬─ History ─", frame[1], StringComparison.Ordinal);
+        Assert.StartsWith("│  ▾ Branches 3      │ ●  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("│   * main ↑2↓1 wt:… │ ●  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("│     feature… wt:w… │", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("│     old            │", frame[5], StringComparison.Ordinal);
+        Assert.StartsWith("│  ▸ Tags 12         │", frame[6], StringComparison.Ordinal);
+        Assert.StartsWith("│                    │", frame[7], StringComparison.Ordinal);
+        Assert.StartsWith("╰────────────────────┴───", frame[8], StringComparison.Ordinal);
+        Assert.EndsWith("╮", frame[1], StringComparison.Ordinal);
+        Assert.EndsWith("╯", frame[8], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,9 +60,9 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 8, GraphGlyphSet.Ascii);
 
-        Assert.Equal(" v Branches 1       |*  second                                  Author", frame[2]);
-        Assert.Equal("  * main +1-3       |*  first                                   Author", frame[3]);
-        Assert.Equal(" > Tags 2           |", frame[4]);
+        Assert.StartsWith("|  v Branches 1      | *  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("|   * main +1-3      | *  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("|  > Tags 2          |", frame[4], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -72,9 +70,9 @@ public class SidebarFrameTests
     {
         var sidebar = Sidebar(Section(SidebarSection.Branches, "Branches", 1, isExpanded: true), Branch("feature")) with { FilterText = "feat", IsEditingFilter = true };
 
-        var frame = Frame(sidebar, 80, 7);
+        var frame = Frame(sidebar, 80, 8);
 
-        Assert.Equal("/feat_              │", frame[5]);
+        Assert.StartsWith("│ /feat_             │", frame[5], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -82,10 +80,10 @@ public class SidebarFrameTests
     {
         var rows = Enumerable.Range(0, 10).Select(index => Branch("branch" + index)).ToArray();
 
-        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 7, GraphGlyphSet.Unicode, null, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
+        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 9, GraphGlyphSet.Unicode, null, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
 
-        Assert.StartsWith("    branch6", lines[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("    branch8", lines[4].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│     branch6", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│     branch8", lines[4].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -136,14 +134,15 @@ public class SidebarFrameTests
     }
 
     [Fact]
-    public void GivenFocusedSidebar_WhenComposing_ThenDividerIsTheFocusedBorderRole()
+    public void GivenFocusedSidebar_WhenComposing_ThenItsFrameIsTheFocusedBorderRoleAndTheGraphsIsNot()
     {
-        var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, null, Sidebar() with { IsFocused = true });
+        var focused = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 8, GraphGlyphSet.Unicode, null, Sidebar() with { IsFocused = true });
+        var unfocused = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 8, GraphGlyphSet.Unicode, null, Sidebar());
 
-        Assert.Contains(lines[2].Segments, segment => segment.Role == SegmentRole.FocusedBorder);
-        Assert.DoesNotContain(
-            ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 6, GraphGlyphSet.Unicode, null, Sidebar())[2].Segments,
-            segment => segment.Role == SegmentRole.FocusedBorder);
+        Assert.Equal(SegmentRole.FocusedBorder, focused[2].Segments[0].Role);
+        Assert.Equal(SegmentRole.Border, focused[2].Segments[^1].Role);
+        Assert.Equal(SegmentRole.Border, unfocused[2].Segments[0].Role);
+        Assert.Equal(SegmentRole.FocusedBorder, unfocused[2].Segments[^1].Role);
     }
 
     [Fact]
@@ -153,6 +152,6 @@ public class SidebarFrameTests
 
         var frame = Frame(model, 80, 6);
 
-        Assert.Equal("                    │●  second                                  Author", frame[2]);
+        Assert.StartsWith("│                    │ ●  second", frame[2], StringComparison.Ordinal);
     }
 }

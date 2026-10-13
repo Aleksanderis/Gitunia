@@ -23,15 +23,15 @@ public class PaneResizerTests
 
         var rects = PaneLayout.Compute(Width, Height, false, null, sizes);
 
-        Assert.Equal(44, rects.Sidebar.Width);
+        Assert.Equal(43, rects.Sidebar.Width);
         Assert.Equal(44, rects.SidebarDivider.X);
         Assert.Equal(45, rects.Graph.X);
-        Assert.Equal(Width - 45, rects.Graph.Width);
+        Assert.Equal(Width - 1 - 45, rects.Graph.Width);
     }
 
     [Theory]
     [InlineData(0, 12)]
-    [InlineData(500, Width - 1 - PaneLayout.MinimumGraphWidth)]
+    [InlineData(500, Width - 3 - PaneLayout.MinimumGraphWidth)]
     public void GivenASidebarDraggedPastTheLimits_WhenComputing_ThenItIsClamped(int column, int expected)
     {
         var sizes = PaneResizer.Drag(PaneSizes.Automatic, PaneEdge.Sidebar, column, 10, Height);
@@ -65,9 +65,9 @@ public class PaneResizerTests
 
         var rects = PaneLayout.Compute(Width, Height, true, null, sizes);
 
-        Assert.Equal(70, rects.Detail.Width);
+        Assert.Equal(69, rects.Detail.Width);
         Assert.Equal(71, rects.Diff.X);
-        Assert.Equal(Width, rects.Diff.X + rects.Diff.Width);
+        Assert.Equal(Width - 1, rects.Diff.X + rects.Diff.Width);
     }
 
     [Fact]

@@ -167,7 +167,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     // Search and jump-to-ref work on the graph; in other panes only the accept/cancel actions of an open prompt apply.
     private bool OffersToPrompts(ActionId action) =>
-        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel;
+        FocusedPane == PaneKind.Graph || action == ActionIds.InputAccept || action == ActionIds.Cancel || action == ActionIds.TabRename;
 
     private static void Select(ListView list, int item)
     {

@@ -39,6 +39,18 @@ public sealed class LineBuilder(int width, string ellipsis)
         return this;
     }
 
+    /// <summary>Fills the rest of the line with <paramref name="fill"/> (a one-column character) as a <see cref="SegmentRole.Rule"/> stretch of the frame's edge and returns it.</summary>
+    public StyledLine BuildRule(char fill)
+    {
+        if (Remaining > 0)
+        {
+            segments.Add(new StyledSegment(new string(fill, Remaining), SegmentRole.Rule));
+            used = width;
+        }
+
+        return new StyledLine(segments);
+    }
+
     /// <summary>Pads the rest of the line with spaces of <paramref name="fillRole"/> and returns it.</summary>
     public StyledLine Build(SegmentRole fillRole = SegmentRole.Plain, bool isSelected = false)
     {

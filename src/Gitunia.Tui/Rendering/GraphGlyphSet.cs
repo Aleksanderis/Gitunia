@@ -5,12 +5,14 @@ namespace Gitunia.Tui.Rendering;
 /// <param name="MergeNode">A commit with several parents.</param>
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
-public sealed record GraphGlyphSet(char Node, char MergeNode, string Lines, string Ellipsis)
+/// <param name="CurrentBranch">Before the label of the branch HEAD is on.</param>
+/// <param name="Remote">After a branch label that also stands for its remote-tracking branch.</param>
+public sealed record GraphGlyphSet(char Node, char MergeNode, string Lines, string Ellipsis, string CurrentBranch, string Remote)
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', " │││─╯╮┤─╰╭├─┴┬┼", "…");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◆ ", " ↔");
 
-    public static GraphGlyphSet Ascii { get; } = new('*', 'o', " |||-/\\|-\\/|---+", "~");
+    public static GraphGlyphSet Ascii { get; } = new('*', 'o', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)");
 
     /// <summary>This is the ASCII fallback set.</summary>
     public bool IsAscii => Equals(Ascii);
