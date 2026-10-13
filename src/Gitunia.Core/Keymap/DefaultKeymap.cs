@@ -67,6 +67,7 @@ public static class DefaultKeymap
         Add(bindings, TextEntry, global, "Ctrl-t", ActionIds.PickerOpen);
         Add(bindings, NormalOnly, global, "<space>o", ActionIds.PickerOpen);
         Add(bindings, NormalOnly, global, "Ctrl-w c", ActionIds.TabClose);
+        Add(bindings, NormalOnly, global, "Ctrl-w r", ActionIds.TabRename);
         Add(bindings, NormalOnly, global, "<space>p", ActionIds.RepoPin);
         Add(bindings, NormalOnly, global, "Ctrl-w h", ActionIds.PaneFocusLeft);
         Add(bindings, NormalOnly, global, "Ctrl-w j", ActionIds.PaneFocusDown);
@@ -115,6 +116,7 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, GraphView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
+        Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);

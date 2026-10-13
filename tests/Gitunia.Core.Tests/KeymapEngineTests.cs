@@ -313,6 +313,6 @@ public class KeymapEngineTests
 
         var names = engine.Continuations(feeder.State, DefaultKeymap.GraphView).Select(continuation => continuation.Key.Name).Order(StringComparer.Ordinal);
 
-        Assert.Equal(["+", "-", "<", "=", ">", "c", "h", "j", "k", "l", "w"], names);
+        Assert.Equal(["+", "-", "<", "=", ">", "c", "h", "j", "k", "l", "r", "w"], names);
     }
 }

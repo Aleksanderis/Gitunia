@@ -151,6 +151,8 @@ public static class ActionIds
 
     public static ActionId TabPrevious { get; } = new("tab.previous");
 
+    public static ActionId TabRename { get; } = new("tab.rename");
+
     public static ActionId VisualCopy { get; } = new("visual.copy");
 
     public static ActionId VisualToggle { get; } = new("visual.toggle");

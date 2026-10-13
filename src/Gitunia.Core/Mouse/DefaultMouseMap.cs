@@ -8,8 +8,8 @@ public static class DefaultMouseMap
     /// <summary>The view of the tab row.</summary>
     public const string TabsView = "Tabs";
 
-    /// <summary>The view of the header bar (the first row); a click opens the command palette, the menu of every action.</summary>
-    public const string HeaderView = "Header";
+    /// <summary>The commands button at the right end of the tab row; a click opens the command palette, the menu of every action.</summary>
+    public const string CommandsButton = "CommandsButton";
 
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
     public const string BackdropView = "Backdrop";
@@ -72,7 +72,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
-        new(HeaderView, MouseGesture.Click, ActionIds.PaletteOpen),
+        new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(DefaultKeymap.HelpView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.HelpView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
