@@ -139,7 +139,7 @@ public class TabRefresherTests
         repository.Commit("fourth", ("d.txt", "4"));
         using var harness = await Harness.StartBeforeLoadAsync(repository);
         repository.Commit("fifth", ("e.txt", "5"));
-        await harness.Pump.RunUntilAsync(() => harness.PostedCount > 0);
+        await harness.Pump.RunUntilAsync(() => harness.RunCount > 0);
 
         await harness.FinishLoadAsync();
 
@@ -182,11 +182,11 @@ public class TabRefresherTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Func<int> postedCount;
+        private readonly Func<int> runCount;
 
-        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump, List<GraphReload> reloads, Func<int> postedCount, Func<Task> finishLoad)
+        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
         {
-            this.postedCount = postedCount;
+            this.runCount = runCount;
             FinishLoadAsync = finishLoad;
             Reloads = reloads;
             Pump = pump;
@@ -199,8 +199,8 @@ public class TabRefresherTests
 
         public UiPump Pump { get; }
 
-        /// <summary>Number of callbacks the refresher posted to the UI so far (watcher events before the load finished).</summary>
-        public int PostedCount => postedCount();
+        /// <summary>Number of callbacks the refresher posted that the pump has already run (watcher events applied before the load finished). Counted after the run, not at post time: a posted callback still queued has not told the refresher about the change yet.</summary>
+        public int RunCount => runCount();
 
         public Func<Task> FinishLoadAsync { get; }
 
@@ -247,18 +247,21 @@ public class TabRefresherTests
 
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var reloads = new List<GraphReload>();
-            var posted = 0;
+            var ran = 0;
             var refresher = new TabRefresher(runner, host, session, location, statuses, action =>
             {
-                Interlocked.Increment(ref posted);
-                pump.Post(action);
+                pump.Post(() =>
+                {
+                    action();
+                    Interlocked.Increment(ref ran);
+                });
             }, new WatchBudget(), FastOptions, reloads.Add);
             if (start)
             {
                 refresher.Start();
             }
 
-            return new Harness(host, tabId, session, refresher, statuses, pump, reloads, () => Volatile.Read(ref posted), LoadAsync);
+            return new Harness(host, tabId, session, refresher, statuses, pump, reloads, () => Volatile.Read(ref ran), LoadAsync);
         }
     }
 }
