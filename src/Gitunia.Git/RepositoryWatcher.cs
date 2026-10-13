@@ -5,7 +5,7 @@ namespace Gitunia.Git;
 /// git directories and the working tree. Events are classified, merged and debounced; the callback receives what may have changed.
 /// A background tab (<see cref="IsActive"/> false) does not call back: it keeps the pending changes and reports them when it is
 /// activated. When the shared <see cref="WatchBudget"/> is exhausted, or a watcher cannot be created or fails, the tab polls instead.
-/// The callback runs on a thread pool thread (on the caller's thread for the report made by <see cref="SetActive"/>) and must not throw.
+/// <c>BecameStale</c> notifications go through an injectable queue (thread pool by default). The callback runs on a thread pool thread (on the caller's thread for the report made by <see cref="SetActive"/>) and must not throw.
 /// </summary>
 public sealed class RepositoryWatcher : IDisposable
 {
@@ -15,6 +15,7 @@ public sealed class RepositoryWatcher : IDisposable
     private readonly WatchBudget _budget;
     private readonly RepositoryWatcherOptions _options;
     private readonly Action<RepositoryChangeKinds> _onChanged;
+    private readonly Action<Action> _queueNotification;
     private readonly object _gate = new();
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly HashSet<string> _watchedPaths = new(StringComparer.Ordinal);
@@ -32,12 +33,14 @@ public sealed class RepositoryWatcher : IDisposable
         RepositoryLocation location,
         WatchBudget budget,
         RepositoryWatcherOptions options,
-        Action<RepositoryChangeKinds> onChanged)
+        Action<RepositoryChangeKinds> onChanged,
+        Action<Action>? queueNotification = null)
     {
         _location = location;
         _budget = budget;
         _options = options;
         _onChanged = onChanged;
+        _queueNotification = queueNotification ?? (work => ThreadPool.QueueUserWorkItem(_ => work()));
         _debounceTimer = new Timer(_ => OnDebounceElapsed());
     }
 
@@ -144,7 +147,7 @@ public sealed class RepositoryWatcher : IDisposable
             _isActive = isActive;
             if (!isActive && _pending != RepositoryChangeKinds.None)
             {
-                ThreadPool.QueueUserWorkItem(_ => BecameStale?.Invoke());
+                _queueNotification(RaiseBecameStale);
             }
 
             if (!isActive || _pending == RepositoryChangeKinds.None)
@@ -158,6 +161,18 @@ public sealed class RepositoryWatcher : IDisposable
         }
 
         _onChanged(report);
+    }
+
+    /// <summary>
+    /// Feeds a change into the same path as a file system event (merge, debounce, stale handling). For callers that know something
+    /// changed without a file event, and for tests that need a deterministic trigger.
+    /// </summary>
+    public void ReportChange(RepositoryChangeKinds kinds)
+    {
+        if (kinds != RepositoryChangeKinds.None)
+        {
+            Enqueue(kinds);
+        }
     }
 
     public void Dispose()
@@ -436,7 +451,7 @@ public sealed class RepositoryWatcher : IDisposable
         {
             if (!wasPending)
             {
-                ThreadPool.QueueUserWorkItem(_ => BecameStale?.Invoke());
+                _queueNotification(RaiseBecameStale);
             }
 
             return;
@@ -447,6 +462,8 @@ public sealed class RepositoryWatcher : IDisposable
         var delay = remaining < _options.Debounce ? remaining : _options.Debounce;
         _debounceTimer.Change(delay < TimeSpan.Zero ? TimeSpan.Zero : delay, Timeout.InfiniteTimeSpan);
     }
+
+    private void RaiseBecameStale() => BecameStale?.Invoke();
 
     private void OnDebounceElapsed()
     {
