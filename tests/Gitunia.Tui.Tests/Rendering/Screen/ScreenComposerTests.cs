@@ -23,6 +23,16 @@ public class ScreenComposerTests
         CommitFactory.Commit(1, "root", []));
 
     [Fact]
+    public void GivenNoRepositoryName_WhenComposing_ThenSidebarTitleFallsBackToRepository()
+    {
+        var model = Model(1, 4) with { RepositoryName = string.Empty };
+
+        var frame = Frame(model, Diamond(), 0, 0, 120, 20);
+
+        Assert.Contains("─ Repository ─", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenSmallGraph_WhenComposingAt40x8_ThenFrameHasTabsAFramedGraphAndStatus()
     {
         var frame = Frame(Model(1, 4), Diamond(), 0, 0, 40, 8);

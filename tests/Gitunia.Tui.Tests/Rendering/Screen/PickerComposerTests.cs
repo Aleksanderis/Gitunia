@@ -111,7 +111,7 @@ public class PickerComposerTests
 
         var frame = Frame(picker, 60, 6).Split('\n');
 
-        Assert.Contains("repo", frame[2], StringComparison.Ordinal);
+        Assert.Contains("repository", frame[2], StringComparison.Ordinal);
         Assert.Contains("dir", frame[3], StringComparison.Ordinal);
     }
 

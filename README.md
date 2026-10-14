@@ -10,12 +10,12 @@ Terminal Git tools tend to be great for quick staging and commits but awkward fo
 
 ## Goal
 
-A standalone client for all your repositories, not a tool you launch from inside one: start it from anywhere, open several repos in tabs, and have them back next time. A daily-driver client for developers who live in the terminal and do non-trivial Git work: many branches, several worktrees, rebases, cherry-picks, large repos.
+A standalone client for all your repositories, not a tool you launch from inside one: start it from anywhere, open several repositories in tabs, and have them back next time. A daily-driver client for developers who live in the terminal and do non-trivial Git work: many branches, several worktrees, rebases, cherry-picks, large repositories.
 
 ## MVP scope
 
 In:
-- Standalone, multi-repo workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repo picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
+- Standalone, multi-repository workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repository picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
 - Commit graph (scrollable, searchable, handles 100k+ commits).
 - Working tree: status, stage/unstage files, hunks and lines, commit, amend.
 - Diff viewer (unified, side-by-side later).
@@ -31,7 +31,7 @@ Out until after MVP (ask before adding): interactive rebase editor, submodules, 
 ## Stack
 
 - C# on .NET 10 (LTS), Native AOT for the published binary. Cross-platform: Linux, Windows, macOS (lowest priority).
-- Config and session state live in the user config/state dir (XDG on Linux), never in a repo.
+- Config and session state live in the user config/state dir (XDG on Linux), never in a repository.
 - Git access by running the `git` CLI and parsing plumbing/porcelain output (no libgit2 for writes).
 - TUI rendering: decided by the M0 spike (Terminal.Gui v2 vs a thin custom renderer). See `docs/architecture.md`.
 
