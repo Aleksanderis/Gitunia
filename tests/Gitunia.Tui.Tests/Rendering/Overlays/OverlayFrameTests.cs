@@ -28,7 +28,7 @@ public class OverlayFrameTests
 
         var text = Text(frame);
         Assert.Contains("Status messages", text, StringComparison.Ordinal);
-        Assert.Contains("error  repo: could not read the stashes", text, StringComparison.Ordinal);
+        Assert.Contains("error │ repo: could not read the stashes", text, StringComparison.Ordinal);
         Assert.Contains("Esc close", text, StringComparison.Ordinal);
         Assert.NotNull(OverlayFrameFactory.Create(state, sections, string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
     }
@@ -128,15 +128,25 @@ public class OverlayFrameTests
                 " : tab_                                                   ",
                 "│ Next tab                                            gt │",
                 "│ Previous tab                                        gT │",
-                "│ Go to tab 1                                      Alt-1 │",
-                "│ Go to tab 2                                      Alt-2 │",
-                "│ Go to tab 3                                      Alt-3 │",
-                "│ Go to tab 4                                      Alt-4 │",
-                "│ Go to tab 5                                      Alt-5 │",
+                "│ Go to tab 1 (same as 1gt)                        Alt-1 │",
+                "│ Go to tab 2 (same as 2gt)                        Alt-2 │",
+                "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
+                "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
+                "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
                 "│ 2/22  Up/Down choose  Enter run  Esc close             │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected).ToArray());
+    }
+
+    [Fact]
+    public void GivenHelpForTheGraph_WhenRendering_ThenEveryRowSeparatesKeysFromDescription()
+    {
+        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 80, 24, GraphGlyphSet.Ascii);
+
+        var rows = Text(frame).Split('\n').Skip(1).Where(line => line.StartsWith("|  ", StringComparison.Ordinal) && line.Trim('|', ' ').Length > 0).ToList();
+        Assert.NotEmpty(rows);
+        Assert.All(rows, row => Assert.Contains(" | ", row, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -201,24 +211,24 @@ public class OverlayFrameTests
                 '\n',
                 " Keys: Graph                                                    ",
                 "│ Graph                                                        │",
-                "│  @                     Jump to HEAD                          │",
-                "│  gr                    Jump to a ref or hash                 │",
-                "│  Enter                 Focus the commit details              │",
-                "│  y                     Copy the commit hash                  │",
-                "│  r                     Refresh the repository                │",
-                "│  ]                     Next bottom pane tab                  │",
-                "│  [                     Previous bottom pane tab              │",
-                "│  gd                    Show the Details tab                  │",
-                "│  gc                    Show the Changes tab                  │",
-                "│  gf                    Show the Files tab                    │",
+                "│  @                    │ Jump to HEAD                         │",
+                "│  gr                   │ Jump to a ref or hash                │",
+                "│  Enter                │ Focus the commit details             │",
+                "│  y                    │ Copy the commit hash                 │",
+                "│  r                    │ Refresh the repository               │",
+                "│  ]                    │ Next bottom pane tab                 │",
+                "│  [                    │ Previous bottom pane tab             │",
+                "│  gd                   │ Show the Details tab                 │",
+                "│  gc                   │ Show the Changes tab                 │",
+                "│  gf                   │ Show the Files tab                   │",
                 "│                                                              │",
                 "│ Lists                                                        │",
-                "│  j / Down              Move down                             │",
-                "│  k / Up                Move up                               │",
-                "│  gg                    Go to the top                         │",
-                "│  G                     Go to the bottom                      │",
-                "│  /                     Search                                │",
-                "│  n                     Next search match                     │",
+                "│  j / Down             │ Move down                            │",
+                "│  k / Up               │ Move up                              │",
+                "│  gg                   │ Go to the top                        │",
+                "│  G                    │ Go to the bottom                     │",
+                "│  /                    │ Search                               │",
+                "│  n                    │ Next search match                    │",
                 "│ 1-19/59  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));

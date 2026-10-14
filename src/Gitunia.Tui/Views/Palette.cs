@@ -65,6 +65,7 @@ public static class Palette
             SegmentRole.Tag => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
             SegmentRole.BarButton => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.Status => new RoleAppearance(colors.Muted, colors.BarBackground, muted, true),
+            SegmentRole.StatusKey => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
             SegmentRole.TabButton => new RoleAppearance(colors.Muted, colors.BarBackground, colors.BarBackground == Color.None ? colors.MutedStyle | TextStyle.Underline : TextStyle.None, true),

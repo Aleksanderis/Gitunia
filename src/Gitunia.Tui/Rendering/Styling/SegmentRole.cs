@@ -22,6 +22,9 @@ public enum SegmentRole
     ActiveTab,
     InactiveTab,
     StatusMode,
+
+    /// <summary>The keys of a status bar hint (the description is <see cref="Status"/>).</summary>
+    StatusKey,
     Status,
     Faint,
 

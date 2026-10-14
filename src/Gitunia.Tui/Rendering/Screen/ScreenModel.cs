@@ -1,5 +1,6 @@
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Tabs;
 
 namespace Gitunia.Tui.Rendering.Screen;
@@ -20,7 +21,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="HomeDirectory">The home directory, shown as <c>~</c> in picker paths.</param>
 /// <param name="MessageSeverity">How serious <paramref name="Message"/> is; errors are drawn in the error colour.</param>
 /// <param name="SearchLine">The open search or prompt (<c>/foo_  3/17</c>), shown instead of the position; empty when none.</param>
-/// <param name="Hints">The key hints of the focused pane for the status bar; empty uses the graph's.</param>
+/// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
     string? BranchName,
@@ -37,4 +38,4 @@ public sealed record ScreenModel(
     PickerState? Picker = null,
     string HomeDirectory = "",
     StatusSeverity MessageSeverity = StatusSeverity.Info,
-    string Hints = "");
+    IReadOnlyList<KeyHint>? Hints = null);

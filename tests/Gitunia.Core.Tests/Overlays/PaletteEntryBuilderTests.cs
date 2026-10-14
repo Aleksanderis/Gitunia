@@ -53,6 +53,6 @@ public class PaletteEntryBuilderTests
     [Fact]
     public void GivenTabGoToActions_WhenDescribing_ThenTitleNamesTheTab()
     {
-        Assert.Equal("Go to tab 3", ActionCatalog.Describe(ActionIds.TabGoTo(3)));
+        Assert.Equal("Go to tab 3 (same as 3gt)", ActionCatalog.Describe(ActionIds.TabGoTo(3)));
     }
 }

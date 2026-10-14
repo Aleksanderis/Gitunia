@@ -48,6 +48,27 @@ public class HelpBuilderTests
     }
 
     [Fact]
+    public void GivenGraphView_WhenBuilding_ThenEveryRowHasKeysAndADescriptionInOneNotation()
+    {
+        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).ToList();
+
+        Assert.All(rows, row =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(row.Keys));
+            Assert.False(string.IsNullOrWhiteSpace(row.Description), $"The keys {row.Keys} have no description.");
+            Assert.DoesNotContain('^', row.Keys.Replace("Ctrl-^", string.Empty, StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void GivenGraphView_WhenBuilding_ThenTheHelpMentionsTheMultiplexerSafeTabJump()
+    {
+        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
+
+        Assert.Contains(rows, row => row.Keys == "Alt-3" && row.Description.Contains("3gt", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenAPendingPrefix_WhenBuildingWhichKeyRows_ThenContinuationsAreDescribed()
     {
         var engine = new KeymapEngine(Table);
