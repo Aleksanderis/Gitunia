@@ -1,5 +1,6 @@
 using Gitunia.Core.Workspaces;
-using Gitunia.Tui.Rendering;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Tabs;
 
 namespace Gitunia.Tui.App.Tabs;

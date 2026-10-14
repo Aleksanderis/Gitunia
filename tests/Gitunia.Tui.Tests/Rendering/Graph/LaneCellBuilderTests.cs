@@ -1,5 +1,4 @@
 using Gitunia.Core.Graph;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 

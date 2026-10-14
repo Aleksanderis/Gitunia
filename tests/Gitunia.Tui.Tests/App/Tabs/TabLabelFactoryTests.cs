@@ -1,4 +1,6 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;

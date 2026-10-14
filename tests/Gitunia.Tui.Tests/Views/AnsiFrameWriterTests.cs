@@ -1,5 +1,4 @@
 using Gitunia.Platform;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
 using Xunit;

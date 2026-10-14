@@ -1,4 +1,4 @@
-using Gitunia.Tui.Rendering;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
@@ -167,7 +167,7 @@ public class TabBarTests
         Assert.True(cells[0].Start + cells[0].Width < TabBarLayout.CommandsStart(60)!.Value);
     }
 
-    private static int RepoState40() => Gitunia.Core.Workspaces.RepoState.MaximumNameLength;
+    private static int RepoState40() => RepoState.MaximumNameLength;
 
     [Fact]
     public void GivenTabRow_WhenHitTestingColumns_ThenTheTabUnderTheColumnIsFoundAndGapsAreNot()

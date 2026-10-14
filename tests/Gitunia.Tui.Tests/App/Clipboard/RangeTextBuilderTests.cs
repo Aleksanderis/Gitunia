@@ -1,12 +1,10 @@
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
-using Gitunia.Tui.Tests.Rendering;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Gitunia.Tui.Views;
 using Xunit;

@@ -1,5 +1,5 @@
 using Gitunia.Core.Mouse;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;

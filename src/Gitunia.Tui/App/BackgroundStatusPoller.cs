@@ -1,4 +1,6 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Status;

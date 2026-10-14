@@ -1,4 +1,4 @@
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Panes;
 

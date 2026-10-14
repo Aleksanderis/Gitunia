@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Picker;
 

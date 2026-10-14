@@ -1,6 +1,5 @@
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;

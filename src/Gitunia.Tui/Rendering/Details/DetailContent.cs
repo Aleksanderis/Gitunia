@@ -1,4 +1,4 @@
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 
 namespace Gitunia.Tui.Rendering.Details;

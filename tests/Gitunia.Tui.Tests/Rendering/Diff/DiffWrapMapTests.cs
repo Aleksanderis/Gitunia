@@ -1,5 +1,4 @@
 using Gitunia.Core.Diff;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;

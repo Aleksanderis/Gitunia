@@ -3,7 +3,6 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Terminal.Gui.Input;
 using Xunit;

@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Workspaces;

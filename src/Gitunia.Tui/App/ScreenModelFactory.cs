@@ -1,8 +1,8 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Tabs;
 

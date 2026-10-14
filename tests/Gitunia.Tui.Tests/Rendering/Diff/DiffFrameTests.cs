@@ -1,8 +1,8 @@
 using Gitunia.Core.Diff;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Tui.Loading;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;

@@ -3,7 +3,6 @@ using System.Collections.Specialized;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;

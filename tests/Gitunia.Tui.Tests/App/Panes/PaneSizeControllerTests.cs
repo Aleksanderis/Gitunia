@@ -1,7 +1,6 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Panes;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Panes;
 using Xunit;
 

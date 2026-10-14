@@ -1,5 +1,7 @@
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 

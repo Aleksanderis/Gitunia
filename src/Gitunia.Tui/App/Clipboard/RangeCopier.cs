@@ -1,5 +1,5 @@
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.App.Clipboard;

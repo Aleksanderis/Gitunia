@@ -1,16 +1,15 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Rendering;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 

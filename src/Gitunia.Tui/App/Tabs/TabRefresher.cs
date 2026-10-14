@@ -1,13 +1,15 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
-using Gitunia.Tui.Loading;
+using Gitunia.Tui.Loading.Graph;
 
 namespace Gitunia.Tui.App.Tabs;
 

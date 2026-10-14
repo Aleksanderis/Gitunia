@@ -1,12 +1,14 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
 
 namespace Gitunia.Tui.App;

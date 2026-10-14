@@ -1,9 +1,8 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Tui.Loading;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;

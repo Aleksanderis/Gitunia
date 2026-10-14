@@ -5,7 +5,6 @@ using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 

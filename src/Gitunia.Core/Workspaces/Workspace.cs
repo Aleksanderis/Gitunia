@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Workspaces;
 

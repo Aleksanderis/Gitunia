@@ -1,4 +1,5 @@
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Screen;
 

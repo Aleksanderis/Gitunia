@@ -1,7 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
-using Gitunia.Core.Workspaces;
-using Gitunia.Tui.Rendering;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Picker;
-using Gitunia.Tui.Rendering;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
@@ -87,7 +87,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenLocatingMode_WhenComposing_ThenThePromptSaysLocate()
     {
-        var picker = new PickerState(string.Empty, 0, [], string.Empty, new Gitunia.Core.Workspaces.TabId(1));
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, new TabId(1));
 
         Assert.StartsWith(" Locate repository: _", Frame(picker, 50, 4), StringComparison.Ordinal);
     }

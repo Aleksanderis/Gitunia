@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Panes;
+
 namespace Gitunia.Core.Keymap;
 
 /// <summary>Identifiers of the actions the default keymap binds. The state layer maps them to commands.</summary>

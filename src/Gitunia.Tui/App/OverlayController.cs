@@ -3,7 +3,6 @@ using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
-using Gitunia.Tui.Rendering;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 

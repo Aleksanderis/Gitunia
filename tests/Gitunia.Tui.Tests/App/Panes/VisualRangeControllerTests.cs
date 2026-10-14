@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Views;

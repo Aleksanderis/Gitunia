@@ -29,8 +29,8 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
-  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, Panes, Sidebar, Tabs)
+  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap, Search, Workspaces with Panes, Repositories and Tabs subfolders, ...)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, Panes, Sidebar, Tabs)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/

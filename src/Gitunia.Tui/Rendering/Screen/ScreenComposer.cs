@@ -1,6 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
