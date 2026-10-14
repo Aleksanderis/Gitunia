@@ -151,3 +151,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
 
 **UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.
+
+**UI:** `Enter` on the Details or Files tab keeps showing a notice instead of switching to Changes (#190, owner decision). Why: the tab switch is explicit (`1`-`3`, click), a key that jumps tabs would surprise.

@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
@@ -62,7 +63,7 @@ public sealed class TabSession : IDisposable
     public DetailListSource DetailSource { get; }
 
     /// <summary>The detail row last selected on each bottom tab for the commit shown; cleared when another commit is selected.</summary>
-    public Dictionary<BottomTab, int> DetailSelections { get; } = [];
+    public DetailCursorMemory DetailCursor { get; } = new();
 
     public CancellationTokenSource Cancellation { get; } = new();
 

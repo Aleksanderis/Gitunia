@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -286,7 +287,7 @@ public sealed class MainView : IDisposable
         }
 
         FocusFromTitle(Detail);
-        if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width), column) is { } tabView)
+        if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width, (Detail.Source as DetailListSource)?.Content.Tab ?? BottomTab.Changes), column) is { } tabView)
         {
             Gestured?.Invoke(tabView, MouseGesture.Click, null);
         }
