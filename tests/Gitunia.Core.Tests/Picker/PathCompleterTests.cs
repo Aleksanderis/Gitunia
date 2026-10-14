@@ -55,6 +55,40 @@ public class PathCompleterTests
     }
 
     [Fact]
+    public void GivenWrongCaseDirectoryPart_WhenCompleting_ThenTextUsesRealCaseSoEnterCanOpenIt()
+    {
+        var context = PickerFixtures.Context(directories: new Dictionary<string, string[]>
+        {
+            [PickerFixtures.Home] = ["Projects"],
+            [PickerFixtures.PathOf("Projects")] = ["Work"],
+            [PickerFixtures.PathOf("Projects", "Work")] = ["MyRepo"],
+        });
+        const string typed = "~/projects/work/my";
+
+        var completed = PathCompleter.Complete(typed, PathCompleter.Candidates(typed, context), 0);
+
+        Assert.Equal("~/Projects/Work/MyRepo/", completed);
+    }
+
+    [Fact]
+    public void GivenCorrectlyCasedDirectory_WhenListingCandidates_ThenAncestorsAreNotListed()
+    {
+        var listed = new List<string>();
+        var context = PickerFixtures.Context() with
+        {
+            ListDirectories = directory =>
+            {
+                listed.Add(directory);
+                return Path.TrimEndingDirectorySeparator(directory) == PickerFixtures.PathOf("code") ? [PickerFixtures.PathOf("code", "alpha")] : [];
+            },
+        };
+
+        PathCompleter.Candidates("~/code/a", context);
+
+        Assert.All(listed, directory => Assert.Equal(PickerFixtures.PathOf("code"), Path.TrimEndingDirectorySeparator(directory)));
+    }
+
+    [Fact]
     public void GivenTwoDirectoriesDifferingInCase_WhenExactSpellingTyped_ThenExactOneIsListed()
     {
         var context = PickerFixtures.Context(directories: new Dictionary<string, string[]>
