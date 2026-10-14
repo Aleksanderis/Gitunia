@@ -25,8 +25,6 @@ namespace Gitunia.Tui.Tests.App.Tabs;
 public class TabRefresherTests
 {
     private static readonly RepositoryWatcherOptions FastOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
-    private static readonly RepositoryWatcherOptions QuietOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromHours(1));
-
     [Fact]
     public async Task GivenLoadedTab_WhenTheFirstRefreshRuns_ThenItIsABaselineThatAppliesSectionsWithoutReloadingTheGraph()
     {
@@ -326,7 +324,7 @@ public class TabRefresherTests
                 .RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var repositoryRefresher = new FakeRepositoryRefresher();
-            var refresher = new TabRefresher(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader), host, session, location, statuses, pump.Post, new WatchBudget(), QuietOptions);
+            var refresher = new TabRefresher(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader), host, session, location, statuses, pump.Post, new WatchBudget(), TestGit.QuietWatcherOptions);
             refresher.Start();
             await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount > 0 && !refresher.IsRefreshing);
             return new FakeHarness(host, tabId, session, refresher, repositoryRefresher, statuses, pump);

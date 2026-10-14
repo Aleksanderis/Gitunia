@@ -11,12 +11,10 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
-// The restored-tab case runs on fakes: it is about which tabs load. The other cases need real file system watchers, real refs and a real
-// manual refresh against git, so they keep real temporary repositories.
+// The restored-tab case runs on fakes: it is about which tabs load. The other cases are end-to-end checks of the wiring (real file system
+// watchers reacting to real git commands, and a manual refresh through the real refresher), so they keep real temporary repositories.
 public class EffectRunnerTests
 {
-    private static readonly RepositoryWatcherOptions QuietOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromHours(1));
-
     [Fact]
     public async Task GivenRestoredTabs_WhenStarting_ThenOnlyActiveTabLoadsUntilActivated()
     {
@@ -32,7 +30,7 @@ public class EffectRunnerTests
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: QuietOptions);
+        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: TestGit.QuietWatcherOptions);
 
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },

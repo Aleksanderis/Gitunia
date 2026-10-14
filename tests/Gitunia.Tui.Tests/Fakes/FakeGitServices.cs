@@ -5,13 +5,13 @@ using Gitunia.Tui.Loading.Graph;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-/// <summary>The services of the app with every reader replaced by a fake, wired like <see cref="GitServices.Create"/>; only the repository discovery stays real (nothing under test calls it).</summary>
+/// <summary>The services of the app with every reader replaced by a fake, wired by hand like <see cref="GitServices.Create"/> (add a new part there to here too); only the repository discovery stays real (nothing under test calls it).</summary>
 public sealed class FakeGitServices
 {
     public FakeGitServices()
     {
         var graphLoader = new GraphLoader(CommitLog);
-        var refresher = new RepositoryRefresher(Refs, Status, new FakeRepositoryOperationDetector());
+        var refresher = new RepositoryRefresher(Refs, Status, new RepositoryOperationDetector());
         Services = TestGit.Services with
         {
             CommitLog = CommitLog,

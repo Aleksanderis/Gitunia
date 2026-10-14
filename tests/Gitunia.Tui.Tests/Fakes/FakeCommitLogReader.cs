@@ -6,10 +6,12 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-/// <summary>Streams a commit log from memory, so loader tests need no git repository. Commits are listed newest first, as git prints them.</summary>
+/// <summary>Streams a commit log from memory, so loader tests need no git repository. Commits are listed newest first, as git prints them. The order, revisions and warnings arguments are ignored.</summary>
 public sealed class FakeCommitLogReader : ICommitLogReader
 {
     private static readonly DateTimeOffset CommitTime = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private int _nextNumber = 1;
 
     /// <summary>The log, newest first.</summary>
     public List<CommitInfo> Commits { get; } = [];
@@ -36,7 +38,7 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     public CommitInfo AddOnTop(string subject, params CommitDecoration[] decorations)
     {
         IReadOnlyList<ObjectId> parents = Commits.Count == 0 ? [] : [Commits[0].Id];
-        var commit = new CommitInfo(FakeObjectIds.Of(Commits.Count + 1), parents, "Author", "author@example.com", CommitTime, subject, decorations);
+        var commit = new CommitInfo(FakeObjectIds.Of(_nextNumber++), parents, "Author", "author@example.com", CommitTime, subject, decorations);
         Commits.Insert(0, commit);
         return commit;
     }
@@ -61,6 +63,7 @@ public sealed class FakeCommitLogReader : ICommitLogReader
             yield return commit;
         }
 
+        // Keeps this an async iterator without an await in the loop.
         await Task.CompletedTask.ConfigureAwait(false);
     }
 

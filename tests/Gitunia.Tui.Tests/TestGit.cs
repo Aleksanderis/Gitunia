@@ -1,4 +1,5 @@
 using Gitunia.Git.Execution;
+using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
 
 namespace Gitunia.Tui.Tests;
@@ -7,4 +8,7 @@ namespace Gitunia.Tui.Tests;
 public static class TestGit
 {
     public static GitServices Services { get; } = GitServices.Create(new GitRunner());
+
+    /// <summary>Watcher options for tests on fake locations: nothing to watch, and a polling interval too long to ever fire.</summary>
+    public static RepositoryWatcherOptions QuietWatcherOptions { get; } = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromHours(1));
 }
