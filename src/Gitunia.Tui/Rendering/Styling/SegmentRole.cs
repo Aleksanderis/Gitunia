@@ -20,10 +20,10 @@ public enum SegmentRole
     /// <summary>A tab of the bottom pane that is not showing: a button on the bar background (underlined where there is no background).</summary>
     TabButton,
     ActiveTab,
+    InactiveTab,
 
     /// <summary>A repository tab of the tab row that is not the active one: a button, a tinted chip on the bar (underlined where there are no colours, #240).</summary>
     RepositoryTab,
-    InactiveTab,
     StatusMode,
     Status,
     Faint,

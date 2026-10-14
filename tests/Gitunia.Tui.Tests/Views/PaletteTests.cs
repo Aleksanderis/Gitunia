@@ -18,6 +18,7 @@ public class PaletteTests
 
     private const double ReadableRatio = 4.5;
     private const double DecorationRatio = 3.0;
+    private const double MinimumTabTint = 1.15;
 
     public static TheoryData<bool> Variants => new() { false, true };
 
@@ -166,8 +167,21 @@ public class PaletteTests
         var bar = Palette.For(new StyledSegment(" ", SegmentRole.Status), false, false, colors);
         var active = Palette.For(new StyledSegment(" 1 alpha ", SegmentRole.ActiveTab), false, false, colors);
 
-        Assert.NotEqual(bar.Background, tab.Background);
         Assert.NotEqual(active.Background, tab.Background);
+        Assert.True(Contrast(ToRgb(tab.Background), ToRgb(bar.Background)) >= MinimumTabTint, "the tab tint is visible against the bar");
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.None)]
+    public void GivenAColourlessScheme_WhenDrawingARepositoryTab_ThenItIsUnderlinedWithoutABackground(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        var tab = Palette.For(new StyledSegment(" 2 beta ", SegmentRole.RepositoryTab), false, false, colors);
+
+        Assert.Equal(Color.None, tab.Background);
+        Assert.True(tab.Style.HasFlag(TextStyle.Underline));
     }
 
     [Theory]

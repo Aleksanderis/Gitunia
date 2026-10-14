@@ -74,7 +74,7 @@ public static class ChromeBuilder
         {
             builder.Append(index > 0 ? " " : string.Empty, SegmentRole.Status);
             builder.Append(
-                cells[index].IsActive ? cells[index].Text : ButtonText(cells[index].Text, glyphs),
+                cells[index].IsActive ? cells[index].Text : ButtonLabel.For(cells[index].Text, glyphs.IsAscii),
                 cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.RepositoryTab);
         }
 
@@ -88,8 +88,4 @@ public static class ChromeBuilder
 
         return builder.Build(SegmentRole.Status);
     }
-
-    // Without Unicode a button is marked by brackets in its outer padding columns, so its width and click zone stay the same.
-    private static string ButtonText(string text, GraphGlyphSet glyphs) =>
-        glyphs.IsAscii && text.Length > 2 && text[0] == ' ' && text[^1] == ' ' ? $"[{text[1..^1]}]" : text;
 }

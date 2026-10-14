@@ -80,8 +80,10 @@ public class TabBarTests
         var labels = new[] { Label(1, "alpha", isActive: true, branch: null), Label(2, "beta", branch: null) };
         var line = ChromeBuilder.Tabs(Model(labels), 80, GraphGlyphSet.Ascii);
 
-        Assert.Equal("[ 2 beta ]", line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab).Text);
-        Assert.Equal(TabBarLayout.Layout(labels, 80, GraphGlyphSet.Ascii)[1].Width, TextWidth.Of(line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab).Text));
+        var button = line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab);
+
+        Assert.Equal("[ 2 beta ]", button.Text);
+        Assert.Equal(TabBarLayout.Layout(labels, 80, GraphGlyphSet.Ascii)[1].Width, TextWidth.Of(button.Text));
     }
 
     [Fact]
