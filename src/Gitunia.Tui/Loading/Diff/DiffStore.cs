@@ -217,7 +217,7 @@ public sealed class DiffStore(
 
     private async Task<ObjectId?> FirstParentOfAsync(ObjectId commit, CancellationToken token)
     {
-        var result = await repository.RunAsync(["rev-list", "--parents", "-n", "1", commit.ToString()], new GitRunOptions(ReadOnly: true), token).ConfigureAwait(false);
+        var result = await repository.RunAsync(["rev-list", "--parents", "-n", "1", commit.ToString()], GitRunOptions.ReadOnlyRun, token).ConfigureAwait(false);
         var fields = result.StandardOutputText.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries);
         return fields.Length > 1 && ObjectId.TryParse(fields[1], out var parent) ? parent : null;
     }

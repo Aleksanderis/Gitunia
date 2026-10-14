@@ -29,14 +29,18 @@ public sealed class Repository
         return new Repository(runner, location);
     }
 
+    private static readonly string[] SymbolicHeadArguments = ["symbolic-ref", "-q", "HEAD"];
+
+    private static readonly string[] VerifyHeadArguments = ["rev-parse", "--verify", "-q", "HEAD"];
+
     /// <summary>Runs git against this repository or worktree.</summary>
     public Task<GitResult> RunAsync(IReadOnlyList<string> arguments, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
-        Runner.RunAsync(Location.CommandPath, arguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken);
+        Runner.RunAsync(Location.CommandPath, arguments, options, cancellationToken);
 
     public async Task<HeadState> ReadHeadAsync(CancellationToken cancellationToken)
     {
-        var symbolic = await RunAsync(["symbolic-ref", "-q", "HEAD"], GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
-        var commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
+        var symbolic = await RunAsync(SymbolicHeadArguments,GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
+        var commit = await RunAsync(VerifyHeadArguments,GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
 
         var reference = symbolic.StandardOutputText.Trim();
         var branchName = reference.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? reference[GitRefPrefixes.Heads.Length..] : null;

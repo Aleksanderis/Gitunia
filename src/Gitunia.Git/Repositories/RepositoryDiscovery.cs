@@ -8,6 +8,10 @@ namespace Gitunia.Git.Repositories;
 /// <summary>Resolves any path (root, subdirectory, linked worktree, bare repository, inside a git directory) to a <see cref="RepositoryLocation"/>.</summary>
 public static class RepositoryDiscovery
 {
+    private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"];
+
+    private static readonly string[] CoreWorktreeArguments = ["config", "--get", "core.worktree"];
+
     /// <exception cref="NotARepositoryException">The path does not exist or is outside any repository.</exception>
     public static async Task<RepositoryLocation> DiscoverAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
@@ -23,7 +27,7 @@ public static class RepositoryDiscovery
         {
             basics = await runner.RunAsync(
                 fullPath,
-                ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"],
+                BasicsArguments,
                 GitRunOptions.ReadOnlyRun,
                 cancellationToken).ConfigureAwait(false);
         }
@@ -89,7 +93,7 @@ public static class RepositoryDiscovery
 
         var configured = await runner.RunAsync(
             path,
-            ["config", "--get", "core.worktree"],
+            CoreWorktreeArguments,
             GitRunOptions.ReadOnlyRunAllowingNoMatch,
             cancellationToken).ConfigureAwait(false);
         var worktree = configured.StandardOutputText.Trim();
