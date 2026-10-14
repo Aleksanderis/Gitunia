@@ -238,7 +238,7 @@ public class GitRunnerTests
 
     private static async Task AssertNeverMarkedAsync(string marker)
     {
-        // The fake would write the marker after two seconds had the process survived; wait for its exit rather than for the clock.
+        // The fake would write the marker after its sleep (30 seconds on Unix) had the process survived; wait for its exit rather than for the clock.
         if (OperatingSystem.IsWindows())
         {
             // The cmd script cannot record its process id, so the only option is to outwait it.
