@@ -8,7 +8,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 
 - C# on .NET 10 (LTS), `net10.0`, SDK pinned in `global.json`. Code in `src/`, tests in `tests/` (layout in `docs/architecture.md`). Published as a single Native AOT binary; it must start in well under 100 ms.
 - Git access: spawn the `git` CLI and parse its output; no libgit2 without a logged decision.
-- UI: Terminal.Gui v2 (decided in M0, see `docs/decisions.md` for settings and pitfalls). Tests: xUnit with real `git` on temp repos.
+- UI: Terminal.Gui v2 (decided in M0, see `docs/architecture.md` for settings and pitfalls). Tests: xUnit with real `git` on temp repos.
 
 ## Rules
 
