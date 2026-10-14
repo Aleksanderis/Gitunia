@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Tests.Input;
 
 public class MouseControllerTests
 {
-    private readonly List<(ActionId Action, int? Count)> executed = [];
+    private readonly List<ExecutedAction> executed = [];
     private bool suppressed;
 
     [Fact]
@@ -18,7 +18,7 @@ public class MouseControllerTests
         var ran = controller.Handle(DefaultKeymap.GraphView, MouseGesture.WheelDown);
 
         Assert.True(ran);
-        Assert.Equal([(ActionIds.ListDown, (int?)DefaultMouseMap.WheelLines)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], executed);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.TabsView, MouseGesture.Click, 3);
 
-        Assert.Equal([(ActionIds.TabNext, (int?)3)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.TabNext, 3)], executed);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.DetailView, MouseGesture.DoubleClick);
 
-        Assert.Equal([(ActionIds.DetailOpenDiff, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.DetailOpenDiff, null)], executed);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class MouseControllerTests
         var ran = controller.Handle(DefaultKeymap.HelpView, MouseGesture.WheelDown);
 
         Assert.True(ran);
-        Assert.Equal([(ActionIds.ListDown, (int?)DefaultMouseMap.WheelLines)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], executed);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class MouseControllerTests
         var ran = controller.Handle(DefaultMouseMap.BackdropView, MouseGesture.Click);
 
         Assert.True(ran);
-        Assert.Equal([(ActionIds.Cancel, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.Cancel, null)], executed);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
 
-        Assert.Equal([(ActionIds.CommandExecute, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.CommandExecute, null)], executed);
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.GraphView, gesture, 7);
 
-        Assert.Equal([(new ActionId(action), (int?)7)], executed);
+        Assert.Equal([new ExecutedAction(new ActionId(action), 7)], executed);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.DiffView, MouseGesture.DragStart);
 
-        Assert.Equal([(ActionIds.VisualToggle, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.VisualToggle, null)], executed);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.CommandsButton, MouseGesture.Click);
 
-        Assert.Equal([(ActionIds.PaletteOpen, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.PaletteOpen, null)], executed);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.NewTabButton, MouseGesture.Click);
 
-        Assert.Equal([(ActionIds.PickerOpen, (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.PickerOpen, null)], executed);
     }
 
     [Fact]
@@ -166,9 +166,9 @@ public class MouseControllerTests
 
         controller.Handle(buttonView, MouseGesture.Click);
 
-        Assert.Equal([(new ActionId(action), (int?)null)], executed);
+        Assert.Equal([new ExecutedAction(new ActionId(action), null)], executed);
     }
 
     private MouseController CreateController() =>
-        new(DefaultMouseMap.Create(), (action, count) => executed.Add((action, count)), () => suppressed);
+        new(DefaultMouseMap.Create(), (action, count) => executed.Add(new ExecutedAction(action, count)), () => suppressed);
 }

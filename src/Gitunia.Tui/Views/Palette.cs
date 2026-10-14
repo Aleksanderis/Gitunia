@@ -29,13 +29,16 @@ public static class Palette
     /// <param name="colors">The colours of the scheme.</param>
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused, PaletteTable colors)
     {
-        var (foreground, background, style, keepsBackground) = Role(segment, colors);
+        var role = Role(segment, colors);
+        var foreground = role.Foreground;
+        var background = role.Background;
+        var style = role.Style;
         if (!isSelected)
         {
             return new Attribute(foreground, segment.OnPanel && background == Color.None ? colors.PanelBackground : background, style);
         }
 
-        if (!keepsBackground)
+        if (!role.KeepsBackground)
         {
             background = isFocused ? colors.SelectionFocused : colors.SelectionDim;
             if (foreground == colors.Muted)
@@ -48,39 +51,39 @@ public static class Palette
     }
 
     // Foreground, background, style, and whether the background stays when the row is selected (chips, search matches).
-    private static (Color Foreground, Color Background, TextStyle Style, bool KeepsBackground) Role(StyledSegment segment, PaletteTable colors)
+    private static RoleAppearance Role(StyledSegment segment, PaletteTable colors)
     {
         var muted = colors.MutedStyle;
         return segment.Role switch
         {
-            SegmentRole.Lane => (colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
-            SegmentRole.Hash or SegmentRole.Faint => (colors.Muted, Color.None, muted, false),
-            SegmentRole.Punctuation => (colors.Muted, Color.None, muted, false),
-            SegmentRole.LocalBranch => (colors.Good, Color.None, TextStyle.Bold, false),
-            SegmentRole.CurrentBranch => (colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),
-            SegmentRole.RemoteBranch => (colors.Remote, Color.None, TextStyle.Bold, false),
-            SegmentRole.Tag => (colors.Warn, Color.None, TextStyle.Bold, false),
-            SegmentRole.BarButton => (colors.Accent, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.Status => (colors.Muted, colors.BarBackground, muted, true),
-            SegmentRole.StatusError => (colors.Bad, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => (colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
-            SegmentRole.TabButton => (colors.Muted, colors.BarBackground, colors.BarBackground == Color.None ? colors.MutedStyle | TextStyle.Underline : TextStyle.None, true),
-            SegmentRole.InactiveTab => (Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
-            SegmentRole.Error => (colors.Bad, Color.None, TextStyle.Bold, false),
-            SegmentRole.SearchMatch => (colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
-            SegmentRole.SectionTitle => (colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.Border => (colors.Border, Color.None, TextStyle.None, false),
-            SegmentRole.FocusedBorder => (colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.FileAdded => (colors.Good, Color.None, TextStyle.Bold, false),
-            SegmentRole.FileDeleted => (colors.Bad, Color.None, TextStyle.Bold, false),
-            SegmentRole.FileChanged => (colors.Warn, Color.None, TextStyle.Bold, false),
-            SegmentRole.DiffAdded => (colors.Good, Color.None, TextStyle.None, false),
-            SegmentRole.DiffRemoved => (colors.Bad, Color.None, TextStyle.None, false),
-            SegmentRole.DiffHunk => (colors.Info, Color.None, TextStyle.None, false),
-            SegmentRole.DiffFile => (colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.Button => (colors.Accent, Color.None, TextStyle.Bold, false),
-            SegmentRole.OverlayKey => (colors.Warn, Color.None, TextStyle.Bold, false),
-            _ => (Color.None, Color.None, TextStyle.None, false),
+            SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
+            SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
+            SegmentRole.Punctuation => new RoleAppearance(colors.Muted, Color.None, muted, false),
+            SegmentRole.LocalBranch => new RoleAppearance(colors.Good, Color.None, TextStyle.Bold, false),
+            SegmentRole.CurrentBranch => new RoleAppearance(colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),
+            SegmentRole.RemoteBranch => new RoleAppearance(colors.Remote, Color.None, TextStyle.Bold, false),
+            SegmentRole.Tag => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
+            SegmentRole.BarButton => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.Status => new RoleAppearance(colors.Muted, colors.BarBackground, muted, true),
+            SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
+            SegmentRole.TabButton => new RoleAppearance(colors.Muted, colors.BarBackground, colors.BarBackground == Color.None ? colors.MutedStyle | TextStyle.Underline : TextStyle.None, true),
+            SegmentRole.InactiveTab => new RoleAppearance(Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
+            SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
+            SegmentRole.SearchMatch => new RoleAppearance(colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
+            SegmentRole.SectionTitle => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.Border => new RoleAppearance(colors.Border, Color.None, TextStyle.None, false),
+            SegmentRole.FocusedBorder => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.FileAdded => new RoleAppearance(colors.Good, Color.None, TextStyle.Bold, false),
+            SegmentRole.FileDeleted => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
+            SegmentRole.FileChanged => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
+            SegmentRole.DiffAdded => new RoleAppearance(colors.Good, Color.None, TextStyle.None, false),
+            SegmentRole.DiffRemoved => new RoleAppearance(colors.Bad, Color.None, TextStyle.None, false),
+            SegmentRole.DiffHunk => new RoleAppearance(colors.Info, Color.None, TextStyle.None, false),
+            SegmentRole.DiffFile => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.Button => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.OverlayKey => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),
+            _ => new RoleAppearance(Color.None, Color.None, TextStyle.None, false),
         };
     }
 }

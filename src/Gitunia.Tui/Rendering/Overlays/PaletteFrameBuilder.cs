@@ -24,7 +24,10 @@ public static class PaletteFrameBuilder
         }
 
         var visible = palette.Visible();
-        var (rowCount, selected, top) = Window(palette, visible.Count, maximumRows);
+        var window = Window(palette, visible.Count, maximumRows);
+        var rowCount = window.RowCount;
+        var selected = window.Selected;
+        var top = window.Top;
 
         var lines = new List<StyledLine> { OverlayBox.Title(": " + palette.Query + "_", width, glyphs) };
         if (visible.Count == 0)
@@ -57,15 +60,17 @@ public static class PaletteFrameBuilder
     public static int? EntryIndexAt(PaletteState palette, int frameLine, int screenHeight)
     {
         var visibleCount = palette.Visible().Count;
-        var (rowCount, _, top) = Window(palette, visibleCount, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
+        var window = Window(palette, visibleCount, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
+        var rowCount = window.RowCount;
+        var top = window.Top;
         var offset = frameLine - 1;
         return offset >= 0 && offset < rowCount && top + offset < visibleCount ? top + offset : null;
     }
 
-    private static (int RowCount, int Selected, int Top) Window(PaletteState palette, int visibleCount, int maximumRows)
+    private static PaletteWindow Window(PaletteState palette, int visibleCount, int maximumRows)
     {
         var rowCount = Math.Max(1, Math.Min(maximumRows, visibleCount));
         var selected = visibleCount == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visibleCount - 1);
-        return (rowCount, selected, Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, visibleCount - rowCount)));
+        return new PaletteWindow(rowCount, selected, Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, visibleCount - rowCount)));
     }
 }

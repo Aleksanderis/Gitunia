@@ -44,8 +44,9 @@ public static class WorktreeParser
 
         foreach (var attribute in attributes)
         {
-            (var key, var value) = SplitAttribute(attribute);
-            switch (key)
+            var parsed = SplitAttribute(attribute);
+            var value = parsed.Value;
+            switch (parsed.Key)
             {
                 case "worktree":
                     path = value;
@@ -86,9 +87,9 @@ public static class WorktreeParser
         worktrees.Add(new WorktreeInfo(path, head, branch, detached, bare, locked, lockReason, prunable, pruneReason, worktrees.Count == 0));
     }
 
-    private static (string Key, string Value) SplitAttribute(string attribute)
+    private static WorktreeProperty SplitAttribute(string attribute)
     {
         var space = attribute.IndexOf(' ', StringComparison.Ordinal);
-        return space < 0 ? (attribute, string.Empty) : (attribute[..space], attribute[(space + 1)..]);
+        return space < 0 ? new WorktreeProperty(attribute, string.Empty) : new WorktreeProperty(attribute[..space], attribute[(space + 1)..]);
     }
 }

@@ -9,7 +9,7 @@ namespace Gitunia.Tui.Tests.App;
 
 public class PickerControllerTests
 {
-    private static (PickerController Picker, WorkspaceHost Host, UiPump Pump) Create(
+    private static PickerHarness Create(
         string home,
         TimeSpan? listingTimeout = null,
         Func<string, IReadOnlyList<string>>? listDirectories = null,
@@ -19,14 +19,14 @@ public class PickerControllerTests
         var pump = new UiPump(TestContext.Current.CancellationToken);
         // Never show scanning by default: only the tests about it opt in, with a zero delay.
         var picker = new PickerController(new GitRunner(), host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan);
-        return (picker, host, pump);
+        return new PickerHarness(picker, host, pump);
     }
 
     [Fact]
     public async Task GivenTypedRepositoryPath_WhenAccepting_ThenItOpensInATabAndThePickerCloses()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(repository.Path));
@@ -43,7 +43,7 @@ public class PickerControllerTests
     public async Task GivenSubdirectoryOfARepository_WhenAccepting_ThenTheRepositoryRootIsOpened()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("sub/a.txt", "1"));
+        repository.Commit("root", new TestFile("sub/a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(Path.Combine(repository.Path, "sub")));
@@ -82,8 +82,8 @@ public class PickerControllerTests
     {
         using var first = TestRepository.Create();
         using var second = TestRepository.Create();
-        first.Commit("root", ("a.txt", "1"));
-        second.Commit("root", ("a.txt", "1"));
+        first.Commit("root", new TestFile("a.txt", "1"));
+        second.Commit("root", new TestFile("a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         foreach (var repository in new[] { first, second })
         {
@@ -106,7 +106,7 @@ public class PickerControllerTests
     public async Task GivenRecentRepository_WhenRemovingItFromRecents_ThenOnlyTheListEntryGoesAndNothingIsDeleted()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
         picker.Apply(new TypeTextCommand(repository.Path));

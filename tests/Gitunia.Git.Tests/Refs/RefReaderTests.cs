@@ -82,10 +82,10 @@ public class RefReaderTests
     public async Task GivenUpstreamAheadAndBehind_WhenReadingRefs_ThenCountsAreReported()
     {
         using var origin = TestRepository.Create(bare: true);
-        using var local = TestRepository.Create().Commit("One", ("f.txt", "1\n"));
+        using var local = TestRepository.Create().Commit("One", new TestFile("f.txt", "1\n"));
         local.Git("remote", "add", "origin", origin.Path);
         local.Git("push", "-q", "-u", "origin", "main");
-        local.Commit("Two local", ("f.txt", "2\n"));
+        local.Commit("Two local", new TestFile("f.txt", "2\n"));
         // Make origin move independently: push a second commit built from a clone.
         var clonePath = Path.Combine(Path.GetDirectoryName(local.Path)!, "clone");
         local.Git("clone", "-q", origin.Path, clonePath);

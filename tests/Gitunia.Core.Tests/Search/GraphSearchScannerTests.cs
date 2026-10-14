@@ -8,7 +8,7 @@ public class GraphSearchScannerTests
     [Fact]
     public void GivenMessageQuery_WhenScanning_ThenMatchesIgnoreCaseAndSubstring()
     {
-        var graph = SearchTestGraph.Build(("Fix the Parser", "Bob"), ("Add tests", "Bob"), ("fix typo", "Alice"));
+        var graph = SearchTestGraph.Build(new SearchTestRow("Fix the Parser", "Bob"), new SearchTestRow("Add tests", "Bob"), new SearchTestRow("fix typo", "Alice"));
 
         var result = GraphSearchScanner.Scan(new SearchQuery(SearchField.Message, "FIX"), graph, 0, 100);
 
@@ -19,7 +19,7 @@ public class GraphSearchScannerTests
     [Fact]
     public void GivenAuthorAndHashQueries_WhenScanning_ThenTheyMatchThoseFields()
     {
-        var graph = SearchTestGraph.Build(("one", "Bob Builder"), ("two", "Alice"), ("three", "bobby"));
+        var graph = SearchTestGraph.Build(new SearchTestRow("one", "Bob Builder"), new SearchTestRow("two", "Alice"), new SearchTestRow("three", "bobby"));
 
         Assert.Equal([0, 2], GraphSearchScanner.Scan(new SearchQuery(SearchField.Author, "bob"), graph, 0, 100).Matches);
         Assert.Equal([1], GraphSearchScanner.Scan(new SearchQuery(SearchField.Hash, "0000000000000000000000000000000000000002"), graph, 0, 100).Matches);

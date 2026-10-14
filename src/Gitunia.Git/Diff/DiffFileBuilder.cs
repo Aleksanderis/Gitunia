@@ -57,8 +57,8 @@ internal sealed class DiffFileBuilder
         }
         else
         {
-            headerOldPath = paths.Value.OldPath;
-            headerNewPath = paths.Value.NewPath;
+            headerOldPath = paths.OldPath;
+            headerNewPath = paths.NewPath;
         }
     }
 

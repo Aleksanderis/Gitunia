@@ -12,7 +12,7 @@ public class SidebarActionHandlerTests
     private static TestRepository BranchyRepository()
     {
         var repository = TestRepository.Create();
-        repository.Commit("one", ("a.txt", "1")).Branch("old").Commit("two", ("a.txt", "2")).Tag("v2").Branch("feature");
+        repository.Commit("one", new TestFile("a.txt", "1")).Branch("old").Commit("two", new TestFile("a.txt", "2")).Tag("v2").Branch("feature");
         return repository;
     }
 

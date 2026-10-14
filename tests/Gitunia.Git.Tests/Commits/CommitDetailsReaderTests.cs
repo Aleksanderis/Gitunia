@@ -24,7 +24,7 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenRootCommit_WhenReading_ThenFilesAreAddedAndParentsEmpty()
     {
-        using var testRepository = TestRepository.Create().Commit("root\n\nlong body", ("a.txt", "a\n"), ("dir/b.txt", "b\n"));
+        using var testRepository = TestRepository.Create().Commit("root\n\nlong body", new TestFile("a.txt", "a\n"), new TestFile("dir/b.txt", "b\n"));
 
         var details = await ReadAsync(testRepository, "HEAD");
 
@@ -40,10 +40,10 @@ public class CommitDetailsReaderTests
     public async Task GivenModifyDeleteAndRename_WhenReading_ThenEachHasItsKind()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("one", ("keep.txt", "k\n"), ("gone.txt", "g\n"), ("old name.txt", "line1\nline2\nline3\nline4\n"));
+            .Commit("one", new TestFile("keep.txt", "k\n"), new TestFile("gone.txt", "g\n"), new TestFile("old name.txt", "line1\nline2\nline3\nline4\n"));
         testRepository.Git("mv", "old name.txt", "new ünï.txt");
         testRepository.Git("rm", "-q", "gone.txt");
-        testRepository.Commit("two", ("keep.txt", "k2\n"));
+        testRepository.Commit("two", new TestFile("keep.txt", "k2\n"));
 
         var details = await ReadAsync(testRepository, "HEAD");
 
@@ -70,7 +70,7 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenCommitWithEmptyChange_WhenReading_ThenNoFiles()
     {
-        using var testRepository = TestRepository.Create().Commit("root", ("a.txt", "a\n")).Commit("empty");
+        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n")).Commit("empty");
 
         var details = await ReadAsync(testRepository, "HEAD");
 
@@ -81,7 +81,7 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenCancelledToken_WhenReading_ThenThrowsCancellation()
     {
-        using var testRepository = TestRepository.Create().Commit("root", ("a.txt", "a\n"));
+        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         Assert.True(ObjectId.TryParse(testRepository.Head, out var id));
         using var source = new CancellationTokenSource();

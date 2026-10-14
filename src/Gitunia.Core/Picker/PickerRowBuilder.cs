@@ -34,7 +34,7 @@ public static class PickerRowBuilder
     }
 
     // Open tabs first, then pins, recents (most recent first) and discovered repositories; a repository appears once with all its tags.
-    private static List<(PickerRow Row, int Order)> Collect(PickerContext context)
+    private static List<PickerRowEntry> Collect(PickerContext context)
     {
         var tagsByPath = new Dictionary<string, PickerTags>(RepositoryPathComparer.Instance);
         var order = new List<string>();
@@ -75,7 +75,7 @@ public static class PickerRowBuilder
             .Select((path, index) => (Row: new PickerRow(path, NameOf(path), tagsByPath[path]), Order: index))
             .OrderBy(item => Rank(item.Row.Tags))
             .ThenBy(item => item.Order)
-            .Select((item, index) => (item.Row, Order: index))
+            .Select((item, index) => new PickerRowEntry(item.Row, index))
             .ToList();
         return rows;
     }

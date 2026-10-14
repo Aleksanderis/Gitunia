@@ -247,7 +247,7 @@ public class CommitDetailsPrefetchTests
         var testRepository = TestRepository.Create();
         for (var number = 1; number <= count; number++)
         {
-            testRepository.Commit("commit " + number, ("a.txt", number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            testRepository.Commit("commit " + number, new TestFile("a.txt", number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         }
 
         return testRepository;

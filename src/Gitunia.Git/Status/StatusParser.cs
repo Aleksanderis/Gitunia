@@ -150,19 +150,35 @@ public static class StatusParser
 
     private static bool TryParseCode(char code, out FileChangeKind kind)
     {
-        (var known, kind) = code switch
+        kind = FileChangeKind.Unmodified;
+        switch (code)
         {
-            '.' => (true, FileChangeKind.Unmodified),
-            'M' => (true, FileChangeKind.Modified),
-            'T' => (true, FileChangeKind.TypeChanged),
-            'A' => (true, FileChangeKind.Added),
-            'D' => (true, FileChangeKind.Deleted),
-            'R' => (true, FileChangeKind.Renamed),
-            'C' => (true, FileChangeKind.Copied),
-            'U' => (true, FileChangeKind.UpdatedButUnmerged),
-            _ => (false, FileChangeKind.Unmodified),
-        };
-        return known;
+            case '.':
+                return true;
+            case 'M':
+                kind = FileChangeKind.Modified;
+                return true;
+            case 'T':
+                kind = FileChangeKind.TypeChanged;
+                return true;
+            case 'A':
+                kind = FileChangeKind.Added;
+                return true;
+            case 'D':
+                kind = FileChangeKind.Deleted;
+                return true;
+            case 'R':
+                kind = FileChangeKind.Renamed;
+                return true;
+            case 'C':
+                kind = FileChangeKind.Copied;
+                return true;
+            case 'U':
+                kind = FileChangeKind.UpdatedButUnmerged;
+                return true;
+            default:
+                return false;
+        }
     }
 
     /// <summary>Reads <c>R100</c> or <c>C75</c>.</summary>

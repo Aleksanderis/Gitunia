@@ -18,7 +18,7 @@ public class StatusReaderTests
     private static async Task<StatusSnapshot> ReadAsync(TestRepository testRepository, bool includeIgnored = false)
     {
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
-        var snapshot = await StatusReader.ReadStatusAsync(repository, includeIgnored, Token);
+        var snapshot = await StatusReader.ReadStatusAsync(repository, includeIgnored, UntrackedFilesMode.All, Token);
         Assert.Empty(snapshot.Warnings);
         return snapshot;
     }
@@ -33,8 +33,8 @@ public class StatusReaderTests
         testRepository.WriteFile("dir/two.txt", "2\n");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
-        var all = await StatusReader.ReadStatusAsync(repository, false, Token);
-        var normal = await StatusReader.ReadStatusAsync(repository, false, Token, UntrackedFilesMode.Normal);
+        var all = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.All, Token);
+        var normal = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.Normal, Token);
 
         Assert.Equal(2, all.Entries.Count);
         var entry = Assert.Single(normal.Entries);
@@ -85,10 +85,10 @@ public class StatusReaderTests
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Branch("upstream");
         testRepository.Git("branch", "--set-upstream-to=upstream", "main");
-        testRepository.Commit("Local one", ("local1.txt", "a\n"));
-        testRepository.Commit("Local two", ("local2.txt", "a\n"));
+        testRepository.Commit("Local one", new TestFile("local1.txt", "a\n"));
+        testRepository.Commit("Local two", new TestFile("local2.txt", "a\n"));
         testRepository.Checkout("upstream");
-        testRepository.Commit("Remote one", ("remote1.txt", "a\n"));
+        testRepository.Commit("Remote one", new TestFile("remote1.txt", "a\n"));
         testRepository.Checkout("main");
 
         var snapshot = await ReadAsync(testRepository);
@@ -101,7 +101,7 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedUnstagedAndUntrackedFiles_WhenReadingStatus_ThenEachKindIsReported()
     {
-        using var testRepository = TestRepository.Create().Commit("Initial", ("tracked.txt", "a\n"), ("staged.txt", "a\n"), ("both.txt", "a\n"));
+        using var testRepository = TestRepository.Create().Commit("Initial", new TestFile("tracked.txt", "a\n"), new TestFile("staged.txt", "a\n"), new TestFile("both.txt", "a\n"));
         testRepository.WriteFile("tracked.txt", "changed\n");
         testRepository.WriteFile("staged.txt", "changed\n");
         testRepository.Git("add", "staged.txt");
@@ -122,7 +122,7 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedRename_WhenReadingStatus_ThenRenameWithSourceIsReported()
     {
-        using var testRepository = TestRepository.Create().Commit("Initial", ("old name.txt", Numbered(40)));
+        using var testRepository = TestRepository.Create().Commit("Initial", new TestFile("old name.txt", Numbered(40)));
         testRepository.Git("mv", "old name.txt", "ünï cødé.txt");
 
         var snapshot = await ReadAsync(testRepository);
@@ -137,7 +137,7 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedCopyWithCopyDetectionEnabled_WhenReadingStatus_ThenCopyIsReported()
     {
-        using var testRepository = TestRepository.Create().Commit("Initial", ("original.txt", Numbered(40)));
+        using var testRepository = TestRepository.Create().Commit("Initial", new TestFile("original.txt", Numbered(40)));
         testRepository.Git("config", "status.renames", "copies");
 
         // Git only detects a copy when the source is modified in the same change.
@@ -173,7 +173,7 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenIgnoredFile_WhenReadingWithAndWithoutIgnored_ThenOnlyIncludedOnRequest()
     {
-        using var testRepository = TestRepository.Create().Commit("Initial", (".gitignore", "*.log\n"));
+        using var testRepository = TestRepository.Create().Commit("Initial", new TestFile(".gitignore", "*.log\n"));
         testRepository.WriteFile("debug.log", "x\n");
 
         var without = await ReadAsync(testRepository);
@@ -202,9 +202,9 @@ public class StatusReaderTests
     public async Task GivenDeletedByThemConflict_WhenReadingStatus_ThenConflictKindIsRead()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("Initial", ("file.txt", "a\n"))
+            .Commit("Initial", new TestFile("file.txt", "a\n"))
             .CheckoutNewBranch("other")
-            .Commit("Other change", ("file.txt", "other\n"))
+            .Commit("Other change", new TestFile("file.txt", "other\n"))
             .Checkout("main");
         testRepository.Git("rm", "-q", "file.txt");
         testRepository.Git("commit", "-q", "-m", "Delete file");

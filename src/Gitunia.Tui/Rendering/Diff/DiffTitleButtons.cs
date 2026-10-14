@@ -14,21 +14,21 @@ public static class DiffTitleButtons
     public const int MinimumTitleWidth = 30;
 
     // Right to left, in the order they are added: the most useful stay when the row is narrow.
-    private static readonly (string View, string Label)[] Candidates =
+    private static readonly ButtonSpecification[] Candidates =
     [
-        (DefaultMouseMap.DiffCloseButton, "[x]"),
-        (DefaultMouseMap.DiffZoomButton, "[z]"),
-        (DefaultMouseMap.DiffWrapButton, "[w]"),
-        (DefaultMouseMap.DiffNextHunkButton, "[h>]"),
-        (DefaultMouseMap.DiffPreviousHunkButton, "[<h]"),
-        (DefaultMouseMap.DiffNextFileButton, "[f>]"),
-        (DefaultMouseMap.DiffPreviousFileButton, "[<f]"),
+        new(DefaultMouseMap.DiffCloseButton, "[x]"),
+        new(DefaultMouseMap.DiffZoomButton, "[z]"),
+        new(DefaultMouseMap.DiffWrapButton, "[w]"),
+        new(DefaultMouseMap.DiffNextHunkButton, "[h>]"),
+        new(DefaultMouseMap.DiffPreviousHunkButton, "[<h]"),
+        new(DefaultMouseMap.DiffNextFileButton, "[f>]"),
+        new(DefaultMouseMap.DiffPreviousFileButton, "[<f]"),
     ];
 
     /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one space between them.</summary>
     public static IReadOnlyList<TitleButton> Layout(int width)
     {
-        var chosen = new List<(string View, string Label)>();
+        var chosen = new List<ButtonSpecification>();
         var used = 0;
         foreach (var candidate in Candidates)
         {

@@ -21,19 +21,19 @@ public static class PickerRowButtons
             return [];
         }
 
-        var labels = new List<(string View, string Label)> { (DefaultMouseMap.PickerPinButton, row.IsPinned ? "[unpin]" : "[pin]") };
+        var labels = new List<ButtonSpecification> { new(DefaultMouseMap.PickerPinButton, row.IsPinned ? "[unpin]" : "[pin]") };
         if (row.IsRecent)
         {
-            labels.Add((DefaultMouseMap.PickerRemoveButton, "[remove]"));
+            labels.Add(new ButtonSpecification(DefaultMouseMap.PickerRemoveButton, "[remove]"));
         }
 
         var total = labels.Sum(label => TextWidth.Of(label.Label)) + labels.Count;
         var buttons = new List<TitleButton>(labels.Count);
         var column = width - total;
-        foreach (var (view, label) in labels)
+        foreach (var specification in labels)
         {
-            buttons.Add(new TitleButton(view, label, column));
-            column += TextWidth.Of(label) + 1;
+            buttons.Add(new TitleButton(specification.View, specification.Label, column));
+            column += TextWidth.Of(specification.Label) + 1;
         }
 
         return buttons;

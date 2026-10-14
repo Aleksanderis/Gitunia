@@ -66,7 +66,7 @@ public class CommitLogReaderTests
     public async Task GivenOddSubjects_WhenReadingLog_ThenTextSurvives()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("ünï 日本 \"quoted\" subject; with | pipes", ("a.txt", "a\n"));
+            .Commit("ünï 日本 \"quoted\" subject; with | pipes", new TestFile("a.txt", "a\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
         var commits = await ReadAllAsync(repository);
@@ -135,7 +135,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenRevisionNamedLikeAFile_WhenReadingLog_ThenItIsStillTreatedAsRevision()
     {
-        using var testRepository = TestRepository.Create().Commit("One", ("main", "file named like the branch\n"));
+        using var testRepository = TestRepository.Create().Commit("One", new TestFile("main", "file named like the branch\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
         Assert.Single(await ReadAllAsync(repository, CommitOrder.Topological, "main"));

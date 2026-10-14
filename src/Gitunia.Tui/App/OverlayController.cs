@@ -5,6 +5,7 @@ using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App;
 
@@ -22,7 +23,7 @@ public sealed class OverlayController
     private readonly KeyController keys;
     private readonly WhichKeyTimer whichKeyTimer;
     private readonly Action<ActionId, int?> run;
-    private readonly Func<(int Width, int Height)> screenSize;
+    private readonly Func<ScreenSize> screenSize;
     private readonly GraphGlyphSet glyphs;
     private readonly Func<string> baseView;
     private readonly StatusChannel statuses;
@@ -41,7 +42,7 @@ public sealed class OverlayController
         KeyController keys,
         WhichKeyTimer whichKeyTimer,
         Action<ActionId, int?> run,
-        Func<(int Width, int Height)> screenSize,
+        Func<ScreenSize> screenSize,
         GraphGlyphSet glyphs,
         Func<string> baseView,
         StatusChannel statuses)
@@ -76,7 +77,9 @@ public sealed class OverlayController
     /// <summary>The frame to draw over the screen, or null when nothing is showing.</summary>
     public OverlayFrame? CurrentFrame()
     {
-        var (width, height) = screenSize();
+        var size = screenSize();
+        var width = size.Width;
+        var height = size.Height;
         var rows = State.WhichKeyVisible ? WhichKeyBuilder.Build(engine.Continuations(keys.State, ViewName)) : [];
         return OverlayFrameFactory.Create(State, helpSections, keys.PendingText, rows, width, height, glyphs);
     }
@@ -182,7 +185,9 @@ public sealed class OverlayController
 
     private void ScrollHelp(ActionId action, int? count)
     {
-        var (width, height) = screenSize();
+        var size = screenSize();
+        var width = size.Width;
+        var height = size.Height;
         var maximum = HelpFrameBuilder.MaximumScroll(helpSections, width, height);
         var visible = HelpFrameBuilder.VisibleRows(helpSections, width, height);
         if (ListMotion.TryMove(action, count, State.HelpScroll, maximum + 1, visible, out var target))

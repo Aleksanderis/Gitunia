@@ -9,6 +9,7 @@ using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
+using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Graph;
@@ -63,7 +64,7 @@ public static class RepositoryLoader
         {
             var headTask = repository.ReadHeadAsync(token);
             var refsTask = RefReader.ReadRefsAsync(repository, token);
-            var statusTask = StatusReader.ReadStatusAsync(repository, false, token);
+            var statusTask = StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.All, token);
             var head = await headTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(head))));
             var refs = await refsTask.ConfigureAwait(false);

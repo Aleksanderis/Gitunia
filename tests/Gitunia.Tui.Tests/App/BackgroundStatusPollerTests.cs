@@ -13,9 +13,9 @@ public class BackgroundStatusPollerTests
     public async Task GivenDirtyBackgroundTab_WhenPolled_ThenOnlyThatTabGetsMarkersAndNothingElseLoads()
     {
         using var active = TestRepository.Create();
-        active.Commit("root", ("a.txt", "1"));
+        active.Commit("root", new TestFile("a.txt", "1"));
         using var background = TestRepository.Create();
-        background.Commit("root", ("a.txt", "1")).WriteFile("a.txt", "changed");
+        background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
         var runner = new GitRunner();
         var workspace = await OpenAsync(runner, active.Path, background.Path);
         var activeId = workspace.Tabs[0].Id;
@@ -36,9 +36,9 @@ public class BackgroundStatusPollerTests
     public async Task GivenBackgroundTabBecomesClean_WhenPolledAgain_ThenMarkerClears()
     {
         using var active = TestRepository.Create();
-        active.Commit("root", ("a.txt", "1"));
+        active.Commit("root", new TestFile("a.txt", "1"));
         using var background = TestRepository.Create();
-        background.Commit("root", ("a.txt", "1")).WriteFile("a.txt", "changed");
+        background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
         var runner = new GitRunner();
         var workspace = await OpenAsync(runner, active.Path, background.Path);
         var backgroundId = workspace.Tabs[1].Id;

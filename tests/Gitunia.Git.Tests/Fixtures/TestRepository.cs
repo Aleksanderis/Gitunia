@@ -39,11 +39,11 @@ public sealed class TestRepository : IDisposable
     }
 
     /// <summary>Writes <paramref name="files"/> (path, content), stages everything and commits.</summary>
-    public TestRepository Commit(string message, params (string RelativePath, string Content)[] files)
+    public TestRepository Commit(string message, params TestFile[] files)
     {
-        foreach ((var relativePath, var content) in files)
+        foreach (var file in files)
         {
-            WriteFile(relativePath, content);
+            WriteFile(file.RelativePath, file.Content);
         }
 
         Git("add", "-A");

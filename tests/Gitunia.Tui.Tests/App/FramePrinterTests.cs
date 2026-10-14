@@ -19,7 +19,7 @@ public class FramePrinterTests
     public async Task GivenNoArrangementOnTheDetailsTab_WhenPrinting_ThenOnlyTheDetailPaneIsShown()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
 
@@ -31,7 +31,7 @@ public class FramePrinterTests
     public async Task GivenNoArrangementOnTheChangesTab_WhenPrinting_ThenTheDiffOfTheFirstFileSitsBesideTheFileList()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 
@@ -43,7 +43,7 @@ public class FramePrinterTests
     public async Task GivenANarrowScreenOnTheChangesTab_WhenPrinting_ThenTheDiffStaysClosed()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 71, 30, null);
 
@@ -56,8 +56,8 @@ public class FramePrinterTests
     public async Task GivenAnOpenDiff_WhenPrinting_ThenFileListAndDiffRowsShareTheFrame(int width)
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
-        repository.Commit("second", ("a.txt", "one\ntwo added\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        repository.Commit("second", new TestFile("a.txt", "one\ntwo added\n"));
 
         var lines = await PrintAsync(repository, width, 30, new PaneArrangement(true, null));
 
@@ -69,7 +69,7 @@ public class FramePrinterTests
     public async Task GivenAZoomedDiffOfARootCommit_WhenPrinting_ThenTheDiffFillsTheFrame()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "first line\n"));
+        repository.Commit("root", new TestFile("a.txt", "first line\n"));
 
         var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff));
 
@@ -81,7 +81,7 @@ public class FramePrinterTests
     public async Task GivenEachTab_WhenPrinting_ThenThePaneShowsThatTabsContent()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root commit message", ("a.txt", "one\n"));
+        repository.Commit("root commit message", new TestFile("a.txt", "one\n"));
 
         var details = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
         var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
@@ -100,7 +100,7 @@ public class FramePrinterTests
     public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenThePlaceholderSitsBesideTheDiff()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "first line\n"));
+        repository.Commit("root", new TestFile("a.txt", "first line\n"));
 
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(true, null), BottomTab.Files);
 
@@ -112,7 +112,7 @@ public class FramePrinterTests
     public async Task GivenColours_WhenPrinting_ThenTheGraphRowHasTheFocusedTintAndTheSidebarCursorTheDimOne()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
         repository.Branch("topic");
         var table = PaletteTable.For(PaletteSettings.Default);
 
@@ -131,7 +131,7 @@ public class FramePrinterTests
     public async Task GivenNoColours_WhenPrinting_ThenTheFrameHasNoEscapeSequences()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "one\n"));
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
 
         var lines = await PrintAsync(repository, 100, 30, null);
 

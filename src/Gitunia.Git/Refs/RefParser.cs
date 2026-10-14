@@ -39,7 +39,7 @@ public static class RefParser
                 continue;
             }
 
-            (var ahead, var behind, var gone) = ParseTrack(fields[4], hasUpstream: fields[3].Length > 0, warnings);
+            var track = ParseTrack(fields[4], hasUpstream: fields[3].Length > 0, warnings);
             refs.Add(new GitRef(
                 fullName,
                 ShortName(fullName),
@@ -47,9 +47,9 @@ public static class RefParser
                 fields[1],
                 fields[2].Length > 0 ? fields[2] : fields[1],
                 NullIfEmpty(fields[3]),
-                ahead,
-                behind,
-                gone,
+                track.Ahead,
+                track.Behind,
+                track.IsGone,
                 fields[5] == "*",
                 NullIfEmpty(fields[6]),
                 NullIfEmpty(fields[7])));
@@ -75,16 +75,16 @@ public static class RefParser
     private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
 
     /// <summary>Reads <c>ahead 2, behind 1</c>, <c>ahead 2</c>, <c>behind 1</c>, <c>gone</c> or an empty string (in sync or no upstream).</summary>
-    private static (int? Ahead, int? Behind, bool Gone) ParseTrack(string track, bool hasUpstream, List<string> warnings)
+    private static UpstreamTrack ParseTrack(string track, bool hasUpstream, List<string> warnings)
     {
         if (track.Length == 0)
         {
-            return hasUpstream ? (0, 0, false) : (null, null, false);
+            return hasUpstream ? new UpstreamTrack(0, 0, false) : new UpstreamTrack(null, null, false);
         }
 
         if (track == "gone")
         {
-            return (null, null, true);
+            return new UpstreamTrack(null, null, true);
         }
 
         var ahead = 0;
@@ -108,9 +108,9 @@ public static class RefParser
             }
 
             warnings.Add($"Unrecognised tracking text '{track}'");
-            return (null, null, false);
+            return new UpstreamTrack(null, null, false);
         }
 
-        return (ahead, behind, false);
+        return new UpstreamTrack(ahead, behind, false);
     }
 }

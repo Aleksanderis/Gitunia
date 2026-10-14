@@ -7,7 +7,7 @@ namespace Gitunia.Core.Tests.Search;
 /// <summary>A linear graph for search tests: row <c>i</c> is commit <c>i + 1</c> with the given subject and author.</summary>
 public static class SearchTestGraph
 {
-    public static CommitGraph Build(params (string Subject, string Author)[] rows)
+    public static CommitGraph Build(params SearchTestRow[] rows)
     {
         var commits = rows
             .Select((row, index) => new CommitInfo(
@@ -27,5 +27,5 @@ public static class SearchTestGraph
     }
 
     public static CommitGraph Numbered(int count) =>
-        Build(Enumerable.Range(1, count).Select(number => ($"Commit #{number}", number % 3 == 0 ? "Alice" : "Bob")).ToArray());
+        Build(Enumerable.Range(1, count).Select(number => new SearchTestRow($"Commit #{number}", number % 3 == 0 ? "Alice" : "Bob")).ToArray());
 }

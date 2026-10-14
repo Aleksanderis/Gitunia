@@ -9,7 +9,7 @@ public static class TestRepositories
         var repository = TestRepository.Create();
         for (var index = 1; index <= commitCount; index++)
         {
-            repository.Commit($"Commit {index}", ("file.txt", $"line {index}\n"));
+            repository.Commit($"Commit {index}", new TestFile("file.txt", $"line {index}\n"));
         }
 
         return repository;
@@ -19,12 +19,12 @@ public static class TestRepositories
     public static TestRepository Branchy()
     {
         var repository = TestRepository.Create()
-            .Commit("Initial", ("base.txt", "base\n"))
+            .Commit("Initial", new TestFile("base.txt", "base\n"))
             .CheckoutNewBranch("feature")
-            .Commit("Feature one", ("feature.txt", "one\n"))
-            .Commit("Feature two", ("feature.txt", "two\n"))
+            .Commit("Feature one", new TestFile("feature.txt", "one\n"))
+            .Commit("Feature two", new TestFile("feature.txt", "two\n"))
             .Checkout("main")
-            .Commit("Main work", ("main.txt", "main\n"))
+            .Commit("Main work", new TestFile("main.txt", "main\n"))
             .Merge("feature")
             .Branch("topic", "HEAD~1")
             .Tag("v1");
@@ -43,11 +43,11 @@ public static class TestRepositories
     public static TestRepository Conflicted()
     {
         return TestRepository.Create()
-            .Commit("Initial", ("conflict.txt", "original\n"))
+            .Commit("Initial", new TestFile("conflict.txt", "original\n"))
             .CheckoutNewBranch("other")
-            .Commit("Other change", ("conflict.txt", "other\n"))
+            .Commit("Other change", new TestFile("conflict.txt", "other\n"))
             .Checkout("main")
-            .Commit("Main change", ("conflict.txt", "main\n"))
+            .Commit("Main change", new TestFile("conflict.txt", "main\n"))
             .MergeExpectingConflict("other");
     }
 
@@ -56,9 +56,9 @@ public static class TestRepositories
     {
         return TestRepository.Create().Commit(
             "Odd paths",
-            ("with space.txt", "a\n"),
-            ("ünï cødé.txt", "b\n"),
-            ("quote's.txt", "c\n"),
-            (Path.Combine("dir with space", "nested file.txt"), "d\n"));
+            new TestFile("with space.txt", "a\n"),
+            new TestFile("ünï cødé.txt", "b\n"),
+            new TestFile("quote's.txt", "c\n"),
+            new TestFile(Path.Combine("dir with space", "nested file.txt"), "d\n"));
     }
 }

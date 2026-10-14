@@ -16,6 +16,7 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Views;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Panes;
 
@@ -32,7 +33,7 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly ListView detailList;
     private readonly ListView diffList;
     private readonly Action<KeyMode> setMode;
-    private readonly Func<(int Width, int Height)> screenSize;
+    private readonly Func<ScreenSize> screenSize;
     private readonly Action relayout;
     private readonly Action refreshChrome;
     private readonly ClipboardCopier clipboard;
@@ -55,7 +56,7 @@ public sealed class DiffPaneController : IPromptHandler
         ListView detailList,
         ListView diffList,
         Action<KeyMode> setMode,
-        Func<(int Width, int Height)> screenSize,
+        Func<ScreenSize> screenSize,
         Action relayout,
         Action refreshChrome,
         ClipboardCopier clipboard)
@@ -278,7 +279,9 @@ public sealed class DiffPaneController : IPromptHandler
 
     private bool ShowsWithChanges()
     {
-        var (width, height) = screenSize();
+        var size = screenSize();
+        var width = size.Width;
+        var height = size.Height;
         return host.Workspace.ActiveTab is { } tab && PaneLayout.ShowsDiffWithChanges(width, height, tab.View.BottomTab);
     }
 

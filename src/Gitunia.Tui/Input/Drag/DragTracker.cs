@@ -15,7 +15,7 @@ public sealed class DragTracker
     private bool swallowNextClick;
 
     /// <summary>Where the button went down.</summary>
-    public (int X, int Y) Origin { get; private set; }
+    public ScreenPoint Origin { get; private set; }
 
     /// <summary>True between a press and its release.</summary>
     public bool IsPressed => isPressed;
@@ -32,7 +32,7 @@ public sealed class DragTracker
             isPressed = true;
             hasMoved = false;
             swallowNextClick = false;
-            Origin = (x, y);
+            Origin = new ScreenPoint(x, y);
             return DragPhase.Press;
         }
 
@@ -61,7 +61,7 @@ public sealed class DragTracker
 
         if (!hasMoved)
         {
-            if ((x, y) == Origin)
+            if (new ScreenPoint(x, y) == Origin)
             {
                 return DragPhase.None;
             }

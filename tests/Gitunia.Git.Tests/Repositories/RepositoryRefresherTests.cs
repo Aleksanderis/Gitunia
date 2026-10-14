@@ -62,7 +62,7 @@ public class RepositoryRefresherTests
         using var testRepository = TestRepositories.Linear(2);
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
-        testRepository.Commit("next", ("n.txt", "n"));
+        testRepository.Commit("next", new TestFile("n.txt", "n"));
 
         var second = await RepositoryRefresher.RefreshAsync(repository, first.Snapshot, RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
 

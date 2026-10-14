@@ -31,7 +31,7 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenAGraphRange_WhenCopying_ThenTheHashesGoToTheClipboardAndTheNoticeIsEmpty()
     {
-        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "a\n"));
         using var session = await CreateSessionAsync(testRepository);
 
         var result = CreateCopier(session).Copy(PaneKind.Graph, new RowRange(0, 1));
@@ -44,7 +44,7 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenARangeWithoutRowsOrInTheSidebar_WhenCopying_ThenNothingIsCopied()
     {
-        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "a\n"));
         using var session = await CreateSessionAsync(testRepository);
 
         Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), CreateCopier(session).Copy(PaneKind.Graph, new RowRange(5, 6)));
@@ -55,7 +55,7 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenAClipboardThatRefusesTheText_WhenCopying_ThenTheResultSaysNotCopied()
     {
-        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "a\n"));
         using var session = await CreateSessionAsync(testRepository);
         var statuses = new StatusChannel();
         var copier = new RangeCopier(new ClipboardCopier(new ClipboardWriter(terminal, new Osc52Options(Osc52Mode.Direct, 10)), statuses), () => session);

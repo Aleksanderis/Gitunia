@@ -12,7 +12,7 @@ public sealed class KeyBindingTable
     public const string GlobalView = "Global";
 
     private readonly Dictionary<string, string> viewParents;
-    private readonly ConcurrentDictionary<(KeyMode Mode, string View), IReadOnlyList<KeyBinding>> effectiveCache = new();
+    private readonly ConcurrentDictionary<EffectiveBindingsKey, IReadOnlyList<KeyBinding>> effectiveCache = new();
 
     public KeyBindingTable(IEnumerable<KeyBinding> bindings, IReadOnlyDictionary<string, string>? viewParents = null)
     {
@@ -53,7 +53,7 @@ public sealed class KeyBindingTable
     /// <summary>The bindings active in a mode and view after inheritance and shadowing, most specific view first.</summary>
     public IReadOnlyList<KeyBinding> EffectiveBindings(KeyMode mode, string view)
     {
-        return effectiveCache.GetOrAdd((mode, view), key => ComputeEffective(key.Mode, key.View));
+        return effectiveCache.GetOrAdd(new EffectiveBindingsKey(mode, view), key => ComputeEffective(key.Mode, key.View));
     }
 
     /// <summary>Finds duplicate bindings and prefixes that would hide a longer chord. An empty list means the table is consistent.</summary>
