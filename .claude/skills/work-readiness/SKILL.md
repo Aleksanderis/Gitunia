@@ -7,7 +7,7 @@ effort: high
 
 # Milestone readiness
 
-Invoke as `/work-readiness M2` (resolve the milestone title with `gh api repos/{owner}/{repo}/milestones --jq '.[]|"\(.number) \(.title)"'`; goals are in `docs/roadmap.md`). Do the whole job in this one session, cheaply: read GitHub and only the docs and code areas the milestone touches. Do not implement anything and do not launch implementation agents.
+Invoke as `/work-readiness <milestone>` (for example `M<n>`; `<n>` is a placeholder, not a default). Without an argument, do not guess: list the milestones with their open and closed counts, take the earliest milestone that still has open issues (an unfinished earlier milestone means that one is the target, or the verdict for a later one is `not ready`), and say which one you chose and why in the report. Resolve the milestone title with `gh api repos/{owner}/{repo}/milestones --jq '.[]|"\(.number) \(.title)"'`; goals are in `docs/roadmap.md`). Do the whole job in this one session, cheaply: read GitHub and only the docs and code areas the milestone touches. Check the previous milestone first: if it still has open issues that are not `needs-owner`, the next milestone is `not ready`, whatever its own quality. Do not implement anything and do not launch implementation agents.
 
 ## 1. Gather
 
