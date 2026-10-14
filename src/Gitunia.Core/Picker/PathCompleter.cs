@@ -7,6 +7,7 @@ public static class PathCompleter
 
     /// <summary>
     /// The subdirectories that continue the typed path, sorted by name; hidden ones only when the typed name starts with a dot.
+    /// Every segment of the typed directory part is resolved against the real directory names, ignoring case (an exact spelling wins).
     /// The typed name matches in any case on every platform: it only selects suggestions, the completed text uses the directory's real case.
     /// </summary>
     public static IReadOnlyList<PickerRow> Candidates(string text, PickerContext context) => ListCandidates(text, context, CancellationToken.None);
@@ -15,7 +16,8 @@ public static class PathCompleter
     public static IReadOnlyList<PickerRow> ListCandidates(string text, PickerContext context, CancellationToken cancellationToken)
     {
         SplitTyped(text, out var directoryText, out var namePrefix);
-        var directory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
+        var typedDirectory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
+        var directory = ResolveCaseInsensitive(typedDirectory, context, cancellationToken);
         var matches = new List<string>();
         foreach (var path in context.ListDirectories(directory))
         {
@@ -69,6 +71,27 @@ public static class PathCompleter
 
         var chosen = candidates[Math.Clamp(highlight, 0, candidates.Count - 1)];
         return directoryText + chosen.Name + Separator(text);
+    }
+
+    private static string ResolveCaseInsensitive(string fullPath, PickerContext context, CancellationToken cancellationToken)
+    {
+        var root = Path.GetPathRoot(fullPath) ?? string.Empty;
+        var current = root;
+        var segments = fullPath[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var names = context.ListDirectories(current)
+                .Select(path => Path.GetFileName(Path.TrimEndingDirectorySeparator(path)))
+                .ToList();
+            var exact = names.Contains(segment, StringComparer.Ordinal);
+            var real = exact
+                ? segment
+                : names.Order(StringComparer.Ordinal).FirstOrDefault(name => string.Equals(name, segment, StringComparison.OrdinalIgnoreCase)) ?? segment;
+            current = Path.Combine(current, real);
+        }
+
+        return current;
     }
 
     private static void SplitTyped(string text, out string directoryText, out string namePrefix)

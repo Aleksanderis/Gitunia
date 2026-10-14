@@ -14,6 +14,60 @@ public class PathCompleterTests
         repositories: [PickerFixtures.PathOf("code", "alpha")]);
 
     [Fact]
+    public void GivenRealTreeWithMixedCase_WhenTypingLowercaseDirectoryPart_ThenRealDirectoriesAreListed()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"picker-case-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "Projects", "MyRepo", "Alpha"));
+            Directory.CreateDirectory(Path.Combine(root, "Projects", "MyRepo", "alpine"));
+            var context = PickerFixtures.Context() with
+            {
+                HomeDirectory = root,
+                ListDirectories = directory => Directory.Exists(directory) ? [.. Directory.EnumerateDirectories(directory)] : [],
+            };
+
+            var candidates = PathCompleter.Candidates("~/projects/myrepo/al", context);
+
+            Assert.Equal(["Alpha", "alpine"], candidates.Select(candidate => candidate.Name));
+            Assert.Equal(Path.Combine(root, "Projects", "MyRepo", "Alpha"), candidates[0].Path);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void GivenWrongCaseDirectoryPart_WhenListingCandidates_ThenRealDirectoryIsListed()
+    {
+        var context = PickerFixtures.Context(directories: new Dictionary<string, string[]>
+        {
+            [PickerFixtures.Home] = ["Projects"],
+            [PickerFixtures.PathOf("Projects")] = ["Work"],
+            [PickerFixtures.PathOf("Projects", "Work")] = ["Xylo", "xray"],
+        });
+
+        var candidates = PathCompleter.Candidates("~/projects/WORK/x", context);
+
+        Assert.Equal(["xray", "Xylo"], candidates.Select(candidate => candidate.Name));
+        Assert.All(candidates, candidate => Assert.StartsWith(PickerFixtures.PathOf("Projects", "Work"), candidate.Path, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTwoDirectoriesDifferingInCase_WhenExactSpellingTyped_ThenExactOneIsListed()
+    {
+        var context = PickerFixtures.Context(directories: new Dictionary<string, string[]>
+        {
+            [PickerFixtures.Home] = ["Docs", "docs"],
+            [PickerFixtures.PathOf("docs")] = ["lower"],
+            [PickerFixtures.PathOf("Docs")] = ["upper"],
+        });
+
+        Assert.Equal(["lower"], PathCompleter.Candidates("~/docs/", context).Select(candidate => candidate.Name));
+    }
+
+    [Fact]
     public void GivenCancelledToken_WhenListingCandidates_ThenListingStops()
     {
         using var cancellation = new CancellationTokenSource();
