@@ -162,4 +162,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Graph (#280, owner): a commit that carries any ref (branch, tag, remote, HEAD) keeps the node dot; only unlabelled commits become the line. Why: the line glyph under a label read as missing.
 
+
 **Code structure:** `RepositoryOperationDetector` (behind `IRepositoryOperationDetector`, injected into `RepositoryRefresher`) and `FramePrinter` (takes `GitServices`) are instances, not static (#269). Why: classes with I/O are instances so the operation section can be faked; static was only there to satisfy CA1822. Every reader interface now has a fake.
+
+**UI:** Palette (#96, owner did not answer, recommended default taken): modal-only actions (`confirm.*`, `picker.*` except open, palette/input accept, `Esc`) are hidden; actions bound before their feature are listed greyed out. Keeps the palette to what a user can run.

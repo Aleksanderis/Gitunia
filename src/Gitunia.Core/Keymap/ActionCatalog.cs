@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Gitunia.Core.Keymap;
 
 /// <summary>Human-readable titles of the actions, shown by the command palette, the help overlay and the which-key popup.</summary>
@@ -5,6 +7,24 @@ public static class ActionCatalog
 {
     private const string TabNextChord = "gt";
     private const string TabGoToPrefix = "tab.go-to.";
+
+    // Actions that only mean something inside a modal prompt (confirm dialog, picker, palette, text input): the palette hides them.
+    private static readonly HashSet<ActionId> ModalOnly =
+    [
+        ActionIds.Cancel,
+        ActionIds.CommandExecute,
+        ActionIds.ConfirmNo,
+        ActionIds.ConfirmYes,
+        ActionIds.InputAccept,
+        ActionIds.PaletteNext,
+        ActionIds.PalettePrevious,
+        ActionIds.PickerAccept,
+        ActionIds.PickerCompletePath,
+        ActionIds.PickerNext,
+        ActionIds.PickerPin,
+        ActionIds.PickerPrevious,
+        ActionIds.PickerRemoveRecent,
+    ];
 
     private static readonly Dictionary<string, string> Titles = new()
     {
@@ -86,6 +106,12 @@ public static class ActionCatalog
         ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
     };
+
+    /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>
+    public static IReadOnlySet<ActionId> Unimplemented { get; } = FrozenSet<ActionId>.Empty;
+
+    /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
+    public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);
 
     /// <summary>The title of <paramref name="action"/>; the id itself when it has none (a test keeps the defaults covered).</summary>
     public static string Describe(ActionId action)

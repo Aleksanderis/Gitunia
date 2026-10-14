@@ -109,10 +109,25 @@ public class OverlayFrameTests
                 "│ Show the Files tab                                                gf │",
                 "│ Move down                                                   j / Down │",
                 "│ Move up                                                       k / Up │",
-                "│ 1/86  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/73  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
+    }
+
+    [Fact]
+    public void GivenAnUnimplementedAction_WhenRenderingThePalette_ThenItsRowIsFaint()
+    {
+        var entries = new List<PaletteEntry>
+        {
+            new(ActionIds.ListDown, "Move down", "j"),
+            new(ActionIds.GraphJumpToHead, "Jump to HEAD", "@", false),
+        };
+
+        var frame = PaletteFrameBuilder.Build(new PaletteState(entries), 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.DoesNotContain(frame.Lines[1].Segments, segment => segment.Role == SegmentRole.Faint);
+        Assert.Contains(frame.Lines[2].Segments, segment => segment.Role == SegmentRole.Faint && segment.Text.Contains("Jump to HEAD", StringComparison.Ordinal));
     }
 
     [Fact]
