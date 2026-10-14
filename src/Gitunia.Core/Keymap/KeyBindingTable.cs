@@ -60,7 +60,7 @@ public sealed class KeyBindingTable
     public IReadOnlyList<BindingConflict> FindConflicts()
     {
         var conflicts = new List<BindingConflict>();
-        foreach (var group in Bindings.GroupBy(binding => (binding.Mode, binding.View, binding.Sequence)))
+        foreach (var group in Bindings.GroupBy(binding => new BindingSlot(binding.Mode, binding.View, binding.Sequence)))
         {
             var members = group.ToList();
             for (var index = 1; index < members.Count; index++)
@@ -69,7 +69,7 @@ public sealed class KeyBindingTable
             }
         }
 
-        var seen = new HashSet<(KeyBinding, KeyBinding)>();
+        var seen = new HashSet<BindingPair>();
         foreach (var mode in Enum.GetValues<KeyMode>())
         {
             foreach (var view in Views)
@@ -81,7 +81,7 @@ public sealed class KeyBindingTable
                     {
                         if (longer.Sequence.Length > shorter.Sequence.Length
                             && longer.Sequence.StartsWith(shorter.Sequence)
-                            && seen.Add((shorter, longer)))
+                            && seen.Add(new BindingPair(shorter, longer)))
                         {
                             conflicts.Add(new BindingConflict(BindingConflictKind.PrefixShadow, mode, view, shorter, longer));
                         }

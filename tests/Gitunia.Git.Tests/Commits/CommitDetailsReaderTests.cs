@@ -34,8 +34,8 @@ public class CommitDetailsReaderTests
         Assert.Equal("root\n\nlong body", details.Message);
         Assert.Equal("Test", details.AuthorName);
         Assert.Equal(
-            [("a.txt", FileChangeKind.Added), ("dir/b.txt", FileChangeKind.Added)],
-            details.Files.Select(file => (file.Path, file.Kind)));
+            [$"a.txt {FileChangeKind.Added}", $"dir/b.txt {FileChangeKind.Added}"],
+            details.Files.Select(file => $"{file.Path} {file.Kind}"));
     }
 
     [Fact]

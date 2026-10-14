@@ -51,8 +51,8 @@ public class CommitDetailsStoreTests
         var second = reader.Add("two", first);
         var last = reader.Add("three", second);
         using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(300));
-        var seen = new List<(ObjectId? Commit, CommitDetailsStatus Status)>();
-        store.Changed += () => seen.Add((store.Current.Commit, store.Current.Status));
+        var seen = new List<CommitDetailsState>();
+        store.Changed += () => seen.Add(store.Current);
 
         store.Select(first);
         store.Select(second);

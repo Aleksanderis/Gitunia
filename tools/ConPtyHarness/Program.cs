@@ -19,8 +19,8 @@ var expectAfterJ = Opt("--expect-after-j", string.Empty);
 var expectAfterResize = Opt("--expect-after-resize", string.Empty);
 var expectAfterG = Opt("--expect-after-G", string.Empty);
 
-var results = new List<(string Name, bool Ok, string Detail)>();
-void Check(string name, bool ok, string detail) { results.Add((name, ok, detail)); Console.WriteLine($"{(ok ? "PASS" : "FAIL")}  {name}  {detail}"); }
+var results = new List<CheckResult>();
+void Check(string name, bool ok, string detail) { results.Add(new CheckResult(name, ok, detail)); Console.WriteLine($"{(ok ? "PASS" : "FAIL")}  {name}  {detail}"); }
 
 using var session = new PtySession(executablePath, $"\"{executablePath}\" \"{repositoryPath}\"", 100, 20);
 var stopwatch = Stopwatch.StartNew();

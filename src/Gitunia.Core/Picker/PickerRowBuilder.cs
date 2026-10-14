@@ -18,7 +18,7 @@ public static class PickerRowBuilder
             return [.. entries.Select(entry => entry.Row)];
         }
 
-        var scored = new List<(PickerRow Row, int Score, int Order)>();
+        var scored = new List<ScoredPickerRow>();
         foreach (var entry in entries)
         {
             var nameScore = FuzzyMatcher.Score(query, entry.Row.Name);
@@ -26,7 +26,7 @@ public static class PickerRowBuilder
             var score = nameScore is { } name ? Math.Max(name * NameWeight, pathScore ?? int.MinValue) : pathScore;
             if (score is { } matched)
             {
-                scored.Add((entry.Row, matched, entry.Order));
+                scored.Add(new ScoredPickerRow(entry.Row, matched, entry.Order));
             }
         }
 
@@ -72,7 +72,7 @@ public static class PickerRowBuilder
 
         // Pinned and open repositories also show their later tags; the stable sort keeps recency inside each group.
         var rows = order
-            .Select((path, index) => (Row: new PickerRow(path, NameOf(path), tagsByPath[path]), Order: index))
+            .Select((path, index) => new PickerRowEntry(new PickerRow(path, NameOf(path), tagsByPath[path]), index))
             .OrderBy(item => Rank(item.Row.Tags))
             .ThenBy(item => item.Order)
             .Select((item, index) => new PickerRowEntry(item.Row, index))
