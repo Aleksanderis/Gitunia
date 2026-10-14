@@ -92,8 +92,8 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 **Frame (#197).** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
 ```
- 1 repo                                                       <- tab row
-╭─ repo ───────────────┬─ History ──────────────────────────────╮
+ 1 gitunia                                                   <- tab row
+╭─ gitunia ────────────┬─ History ──────────────────────────────╮
 │  ▾ Branches 2        │ ○─╮  (main) Merge feature x    Ada ... │
 │     feature/x        │ ●  │  Fix parser                       │
 ├─ Details ─ Changes ─ Files ─ 64d72f2 ─ 3 files ┬─ Diff ... ──┤

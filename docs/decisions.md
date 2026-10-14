@@ -155,3 +155,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.
 
 **UI:** `Enter` on the Details or Files tab keeps showing a notice instead of switching to Changes (#190, owner decision). Why: the tab switch is explicit (`1`-`3`, click), a key that jumps tabs would surprise.
+
+**UI:** User-visible text spells out "Repository", never "Repo" (sidebar title fallback, picker tag, docs; #262, owner decision). Stable ids such as `repo.pin` keep the short form.
