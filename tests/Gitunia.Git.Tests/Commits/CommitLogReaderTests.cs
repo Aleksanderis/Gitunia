@@ -16,7 +16,7 @@ public class CommitLogReaderTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task GivenBranchyRepository_WhenReadingLog_ThenEveryCommitAppearsChildrenBeforeParents()
+    public async Task GivenMergedFeatureBranchRepository_WhenReadingLog_ThenEveryCommitAppearsChildrenBeforeParents()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
         var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);

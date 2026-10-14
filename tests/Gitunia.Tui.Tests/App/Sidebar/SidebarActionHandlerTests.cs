@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Tests.App.Sidebar;
 
 public class SidebarActionHandlerTests
 {
-    private static TestRepository BranchyRepository()
+    private static TestRepository MergedFeatureBranchRepository()
     {
         var repository = TestRepository.Create();
         repository.Commit("one", new TestFile("a.txt", "1")).Branch("old").Commit("two", new TestFile("a.txt", "2")).Tag("v2").Branch("feature");
@@ -20,7 +20,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenABranchRow_WhenCopying_ThenItsNameGoesToTheClipboard()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("old");
 
@@ -32,7 +32,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenATagRow_WhenCopying_ThenItsNameGoesToTheClipboard()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
         harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
@@ -46,7 +46,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenAStashRow_WhenCopying_ThenItsNameGoesToTheClipboard()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         repository.WriteFile("a.txt", "dirty");
         repository.Git("stash", "push", "-q", "-m", "wip");
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
@@ -60,7 +60,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenAWorktreeRow_WhenCopying_ThenItsFullPathGoesToTheClipboard()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         var worktreePath = repository.AddWorktree("wt-feature", "feature");
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("wt-feature");
@@ -77,7 +77,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenASectionRow_WhenCopying_ThenNothingIsCopied()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
 
@@ -90,7 +90,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenGraphFocus_WhenTabPressedTwice_ThenFocusGoesToSidebarAndBack()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
 
         Assert.True(harness.Handler.TryHandle(ActionIds.PaneNext, null));
@@ -102,7 +102,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenAnOpenDiff_WhenTabbing_ThenTheDiffJoinsTheCycleAfterTheDetailPane()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.DetailVisible = true;
         harness.Handler.IsDiffVisible = () => true;
@@ -117,7 +117,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenDetailAndDiffBelow_WhenMovingDownAndUp_ThenFocusGoesToTheDetailPaneAndBackToTheGraph()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.DetailVisible = true;
         harness.Handler.IsDiffVisible = () => true;
@@ -132,7 +132,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenOnlyTheDiffBelow_WhenMovingDown_ThenTheDiffIsFocused()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.DetailVisible = false;
         harness.Handler.IsDiffVisible = () => true;
@@ -146,7 +146,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenAZoomedPane_WhenTabbing_ThenHiddenPanesAreSkipped()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.SidebarVisible = false;
         harness.DetailVisible = false;
@@ -162,7 +162,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenHiddenSidebar_WhenCyclingPanes_ThenFocusStaysOnTheGraph()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.SidebarVisible = false;
 
@@ -175,7 +175,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenGraphFocus_WhenListMotionArrives_ThenSidebarDoesNotHandleIt()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
 
         Assert.False(harness.Handler.TryHandle(ActionIds.ListDown, null));
@@ -185,7 +185,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenSidebarFocus_WhenMovingAndActivatingABranch_ThenItsCommitIsSelectedInTheGraphAndFocusStays()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("old");
 
@@ -200,7 +200,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenFoldedTags_WhenExpandingAndActivatingATag_ThenItsCommitIsSelected()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Tags");
 
@@ -215,7 +215,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenCursorOnLeaf_WhenPressingL_ThenFocusMovesToTheGraph()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("feature");
 
@@ -227,7 +227,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenStashRow_WhenActivating_ThenAMessageExplainsItIsNotInTheGraph()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         repository.WriteFile("a.txt", "dirty");
         repository.Git("stash", "push", "-q", "-m", "wip");
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
@@ -242,7 +242,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenBranchNotInTheLoadedGraph_WhenActivating_ThenAMessageSaysSo()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("feature");
         harness.HideGraph = true;
@@ -256,7 +256,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenSidebarFocus_WhenTypingAFilter_ThenInsertModeIsEnteredAndRowsNarrowDown()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
 
@@ -280,7 +280,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenFilterBeingTyped_WhenEscapePressed_ThenFilterIsClearedAndNormalModeReturns()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
@@ -296,7 +296,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenAcceptedFilter_WhenEscapePressedTwice_ThenFilterClearsFirstThenFocusReturnsToGraph()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
@@ -314,7 +314,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenSidebarFocus_WhenGoingBack_ThenGraphGetsFocusInsteadOfQuitting()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
         harness.FocusRow("Branches");
 
@@ -326,7 +326,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenLinkedWorktree_WhenLoadingTheTab_ThenEachBranchNamesTheWorktreeHoldingIt()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         var worktreePath = repository.AddWorktree("wt-feature", "feature");
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
 
@@ -348,7 +348,7 @@ public class SidebarActionHandlerTests
     [Fact]
     public async Task GivenTabOpenedOnALinkedWorktree_WhenLoading_ThenThatWorktreeIsTheCurrentOne()
     {
-        using var repository = BranchyRepository();
+        using var repository = MergedFeatureBranchRepository();
         var worktreePath = repository.AddWorktree("wt-feature", "feature");
         using var harness = await SidebarHarness.LoadAsync(worktreePath);
 

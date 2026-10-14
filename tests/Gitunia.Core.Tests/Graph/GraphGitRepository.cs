@@ -24,7 +24,7 @@ public sealed class GraphGitRepository : IDisposable
     public string WorkingTreePath { get; }
 
     /// <summary>WithMergedFeatureBranch history: a feature branch merged twice, an octopus merge of three topics, and a second root.</summary>
-    public static GraphGitRepository CreateBranchy()
+    public static GraphGitRepository CreateWithMergedFeatureBranch()
     {
         var repository = new GraphGitRepository();
         repository.Commit("base");

@@ -13,9 +13,9 @@ public class GraphLayoutGitTests
     [Theory]
     [InlineData(CommitOrder.Topological)]
     [InlineData(CommitOrder.ByDate)]
-    public async Task GivenBranchyRepository_WhenLayingOutTheRealLog_ThenOrderMatchesGitLogGraphAndTopologyMatchesGitsParentLinks(CommitOrder order)
+    public async Task GivenMergedFeatureBranchRepository_WhenLayingOutTheRealLog_ThenOrderMatchesGitLogGraphAndTopologyMatchesGitsParentLinks(CommitOrder order)
     {
-        using var testRepository = GraphGitRepository.CreateBranchy();
+        using var testRepository = GraphGitRepository.CreateWithMergedFeatureBranch();
         var repository = await Repository.OpenAsync(testRepository.CreateRunner(), testRepository.WorkingTreePath, Token);
         var commits = new List<CommitInfo>();
         await foreach (var commit in CommitLogReader.ReadAsync(repository, order, ["--all"], cancellationToken: Token))

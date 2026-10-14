@@ -52,7 +52,7 @@ public class TestRepositoryTests
     }
 
     [Fact]
-    public void GivenBranchyRepository_WhenListingRefs_ThenShapeMatches()
+    public void GivenMergedFeatureBranchRepository_WhenListingRefs_ThenShapeMatches()
     {
         using var repository = TestRepositories.WithMergedFeatureBranch();
 

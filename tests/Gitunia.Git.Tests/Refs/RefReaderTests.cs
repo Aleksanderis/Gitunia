@@ -14,7 +14,7 @@ public class RefReaderTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task GivenBranchyRepository_WhenReadingRefs_ThenBranchesAndTagAreListed()
+    public async Task GivenMergedFeatureBranchRepository_WhenReadingRefs_ThenBranchesAndTagAreListed()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
         var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);

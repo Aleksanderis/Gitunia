@@ -23,7 +23,7 @@ public class GraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenBranchyHistory_WhenStreaming_ThenRowsMatchTheBatchLayoutAndRefsAreAttached()
+    public async Task GivenMergedFeatureBranchHistory_WhenStreaming_ThenRowsMatchTheBatchLayoutAndRefsAreAttached()
     {
         using var testRepository = TestRepository.Create();
         testRepository.Commit("root", new TestFile("a.txt", "1"));
