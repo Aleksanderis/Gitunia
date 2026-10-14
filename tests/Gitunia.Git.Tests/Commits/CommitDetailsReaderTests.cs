@@ -17,7 +17,7 @@ public class CommitDetailsReaderTests
     {
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
-        var details = await CommitDetailsReader.ReadAsync(repository, id, Token);
+        var details = await CommitDetailsReader.ReadAsync(repository, id, cancellationToken: Token);
         return Assert.IsType<CommitDetails>(details);
     }
 
@@ -87,6 +87,6 @@ public class CommitDetailsReaderTests
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetailsReader.ReadAsync(repository, id, source.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetailsReader.ReadAsync(repository, id, cancellationToken: source.Token));
     }
 }

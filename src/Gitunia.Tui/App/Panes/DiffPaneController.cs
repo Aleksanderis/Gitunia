@@ -15,8 +15,8 @@ using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
-using Terminal.Gui.Views;
 using Gitunia.Tui.Views;
+using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.Panes;
 

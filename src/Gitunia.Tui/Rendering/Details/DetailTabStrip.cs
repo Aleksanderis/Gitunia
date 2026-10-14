@@ -11,11 +11,11 @@ namespace Gitunia.Tui.Rendering.Details;
 /// </summary>
 public static class DetailTabStrip
 {
-    private static readonly (BottomTab Tab, string Name, string View)[] Tabs =
+    private static readonly DetailTabSpecification[] Tabs =
     [
-        (BottomTab.Details, "Details", DefaultMouseMap.DetailDetailsTab),
-        (BottomTab.Changes, "Changes", DefaultMouseMap.DetailChangesTab),
-        (BottomTab.Files, "Files", DefaultMouseMap.DetailFilesTab),
+        new(BottomTab.Details, "Details", DefaultMouseMap.DetailDetailsTab),
+        new(BottomTab.Changes, "Changes", DefaultMouseMap.DetailChangesTab),
+        new(BottomTab.Files, "Files", DefaultMouseMap.DetailFilesTab),
     ];
 
     /// <summary>The tab labels for a title row of <paramref name="width"/> columns, left to right.</summary>

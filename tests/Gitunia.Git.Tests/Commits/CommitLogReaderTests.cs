@@ -115,7 +115,7 @@ public class CommitLogReaderTests
         var expected = long.Parse((await repository.RunAsync(["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
 
         var count = 0L;
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], Token))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: Token))
         {
             count += commit.Id.IsValid ? 1 : 0;
         }
@@ -162,7 +162,7 @@ public class CommitLogReaderTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], source.Token))
+            await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: source.Token))
             {
                 Assert.NotNull(commit);
             }
@@ -172,7 +172,7 @@ public class CommitLogReaderTests
     private static async Task<List<CommitInfo>> ReadAllAsync(Repository repository, CommitOrder order = CommitOrder.Topological, params string[] revisions)
     {
         var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, revisions, Token))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, revisions, cancellationToken: Token))
         {
             commits.Add(commit);
         }

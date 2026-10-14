@@ -28,7 +28,7 @@ public static class IncrementalGraphLoader
         var builder = new GraphLayoutBuilder();
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);

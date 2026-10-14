@@ -143,7 +143,7 @@ public class FramePrinterTests
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, Token);
         using var writer = new StringWriter();
-        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, Token, arrangement, tab, colors);
+        await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, arrangement, tab, colors, Token);
         return [.. writer.ToString().Split('\n')];
     }
 }

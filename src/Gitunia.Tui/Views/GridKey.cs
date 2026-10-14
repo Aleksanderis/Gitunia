@@ -11,4 +11,4 @@ namespace Gitunia.Tui.Views;
 /// <param name="Title">The graph title.</param>
 /// <param name="IsPicker">The repository picker is shown instead of the panes.</param>
 /// <param name="IsAscii">ASCII glyphs are in use.</param>
-public sealed record GridKey(int Width, int Height, PaneRects Rects, PaneKind? Focused, string Title, bool IsPicker, bool IsAscii);
+public readonly record struct GridKey(int Width, int Height, PaneRects Rects, PaneKind? Focused, string Title, bool IsPicker, bool IsAscii);

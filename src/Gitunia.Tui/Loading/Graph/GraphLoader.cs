@@ -33,7 +33,7 @@ public static class GraphLoader
         var batchAge = Stopwatch.StartNew();
         var total = 0;
 
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, [], cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             var row = builder.Append(commit);
             batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));

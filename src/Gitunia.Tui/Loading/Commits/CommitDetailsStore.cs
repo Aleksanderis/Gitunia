@@ -154,7 +154,7 @@ public sealed class CommitDetailsStore : IDisposable
             try
             {
                 token.ThrowIfCancellationRequested();
-                var details = await CommitDetailsReader.ReadAsync(repository, neighbour, token).ConfigureAwait(false);
+                var details = await CommitDetailsReader.ReadAsync(repository, neighbour, cancellationToken: token).ConfigureAwait(false);
                 if (details is not null)
                 {
                     postToUi(() => RememberPrefetched(details, token));
@@ -178,7 +178,7 @@ public sealed class CommitDetailsStore : IDisposable
         try
         {
             await delay(wait, token).ConfigureAwait(false);
-            details = await CommitDetailsReader.ReadAsync(repository, commit, token).ConfigureAwait(false);
+            details = await CommitDetailsReader.ReadAsync(repository, commit, cancellationToken: token).ConfigureAwait(false);
             postToUi(() => Complete(commit, details, string.Empty, token));
         }
         catch (OperationCanceledException)

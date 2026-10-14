@@ -224,7 +224,7 @@ public class DiffReaderTests
     private static async Task<List<DiffFile>> ReadAllAsync(Repository repository, string[] command, List<string> warnings, CancellationToken? token = null)
     {
         var files = new List<DiffFile>();
-        await foreach (var file in DiffReader.ReadAsync(repository, command, token ?? Token, warnings))
+        await foreach (var file in DiffReader.ReadAsync(repository, command, warnings, cancellationToken: token ?? Token))
         {
             files.Add(file);
         }

@@ -7,4 +7,4 @@ namespace Gitunia.Tui.Views;
 /// <param name="Background">Background colour, <c>Color.None</c> for the terminal default.</param>
 /// <param name="Style">Bold, underline and similar attributes.</param>
 /// <param name="KeepsBackground">The background stays when the row is selected (chips, search matches).</param>
-public sealed record RoleAppearance(Color Foreground, Color Background, TextStyle Style, bool KeepsBackground);
+public readonly record struct RoleAppearance(Color Foreground, Color Background, TextStyle Style, bool KeepsBackground);
