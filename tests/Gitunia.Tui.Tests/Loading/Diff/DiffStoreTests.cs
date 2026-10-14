@@ -4,6 +4,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Diff;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Diff;
@@ -89,12 +90,11 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenARowLimit_WhenTheDiffIsLonger_ThenItIsCutShortWithANote()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("big.txt", "start\n"));
-        testRepository.Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, 2000).Select(index => $"line {index}\n"))), new TestFile("other.txt", "x\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new DiffStore(repository, action => action(), rowLimit: 100);
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("big.txt", 2000), FakeDiffReader.FileAdding("other.txt", 1));
+        using var store = CreateStore(reader, rowLimit: 100);
 
-        var document = await LoadAsync(store, testRepository, "HEAD", "HEAD~1");
+        var document = await LoadFakeAsync(store, commit);
 
         Assert.Contains("cut short", document.Rows[^1].Text, StringComparison.Ordinal);
     }
@@ -102,21 +102,23 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenTheSameCommit_WhenLoadingAgain_ThenNothingIsStarted()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n"));
-        using var store = await CreateStoreAsync(testRepository);
-        var commit = IdOf(testRepository, "HEAD");
-        await LoadAsync(store, testRepository, "HEAD", null);
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        using var store = CreateStore(reader);
+        await LoadFakeAsync(store, commit);
 
         Assert.False(store.Load(commit, null));
         Assert.Equal(DiffStatus.Loaded, store.Status);
+        Assert.Equal(1, reader.ReadCount);
     }
 
     [Fact]
     public async Task GivenALoadedDiff_WhenClearing_ThenTheStoreIsEmptyAgain()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n"));
-        using var store = await CreateStoreAsync(testRepository);
-        await LoadAsync(store, testRepository, "HEAD", null);
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        using var store = CreateStore(reader);
+        await LoadFakeAsync(store, commit);
 
         store.Clear();
 
@@ -128,20 +130,9 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenACommitGitDoesNotKnow_WhenLoading_ThenTheLoadFailsWithAMessage()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n"));
-        using var store = await CreateStoreAsync(testRepository);
-        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        store.Changed += () =>
-        {
-            if (store.Status == DiffStatus.Failed)
-            {
-                changed.TrySetResult();
-            }
-        };
+        using var store = CreateStore(new FakeDiffReader());
 
-        Assert.True(ObjectId.TryParse(new string('a', 40), out var missing));
-        store.Load(missing, null);
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        await LoadFakeAsync(store, FakeDiffReader.MissingId());
 
         Assert.Equal(DiffStatus.Failed, store.Status);
         Assert.Contains("Could not load the diff", store.Document.Rows[0].Text, StringComparison.Ordinal);
@@ -150,20 +141,18 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenNeighbours_WhenTheDiffIsShown_ThenTheyArePrefetchedAndShownAtOnce()
     {
-        using var testRepository = TestRepository.Create()
-            .Commit("root", new TestFile("a.txt", "one\n"))
-            .Commit("second", new TestFile("a.txt", "two\n"))
-            .Commit("third", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", ["one"]));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", ["two"]));
+        var third = reader.Add(second, FakeDiffReader.FileAdding("a.txt", ["three"]));
+        using var store = CreateStore(reader, delay: (_, _) => Task.CompletedTask);
         var changed = 0;
         store.Changed += () => changed++;
-        var neighbours = new[] { IdOf(testRepository, "HEAD~1"), IdOf(testRepository, "HEAD~2") };
-        store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), neighbours);
+        store.Load(third, second, [second, first]);
 
         await WaitUntilAsync(() => store.CachedCount == 3);
         var before = changed;
-        var started = store.Load(neighbours[0], IdOf(testRepository, "HEAD~2"));
+        var started = store.Load(second, first);
 
         Assert.True(started);
         Assert.Equal(DiffStatus.Loaded, store.Status);
@@ -174,14 +163,13 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenAPrefetchWaiting_WhenAnotherCommitIsSelected_ThenTheStaleNeighboursAreNotCached()
     {
-        using var testRepository = TestRepository.Create()
-            .Commit("root", new TestFile("a.txt", "one\n"))
-            .Commit("second", new TestFile("a.txt", "two\n"))
-            .Commit("third", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", 1));
+        var third = reader.Add(second, FakeDiffReader.FileAdding("a.txt", 1));
         var gate = new TaskCompletionSource();
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var store = new DiffStore(repository, action => action(), delay: async (_, token) =>
+        using var store = CreateStore(reader, delay: async (_, token) =>
         {
             try
             {
@@ -193,12 +181,12 @@ public class DiffStoreTests
                 throw;
             }
         });
-        store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), [IdOf(testRepository, "HEAD~1")]);
+        store.Load(third, second, [second]);
         await WaitUntilAsync(() => store.Status == DiffStatus.Loaded);
 
-        store.Load(IdOf(testRepository, "HEAD~2"), null);
+        store.Load(first, null);
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
-        await WaitUntilAsync(() => store.Status == DiffStatus.Loaded && store.Commit == IdOf(testRepository, "HEAD~2"));
+        await WaitUntilAsync(() => store.Status == DiffStatus.Loaded && store.Commit == first);
 
         Assert.Equal(2, store.CachedCount);
         store.Clear();
@@ -208,32 +196,30 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenANeighbourOverThePrefetchRowLimit_WhenPrefetching_ThenItIsSkippedAndTheNextOneIsRead()
     {
-        using var testRepository = TestRepository.Create()
-            .Commit("root", new TestFile("a.txt", "one\n"))
-            .Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, DiffStore.PrefetchRowLimit + 100).Select(index => $"line {index}\n"))))
-            .Commit("small", new TestFile("a.txt", "two\n"))
-            .Commit("tip", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
+        var reader = new FakeDiffReader();
+        var root = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        var big = reader.Add(root, FakeDiffReader.FileAdding("big.txt", DiffStore.PrefetchRowLimit + 100));
+        var small = reader.Add(big, FakeDiffReader.FileAdding("a.txt", 1));
+        var tip = reader.Add(small, FakeDiffReader.FileAdding("a.txt", 1));
+        using var store = CreateStore(reader, delay: (_, _) => Task.CompletedTask);
 
-        store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), [IdOf(testRepository, "HEAD~2"), IdOf(testRepository, "HEAD~1")]);
+        store.Load(tip, small, [big, small]);
         await WaitUntilAsync(() => store.CachedCount == 2);
-        await LoadedAsync(store, IdOf(testRepository, "HEAD"));
+        await LoadedAsync(store, tip);
 
         Assert.Equal(2, store.CachedCount);
-        Assert.True(store.Load(IdOf(testRepository, "HEAD~1"), IdOf(testRepository, "HEAD~2")));
+        Assert.True(store.Load(small, big));
         Assert.Equal(DiffStatus.Loaded, store.Status);
     }
 
     [Fact]
     public async Task GivenACutDiff_WhenItLoads_ThenItIsNotCached()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("big.txt", "start\n"));
-        testRepository.Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, 2000).Select(index => $"line {index}\n"))));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new DiffStore(repository, action => action(), rowLimit: 100);
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("big.txt", 2000));
+        using var store = CreateStore(reader, rowLimit: 100);
 
-        await LoadAsync(store, testRepository, "HEAD", "HEAD~1");
+        await LoadFakeAsync(store, commit);
 
         Assert.True(store.IsCut);
         Assert.Equal(0, store.CachedCount);
@@ -242,11 +228,12 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenACacheReleasedWhileLoading_WhenTheLoadFinishes_ThenNothingIsCached()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n")).Commit("second", new TestFile("a.txt", "two\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", 1));
+        using var store = CreateStore(reader, delay: (_, _) => Task.CompletedTask);
 
-        store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), [IdOf(testRepository, "HEAD~1")]);
+        store.Load(second, first, [first]);
         store.ReleaseCache();
         await WaitUntilAsync(() => store.Status == DiffStatus.Loaded);
 
@@ -256,25 +243,30 @@ public class DiffStoreTests
     [Fact]
     public async Task GivenACachedCommit_WhenItIsSelectedAgain_ThenNoGitIsNeeded()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n")).Commit("second", new TestFile("a.txt", "two\n"));
-        using var store = await CreateStoreAsync(testRepository);
-        await LoadAsync(store, testRepository, "HEAD", "HEAD~1");
-        store.Load(IdOf(testRepository, "HEAD~1"), null);
-        await WaitUntilAsync(() => store.Status == DiffStatus.Loaded && store.Commit == IdOf(testRepository, "HEAD~1"));
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", ["one"]));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", ["two"]));
+        using var store = CreateStore(reader);
+        await LoadFakeAsync(store, second, first);
+        store.Load(first, null);
+        await WaitUntilAsync(() => store.Status == DiffStatus.Loaded && store.Commit == first);
+        var reads = reader.ReadCount;
 
-        var started = store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"));
+        var started = store.Load(second, first);
 
         Assert.True(started);
         Assert.Equal(DiffStatus.Loaded, store.Status);
+        Assert.Equal(reads, reader.ReadCount);
         Assert.Contains(store.Document.Rows, row => row is { Kind: DiffRowKind.Added, Text: "two" });
     }
 
     [Fact]
     public async Task GivenCachedDiffs_WhenReleasingTheCache_ThenTheShownDiffStaysAndTheCacheIsEmpty()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n"));
-        using var store = await CreateStoreAsync(testRepository);
-        await LoadAsync(store, testRepository, "HEAD", null);
+        var reader = new FakeDiffReader();
+        var commit = reader.Add(null, FakeDiffReader.FileAdding("a.txt", 1));
+        using var store = CreateStore(reader);
+        await LoadFakeAsync(store, commit);
         Assert.Equal(1, store.CachedCount);
 
         store.ReleaseCache();
@@ -302,10 +294,28 @@ public class DiffStoreTests
         return id;
     }
 
+    private static DiffStore CreateStore(FakeDiffReader reader, int rowLimit = DiffStore.DefaultRowLimit, Func<TimeSpan, CancellationToken, Task>? delay = null) =>
+        new(reader, FakeCommitDetailsReader.Location, action => action(), rowLimit, delay: delay);
+
+    private static async Task<DiffDocument> LoadFakeAsync(DiffStore store, ObjectId commit, ObjectId? firstParent = null)
+    {
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        store.Changed += () =>
+        {
+            if (store.Status is DiffStatus.Loaded or DiffStatus.Failed)
+            {
+                finished.TrySetResult();
+            }
+        };
+        store.Load(commit, firstParent);
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(60), Token);
+        return store.Document;
+    }
+
     private static async Task<DiffStore> CreateStoreAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        return new DiffStore(repository, action => action());
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        return new DiffStore(TestGit.Services.Diff, location, action => action());
     }
 
     private static async Task<DiffDocument> LoadAsync(DiffStore store, TestRepository testRepository, string revision, string? parentRevision)

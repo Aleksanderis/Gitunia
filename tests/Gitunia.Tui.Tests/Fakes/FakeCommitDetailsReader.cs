@@ -1,0 +1,74 @@
+using System.Globalization;
+using Gitunia.Git;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories.Models;
+
+namespace Gitunia.Tui.Tests.Fakes;
+
+/// <summary>Serves commit details from memory, so tests of the code on top of the reader need no git repository. An id that was not added fails like git does for an unknown commit.</summary>
+public sealed class FakeCommitDetailsReader : ICommitDetailsReader
+{
+    private const int HexDigitCount = 40;
+
+    private static readonly DateTimeOffset CommitTime = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private readonly Dictionary<ObjectId, CommitDetails> _commits = [];
+
+    /// <summary>A location that is never touched on disk; the fake ignores it.</summary>
+    public static RepositoryLocation Location { get; } = new(
+        Path.Combine(Path.GetTempPath(), "gitunia-fake-repository"),
+        Path.Combine(Path.GetTempPath(), "gitunia-fake-repository", ".git"),
+        Path.Combine(Path.GetTempPath(), "gitunia-fake-repository", ".git"),
+        false,
+        false);
+
+    /// <summary>The ids made by <see cref="Chain"/>, newest first (index 0 is the tip, index n is its n-th ancestor).</summary>
+    public IReadOnlyList<ObjectId> Commits { get; private set; } = [];
+
+    /// <summary>The number of reads so far.</summary>
+    public int ReadCount { get; private set; }
+
+    /// <summary>A linear history of <paramref name="count"/> commits named "commit 1" (oldest) to "commit N" (tip).</summary>
+    public static FakeCommitDetailsReader Chain(int count)
+    {
+        var reader = new FakeCommitDetailsReader();
+        var ids = new List<ObjectId>(count);
+        for (var number = 1; number <= count; number++)
+        {
+            ids.Add(reader.Add($"commit {number}", ids.Count == 0 ? null : ids[^1]));
+        }
+
+        ids.Reverse();
+        reader.Commits = ids;
+        return reader;
+    }
+
+    /// <summary>Adds a commit with this subject and an optional parent; returns its new id.</summary>
+    public ObjectId Add(string subject, ObjectId? parent = null)
+    {
+        var id = IdOf(_commits.Count + 1);
+        IReadOnlyList<ObjectId> parents = parent is { } known ? [known] : [];
+        _commits[id] = new CommitDetails(id, parents, "Author", "author@example.com", CommitTime, "Author", "author@example.com", CommitTime, subject, []);
+        return id;
+    }
+
+    /// <summary>An id that no added commit has.</summary>
+    public static ObjectId MissingId() => IdOf(int.MaxValue);
+
+    public Task<CommitDetails?> ReadAsync(RepositoryLocation location, ObjectId id, ICollection<string>? warnings = null, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ReadCount++;
+        return _commits.TryGetValue(id, out var details)
+            ? Task.FromResult<CommitDetails?>(details)
+            : throw new GitException($"unknown commit {id}");
+    }
+
+    private static ObjectId IdOf(int number)
+    {
+        var text = number.ToString("x", CultureInfo.InvariantCulture).PadLeft(HexDigitCount, '0');
+        return ObjectId.TryParse(text, out var id) ? id : throw new InvalidOperationException(text);
+    }
+}

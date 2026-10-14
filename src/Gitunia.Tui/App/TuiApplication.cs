@@ -35,7 +35,7 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable
+public sealed class TuiApplication(GitServices services, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
@@ -85,7 +85,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         Palette.Configure(palette);
 
         _host = new WorkspaceHost(Workspace.Empty);
-        _effects = new EffectRunner(runner, _host, action => app.Invoke(action), glyphs, _statuses);
+        _effects = new EffectRunner(services, _host, action => app.Invoke(action), glyphs, _statuses);
         var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
         var clipboard = new ClipboardCopier(clipboardWriter, _statuses);
         var sidebarSource = new SidebarListSource(glyphs);
@@ -133,7 +133,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
-        _picker = new PickerController(runner, _host, _homeDirectory, action => app.Invoke(action));
+        _picker = new PickerController(services.Discovery, _host, _homeDirectory, action => app.Invoke(action));
         _workspaceActions = new WorkspaceActions(_host, _picker, app.RequestStop);
         _binder = new GraphTabBinder(_host, _effects, _view.Graph, new GraphListSource(new CommitGraph(), glyphs), _view.RefreshChrome);
         _binder.Switched += OnTabSwitched;
@@ -186,7 +186,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
 
         _host.Restore(restored.Update);
-        _statusPoller = new BackgroundStatusPoller(runner, _host, action => app.Invoke(action));
+        _statusPoller = new BackgroundStatusPoller(services.Status, _host, action => app.Invoke(action));
         _statusPoller.Start();
         if (location is not null)
         {

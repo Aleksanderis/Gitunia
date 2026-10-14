@@ -6,14 +6,21 @@ using Gitunia.Git.Repositories.Models;
 namespace Gitunia.Git.Repositories;
 
 /// <summary>Resolves any path (root, subdirectory, linked worktree, bare repository, inside a git directory) to a <see cref="RepositoryLocation"/>.</summary>
-public static class RepositoryDiscovery
+public sealed class RepositoryDiscovery
 {
     private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"];
 
     private static readonly string[] CoreWorktreeArguments = ["config", "--get", "core.worktree"];
 
+    private readonly GitRunner _runner;
+
+    public RepositoryDiscovery(GitRunner runner)
+    {
+        _runner = runner;
+    }
+
     /// <exception cref="NotARepositoryException">The path does not exist or is outside any repository.</exception>
-    public static async Task<RepositoryLocation> DiscoverAsync(GitRunner runner, string path, CancellationToken cancellationToken)
+    public async Task<RepositoryLocation> DiscoverAsync(string path, CancellationToken cancellationToken)
     {
         var fullPath = Path.GetFullPath(path);
         if (!Directory.Exists(fullPath))
@@ -25,7 +32,7 @@ public static class RepositoryDiscovery
         GitResult basics;
         try
         {
-            basics = await runner.RunAsync(
+            basics = await _runner.RunAsync(
                 fullPath,
                 BasicsArguments,
                 GitRunOptions.ReadOnlyRun,
@@ -55,14 +62,14 @@ public static class RepositoryDiscovery
         }
 
         var workingTree = isInsideGitDirectory
-            ? await ResolveWorkingTreeFromGitDirectoryAsync(runner, fullPath, gitDirectory, isLinkedWorktree, cancellationToken).ConfigureAwait(false)
-            : await ReadTopLevelAsync(runner, fullPath, cancellationToken).ConfigureAwait(false);
+            ? await ResolveWorkingTreeFromGitDirectoryAsync(fullPath, gitDirectory, isLinkedWorktree, cancellationToken).ConfigureAwait(false)
+            : await ReadTopLevelAsync(fullPath, cancellationToken).ConfigureAwait(false);
         return new RepositoryLocation(workingTree, gitDirectory, commonDirectory, false, isLinkedWorktree);
     }
 
-    private static async Task<string> ReadTopLevelAsync(GitRunner runner, string path, CancellationToken cancellationToken)
+    private async Task<string> ReadTopLevelAsync(string path, CancellationToken cancellationToken)
     {
-        var result = await runner.RunAsync(
+        var result = await _runner.RunAsync(
             path,
             ["rev-parse", "--path-format=absolute", "--show-toplevel"],
             GitRunOptions.ReadOnlyRun,
@@ -70,8 +77,7 @@ public static class RepositoryDiscovery
         return Path.GetFullPath(result.StandardOutputText.Trim());
     }
 
-    private static async Task<string> ResolveWorkingTreeFromGitDirectoryAsync(
-        GitRunner runner,
+    private async Task<string> ResolveWorkingTreeFromGitDirectoryAsync(
         string path,
         string gitDirectory,
         bool isLinkedWorktree,
@@ -91,7 +97,7 @@ public static class RepositoryDiscovery
             return Path.GetFullPath(Path.Combine(gitDirectory, ".."));
         }
 
-        var configured = await runner.RunAsync(
+        var configured = await _runner.RunAsync(
             path,
             CoreWorktreeArguments,
             GitRunOptions.ReadOnlyRunAllowingNoMatch,

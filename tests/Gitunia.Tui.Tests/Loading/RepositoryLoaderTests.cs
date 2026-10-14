@@ -21,17 +21,16 @@ public class RepositoryLoaderTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1")).Commit("second", new TestFile("a.txt", "2")).Tag("v1");
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
         var changes = 0;
         session.Changed += () => changes++;
 
         // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
-        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
         Assert.Equal(string.Empty, session.LoadError);
@@ -48,16 +47,15 @@ public class RepositoryLoaderTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
         var statuses = new StatusChannel();
 
-        await RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         Assert.Empty(statuses.Log.History);
         Assert.True(session.IsLoading);
@@ -69,14 +67,13 @@ public class RepositoryLoaderTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1")).WriteFile("untracked.txt", "x");
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
 
-        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.Equal(new RepositoryStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
@@ -86,14 +83,13 @@ public class RepositoryLoaderTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
 
-        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.Equal(new RepositoryStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
@@ -103,15 +99,14 @@ public class RepositoryLoaderTests
     {
         var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var statuses = new StatusChannel();
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
         repository.Dispose();
 
-        await RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         var texts = statuses.Log.History.Select(message => message.Text).ToList();
         Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));

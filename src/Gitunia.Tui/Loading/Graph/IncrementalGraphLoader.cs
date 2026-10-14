@@ -1,7 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading.Graph;
 
@@ -12,23 +12,32 @@ namespace Gitunia.Tui.Loading.Graph;
 /// full read when a `git replace` ref changes history below the join without changing the number of commits, so the manual refresh (which does a
 /// full read) stays the way to resynchronize.
 /// </summary>
-public static class IncrementalGraphLoader
+public sealed class IncrementalGraphLoader
 {
-    /// <param name="repository">The repository to read.</param>
+    private readonly ICommitLogReader _commitLog;
+    private readonly GraphLoader _graphLoader;
+
+    public IncrementalGraphLoader(ICommitLogReader commitLog, GraphLoader graphLoader)
+    {
+        _commitLog = commitLog;
+        _graphLoader = graphLoader;
+    }
+
+    /// <param name="location">The repository to read.</param>
     /// <param name="previous">The rows currently shown (a copy that nobody changes meanwhile); empty means a full read.</param>
     /// <param name="cancellationToken">Cancels the read and kills git.</param>
-    public static async Task<GraphReload> ReloadAsync(Repository repository, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)
+    public async Task<GraphReload> ReloadAsync(RepositoryLocation location, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)
     {
         if (previous.Count == 0)
         {
-            return await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(location, cancellationToken).ConfigureAwait(false);
         }
 
         var splicer = new GraphSplicer(previous);
         var builder = new GraphLayoutBuilder();
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
@@ -45,24 +54,24 @@ public static class IncrementalGraphLoader
         }
 
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
-        if (await CommitLogReader.CountAsync(repository, cancellationToken).ConfigureAwait(false) != expectedCount)
+        if (await _commitLog.CountAsync(location, cancellationToken).ConfigureAwait(false) != expectedCount)
         {
-            return await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(location, cancellationToken).ConfigureAwait(false);
         }
 
-        var decorations = await CommitLogReader.ReadTipDecorationsAsync(repository, cancellationToken).ConfigureAwait(false);
+        var decorations = await _commitLog.ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
         var spliced = splicer.Splice(rows, joinIndex, decorations);
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).
         return spliced is null
-            ? await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false)
+            ? await ReadAllAsync(location, cancellationToken).ConfigureAwait(false)
             : new GraphReload(spliced, previous.Count - joinIndex - 1);
     }
 
-    private static async Task<GraphReload> ReadAllAsync(Repository repository, CancellationToken cancellationToken)
+    private async Task<GraphReload> ReadAllAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
         var entries = new List<GraphEntry>();
-        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, cancellationToken).ConfigureAwait(false))
+        await foreach (var batch in _graphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellationToken).ConfigureAwait(false))
         {
             entries.AddRange(batch);
         }

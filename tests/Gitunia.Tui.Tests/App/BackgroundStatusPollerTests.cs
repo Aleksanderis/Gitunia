@@ -1,8 +1,7 @@
 using Gitunia.Core.Workspaces;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
-using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -12,17 +11,17 @@ public class BackgroundStatusPollerTests
     [Fact]
     public async Task GivenDirtyBackgroundTab_WhenPolled_ThenOnlyThatTabGetsMarkersAndNothingElseLoads()
     {
-        using var active = TestRepository.Create();
-        active.Commit("root", new TestFile("a.txt", "1"));
-        using var background = TestRepository.Create();
-        background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
-        var runner = new GitRunner();
-        var workspace = await OpenAsync(runner, active.WorkingTreePath, background.WorkingTreePath);
+        var reader = new FakeStatusReader();
+        var active = FakeStatusReader.LocationOf("active");
+        var background = FakeStatusReader.LocationOf("background");
+        reader.SetDirty(active, true);
+        reader.SetDirty(background, true);
+        var workspace = Open(active, background);
         var activeId = workspace.Tabs[0].Id;
         var backgroundId = workspace.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = activeId }, []));
-        using var poller = new BackgroundStatusPoller(runner, host, InlineUi.Post);
+        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Post);
 
         await poller.PollOnceAsync(CancellationToken.None);
 
@@ -35,30 +34,28 @@ public class BackgroundStatusPollerTests
     [Fact]
     public async Task GivenBackgroundTabBecomesClean_WhenPolledAgain_ThenMarkerClears()
     {
-        using var active = TestRepository.Create();
-        active.Commit("root", new TestFile("a.txt", "1"));
-        using var background = TestRepository.Create();
-        background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
-        var runner = new GitRunner();
-        var workspace = await OpenAsync(runner, active.WorkingTreePath, background.WorkingTreePath);
+        var reader = new FakeStatusReader();
+        var active = FakeStatusReader.LocationOf("active");
+        var background = FakeStatusReader.LocationOf("background");
+        reader.SetDirty(background, true);
+        var workspace = Open(active, background);
         var backgroundId = workspace.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = workspace.Tabs[0].Id }, []));
-        using var poller = new BackgroundStatusPoller(runner, host, InlineUi.Post);
+        using var poller = new BackgroundStatusPoller(reader, host, InlineUi.Post);
         await poller.PollOnceAsync(CancellationToken.None);
 
-        background.Git("checkout", "--", "a.txt");
+        reader.SetDirty(background, false);
         await poller.PollOnceAsync(CancellationToken.None);
 
         Assert.False(host.Workspace.FindTab(backgroundId)!.Status!.IsDirty);
     }
 
-    private static async Task<Workspace> OpenAsync(GitRunner runner, params string[] paths)
+    private static Workspace Open(params RepositoryLocation[] locations)
     {
         var workspace = Workspace.Empty;
-        foreach (var path in paths)
+        foreach (var location in locations)
         {
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, path, CancellationToken.None);
             workspace = WorkspaceReducer.Reduce(workspace, new OpenRepositoryCommand(location)).Workspace;
         }
 

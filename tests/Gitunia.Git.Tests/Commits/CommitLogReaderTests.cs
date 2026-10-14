@@ -4,6 +4,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -12,6 +13,8 @@ namespace Gitunia.Git.Tests.Commits;
 public class CommitLogReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly CommitLogReader CommitLog = new(Runner);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -19,9 +22,9 @@ public class CommitLogReaderTests
     public async Task GivenMergedFeatureBranchRepository_WhenReadingLog_ThenEveryCommitAppearsChildrenBeforeParents()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository);
+        var commits = await ReadAllAsync(location);
 
         Assert.Equal(testRepository.Git("rev-list", "--all", "--count").Trim(), commits.Count.ToString());
         var positions = commits.Select((commit, index) => (commit.Id, index)).ToDictionary(pair => pair.Id, pair => pair.index);
@@ -36,9 +39,9 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepositories.Linear(1);
         testRepository.Git("commit", "--allow-empty", "-m", "late", "--date=2026-10-13T23:30:00-0500");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository);
+        var commits = await ReadAllAsync(location);
 
         var late = commits.Single(commit => commit.Subject == "late");
         Assert.Equal(TimeSpan.FromHours(-5), late.AuthorTime.Offset);
@@ -49,9 +52,9 @@ public class CommitLogReaderTests
     public async Task GivenMergeCommit_WhenReadingLog_ThenHasTwoParentsAndDecorations()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository);
+        var commits = await ReadAllAsync(location);
 
         var head = commits.Single(commit => commit.Id.ToString() == testRepository.Head);
         Assert.Equal(2, head.Parents.Count);
@@ -67,9 +70,9 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepository.Create()
             .Commit("ünï 日本 \"quoted\" subject; with | pipes", new TestFile("a.txt", "a\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository);
+        var commits = await ReadAllAsync(location);
 
         Assert.Equal("ünï 日本 \"quoted\" subject; with | pipes", Assert.Single(commits).Subject);
     }
@@ -79,9 +82,9 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Git("checkout", "-q", "--detach", "HEAD");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository, CommitOrder.ByDate, "HEAD");
+        var commits = await ReadAllAsync(location, CommitOrder.ByDate, "HEAD");
 
         Assert.Contains(commits[0].Decorations, decoration => decoration.Kind == RefKind.Head);
     }
@@ -90,18 +93,18 @@ public class CommitLogReaderTests
     public async Task GivenUnbornBranch_WhenReadingLog_ThenEmpty()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Empty(await ReadAllAsync(repository));
+        Assert.Empty(await ReadAllAsync(location));
     }
 
     [Fact]
     public async Task GivenSingleBranchRevision_WhenReadingLog_ThenOnlyThatHistory()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var commits = await ReadAllAsync(repository, CommitOrder.Topological, "feature");
+        var commits = await ReadAllAsync(location, CommitOrder.Topological, "feature");
 
         Assert.Equal(3, commits.Count);
     }
@@ -111,11 +114,11 @@ public class CommitLogReaderTests
     {
         var bigRepository = Environment.GetEnvironmentVariable("GITUNIA_BIG_REPO");
         Assert.SkipUnless(bigRepository is not null && Directory.Exists(bigRepository), "set GITUNIA_BIG_REPO to a repo from scripts/gen-big-repo.sh to run this");
-        var repository = await Repository.OpenAsync(Runner, bigRepository!, Token);
-        var expected = long.Parse((await repository.RunAsync(["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
+        var location = await Discovery.DiscoverAsync(bigRepository!, Token);
+        var expected = long.Parse((await Runner.RunAsync(location.CommandPath, ["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
 
         var count = 0L;
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: Token))
+        await foreach (var commit in CommitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: Token))
         {
             count += commit.Id.IsValid ? 1 : 0;
         }
@@ -127,18 +130,18 @@ public class CommitLogReaderTests
     public async Task GivenUnknownRevision_WhenReadingLog_ThenGitErrorPropagates()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        await Assert.ThrowsAsync<GitCommandFailedException>(() => ReadAllAsync(repository, CommitOrder.Topological, "no-such-branch"));
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => ReadAllAsync(location, CommitOrder.Topological, "no-such-branch"));
     }
 
     [Fact]
     public async Task GivenRevisionNamedLikeAFile_WhenReadingLog_ThenItIsStillTreatedAsRevision()
     {
         using var testRepository = TestRepository.Create().Commit("One", new TestFile("main", "file named like the branch\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Single(await ReadAllAsync(repository, CommitOrder.Topological, "main"));
+        Assert.Single(await ReadAllAsync(location, CommitOrder.Topological, "main"));
     }
 
     [Fact]
@@ -147,32 +150,32 @@ public class CommitLogReaderTests
         using var testRepository = TestRepositories.Linear(1);
         testRepository.WriteFile("file.txt", "changed\n");
         testRepository.Git("stash", "push", "-q");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Single(await ReadAllAsync(repository));
+        Assert.Single(await ReadAllAsync(location));
     }
 
     [Fact]
     public async Task GivenCancellation_WhenReadingLog_ThenOperationCancelled()
     {
         using var testRepository = TestRepositories.Linear(3);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: source.Token))
+            await foreach (var commit in CommitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: source.Token))
             {
                 Assert.NotNull(commit);
             }
         });
     }
 
-    private static async Task<List<CommitInfo>> ReadAllAsync(Repository repository, CommitOrder order = CommitOrder.Topological, params string[] revisions)
+    private static async Task<List<CommitInfo>> ReadAllAsync(RepositoryLocation location, CommitOrder order = CommitOrder.Topological, params string[] revisions)
     {
         var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, revisions, cancellationToken: Token))
+        await foreach (var commit in CommitLog.ReadAsync(location, order, revisions, cancellationToken: Token))
         {
             commits.Add(commit);
         }

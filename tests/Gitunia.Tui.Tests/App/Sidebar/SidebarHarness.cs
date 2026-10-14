@@ -6,8 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Sidebar;
@@ -25,11 +24,11 @@ public sealed class SidebarHarness : IDisposable
     private readonly TabSession _session;
     private readonly TabSession _emptySession;
 
-    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, Repository repository)
+    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, RepositoryLocation location)
     {
         Host = host;
         _session = session;
-        _emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
+        _emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
         _emptySession.Complete();
         Source = source;
         Handler = new SidebarActionHandler(
@@ -70,16 +69,15 @@ public sealed class SidebarHarness : IDisposable
 
     public static async Task<SidebarHarness> LoadAsync(string repositoryPath)
     {
-        var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repositoryPath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repositoryPath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
 
         // Posting runs the action inline (serialized, like the UI thread would).
-        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
-        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), new Repository(runner, location));
+        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), location);
     }
 
     /// <summary>Focuses the sidebar and puts the cursor on the row with this label.</summary>

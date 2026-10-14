@@ -9,6 +9,8 @@ namespace Gitunia.Git.Tests.Stash;
 public class StashReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly StashReader Stashes = new(Runner);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -16,9 +18,9 @@ public class StashReaderTests
     public async Task GivenRepositoryWithoutStashes_WhenReading_ThenListIsEmpty()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var result = await StashReader.ReadStashesAsync(repository, Token);
+        var result = await Stashes.ReadStashesAsync(location, Token);
 
         Assert.Empty(result.Items);
         Assert.Empty(result.Warnings);
@@ -34,9 +36,9 @@ public class StashReaderTests
         testRepository.WriteFile("b.txt", "second");
         testRepository.Git("add", "-A");
         testRepository.Git("stash", "push", "-q", "-m", "second stash");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var result = await StashReader.ReadStashesAsync(repository, Token);
+        var result = await Stashes.ReadStashesAsync(location, Token);
 
         Assert.Empty(result.Warnings);
         Assert.Equal(["stash@{0}", "stash@{1}"], result.Items.Select(entry => entry.Name));

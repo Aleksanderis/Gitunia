@@ -3,10 +3,8 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
@@ -17,23 +15,34 @@ using Gitunia.Tui.Loading.Graph;
 namespace Gitunia.Tui.Loading;
 
 /// <summary>Loads everything a freshly opened tab shows (HEAD, refs, the streamed graph) and hands each result to the UI thread.</summary>
-public static class RepositoryLoader
+public sealed class RepositoryLoader
 {
-    /// <param name="runner">The git runner.</param>
+    private readonly IRefReader _refs;
+    private readonly IStatusReader _status;
+    private readonly GraphLoader _graphLoader;
+    private readonly SidebarDataLoader _sidebarLoader;
+
+    public RepositoryLoader(IRefReader refs, IStatusReader status, GraphLoader graphLoader, SidebarDataLoader sidebarLoader)
+    {
+        _refs = refs;
+        _status = status;
+        _graphLoader = graphLoader;
+        _sidebarLoader = sidebarLoader;
+    }
+
     /// <param name="location">The repository of the tab.</param>
     /// <param name="session">Receives the graph rows.</param>
     /// <param name="host">Receives HEAD and refs as tab commands.</param>
     /// <param name="statuses">Told when a part of the load fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="token">Cancelled when the tab closes; taken by the caller because the session disposes its source.</param>
-    public static async Task RunAsync(GitRunner runner, RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    public async Task RunAsync(RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
-        var repository = new Repository(runner, location);
-        var metadata = LoadMetadataAsync(repository, session.TabId, host, statuses, postToUi, token);
-        var sidebarData = SidebarDataLoader.LoadAsync(repository, session.TabId, host, statuses, postToUi, token);
+        var metadata = LoadMetadataAsync(location, session.TabId, host, statuses, postToUi, token);
+        var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, postToUi, token);
         try
         {
-            await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, token).ConfigureAwait(false))
+            await foreach (var batch in _graphLoader.StreamAsync(location, CommitOrder.Topological, null, token).ConfigureAwait(false))
             {
                 postToUi(() => session.Append(batch));
             }
@@ -49,7 +58,7 @@ public static class RepositoryLoader
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
             postToUi(() =>
             {
-                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath))}: could not load the graph: {exception.Message}");
+                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not load the graph: {exception.Message}");
                 session.Fail(exception.Message);
             });
         }
@@ -58,13 +67,13 @@ public static class RepositoryLoader
         await sidebarData.ConfigureAwait(false);
     }
 
-    private static async Task LoadMetadataAsync(Repository repository, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
     {
         try
         {
-            var headTask = repository.ReadHeadAsync(token);
-            var refsTask = RefReader.ReadRefsAsync(repository, token);
-            var statusTask = StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.All, token);
+            var headTask = _refs.ReadHeadAsync(location, token);
+            var refsTask = _refs.ReadRefsAsync(location, token);
+            var statusTask = _status.ReadStatusAsync(location, false, UntrackedFilesMode.All, token);
             var head = await headTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(head))));
             var refs = await refsTask.ConfigureAwait(false);
@@ -80,7 +89,7 @@ public static class RepositoryLoader
         catch (GitException exception)
         {
             // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
-            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath))}: could not read the repository status: {exception.Message}"));
+            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the repository status: {exception.Message}"));
         }
     }
 }

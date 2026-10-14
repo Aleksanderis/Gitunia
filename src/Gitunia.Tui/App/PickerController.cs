@@ -13,7 +13,7 @@ namespace Gitunia.Tui.App;
 /// Owns the open repository picker: applies picker commands through the pure reducer, scans for repositories in the background
 /// and resolves what the user chose into workspace commands. UI thread only; results of background work are posted back.
 /// </summary>
-public sealed class PickerController(GitRunner runner, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
+public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
     TimeSpan? listingTimeout = null,
     Func<string, IReadOnlyList<string>>? listDirectories = null,
     TimeSpan? scanningDelay = null)
@@ -170,7 +170,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         {
             try
             {
-                var location = await RepositoryDiscovery.DiscoverAsync(runner, path, CancellationToken.None).ConfigureAwait(false);
+                var location = await discovery.DiscoverAsync(path, CancellationToken.None).ConfigureAwait(false);
                 postToUi(() => Opened(request, location, replacing));
             }
             catch (GitException exception)
