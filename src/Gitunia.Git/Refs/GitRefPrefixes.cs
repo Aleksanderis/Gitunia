@@ -12,6 +12,9 @@ public static class GitRefPrefixes
     /// <summary>Remote-tracking branches.</summary>
     public const string Remotes = "refs/remotes/";
 
+    /// <summary>The stash ref, which is not history.</summary>
+    public const string Stash = "refs/stash";
+
     /// <summary>Tags.</summary>
     public const string Tags = "refs/tags/";
 }

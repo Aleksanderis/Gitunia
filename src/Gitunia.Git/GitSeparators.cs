@@ -18,6 +18,12 @@ public static class GitSeparators
     /// <summary>The record separator as a <c>--format</c> placeholder.</summary>
     public const string RecordSeparatorPlaceholder = "%1e";
 
+    /// <summary>The record separator as a <c>log</c>-style <c>--format</c> placeholder (<c>for-each-ref</c> spells it without the x).</summary>
+    public const string LogRecordSeparatorPlaceholder = "%x1e";
+
+    /// <summary>NUL as a <c>log</c>-style <c>--format</c> placeholder.</summary>
+    public const string LogNulPlaceholder = "%x00";
+
     /// <summary>NUL as a <c>for-each-ref --format</c> placeholder.</summary>
     public const string NulPlaceholder = "%00";
 }

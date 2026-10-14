@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 
 namespace Gitunia.Git.Commits;
@@ -8,7 +9,7 @@ namespace Gitunia.Git.Commits;
 /// <summary>Streams the commit log of a repository as <see cref="CommitInfo"/> without buffering all of it.</summary>
 public static class CommitLogReader
 {
-    private static readonly string[] DefaultRevisions = ["--exclude=refs/stash", "--all"];
+    private static readonly string[] DefaultRevisions = [$"--exclude={GitRefPrefixes.Stash}", "--all"];
 
     /// <param name="revisions">Revision arguments such as <c>--all</c>, <c>HEAD</c> or a branch name; every ref except the stash if empty (stash commits are not history).</param>
     /// <param name="warnings">Receives the parser's warnings (skipped or truncated records) once the stream ends.</param>

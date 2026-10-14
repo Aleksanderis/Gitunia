@@ -6,16 +6,17 @@ namespace Gitunia.Git.Stash;
 public static class StashParser
 {
     /// <summary>The <c>--format</c> value the parser expects: selector, hash and subject separated by NUL, each entry ended by 0x1e.</summary>
-    public const string Format = "%gd%x00%H%x00%gs%x1e";
+    public const string Format = $"%gd{Nul}%H{Nul}%gs{GitSeparators.LogRecordSeparatorPlaceholder}";
 
     private const string Prefix = "stash@{";
+    private const string Nul = GitSeparators.LogNulPlaceholder;
     private const int FieldCount = 3;
 
     public static ParseResult<StashEntry> Parse(string output)
     {
         var entries = new List<StashEntry>();
         var warnings = new List<string>();
-        foreach (var record in output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var record in output.Split(GitSeparators.RecordSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
             var line = record.Trim('\n');
             if (line.Length == 0)

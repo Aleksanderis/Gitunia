@@ -21,7 +21,7 @@ public static class RefReader
 
     public static async Task<ParseResult<WorktreeInfo>> ReadWorktreesAsync(Repository repository, CancellationToken cancellationToken)
     {
-        var result = await repository.RunAsync(["worktree", "list", "--porcelain", "-z"], PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(["worktree", "list", "--porcelain", GitOptions.NulTerminated], PollingOptions, cancellationToken).ConfigureAwait(false);
         return WorktreeParser.Parse(result.StandardOutputText);
     }
 }
