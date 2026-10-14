@@ -44,7 +44,7 @@ tools/
 scripts/              helper scripts (bash and PowerShell): fixture and big-repo generators, measurement harness
 ```
 
-Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`. Unused usings fail the build (IDE0005; it needs `GenerateDocumentationFile`, so the XML doc warnings that brings are silenced in `Directory.Build.props`). Small `Models/` folders (Refs, Watching, Execution) stay for consistency.
+Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`. Unused usings fail the build (IDE0005; it needs `GenerateDocumentationFile`, so the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`). Small `Models/` folders (Refs, Watching, Execution) stay for consistency.
 
 Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
 

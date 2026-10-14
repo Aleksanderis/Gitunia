@@ -1,3 +1,5 @@
+using Gitunia.Git.Repositories.Models;
+
 namespace Gitunia.Git.Watching.Models;
 
 /// <summary>What a file system event says may have changed in a repository. These are causes, not results: see <see cref="RepositorySections"/> for what a refresh found different.</summary>
