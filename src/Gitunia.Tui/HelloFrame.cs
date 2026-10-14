@@ -8,7 +8,7 @@ public static class HelloFrame
     public static string Render(string title, ConsoleCapabilities capabilities)
     {
         var line = capabilities.Unicode ? new string('─', title.Length + 2) : new string('-', title.Length + 2);
-        var (topLeft, topRight, bottomLeft, bottomRight, vertical) = capabilities.Unicode ? ('┌', '┐', '└', '┘', '│') : ('+', '+', '+', '+', '|');
-        return $"{topLeft}{line}{topRight}\n{vertical} {title} {vertical}\n{bottomLeft}{line}{bottomRight}\n";
+        var glyphs = capabilities.Unicode ? BoxGlyphs.Unicode : BoxGlyphs.Ascii;
+        return $"{glyphs.TopLeft}{line}{glyphs.TopRight}\n{glyphs.Vertical} {title} {glyphs.Vertical}\n{glyphs.BottomLeft}{line}{glyphs.BottomRight}\n";
     }
 }
