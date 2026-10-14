@@ -1,5 +1,6 @@
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Models;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -11,8 +12,6 @@ namespace Gitunia.Git.Repositories;
 /// </summary>
 public sealed class Repository
 {
-    private const string BranchPrefix = "refs/heads/";
-
     public Repository(GitRunner runner, RepositoryLocation location)
     {
         Runner = runner;
@@ -41,7 +40,7 @@ public sealed class Repository
         var commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
 
         var reference = symbolic.StandardOutputText.Trim();
-        var branchName = reference.StartsWith(BranchPrefix, StringComparison.Ordinal) ? reference[BranchPrefix.Length..] : null;
+        var branchName = reference.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? reference[GitRefPrefixes.Heads.Length..] : null;
         var hash = commit.ExitCode == 0 ? commit.StandardOutputText.Trim() : null;
 
         return (branchName, hash) switch

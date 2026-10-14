@@ -17,7 +17,7 @@ public static class StatusReader
         UntrackedFilesMode untrackedFiles = UntrackedFilesMode.All)
     {
         var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? "--untracked-files=all" : "--untracked-files=normal";
-        var arguments = new List<string> { "status", "--porcelain=v2", "-z", "--branch", untrackedArgument };
+        var arguments = new List<string> { "status", "--porcelain=v2", GitOptions.NulTerminated, "--branch", untrackedArgument };
         if (includeIgnored)
         {
             arguments.Add("--ignored=traditional");

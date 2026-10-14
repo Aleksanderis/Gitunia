@@ -5,14 +5,13 @@ namespace Gitunia.Git.Commits;
 /// <summary>The exact <c>git log</c> arguments <see cref="CommitLogParser"/> understands.</summary>
 public static class CommitLogFormat
 {
-    /// <summary>Unit separator between the fields of one commit.</summary>
-    public const byte FieldSeparator = 0x1f;
+    /// <summary>Number of fields in <see cref="Format"/>.</summary>
+    public const int FieldCount = 7;
 
-    /// <summary>Commits are terminated by NUL (<c>log -z</c>).</summary>
-    public const byte RecordTerminator = 0;
+    private const string Separator = GitSeparators.UnitSeparatorPlaceholder;
 
     /// <summary>Hash, parents, author name, author email, author time (raw: unix seconds and UTC offset), decorations, subject.</summary>
-    public const string Format = "tformat:%H%x1f%P%x1f%an%x1f%ae%x1f%ad%x1f%D%x1f%s";
+    public const string Format = $"tformat:%H{Separator}%P{Separator}%an{Separator}%ae{Separator}%ad{Separator}%D{Separator}%s";
 
     /// <summary>Arguments for <c>git log</c>: parseable output, children before parents, full ref names in decorations.</summary>
     public static IReadOnlyList<string> Arguments(CommitOrder order, IEnumerable<string> revisions)
@@ -20,11 +19,11 @@ public static class CommitLogFormat
         var arguments = new List<string>
         {
             "log",
-            "-z",
-            "--format=" + Format,
+            GitOptions.NulTerminated,
+            $"--format={Format}",
             "--date=raw",
             "--decorate=full",
-            "--no-color",
+            GitOptions.NoColor,
             "--no-show-signature",
             "--encoding=UTF-8",
         };
@@ -32,7 +31,7 @@ public static class CommitLogFormat
         arguments.AddRange(revisions);
 
         // Without '--' a revision that matches a file name is ambiguous to git.
-        arguments.Add("--");
+        arguments.Add(GitOptions.EndOfOptions);
         return arguments;
     }
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Status.Models;
 
@@ -22,7 +23,7 @@ public static class StatusParser
                 continue;
             }
 
-            if (segment.StartsWith("# ", StringComparison.Ordinal))
+            if (segment.StartsWith(StatusRecordTypes.HeaderPrefix, StringComparison.Ordinal))
             {
                 header.Add(segment, warnings);
                 continue;
@@ -31,21 +32,21 @@ public static class StatusParser
             StatusEntry? entry;
             switch (segment[0])
             {
-                case '1':
+                case StatusRecordTypes.Ordinary:
                     entry = ParseOrdinary(segment, warnings);
                     break;
-                case '2':
+                case StatusRecordTypes.RenamedOrCopied:
                     // The source path belongs to this record even when the record itself is malformed.
                     entry = ParseRenamedOrCopied(segment, index + 1 < segments.Length ? segments[index + 1] : null, warnings);
                     index++;
                     break;
-                case 'u':
+                case StatusRecordTypes.Unmerged:
                     entry = ParseUnmerged(segment, warnings);
                     break;
-                case '?':
+                case StatusRecordTypes.Untracked:
                     entry = ParsePathOnly(segment, StatusEntryKind.Untracked, warnings);
                     break;
-                case '!':
+                case StatusRecordTypes.Ignored:
                     entry = ParsePathOnly(segment, StatusEntryKind.Ignored, warnings);
                     break;
                 default:
@@ -150,19 +151,9 @@ public static class StatusParser
 
     private static bool TryParseCode(char code, out FileChangeKind kind)
     {
-        (var known, kind) = code switch
-        {
-            '.' => (true, FileChangeKind.Unmodified),
-            'M' => (true, FileChangeKind.Modified),
-            'T' => (true, FileChangeKind.TypeChanged),
-            'A' => (true, FileChangeKind.Added),
-            'D' => (true, FileChangeKind.Deleted),
-            'R' => (true, FileChangeKind.Renamed),
-            'C' => (true, FileChangeKind.Copied),
-            'U' => (true, FileChangeKind.UpdatedButUnmerged),
-            _ => (false, FileChangeKind.Unmodified),
-        };
-        return known;
+        var mapped = FileChangeLetters.KindOf(code, allowUnmodified: true);
+        kind = mapped ?? FileChangeKind.Unmodified;
+        return mapped is not null;
     }
 
     /// <summary>Reads <c>R100</c> or <c>C75</c>.</summary>
@@ -177,8 +168,8 @@ public static class StatusParser
 
         kind = score[0] switch
         {
-            'R' => StatusEntryKind.Renamed,
-            'C' => StatusEntryKind.Copied,
+            FileChangeLetters.Renamed => StatusEntryKind.Renamed,
+            FileChangeLetters.Copied => StatusEntryKind.Copied,
             _ => StatusEntryKind.Ordinary,
         };
         return kind != StatusEntryKind.Ordinary
@@ -187,7 +178,10 @@ public static class StatusParser
 
     /// <summary>Reads <c>N...</c> (not a submodule) or <c>S&lt;c&gt;&lt;m&gt;&lt;u&gt;</c>.</summary>
     private static SubmoduleState? ParseSubmodule(string field) =>
-        field.Length == 4 && field[0] == 'S'
-            ? new SubmoduleState(field[1] == 'C', field[2] == 'M', field[3] == 'U')
+        field.Length == StatusRecordTypes.SubmoduleFieldLength && field[0] == StatusRecordTypes.SubmoduleMarker
+            ? new SubmoduleState(
+                field[StatusRecordTypes.SubmoduleCommitChangedIndex] == StatusRecordTypes.SubmoduleCommitChanged,
+                field[StatusRecordTypes.SubmoduleModifiedIndex] == StatusRecordTypes.SubmoduleModified,
+                field[StatusRecordTypes.SubmoduleUntrackedIndex] == StatusRecordTypes.SubmoduleUntracked)
             : null;
 }

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Worktrees;
@@ -9,7 +10,6 @@ namespace Gitunia.Core.Sidebar;
 /// <summary>Builds the visible sidebar rows of a tab: pure, from the tab's refs, worktrees, stashes and sidebar state.</summary>
 public static class SidebarBuilder
 {
-    private const string RefsHeadsPrefix = "refs/heads/";
     private const string DetachedText = "detached";
 
     /// <summary>The rows in display order: each non-empty section header followed by its entries unless the section is folded.</summary>
@@ -82,7 +82,7 @@ public static class SidebarBuilder
         var branch = worktree.IsBare
             ? "bare"
             : worktree.BranchFullName is { } fullName
-                ? fullName.StartsWith(RefsHeadsPrefix, StringComparison.Ordinal) ? fullName[RefsHeadsPrefix.Length..] : fullName
+                ? fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Heads.Length..] : fullName
                 : DetachedText;
         var annotation = branch
             + (worktree.IsLocked ? " locked" : string.Empty)
