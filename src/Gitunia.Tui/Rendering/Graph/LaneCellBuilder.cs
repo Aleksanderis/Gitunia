@@ -12,7 +12,8 @@ public static class LaneCellBuilder
     /// <param name="row">The layout of the row.</param>
     /// <param name="laneColumns">Lanes shown; lanes further right are drawn in the last column.</param>
     /// <param name="glyphs">The characters to use.</param>
-    public static GraphCell[] Build(GraphRow row, int laneColumns, GraphGlyphSet glyphs)
+    /// <param name="isDecorated">The commit carries a ref (branch, tag, HEAD, remote); it keeps a node dot even in the middle of a line (#280).</param>
+    public static GraphCell[] Build(GraphRow row, int laneColumns, GraphGlyphSet glyphs, bool isDecorated)
     {
         var directions = new LineDirections[laneColumns * 2];
         var lanes = new int[laneColumns * 2];
@@ -51,8 +52,8 @@ public static class LaneCellBuilder
                 : new GraphCell(glyphs.For(directions[column]), lanes[column]);
         }
 
-        // A commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
-        var isLineCommit = isOnLane && incomingCount == 1 && outgoingCount == 1;
+        // A plain commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
+        var isLineCommit = !isDecorated && isOnLane && incomingCount == 1 && outgoingCount == 1;
         var nodeGlyph = isLineCommit ? glyphs.LineNode : outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
         cells[nodeLane * 2] = new GraphCell(nodeGlyph, nodeLane);
         return cells;

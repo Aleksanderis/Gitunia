@@ -150,7 +150,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
 
-**UI:** Graph (#238): a commit with one child and one parent on its own lane is drawn as part of the line (`GraphGlyphSet.LineNode`, `│` / `|`), node dots only where a lane starts, ends, forks or merges. Why: runs of commits on one branch read as a line, dots mark the branch structure. Terminal-drawn glyph tiers stay in #154.
+**UI:** Graph (#238): a commit with one child and one parent on its own lane is drawn as part of the line (`GraphGlyphSet.LineNode`, `│` / `|`), node dots only where a lane starts, ends, forks or merges. Why: runs of commits on one branch read as a line, dots mark the branch structure. Terminal-drawn glyph tiers stay in #154. Amended (#280, owner): a commit with any ref (branch, tag, remote, HEAD) keeps the node dot; only plain unlabelled commits become the line. The renderer passes `Decorations.Count > 0` to the builder, `GraphRow` stays ref-free.
 
 **UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.
 
