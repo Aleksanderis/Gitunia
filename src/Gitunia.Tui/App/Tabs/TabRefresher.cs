@@ -40,12 +40,12 @@ public sealed class TabRefresher : IDisposable
     private bool _isDisposed;
     private string _lastError = string.Empty;
 
-    public TabRefresher(GitServices services, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
+    public TabRefresher(IRepositoryRefresher refresher, IStashReader stashes, IncrementalGraphLoader graphLoader, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
     {
         _graphReloaded = graphReloaded;
-        _refresher = services.Refresher;
-        _stashes = services.Stashes;
-        _graphLoader = services.IncrementalGraphLoader;
+        _refresher = refresher;
+        _stashes = stashes;
+        _graphLoader = graphLoader;
         _host = host;
         _session = session;
         _location = location;

@@ -16,7 +16,7 @@ public class RepositoryDiscoveryTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task GivenWorkingTreeRoot_WhenOpening_ThenLocationIsResolved()
+    public async Task GivenWorkingTreeRoot_WhenDiscovering_ThenLocationIsResolved()
     {
         using var testRepository = TestRepositories.Linear(1);
 
@@ -31,7 +31,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenSubdirectory_WhenOpening_ThenResolvesToRepositoryRoot()
+    public async Task GivenSubdirectory_WhenDiscovering_ThenResolvesToRepositoryRoot()
     {
         using var testRepository = TestRepository.Create().Commit("Nested", new TestFile(Path.Combine("a", "b", "file.txt"), "x\n"));
 
@@ -41,7 +41,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenBareRepository_WhenOpening_ThenThereIsNoWorkingTree()
+    public async Task GivenBareRepository_WhenDiscovering_ThenThereIsNoWorkingTree()
     {
         using var testRepository = TestRepository.Create(bare: true);
 
@@ -53,7 +53,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenLinkedWorktree_WhenOpening_ThenItIsFlaggedAndSharesCommonDirectory()
+    public async Task GivenLinkedWorktree_WhenDiscovering_ThenItIsFlaggedAndSharesCommonDirectory()
     {
         using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
         var main = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
@@ -69,7 +69,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenPathInsideGitDirectory_WhenOpening_ThenWorkingTreeIsStillFound()
+    public async Task GivenPathInsideGitDirectory_WhenDiscovering_ThenWorkingTreeIsStillFound()
     {
         using var testRepository = TestRepositories.Linear(1);
 
@@ -79,7 +79,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenPathInsideLinkedWorktreeGitDirectory_WhenOpening_ThenLinkedWorkingTreeIsFound()
+    public async Task GivenPathInsideLinkedWorktreeGitDirectory_WhenDiscovering_ThenLinkedWorkingTreeIsFound()
     {
         using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
         var linkedGitDirectory = Path.Combine(testRepository.WorkingTreePath, ".git", "worktrees", "wt");
@@ -91,7 +91,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenDirectoryOutsideAnyRepository_WhenOpening_ThenNotARepository()
+    public async Task GivenDirectoryOutsideAnyRepository_WhenDiscovering_ThenNotARepository()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"gitunia-plain-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(directory);
@@ -106,7 +106,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenMissingDirectory_WhenOpening_ThenNotARepository()
+    public async Task GivenMissingDirectory_WhenDiscovering_ThenNotARepository()
     {
         var missing = Path.Combine(Path.GetTempPath(), $"gitunia-missing-{Guid.NewGuid().ToString("N")}");
 
@@ -114,7 +114,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenPathWithSpacesAndUnicode_WhenOpening_ThenResolves()
+    public async Task GivenPathWithSpacesAndUnicode_WhenDiscovering_ThenResolves()
     {
         using var testRepository = TestRepository.Create().Commit("Odd", new TestFile(Path.Combine("sub dir ünï", "file.txt"), "x\n"));
 
@@ -124,7 +124,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenLinkedWorktreeOfBareRepository_WhenOpening_ThenWorkingTreeIsLinkedAndCommonDirectoryIsBare()
+    public async Task GivenLinkedWorktreeOfBareRepository_WhenDiscovering_ThenWorkingTreeIsLinkedAndCommonDirectoryIsBare()
     {
         using var source = TestRepositories.Linear(1);
         using var bare = TestRepository.Create(bare: true);
@@ -141,7 +141,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenRelativeWorktreePointer_WhenOpeningInsideItsGitDirectory_ThenWorkingTreeIsFound()
+    public async Task GivenRelativeWorktreePointer_WhenDiscoveringInsideItsGitDirectory_ThenWorkingTreeIsFound()
     {
         using var testRepository = TestRepositories.Linear(1);
         var worktreePath = Path.Combine(Path.GetDirectoryName(testRepository.WorkingTreePath)!, "relative-wt");
@@ -162,7 +162,7 @@ public class RepositoryDiscoveryTests
     }
 
     [Fact]
-    public async Task GivenSeparateGitDirectory_WhenOpeningInsideIt_ThenFailsUnlessCoreWorktreeIsSet()
+    public async Task GivenSeparateGitDirectory_WhenDiscoveringInsideIt_ThenFailsUnlessCoreWorktreeIsSet()
     {
         using var testRepository = TestRepository.Create();
         var separate = Path.Combine(Path.GetDirectoryName(testRepository.WorkingTreePath)!, "separate.git");

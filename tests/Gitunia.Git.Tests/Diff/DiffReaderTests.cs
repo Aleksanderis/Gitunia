@@ -214,6 +214,45 @@ public class DiffReaderTests
     }
 
     [Fact]
+    public async Task GivenRootCommit_WhenReadingFirstParent_ThenNull()
+    {
+        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1\n"));
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
+
+        Assert.Null(parent);
+    }
+
+    [Fact]
+    public async Task GivenNormalCommit_WhenReadingFirstParent_ThenItsParent()
+    {
+        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1\n")).Commit("next", new TestFile("a.txt", "2\n"));
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
+
+        Assert.Equal(IdOf(testRepository, "HEAD~1"), parent);
+    }
+
+    [Fact]
+    public async Task GivenMergeCommit_WhenReadingFirstParent_ThenTheMainlineParent()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var parent = await Diff.ReadFirstParentAsync(location, IdOf(testRepository, "HEAD"), Token);
+
+        Assert.Equal(IdOf(testRepository, "HEAD^1"), parent);
+    }
+
+    [Fact]
     public async Task GivenCancelledToken_WhenReading_ThenOperationCancelled()
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
@@ -222,6 +261,12 @@ public class DiffReaderTests
         await source.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await ReadAllAsync(location, ["diff"], [], source.Token));
+    }
+
+    private static ObjectId IdOf(TestRepository testRepository, string revision)
+    {
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
+        return id;
     }
 
     private static async Task<List<DiffFile>> ReadAllAsync(RepositoryLocation location, string[] command, List<string> warnings, CancellationToken? token = null)

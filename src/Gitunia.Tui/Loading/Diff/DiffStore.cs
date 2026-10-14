@@ -196,7 +196,7 @@ public sealed class DiffStore(
             try
             {
                 token.ThrowIfCancellationRequested();
-                var parent = await FirstParentOfAsync(commit, token).ConfigureAwait(false);
+                var parent = await reader.ReadFirstParentAsync(location, commit, token).ConfigureAwait(false);
                 var document = await ReadAsync(commit, parent, PrefetchRowLimit, Math.Min(fileLineLimit, PrefetchRowLimit), token).ConfigureAwait(false);
                 if (document is { IsCut: false })
                 {
@@ -213,11 +213,6 @@ public sealed class DiffStore(
                 // Dropped on purpose, see the summary; the other neighbours are still worth reading.
             }
         }
-    }
-
-    private async Task<ObjectId?> FirstParentOfAsync(ObjectId commit, CancellationToken token)
-    {
-        return await reader.ReadFirstParentAsync(location, commit, token).ConfigureAwait(false);
     }
 
     private void RememberPrefetched(ObjectId commit, DiffDocument document, CancellationToken token)

@@ -144,4 +144,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Code structure:** Pure parsers and formatters stay static; classes with I/O, a clock or a cache are instances with constructor injection, wired by hand, with interfaces only where another layer needs a fake and no DI container. Why: static leaves no seam for effect tests; a reflection-based container conflicts with AOT and startup. Tracked in #252.
 
-**Code structure:** The git readers are instance classes that hold a `GitRunner` and take a `RepositoryLocation` per call; the `Repository` handle is gone. `GitServices.Create` is the hand-wired composition root, the Tui sees reader interfaces, and effect tests use fakes where git is not the subject. Startup is unchanged. Done in #252.
+**Code structure:** The git readers are instance classes that hold a `GitRunner` and take a `RepositoryLocation` per call; the `Repository` handle is gone. `GitServices.Create` is the hand-wired composition root, the Tui sees reader interfaces; the details store, diff store and status poller tests use fakes, the rest follow in #269. Startup is unchanged. Done in #252.

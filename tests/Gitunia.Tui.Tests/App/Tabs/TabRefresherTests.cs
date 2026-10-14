@@ -255,7 +255,7 @@ public class TabRefresherTests
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var reloads = new List<GraphReload>();
             var ran = 0;
-            var refresher = new TabRefresher(TestGit.Services, host, session, location, statuses, action =>
+            var refresher = new TabRefresher(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader, host, session, location, statuses, action =>
             {
                 pump.Post(() =>
                 {
