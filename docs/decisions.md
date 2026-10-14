@@ -148,4 +148,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
 
-**UI:** The detail list view gets a scheme whose normal colour is the panel background (`Palette.PanelScheme`): Terminal.Gui paints what the rows leave blank with the normal colour, which showed the terminal default below the list once the cursor reached the last row (#243).
+**UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.

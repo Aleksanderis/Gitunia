@@ -264,7 +264,7 @@ public class DetailPaneComposerTests
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    public void GivenAnySelectedFileRow_WhenRenderingTheChangesPane_ThenEveryContentRowSitsOnThePanel(int selectedFile)
+    public void GivenAnySelectedFileRow_WhenRenderingTheChangesPane_ThenEveryContentRowStaysOnThePanel(int selectedFile)
     {
         var content = LoadedContent(TwoCommits(), BottomTab.Changes);
         var selectedRow = content.FirstFileRow + selectedFile;
