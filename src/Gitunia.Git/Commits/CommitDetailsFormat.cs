@@ -11,6 +11,10 @@ public static class CommitDetailsFormat
     /// <summary>Hash, parents, author name, email, ISO time, committer name, email, ISO time, raw message (last, may contain anything but NUL).</summary>
     public const string Format = $"tformat:%H{Separator}%P{Separator}%an{Separator}%ae{Separator}%aI{Separator}%cn{Separator}%ce{Separator}%cI{Separator}%B";
 
+    private const string RootOption = "--root";
+
+    private static readonly string[] FileFixedArguments = ["diff-tree", "-r", GitOptions.NulTerminated, "--raw", "--no-abbrev", "--no-commit-id", "--find-renames", "--find-copies"];
+
     /// <summary>Arguments for the metadata of one commit.</summary>
     public static IReadOnlyList<string> MetadataArguments(ObjectId id) =>
     [
@@ -30,17 +34,6 @@ public static class CommitDetailsFormat
     /// <param name="firstParent">Its first parent, null for a root commit. Named explicitly because <c>diff-tree</c> shows merges against every parent otherwise.</param>
     public static IReadOnlyList<string> FileArguments(ObjectId id, ObjectId? firstParent)
     {
-        var arguments = new List<string> { "diff-tree", "-r", GitOptions.NulTerminated, "--raw", "--no-abbrev", "--no-commit-id", "--find-renames", "--find-copies" };
-        if (firstParent is { } parent)
-        {
-            arguments.Add(parent.ToString());
-        }
-        else
-        {
-            arguments.Add("--root");
-        }
-
-        arguments.Add(id.ToString());
-        return arguments;
+        return [.. FileFixedArguments, firstParent is { } parent ? parent.ToString() : RootOption, id.ToString()];
     }
 }

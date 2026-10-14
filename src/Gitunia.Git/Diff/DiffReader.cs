@@ -44,7 +44,7 @@ public static class DiffReader
         try
         {
             await foreach (var chunk in repository.Runner
-                .StreamAsync(repository.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
+                .StreamAsync(repository.Location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
                 .ConfigureAwait(false))
             {
                 parser.Feed(chunk, completed);

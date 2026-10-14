@@ -31,13 +31,12 @@ public sealed class Repository
 
     /// <summary>Runs git against this repository or worktree.</summary>
     public Task<GitResult> RunAsync(IReadOnlyList<string> arguments, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
-        Runner.RunAsync(Location.CommandPath, arguments, options, cancellationToken);
+        Runner.RunAsync(Location.CommandPath, arguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken);
 
     public async Task<HeadState> ReadHeadAsync(CancellationToken cancellationToken)
     {
-        var options = new GitRunOptions(ReadOnly: true, AcceptedExitCodes: [1]);
-        var symbolic = await RunAsync(["symbolic-ref", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
-        var commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], options, cancellationToken).ConfigureAwait(false);
+        var symbolic = await RunAsync(["symbolic-ref", "-q", "HEAD"], GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
+        var commit = await RunAsync(["rev-parse", "--verify", "-q", "HEAD"], GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken).ConfigureAwait(false);
 
         var reference = symbolic.StandardOutputText.Trim();
         var branchName = reference.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? reference[GitRefPrefixes.Heads.Length..] : null;

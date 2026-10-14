@@ -24,7 +24,7 @@ public static class RepositoryDiscovery
             basics = await runner.RunAsync(
                 fullPath,
                 ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"],
-                new GitRunOptions(ReadOnly: true),
+                GitRunOptions.ReadOnlyRun,
                 cancellationToken).ConfigureAwait(false);
         }
         // The runner sets LC_ALL=C, so the message text is stable.
@@ -61,7 +61,7 @@ public static class RepositoryDiscovery
         var result = await runner.RunAsync(
             path,
             ["rev-parse", "--path-format=absolute", "--show-toplevel"],
-            new GitRunOptions(ReadOnly: true),
+            GitRunOptions.ReadOnlyRun,
             cancellationToken).ConfigureAwait(false);
         return Path.GetFullPath(result.StandardOutputText.Trim());
     }
@@ -90,7 +90,7 @@ public static class RepositoryDiscovery
         var configured = await runner.RunAsync(
             path,
             ["config", "--get", "core.worktree"],
-            new GitRunOptions(ReadOnly: true, AcceptedExitCodes: [1]),
+            GitRunOptions.ReadOnlyRunAllowingNoMatch,
             cancellationToken).ConfigureAwait(false);
         var worktree = configured.StandardOutputText.Trim();
         if (worktree.Length == 0)
