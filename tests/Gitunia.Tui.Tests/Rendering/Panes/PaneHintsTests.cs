@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -76,6 +77,61 @@ public class PaneHintsTests
         var text = string.Concat(ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 
         Assert.Contains("? help  : commands", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(Panes))]
+    public void GivenAPane_WhenCheckingItsHints_ThenEveryKeyIsBoundInTheDefaultKeymapForThatPane(PaneKind pane)
+    {
+        var view = ViewFor(pane);
+
+        AssertKeysAreBound(PaneHints.For(pane), KeyMode.Normal, view);
+    }
+
+    [Fact]
+    public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyIsBoundInThePickerView()
+    {
+        AssertKeysAreBound(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
+    }
+
+    private static string ViewFor(PaneKind pane) => pane switch
+    {
+        PaneKind.Sidebar => DefaultKeymap.SidebarView,
+        PaneKind.Detail => DefaultKeymap.DetailView,
+        PaneKind.Diff => DefaultKeymap.DiffView,
+        _ => DefaultKeymap.GraphView,
+    };
+
+    private static void AssertKeysAreBound(IReadOnlyList<KeyHint> hints, KeyMode mode, string view)
+    {
+        var bound = DefaultKeymap.Create().EffectiveBindings(mode, view).Select(binding => binding.Sequence).ToHashSet();
+        foreach (var hint in hints)
+        {
+            foreach (var keys in ExpandAlternatives(hint.Keys))
+            {
+                Assert.True(bound.Contains(KeySequenceParser.Parse(keys)), $"The hint '{hint.Keys} {hint.Description}' shows '{keys}', which is not bound in the {view} view ({mode} mode).");
+            }
+        }
+    }
+
+    // A hint such as "Ctrl-d/u" or "gg/G" lists alternatives; a bare character after a modifier reuses that modifier.
+    private static IEnumerable<string> ExpandAlternatives(string keys)
+    {
+        const string ctrlPrefix = "Ctrl-";
+        const string slashKey = "/";
+        var alternatives = keys == slashKey ? [keys] : keys.Split(slashKey[0]);
+        for (var index = 0; index < alternatives.Length; index++)
+        {
+            var alternative = alternatives[index];
+            if (index > 0 && alternative.Length == 1 && alternatives[0].StartsWith(ctrlPrefix, StringComparison.Ordinal))
+            {
+                yield return $"{ctrlPrefix}{alternative}";
+            }
+            else
+            {
+                yield return alternative;
+            }
+        }
     }
 
     private static string StatusText(ScreenModel model) =>
