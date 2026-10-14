@@ -101,4 +101,15 @@ public class GraphColumnLayoutTests
         Assert.Equal(GraphColumnLayout.SpaciousColumnGap, columns.ColumnGap);
         Assert.Equal(GraphColumnLayout.SpaciousRightMargin, columns.RightMargin);
     }
+
+    [Theory]
+    [InlineData(99, 1, 0)]
+    [InlineData(100, 3, 2)]
+    public void GivenRowWidthAroundTheThreshold_WhenComputing_ThenGapsSwitchExactlyAtOneHundred(int available, int gap, int margin)
+    {
+        var columns = GraphColumnLayout.Compute(available + 1 + 2, 1);
+
+        Assert.Equal(gap, columns.ColumnGap);
+        Assert.Equal(margin, columns.RightMargin);
+    }
 }

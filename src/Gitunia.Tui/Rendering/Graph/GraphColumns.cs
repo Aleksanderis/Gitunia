@@ -2,7 +2,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 
 /// <summary>
 /// Where the columns of a graph row sit. A row is the lane area, then the message column and then each shown column
-/// (author, date, hash) after <paramref name="ColumnGap"/> blank columns; a width of 0 means the column is dropped. The last column is followed by <paramref name="RightMargin"/> blank columns.
+/// (author, date, hash) after <paramref name="ColumnGap"/> blank columns; a width of 0 means the column is dropped. <paramref name="RightMargin"/> columns after the last column are reserved (taken from the message), not drawn: the line is padded to the row width.
 /// </summary>
 /// <param name="LaneWidth">Columns of the lane area.</param>
 /// <param name="MessageWidth">Columns of the message column (ref decorations and subject).</param>

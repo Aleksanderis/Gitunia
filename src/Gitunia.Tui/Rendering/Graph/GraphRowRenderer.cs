@@ -16,6 +16,9 @@ public static class GraphRowRenderer
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
 
+    private static readonly string CompactGapText = new(' ', GraphColumnLayout.CompactColumnGap);
+    private static readonly string SpaciousGapText = new(' ', GraphColumnLayout.SpaciousColumnGap);
+
     public static StyledLine Render(GraphEntry entry, GraphRowOptions options, bool isSelected)
     {
         var columns = options.Columns;
@@ -71,10 +74,12 @@ public static class GraphRowRenderer
         return used;
     }
 
+    private static string GapText(int gap) => gap == GraphColumnLayout.SpaciousColumnGap ? SpaciousGapText : CompactGapText;
+
     // One column after a gap: the text clipped to the column and padded so the next column lines up.
     private static void AppendColumn(LineBuilder builder, string text, int width, SegmentRole role, int gap, string ellipsis)
     {
-        builder.Append(new string(' ', gap), SegmentRole.Plain);
+        builder.Append(GapText(gap), SegmentRole.Plain);
         builder.Append(new LineBuilder(width, ellipsis).Append(text, role).Build());
     }
 
