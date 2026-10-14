@@ -26,7 +26,7 @@ public static class PaletteEntryBuilder
             rankByAction[binding.Action] = Math.Min(rank, rankByAction.GetValueOrDefault(binding.Action, rank));
         }
 
-        var entries = new List<(int Rank, int Order, PaletteEntry Entry)>();
+        var entries = new List<RankedPaletteEntry>();
         var order = 0;
         foreach (var group in table.Bindings.GroupBy(binding => binding.Action).Where(group => !ActionCatalog.IsModalOnly(group.Key)))
         {
@@ -35,7 +35,8 @@ public static class PaletteEntryBuilder
                 .Select(binding => KeyFormatter.Format(binding.Sequence))
                 .Distinct()
                 .Take(MaximumShownBindings);
-            entries.Add((rankByAction.GetValueOrDefault(group.Key, chain.Count), order++, new PaletteEntry(group.Key, ActionCatalog.Describe(group.Key), string.Join(" / ", keys), !unimplemented.Contains(group.Key))));
+            var entry = new PaletteEntry(group.Key, ActionCatalog.Describe(group.Key), string.Join(" / ", keys), !unimplemented.Contains(group.Key));
+            entries.Add(new RankedPaletteEntry(entry, rankByAction.GetValueOrDefault(group.Key, chain.Count), order++));
         }
 
         return [.. entries.OrderBy(item => item.Rank).ThenBy(item => item.Order).Select(item => item.Entry)];

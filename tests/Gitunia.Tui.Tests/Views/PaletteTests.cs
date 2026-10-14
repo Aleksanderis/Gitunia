@@ -44,13 +44,13 @@ public class PaletteTests
         var failures = new List<string>();
         foreach (var role in Enum.GetValues<SegmentRole>())
         {
-            foreach (var (isSelected, isFocused) in new[] { (false, false), (true, true), (true, false) })
+            foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false) })
             {
-                var attribute = Palette.For(new StyledSegment("x", role), isSelected, isFocused, colors);
+                var attribute = Palette.For(new StyledSegment("x", role), highlight.IsSelected, highlight.IsFocused, colors);
                 var background = attribute.Background == Color.None ? terminalBackground : ToRgb(attribute.Background);
                 var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
                 var minimum = role is SegmentRole.Border ? DecorationRatio : ReadableRatio;
-                if (role is SegmentRole.Border && isSelected)
+                if (role is SegmentRole.Border && highlight.IsSelected)
                 {
                     // A divider is never on a selected row.
                     continue;
@@ -60,7 +60,7 @@ public class PaletteTests
 
                 if (ratio < minimum)
                 {
-                    failures.Add($"{role} (selected={isSelected}, focused={isFocused}): contrast {ratio:F2} is below {minimum}");
+                    failures.Add($"{role} (selected={highlight.IsSelected}, focused={highlight.IsFocused}): contrast {ratio:F2} is below {minimum}");
                 }
             }
         }
@@ -261,9 +261,9 @@ public class PaletteTests
 
         foreach (var role in Enum.GetValues<SegmentRole>())
         {
-            foreach (var (isSelected, isFocused) in new[] { (false, false), (true, true), (true, false) })
+            foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false) })
             {
-                var attribute = Palette.For(new StyledSegment("x", role, 1), isSelected, isFocused, colors);
+                var attribute = Palette.For(new StyledSegment("x", role, 1), highlight.IsSelected, highlight.IsFocused, colors);
 
                 Assert.True(IsNamedOrDefault(attribute.Foreground, named), $"{role} foreground");
                 Assert.True(IsNamedOrDefault(attribute.Background, named), $"{role} background");

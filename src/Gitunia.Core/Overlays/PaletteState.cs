@@ -25,7 +25,7 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
         }
 
         return [.. Entries
-            .Select(entry => (Entry: entry, Score: BestScore(entry)))
+            .Select(entry => new ScoredPaletteEntry(entry, BestScore(entry)))
             .Where(item => item.Score is not null)
             .OrderByDescending(item => item.Score)
             .Select(item => item.Entry)];

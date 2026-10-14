@@ -15,14 +15,14 @@ for (var index = 0; index < args.Length - 1; index++)
 }
 
 var light = theme == "light";
-var defaultForeground = light ? (0x38, 0x3a, 0x42) : (0xd4, 0xd4, 0xd4);
-var defaultBackground = light ? (0xfa, 0xfa, 0xfa) : (0x1e, 0x1e, 0x1e);
-(int Red, int Green, int Blue)[] palette =
+var defaultForeground = light ? new Rgb(0x38, 0x3a, 0x42) : new Rgb(0xd4, 0xd4, 0xd4);
+var defaultBackground = light ? new Rgb(0xfa, 0xfa, 0xfa) : new Rgb(0x1e, 0x1e, 0x1e);
+Rgb[] palette =
 [
-    (0x00, 0x00, 0x00), (0xcd, 0x31, 0x31), (0x0d, 0xbc, 0x79), (0xe5, 0xe5, 0x10),
-    (0x24, 0x72, 0xc8), (0xbc, 0x3f, 0xbc), (0x11, 0xa8, 0xcd), (0xe5, 0xe5, 0xe5),
-    (0x66, 0x66, 0x66), (0xf1, 0x4c, 0x4c), (0x23, 0xd1, 0x8b), (0xf5, 0xf5, 0x43),
-    (0x3b, 0x8e, 0xea), (0xd6, 0x70, 0xd6), (0x29, 0xb8, 0xdb), (0xff, 0xff, 0xff),
+    new(0x00, 0x00, 0x00), new(0xcd, 0x31, 0x31), new(0x0d, 0xbc, 0x79), new(0xe5, 0xe5, 0x10),
+    new(0x24, 0x72, 0xc8), new(0xbc, 0x3f, 0xbc), new(0x11, 0xa8, 0xcd), new(0xe5, 0xe5, 0xe5),
+    new(0x66, 0x66, 0x66), new(0xf1, 0x4c, 0x4c), new(0x23, 0xd1, 0x8b), new(0xf5, 0xf5, 0x43),
+    new(0x3b, 0x8e, 0xea), new(0xd6, 0x70, 0xd6), new(0x29, 0xb8, 0xdb), new(0xff, 0xff, 0xff),
 ];
 
 const double CellWidth = 9.6;
@@ -36,8 +36,8 @@ var background = new StringBuilder();
 var text = new StringBuilder();
 var maxColumns = columns;
 
-(int, int, int)? currentForeground = null;
-(int, int, int)? currentBackground = null;
+Rgb? currentForeground = null;
+Rgb? currentBackground = null;
 bool bold = false, dim = false, italic = false, underline = false, reverse = false;
 
 for (var row = 0; row < lines.Count; row++)
@@ -46,7 +46,7 @@ for (var row = 0; row < lines.Count; row++)
     var column = 0;
     var runText = new StringBuilder();
     var runX = new StringBuilder();
-    (int, int, int) runColor = default;
+    Rgb runColor = default;
     var runStyle = string.Empty;
 
     void Flush()
@@ -92,7 +92,7 @@ for (var row = 0; row < lines.Count; row++)
                         case >= 90 and <= 97: currentForeground = palette[code - 90 + 8]; break;
                         case >= 100 and <= 107: currentBackground = palette[code - 100 + 8]; break;
                         case 38 or 48:
-                            (int, int, int)? color = null;
+                            Rgb? color = null;
                             if (parameterIndex + 2 < parameters.Length && parameters[parameterIndex + 1] == "5")
                             {
                                 color = Indexed(int.Parse(parameters[parameterIndex + 2], CultureInfo.InvariantCulture));
@@ -100,7 +100,7 @@ for (var row = 0; row < lines.Count; row++)
                             }
                             else if (parameterIndex + 4 < parameters.Length && parameters[parameterIndex + 1] == "2")
                             {
-                                color = (int.Parse(parameters[parameterIndex + 2], CultureInfo.InvariantCulture), int.Parse(parameters[parameterIndex + 3], CultureInfo.InvariantCulture), int.Parse(parameters[parameterIndex + 4], CultureInfo.InvariantCulture));
+                                color = new Rgb(int.Parse(parameters[parameterIndex + 2], CultureInfo.InvariantCulture), int.Parse(parameters[parameterIndex + 3], CultureInfo.InvariantCulture), int.Parse(parameters[parameterIndex + 4], CultureInfo.InvariantCulture));
                                 parameterIndex += 4;
                             }
 
@@ -128,7 +128,9 @@ for (var row = 0; row < lines.Count; row++)
         var hasBackground = currentBackground is not null;
         if (reverse)
         {
-            (foregroundColor, backgroundColor) = (backgroundColor, foregroundColor);
+            var swapped = foregroundColor;
+            foregroundColor = backgroundColor;
+            backgroundColor = swapped;
             hasBackground = true;
         }
 
@@ -173,19 +175,19 @@ output.Append("</g>\n</svg>\n");
 Console.Out.Write(output.ToString());
 return 0;
 
-string Hex((int Red, int Green, int Blue) color) => $"#{color.Red:x2}{color.Green:x2}{color.Blue:x2}";
+string Hex(Rgb color) => $"#{color.Red:x2}{color.Green:x2}{color.Blue:x2}";
 
 string Escape(string value) => value.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
 
-(int, int, int) Mix((int Red, int Green, int Blue) first, (int Red, int Green, int Blue) second, double weight) =>
-    ((int)((first.Red * weight) + (second.Red * (1 - weight))), (int)((first.Green * weight) + (second.Green * (1 - weight))), (int)((first.Blue * weight) + (second.Blue * (1 - weight))));
+Rgb Mix(Rgb first, Rgb second, double weight) =>
+    new((int)((first.Red * weight) + (second.Red * (1 - weight))), (int)((first.Green * weight) + (second.Green * (1 - weight))), (int)((first.Blue * weight) + (second.Blue * (1 - weight))));
 
-(int, int, int) Indexed(int number)
+Rgb Indexed(int number)
 {
     if (number < 16) { return palette[number]; }
-    if (number >= 232) { var level = 8 + ((number - 232) * 10); return (level, level, level); }
+    if (number >= 232) { var level = 8 + ((number - 232) * 10); return new Rgb(level, level, level); }
     var cube = number - 16;
-    return (CubeLevel(cube / 36), CubeLevel(cube / 6 % 6), CubeLevel(cube % 6));
+    return new Rgb(CubeLevel(cube / 36), CubeLevel(cube / 6 % 6), CubeLevel(cube % 6));
 }
 
 int CubeLevel(int value) => value == 0 ? 0 : 55 + (value * 40);

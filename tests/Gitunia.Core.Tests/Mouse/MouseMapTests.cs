@@ -152,7 +152,7 @@ public class MouseMapTests
     public void GivenTheDefaultMap_WhenCheckedForDuplicates_ThenEveryViewAndGestureIsBoundOnce()
     {
         var duplicates = DefaultMouseMap.CreateBindings()
-            .GroupBy(binding => (binding.View, binding.Gesture))
+            .GroupBy(binding => new { binding.View, binding.Gesture })
             .Where(group => group.Count() > 1)
             .Select(group => group.Key.ToString())
             .ToList();

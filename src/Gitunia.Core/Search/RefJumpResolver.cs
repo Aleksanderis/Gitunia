@@ -22,7 +22,7 @@ public static class RefJumpResolver
             candidates.AddRange(FindCommits(pattern, graph));
         }
 
-        var ranked = new List<(RefJumpCandidate Candidate, int Score, int Order)>();
+        var ranked = new List<RankedRefJump>();
         foreach (var reference in refs)
         {
             if (reference.SymbolicTarget is not null || reference.Kind is RefKind.Head or RefKind.Other || !ObjectId.TryParse(reference.CommitHash, out var commitId))
@@ -32,7 +32,8 @@ public static class RefJumpResolver
 
             if (FuzzyMatcher.Score(pattern, reference.Name) is { } score)
             {
-                ranked.Add((new RefJumpCandidate(reference.Name, commitId, reference.Kind), score + (reference.IsCurrent ? 1 : 0), KindOrder(reference.Kind)));
+                var candidate = new RefJumpCandidate(reference.Name, commitId, reference.Kind);
+                ranked.Add(new RankedRefJump(candidate, score + (reference.IsCurrent ? 1 : 0), KindOrder(reference.Kind)));
             }
         }
 

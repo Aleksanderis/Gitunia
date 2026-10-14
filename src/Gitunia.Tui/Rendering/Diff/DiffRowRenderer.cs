@@ -187,15 +187,16 @@ public static class DiffRowRenderer
 
     private static void AppendChange(LineBuilder builder, DiffRow row, int width, int gutterDigits, string? highlight)
     {
-        var (marker, role) = row.Kind switch
+        var style = row.Kind switch
         {
-            DiffRowKind.Added => ('+', SegmentRole.DiffAdded),
-            DiffRowKind.Removed => ('-', SegmentRole.DiffRemoved),
-            _ => (' ', SegmentRole.Plain),
+            DiffRowKind.Added => new DiffRowStyle('+', SegmentRole.DiffAdded),
+            DiffRowKind.Removed => new DiffRowStyle('-', SegmentRole.DiffRemoved),
+            _ => new DiffRowStyle(' ', SegmentRole.Plain),
         };
+        var role = style.Role;
         var gutter = $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
         builder.Append(gutter, SegmentRole.Faint);
-        builder.Append(marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
+        builder.Append(style.Marker.ToString(),role == SegmentRole.Plain ? SegmentRole.Faint : role);
         AppendText(builder, row.Text, role, highlight, width);
     }
 

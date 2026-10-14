@@ -27,7 +27,12 @@ public class CommitLogReaderTests
         var commits = await ReadAllAsync(location);
 
         Assert.Equal(testRepository.Git("rev-list", "--all", "--count").Trim(), commits.Count.ToString());
-        var positions = commits.Select((commit, index) => (commit.Id, index)).ToDictionary(pair => pair.Id, pair => pair.index);
+        var positions = new Dictionary<ObjectId, int>();
+        for (var index = 0; index < commits.Count; index++)
+        {
+            positions[commits[index].Id] = index;
+        }
+
         foreach (var commit in commits)
         {
             Assert.All(commit.Parents, parent => Assert.True(positions[parent] > positions[commit.Id]));
