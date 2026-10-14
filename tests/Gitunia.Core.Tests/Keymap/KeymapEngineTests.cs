@@ -217,6 +217,7 @@ public class KeymapEngineTests
         Assert.Equal(ActionIds.PickerNext, feeder.Feed("Ctrl-j").Action);
         Assert.Equal(ActionIds.PickerPrevious, feeder.Feed("Ctrl-k").Action);
         Assert.Equal(ActionIds.PickerAccept, feeder.Feed("Enter").Action);
+        Assert.Equal(ActionIds.PickerAccept, feeder.Feed("Ctrl-l").Action);
         Assert.Equal(ActionIds.Cancel, feeder.Feed("Esc").Action);
     }
 
