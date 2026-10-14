@@ -116,6 +116,7 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Detail.Height),
             CanFocus = true,
         };
+        Detail.SetScheme(Palette.PanelScheme());
         _bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),

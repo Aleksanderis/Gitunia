@@ -21,6 +21,12 @@ public static class Palette
         table = PaletteTable.For(settings);
     }
 
+    /// <summary>
+    /// The scheme of a view whose content sits on the panel background: the toolkit clears everything the rows do not paint (the lines below the
+    /// last row, which it also repaints with the normal colours when the cursor reaches the last row) with the normal colour of the view's scheme.
+    /// </summary>
+    public static Scheme PanelScheme() => new(new Attribute(Color.None, table.PanelBackground));
+
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
     /// <param name="segment">The text to draw.</param>

@@ -22,6 +22,22 @@ public class PaletteTests
 
     public static TheoryData<bool> Variants => new() { false, true };
 
+    [Fact]
+    public void GivenTrueColorScheme_WhenAskingForThePanelScheme_ThenItsNormalColourIsThePanelBackground()
+    {
+        Palette.Configure(new PaletteSettings(ColorDepth.TrueColor, false));
+        try
+        {
+            var scheme = Palette.PanelScheme();
+
+            Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, false)).PanelBackground, scheme.Normal.Background);
+        }
+        finally
+        {
+            Palette.Configure(PaletteSettings.Default);
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(bool isLight)

@@ -147,3 +147,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Code structure:** The git readers are instance classes that hold a `GitRunner` and take a `RepositoryLocation` per call; the `Repository` handle is gone. `GitServices.Create` is the hand-wired composition root, the Tui sees reader interfaces; the details store, diff store and status poller tests use fakes, the rest follow in #269. Startup is unchanged. Done in #252.
 
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
+
+**UI:** The detail list view gets a scheme whose normal colour is the panel background (`Palette.PanelScheme`): Terminal.Gui paints what the rows leave blank with the normal colour, which showed the terminal default below the list once the cursor reached the last row (#243).

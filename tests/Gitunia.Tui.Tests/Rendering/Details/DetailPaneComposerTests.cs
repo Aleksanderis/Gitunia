@@ -261,6 +261,21 @@ public class DetailPaneComposerTests
         Assert.Equal(expected, DetailLayout.PaneHeight(screenHeight));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void GivenAnySelectedFileRow_WhenRenderingTheChangesPane_ThenEveryContentRowSitsOnThePanel(int selectedFile)
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Changes);
+        var selectedRow = content.FirstFileRow + selectedFile;
+
+        var lines = DetailPaneRenderer.RenderPane(new DetailPaneModel(content, selectedRow, 0, true), 50, 10, GraphGlyphSet.Unicode);
+
+        Assert.Equal(11, lines.Count);
+        Assert.All(lines.Skip(1), line => Assert.All(line.Segments, segment => Assert.True(segment.OnPanel)));
+        Assert.True(lines[selectedRow + 1].IsSelected);
+    }
+
     private static string[] PaneLines(DetailPaneModel detail)
     {
         var lines = Compose(detail, 50, 20);
