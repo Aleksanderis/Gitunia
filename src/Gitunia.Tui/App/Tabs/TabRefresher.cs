@@ -3,7 +3,6 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
@@ -21,7 +20,9 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabRefresher : IDisposable
 {
-    private readonly GitRunner _runner;
+    private readonly IRepositoryRefresher _refresher;
+    private readonly IStashReader _stashes;
+    private readonly IncrementalGraphLoader _graphLoader;
     private readonly WorkspaceHost _host;
     private readonly TabSession _session;
     private readonly RepositoryLocation _location;
@@ -39,10 +40,12 @@ public sealed class TabRefresher : IDisposable
     private bool _isDisposed;
     private string _lastError = string.Empty;
 
-    public TabRefresher(GitRunner runner, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
+    public TabRefresher(GitServices services, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
     {
         _graphReloaded = graphReloaded;
-        _runner = runner;
+        _refresher = services.Refresher;
+        _stashes = services.Stashes;
+        _graphLoader = services.IncrementalGraphLoader;
         _host = host;
         _session = session;
         _location = location;
@@ -132,10 +135,9 @@ public sealed class TabRefresher : IDisposable
     {
         try
         {
-            var repository = new Repository(_runner, _location);
-            var result = await RepositoryRefresher.RefreshAsync(repository, previous, kinds, token).ConfigureAwait(false);
+            var result = await _refresher.RefreshAsync(_location, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
-            var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repository, token).ConfigureAwait(false)).Items : null;
+            var stashes = refsMoved ? (await _stashes.ReadStashesAsync(_location, token).ConfigureAwait(false)).Items : null;
             GraphReload? reload = null;
 
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
@@ -145,7 +147,7 @@ public sealed class TabRefresher : IDisposable
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
-                reload = await IncrementalGraphLoader.ReloadAsync(repository, previousRows, token).ConfigureAwait(false);
+                reload = await _graphLoader.ReloadAsync(_location, previousRows, token).ConfigureAwait(false);
             }
 
             _postToUi(() => Apply(previous is null, isManual, result, stashes, reload));

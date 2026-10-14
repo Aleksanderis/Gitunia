@@ -12,13 +12,15 @@ namespace Gitunia.Git.Tests.Status;
 public class StatusReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly StatusReader Status = new(Runner);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     private static async Task<StatusSnapshot> ReadAsync(TestRepository testRepository, bool includeIgnored = false)
     {
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var snapshot = await StatusReader.ReadStatusAsync(repository, includeIgnored, UntrackedFilesMode.All, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var snapshot = await Status.ReadStatusAsync(location, includeIgnored, UntrackedFilesMode.All, Token);
         Assert.Empty(snapshot.Warnings);
         return snapshot;
     }
@@ -31,10 +33,10 @@ public class StatusReaderTests
         using var testRepository = TestRepositories.Linear(1);
         testRepository.WriteFile("dir/one.txt", "1\n");
         testRepository.WriteFile("dir/two.txt", "2\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var all = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.All, Token);
-        var normal = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.Normal, Token);
+        var all = await Status.ReadStatusAsync(location, false, UntrackedFilesMode.All, Token);
+        var normal = await Status.ReadStatusAsync(location, false, UntrackedFilesMode.Normal, Token);
 
         Assert.Equal(2, all.Entries.Count);
         var entry = Assert.Single(normal.Entries);

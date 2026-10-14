@@ -78,7 +78,7 @@ public class WorkspaceActionsTests
 
         // Background results are queued and never run: these tests are synchronous and must not race a scan on another thread.
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var picker = new PickerController(new GitRunner(), host, Path.GetTempPath(), pump.Post);
+        var picker = new PickerController(TestGit.Services.Discovery, host, Path.GetTempPath(), pump.Post);
         return new WorkspaceActionsHarness(new WorkspaceActions(host, picker, () => { }), host, picker);
     }
 }

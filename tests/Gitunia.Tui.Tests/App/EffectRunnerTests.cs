@@ -19,19 +19,18 @@ public class EffectRunnerTests
         first.Commit("root", new TestFile("a.txt", "1"));
         using var second = TestRepository.Create();
         second.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var scratch = Workspace.Empty;
         foreach (var path in new[] { first.WorkingTreePath, second.WorkingTreePath })
         {
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, path, CancellationToken.None);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(path, CancellationToken.None);
             scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
         }
 
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        var effects = new EffectRunner(runner, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
 
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
@@ -54,14 +53,13 @@ public class EffectRunnerTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
         var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
-        using var effects = new EffectRunner(runner, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: options);
+        using var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: options);
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
@@ -88,13 +86,12 @@ public class EffectRunnerTests
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
-        var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(runner, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        using var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);

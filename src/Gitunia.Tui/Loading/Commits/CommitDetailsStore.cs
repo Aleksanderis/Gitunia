@@ -1,7 +1,7 @@
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading.Commits;
 
@@ -16,7 +16,8 @@ namespace Gitunia.Tui.Loading.Commits;
 /// </summary>
 public sealed class CommitDetailsStore : IDisposable
 {
-    private readonly Repository _repository;
+    private readonly ICommitDetailsReader _reader;
+    private readonly RepositoryLocation _location;
     private readonly Action<Action> _postToUi;
     private readonly TimeSpan _debounce;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
@@ -25,14 +26,16 @@ public sealed class CommitDetailsStore : IDisposable
     private CancellationTokenSource? _pending;
     private long? _lastSelectTimestamp;
 
-    /// <param name="repository">The repository the commits belong to.</param>
+    /// <param name="reader">Reads the details of a commit.</param>
+    /// <param name="location">The repository the commits belong to.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="debounce">How long a selection must stay put before the commit is read, when it follows another move closely.</param>
     /// <param name="delay">Waits out the debounce; tests inject one they control, the default is <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</param>
     /// <param name="cache">The cache of loaded details; the default is a <see cref="CommitDetailsCache"/> with its default bounds.</param>
     /// <param name="timeProvider">The clock that tells a fresh selection from one in a quick run of moves; tests inject one they control.</param>
     public CommitDetailsStore(
-        Repository repository,
+        ICommitDetailsReader reader,
+        RepositoryLocation location,
         Action<Action> postToUi,
         TimeSpan debounce,
         Func<TimeSpan, CancellationToken, Task>? delay = null,
@@ -42,7 +45,8 @@ public sealed class CommitDetailsStore : IDisposable
         _delay = delay ?? Task.Delay;
         _cache = cache ?? new CommitDetailsCache();
         _timeProvider = timeProvider ?? TimeProvider.System;
-        _repository = repository;
+        _reader = reader;
+        _location = location;
         _postToUi = postToUi;
         _debounce = debounce;
     }
@@ -154,7 +158,7 @@ public sealed class CommitDetailsStore : IDisposable
             try
             {
                 token.ThrowIfCancellationRequested();
-                var details = await CommitDetailsReader.ReadAsync(_repository, neighbour, cancellationToken: token).ConfigureAwait(false);
+                var details = await _reader.ReadAsync(_location, neighbour, cancellationToken: token).ConfigureAwait(false);
                 if (details is not null)
                 {
                     _postToUi(() => RememberPrefetched(details, token));
@@ -178,7 +182,7 @@ public sealed class CommitDetailsStore : IDisposable
         try
         {
             await _delay(wait, token).ConfigureAwait(false);
-            details = await CommitDetailsReader.ReadAsync(_repository, commit, cancellationToken: token).ConfigureAwait(false);
+            details = await _reader.ReadAsync(_location, commit, cancellationToken: token).ConfigureAwait(false);
             _postToUi(() => Complete(commit, details, string.Empty, token));
         }
         catch (OperationCanceledException)

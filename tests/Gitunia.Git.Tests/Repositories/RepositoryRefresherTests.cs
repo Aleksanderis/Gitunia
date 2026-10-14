@@ -3,6 +3,8 @@ using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Status;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Repositories;
@@ -10,6 +12,8 @@ namespace Gitunia.Git.Tests.Repositories;
 public class RepositoryRefresherTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly RepositoryRefresher Refresher = new(new RefReader(Runner), new StatusReader(Runner));
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -17,9 +21,9 @@ public class RepositoryRefresherTests
     public async Task GivenNoPreviousSnapshot_WhenRefreshing_ThenEverythingIsLoadedAndReportedChanged()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var result = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.None, Token);
+        var result = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.None, Token);
 
         Assert.Equal(RepositorySections.All, result.Changed);
         Assert.Equal(testRepository.Head, result.Snapshot.Head.CommitHash);
@@ -30,10 +34,10 @@ public class RepositoryRefresherTests
     public async Task GivenNothingChanged_WhenRefreshingEverything_ThenNothingIsReportedChanged()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var first = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
 
-        var second = await RepositoryRefresher.RefreshAsync(repository, first.Snapshot, RepositoryChangeKinds.All, Token);
+        var second = await Refresher.RefreshAsync(location, first.Snapshot, RepositoryChangeKinds.All, Token);
 
         Assert.Equal(RepositorySections.None, second.Changed);
         Assert.Same(first.Snapshot.Refs, second.Snapshot.Refs);
@@ -44,11 +48,11 @@ public class RepositoryRefresherTests
     public async Task GivenUntrackedFile_WhenRefreshingWorkingTreeOnly_ThenOnlyStatusChanges()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var first = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
         testRepository.WriteFile("new.txt", "x");
 
-        var second = await RepositoryRefresher.RefreshAsync(repository, first.Snapshot, RepositoryChangeKinds.WorkingTree, Token);
+        var second = await Refresher.RefreshAsync(location, first.Snapshot, RepositoryChangeKinds.WorkingTree, Token);
 
         Assert.Equal(RepositorySections.Status, second.Changed);
         Assert.Same(first.Snapshot.Refs, second.Snapshot.Refs);
@@ -60,11 +64,11 @@ public class RepositoryRefresherTests
     public async Task GivenNewCommit_WhenRefreshingRefs_ThenHeadRefsAndWorktreesChange()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var first = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
         testRepository.Commit("next", new TestFile("n.txt", "n"));
 
-        var second = await RepositoryRefresher.RefreshAsync(repository, first.Snapshot, RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
+        var second = await Refresher.RefreshAsync(location, first.Snapshot, RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
 
         Assert.True(second.Changed.HasFlag(RepositorySections.Head));
         Assert.True(second.Changed.HasFlag(RepositorySections.Refs));
@@ -76,8 +80,8 @@ public class RepositoryRefresherTests
     public async Task GivenConflictedMerge_WhenRefreshingOperation_ThenOperationChanges()
     {
         using var testRepository = TestRepositories.Conflicted();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var result = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var result = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
 
         Assert.NotEqual(RepositoryOperation.None, result.Snapshot.Operation);
     }

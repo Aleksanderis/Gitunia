@@ -76,8 +76,8 @@ public class RangeCopierTests : IDisposable
 
     private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, TestContext.Current.CancellationToken);
-        var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, TestContext.Current.CancellationToken);
+        var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
         session.Append(CommitFactory.Graph(CommitFactory.Commit(2, "b", [1]), CommitFactory.Commit(1, "a", [])).ToArray());
         return session;
     }

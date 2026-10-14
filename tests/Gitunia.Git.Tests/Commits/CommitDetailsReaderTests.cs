@@ -10,14 +10,16 @@ namespace Gitunia.Git.Tests.Commits;
 public class CommitDetailsReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly CommitDetailsReader CommitDetails = new(Runner);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     private static async Task<CommitDetails> ReadAsync(TestRepository testRepository, string revision)
     {
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
-        var details = await CommitDetailsReader.ReadAsync(repository, id, cancellationToken: Token);
+        var details = await CommitDetails.ReadAsync(location, id, cancellationToken: Token);
         return Assert.IsType<CommitDetails>(details);
     }
 
@@ -82,11 +84,11 @@ public class CommitDetailsReaderTests
     public async Task GivenCancelledToken_WhenReading_ThenThrowsCancellation()
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         Assert.True(ObjectId.TryParse(testRepository.Head, out var id));
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetailsReader.ReadAsync(repository, id, cancellationToken: source.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetails.ReadAsync(location, id, cancellationToken: source.Token));
     }
 }

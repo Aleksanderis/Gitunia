@@ -28,7 +28,7 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 ```
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
-  Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
+  Gitunia.Git/        process runner, parsers, readers (instance classes with an interface where the Tui consumes them), repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
   Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap, Search, Workspaces with Panes, Repositories and Tabs subfolders, ...)
   Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, Panes, Sidebar, Tabs)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
@@ -54,6 +54,13 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 - `PublishAot=true` and trim/AOT analyzers on from the first commit, warnings as errors for `IL*` codes.
 - CI (and every dependency addition) runs the AOT publish and a smoke test of the produced binary.
 - Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64.
+
+## Static or instance, and the composition root
+
+- Static: pure parsers, formatters and layout (`CommitLogParser`, `RefParser`, `DiffParser`, `GraphLayoutBuilder`, ...). Same input, same output, no I/O, no clock, no cache, no state.
+- Instance: anything that spawns a process, touches the file system, reads a clock or keeps a cache. These are small sealed classes that take what they use in the constructor (`GitRunner`, `TimeProvider`, `IPlatform`, other readers) and have no static state. The git readers (`CommitLogReader`, `CommitDetailsReader`, `StatusReader`, `DiffReader`, `RefReader`, `StashReader`, `RepositoryRefresher`, `RepositoryDiscovery`, `GitVersionDetector`) take a `GitRunner` and get the repository as a `RepositoryLocation` argument on every call, so one reader serves every tab. A class whose I/O needs no dependency stays static when the analyzer asks for it (`RepositoryOperationDetector` only checks state files).
+- Interface: only where another layer consumes the class and tests need a fake. The Tui's effects and loaders depend on `ICommitLogReader`, `ICommitDetailsReader`, `IDiffReader`, `IRefReader`, `IStatusReader`, `IStashReader` and `IRepositoryRefresher`; classes nobody fakes (`RepositoryDiscovery`, the loaders) have none.
+- Composition root: `Program.Main` creates the `GitRunner` and calls `GitServices.Create`, which wires every reader and loader by hand (no DI container: it needs reflection or codegen, and costs startup) and passes the `GitServices` record to the application. Tests build the same record (`TestGit.Services`) or swap one part with `with` and a fake (`tests/Gitunia.Tui.Tests/Fakes`).
 
 ## Performance targets
 

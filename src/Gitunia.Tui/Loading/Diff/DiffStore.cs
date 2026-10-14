@@ -1,8 +1,7 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git;
 using Gitunia.Git.Diff;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading.Diff;
 
@@ -13,7 +12,8 @@ namespace Gitunia.Tui.Loading.Diff;
 /// <c>postToUi</c>.
 /// </summary>
 public sealed class DiffStore(
-    Repository repository,
+    IDiffReader reader,
+    RepositoryLocation location,
     Action<Action> postToUi,
     int rowLimit = DiffStore.DefaultRowLimit,
     int fileLineLimit = DiffStore.DefaultFileLineLimit,
@@ -217,9 +217,7 @@ public sealed class DiffStore(
 
     private async Task<ObjectId?> FirstParentOfAsync(ObjectId commit, CancellationToken token)
     {
-        var result = await repository.RunAsync(["rev-list", "--parents", "-n", "1", commit.ToString()], GitRunOptions.ReadOnlyRun, token).ConfigureAwait(false);
-        var fields = result.StandardOutputText.Split([' ', '\n'], StringSplitOptions.RemoveEmptyEntries);
-        return fields.Length > 1 && ObjectId.TryParse(fields[1], out var parent) ? parent : null;
+        return await reader.ReadFirstParentAsync(location, commit, token).ConfigureAwait(false);
     }
 
     private void RememberPrefetched(ObjectId commit, DiffDocument document, CancellationToken token)
@@ -236,7 +234,7 @@ public sealed class DiffStore(
         var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
-        await foreach (var file in DiffReader.ReadCommitAsync(repository, commit, firstParent, warnings, lineLimit, token).ConfigureAwait(false))
+        await foreach (var file in reader.ReadCommitAsync(location, commit, firstParent, warnings, lineLimit, token).ConfigureAwait(false))
         {
             builder.Add(file);
             fileCut |= file.IsTruncated;

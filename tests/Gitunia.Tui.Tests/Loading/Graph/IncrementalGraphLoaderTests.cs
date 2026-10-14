@@ -155,9 +155,9 @@ public class IncrementalGraphLoaderTests
 
     private static async Task<GraphEntry[]> ReadAllAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
-        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, CancellationToken.None))
+        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, null, CancellationToken.None))
         {
             entries.AddRange(batch);
         }
@@ -167,8 +167,8 @@ public class IncrementalGraphLoaderTests
 
     private static async Task<GraphReload> ReloadAsync(TestRepository testRepository, IReadOnlyList<GraphEntry> previous)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
-        return await IncrementalGraphLoader.ReloadAsync(repository, previous, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
+        return await TestGit.Services.IncrementalGraphLoader.ReloadAsync(location, previous, CancellationToken.None);
     }
 
     private static async Task AssertEqualToFullReadAsync(TestRepository testRepository, GraphReload reload)

@@ -4,24 +4,33 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Tui.App;
 
 namespace Gitunia.Tui.Loading;
 
 /// <summary>Loads what the sidebar lists besides branches and tags (worktrees and stashes) and hands each result to the UI thread.</summary>
-public static class SidebarDataLoader
+public sealed class SidebarDataLoader
 {
-    public static async Task LoadAsync(Repository repository, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    private readonly IRefReader _refs;
+    private readonly IStashReader _stashes;
+
+    public SidebarDataLoader(IRefReader refs, IStashReader stashes)
     {
-        var worktreesTask = RefReader.ReadWorktreesAsync(repository, token);
-        var stashesTask = StashReader.ReadStashesAsync(repository, token);
-        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", repository, tabId, host, statuses, postToUi).ConfigureAwait(false);
-        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", repository, tabId, host, statuses, postToUi).ConfigureAwait(false);
+        _refs = refs;
+        _stashes = stashes;
     }
 
-    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepositoryCommand> toCommand, string what, Repository repository, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi)
+    public async Task LoadAsync(RepositoryLocation location, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)
+    {
+        var worktreesTask = _refs.ReadWorktreesAsync(location, token);
+        var stashesTask = _stashes.ReadStashesAsync(location, token);
+        await PostAsync(worktreesTask, worktrees => new WorktreesLoadedCommand([.. worktrees.Items]), "worktrees", location, tabId, host, statuses, postToUi).ConfigureAwait(false);
+        await PostAsync(stashesTask, stashes => new StashesLoadedCommand([.. stashes.Items]), "stashes", location, tabId, host, statuses, postToUi).ConfigureAwait(false);
+    }
+
+    private static async Task PostAsync<TResult>(Task<TResult> task, Func<TResult, RepositoryCommand> toCommand, string what, RepositoryLocation location, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi)
     {
         try
         {
@@ -35,7 +44,7 @@ public static class SidebarDataLoader
         catch (GitException exception)
         {
             // One failed part does not hide the other.
-            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath))}: could not read the {what}: {exception.Message}"));
+            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath))}: could not read the {what}: {exception.Message}"));
         }
     }
 }

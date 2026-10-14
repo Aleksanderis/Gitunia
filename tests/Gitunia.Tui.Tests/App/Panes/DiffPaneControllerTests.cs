@@ -749,18 +749,16 @@ public class DiffPaneControllerTests
         {
             var owned = testRepository is null ? CreateDefaultRepository() : null;
             var path = (testRepository ?? owned)!.WorkingTreePath;
-            var runner = new GitRunner();
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, path, Token);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(path, Token);
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
-            var repository = new Repository(runner, location);
             var session = new TabSession(
                 tabId,
                 GraphGlyphSet.Unicode,
-                new CommitDetailsStore(repository, action => action(), TimeSpan.Zero),
-                new DiffStore(repository, action => action(), rowLimit));
-            await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero),
+                new DiffStore(TestGit.Services.Diff, location, action => action(), rowLimit));
+            await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;

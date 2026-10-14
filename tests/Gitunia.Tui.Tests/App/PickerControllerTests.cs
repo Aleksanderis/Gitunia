@@ -18,7 +18,7 @@ public class PickerControllerTests
         var host = new WorkspaceHost(Workspace.Empty);
         var pump = new UiPump(TestContext.Current.CancellationToken);
         // Never show scanning by default: only the tests about it opt in, with a zero delay.
-        var picker = new PickerController(new GitRunner(), host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan);
+        var picker = new PickerController(TestGit.Services.Discovery, host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan);
         return new PickerHarness(picker, host, pump);
     }
 

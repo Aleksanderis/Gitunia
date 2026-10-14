@@ -1,8 +1,6 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
@@ -19,7 +17,7 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class EffectRunner : IDisposable
 {
-    private readonly GitRunner _runner;
+    private readonly GitServices _services;
     private readonly WorkspaceHost _host;
     private readonly Action<Action> _postToUi;
     private readonly StatusChannel _statuses;
@@ -31,12 +29,12 @@ public sealed class EffectRunner : IDisposable
     private readonly WatchBudget _watchBudget;
     private readonly RepositoryWatcherOptions _watcherOptions;
 
-    public EffectRunner(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null, RepositoryWatcherOptions? watcherOptions = null, WatchBudget? watchBudget = null)
+    public EffectRunner(GitServices services, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null, RepositoryWatcherOptions? watcherOptions = null, WatchBudget? watchBudget = null)
     {
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
         _watchBudget = watchBudget ?? new WatchBudget();
         _detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
-        _runner = runner;
+        _services = services;
         _host = host;
         _postToUi = postToUi;
         _glyphs = glyphs;
@@ -104,19 +102,22 @@ public sealed class EffectRunner : IDisposable
             previous.Dispose();
         }
 
-        var repository = new Repository(_runner, tab.Location);
-        var session = new TabSession(load.TabId, _glyphs, new CommitDetailsStore(repository, _postToUi, _detailDebounce), new DiffStore(repository, _postToUi));
+        var session = new TabSession(
+            load.TabId,
+            _glyphs,
+            new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
+            new DiffStore(_services.Diff, tab.Location, _postToUi));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
         void Start()
         {
             session.MarkStarted();
-            var refresher = new TabRefresher(_runner, _host, session, tab.Location, _statuses, _postToUi, _watchBudget, _watcherOptions);
+            var refresher = new TabRefresher(_services, _host, session, tab.Location, _statuses, _postToUi, _watchBudget, _watcherOptions);
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => RepositoryLoader.RunAsync(_runner, location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
+            _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
         // Only the active tab loads now; background tabs keep an empty session until first activated (docs/architecture.md, "Many tabs").

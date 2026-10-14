@@ -10,11 +10,19 @@ namespace Gitunia.Git.Repositories;
 /// Recomputes a tab's <see cref="RepositorySnapshot"/> after a change. Only the sections the change can affect are read again,
 /// and the result says which of them really differ, so the caller can keep scroll, selection and everything else as it is.
 /// </summary>
-public static class RepositoryRefresher
+public sealed class RepositoryRefresher : IRepositoryRefresher
 {
-    /// <summary>Reads the repository again for <paramref name="kinds"/>; with no <paramref name="previous"/> snapshot everything is read.</summary>
-    public static async Task<RepositoryRefreshResult> RefreshAsync(
-        Repository repository,
+    private readonly IRefReader _refReader;
+    private readonly IStatusReader _statusReader;
+
+    public RepositoryRefresher(IRefReader refReader, IStatusReader statusReader)
+    {
+        _refReader = refReader;
+        _statusReader = statusReader;
+    }
+
+    public async Task<RepositoryRefreshResult> RefreshAsync(
+        RepositoryLocation location,
         RepositorySnapshot? previous,
         RepositoryChangeKinds kinds,
         CancellationToken cancellationToken)
@@ -32,16 +40,16 @@ public static class RepositoryRefresher
             || kinds.HasFlag(RepositoryChangeKinds.WorkingTree)
             || kinds.HasFlag(RepositoryChangeKinds.Operation);
 
-        var headTask = readHead ? repository.ReadHeadAsync(cancellationToken) : null;
-        var refsTask = readRefs ? RefReader.ReadRefsAsync(repository, cancellationToken) : null;
-        var worktreesTask = readWorktrees ? RefReader.ReadWorktreesAsync(repository, cancellationToken) : null;
-        var statusTask = readStatus ? StatusReader.ReadStatusAsync(repository, includeIgnored: false, UntrackedFilesMode.All, cancellationToken) : null;
+        var headTask = readHead ? _refReader.ReadHeadAsync(location, cancellationToken) : null;
+        var refsTask = readRefs ? _refReader.ReadRefsAsync(location, cancellationToken) : null;
+        var worktreesTask = readWorktrees ? _refReader.ReadWorktreesAsync(location, cancellationToken) : null;
+        var statusTask = readStatus ? _statusReader.ReadStatusAsync(location, includeIgnored: false, UntrackedFilesMode.All, cancellationToken) : null;
 
         var head = headTask is null ? previous!.Head : await headTask.ConfigureAwait(false);
         var refs = refsTask is null ? previous!.Refs : (await refsTask.ConfigureAwait(false)).Items;
         var worktrees = worktreesTask is null ? previous!.Worktrees : (await worktreesTask.ConfigureAwait(false)).Items;
         var status = statusTask is null ? previous!.Status : await statusTask.ConfigureAwait(false);
-        var operation = repository.DetectOperation();
+        var operation = RepositoryOperationDetector.Detect(location);
 
         if (previous is null)
         {

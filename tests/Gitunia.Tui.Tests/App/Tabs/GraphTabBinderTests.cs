@@ -110,13 +110,12 @@ public class GraphTabBinderTests
 
         public static async Task<Harness> LoadAsync(TestRepository repository)
         {
-            var runner = new GitRunner();
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
             var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
             var tabId = update.Workspace.Tabs[0].Id;
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var host = new WorkspaceHost(Workspace.Empty);
-            var effects = new EffectRunner(runner, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+            var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
             var graph = new ListView { Width = 40, Height = 10 };
             var binder = new GraphTabBinder(host, effects, graph, new GraphListSource(new CommitGraph(), GraphGlyphSet.Unicode), () => { });
             host.Changed += binder.Sync;

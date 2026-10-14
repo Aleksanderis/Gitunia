@@ -1,8 +1,6 @@
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
 
@@ -15,16 +13,16 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class BackgroundStatusPoller : IDisposable
 {
-    private readonly GitRunner _runner;
+    private readonly IStatusReader _status;
     private readonly WorkspaceHost _host;
     private readonly Action<Action> _postToUi;
     private readonly TimeSpan _interval;
     private readonly CancellationTokenSource _cancellation = new();
     private Task? _loop;
 
-    public BackgroundStatusPoller(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, TimeSpan? interval = null)
+    public BackgroundStatusPoller(IStatusReader status, WorkspaceHost host, Action<Action> postToUi, TimeSpan? interval = null)
     {
-        _runner = runner;
+        _status = status;
         _host = host;
         _postToUi = postToUi;
         _interval = interval ?? TimeSpan.FromSeconds(30);
@@ -51,7 +49,7 @@ public sealed class BackgroundStatusPoller : IDisposable
 
             try
             {
-                var status = await StatusReader.ReadStatusAsync(new Repository(_runner, tab.Location), false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
+                var status = await _status.ReadStatusAsync(tab.Location, false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
                 var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
                 _postToUi(() => Apply(tabId, summary));

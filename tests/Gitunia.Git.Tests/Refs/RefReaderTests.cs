@@ -10,6 +10,55 @@ namespace Gitunia.Git.Tests.Refs;
 public class RefReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly RefReader Refs = new(Runner);
+
+    [Fact]
+    public async Task GivenCommits_WhenReadingHead_ThenBranchWithHash()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var head = await Refs.ReadHeadAsync(location, Token);
+
+        Assert.Equal(new HeadState(HeadKind.Branch, "main", testRepository.Head), head);
+    }
+
+    [Fact]
+    public async Task GivenDetachedHead_WhenReadingHead_ThenNoBranch()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var head = await Refs.ReadHeadAsync(location, Token);
+
+        Assert.Equal(HeadKind.Detached, head.Kind);
+        Assert.Null(head.BranchName);
+        Assert.Equal(testRepository.Head, head.CommitHash);
+    }
+
+    [Fact]
+    public async Task GivenUnbornBranch_WhenReadingHead_ThenBranchWithoutCommit()
+    {
+        using var testRepository = TestRepository.Create();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var head = await Refs.ReadHeadAsync(location, Token);
+
+        Assert.Equal(new HeadState(HeadKind.Unborn, "main", null), head);
+    }
+
+    [Fact]
+    public async Task GivenRebaseStopped_WhenReadingHead_ThenDetached()
+    {
+        using var testRepository = TestRepositories.Conflicted();
+        testRepository.Git(["merge", "--abort"], null);
+        testRepository.Git(["rebase", "other"], [1]);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        Assert.Equal(HeadKind.Detached, (await Refs.ReadHeadAsync(location, Token)).Kind);
+    }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -17,9 +66,9 @@ public class RefReaderTests
     public async Task GivenMergedFeatureBranchRepository_WhenReadingRefs_ThenBranchesAndTagAreListed()
     {
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var result = await RefReader.ReadRefsAsync(repository, Token);
+        var result = await Refs.ReadRefsAsync(location, Token);
 
         Assert.Empty(result.Warnings);
         Assert.Equal(["feature", "main", "topic", "v1"], result.Items.Select(reference => reference.Name).Order());
@@ -33,10 +82,10 @@ public class RefReaderTests
     public async Task GivenUnbornBranch_WhenReadingRefs_ThenNoRefsAndOneWorktree()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Empty((await RefReader.ReadRefsAsync(repository, Token)).Items);
-        var worktree = Assert.Single((await RefReader.ReadWorktreesAsync(repository, Token)).Items);
+        Assert.Empty((await Refs.ReadRefsAsync(location, Token)).Items);
+        var worktree = Assert.Single((await Refs.ReadWorktreesAsync(location, Token)).Items);
         Assert.Equal("refs/heads/main", worktree.BranchFullName);
     }
 
@@ -45,9 +94,9 @@ public class RefReaderTests
     {
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var result = await RefReader.ReadRefsAsync(repository, Token);
+        var result = await Refs.ReadRefsAsync(location, Token);
 
         Assert.DoesNotContain(result.Items, reference => reference.IsCurrent);
         Assert.Null(result.Items.Single(reference => reference.Name == "main").CheckedOutIn);
@@ -57,9 +106,9 @@ public class RefReaderTests
     public async Task GivenUnbornBranch_WhenReadingWorktrees_ThenHeadHashIsNull()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Null(Assert.Single((await RefReader.ReadWorktreesAsync(repository, Token)).Items).HeadHash);
+        Assert.Null(Assert.Single((await Refs.ReadWorktreesAsync(location, Token)).Items).HeadHash);
     }
 
     [Fact]
@@ -69,9 +118,9 @@ public class RefReaderTests
         testRepository.Branch("feature/ünï_branch");
         testRepository.Tag("release/1.0");
         var worktreePath = testRepository.AddWorktree("wt with space", "feature/ünï_branch");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var refs = (await RefReader.ReadRefsAsync(repository, Token)).Items;
+        var refs = (await Refs.ReadRefsAsync(location, Token)).Items;
 
         var feature = refs.Single(reference => reference.Name == "feature/ünï_branch");
         Assert.Equal(Path.GetFullPath(worktreePath), Path.GetFullPath(feature.CheckedOutIn!));
@@ -92,9 +141,9 @@ public class RefReaderTests
         local.Git(["-C", clonePath, "-c", "user.name=T", "-c", "user.email=t@e.com", "commit", "-q", "--allow-empty", "-m", "Remote two"], null);
         local.Git("-C", clonePath, "push", "-q", "origin", "main");
         local.Git("fetch", "-q", "origin");
-        var repository = await Repository.OpenAsync(Runner, local.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(local.WorkingTreePath, Token);
 
-        var main = (await RefReader.ReadRefsAsync(repository, Token)).Items.Single(reference => reference.Name == "main");
+        var main = (await Refs.ReadRefsAsync(location, Token)).Items.Single(reference => reference.Name == "main");
 
         Assert.Equal("refs/remotes/origin/main", main.UpstreamFullName);
         Assert.Equal(1, main.Ahead);
@@ -110,9 +159,9 @@ public class RefReaderTests
         testRepository.AddWorktree("detached-wt", "HEAD~1", createBranch: false);
         testRepository.Git("worktree", "lock", "--reason", "keep me", locked);
         Directory.Delete(prunable, recursive: true);
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var worktrees = (await RefReader.ReadWorktreesAsync(repository, Token)).Items;
+        var worktrees = (await Refs.ReadWorktreesAsync(location, Token)).Items;
 
         Assert.Equal(4, worktrees.Count);
         Assert.True(worktrees[0].IsMain);

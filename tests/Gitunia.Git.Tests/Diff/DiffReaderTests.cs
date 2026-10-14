@@ -3,6 +3,7 @@ using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
@@ -11,6 +12,8 @@ namespace Gitunia.Git.Tests.Diff;
 public class DiffReaderTests
 {
     private static readonly GitRunner Runner = new();
+    private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly DiffReader Diff = new(Runner);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -42,12 +45,12 @@ public class DiffReaderTests
             .WriteFile("moved/renamed ü.txt", "a\nb\nc\nd\ne\nf\ng\nH\n");
         testRepository.Git("add", "-A");
         testRepository.Git("update-index", "--chmod=+x", "run.sh");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         string[] options = ["--no-color", "--no-ext-diff", "--no-textconv", "--src-prefix=a/", "--dst-prefix=b/", "--find-renames", "--find-copies", "--binary"];
         var expected = testRepository.Git(["diff", "--cached", .. options], null);
         var warnings = new List<string>();
 
-        var files = await ReadAllAsync(repository, ["diff", "--cached", "--binary"], warnings);
+        var files = await ReadAllAsync(location, ["diff", "--cached", "--binary"], warnings);
 
         Assert.Empty(warnings);
         Assert.Equal(expected, string.Concat(files.Select(DiffPatchWriter.WriteFile)));
@@ -67,9 +70,9 @@ public class DiffReaderTests
         testRepository.Git("config", "diff.noprefix", "true");
         testRepository.Git("config", "color.ui", "always");
         testRepository.WriteFile("a.txt", "2\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var files = await ReadAllAsync(repository, ["diff"], []);
+        var files = await ReadAllAsync(location, ["diff"], []);
 
         var file = Assert.Single(files);
         Assert.Equal("a.txt", file.Path);
@@ -82,9 +85,9 @@ public class DiffReaderTests
         using var testRepository = TestRepository.Create()
             .Commit("one", new TestFile("a.txt", "1\n"))
             .Commit("two", new TestFile("a.txt", "1\n2\n"), new TestFile("b.txt", "b\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var files = await ReadAllAsync(repository, ["show", "--format=", testRepository.Head], []);
+        var files = await ReadAllAsync(location, ["show", "--format=", testRepository.Head], []);
 
         Assert.Equal(["a.txt", "b.txt"], files.Select(file => file.Path));
         Assert.Equal(DiffFileStatus.Added, files[1].Status);
@@ -95,8 +98,8 @@ public class DiffReaderTests
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
         testRepository.WriteFile("f.txt", "l1\nX\nY\nl4\nl5\nl6\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff"], [])).Single();
         var hunk = file.Hunks.Single();
         var addedX = hunk.Lines.ToList().FindIndex(line => line is { Kind: DiffLineKind.Added, Text: "X" });
 
@@ -112,8 +115,8 @@ public class DiffReaderTests
         var original = string.Concat(Enumerable.Range(1, 30).Select(number => $"line {number}\n"));
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
         testRepository.WriteFile("f.txt", original.Replace("line 3\n", "three\n").Replace("line 15\n", "fifteen\n").Replace("line 27\n", "twenty-seven\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff", "-U1"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff", "-U1"], [])).Single();
         Assert.Equal(3, file.Hunks.Count);
 
         ApplyToIndex(testRepository, DiffPatchWriter.WriteHunks(file, [1]), reverse: false);
@@ -127,8 +130,8 @@ public class DiffReaderTests
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
         testRepository.WriteFile("f.txt", "l1\nX\nY\nl4\nl5\nl6\n");
         testRepository.Git("add", "f.txt");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff", "--cached"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff", "--cached"], [])).Single();
         var removedTwo = file.Hunks.Single().Lines.ToList().FindIndex(line => line is { Kind: DiffLineKind.Removed, Text: "l2" });
 
         ApplyToIndex(testRepository, DiffPatchWriter.WriteSelection(file, new Dictionary<int, IReadOnlyCollection<int>> { [0] = [removedTwo] }, PatchDirection.Reverse), reverse: true);
@@ -141,8 +144,8 @@ public class DiffReaderTests
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb"));
         testRepository.WriteFile("f.txt", "a\nB");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff"], [])).Single();
 
         ApplyToIndex(testRepository, DiffPatchWriter.WriteFile(file), reverse: false);
 
@@ -156,8 +159,8 @@ public class DiffReaderTests
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb"));
         testRepository.WriteFile("f.txt", "a\nb\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff"], [])).Single();
         var lines = file.Hunks.Single().Lines.ToList();
         var index = lines.FindIndex(line => line.Kind == (selectedSide == "added" ? DiffLineKind.Added : DiffLineKind.Removed));
 
@@ -173,8 +176,8 @@ public class DiffReaderTests
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
         testRepository.WriteFile("f.txt", original.Replace("line 3\n", "three\nextra\nextra two\n").Replace("line 20\n", string.Empty).Replace("line 27\n", "twenty-seven\n"));
         testRepository.Git("add", "f.txt");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
-        var file = (await ReadAllAsync(repository, ["diff", "--cached", "-U1"], [])).Single();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var file = (await ReadAllAsync(location, ["diff", "--cached", "-U1"], [])).Single();
         Assert.Equal(3, file.Hunks.Count);
         var selection = new Dictionary<int, IReadOnlyCollection<int>>
         {
@@ -201,9 +204,9 @@ public class DiffReaderTests
 
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("big.txt", original.ToString()), new TestFile("small.txt", "s\n"));
         testRepository.WriteFile("big.txt", changed.ToString()).WriteFile("small.txt", "t\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        var files = await ReadAllAsync(repository, ["diff", "-U0"], []);
+        var files = await ReadAllAsync(location, ["diff", "-U0"], []);
 
         Assert.Equal(["big.txt", "small.txt"], files.Select(file => file.Path));
         Assert.Equal(10_000, files[0].Hunks.Count);
@@ -214,17 +217,17 @@ public class DiffReaderTests
     public async Task GivenCancelledToken_WhenReading_ThenOperationCancelled()
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await ReadAllAsync(repository, ["diff"], [], source.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await ReadAllAsync(location, ["diff"], [], source.Token));
     }
 
-    private static async Task<List<DiffFile>> ReadAllAsync(Repository repository, string[] command, List<string> warnings, CancellationToken? token = null)
+    private static async Task<List<DiffFile>> ReadAllAsync(RepositoryLocation location, string[] command, List<string> warnings, CancellationToken? token = null)
     {
         var files = new List<DiffFile>();
-        await foreach (var file in DiffReader.ReadAsync(repository, command, warnings, cancellationToken: token ?? Token))
+        await foreach (var file in Diff.ReadAsync(location, command, warnings, cancellationToken: token ?? Token))
         {
             files.Add(file);
         }

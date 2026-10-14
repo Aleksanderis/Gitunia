@@ -123,7 +123,7 @@ public class StatusActionHandlerTests
 
     private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1)));
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.FromMilliseconds(1)));
     }
 }

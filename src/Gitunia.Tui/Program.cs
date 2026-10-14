@@ -31,13 +31,13 @@ public static class Program
             return 0;
         }
 
-        var runner = new GitRunner();
+        var services = GitServices.Create(new GitRunner());
         RepositoryLocation? location = null;
         if (options.RepositoryPath is not null)
         {
             try
             {
-                location = RepositoryDiscovery.DiscoverAsync(runner, options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
+                location = services.Discovery.DiscoverAsync(options.RepositoryPath, CancellationToken.None).GetAwaiter().GetResult();
             }
             catch (GitException exception)
             {
@@ -49,7 +49,7 @@ public static class Program
         if (options.PrintsFrame)
         {
             FramePrinter.PrintAsync(
-                runner,
+                services,
                 location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,
@@ -62,7 +62,7 @@ public static class Program
             return 0;
         }
 
-        using var application = new TuiApplication(runner, capabilities, PlatformInfo.Current);
+        using var application = new TuiApplication(services, capabilities, PlatformInfo.Current);
         return application.Run(location);
     }
 }

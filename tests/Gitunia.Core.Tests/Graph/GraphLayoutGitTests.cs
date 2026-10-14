@@ -16,9 +16,11 @@ public class GraphLayoutGitTests
     public async Task GivenMergedFeatureBranchRepository_WhenLayingOutTheRealLog_ThenOrderMatchesGitLogGraphAndTopologyMatchesGitsParentLinks(CommitOrder order)
     {
         using var testRepository = GraphGitRepository.CreateWithMergedFeatureBranch();
-        var repository = await Repository.OpenAsync(testRepository.CreateRunner(), testRepository.WorkingTreePath, Token);
+        var runner = testRepository.CreateRunner();
+        var location = await new RepositoryDiscovery(runner).DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var commitLog = new CommitLogReader(runner);
         var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, ["--all"], cancellationToken: Token))
+        await foreach (var commit in commitLog.ReadAsync(location, order, ["--all"], cancellationToken: Token))
         {
             commits.Add(commit);
         }

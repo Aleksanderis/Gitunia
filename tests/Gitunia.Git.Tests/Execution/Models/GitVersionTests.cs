@@ -41,7 +41,7 @@ public class GitVersionTests
         using var fake = FakeGitExecutable.Printing("git version 2.30.1");
 
         var error = await Assert.ThrowsAsync<GitVersionTooOldException>(
-            () => GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.ExecutablePath)), TestContext.Current.CancellationToken));
+            () => new GitVersionDetector(new GitRunner(new GitRunnerOptions(fake.ExecutablePath))).DetectAsync(TestContext.Current.CancellationToken));
 
         Assert.Equal(new GitVersion(2, 30, 1), error.Found);
     }
@@ -51,7 +51,7 @@ public class GitVersionTests
     {
         using var fake = FakeGitExecutable.Printing("git version 2.50.0");
 
-        var version = await GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.ExecutablePath)), TestContext.Current.CancellationToken);
+        var version = await new GitVersionDetector(new GitRunner(new GitRunnerOptions(fake.ExecutablePath))).DetectAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(new GitVersion(2, 50, 0), version);
         Assert.True(version.IsAtLeast(GitVersion.RelativeWorktrees));
@@ -63,6 +63,6 @@ public class GitVersionTests
         using var fake = FakeGitExecutable.Printing("hello");
 
         await Assert.ThrowsAsync<GitException>(
-            () => GitVersionDetector.DetectAsync(new GitRunner(new GitRunnerOptions(fake.ExecutablePath)), TestContext.Current.CancellationToken));
+            () => new GitVersionDetector(new GitRunner(new GitRunnerOptions(fake.ExecutablePath))).DetectAsync(TestContext.Current.CancellationToken));
     }
 }

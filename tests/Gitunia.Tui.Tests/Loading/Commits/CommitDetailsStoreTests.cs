@@ -1,8 +1,6 @@
 using Gitunia.Git;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
-using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Commits;
@@ -10,12 +8,6 @@ namespace Gitunia.Tui.Tests.Loading.Commits;
 public class CommitDetailsStoreTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
-
-    private static ObjectId IdOf(TestRepository testRepository, string revision)
-    {
-        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
-        return id;
-    }
 
     /// <summary>Waits until the store reports the commit as loaded or failed; the results are posted inline from the loader thread.</summary>
     private static async Task<CommitDetailsState> WaitForSettledAsync(CommitDetailsStore store, ObjectId commit)
@@ -38,10 +30,9 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenSelection_WhenSelecting_ThenLoadingShowsAtOnceAndDetailsArriveLater()
     {
-        using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "1")).Commit("second", new TestFile("a.txt", "2"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1));
-        var head = IdOf(testRepository, "HEAD");
+        var reader = new FakeCommitDetailsReader();
+        var head = reader.Add("second", reader.Add("root"));
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
 
         store.Select(head);
 
@@ -55,17 +46,13 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenRapidSelectionChanges_WhenSelecting_ThenOnlyTheLastCommitIsLoaded()
     {
-        using var testRepository = TestRepository.Create()
-            .Commit("one", new TestFile("a.txt", "1"))
-            .Commit("two", new TestFile("a.txt", "2"))
-            .Commit("three", new TestFile("a.txt", "3"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(300));
+        var reader = new FakeCommitDetailsReader();
+        var first = reader.Add("one");
+        var second = reader.Add("two", first);
+        var last = reader.Add("three", second);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(300));
         var seen = new List<(ObjectId? Commit, CommitDetailsStatus Status)>();
         store.Changed += () => seen.Add((store.Current.Commit, store.Current.Status));
-        var first = IdOf(testRepository, "HEAD~2");
-        var second = IdOf(testRepository, "HEAD~1");
-        var last = IdOf(testRepository, "HEAD");
 
         store.Select(first);
         store.Select(second);
@@ -80,11 +67,10 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenCommitSeenBefore_WhenSelectingItAgain_ThenItIsLoadedWithoutWaiting()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1));
-        var first = IdOf(testRepository, "HEAD~1");
-        var second = IdOf(testRepository, "HEAD");
+        var reader = new FakeCommitDetailsReader();
+        var first = reader.Add("one");
+        var second = reader.Add("two", first);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
         store.Select(first);
         await WaitForSettledAsync(store, first);
         store.Select(second);
@@ -99,10 +85,9 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenUnknownCommit_WhenSelecting_ThenStateFailsWithAMessage()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1));
-        Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
+        var reader = new FakeCommitDetailsReader();
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(missing);
         var settled = await WaitForSettledAsync(store, missing);
@@ -114,10 +99,9 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenFailedLoad_WhenRetrying_ThenItLoadsAgainAndSettles()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1));
-        Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
+        var reader = new FakeCommitDetailsReader();
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
         await WaitForSettledAsync(store, missing);
 
@@ -131,10 +115,9 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenLoadedCommit_WhenRetrying_ThenNothingHappens()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
-        using var store = new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1));
-        var head = IdOf(testRepository, "HEAD");
+        var reader = new FakeCommitDetailsReader();
+        var head = reader.Add("one");
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
         store.Select(head);
         await WaitForSettledAsync(store, head);
 
@@ -145,13 +128,13 @@ public class CommitDetailsStoreTests
     [Fact]
     public async Task GivenDisposedStore_WhenLoadWasPending_ThenNothingIsPosted()
     {
-        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
+        var reader = new FakeCommitDetailsReader();
+        var head = reader.Add("one");
         var posted = 0;
         var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var store = new CommitDetailsStore(
-            repository,
+            reader, FakeCommitDetailsReader.Location,
             action => { Interlocked.Increment(ref posted); action(); },
             TimeSpan.FromMilliseconds(200),
             async (_, token) =>
@@ -166,7 +149,7 @@ public class CommitDetailsStoreTests
                     cancelled.TrySetResult();
                 }
             });
-        store.Select(IdOf(testRepository, "HEAD"));
+        store.Select(head);
         await waiting.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
         store.Dispose();

@@ -1,12 +1,12 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Diff;
 
 /// <summary>Streams the files of a diff as <see cref="DiffFile"/> without buffering all of it.</summary>
-public static class DiffReader
+public sealed class DiffReader : IDiffReader
 {
     /// <summary>Flags that make the patch text predictable whatever the user's git config says.</summary>
     private static readonly string[] FixedOptions =
@@ -20,12 +20,22 @@ public static class DiffReader
         "--find-copies",
     ];
 
-    /// <param name="command">A git command that prints a patch with its arguments, for example <c>["diff", "--cached"]</c>,
-    /// <c>["diff", "HEAD", "--", "path"]</c> or <c>["show", "--format=", hash]</c>. The fixed options are inserted after the command name.</param>
-    /// <param name="warnings">Receives the parser's warnings once the stream ends.</param>
-    /// <param name="maximumLinesPerFile">Hunk lines kept per file; the rest are dropped and the file is marked <see cref="DiffFile.IsTruncated"/>.</param>
-    public static async IAsyncEnumerable<DiffFile> ReadAsync(
-        Repository repository,
+    /// <summary>Index of the first parent in a <c>rev-list --parents</c> line, which starts with the commit itself.</summary>
+    private const int FirstParentField = 1;
+
+    private static readonly string[] FirstParentArguments = ["rev-list", "--parents", "-n", "1"];
+
+    private static readonly char[] FieldSeparators = [' ', '\n'];
+
+    private readonly GitRunner _runner;
+
+    public DiffReader(GitRunner runner)
+    {
+        _runner = runner;
+    }
+
+    public async IAsyncEnumerable<DiffFile> ReadAsync(
+        RepositoryLocation location,
         IReadOnlyList<string> command,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
@@ -43,8 +53,8 @@ public static class DiffReader
         var completed = new List<DiffFile>();
         try
         {
-            await foreach (var chunk in repository.Runner
-                .StreamAsync(repository.Location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+            await foreach (var chunk in _runner
+                .StreamAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
                 .ConfigureAwait(false))
             {
                 parser.Feed(chunk, completed);
@@ -75,12 +85,8 @@ public static class DiffReader
         }
     }
 
-    /// <summary>
-    /// Streams the diff of a commit against its first parent (so merge commits match the file list), or the whole root commit
-    /// when <paramref name="firstParent"/> is null.
-    /// </summary>
-    public static IAsyncEnumerable<DiffFile> ReadCommitAsync(
-        Repository repository,
+    public IAsyncEnumerable<DiffFile> ReadCommitAsync(
+        RepositoryLocation location,
         ObjectId commit,
         ObjectId? firstParent,
         ICollection<string>? warnings = null,
@@ -90,6 +96,13 @@ public static class DiffReader
         IReadOnlyList<string> command = firstParent is { } parent
             ? ["diff", parent.ToString(), commit.ToString()]
             : ["show", "--format=", commit.ToString()];
-        return ReadAsync(repository, command, warnings, maximumLinesPerFile, cancellationToken);
+        return ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken);
+    }
+
+    public async Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
+    {
+        var result = await _runner.RunAsync(location.CommandPath, [.. FirstParentArguments, commit.ToString()], GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
+        var fields = result.StandardOutputText.Split(FieldSeparators, StringSplitOptions.RemoveEmptyEntries);
+        return fields.Length > FirstParentField && ObjectId.TryParse(fields[FirstParentField], out var parent) ? parent : null;
     }
 }

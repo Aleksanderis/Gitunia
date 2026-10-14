@@ -12,9 +12,9 @@ public class GraphLoaderTests
 {
     private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var batches = new List<IReadOnlyList<GraphEntry>>();
-        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, maximumCommits, CancellationToken.None))
+        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, maximumCommits, CancellationToken.None))
         {
             batches.Add(batch);
         }
@@ -76,13 +76,13 @@ public class GraphLoaderTests
     {
         using var testRepository = TestRepository.Create();
         testRepository.Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, cancellation.Token))
+            await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellation.Token))
             {
                 Assert.NotEmpty(batch);
             }

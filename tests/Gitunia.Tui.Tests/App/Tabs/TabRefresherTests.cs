@@ -239,15 +239,14 @@ public class TabRefresherTests
 
         private static async Task<Harness> CreateAsync(TestRepository repository, bool start, bool loadFirst)
         {
-            var runner = new GitRunner();
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
+            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
             session.MarkStarted();
-            Task LoadAsync() => RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+            Task LoadAsync() => TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             if (loadFirst)
             {
                 await LoadAsync();
@@ -256,7 +255,7 @@ public class TabRefresherTests
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var reloads = new List<GraphReload>();
             var ran = 0;
-            var refresher = new TabRefresher(runner, host, session, location, statuses, action =>
+            var refresher = new TabRefresher(TestGit.Services, host, session, location, statuses, action =>
             {
                 pump.Post(() =>
                 {

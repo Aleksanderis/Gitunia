@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Execution;
@@ -209,6 +210,26 @@ public class GitRunnerTests
         var result = await runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("0|yes", result.StandardOutputText);
+    }
+
+    [Fact]
+    public async Task GivenDefaultOptions_WhenCommandExitsWithOne_ThenItThrows()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var runner = new GitRunner();
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => runner.RunAsync(testRepository.WorkingTreePath, ["config", "--get", "no.such.key"], null, TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task GivenAcceptedExitCode_WhenCommandExitsWithOne_ThenItReturnsTheResult()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var runner = new GitRunner();
+
+        var result = await runner.RunAsync(testRepository.WorkingTreePath, ["config", "--get", "no.such.key"], GitRunOptions.ReadOnlyRunAllowingNoMatch, TestContext.Current.CancellationToken);
+
+        Assert.Equal(GitRunOptions.NoMatchExitCode, result.ExitCode);
     }
 
     private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));
