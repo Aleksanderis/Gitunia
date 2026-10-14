@@ -1,6 +1,7 @@
 using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Theme;
 using Xunit;
 using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 

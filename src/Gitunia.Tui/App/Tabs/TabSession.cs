@@ -1,12 +1,12 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Tabs;
 

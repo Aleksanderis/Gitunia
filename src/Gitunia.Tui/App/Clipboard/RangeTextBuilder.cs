@@ -2,7 +2,7 @@ using System.Text;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Lists;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Clipboard;
 

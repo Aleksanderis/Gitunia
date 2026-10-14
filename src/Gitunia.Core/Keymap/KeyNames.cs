@@ -1,3 +1,5 @@
+using Gitunia.Core.Keymap.Models;
+
 namespace Gitunia.Core.Keymap;
 
 /// <summary>Canonical names of the non-printable keys a <see cref="KeyEvent"/> can carry.</summary>

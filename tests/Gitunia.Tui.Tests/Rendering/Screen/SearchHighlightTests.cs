@@ -1,5 +1,5 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;

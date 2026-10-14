@@ -1,5 +1,6 @@
 using Gitunia.Tui.Input.Drag;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 

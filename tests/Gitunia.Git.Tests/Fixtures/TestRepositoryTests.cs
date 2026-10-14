@@ -1,4 +1,3 @@
-using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Fixtures;

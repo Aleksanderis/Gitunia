@@ -2,7 +2,6 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;

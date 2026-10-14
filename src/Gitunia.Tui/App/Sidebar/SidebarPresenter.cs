@@ -2,7 +2,7 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.Sidebar;

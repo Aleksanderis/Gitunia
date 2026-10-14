@@ -8,7 +8,7 @@ using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Rendering.Graph;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Clipboard;

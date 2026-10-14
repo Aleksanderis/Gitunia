@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
@@ -10,7 +11,7 @@ using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Sidebar;
 

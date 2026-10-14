@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Search.Models;
 
 namespace Gitunia.Core.Search;
 

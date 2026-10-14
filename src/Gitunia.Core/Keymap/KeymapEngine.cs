@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Keymap;
 

@@ -8,6 +8,8 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1570;CS1571;CS1572;CS1573;CS1574;CS1580;CS1581;CS1584;CS1587;CS1591;CS1711;CS1712;CS1734</NoWarn>
     <InvariantGlobalization>true</InvariantGlobalization>
     <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
   </PropertyGroup>

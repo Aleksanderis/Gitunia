@@ -4,7 +4,6 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Git.Repositories;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Sidebar;
@@ -13,7 +12,7 @@ using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Tests.Rendering.Graph;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 using Xunit;
 

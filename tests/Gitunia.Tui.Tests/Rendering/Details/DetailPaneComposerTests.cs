@@ -4,7 +4,6 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;

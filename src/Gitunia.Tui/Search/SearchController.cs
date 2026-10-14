@@ -1,5 +1,7 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 

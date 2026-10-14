@@ -1,3 +1,5 @@
+using Gitunia.Core.Search.Models;
+
 namespace Gitunia.Core.Search;
 
 /// <summary>Turns the text typed in the search box into a <see cref="SearchQuery"/>.</summary>

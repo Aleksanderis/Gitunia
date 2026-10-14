@@ -1,4 +1,3 @@
-using Gitunia.Core;
 using Xunit;
 
 namespace Gitunia.Core.Tests;

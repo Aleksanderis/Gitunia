@@ -1,20 +1,18 @@
 using Gitunia.Core.Clipboard;
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
-using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.Tests.App.Sidebar;
 

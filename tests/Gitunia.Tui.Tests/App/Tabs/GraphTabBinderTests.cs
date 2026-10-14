@@ -3,13 +3,11 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 using Xunit;
 

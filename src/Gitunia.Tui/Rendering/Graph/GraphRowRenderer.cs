@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Styling;

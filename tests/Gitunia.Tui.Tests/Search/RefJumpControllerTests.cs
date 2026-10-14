@@ -1,5 +1,5 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Input;

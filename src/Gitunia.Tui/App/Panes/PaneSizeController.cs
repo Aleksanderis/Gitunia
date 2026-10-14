@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Views;

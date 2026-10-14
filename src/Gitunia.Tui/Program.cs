@@ -1,10 +1,10 @@
 using Gitunia.Core;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.CommandLine;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 

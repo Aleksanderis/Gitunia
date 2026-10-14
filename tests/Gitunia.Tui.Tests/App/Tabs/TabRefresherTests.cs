@@ -4,7 +4,6 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;

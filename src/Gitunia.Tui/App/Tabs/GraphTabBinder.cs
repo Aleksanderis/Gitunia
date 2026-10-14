@@ -2,7 +2,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Screen;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.Tabs;

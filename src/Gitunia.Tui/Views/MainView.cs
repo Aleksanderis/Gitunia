@@ -9,9 +9,10 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Views.Lists;
+using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
-using Terminal.Gui.Views;
 using Window = Terminal.Gui.Views.Window;
 
 namespace Gitunia.Tui.Views;

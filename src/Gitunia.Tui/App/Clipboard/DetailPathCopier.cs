@@ -1,4 +1,4 @@
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 
 namespace Gitunia.Tui.App.Clipboard;
 

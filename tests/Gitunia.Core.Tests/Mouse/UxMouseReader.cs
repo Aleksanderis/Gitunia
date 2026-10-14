@@ -1,4 +1,4 @@
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Tests.Keymap;
 
