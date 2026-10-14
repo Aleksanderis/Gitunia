@@ -9,9 +9,9 @@ namespace Gitunia.Tui.Tests.App.Panes;
 
 public class PaneSizeControllerTests
 {
-    private PaneArrangement arrangement = PaneArrangement.Normal;
-    private PaneKind focused = PaneKind.Sidebar;
-    private PaneSizes? applied;
+    private PaneArrangement _arrangement = PaneArrangement.Normal;
+    private PaneKind _focused = PaneKind.Sidebar;
+    private PaneSizes? _applied;
 
     [Fact]
     public void GivenTheSidebarFocused_WhenWidening_ThenNewSizesAreApplied()
@@ -21,7 +21,7 @@ public class PaneSizeControllerTests
         var handled = controller.TryExecute(ActionIds.PaneWider, null);
 
         Assert.True(handled);
-        Assert.Equal(new PaneSizes(SidebarWidth: 32), applied);
+        Assert.Equal(new PaneSizes(SidebarWidth: 32), _applied);
         Assert.Equal(string.Empty, controller.Notice);
     }
 
@@ -31,30 +31,30 @@ public class PaneSizeControllerTests
         var controller = CreateController();
 
         Assert.False(controller.TryExecute(ActionIds.ListDown, null));
-        Assert.Null(applied);
+        Assert.Null(_applied);
     }
 
     [Fact]
     public void GivenAZoomedPane_WhenResizing_ThenNothingChangesAndANoticeSaysWhy()
     {
-        arrangement = new PaneArrangement(false, PaneKind.Graph);
+        _arrangement = new PaneArrangement(false, PaneKind.Graph);
         var controller = CreateController();
 
         controller.TryExecute(ActionIds.PaneWider, null);
 
-        Assert.Null(applied);
+        Assert.Null(_applied);
         Assert.Equal("Unzoom the pane to resize", controller.Notice);
     }
 
     [Fact]
     public void GivenNothingToResize_WhenResizing_ThenANoticeSaysSo()
     {
-        focused = PaneKind.Detail;
+        _focused = PaneKind.Detail;
         var controller = CreateController();
 
         controller.TryExecute(ActionIds.PaneWider, null);
 
-        Assert.Null(applied);
+        Assert.Null(_applied);
         Assert.Equal("This pane cannot be resized further", controller.Notice);
     }
 
@@ -65,21 +65,21 @@ public class PaneSizeControllerTests
 
         controller.TryExecute(ActionIds.PaneResetSizes, null);
 
-        Assert.Null(applied);
+        Assert.Null(_applied);
         Assert.Equal("Pane sizes are already automatic", controller.Notice);
     }
 
     [Fact]
     public void GivenChangedSizes_WhenResetting_ThenAutomaticSizesAreApplied()
     {
-        arrangement = new PaneArrangement(false, null, new PaneSizes(SidebarWidth: 40));
+        _arrangement = new PaneArrangement(false, null, new PaneSizes(SidebarWidth: 40));
         var controller = CreateController();
 
         controller.TryExecute(ActionIds.PaneResetSizes, null);
 
-        Assert.Equal(PaneSizes.Automatic, applied);
+        Assert.Equal(PaneSizes.Automatic, _applied);
     }
 
     private PaneSizeController CreateController() =>
-        new(() => arrangement, () => focused, () => new ScreenSize(120, 40), sizes => applied = sizes);
+        new(() => _arrangement, () => _focused, () => new ScreenSize(120, 40), sizes => _applied = sizes);
 }

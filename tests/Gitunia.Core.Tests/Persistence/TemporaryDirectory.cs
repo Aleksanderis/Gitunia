@@ -5,17 +5,17 @@ public sealed class TemporaryDirectory : IDisposable
 {
     public TemporaryDirectory()
     {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-tests-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path);
+        DirectoryPath = Path.Combine(Path.GetTempPath(), $"gitunia-tests-{Guid.NewGuid().ToString("N")}");
+        Directory.CreateDirectory(DirectoryPath);
     }
 
-    public string Path { get; }
+    public string DirectoryPath { get; }
 
     public void Dispose()
     {
-        if (Directory.Exists(Path))
+        if (Directory.Exists(DirectoryPath))
         {
-            Directory.Delete(Path, recursive: true);
+            Directory.Delete(DirectoryPath, recursive: true);
         }
     }
 }

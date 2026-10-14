@@ -1,3 +1,4 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Search;
 using Gitunia.Tui.Tests.Rendering.Graph;
@@ -8,7 +9,7 @@ namespace Gitunia.Tui.Tests.Search;
 
 public class SearchControllerTests
 {
-    private static Gitunia.Core.Graph.CommitGraph Graph() => CommitFactory.Graph(
+    private static CommitGraph Graph() => CommitFactory.Graph(
         CommitFactory.Commit(6, "Fix parser crash", [5]),
         CommitFactory.Commit(5, "Add search box", [4]),
         CommitFactory.Commit(4, "Fix typo in readme", [3]),
@@ -177,7 +178,7 @@ public class SearchControllerTests
     public void GivenLargeGraph_WhenSearching_ThenSlicesRunUntilEveryRowWasScanned()
     {
         var commits = Enumerable.Range(1, 12_000)
-            .Select(number => CommitFactory.Commit(number, number % 4000 == 0 ? "needle " + number : "hay " + number, number == 1 ? [] : [number - 1]))
+            .Select(number => CommitFactory.Commit(number, number % 4000 == 0 ? $"needle {number}" : $"hay {number}", number == 1 ? [] : [number - 1]))
             .Reverse()
             .ToArray();
         using var harness = new PromptHarness(CommitFactory.Graph(commits));
@@ -194,7 +195,7 @@ public class SearchControllerTests
     public void GivenDeferredWork_WhenTypingBetweenSlices_ThenInputIsHandledAndTheStaleScanStops()
     {
         var commits = Enumerable.Range(1, 12_000)
-            .Select(number => CommitFactory.Commit(number, "hay " + number, number == 1 ? [] : [number - 1]))
+            .Select(number => CommitFactory.Commit(number, $"hay {number}", number == 1 ? [] : [number - 1]))
             .Reverse()
             .ToArray();
         var queue = new Queue<Action>();

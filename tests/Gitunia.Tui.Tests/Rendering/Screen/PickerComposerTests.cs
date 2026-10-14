@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Graph;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
@@ -42,7 +44,7 @@ public class PickerComposerTests
                 " Open repository: _",
                 " type to filter, or a path starting with / ~/ ./ ../ (Tab accepts)",
                 Sep(" alpha  open            ~/code/alpha"),
-                Sep(" beta   pinned          ~/code/beta").PadRight(62) + "[unpin]",
+                $"{Sep(" beta   pinned          ~/code/beta").PadRight(62)}[unpin]",
                 Sep(" gamma  recent          ~/code/gamma"),
                 Sep(" delta  found           ~/code/delta"),
                 string.Empty,
@@ -74,7 +76,7 @@ public class PickerComposerTests
     [Fact]
     public void GivenHighlightBelowTheVisibleRows_WhenComposing_ThenTheListScrollsToShowIt()
     {
-        var rows = Enumerable.Range(1, 10).Select(number => Row("repo" + number, PickerTags.Recent)).ToImmutableArray();
+        var rows = Enumerable.Range(1, 10).Select(number => Row($"repo{number}", PickerTags.Recent)).ToImmutableArray();
         var picker = new PickerState(string.Empty, 7, rows, string.Empty, null);
 
         var lines = PickerComposer.Compose(picker, Home, 50, 6, GraphGlyphSet.Unicode);
@@ -119,7 +121,7 @@ public class PickerComposerTests
         var picker = new PickerState(string.Empty, 0, [Row("alpha", PickerTags.Recent)], string.Empty, null);
         var model = new ScreenModel(string.Empty, null, 0, 0, "INSERT", string.Empty, 0, 0, false, string.Empty, Tabs: [], Picker: picker, HomeDirectory: Home);
 
-        var lines = ScreenComposer.Compose(model, new Gitunia.Core.Graph.CommitGraph(), 0, 0, 80, 8, GraphGlyphSet.Unicode);
+        var lines = ScreenComposer.Compose(model, new CommitGraph(), 0, 0, 80, 8, GraphGlyphSet.Unicode);
 
         Assert.Equal(8, lines.Count);
         Assert.StartsWith(" no repository open", lines[0].Text, StringComparison.Ordinal);
@@ -148,7 +150,7 @@ public class PickerComposerTests
 
         var button = Assert.Single(buttons);
         Assert.Equal("[unpin]", button.Label);
-        Assert.Equal(Gitunia.Core.Mouse.DefaultMouseMap.PickerPinButton, TitleButton.ViewAt(buttons, button.Start));
+        Assert.Equal(DefaultMouseMap.PickerPinButton, TitleButton.ViewAt(buttons, button.Start));
         Assert.Null(TitleButton.ViewAt(buttons, button.Start - 1));
     }
 
@@ -164,7 +166,7 @@ public class PickerComposerTests
     {
         var buttons = PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), 80);
 
-        Assert.Equal([Gitunia.Core.Mouse.DefaultMouseMap.PickerPinButton, Gitunia.Core.Mouse.DefaultMouseMap.PickerRemoveButton], buttons.Select(button => button.View));
+        Assert.Equal([DefaultMouseMap.PickerPinButton, DefaultMouseMap.PickerRemoveButton], buttons.Select(button => button.View));
         Assert.True(buttons[1].Start > buttons[0].Start + buttons[0].Width);
     }
 }

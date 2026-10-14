@@ -27,6 +27,7 @@ using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.App;
 using Terminal.Gui.Input;
+using Terminal.Gui.ViewBase;
 
 namespace Gitunia.Tui.App;
 
@@ -41,33 +42,33 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
-    private WorkspaceHost host = null!;
-    private EffectRunner effects = null!;
-    private BackgroundStatusPoller? statusPoller;
-    private MainView view = null!;
-    private ActionRouter router = null!;
-    private KeyController keys = null!;
-    private MouseController mouse = null!;
-    private long overlayClickTicks = long.MinValue / 2;
-    private VisualRangeController visual = null!;
-    private IReadOnlyList<IPromptHandler> prompts = [];
-    private SidebarActionHandler sidebar = null!;
-    private PaneKind appliedFocus = PaneKind.Graph;
-    private OverlayController overlays = null!;
-    private WhichKeyTimer whichKeyTimer = null!;
-    private PickerController picker = null!;
-    private DiffPaneController diffPane = null!;
-    private WorkspaceActions workspaceActions = null!;
-    private GraphTabBinder binder = null!;
-    private string homeDirectory = string.Empty;
-    private readonly StatusChannel statuses = new();
+    private WorkspaceHost _host = null!;
+    private EffectRunner _effects = null!;
+    private BackgroundStatusPoller? _statusPoller;
+    private MainView _view = null!;
+    private ActionRouter _router = null!;
+    private KeyController _keys = null!;
+    private MouseController _mouse = null!;
+    private long _overlayClickTicks = long.MinValue / 2;
+    private VisualRangeController _visual = null!;
+    private IReadOnlyList<IPromptHandler> _prompts = [];
+    private SidebarActionHandler _sidebar = null!;
+    private PaneKind _appliedFocus = PaneKind.Graph;
+    private OverlayController _overlays = null!;
+    private WhichKeyTimer _whichKeyTimer = null!;
+    private PickerController _picker = null!;
+    private DiffPaneController _diffPane = null!;
+    private WorkspaceActions _workspaceActions = null!;
+    private GraphTabBinder _binder = null!;
+    private string _homeDirectory = string.Empty;
+    private readonly StatusChannel _statuses = new();
 
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
         var glyphs = GraphGlyphSet.For(capabilities.Unicode);
-        homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
@@ -83,131 +84,131 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         Palette.Configure(palette);
 
-        host = new WorkspaceHost(Workspace.Empty);
-        effects = new EffectRunner(runner, host, action => app.Invoke(action), glyphs, statuses);
+        _host = new WorkspaceHost(Workspace.Empty);
+        _effects = new EffectRunner(runner, _host, action => app.Invoke(action), glyphs, _statuses);
         var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
-        var clipboard = new ClipboardCopier(clipboardWriter, statuses);
+        var clipboard = new ClipboardCopier(clipboardWriter, _statuses);
         var sidebarSource = new SidebarListSource(glyphs);
-        sidebar = new SidebarActionHandler(
-            host,
+        _sidebar = new SidebarActionHandler(
+            _host,
             sidebarSource,
             ActiveSession,
-            () => view.Sidebar.Viewport.Height,
+            () => _view.Sidebar.Viewport.Height,
             () => !CurrentPaneRects().Sidebar.IsEmpty,
             () => !CurrentPaneRects().Detail.IsEmpty,
             SelectGraphItem,
-            mode => keys.SetMode(mode),
+            mode => _keys.SetMode(mode),
             clipboard);
-        sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
-        sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
-        view = new MainView(
+        _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
+        _sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
+        _view = new MainView(
             CreateModel,
             width => DetailTitle(width, glyphs),
             glyphs,
             sidebarSource,
-            () => sidebar.Chrome,
-            () => diffPane.Arrangement(),
-            width => diffPane.TitleLine(width, glyphs),
+            () => _sidebar.Chrome,
+            () => _diffPane.Arrangement(),
+            width => _diffPane.TitleLine(width, glyphs),
             new DiffListSource(glyphs));
-        router = new ActionRouter(host, view.Graph, view.Detail, ActiveSession, app.RequestStop, sidebar, statuses, clipboard);
-        diffPane = new DiffPaneController(host, ActiveSession, view.Detail, view.Diff, mode => keys.SetMode(mode), () => view.ScreenSize, Relayout, view.RefreshChrome, clipboard);
-        router.Diff = diffPane;
-        router.DetailTabs = new DetailTabController(host);
-        visual = new VisualRangeController(
-            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+        _router = new ActionRouter(_host, _view.Graph, _view.Detail, ActiveSession, app.RequestStop, _sidebar, _statuses, clipboard);
+        _diffPane = new DiffPaneController(_host, ActiveSession, _view.Detail, _view.Diff, mode => _keys.SetMode(mode), () => _view.ScreenSize, Relayout, _view.RefreshChrome, clipboard);
+        _router.Diff = _diffPane;
+        _router.DetailTabs = new DetailTabController(_host);
+        _visual = new VisualRangeController(
+            () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             pane => pane switch
             {
-                PaneKind.Detail => view.Detail,
-                PaneKind.Diff => view.Diff,
-                PaneKind.Sidebar => view.Sidebar,
-                _ => view.Graph,
+                PaneKind.Detail => _view.Detail,
+                PaneKind.Diff => _view.Diff,
+                PaneKind.Sidebar => _view.Sidebar,
+                _ => _view.Graph,
             },
-            () => keys.Mode,
-            mode => keys.SetMode(mode),
+            () => _keys.Mode,
+            mode => _keys.SetMode(mode),
             new RangeCopier(clipboard, ActiveSession).Copy);
-        router.Visual = visual;
-        router.PaneSizes = new PaneSizeController(
-            () => diffPane.Arrangement(),
-            () => host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            () => view.ScreenSize,
+        _router.Visual = _visual;
+        _router.PaneSizes = new PaneSizeController(
+            () => _diffPane.Arrangement(),
+            () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            () => _view.ScreenSize,
             ApplyPaneSizes);
-        router.Refresh = () => host.Workspace.ActiveTabId is { } activeId && effects.Refresh(activeId);
-        picker = new PickerController(runner, host, homeDirectory, action => app.Invoke(action));
-        workspaceActions = new WorkspaceActions(host, picker, app.RequestStop);
-        binder = new GraphTabBinder(host, effects, view.Graph, new GraphListSource(new CommitGraph(), glyphs), view.RefreshChrome);
-        binder.Switched += OnTabSwitched;
-        binder.GraphChanged += OnGraphChanged;
+        _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
+        _picker = new PickerController(runner, _host, _homeDirectory, action => app.Invoke(action));
+        _workspaceActions = new WorkspaceActions(_host, _picker, app.RequestStop);
+        _binder = new GraphTabBinder(_host, _effects, _view.Graph, new GraphListSource(new CommitGraph(), glyphs), _view.RefreshChrome);
+        _binder.Switched += OnTabSwitched;
+        _binder.GraphChanged += OnGraphChanged;
         var engine = new KeymapEngine(DefaultKeymap.Create());
-        keys = new KeyController(engine, (action, count) => RouteAction(action, count));
-        whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        overlays = new OverlayController(engine, keys, whichKeyTimer, RouteAction, () => view.ScreenSize, glyphs, () => router.ViewName, statuses);
-        overlays.Changed += RefreshOverlay;
-        prompts = [diffPane, .. CreatePrompts(app)];
-        router.Prompts = prompts;
-        keys.TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key));
-        var presenter = new SidebarPresenter(host, view.Sidebar, sidebarSource);
+        _keys = new KeyController(engine, (action, count) => RouteAction(action, count));
+        _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
+        _overlays = new OverlayController(engine, _keys, _whichKeyTimer, RouteAction, () => _view.ScreenSize, glyphs, () => _router.ViewName, _statuses);
+        _overlays.Changed += RefreshOverlay;
+        _prompts = [_diffPane, .. CreatePrompts(app)];
+        _router.Prompts = _prompts;
+        _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
+        var presenter = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
 
-        statuses.Changed += view.RefreshChrome;
-        host.Changed += view.RefreshChrome;
-        host.Changed += binder.Sync;
-        host.Changed += ApplyFocus;
-        host.Changed += OnBottomTabMaybeChanged;
-        host.Changed += visual.EndIfFocusMoved;
-        keys.PendingChanged += view.RefreshChrome;
-        keys.TextKeyPressed += OnTextKey;
-        keys.TextKeyPressed += sidebar.OnKey;
-        picker.Changed += OnPickerChanged;
-        view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
-        view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(view.Graph, PaneKind.Graph);
-        view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(view.Sidebar, PaneKind.Sidebar);
-        view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(view.Detail, PaneKind.Detail);
-        view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(view.Diff, PaneKind.Diff);
-        mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => overlays.State.IsOpen);
-        view.SuppressMouseWhen(() => overlays.State.IsOpen);
-        view.Gestured += OnGestured;
-        view.Window.ViewportChanged += (_, _) => app.AddTimeout(TimeSpan.Zero, () =>
+        _statuses.Changed += _view.RefreshChrome;
+        _host.Changed += _view.RefreshChrome;
+        _host.Changed += _binder.Sync;
+        _host.Changed += ApplyFocus;
+        _host.Changed += OnBottomTabMaybeChanged;
+        _host.Changed += _visual.EndIfFocusMoved;
+        _keys.PendingChanged += _view.RefreshChrome;
+        _keys.TextKeyPressed += OnTextKey;
+        _keys.TextKeyPressed += _sidebar.OnKey;
+        _picker.Changed += OnPickerChanged;
+        _view.Graph.ValueChanged += (_, _) => OnSelectionChanged();
+        _view.Graph.HasFocusChanged += (_, _) => OnPaneFocused(_view.Graph, PaneKind.Graph);
+        _view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(_view.Sidebar, PaneKind.Sidebar);
+        _view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(_view.Detail, PaneKind.Detail);
+        _view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(_view.Diff, PaneKind.Diff);
+        _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
+        _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
+        _view.Gestured += OnGestured;
+        _view.Window.ViewportChanged += (_, _) => app.AddTimeout(TimeSpan.Zero, () =>
         {
-            diffPane.OnScreenResized();
+            _diffPane.OnScreenResized();
             return false;
         });
-        view.EdgeDragged += OnEdgeDragged;
-        view.OverlayLineClicked += OnOverlayLineClicked;
-        view.Graph.ValueChanged += (_, _) => visual.OnCursorMoved();
-        view.Detail.ValueChanged += (_, _) => visual.OnCursorMoved();
-        view.Detail.ValueChanged += (_, _) => diffPane.OnDetailCursorMoved();
-        view.Diff.ValueChanged += (_, _) => visual.OnCursorMoved();
-        view.PickerRowClicked += OnPickerRowClicked;
+        _view.EdgeDragged += OnEdgeDragged;
+        _view.OverlayLineClicked += OnOverlayLineClicked;
+        _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
+        _view.Diff.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.PickerRowClicked += OnPickerRowClicked;
         app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
         if (restored.Detail is { Length: > 0 } restoreNotice)
         {
-            statuses.Warning(restoreNotice);
+            _statuses.Warning(restoreNotice);
         }
 
-        host.Restore(restored.Update);
-        statusPoller = new BackgroundStatusPoller(runner, host, action => app.Invoke(action));
-        statusPoller.Start();
+        _host.Restore(restored.Update);
+        _statusPoller = new BackgroundStatusPoller(runner, _host, action => app.Invoke(action));
+        _statusPoller.Start();
         if (location is not null)
         {
-            host.Dispatch(new OpenRepositoryCommand(location));
+            _host.Dispatch(new OpenRepositoryCommand(location));
         }
 
-        binder.Sync();
-        if (host.Workspace.Tabs.IsEmpty)
+        _binder.Sync();
+        if (_host.Workspace.Tabs.IsEmpty)
         {
-            picker.Open();
+            _picker.Open();
         }
 
-        using var persistence = new SessionPersistence(store, host, SaveDebounce, statuses, action => app.Invoke(action));
+        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, action => app.Invoke(action));
         persistence.Start();
-        view.Graph.SetFocus();
+        _view.Graph.SetFocus();
         try
         {
-            app.Run(view.Window);
+            app.Run(_view.Window);
         }
         finally
         {
-            statusPoller.Dispose();
+            _statusPoller.Dispose();
             persistence.Flush();
         }
 
@@ -216,24 +217,24 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     public void Dispose()
     {
-        whichKeyTimer?.Dispose();
-        statusPoller?.Dispose();
-        effects?.Dispose();
-        view?.Dispose();
+        _whichKeyTimer?.Dispose();
+        _statusPoller?.Dispose();
+        _effects?.Dispose();
+        _view?.Dispose();
     }
 
     private void RouteAction(ActionId action, int? count)
     {
-        if (!overlays.Handle(action, count) && !workspaceActions.TryExecute(action, count))
+        if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
         {
-            router.Execute(action, count);
+            _router.Execute(action, count);
         }
     }
 
     private void OnGestured(string viewName, MouseGesture gesture, int? target)
     {
         // A double-click whose first click closed an overlay must not act on the pane that is now under the pointer.
-        if (gesture == MouseGesture.DoubleClick && Environment.TickCount64 - overlayClickTicks < OverlayDoubleClickGuardMilliseconds)
+        if (gesture == MouseGesture.DoubleClick && Environment.TickCount64 - _overlayClickTicks < OverlayDoubleClickGuardMilliseconds)
         {
             return;
         }
@@ -245,28 +246,28 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
 
         // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
-        if (overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+        if (_overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {
-            viewName = overlays.ViewName;
+            viewName = _overlays.ViewName;
         }
 
         // A click anywhere outside an open overlay closes it, like Esc.
-        if (overlays.State.IsOpen && gesture == MouseGesture.Click)
+        if (_overlays.State.IsOpen && gesture == MouseGesture.Click)
         {
             viewName = DefaultMouseMap.BackdropView;
-            overlayClickTicks = Environment.TickCount64;
+            _overlayClickTicks = Environment.TickCount64;
         }
 
         // A drag starts a fresh range; a click on a row ends the range (the click moved the cursor, a position).
         if (gesture == MouseGesture.DragStart || (gesture is MouseGesture.Click or MouseGesture.DoubleClick && IsRangePane(viewName)))
         {
-            visual.End();
+            _visual.End();
         }
 
-        mouse.Handle(viewName, gesture, target);
+        _mouse.Handle(viewName, gesture, target);
 
         // A key redraws the chrome through the pending-keys event; a mouse action has no such path (titles, status bar, mode).
-        view.RefreshChrome();
+        _view.RefreshChrome();
     }
 
     private static bool IsRangePane(string viewName) =>
@@ -274,19 +275,19 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
-        if (overlays.State.IsOpen || picker.IsOpen || ActiveSession()?.Diff is null || diffPane.Arrangement().Zoomed is not null)
+        if (_overlays.State.IsOpen || _picker.IsOpen || ActiveSession()?.Diff is null || _diffPane.Arrangement().Zoomed is not null)
         {
             return;
         }
 
-        ApplyPaneSizes(PaneResizer.Drag(diffPane.SizesOfActiveTab(), edge, column, row, view.Window.Viewport.Height));
+        ApplyPaneSizes(PaneResizer.Drag(_diffPane.SizesOfActiveTab(), edge, column, row, _view.Window.Viewport.Height));
     }
 
     private void ApplyPaneSizes(PaneSizes sizes)
     {
-        if (host.Workspace.ActiveTabId is { } tabId && diffPane.SizesOfActiveTab() != sizes)
+        if (_host.Workspace.ActiveTabId is { } tabId && _diffPane.SizesOfActiveTab() != sizes)
         {
-            host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
+            _host.Dispatch(new TabCommand(tabId, new SetPaneSizesCommand(sizes.SidebarWidth, sizes.BottomHeight, sizes.DetailWidth)));
             Relayout();
         }
     }
@@ -294,49 +295,49 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     // A click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
-        if (overlays.SelectPaletteEntryAt(line))
+        if (_overlays.SelectPaletteEntryAt(line))
         {
-            overlayClickTicks = Environment.TickCount64;
-            mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
+            _overlayClickTicks = Environment.TickCount64;
+            _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
         }
     }
 
     private void RefreshOverlay()
     {
-        view.Overlay.Show(overlays.CurrentFrame());
-        view.RefreshChrome();
+        _view.Overlay.Show(_overlays.CurrentFrame());
+        _view.RefreshChrome();
     }
 
     private PaneRects CurrentPaneRects()
     {
-        var arrangement = diffPane.Arrangement();
-        return PaneLayout.Compute(view.Window.Viewport.Width, view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
+        var arrangement = _diffPane.Arrangement();
+        return PaneLayout.Compute(_view.Window.Viewport.Width, _view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
     }
 
     private void Relayout()
     {
-        view.Window.SetNeedsLayout();
-        view.RefreshChrome();
+        _view.Window.SetNeedsLayout();
+        _view.RefreshChrome();
     }
 
-    private TabSession? ActiveSession() => host.Workspace.ActiveTabId is { } id ? effects.SessionOf(id) : null;
+    private TabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
     // The state decides which pane has focus; the toolkit focus follows it (a click goes the other way, see OnPaneFocused).
     private void ApplyFocus()
     {
-        var wanted = host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
-        if (wanted == appliedFocus)
+        var wanted = _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph;
+        if (wanted == _appliedFocus)
         {
             return;
         }
 
-        appliedFocus = wanted;
+        _appliedFocus = wanted;
         var pane = wanted switch
         {
-            PaneKind.Sidebar => view.Sidebar,
-            PaneKind.Detail => view.Detail,
-            PaneKind.Diff => view.Diff,
-            _ => view.Graph,
+            PaneKind.Sidebar => _view.Sidebar,
+            PaneKind.Detail => _view.Detail,
+            PaneKind.Diff => _view.Diff,
+            _ => _view.Graph,
         };
         if (!pane.HasFocus)
         {
@@ -345,44 +346,44 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     }
 
     // A click gave a view the focus: record it in the state so the keymap uses the right view.
-    private void OnPaneFocused(Terminal.Gui.ViewBase.View pane, PaneKind kind)
+    private void OnPaneFocused(View pane, PaneKind kind)
     {
-        if (pane.HasFocus && host.Workspace.ActiveTabId is { } tabId && host.Workspace.ActiveTab?.View.FocusedPane != kind)
+        if (pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId && _host.Workspace.ActiveTab?.View.FocusedPane != kind)
         {
-            host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
+            _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
         }
     }
 
     private void SelectGraphItem(int item)
     {
-        if ((view.Graph.Source?.Count ?? 0) > item)
+        if ((_view.Graph.Source?.Count ?? 0) > item)
         {
-            view.Graph.SelectedItem = item;
-            view.Graph.EnsureSelectedItemVisible();
+            _view.Graph.SelectedItem = item;
+            _view.Graph.EnsureSelectedItemVisible();
         }
     }
 
     private ScreenModel CreateModel() =>
         ScreenModelFactory.Create(
-            host.Workspace,
+            _host.Workspace,
             ActiveSession(),
-            keys.Mode,
-            keys.PendingText,
-            FirstNotEmpty(workspaceActions.Message, router.Message, statuses.Log.Latest?.Text ?? string.Empty),
-            view.Graph.SelectedItem,
-            TabLabelFactory.Create(host.Workspace, tabId => effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
-            picker.State,
-            homeDirectory)
+            _keys.Mode,
+            _keys.PendingText,
+            FirstNotEmpty(_workspaceActions.Message, _router.Message, _statuses.Log.Latest?.Text ?? string.Empty),
+            _view.Graph.SelectedItem,
+            TabLabelFactory.Create(_host.Workspace, tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
+            _picker.State,
+            _homeDirectory)
         with
         {
-            MessageSeverity = workspaceActions.Message.Length + router.Message.Length > 0 ? StatusSeverity.Info : statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
-            Hints = PaneHints.For(host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
-            SearchLine = prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
+            MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
+            Hints = PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
+            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
-    // app.Invoke runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
+    // The app.Invoke call runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
     private static Action<Action> DeferToNextIteration(IApplication app) => work => app.AddTimeout(
         TimeSpan.Zero,
         () =>
@@ -395,23 +396,23 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     {
         var handle = new GraphViewHandle(
             ActiveSession,
-            () => view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1,
+            () => _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1,
             row =>
             {
-                view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
-                view.Graph.EnsureSelectedItemVisible();
+                _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
+                _view.Graph.EnsureSelectedItemVisible();
             },
-            keys.SetMode,
+            _keys.SetMode,
             () =>
             {
-                view.Graph.SetNeedsDraw();
-                view.RefreshChrome();
+                _view.Graph.SetNeedsDraw();
+                _view.RefreshChrome();
             });
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
-            new TabRenameController(host, keys.SetMode, () => view.RefreshChrome()),
-            new RefJumpController(handle, () => host.Workspace.ActiveTab?.Refs ?? []),
+            new TabRenameController(_host, _keys.SetMode, () => _view.RefreshChrome()),
+            new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration(app)),
         ];
     }
@@ -419,13 +420,13 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
     private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
     {
         var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
-        var isFocused = view.Detail.HasFocus;
+        var isFocused = _view.Detail.HasFocus;
         return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
     }
 
     private void OnGraphChanged()
     {
-        foreach (var prompt in prompts)
+        foreach (var prompt in _prompts)
         {
             prompt.OnGraphChanged();
         }
@@ -438,9 +439,9 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             previous.Details.Changed -= RefreshDetail;
         }
 
-        visual.End();
-        view.Detail.Source = current?.DetailSource;
-        diffPane.OnTabSwitched(previous, current);
+        _visual.End();
+        _view.Detail.Source = current?.DetailSource;
+        _diffPane.OnTabSwitched(previous, current);
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
@@ -451,13 +452,13 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
     private bool HandleKey(Key key)
     {
-        var view = picker.IsOpen && !overlays.State.IsOpen ? DefaultKeymap.PickerView : overlays.ViewName;
-        return keys.Handle(key, view) || (picker.IsOpen && !overlays.State.IsOpen);
+        var view = _picker.IsOpen && !_overlays.State.IsOpen ? DefaultKeymap.PickerView : _overlays.ViewName;
+        return _keys.Handle(key, view) || (_picker.IsOpen && !_overlays.State.IsOpen);
     }
 
     private void OnTextKey(KeyEvent keyEvent)
     {
-        if (!picker.IsOpen || keys.Mode != KeyMode.Insert)
+        if (!_picker.IsOpen || _keys.Mode != KeyMode.Insert)
         {
             return;
         }
@@ -465,64 +466,64 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         // The picker's query is plain state, not a text widget: it takes printable keys and edits itself with Backspace (some terminals send it as Ctrl-h).
         if (keyEvent.IsPrintable)
         {
-            picker.Apply(new TypeTextCommand(keyEvent.Name));
+            _picker.Apply(new TypeTextCommand(keyEvent.Name));
         }
         else if (keyEvent is { Name: KeyNames.Backspace, Modifiers: KeyModifiers.None or KeyModifiers.Ctrl })
         {
-            picker.Apply(new BackspaceCommand());
+            _picker.Apply(new BackspaceCommand());
         }
     }
 
     private void OnPickerChanged()
     {
-        if (picker.IsOpen)
+        if (_picker.IsOpen)
         {
-            visual.End();
+            _visual.End();
         }
 
-        if (!overlays.State.IsOpen && picker.IsOpen != (keys.Mode == KeyMode.Insert))
+        if (!_overlays.State.IsOpen && _picker.IsOpen != (_keys.Mode == KeyMode.Insert))
         {
-            keys.SetMode(picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
+            _keys.SetMode(_picker.IsOpen ? KeyMode.Insert : KeyMode.Normal);
         }
 
-        view.ShowPicker(picker.IsOpen);
-        if (!picker.IsOpen)
+        _view.ShowPicker(_picker.IsOpen);
+        if (!_picker.IsOpen)
         {
             // Hiding the graph moved the toolkit focus: put it back on the pane the tab's state names.
-            appliedFocus = (PaneKind)(-1);
+            _appliedFocus = (PaneKind)(-1);
             ApplyFocus();
         }
 
-        view.RefreshChrome();
+        _view.RefreshChrome();
     }
 
     // A click highlights the row; the double-click's "open" comes from the mouse map as picker.accept.
     private void OnPickerRowClicked(int index)
     {
-        if (picker.State is { } state)
+        if (_picker.State is { } state)
         {
-            picker.Apply(new MoveHighlightCommand(index - state.Highlight));
+            _picker.Apply(new MoveHighlightCommand(index - state.Highlight));
         }
     }
 
     private void OnSelectionChanged()
     {
         var session = ActiveSession();
-        var tabId = host.Workspace.ActiveTabId;
-        if (session is null || tabId is null || view.Graph.SelectedItem is not { } item)
+        var tabId = _host.Workspace.ActiveTabId;
+        if (session is null || tabId is null || _view.Graph.SelectedItem is not { } item)
         {
             return;
         }
 
         // While the binder swaps or restores the list, the tab's saved selection must not be overwritten, but the details still follow.
-        var record = !binder.IsSuspended;
+        var record = !_binder.IsSuspended;
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
             var entry = session.Graph[commitIndex];
             if (record)
             {
-                host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(entry.Id)));
+                _host.Dispatch(new TabCommand(tabId.Value, new SelectCommitCommand(entry.Id)));
             }
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
@@ -532,14 +533,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
 
         if (record)
         {
-            host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(view.Graph.Viewport.Y)));
+            _host.Dispatch(new TabCommand(tabId.Value, new ScrollToCommand(_view.Graph.Viewport.Y)));
         }
     }
 
     // The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows follow.
     private void OnBottomTabMaybeChanged()
     {
-        if (ActiveSession() is { } session && host.Workspace.ActiveTab is { } tab && session.DetailSource.Content.Tab != tab.View.BottomTab)
+        if (ActiveSession() is { } session && _host.Workspace.ActiveTab is { } tab && session.DetailSource.Content.Tab != tab.View.BottomTab)
         {
             RefreshDetail();
         }
@@ -553,10 +554,10 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             return;
         }
 
-        var commitIndex = view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var commitIndex = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
         var previous = session.DetailSource.Content;
-        var content = DetailContentBuilder.Build(entry, session.Details.Current, host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes);
+        var content = DetailContentBuilder.Build(entry, session.Details.Current, _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes);
         session.DetailSource.Update(content);
 
         // A different commit starts at the top; the same commit whose details just arrived keeps the user's place,
@@ -570,14 +571,14 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
         else if (previous.Tab != content.Tab)
         {
-            session.DetailSelections[previous.Tab] = view.Detail.SelectedItem ?? 0;
+            session.DetailSelections[previous.Tab] = _view.Detail.SelectedItem ?? 0;
             selected = session.DetailSelections.TryGetValue(content.Tab, out var remembered)
                 ? remembered
                 : landing;
         }
         else
         {
-            selected = view.Detail.SelectedItem ?? 0;
+            selected = _view.Detail.SelectedItem ?? 0;
             if (previous.Files.Count == 0 && selected < landing)
             {
                 // The files of the commit just arrived: the cursor goes to the first one, whose diff is shown.
@@ -585,10 +586,10 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
             }
         }
 
-        view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
-        view.Detail.EnsureSelectedItemVisible();
-        view.Detail.SetNeedsDraw();
-        view.RefreshChrome();
-        diffPane.FollowSelection();
+        _view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
+        _view.Detail.EnsureSelectedItemVisible();
+        _view.Detail.SetNeedsDraw();
+        _view.RefreshChrome();
+        _diffPane.FollowSelection();
     }
 }

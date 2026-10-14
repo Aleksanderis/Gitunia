@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Gitunia.Git.Diff.Models;
 
@@ -96,7 +97,7 @@ public static class DiffPatchWriter
             var oldStart = direction == PatchDirection.Forward ? hunk.OldStart : hunk.NewStart - offset;
             var newStart = direction == PatchDirection.Forward ? hunk.OldStart + offset : hunk.NewStart;
             body.Append(CultureFree($"@@ -{oldStart},{oldCount} +{newStart},{newCount} @@"));
-            body.Append(hunk.Section.Length > 0 ? " " + hunk.Section : string.Empty);
+            body.Append(hunk.Section.Length > 0 ? $" {hunk.Section}" : string.Empty);
             body.Append('\n').Append(lines);
             offset += newCount - oldCount;
         }
@@ -138,7 +139,7 @@ public static class DiffPatchWriter
         return result;
     }
 
-    private static string CultureFree(FormattableString text) => text.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private static string CultureFree(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>What a line becomes in the partial patch, or null if it is left out.</summary>
     private static DiffLineKind? EffectiveKind(DiffLineKind kind, bool isSelected, PatchDirection direction)

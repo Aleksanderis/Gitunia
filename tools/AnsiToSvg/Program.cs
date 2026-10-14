@@ -119,7 +119,7 @@ for (var row = 0; row < lines.Count; row++)
         var category = Rune.GetUnicodeCategory(rune);
         if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.Format)
         {
-            continue; // zero width: skipped so the columns after it stay aligned
+            continue; // Zero width: skipped so the columns after it stay aligned
         }
 
         var width = IsWide(rune.Value) ? 2 : 1;

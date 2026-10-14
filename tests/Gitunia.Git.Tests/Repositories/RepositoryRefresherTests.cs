@@ -17,7 +17,7 @@ public class RepositoryRefresherTests
     public async Task GivenNoPreviousSnapshot_WhenRefreshing_ThenEverythingIsLoadedAndReportedChanged()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.None, Token);
 
@@ -30,7 +30,7 @@ public class RepositoryRefresherTests
     public async Task GivenNothingChanged_WhenRefreshingEverything_ThenNothingIsReportedChanged()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
 
         var second = await RepositoryRefresher.RefreshAsync(repository, first.Snapshot, RepositoryChangeKinds.All, Token);
@@ -44,7 +44,7 @@ public class RepositoryRefresherTests
     public async Task GivenUntrackedFile_WhenRefreshingWorkingTreeOnly_ThenOnlyStatusChanges()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
         testRepository.WriteFile("new.txt", "x");
 
@@ -60,7 +60,7 @@ public class RepositoryRefresherTests
     public async Task GivenNewCommit_WhenRefreshingRefs_ThenHeadRefsAndWorktreesChange()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var first = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
         testRepository.Commit("next", new TestFile("n.txt", "n"));
 
@@ -76,7 +76,7 @@ public class RepositoryRefresherTests
     public async Task GivenConflictedMerge_WhenRefreshingOperation_ThenOperationChanges()
     {
         using var testRepository = TestRepositories.Conflicted();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var result = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, Token);
 
         Assert.NotEqual(RepositoryOperation.None, result.Snapshot.Operation);

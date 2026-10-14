@@ -26,7 +26,7 @@ public static class DetailTabStrip
         var column = 1;
         foreach (var tab in Tabs)
         {
-            var label = padded ? " " + tab.Name + " " : tab.Name;
+            var label = padded ? $" {tab.Name} " : tab.Name;
             buttons.Add(new TitleButton(tab.View, label, column));
             column += label.Length + 1;
         }

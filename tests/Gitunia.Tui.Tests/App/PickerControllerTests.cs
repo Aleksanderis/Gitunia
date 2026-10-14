@@ -29,13 +29,13 @@ public class PickerControllerTests
         repository.Commit("root", new TestFile("a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
-        picker.Apply(new TypeTextCommand(repository.Path));
+        picker.Apply(new TypeTextCommand(repository.WorkingTreePath));
 
         picker.Accept();
         await pump.RunUntilAsync(() => !picker.IsOpen);
 
         var tab = Assert.Single(host.Workspace.Tabs);
-        Assert.Equal(Path.GetFullPath(repository.Path), tab.Location.RootPath);
+        Assert.Equal(Path.GetFullPath(repository.WorkingTreePath), tab.Location.RootPath);
         Assert.Contains(tab.Location.RootPath, host.Workspace.Recents);
     }
 
@@ -46,18 +46,18 @@ public class PickerControllerTests
         repository.Commit("root", new TestFile("sub/a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
-        picker.Apply(new TypeTextCommand(Path.Combine(repository.Path, "sub")));
+        picker.Apply(new TypeTextCommand(Path.Combine(repository.WorkingTreePath, "sub")));
 
         picker.Accept();
         await pump.RunUntilAsync(() => !picker.IsOpen);
 
-        Assert.Equal(Path.GetFullPath(repository.Path), Assert.Single(host.Workspace.Tabs).Location.RootPath);
+        Assert.Equal(Path.GetFullPath(repository.WorkingTreePath), Assert.Single(host.Workspace.Tabs).Location.RootPath);
     }
 
     [Fact]
     public async Task GivenPathOutsideAnyRepository_WhenAccepting_ThenAMessageIsShownAndThePickerStaysOpen()
     {
-        var empty = Path.Combine(Path.GetTempPath(), "gitunia-picker-" + Guid.NewGuid().ToString("N"));
+        var empty = Path.Combine(Path.GetTempPath(), $"gitunia-picker-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(empty);
         try
         {
@@ -88,18 +88,18 @@ public class PickerControllerTests
         foreach (var repository in new[] { first, second })
         {
             picker.Open();
-            picker.Apply(new TypeTextCommand(repository.Path));
+            picker.Apply(new TypeTextCommand(repository.WorkingTreePath));
             picker.Accept();
             await pump.RunUntilAsync(() => !picker.IsOpen);
         }
 
         picker.Open();
-        picker.Apply(new TypeTextCommand(Path.GetFileName(first.Path)));
+        picker.Apply(new TypeTextCommand(Path.GetFileName(first.WorkingTreePath)));
         picker.Accept();
 
         Assert.False(picker.IsOpen);
         Assert.Equal(2, host.Workspace.Tabs.Length);
-        Assert.Equal(host.Workspace.FindTabByRootPath(Path.GetFullPath(first.Path))!.Id, host.Workspace.ActiveTabId);
+        Assert.Equal(host.Workspace.FindTabByRootPath(Path.GetFullPath(first.WorkingTreePath))!.Id, host.Workspace.ActiveTabId);
     }
 
     [Fact]
@@ -109,18 +109,18 @@ public class PickerControllerTests
         repository.Commit("root", new TestFile("a.txt", "1"));
         var (picker, host, pump) = Create(Path.GetTempPath());
         picker.Open();
-        picker.Apply(new TypeTextCommand(repository.Path));
+        picker.Apply(new TypeTextCommand(repository.WorkingTreePath));
         picker.Accept();
         await pump.RunUntilAsync(() => !picker.IsOpen);
         host.Dispatch(new CloseTabCommand(host.Workspace.ActiveTabId!.Value));
         picker.Open();
-        picker.Apply(new TypeTextCommand(Path.GetFileName(repository.Path)));
+        picker.Apply(new TypeTextCommand(Path.GetFileName(repository.WorkingTreePath)));
         Assert.Equal(PickerTags.Recent, picker.State!.HighlightedRow!.Tags & PickerTags.Recent);
 
         picker.RemoveRecent();
 
         Assert.Empty(host.Workspace.Recents);
-        Assert.True(Directory.Exists(repository.Path));
+        Assert.True(Directory.Exists(repository.WorkingTreePath));
         Assert.Contains("removed from recents", picker.State!.Message, StringComparison.Ordinal);
     }
 

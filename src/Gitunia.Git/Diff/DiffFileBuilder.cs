@@ -8,48 +8,48 @@ internal sealed class DiffFileBuilder
 {
     private const string NoNewlineMarker = "\\";
 
-    private readonly List<string> headerLines = [];
-    private readonly List<DiffHunk> hunks = [];
-    private readonly List<DiffLine> openLines = [];
-    private readonly List<string> warnings;
-    private readonly int maximumLines;
+    private readonly List<string> _headerLines = [];
+    private readonly List<DiffHunk> _hunks = [];
+    private readonly List<DiffLine> _openLines = [];
+    private readonly List<string> _warnings;
+    private readonly int _maximumLines;
 
-    private string? headerOldPath;
-    private string? headerNewPath;
-    private string? renameFrom;
-    private string? renameTo;
-    private string? minusPath;
-    private string? plusPath;
-    private bool hasMinusPlus;
-    private string? oldMode;
-    private string? newMode;
-    private int? similarity;
-    private bool isAdded;
-    private bool isDeleted;
-    private bool isCopy;
-    private bool isBinary;
-    private bool inBinaryPatch;
-    private bool skippingUnreadableHunk;
-    private int storedLineCount;
-    private bool lastLineStored;
-    private bool isTruncated;
+    private string? _headerOldPath;
+    private string? _headerNewPath;
+    private string? _renameFrom;
+    private string? _renameTo;
+    private string? _minusPath;
+    private string? _plusPath;
+    private bool _hasMinusPlus;
+    private string? _oldMode;
+    private string? _newMode;
+    private int? _similarity;
+    private bool _isAdded;
+    private bool _isDeleted;
+    private bool _isCopy;
+    private bool _isBinary;
+    private bool _inBinaryPatch;
+    private bool _skippingUnreadableHunk;
+    private int _storedLineCount;
+    private bool _lastLineStored;
+    private bool _isTruncated;
 
-    private string? openHeaderText;
-    private int openOldStart;
-    private int openNewStart;
-    private int openOldCount;
-    private int openNewCount;
-    private string openSection = string.Empty;
-    private int remainingOld;
-    private int remainingNew;
-    private int nextOldNumber;
-    private int nextNewNumber;
+    private string? _openHeaderText;
+    private int _openOldStart;
+    private int _openNewStart;
+    private int _openOldCount;
+    private int _openNewCount;
+    private string _openSection = string.Empty;
+    private int _remainingOld;
+    private int _remainingNew;
+    private int _nextOldNumber;
+    private int _nextNewNumber;
 
     public DiffFileBuilder(string headerLine, List<string> warnings, int maximumLines = int.MaxValue)
     {
-        this.warnings = warnings;
-        this.maximumLines = maximumLines;
-        headerLines.Add(headerLine);
+        _warnings = warnings;
+        _maximumLines = maximumLines;
+        _headerLines.Add(headerLine);
         var paths = DiffPathText.SplitHeader(headerLine["diff --git ".Length..]);
         if (paths is null)
         {
@@ -57,13 +57,13 @@ internal sealed class DiffFileBuilder
         }
         else
         {
-            headerOldPath = paths.Value.OldPath;
-            headerNewPath = paths.Value.NewPath;
+            _headerOldPath = paths.Value.OldPath;
+            _headerNewPath = paths.Value.NewPath;
         }
     }
 
     /// <summary>True while hunk lines are still expected, so a line that looks like a new file header is hunk content.</summary>
-    public bool IsInHunkBody => openHeaderText is not null && (remainingOld > 0 || remainingNew > 0);
+    public bool IsInHunkBody => _openHeaderText is not null && (_remainingOld > 0 || _remainingNew > 0);
 
     public void Add(string line)
     {
@@ -73,15 +73,15 @@ internal sealed class DiffFileBuilder
             return;
         }
 
-        if (openHeaderText is not null && line.StartsWith(NoNewlineMarker, StringComparison.Ordinal) && openLines.Count > 0 && lastLineStored)
+        if (_openHeaderText is not null && line.StartsWith(NoNewlineMarker, StringComparison.Ordinal) && _openLines.Count > 0 && _lastLineStored)
         {
-            openLines[^1] = openLines[^1] with { NoNewlineAtEnd = true };
+            _openLines[^1] = _openLines[^1] with { NoNewlineAtEnd = true };
             return;
         }
 
-        if (inBinaryPatch)
+        if (_inBinaryPatch)
         {
-            headerLines.Add(line);
+            _headerLines.Add(line);
             return;
         }
 
@@ -91,31 +91,31 @@ internal sealed class DiffFileBuilder
             return;
         }
 
-        if (skippingUnreadableHunk)
+        if (_skippingUnreadableHunk)
         {
             return;
         }
 
-        if (openHeaderText is not null)
+        if (_openHeaderText is not null)
         {
-            warnings.Add($"Ignored unexpected line after a hunk of '{headerOldPath ?? headerNewPath}': '{line}'");
+            _warnings.Add($"Ignored unexpected line after a hunk of '{_headerOldPath ?? _headerNewPath}': '{line}'");
             return;
         }
 
-        headerLines.Add(line);
+        _headerLines.Add(line);
         ParseHeaderLine(line);
     }
 
     public DiffFile Build()
     {
         CloseHunk();
-        var status = isAdded ? DiffFileStatus.Added
-            : isDeleted ? DiffFileStatus.Deleted
-            : renameFrom is not null && isCopy ? DiffFileStatus.Copied
-            : renameFrom is not null ? DiffFileStatus.Renamed
+        var status = _isAdded ? DiffFileStatus.Added
+            : _isDeleted ? DiffFileStatus.Deleted
+            : _renameFrom is not null && _isCopy ? DiffFileStatus.Copied
+            : _renameFrom is not null ? DiffFileStatus.Renamed
             : DiffFileStatus.Modified;
-        var oldPath = renameFrom ?? (hasMinusPlus ? minusPath : headerOldPath);
-        var newPath = renameTo ?? (hasMinusPlus ? plusPath : headerNewPath);
+        var oldPath = _renameFrom ?? (_hasMinusPlus ? _minusPath : _headerOldPath);
+        var newPath = _renameTo ?? (_hasMinusPlus ? _plusPath : _headerNewPath);
         if (status == DiffFileStatus.Added)
         {
             oldPath = null;
@@ -125,60 +125,60 @@ internal sealed class DiffFileBuilder
             newPath = null;
         }
 
-        return new DiffFile(oldPath, newPath, status, oldMode, newMode, similarity, isBinary, headerLines, hunks) { IsTruncated = isTruncated };
+        return new DiffFile(oldPath, newPath, status, _oldMode, _newMode, _similarity, _isBinary, _headerLines, _hunks) { IsTruncated = _isTruncated };
     }
 
     private void ParseHeaderLine(string line)
     {
         if (line.StartsWith("--- ", StringComparison.Ordinal))
         {
-            minusPath = DiffPathText.StripPrefix(PatchPath(line["--- ".Length..]), oldSide: true);
-            hasMinusPlus = true;
+            _minusPath = DiffPathText.StripPrefix(PatchPath(line["--- ".Length..]), oldSide: true);
+            _hasMinusPlus = true;
         }
         else if (line.StartsWith("+++ ", StringComparison.Ordinal))
         {
-            plusPath = DiffPathText.StripPrefix(PatchPath(line["+++ ".Length..]), oldSide: false);
-            hasMinusPlus = true;
+            _plusPath = DiffPathText.StripPrefix(PatchPath(line["+++ ".Length..]), oldSide: false);
+            _hasMinusPlus = true;
         }
         else if (line.StartsWith("old mode ", StringComparison.Ordinal))
         {
-            oldMode = line["old mode ".Length..];
+            _oldMode = line["old mode ".Length..];
         }
         else if (line.StartsWith("new mode ", StringComparison.Ordinal))
         {
-            newMode = line["new mode ".Length..];
+            _newMode = line["new mode ".Length..];
         }
         else if (line.StartsWith("new file mode ", StringComparison.Ordinal))
         {
-            isAdded = true;
-            newMode = line["new file mode ".Length..];
+            _isAdded = true;
+            _newMode = line["new file mode ".Length..];
         }
         else if (line.StartsWith("deleted file mode ", StringComparison.Ordinal))
         {
-            isDeleted = true;
-            oldMode = line["deleted file mode ".Length..];
+            _isDeleted = true;
+            _oldMode = line["deleted file mode ".Length..];
         }
         else if (line.StartsWith("similarity index ", StringComparison.Ordinal))
         {
-            similarity = ParsePercentage(line["similarity index ".Length..]);
+            _similarity = ParsePercentage(line["similarity index ".Length..]);
         }
         else if (line.StartsWith("rename from ", StringComparison.Ordinal))
         {
-            renameFrom = DiffPathText.Unquote(line["rename from ".Length..]);
+            _renameFrom = DiffPathText.Unquote(line["rename from ".Length..]);
         }
         else if (line.StartsWith("rename to ", StringComparison.Ordinal))
         {
-            renameTo = DiffPathText.Unquote(line["rename to ".Length..]);
+            _renameTo = DiffPathText.Unquote(line["rename to ".Length..]);
         }
         else if (line.StartsWith("copy from ", StringComparison.Ordinal))
         {
-            isCopy = true;
-            renameFrom = DiffPathText.Unquote(line["copy from ".Length..]);
+            _isCopy = true;
+            _renameFrom = DiffPathText.Unquote(line["copy from ".Length..]);
         }
         else if (line.StartsWith("copy to ", StringComparison.Ordinal))
         {
-            isCopy = true;
-            renameTo = DiffPathText.Unquote(line["copy to ".Length..]);
+            _isCopy = true;
+            _renameTo = DiffPathText.Unquote(line["copy to ".Length..]);
         }
         else if (line.StartsWith("index ", StringComparison.Ordinal))
         {
@@ -186,18 +186,18 @@ internal sealed class DiffFileBuilder
             var parts = line.Split(' ');
             if (parts.Length == 3)
             {
-                oldMode ??= parts[2];
-                newMode ??= parts[2];
+                _oldMode ??= parts[2];
+                _newMode ??= parts[2];
             }
         }
         else if (line.StartsWith("Binary files ", StringComparison.Ordinal))
         {
-            isBinary = true;
+            _isBinary = true;
         }
         else if (line == "GIT binary patch")
         {
-            isBinary = true;
-            inBinaryPatch = true;
+            _isBinary = true;
+            _inBinaryPatch = true;
         }
     }
 
@@ -216,32 +216,32 @@ internal sealed class DiffFileBuilder
         CloseHunk();
         if (!TryParseHunkHeader(line, out var oldStart, out var oldCount, out var newStart, out var newCount, out var section))
         {
-            warnings.Add($"Skipped hunk with an unreadable header: '{line}'");
-            skippingUnreadableHunk = true;
+            _warnings.Add($"Skipped hunk with an unreadable header: '{line}'");
+            _skippingUnreadableHunk = true;
             return;
         }
 
-        skippingUnreadableHunk = false;
+        _skippingUnreadableHunk = false;
 
-        openHeaderText = line;
-        openOldStart = oldStart;
-        openNewStart = newStart;
-        openOldCount = oldCount;
-        openNewCount = newCount;
-        openSection = section;
-        remainingOld = oldCount;
-        remainingNew = newCount;
-        nextOldNumber = oldStart;
-        nextNewNumber = newStart;
+        _openHeaderText = line;
+        _openOldStart = oldStart;
+        _openNewStart = newStart;
+        _openOldCount = oldCount;
+        _openNewCount = newCount;
+        _openSection = section;
+        _remainingOld = oldCount;
+        _remainingNew = newCount;
+        _nextOldNumber = oldStart;
+        _nextNewNumber = newStart;
     }
 
     private void AddHunkBodyLine(string line)
     {
         if (line.StartsWith(NoNewlineMarker, StringComparison.Ordinal))
         {
-            if (openLines.Count > 0 && lastLineStored)
+            if (_openLines.Count > 0 && _lastLineStored)
             {
-                openLines[^1] = openLines[^1] with { NoNewlineAtEnd = true };
+                _openLines[^1] = _openLines[^1] with { NoNewlineAtEnd = true };
             }
 
             return;
@@ -251,63 +251,63 @@ internal sealed class DiffFileBuilder
         var text = line.Length == 0 ? string.Empty : line[1..];
         if (line.Length == 0)
         {
-            warnings.Add($"Treated an empty line inside a hunk of '{headerOldPath ?? headerNewPath}' as an empty context line");
+            _warnings.Add($"Treated an empty line inside a hunk of '{_headerOldPath ?? _headerNewPath}' as an empty context line");
         }
 
         switch (prefix)
         {
             case ' ':
-                Store(new DiffLine(DiffLineKind.Context, text, nextOldNumber++, nextNewNumber++, false));
-                remainingOld--;
-                remainingNew--;
+                Store(new DiffLine(DiffLineKind.Context, text, _nextOldNumber++, _nextNewNumber++, false));
+                _remainingOld--;
+                _remainingNew--;
                 break;
             case '-':
-                Store(new DiffLine(DiffLineKind.Removed, text, nextOldNumber++, null, false));
-                remainingOld--;
+                Store(new DiffLine(DiffLineKind.Removed, text, _nextOldNumber++, null, false));
+                _remainingOld--;
                 break;
             case '+':
-                Store(new DiffLine(DiffLineKind.Added, text, null, nextNewNumber++, false));
-                remainingNew--;
+                Store(new DiffLine(DiffLineKind.Added, text, null, _nextNewNumber++, false));
+                _remainingNew--;
                 break;
             default:
-                warnings.Add($"Hunk of '{headerOldPath ?? headerNewPath}' ended early at an unreadable line: '{line}'");
-                remainingOld = 0;
-                remainingNew = 0;
+                _warnings.Add($"Hunk of '{_headerOldPath ?? _headerNewPath}' ended early at an unreadable line: '{line}'");
+                _remainingOld = 0;
+                _remainingNew = 0;
                 break;
         }
     }
 
     private void Store(DiffLine line)
     {
-        lastLineStored = storedLineCount < maximumLines;
-        if (lastLineStored)
+        _lastLineStored = _storedLineCount < _maximumLines;
+        if (_lastLineStored)
         {
-            openLines.Add(line);
-            storedLineCount++;
+            _openLines.Add(line);
+            _storedLineCount++;
         }
         else
         {
-            isTruncated = true;
+            _isTruncated = true;
         }
     }
 
     private void CloseHunk()
     {
-        if (openHeaderText is null)
+        if (_openHeaderText is null)
         {
             return;
         }
 
-        if (remainingOld > 0 || remainingNew > 0)
+        if (_remainingOld > 0 || _remainingNew > 0)
         {
-            warnings.Add($"Hunk '{openHeaderText}' of '{headerOldPath ?? headerNewPath}' ended before its line counts were reached");
+            _warnings.Add($"Hunk '{_openHeaderText}' of '{_headerOldPath ?? _headerNewPath}' ended before its line counts were reached");
         }
 
-        hunks.Add(new DiffHunk(openHeaderText, openOldStart, openOldCount, openNewStart, openNewCount, openSection, openLines.ToArray()));
-        openLines.Clear();
-        openHeaderText = null;
-        remainingOld = 0;
-        remainingNew = 0;
+        _hunks.Add(new DiffHunk(_openHeaderText, _openOldStart, _openOldCount, _openNewStart, _openNewCount, _openSection, _openLines.ToArray()));
+        _openLines.Clear();
+        _openHeaderText = null;
+        _remainingOld = 0;
+        _remainingNew = 0;
     }
 
     private static bool TryParseHunkHeader(string line, out int oldStart, out int oldCount, out int newStart, out int newCount, out string section)

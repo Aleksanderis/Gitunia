@@ -172,12 +172,12 @@ public sealed class GraphSource : IListDataSource
             }
 
             listView.SetAttribute(new Attribute(Look.Lanes[i % Look.Lanes.Length], Color.None, reverse));
-            listView.AddStr(glyph + " ");
+            listView.AddStr($"{glyph} ");
             used += 2;
         }
 
         listView.SetAttribute(new Attribute(Look.HashGrey, Color.None, reverse | TextStyle.Faint));
-        listView.AddStr(" " + commit.Hash[..7] + " ");
+        listView.AddStr($" {commit.Hash[..7]} ");
         used += 9;
 
         listView.SetAttribute(new Attribute(Color.None, Color.None, reverse));

@@ -86,7 +86,7 @@ public static class DetailContentBuilder
 
     private static DetailRow Status(GraphEntry entry, CommitDetailsState state) => new([new StyledSegment(
         state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
-            ? "Could not load the commit (r retries): " + state.Error
+            ? $"Could not load the commit (r retries): {state.Error}"
             : "Loading...",
         SegmentRole.Faint)]);
 
@@ -129,10 +129,10 @@ public static class DetailContentBuilder
             var decoration = decorations[index];
             segments.Add(decoration.Kind switch
             {
-                RefKind.LocalBranch when decoration.IsCurrent => new StyledSegment("HEAD -> " + decoration.Name, SegmentRole.CurrentBranch),
+                RefKind.LocalBranch when decoration.IsCurrent => new StyledSegment($"HEAD -> {decoration.Name}", SegmentRole.CurrentBranch),
                 RefKind.LocalBranch => new StyledSegment(decoration.Name, SegmentRole.LocalBranch),
                 RefKind.RemoteBranch => new StyledSegment(decoration.Name, SegmentRole.RemoteBranch),
-                RefKind.Tag => new StyledSegment("tag: " + decoration.Name, SegmentRole.Tag),
+                RefKind.Tag => new StyledSegment($"tag: {decoration.Name}", SegmentRole.Tag),
                 RefKind.Head => new StyledSegment("HEAD", SegmentRole.CurrentBranch),
                 _ => new StyledSegment(decoration.Name, SegmentRole.Faint),
             });
@@ -173,15 +173,15 @@ public static class DetailContentBuilder
     {
         0 => "no files changed",
         1 => "1 file changed",
-        _ => count.ToString(CultureInfo.InvariantCulture) + " files changed",
+        _ => $"{count.ToString(CultureInfo.InvariantCulture)} files changed",
     };
 
     private static string Mark(CommitFileChange file) => file.Kind switch
     {
         FileChangeKind.Added => "A",
         FileChangeKind.Deleted => "D",
-        FileChangeKind.Renamed => "R" + file.Similarity?.ToString(CultureInfo.InvariantCulture),
-        FileChangeKind.Copied => "C" + file.Similarity?.ToString(CultureInfo.InvariantCulture),
+        FileChangeKind.Renamed => $"R{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
+        FileChangeKind.Copied => $"C{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
         FileChangeKind.TypeChanged => "T",
         FileChangeKind.UpdatedButUnmerged => "U",
         _ => "M",

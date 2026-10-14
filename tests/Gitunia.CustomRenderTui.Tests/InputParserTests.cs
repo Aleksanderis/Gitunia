@@ -96,7 +96,7 @@ public class InputParserTests
         var parser = new InputParser();
         var keys = new List<KeyEvent>();
 
-        parser.Feed(Encoding.ASCII.GetBytes("\e[" + new string('1', 40)), keys);
+        parser.Feed(Encoding.ASCII.GetBytes($"\e[{new string('1', 40)}"), keys);
         parser.Feed("j"u8, keys);
 
         Assert.Equal(new KeyEvent(KeyKind.Text, 'j'), Assert.Single(keys));

@@ -33,18 +33,16 @@ public static class ChromeBuilder
 
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
-        var position = model.SelectedPosition.ToString(CultureInfo.InvariantCulture)
-            + "/" + model.LoadedCount.ToString(CultureInfo.InvariantCulture)
-            + (model.IsLoading ? "+" : string.Empty);
+        var position = $"{model.SelectedPosition.ToString(CultureInfo.InvariantCulture)}/{model.LoadedCount.ToString(CultureInfo.InvariantCulture)}{(model.IsLoading ? "+" : string.Empty)}";
         var builder = new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" " + model.ModeName + " ", SegmentRole.StatusMode)
+            .Append($" {model.ModeName} ", SegmentRole.StatusMode)
             .Append(" ", SegmentRole.Status);
         if (model.PendingKeys.Length > 0)
         {
-            builder.Append(model.PendingKeys + " ", SegmentRole.StatusMode);
+            builder.Append($"{model.PendingKeys} ", SegmentRole.StatusMode);
         }
 
-        builder.Append((model.SearchLine.Length > 0 ? model.SearchLine : position) + " ", SegmentRole.Status);
+        builder.Append($"{(model.SearchLine.Length > 0 ? model.SearchLine : position)} ", SegmentRole.Status);
         if (model.IsLoading)
         {
             builder.Append("loading... ", SegmentRole.Status);
@@ -52,12 +50,12 @@ public static class ChromeBuilder
 
         if (model.Message.Length > 0)
         {
-            builder.Append(" " + model.Message + " ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.StatusError : SegmentRole.Status);
+            builder.Append($" {model.Message} ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.StatusError : SegmentRole.Status);
         }
 
         if (model.SearchLine.Length == 0)
         {
-            builder.Append(" " + (model.Picker is not null ? PickerHints : model.Hints.Length > 0 ? model.Hints : KeyHints), SegmentRole.Status);
+            builder.Append($" {(model.Picker is not null ? PickerHints : model.Hints.Length > 0 ? model.Hints : KeyHints)}", SegmentRole.Status);
         }
 
         return builder.Build(SegmentRole.Status);

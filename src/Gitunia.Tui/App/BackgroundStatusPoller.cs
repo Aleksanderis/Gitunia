@@ -15,28 +15,28 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class BackgroundStatusPoller : IDisposable
 {
-    private readonly GitRunner runner;
-    private readonly WorkspaceHost host;
-    private readonly Action<Action> postToUi;
-    private readonly TimeSpan interval;
-    private readonly CancellationTokenSource cancellation = new();
-    private Task? loop;
+    private readonly GitRunner _runner;
+    private readonly WorkspaceHost _host;
+    private readonly Action<Action> _postToUi;
+    private readonly TimeSpan _interval;
+    private readonly CancellationTokenSource _cancellation = new();
+    private Task? _loop;
 
     public BackgroundStatusPoller(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, TimeSpan? interval = null)
     {
-        this.runner = runner;
-        this.host = host;
-        this.postToUi = postToUi;
-        this.interval = interval ?? TimeSpan.FromSeconds(30);
+        _runner = runner;
+        _host = host;
+        _postToUi = postToUi;
+        _interval = interval ?? TimeSpan.FromSeconds(30);
     }
 
     /// <summary>Starts the loop: one pass now, then one per interval. Calling it twice has no effect.</summary>
-    public void Start() => loop ??= Task.Run(() => RunAsync(cancellation.Token), CancellationToken.None);
+    public void Start() => _loop ??= Task.Run(() => RunAsync(_cancellation.Token), CancellationToken.None);
 
     /// <summary>Reads the status of every background tab once, sequentially, and updates the markers that changed.</summary>
     public async Task PollOnceAsync(CancellationToken cancellationToken)
     {
-        var workspace = host.Workspace;
+        var workspace = _host.Workspace;
         foreach (var tab in workspace.Tabs)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -51,10 +51,10 @@ public sealed class BackgroundStatusPoller : IDisposable
 
             try
             {
-                var status = await StatusReader.ReadStatusAsync(new Repository(runner, tab.Location), false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
+                var status = await StatusReader.ReadStatusAsync(new Repository(_runner, tab.Location), false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
                 var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
-                postToUi(() => Apply(tabId, summary));
+                _postToUi(() => Apply(tabId, summary));
             }
             catch (OperationCanceledException)
             {
@@ -69,12 +69,12 @@ public sealed class BackgroundStatusPoller : IDisposable
 
     public void Dispose()
     {
-        cancellation.Cancel();
+        _cancellation.Cancel();
     }
 
     private async Task RunAsync(CancellationToken token)
     {
-        using var timer = new PeriodicTimer(interval);
+        using var timer = new PeriodicTimer(_interval);
         do
         {
             await PollOnceAsync(token).ConfigureAwait(false);
@@ -97,11 +97,11 @@ public sealed class BackgroundStatusPoller : IDisposable
     private void Apply(TabId tabId, RepositoryStatusSummary summary)
     {
         // The tab may have been activated while the read ran; its own loader and refresher then own the status.
-        if (cancellation.IsCancellationRequested || host.Workspace.ActiveTabId == tabId || host.Workspace.FindTab(tabId) is not { } tab || tab.Status == summary)
+        if (_cancellation.IsCancellationRequested || _host.Workspace.ActiveTabId == tabId || _host.Workspace.FindTab(tabId) is not { } tab || tab.Status == summary)
         {
             return;
         }
 
-        host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
+        _host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
     }
 }

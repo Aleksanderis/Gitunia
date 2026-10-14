@@ -61,7 +61,7 @@ public sealed class InputParser
         }
         else if (_pending.Count - i > MaxPendingBytes)
         {
-            i = _pending.Count; // not a sequence we understand: drop it rather than grow forever
+            i = _pending.Count; // Not a sequence we understand: drop it rather than grow forever
         }
 
         _pending.RemoveRange(0, i);

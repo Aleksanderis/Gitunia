@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -101,22 +102,22 @@ public static class TabBarLayout
     private static string Describe(TabLabel label, GraphGlyphSet glyphs)
     {
         var padding = new string(' ', Padding);
-        var text = padding + label.Number.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + (label.IsMissing ? "! " : string.Empty) + label.Name;
+        var text = $"{padding}{label.Number.ToString(CultureInfo.InvariantCulture)} {(label.IsMissing ? "! " : string.Empty)}{label.Name}";
         if (label.IsMissing)
         {
-            return text + " (missing)" + padding;
+            return $"{text} (missing){padding}";
         }
 
         if (label.Branch is { } branch)
         {
-            text += "  " + branch;
+            text = $"{text}  {branch}";
         }
 
         var markers = string.Empty;
         markers += label.IsDirty ? "*" : string.Empty;
-        markers += label.Ahead > 0 ? (!glyphs.IsAscii ? "↑" : "+") + label.Ahead.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
-        markers += label.Behind > 0 ? (!glyphs.IsAscii ? "↓" : "-") + label.Behind.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        markers += label.Ahead > 0 ? $"{(!glyphs.IsAscii ? "↑" : "+")}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+        markers += label.Behind > 0 ? $"{(!glyphs.IsAscii ? "↓" : "-")}{label.Behind.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
         markers += label.IsLoading ? glyphs.Ellipsis : string.Empty;
-        return markers.Length > 0 ? text + " " + markers + padding : text + padding;
+        return markers.Length > 0 ? $"{text} {markers}{padding}" : $"{text}{padding}";
     }
 }

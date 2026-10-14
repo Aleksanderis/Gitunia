@@ -10,7 +10,7 @@ public class SessionStoreTests
     public async Task GivenNoFile_WhenLoading_ThenEmptyWorkspaceAndMissingStatus()
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(Path.Combine(directory.Path, "does-not-exist"));
+        var store = new SessionStore(Path.Combine(directory.DirectoryPath, "does-not-exist"));
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
 
@@ -24,8 +24,8 @@ public class SessionStoreTests
         using var directory = new TemporaryDirectory();
         var workspace = SessionFixtures.Open(Workspace.Empty, "alpha", "beta");
 
-        var saved = await new SessionStore(directory.Path).SaveAsync(workspace, TestContext.Current.CancellationToken);
-        var result = await new SessionStore(directory.Path, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var saved = await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.True(saved);
         Assert.Equal(SessionLoadStatus.Restored, result.Status);
@@ -42,7 +42,7 @@ public class SessionStoreTests
     public async Task GivenCorruptFile_WhenLoading_ThenEmptyWorkspaceAndFileSetAside(string content)
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
+        var store = new SessionStore(directory.DirectoryPath);
         await File.WriteAllTextAsync(store.FilePath, content, TestContext.Current.CancellationToken);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -51,14 +51,14 @@ public class SessionStoreTests
         Assert.NotNull(result.Detail);
         Assert.Empty(result.Update.Workspace.Tabs);
         Assert.False(File.Exists(store.FilePath));
-        Assert.True(File.Exists(store.FilePath + ".corrupt"));
+        Assert.True(File.Exists($"{store.FilePath}.corrupt"));
     }
 
     [Fact]
     public async Task GivenBinaryGarbage_WhenLoading_ThenStartupIsNotBlocked()
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
+        var store = new SessionStore(directory.DirectoryPath);
         await File.WriteAllBytesAsync(store.FilePath, [0xFF, 0xFE, 0x00, 0x01, 0x80], TestContext.Current.CancellationToken);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -70,8 +70,8 @@ public class SessionStoreTests
     public async Task GivenFileFromNewerFieldsAndComments_WhenLoading_ThenUnknownPartsAreIgnored()
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
-        var json = "{ // note\n \"version\": 1, \"futureSetting\": true, \"tabs\": [], \"recents\": [" + "\"" + SessionFixtures.AbsolutePath("a").Replace("\\", "\\\\") + "\"" + "], }";
+        var store = new SessionStore(directory.DirectoryPath);
+        var json = $"{{ // note\n \"version\": 1, \"futureSetting\": true, \"tabs\": [], \"recents\": [\"{SessionFixtures.AbsolutePath("a").Replace("\\", "\\\\")}\"], }}";
         await File.WriteAllTextAsync(store.FilePath, json, TestContext.Current.CancellationToken);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -84,7 +84,7 @@ public class SessionStoreTests
     public async Task GivenUnwritableTarget_WhenSaving_ThenFalseIsReturnedAndExistingFileIsIntact()
     {
         using var directory = new TemporaryDirectory();
-        var blocker = Path.Combine(directory.Path, "blocker");
+        var blocker = Path.Combine(directory.DirectoryPath, "blocker");
         await File.WriteAllTextAsync(blocker, "x", TestContext.Current.CancellationToken);
         var store = new SessionStore(Path.Combine(blocker, "nested"));
 
@@ -98,14 +98,14 @@ public class SessionStoreTests
     public async Task GivenExistingSession_WhenSavingAgain_ThenFileIsReplacedAndNoTemporaryFilesRemain()
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
+        var store = new SessionStore(directory.DirectoryPath);
         await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "alpha"), TestContext.Current.CancellationToken);
 
         await store.SaveAsync(SessionFixtures.Open(Workspace.Empty, "beta"), TestContext.Current.CancellationToken);
 
-        var result = await new SessionStore(directory.Path, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal("beta", Assert.Single(result.Update.Workspace.Tabs).DisplayName);
-        Assert.Equal([store.FilePath], Directory.GetFiles(directory.Path));
+        Assert.Equal([store.FilePath], Directory.GetFiles(directory.DirectoryPath));
     }
 
     [Theory]
@@ -114,7 +114,7 @@ public class SessionStoreTests
     public async Task GivenOtherSchemaVersion_WhenLoading_ThenFileIsBackedUpWithItsVersion(string content, string suffix)
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
+        var store = new SessionStore(directory.DirectoryPath);
         await File.WriteAllTextAsync(store.FilePath, content, TestContext.Current.CancellationToken);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
@@ -128,14 +128,14 @@ public class SessionStoreTests
     public async Task GivenEarlierCorruptBackup_WhenAnotherCorruptFileIsLoaded_ThenEarlierBackupIsKept()
     {
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
-        await File.WriteAllTextAsync(store.FilePath + ".corrupt", "first", TestContext.Current.CancellationToken);
+        var store = new SessionStore(directory.DirectoryPath);
+        await File.WriteAllTextAsync($"{store.FilePath}.corrupt", "first", TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(store.FilePath, "{ second", TestContext.Current.CancellationToken);
 
         await store.LoadAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal("first", await File.ReadAllTextAsync(store.FilePath + ".corrupt", TestContext.Current.CancellationToken));
-        Assert.Equal(2, Directory.GetFiles(directory.Path).Length);
+        Assert.Equal("first", await File.ReadAllTextAsync($"{store.FilePath}.corrupt", TestContext.Current.CancellationToken));
+        Assert.Equal(2, Directory.GetFiles(directory.DirectoryPath).Length);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class SessionStoreTests
         {
             // Exclusive locks are only enforced on Windows; elsewhere an unreadable file is simulated with a directory below.
             using var unixDirectory = new TemporaryDirectory();
-            var unixStore = new SessionStore(unixDirectory.Path);
+            var unixStore = new SessionStore(unixDirectory.DirectoryPath);
             Directory.CreateDirectory(unixStore.FilePath);
 
             var unixResult = await unixStore.LoadAsync(TestContext.Current.CancellationToken);
@@ -156,13 +156,13 @@ public class SessionStoreTests
         }
 
         using var directory = new TemporaryDirectory();
-        var store = new SessionStore(directory.Path);
+        var store = new SessionStore(directory.DirectoryPath);
         await File.WriteAllTextAsync(store.FilePath, "{\"version\":1}", TestContext.Current.CancellationToken);
         using var held = new FileStream(store.FilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Discarded, result.Status);
-        Assert.False(File.Exists(store.FilePath + ".corrupt"));
+        Assert.False(File.Exists($"{store.FilePath}.corrupt"));
     }
 }

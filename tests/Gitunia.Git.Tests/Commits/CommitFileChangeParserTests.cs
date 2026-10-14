@@ -10,7 +10,7 @@ public class CommitFileChangeParserTests
     private const string Hash = "0000000000000000000000000000000000000000";
 
     private static string Entry(string status, params string[] paths) =>
-        $":100644 100644 {Hash} {Hash} {status}\0" + string.Concat(paths.Select(path => path + "\0"));
+        $":100644 100644 {Hash} {Hash} {status}\0{string.Concat(paths.Select(path => path + "\0"))}";
 
     private static ParseResult<CommitFileChange> Parse(string text) => CommitFileChangeParser.Parse(Encoding.UTF8.GetBytes(text));
 
@@ -45,7 +45,7 @@ public class CommitFileChangeParserTests
     [Fact]
     public void GivenGarbageAndUnknownStatus_WhenParsing_ThenSkippedWithWarningsAndNoThrow()
     {
-        var result = Parse("garbage\0" + Entry("X", "weird") + Entry("M", "ok") + ":100644 100644 a b M\0");
+        var result = Parse($"garbage\0{Entry("X", "weird")}{Entry("M", "ok")}:100644 100644 a b M\0");
 
         Assert.Equal("ok", Assert.Single(result.Items).Path);
         Assert.Equal(3, result.Warnings.Count);

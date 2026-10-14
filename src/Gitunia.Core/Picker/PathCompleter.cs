@@ -77,7 +77,7 @@ public static class PathCompleter
         if (lastSeparator < 0)
         {
             // "~", ".", "..": the directory itself, the user has not typed a separator yet.
-            directoryText = text is "~" or "." or ".." ? text + "/" : string.Empty;
+            directoryText = text is "~" or "." or ".." ? $"{text}/" : string.Empty;
             namePrefix = string.Empty;
             return;
         }

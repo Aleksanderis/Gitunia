@@ -22,7 +22,7 @@ public class EffectRunnerTests
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var scratch = Workspace.Empty;
-        foreach (var path in new[] { first.Path, second.Path })
+        foreach (var path in new[] { first.WorkingTreePath, second.WorkingTreePath })
         {
             var location = await RepositoryDiscovery.DiscoverAsync(runner, path, CancellationToken.None);
             scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
@@ -56,7 +56,7 @@ public class EffectRunnerTests
         repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
@@ -90,7 +90,7 @@ public class EffectRunnerTests
         repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);

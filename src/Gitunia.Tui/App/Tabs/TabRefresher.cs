@@ -21,46 +21,46 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabRefresher : IDisposable
 {
-    private readonly GitRunner runner;
-    private readonly WorkspaceHost host;
-    private readonly TabSession session;
-    private readonly RepositoryLocation location;
-    private readonly StatusChannel statuses;
-    private readonly Action<Action> postToUi;
-    private readonly RepositoryWatcher watcher;
-    private readonly Action<GraphReload>? graphReloaded;
-    private RepositorySnapshot? snapshot;
-    private RepositoryChangeKinds pending;
-    private bool forceGraph;
-    private bool announce;
-    private bool isReady;
-    private bool sawChange;
-    private bool isRunning;
-    private bool isDisposed;
-    private string lastError = string.Empty;
+    private readonly GitRunner _runner;
+    private readonly WorkspaceHost _host;
+    private readonly TabSession _session;
+    private readonly RepositoryLocation _location;
+    private readonly StatusChannel _statuses;
+    private readonly Action<Action> _postToUi;
+    private readonly RepositoryWatcher _watcher;
+    private readonly Action<GraphReload>? _graphReloaded;
+    private RepositorySnapshot? _snapshot;
+    private RepositoryChangeKinds _pending;
+    private bool _forceGraph;
+    private bool _announce;
+    private bool _isReady;
+    private bool _sawChange;
+    private bool _isRunning;
+    private bool _isDisposed;
+    private string _lastError = string.Empty;
 
     public TabRefresher(GitRunner runner, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
     {
-        this.graphReloaded = graphReloaded;
-        this.runner = runner;
-        this.host = host;
-        this.session = session;
-        this.location = location;
-        this.statuses = statuses;
-        this.postToUi = postToUi;
-        watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)));
+        _graphReloaded = graphReloaded;
+        _runner = runner;
+        _host = host;
+        _session = session;
+        _location = location;
+        _statuses = statuses;
+        _postToUi = postToUi;
+        _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)));
     }
 
     /// <summary>A refresh is being read or applied right now.</summary>
-    public bool IsRefreshing => isRunning;
+    public bool IsRefreshing => _isRunning;
 
     /// <summary>Starts watching; changes are collected now and applied once the initial load has finished.</summary>
     public void Start()
     {
-        watcher.Start();
-        if (session.IsPending || session.IsLoading)
+        _watcher.Start();
+        if (_session.IsPending || _session.IsLoading)
         {
-            session.LoadFinished += OnLoadFinished;
+            _session.LoadFinished += OnLoadFinished;
         }
         else
         {
@@ -69,62 +69,62 @@ public sealed class TabRefresher : IDisposable
     }
 
     /// <summary>Marks the tab visible or hidden; a hidden tab reports its pending changes when shown again.</summary>
-    public void SetActive(bool isActive) => watcher.SetActive(isActive);
+    public void SetActive(bool isActive) => _watcher.SetActive(isActive);
 
     /// <summary>Manual refresh: reads everything and reloads the graph.</summary>
     public void RefreshNow()
     {
-        announce = true;
+        _announce = true;
         Request(RepositoryChangeKinds.All, true);
     }
 
     public void Dispose()
     {
-        isDisposed = true;
-        session.LoadFinished -= OnLoadFinished;
-        watcher.Dispose();
+        _isDisposed = true;
+        _session.LoadFinished -= OnLoadFinished;
+        _watcher.Dispose();
     }
 
     private void OnLoadFinished()
     {
-        session.LoadFinished -= OnLoadFinished;
-        isReady = true;
+        _session.LoadFinished -= OnLoadFinished;
+        _isReady = true;
         RunNext();
     }
 
     private void Request(RepositoryChangeKinds kinds, bool reloadGraph)
     {
-        if (isDisposed)
+        if (_isDisposed)
         {
             return;
         }
 
-        pending |= kinds;
-        forceGraph |= reloadGraph;
-        sawChange = true;
+        _pending |= kinds;
+        _forceGraph |= reloadGraph;
+        _sawChange = true;
         RunNext();
     }
 
     private void RunNext()
     {
-        if (!isReady || isRunning || isDisposed || (snapshot is not null && pending == RepositoryChangeKinds.None))
+        if (!_isReady || _isRunning || _isDisposed || (_snapshot is not null && _pending == RepositoryChangeKinds.None))
         {
             return;
         }
 
-        var kinds = pending;
-        var isManual = announce;
-        announce = false;
-        var reloadGraph = forceGraph || (snapshot is null && (sawChange || watcher.IsStale));
-        pending = RepositoryChangeKinds.None;
-        forceGraph = false;
-        isRunning = true;
-        var previous = snapshot;
-        var token = session.Cancellation.Token;
+        var kinds = _pending;
+        var isManual = _announce;
+        _announce = false;
+        var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher.IsStale));
+        _pending = RepositoryChangeKinds.None;
+        _forceGraph = false;
+        _isRunning = true;
+        var previous = _snapshot;
+        var token = _session.Cancellation.Token;
 
         // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows
         // (the baseline needs them too, to compare the graph with its snapshot).
-        IReadOnlyList<GraphEntry> previousRows = reloadGraph ? [] : session.Graph.ToArray();
+        IReadOnlyList<GraphEntry> previousRows = reloadGraph ? [] : _session.Graph.ToArray();
         _ = Task.Run(() => RefreshAsync(previous, previousRows, kinds, reloadGraph, isManual, token), CancellationToken.None);
     }
 
@@ -132,7 +132,7 @@ public sealed class TabRefresher : IDisposable
     {
         try
         {
-            var repository = new Repository(runner, location);
+            var repository = new Repository(_runner, _location);
             var result = await RepositoryRefresher.RefreshAsync(repository, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repository, token).ConfigureAwait(false)).Items : null;
@@ -148,7 +148,7 @@ public sealed class TabRefresher : IDisposable
                 reload = await IncrementalGraphLoader.ReloadAsync(repository, previousRows, token).ConfigureAwait(false);
             }
 
-            postToUi(() => Apply(previous is null, isManual, result, stashes, reload));
+            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload));
         }
         catch (OperationCanceledException)
         {
@@ -156,60 +156,60 @@ public sealed class TabRefresher : IDisposable
         }
         catch (Exception exception)
         {
-            postToUi(() => Fail(exception, kinds, reloadGraph, isManual));
+            _postToUi(() => Fail(exception, kinds, reloadGraph, isManual));
         }
     }
 
     private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload)
     {
-        isRunning = false;
-        if (isDisposed)
+        _isRunning = false;
+        if (_isDisposed)
         {
             return;
         }
 
-        lastError = string.Empty;
-        snapshot = result.Snapshot;
-        var tabId = session.TabId;
+        _lastError = string.Empty;
+        _snapshot = result.Snapshot;
+        var tabId = _session.TabId;
         {
             var changed = isBaseline ? RepositorySections.All : result.Changed;
             if (changed.HasFlag(RepositorySections.Head))
             {
-                host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(result.Snapshot.Head)));
+                _host.Dispatch(new TabCommand(tabId, new HeadLoadedCommand(result.Snapshot.Head)));
             }
 
             if (changed.HasFlag(RepositorySections.Refs))
             {
-                host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. result.Snapshot.Refs])));
+                _host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. result.Snapshot.Refs])));
             }
 
             if (changed.HasFlag(RepositorySections.Worktrees))
             {
-                host.Dispatch(new TabCommand(tabId, new WorktreesLoadedCommand([.. result.Snapshot.Worktrees])));
+                _host.Dispatch(new TabCommand(tabId, new WorktreesLoadedCommand([.. result.Snapshot.Worktrees])));
             }
 
             if (changed.HasFlag(RepositorySections.Status))
             {
                 var status = result.Snapshot.Status;
                 var summary = RepositoryStatusSummary.From(status);
-                host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
+                _host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
             }
 
-            if (stashes is not null && host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))
+            if (stashes is not null && _host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))
             {
-                host.Dispatch(new TabCommand(tabId, new StashesLoadedCommand([.. stashes])));
+                _host.Dispatch(new TabCommand(tabId, new StashesLoadedCommand([.. stashes])));
             }
         }
 
         if (reload is not null)
         {
-            session.ReplaceGraph(reload.Entries);
-            graphReloaded?.Invoke(reload);
+            _session.ReplaceGraph(reload.Entries);
+            _graphReloaded?.Invoke(reload);
         }
 
         if (isManual)
         {
-            statuses.Post(RepositoryName() + ": refreshed");
+            _statuses.Post($"{RepositoryName()}: refreshed");
         }
 
         RunNext();
@@ -217,23 +217,23 @@ public sealed class TabRefresher : IDisposable
 
     private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual)
     {
-        isRunning = false;
-        pending |= kinds;
-        forceGraph |= reloadGraph;
-        announce |= isManual;
-        if (isDisposed)
+        _isRunning = false;
+        _pending |= kinds;
+        _forceGraph |= reloadGraph;
+        _announce |= isManual;
+        if (_isDisposed)
         {
             return;
         }
 
         // A repository that keeps failing (polling every few seconds) is reported once, not on every tick.
-        var message = RepositoryName() + ": could not refresh: " + exception.Message;
-        if (isManual || message != lastError)
+        var message = $"{RepositoryName()}: could not refresh: {exception.Message}";
+        if (isManual || message != _lastError)
         {
-            lastError = message;
-            statuses.Error(message);
+            _lastError = message;
+            _statuses.Error(message);
         }
     }
 
-    private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath));
+    private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(_location.RootPath));
 }

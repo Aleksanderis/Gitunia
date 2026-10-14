@@ -1,3 +1,4 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Tests.Rendering.Graph;
@@ -15,7 +16,7 @@ public class RefJumpControllerTests
         return new GitRef(prefix + name, name, kind, hash, hash, null, null, null, false, false, null, null);
     }
 
-    private static Gitunia.Core.Graph.CommitGraph Graph() => CommitFactory.Graph(
+    private static CommitGraph Graph() => CommitFactory.Graph(
         CommitFactory.Commit(4, "four", [3]),
         CommitFactory.Commit(3, "three", [2]),
         CommitFactory.Commit(2, "two", [1]),

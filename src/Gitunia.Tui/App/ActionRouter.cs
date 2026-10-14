@@ -24,8 +24,8 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
-    private readonly StatusActionHandler statusActions = new(statuses, activeSession);
-    private readonly DetailPathCopier pathCopier = new(clipboard);
+    private readonly StatusActionHandler _statusActions = new(statuses, activeSession);
+    private readonly DetailPathCopier _pathCopier = new(clipboard);
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -59,9 +59,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
-        if (statusActions.TryHandle(action))
+        if (_statusActions.TryHandle(action))
         {
-            Message = statusActions.Message;
+            Message = _statusActions.Message;
             return;
         }
 
@@ -145,10 +145,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
                 quit();
             }
         }
-        else if (!statusActions.TryHandleFallback(action))
+        else if (!_statusActions.TryHandleFallback(action))
         {
             // Esc that nothing else claimed was handled above: it clears the status message.
-            Message = ActionCatalog.Describe(action) + ": not implemented yet";
+            Message = $"{ActionCatalog.Describe(action)}: not implemented yet";
         }
     }
 
@@ -203,7 +203,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     }
 
     private void CopySelectedPath() =>
-        Message = pathCopier.Copy(activeSession()?.DetailSource, detailList.SelectedItem);
+        Message = _pathCopier.Copy(activeSession()?.DetailSource, detailList.SelectedItem);
 
     private void JumpToHead()
     {

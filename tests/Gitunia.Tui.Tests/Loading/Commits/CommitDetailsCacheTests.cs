@@ -124,6 +124,6 @@ public class CommitDetailsCacheTests
             "Author",
             "author@example.com",
             DateTimeOffset.UnixEpoch,
-            "commit " + number,
-            Enumerable.Range(0, fileCount).Select(index => new CommitFileChange("file" + index, null, FileChangeKind.Modified, null)).ToArray());
+            $"commit {number}",
+            Enumerable.Range(0, fileCount).Select(index => new CommitFileChange($"file{index}", null, FileChangeKind.Modified, null)).ToArray());
 }

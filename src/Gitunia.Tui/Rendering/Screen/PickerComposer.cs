@@ -29,7 +29,7 @@ public static class PickerComposer
 
         var title = picker.LocatingTabId is null ? "Open repository" : "Locate repository";
         lines.Add(new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" " + title + ": ", SegmentRole.Faint)
+            .Append($" {title}: ", SegmentRole.Faint)
             .Append(picker.Query, SegmentRole.Plain)
             .Append("_", SegmentRole.Faint)
             .Build());
@@ -45,7 +45,7 @@ public static class PickerComposer
         lines.AddRange(ListLines(picker, homeDirectory, width, listHeight, glyphs));
         if (hasMessage && lines.Count < height)
         {
-            lines.Add(new LineBuilder(width, glyphs.Ellipsis).Append(" " + picker.Message, SegmentRole.Error).Build());
+            lines.Add(new LineBuilder(width, glyphs.Ellipsis).Append($" {picker.Message}", SegmentRole.Error).Build());
         }
 
         while (lines.Count < height)
@@ -83,7 +83,7 @@ public static class PickerComposer
             var isHighlighted = index == picker.Highlight;
             var buttons = isHighlighted ? PickerRowButtons.Layout(row, width) : [];
             var builder = new LineBuilder(buttons.Count > 0 ? buttons[0].Start - 1 : width, glyphs.Ellipsis)
-                .Append(" " + name + new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name))) + "  ", SegmentRole.Plain)
+                .Append($" {name}{new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)))}  ", SegmentRole.Plain)
                 .Append(Tags(row).PadRight(TagColumns), SegmentRole.Tag)
                 .Append(Abbreviate(row.Path, homeDirectory), SegmentRole.Faint);
             lines.Add(WithButtons(builder.Build(SegmentRole.Plain, isSelected: isHighlighted), buttons));
@@ -149,6 +149,6 @@ public static class PickerComposer
 
         var prefix = home + Path.DirectorySeparatorChar;
         var comparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        return path.StartsWith(prefix, comparison) ? "~" + Path.DirectorySeparatorChar + path[prefix.Length..] : path;
+        return path.StartsWith(prefix, comparison) ? $"~{Path.DirectorySeparatorChar}{path[prefix.Length..]}" : path;
     }
 }

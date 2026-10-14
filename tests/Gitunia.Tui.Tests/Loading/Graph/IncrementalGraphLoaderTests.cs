@@ -19,7 +19,7 @@ public class IncrementalGraphLoaderTests
 
         var reload = await ReloadAsync(testRepository, previous);
 
-        Assert.True(reload.ReusedCount >= 38, "Reused " + reload.ReusedCount);
+        Assert.True(reload.ReusedCount >= 38, $"Reused {reload.ReusedCount}");
         await AssertEqualToFullReadAsync(testRepository, reload);
         Assert.Equal("new top", reload.Entries[0].Subject);
     }
@@ -147,7 +147,7 @@ public class IncrementalGraphLoaderTests
         testRepository.Commit("commit 0", new TestFile("a.txt", "0"));
         for (var number = 1; number < count; number++)
         {
-            testRepository.Git("commit", "-q", "--allow-empty", "-m", "commit " + number);
+            testRepository.Git("commit", "-q", "--allow-empty", "-m", $"commit {number}");
         }
 
         return testRepository;
@@ -155,7 +155,7 @@ public class IncrementalGraphLoaderTests
 
     private static async Task<GraphEntry[]> ReadAllAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
         await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, CancellationToken.None))
         {
@@ -167,7 +167,7 @@ public class IncrementalGraphLoaderTests
 
     private static async Task<GraphReload> ReloadAsync(TestRepository testRepository, IReadOnlyList<GraphEntry> previous)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         return await IncrementalGraphLoader.ReloadAsync(repository, previous, CancellationToken.None);
     }
 

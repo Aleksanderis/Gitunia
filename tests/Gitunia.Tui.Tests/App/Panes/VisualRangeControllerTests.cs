@@ -13,63 +13,63 @@ namespace Gitunia.Tui.Tests.App.Panes;
 
 public sealed class VisualRangeControllerTests : IDisposable
 {
-    private readonly RangeSource source = new(20);
-    private readonly ListView list;
-    private readonly ListView sidebarList = new();
-    private readonly VisualRangeController controller;
-    private PaneKind focused = PaneKind.Graph;
-    private CopiedRange? copied;
-    private KeyMode mode = KeyMode.Normal;
-    private bool copySucceeds = true;
+    private readonly RangeSource _source = new(20);
+    private readonly ListView _list;
+    private readonly ListView _sidebarList = new();
+    private readonly VisualRangeController _controller;
+    private PaneKind _focused = PaneKind.Graph;
+    private CopiedRange? _copied;
+    private KeyMode _mode = KeyMode.Normal;
+    private bool _copySucceeds = true;
 
     public VisualRangeControllerTests()
     {
-        list = new ListView { Source = source };
-        controller = new VisualRangeController(
-            () => focused,
-            pane => pane == PaneKind.Sidebar ? sidebarList : list,
-            () => mode,
-            newMode => mode = newMode,
+        _list = new ListView { Source = _source };
+        _controller = new VisualRangeController(
+            () => _focused,
+            pane => pane == PaneKind.Sidebar ? _sidebarList : _list,
+            () => _mode,
+            newMode => _mode = newMode,
             (pane, range) =>
             {
-                copied = new CopiedRange(pane, range);
-                return new RangeCopyResult(copySucceeds, "copy notice");
+                _copied = new CopiedRange(pane, range);
+                return new RangeCopyResult(_copySucceeds, "copy notice");
             });
     }
 
     public void Dispose()
     {
-        list.Dispose();
-        sidebarList.Dispose();
-        source.Dispose();
+        _list.Dispose();
+        _sidebarList.Dispose();
+        _source.Dispose();
     }
 
     [Fact]
     public void GivenACursor_WhenTogglingVisual_ThenARangeStartsAtTheCursorAndTheModeSwitches()
     {
-        list.SelectedItem = 4;
+        _list.SelectedItem = 4;
 
-        var handled = controller.TryExecute(ActionIds.VisualToggle, null);
+        var handled = _controller.TryExecute(ActionIds.VisualToggle, null);
 
         Assert.True(handled);
-        Assert.True(controller.IsActive);
-        Assert.Equal(new RowRange(4, 4), source.Range);
-        Assert.Equal(KeyMode.Visual, mode);
+        Assert.True(_controller.IsActive);
+        Assert.Equal(new RowRange(4, 4), _source.Range);
+        Assert.Equal(KeyMode.Visual, _mode);
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenTheCursorMoves_ThenTheFarEndFollowsAndTheAnchorStays()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        list.SelectedItem = 9;
-        controller.OnCursorMoved();
-        list.SelectedItem = 2;
-        controller.OnCursorMoved();
+        _list.SelectedItem = 9;
+        _controller.OnCursorMoved();
+        _list.SelectedItem = 2;
+        _controller.OnCursorMoved();
 
-        Assert.Equal(new RowRange(4, 2), source.Range);
-        Assert.Equal(3, source.Range!.Value.Count);
+        Assert.Equal(new RowRange(4, 2), _source.Range);
+        Assert.Equal(3, _source.Range!.Value.Count);
     }
 
     [Theory]
@@ -78,86 +78,86 @@ public sealed class VisualRangeControllerTests : IDisposable
     [InlineData("navigate.back")]
     public void GivenAnActiveRange_WhenToggledCancelledOrGoingBack_ThenTheRangeEndsAndNormalModeReturns(string action)
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        var handled = controller.TryExecute(new ActionId(action), null);
+        var handled = _controller.TryExecute(new ActionId(action), null);
 
         Assert.True(handled);
-        Assert.False(controller.IsActive);
-        Assert.Null(source.Range);
-        Assert.Equal(KeyMode.Normal, mode);
+        Assert.False(_controller.IsActive);
+        Assert.Null(_source.Range);
+        Assert.Equal(KeyMode.Normal, _mode);
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenCopying_ThenTheRangeIsCopiedAndEnds()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
-        list.SelectedItem = 6;
-        controller.OnCursorMoved();
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 6;
+        _controller.OnCursorMoved();
 
-        var handled = controller.TryExecute(ActionIds.VisualCopy, null);
+        var handled = _controller.TryExecute(ActionIds.VisualCopy, null);
 
         Assert.True(handled);
-        Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 6)), copied);
-        Assert.Equal("copy notice", controller.Notice);
-        Assert.False(controller.IsActive);
-        Assert.Equal(KeyMode.Normal, mode);
+        Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 6)), _copied);
+        Assert.Equal("copy notice", _controller.Notice);
+        Assert.False(_controller.IsActive);
+        Assert.Equal(KeyMode.Normal, _mode);
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenCopyFails_ThenTheRangeStays()
     {
-        copySucceeds = false;
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _copySucceeds = false;
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        var handled = controller.TryExecute(ActionIds.VisualCopy, null);
+        var handled = _controller.TryExecute(ActionIds.VisualCopy, null);
 
         Assert.True(handled);
-        Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 4)), copied);
-        Assert.True(controller.IsActive);
-        Assert.Equal(new RowRange(4, 4), source.Range);
-        Assert.Equal(KeyMode.Visual, mode);
+        Assert.Equal(new CopiedRange(PaneKind.Graph, new RowRange(4, 4)), _copied);
+        Assert.True(_controller.IsActive);
+        Assert.Equal(new RowRange(4, 4), _source.Range);
+        Assert.Equal(KeyMode.Visual, _mode);
     }
 
     [Fact]
     public void GivenNoRange_WhenCopying_ThenNothingIsCopiedAndTheActionIsLeftToOthers()
     {
-        Assert.False(controller.TryExecute(ActionIds.VisualCopy, null));
-        Assert.Null(copied);
+        Assert.False(_controller.TryExecute(ActionIds.VisualCopy, null));
+        Assert.Null(_copied);
     }
 
     [Fact]
     public void GivenNoRange_WhenCancelling_ThenTheActionIsLeftToOthers()
     {
-        Assert.False(controller.TryExecute(ActionIds.Cancel, null));
-        Assert.False(controller.TryExecute(ActionIds.NavigateBack, null));
-        Assert.False(controller.TryExecute(ActionIds.ListDown, null));
+        Assert.False(_controller.TryExecute(ActionIds.Cancel, null));
+        Assert.False(_controller.TryExecute(ActionIds.NavigateBack, null));
+        Assert.False(_controller.TryExecute(ActionIds.ListDown, null));
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenMotionsArrive_ThenTheControllerLeavesThemToTheList()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        Assert.False(controller.TryExecute(ActionIds.ListDown, 2));
-        Assert.True(controller.IsActive);
+        Assert.False(_controller.TryExecute(ActionIds.ListDown, 2));
+        Assert.True(_controller.IsActive);
     }
 
     [Fact]
     public void GivenTheSidebarFocused_WhenTogglingVisual_ThenItSaysThereAreNoRangesThere()
     {
-        focused = PaneKind.Sidebar;
+        _focused = PaneKind.Sidebar;
 
-        var handled = controller.TryExecute(ActionIds.VisualToggle, null);
+        var handled = _controller.TryExecute(ActionIds.VisualToggle, null);
 
         Assert.True(handled);
-        Assert.False(controller.IsActive);
-        Assert.Equal(KeyMode.Normal, mode);
-        Assert.Equal("No range selection in the sidebar", controller.Notice);
+        Assert.False(_controller.IsActive);
+        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal("No range selection in the sidebar", _controller.Notice);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     {
         using var emptySource = new RangeSource(0);
         using var empty = new ListView { Source = emptySource };
-        var emptyController = new VisualRangeController(() => PaneKind.Graph, _ => empty, () => mode, newMode => mode = newMode);
+        var emptyController = new VisualRangeController(() => PaneKind.Graph, _ => empty, () => _mode, newMode => _mode = newMode);
 
         emptyController.TryExecute(ActionIds.VisualToggle, null);
 
@@ -176,25 +176,25 @@ public sealed class VisualRangeControllerTests : IDisposable
     [Fact]
     public void GivenAnActiveRange_WhenTheFocusMovesToAnotherPane_ThenTheRangeEnds()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        focused = PaneKind.Detail;
-        controller.EndIfFocusMoved();
+        _focused = PaneKind.Detail;
+        _controller.EndIfFocusMoved();
 
-        Assert.False(controller.IsActive);
-        Assert.Null(source.Range);
+        Assert.False(_controller.IsActive);
+        Assert.Null(_source.Range);
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenTheFocusStays_ThenTheRangeStays()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        controller.EndIfFocusMoved();
+        _controller.EndIfFocusMoved();
 
-        Assert.True(controller.IsActive);
+        Assert.True(_controller.IsActive);
     }
 
     [Theory]
@@ -203,52 +203,52 @@ public sealed class VisualRangeControllerTests : IDisposable
     [InlineData(KeyMode.Confirm)]
     public void GivenAPromptOwnsTheKeys_WhenTogglingVisual_ThenNoRangeStartsAndTheModeStays(KeyMode promptMode)
     {
-        list.SelectedItem = 4;
-        mode = promptMode;
+        _list.SelectedItem = 4;
+        _mode = promptMode;
 
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        Assert.False(controller.IsActive);
-        Assert.Null(source.Range);
-        Assert.Equal(promptMode, mode);
+        Assert.False(_controller.IsActive);
+        Assert.Null(_source.Range);
+        Assert.Equal(promptMode, _mode);
     }
 
     [Fact]
     public void GivenAnActiveRange_WhenTheRowsChangeMeaning_ThenTheRangeEnds()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
 
-        source.Invalidate();
+        _source.Invalidate();
 
-        Assert.False(controller.IsActive);
-        Assert.Null(source.Range);
-        Assert.Equal(KeyMode.Normal, mode);
+        Assert.False(_controller.IsActive);
+        Assert.Null(_source.Range);
+        Assert.Equal(KeyMode.Normal, _mode);
     }
 
     [Fact]
     public void GivenAnEndedRange_WhenTheRowsChangeMeaning_ThenNothingHappensAgain()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
-        controller.End();
-        mode = KeyMode.Insert;
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
+        _controller.End();
+        _mode = KeyMode.Insert;
 
-        source.Invalidate();
+        _source.Invalidate();
 
-        Assert.Equal(KeyMode.Insert, mode);
+        Assert.Equal(KeyMode.Insert, _mode);
     }
 
     [Fact]
     public void GivenARangeEndedWhileInInsertMode_WhenEnding_ThenTheModeIsNotChanged()
     {
-        list.SelectedItem = 4;
-        controller.TryExecute(ActionIds.VisualToggle, null);
-        mode = KeyMode.Insert;
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
+        _mode = KeyMode.Insert;
 
-        controller.End();
+        _controller.End();
 
-        Assert.Equal(KeyMode.Insert, mode);
+        Assert.Equal(KeyMode.Insert, _mode);
     }
 
     private sealed class RangeSource(int count) : IListDataSource, IRangeSource

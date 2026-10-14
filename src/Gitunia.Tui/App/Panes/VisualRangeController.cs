@@ -19,8 +19,8 @@ namespace Gitunia.Tui.App.Panes;
 /// <param name="copyRange">Copies the rows of a range, the range ends only when it was copied; null disables <c>y</c>.</param>
 public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode, Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null)
 {
-    private PaneKind pane;
-    private IRangeSource? source;
+    private PaneKind _pane;
+    private IRangeSource? _source;
 
     /// <summary>A range is active.</summary>
     public bool IsActive { get; private set; }
@@ -52,7 +52,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
         {
             if (Range is { } range && copyRange is not null)
             {
-                var result = copyRange(pane, range);
+                var result = copyRange(_pane, range);
                 Notice = result.Notice;
                 if (!result.Copied)
                 {
@@ -82,7 +82,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
             return;
         }
 
-        var list = listOf(pane);
+        var list = listOf(_pane);
         if (list.SelectedItem is not { } item)
         {
             return;
@@ -94,7 +94,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
     /// <summary>Ends the range when the focus left the pane it belongs to (another pane, another tab).</summary>
     public void EndIfFocusMoved()
     {
-        if (IsActive && focusedPane() != pane)
+        if (IsActive && focusedPane() != _pane)
         {
             End();
         }
@@ -107,16 +107,16 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
             return;
         }
 
-        if (source is not null)
+        if (_source is not null)
         {
-            source.RangeInvalidated -= End;
-            source.Range = null;
+            _source.RangeInvalidated -= End;
+            _source.Range = null;
         }
 
-        source = null;
+        _source = null;
         IsActive = false;
         Range = null;
-        listOf(pane).SetNeedsDraw();
+        listOf(_pane).SetNeedsDraw();
         if (currentMode() == KeyMode.Visual)
         {
             setMode(KeyMode.Normal);
@@ -145,8 +145,8 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
             return;
         }
 
-        pane = focused;
-        source = rangeSource;
+        _pane = focused;
+        _source = rangeSource;
         rangeSource.RangeInvalidated += End;
         IsActive = true;
         Show(list, new RowRange(item, item));
@@ -156,9 +156,9 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
     private void Show(ListView list, RowRange range)
     {
         Range = range;
-        if (source is not null)
+        if (_source is not null)
         {
-            source.Range = range;
+            _source.Range = range;
         }
 
         list.SetNeedsDraw();

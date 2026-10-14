@@ -63,7 +63,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "gT", ActionIds.TabPrevious);
         for (var number = 1; number <= 9; number++)
         {
-            Add(bindings, TextEntry, global, "Alt-" + number, ActionIds.TabGoTo(number));
+            Add(bindings, TextEntry, global, $"Alt-{number}", ActionIds.TabGoTo(number));
         }
 
         Add(bindings, TextEntry, global, "Ctrl-t", ActionIds.PickerOpen);

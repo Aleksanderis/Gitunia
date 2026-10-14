@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32.SafeHandles;
 
 namespace Gitunia.CustomRenderTui;
 
@@ -109,7 +110,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
         }
 
         _active = true;
-        Write("\e[?1049h\e[?25l\e[?1000h\e[?1006h"u8); // alt screen, hide cursor, mouse (SGR)
+        Write("\e[?1049h\e[?25l\e[?1000h\e[?1006h"u8); // Alt screen, hide cursor, mouse (SGR)
     }
 
     /// <summary>Blocks until input bytes (UTF-8, VT sequences) are available. Returns 0 at end of input.</summary>
@@ -227,7 +228,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
 
     private int ReadUnix(byte[] buffer)
     {
-        _unixStdin ??= new FileStream(new Microsoft.Win32.SafeHandles.SafeFileHandle(0, false), FileAccess.Read, 1, false);
+        _unixStdin ??= new FileStream(new SafeFileHandle(0, false), FileAccess.Read, 1, false);
         return _unixStdin.Read(buffer, 0, buffer.Length);
     }
 

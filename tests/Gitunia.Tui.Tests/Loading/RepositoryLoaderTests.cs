@@ -22,7 +22,7 @@ public class RepositoryLoaderTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1")).Commit("second", new TestFile("a.txt", "2")).Tag("v1");
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
@@ -49,7 +49,7 @@ public class RepositoryLoaderTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
@@ -70,7 +70,7 @@ public class RepositoryLoaderTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1")).WriteFile("untracked.txt", "x");
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
@@ -87,7 +87,7 @@ public class RepositoryLoaderTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
@@ -104,7 +104,7 @@ public class RepositoryLoaderTests
         var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var statuses = new StatusChannel();

@@ -60,7 +60,7 @@ public static class RefJumpResolver
             var hash = entry.Id.ToString();
             if (hash.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
-                found.Add(new RefJumpCandidate(hash[..Math.Min(hash.Length, 7)] + " " + entry.Subject, entry.Id, null));
+                found.Add(new RefJumpCandidate($"{hash[..Math.Min(hash.Length, 7)]} {entry.Subject}", entry.Id, null));
             }
         }
 

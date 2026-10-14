@@ -58,7 +58,7 @@ public sealed partial class App
             {
                 try
                 {
-                    await Task.Delay(40, cancellationToken).ConfigureAwait(false); // coalesce held keys into one git spawn
+                    await Task.Delay(40, cancellationToken).ConfigureAwait(false); // Coalesce held keys into one git spawn
                     var text = await GitText.RunAsync(_repositoryPath, ["show", "--stat", "--no-color", "--format=fuller", hash], cancellationToken).ConfigureAwait(false);
                     _events.Writer.TryWrite(new DetailsLoaded(hash, text));
                 }

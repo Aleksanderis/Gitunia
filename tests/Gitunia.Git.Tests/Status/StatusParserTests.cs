@@ -11,7 +11,7 @@ public class StatusParserTests
     private const string Hash = "1111111111111111111111111111111111111111";
     private const string OtherHash = "2222222222222222222222222222222222222222";
 
-    private static string Output(params string[] segments) => string.Concat(segments.Select(segment => segment + "\0"));
+    private static string Output(params string[] segments) => string.Concat(segments.Select(segment => $"{segment}\0"));
 
     private static string Ordinary(string codes, string path, string submodule = "N...") =>
         $"1 {codes} {submodule} 100644 100644 100644 {Hash} {OtherHash} {path}";
@@ -20,7 +20,7 @@ public class StatusParserTests
     public void GivenBranchWithUpstream_WhenParsing_ThenHeaderIsRead()
     {
         var output = Output(
-            "# branch.oid " + Hash,
+            $"# branch.oid {Hash}",
             "# branch.head main",
             "# branch.upstream origin/main",
             "# branch.ab +3 -12");
@@ -36,7 +36,7 @@ public class StatusParserTests
     [Fact]
     public void GivenBranchWithoutUpstream_WhenParsing_ThenNoCounts()
     {
-        var output = Output("# branch.oid " + Hash, "# branch.head main");
+        var output = Output($"# branch.oid {Hash}", "# branch.head main");
 
         var branch = StatusParser.Parse(output).Branch;
 
@@ -48,7 +48,7 @@ public class StatusParserTests
     [Fact]
     public void GivenDetachedHead_WhenParsing_ThenNoBranchName()
     {
-        var output = Output("# branch.oid " + Hash, "# branch.head (detached)");
+        var output = Output($"# branch.oid {Hash}", "# branch.head (detached)");
 
         var head = StatusParser.Parse(output).Branch.Head;
 
@@ -68,7 +68,7 @@ public class StatusParserTests
     [Fact]
     public void GivenUpstreamThatIsGone_WhenParsing_ThenUpstreamKeptWithoutCounts()
     {
-        var output = Output("# branch.oid " + Hash, "# branch.head main", "# branch.upstream origin/main");
+        var output = Output($"# branch.oid {Hash}", "# branch.head main", "# branch.upstream origin/main");
 
         var branch = StatusParser.Parse(output).Branch;
 
@@ -208,7 +208,7 @@ public class StatusParserTests
     [Fact]
     public void GivenUnknownRecordsAndHeaders_WhenParsing_ThenWarnedAndRestParsed()
     {
-        var output = Output("# branch.oid " + Hash, "# branch.head main", "# future.header 1", "# stash 2", "x something", Ordinary(".M", "ok.txt"));
+        var output = Output($"# branch.oid {Hash}", "# branch.head main", "# future.header 1", "# stash 2", "x something", Ordinary(".M", "ok.txt"));
 
         var result = StatusParser.Parse(output);
 

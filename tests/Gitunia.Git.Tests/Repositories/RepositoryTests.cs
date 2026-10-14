@@ -19,9 +19,9 @@ public class RepositoryTests
     {
         using var testRepository = TestRepositories.Linear(1);
 
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
-        var expected = Canonical(testRepository, testRepository.Path);
+        var expected = Canonical(testRepository, testRepository.WorkingTreePath);
         Assert.Equal(expected, Normalize(repository.Location.WorkingTreePath!));
         Assert.Equal(Path.Combine(expected, ".git"), Normalize(repository.Location.GitDirectory));
         Assert.Equal(Normalize(repository.Location.GitDirectory), Normalize(repository.Location.CommonDirectory));
@@ -33,7 +33,7 @@ public class RepositoryTests
     public async Task GivenDefaultOptions_WhenCommandExitsWithOne_ThenItThrows()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         await Assert.ThrowsAsync<GitCommandFailedException>(() => repository.RunAsync(["config", "--get", "no.such.key"], null, Token));
     }
@@ -42,7 +42,7 @@ public class RepositoryTests
     public async Task GivenAcceptedExitCode_WhenCommandExitsWithOne_ThenItReturnsTheResult()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await repository.RunAsync(["config", "--get", "no.such.key"], GitRunOptions.ReadOnlyRunAllowingNoMatch, Token);
 
@@ -54,9 +54,9 @@ public class RepositoryTests
     {
         using var testRepository = TestRepository.Create().Commit("Nested", new TestFile(Path.Combine("a", "b", "file.txt"), "x\n"));
 
-        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, "a", "b"), Token);
+        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.WorkingTreePath, "a", "b"), Token);
 
-        Assert.Equal(Canonical(testRepository, testRepository.Path), Normalize(repository.Location.WorkingTreePath!));
+        Assert.Equal(Canonical(testRepository, testRepository.WorkingTreePath), Normalize(repository.Location.WorkingTreePath!));
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class RepositoryTests
     {
         using var testRepository = TestRepository.Create(bare: true);
 
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.True(repository.Location.IsBare);
         Assert.Null(repository.Location.WorkingTreePath);
@@ -75,7 +75,7 @@ public class RepositoryTests
     public async Task GivenLinkedWorktree_WhenOpening_ThenItIsFlaggedAndSharesCommonDirectory()
     {
         using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
-        var main = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var main = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var linked = await Repository.OpenAsync(Runner, worktreePath, Token);
 
@@ -92,16 +92,16 @@ public class RepositoryTests
     {
         using var testRepository = TestRepositories.Linear(1);
 
-        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, ".git", "refs"), Token);
+        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.WorkingTreePath, ".git", "refs"), Token);
 
-        Assert.Equal(Canonical(testRepository, testRepository.Path), Normalize(repository.Location.WorkingTreePath!));
+        Assert.Equal(Canonical(testRepository, testRepository.WorkingTreePath), Normalize(repository.Location.WorkingTreePath!));
     }
 
     [Fact]
     public async Task GivenPathInsideLinkedWorktreeGitDirectory_WhenOpening_ThenLinkedWorkingTreeIsFound()
     {
         using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
-        var linkedGitDirectory = Path.Combine(testRepository.Path, ".git", "worktrees", "wt");
+        var linkedGitDirectory = Path.Combine(testRepository.WorkingTreePath, ".git", "worktrees", "wt");
 
         var repository = await Repository.OpenAsync(Runner, linkedGitDirectory, Token);
 
@@ -112,7 +112,7 @@ public class RepositoryTests
     [Fact]
     public async Task GivenDirectoryOutsideAnyRepository_WhenOpening_ThenNotARepository()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-plain-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-plain-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(directory);
         try
         {
@@ -127,7 +127,7 @@ public class RepositoryTests
     [Fact]
     public async Task GivenMissingDirectory_WhenOpening_ThenNotARepository()
     {
-        var missing = Path.Combine(Path.GetTempPath(), "gitunia-missing-" + Guid.NewGuid().ToString("N"));
+        var missing = Path.Combine(Path.GetTempPath(), $"gitunia-missing-{Guid.NewGuid().ToString("N")}");
 
         await Assert.ThrowsAsync<NotARepositoryException>(() => Repository.OpenAsync(Runner, missing, Token));
     }
@@ -136,7 +136,7 @@ public class RepositoryTests
     public async Task GivenCommits_WhenReadingHead_ThenBranchWithHash()
     {
         using var testRepository = TestRepositories.Linear(2);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var head = await repository.ReadHeadAsync(Token);
 
@@ -148,7 +148,7 @@ public class RepositoryTests
     {
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var head = await repository.ReadHeadAsync(Token);
 
@@ -161,7 +161,7 @@ public class RepositoryTests
     public async Task GivenUnbornBranch_WhenReadingHead_ThenBranchWithoutCommit()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var head = await repository.ReadHeadAsync(Token);
 
@@ -171,8 +171,8 @@ public class RepositoryTests
     [Fact]
     public async Task GivenCleanRepository_WhenDetectingOperation_ThenNone()
     {
-        using var testRepository = TestRepositories.Branchy();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.None, repository.DetectOperation());
     }
@@ -181,7 +181,7 @@ public class RepositoryTests
     public async Task GivenConflictedMerge_WhenDetectingOperation_ThenMerge()
     {
         using var testRepository = TestRepositories.Conflicted();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.Merge, repository.DetectOperation());
     }
@@ -192,7 +192,7 @@ public class RepositoryTests
         using var testRepository = TestRepositories.Conflicted();
         testRepository.Git(["merge", "--abort"], null);
         testRepository.Git(["rebase", "other"], [1]);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.Rebase, repository.DetectOperation());
     }
@@ -203,7 +203,7 @@ public class RepositoryTests
         using var testRepository = TestRepositories.Conflicted();
         testRepository.Git(["merge", "--abort"], null);
         testRepository.Git(["cherry-pick", "other"], [1]);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.CherryPick, repository.DetectOperation());
     }
@@ -216,7 +216,7 @@ public class RepositoryTests
             .Commit("Two", new TestFile("file.txt", "two\n"))
             .Commit("Three", new TestFile("file.txt", "three\n"));
         testRepository.Git(["revert", "--no-edit", "HEAD~1"], [1]);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.Revert, repository.DetectOperation());
     }
@@ -226,7 +226,7 @@ public class RepositoryTests
     {
         using var testRepository = TestRepositories.Linear(3);
         testRepository.Git("bisect", "start");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.Bisect, repository.DetectOperation());
     }
@@ -236,9 +236,9 @@ public class RepositoryTests
     {
         using var testRepository = TestRepository.Create().Commit("Odd", new TestFile(Path.Combine("sub dir ünï", "file.txt"), "x\n"));
 
-        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, "sub dir ünï"), Token);
+        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.WorkingTreePath, "sub dir ünï"), Token);
 
-        Assert.Equal(Canonical(testRepository, testRepository.Path), Normalize(repository.Location.WorkingTreePath!));
+        Assert.Equal(Canonical(testRepository, testRepository.WorkingTreePath), Normalize(repository.Location.WorkingTreePath!));
     }
 
     [Fact]
@@ -246,11 +246,11 @@ public class RepositoryTests
     {
         using var source = TestRepositories.Linear(1);
         using var bare = TestRepository.Create(bare: true);
-        source.Git("push", "-q", bare.Path, "main");
+        source.Git("push", "-q", bare.WorkingTreePath, "main");
         var worktreePath = bare.AddWorktree("from-bare", "main");
 
         var repository = await Repository.OpenAsync(Runner, worktreePath, Token);
-        var bareRepository = await Repository.OpenAsync(Runner, bare.Path, Token);
+        var bareRepository = await Repository.OpenAsync(Runner, bare.WorkingTreePath, Token);
 
         Assert.True(repository.Location.IsLinkedWorktree);
         Assert.False(repository.Location.IsBare);
@@ -262,7 +262,7 @@ public class RepositoryTests
     public async Task GivenRelativeWorktreePointer_WhenOpeningInsideItsGitDirectory_ThenWorkingTreeIsFound()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var worktreePath = Path.Combine(Path.GetDirectoryName(testRepository.Path)!, "relative-wt");
+        var worktreePath = Path.Combine(Path.GetDirectoryName(testRepository.WorkingTreePath)!, "relative-wt");
         string output;
         try
         {
@@ -270,11 +270,11 @@ public class RepositoryTests
         }
         catch (GitCommandFailedException)
         {
-            return; // git older than 2.48 has no --relative-paths
+            return; // Git older than 2.48 has no --relative-paths
         }
 
         Assert.NotNull(output);
-        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, ".git", "worktrees", "relative-wt"), Token);
+        var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.WorkingTreePath, ".git", "worktrees", "relative-wt"), Token);
 
         Assert.Equal(Canonical(testRepository, worktreePath), Normalize(repository.Location.WorkingTreePath!));
     }
@@ -283,8 +283,8 @@ public class RepositoryTests
     public async Task GivenSeparateGitDirectory_WhenOpeningInsideIt_ThenFailsUnlessCoreWorktreeIsSet()
     {
         using var testRepository = TestRepository.Create();
-        var separate = Path.Combine(Path.GetDirectoryName(testRepository.Path)!, "separate.git");
-        var worktree = Path.Combine(Path.GetDirectoryName(testRepository.Path)!, "separate-work");
+        var separate = Path.Combine(Path.GetDirectoryName(testRepository.WorkingTreePath)!, "separate.git");
+        var worktree = Path.Combine(Path.GetDirectoryName(testRepository.WorkingTreePath)!, "separate-work");
         Directory.CreateDirectory(worktree);
         testRepository.Git("init", "-q", "-b", "main", "--separate-git-dir", separate, worktree);
 
@@ -311,7 +311,7 @@ public class RepositoryTests
         testRepository.Git(["-C", worktreePath, "merge", "-q", "other"], [1]);
 
         var linked = await Repository.OpenAsync(Runner, worktreePath, Token);
-        var main = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var main = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.Merge, linked.DetectOperation());
         Assert.Equal(RepositoryOperation.None, main.DetectOperation());
@@ -328,7 +328,7 @@ public class RepositoryTests
             .Checkout("main")
             .Commit("Main a", new TestFile("a.txt", "main a\n"));
         testRepository.Git(["cherry-pick", "other~1", "other"], [1]);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(RepositoryOperation.CherryPick, repository.DetectOperation());
     }
@@ -339,7 +339,7 @@ public class RepositoryTests
         using var testRepository = TestRepositories.Conflicted();
         testRepository.Git(["merge", "--abort"], null);
         testRepository.Git(["rebase", "other"], [1]);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Equal(HeadKind.Detached, (await repository.ReadHeadAsync(Token)).Kind);
     }

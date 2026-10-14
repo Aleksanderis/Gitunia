@@ -86,7 +86,7 @@ public sealed partial class App
     private void GoEnd()
     {
         Cursor.ToEnd(Count);
-        _gotoEndWhenDone = _focus == Pane.Graph && _loading; // keep following the end until the stream finishes
+        _gotoEndWhenDone = _focus == Pane.Graph && _loading; // Keep following the end until the stream finishes
     }
 
     private bool OnSearchKey(KeyEvent key)

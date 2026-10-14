@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Search;
 using Gitunia.Git.Refs.Models;
 using Xunit;
@@ -8,7 +9,7 @@ public class RefJumpResolverTests
 {
     private static GitRef Ref(string name, RefKind kind, int commit, bool isCurrent = false, string? symbolicTarget = null)
     {
-        var hash = commit.ToString("x40", System.Globalization.CultureInfo.InvariantCulture);
+        var hash = commit.ToString("x40", CultureInfo.InvariantCulture);
         var prefix = kind switch
         {
             RefKind.LocalBranch => "refs/heads/",

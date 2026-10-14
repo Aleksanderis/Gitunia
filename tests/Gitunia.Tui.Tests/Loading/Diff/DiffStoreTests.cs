@@ -91,7 +91,7 @@ public class DiffStoreTests
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("big.txt", "start\n"));
         testRepository.Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, 2000).Select(index => $"line {index}\n"))), new TestFile("other.txt", "x\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         using var store = new DiffStore(repository, action => action(), rowLimit: 100);
 
         var document = await LoadAsync(store, testRepository, "HEAD", "HEAD~1");
@@ -154,7 +154,7 @@ public class DiffStoreTests
             .Commit("root", new TestFile("a.txt", "one\n"))
             .Commit("second", new TestFile("a.txt", "two\n"))
             .Commit("third", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
         var changed = 0;
         store.Changed += () => changed++;
@@ -178,7 +178,7 @@ public class DiffStoreTests
             .Commit("root", new TestFile("a.txt", "one\n"))
             .Commit("second", new TestFile("a.txt", "two\n"))
             .Commit("third", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var gate = new TaskCompletionSource();
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var store = new DiffStore(repository, action => action(), delay: async (_, token) =>
@@ -213,7 +213,7 @@ public class DiffStoreTests
             .Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, DiffStore.PrefetchRowLimit + 100).Select(index => $"line {index}\n"))))
             .Commit("small", new TestFile("a.txt", "two\n"))
             .Commit("tip", new TestFile("a.txt", "three\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
 
         store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), [IdOf(testRepository, "HEAD~2"), IdOf(testRepository, "HEAD~1")]);
@@ -230,7 +230,7 @@ public class DiffStoreTests
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("big.txt", "start\n"));
         testRepository.Commit("big", new TestFile("big.txt", string.Concat(Enumerable.Range(0, 2000).Select(index => $"line {index}\n"))));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         using var store = new DiffStore(repository, action => action(), rowLimit: 100);
 
         await LoadAsync(store, testRepository, "HEAD", "HEAD~1");
@@ -243,7 +243,7 @@ public class DiffStoreTests
     public async Task GivenACacheReleasedWhileLoading_WhenTheLoadFinishes_ThenNothingIsCached()
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "one\n")).Commit("second", new TestFile("a.txt", "two\n"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         using var store = new DiffStore(repository, action => action(), delay: (_, _) => Task.CompletedTask);
 
         store.Load(IdOf(testRepository, "HEAD"), IdOf(testRepository, "HEAD~1"), [IdOf(testRepository, "HEAD~1")]);
@@ -304,7 +304,7 @@ public class DiffStoreTests
 
     private static async Task<DiffStore> CreateStoreAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         return new DiffStore(repository, action => action());
     }
 

@@ -51,7 +51,7 @@ public class DiffWrapMapTests
     [Fact]
     public void GivenATabHeavyRow_WhenCountingSegments_ThenEveryColumnOfTheExpandedTextIsReachable()
     {
-        var row = new DiffRow(DiffRowKind.Added, new string('\t', 7) + "abcdefghijk", null, 1, 0);
+        var row = new DiffRow(DiffRowKind.Added, $"{new string('\t', 7)}abcdefghijk", null, 1, 0);
         var count = DiffRowRenderer.SegmentCount(row, 45, 3);
 
         var text = string.Concat(Enumerable.Range(0, count).Select(segment =>
@@ -131,10 +131,10 @@ public class DiffWrapMapTests
         {
             texts.Add(new string('\t', length / 4) + new string('a', length % 4));
             texts.Add(new string('\u00e9', length));
-            texts.Add("\t" + new string('\u00fc', length) + "\t");
+            texts.Add($"\t{new string('\u00fc', length)}\t");
             texts.Add(new string('\u65e5', length));
-            texts.Add("e\u0301" + new string('x', length));
-            texts.Add("a\u0001b" + new string('\t', length % 3));
+            texts.Add($"e\u0301{new string('x', length)}");
+            texts.Add($"a\u0001b{new string('\t', length % 3)}");
         }
 
         var kinds = new[] { DiffRowKind.Added, DiffRowKind.HunkHeader, DiffRowKind.Note };

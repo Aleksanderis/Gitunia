@@ -41,7 +41,7 @@ if (expectAfterJ.Length > 0)
     session.Settle(300);
     var found = session.Output[before..].Contains(expectAfterJ, StringComparison.Ordinal);
     jOk &= found;
-    jDetail += $", contains '{expectAfterJ}': {found}";
+    jDetail = $"{jDetail}, contains '{expectAfterJ}': {found}";
 }
 
 Check("j changes the frame", jOk, jDetail);
@@ -57,7 +57,7 @@ if (expectAfterResize.Length > 0)
     session.Settle(300);
     var found = session.Output[before..].Contains(expectAfterResize, StringComparison.Ordinal);
     rOk &= found;
-    rDetail += $", app redrew ('{expectAfterResize}'): {found}";
+    rDetail = $"{rDetail}, app redrew ('{expectAfterResize}'): {found}";
 }
 
 Check("resize triggers a redraw", rOk, rDetail);
@@ -121,13 +121,13 @@ internal sealed class PtySession : IDisposable
     {
         if (!Native.CreatePipe(out var inputRead, out _inputWrite, 0, 0) || !Native.CreatePipe(out _outputRead, out var outputWrite, 0, 0))
         {
-            throw new InvalidOperationException("CreatePipe failed " + Marshal.GetLastWin32Error());
+            throw new InvalidOperationException($"CreatePipe failed {Marshal.GetLastWin32Error()}");
         }
 
         var result = Native.CreatePseudoConsole(new Native.Coord { X = columns, Y = rows }, inputRead, outputWrite, 0, out _pseudoConsole);
         if (result != 0)
         {
-            throw new InvalidOperationException("CreatePseudoConsole failed 0x" + result.ToString("x"));
+            throw new InvalidOperationException($"CreatePseudoConsole failed 0x{result.ToString("x")}");
         }
 
         nint size = 0;
@@ -135,12 +135,12 @@ internal sealed class PtySession : IDisposable
         var attributeList = Marshal.AllocHGlobal(size);
         if (!Native.InitializeProcThreadAttributeList(attributeList, 1, 0, ref size))
         {
-            throw new InvalidOperationException("InitializeProcThreadAttributeList failed " + Marshal.GetLastWin32Error());
+            throw new InvalidOperationException($"InitializeProcThreadAttributeList failed {Marshal.GetLastWin32Error()}");
         }
 
         if (!Native.UpdateProcThreadAttribute(attributeList, 0, 0x20016, _pseudoConsole, nint.Size, 0, 0))
         {
-            throw new InvalidOperationException("UpdateProcThreadAttribute failed " + Marshal.GetLastWin32Error());
+            throw new InvalidOperationException($"UpdateProcThreadAttribute failed {Marshal.GetLastWin32Error()}");
         }
 
         var startupInfo = new Native.StartupInfoEx { AttributeList = attributeList };
@@ -151,7 +151,7 @@ internal sealed class PtySession : IDisposable
         startupInfo.StartupInfo.Flags = 0x100;
         if (!Native.CreateProcess(null, commandLine, 0, 0, false, 0x80000, 0, null, ref startupInfo, out var processInformation))
         {
-            throw new InvalidOperationException("CreateProcess failed " + Marshal.GetLastWin32Error() + " for " + executablePath);
+            throw new InvalidOperationException($"CreateProcess failed {Marshal.GetLastWin32Error()} for {executablePath}");
         }
 
         _process = processInformation.Process;

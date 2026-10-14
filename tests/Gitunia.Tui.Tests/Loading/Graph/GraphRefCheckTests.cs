@@ -90,7 +90,7 @@ public class GraphRefCheckTests
 
     private static async Task<GraphEntry[]> ReadRowsAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
         await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, CancellationToken.None))
         {
@@ -102,7 +102,7 @@ public class GraphRefCheckTests
 
     private static async Task<RepositorySnapshot> ReadSnapshotAsync(TestRepository testRepository)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         var result = await RepositoryRefresher.RefreshAsync(repository, null, RepositoryChangeKinds.All, CancellationToken.None);
         return result.Snapshot;
     }

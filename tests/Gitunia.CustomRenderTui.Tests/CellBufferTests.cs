@@ -62,7 +62,7 @@ public class CellBufferTests
         var output = Flush(buffer);
 
         Assert.StartsWith("\e[2J", output, StringComparison.Ordinal);
-        Assert.Equal((12 * 4) - 2, output.Count(character => character == ' ')); // every cell except "Hi" is written, even though unchanged
+        Assert.Equal((12 * 4) - 2, output.Count(character => character == ' ')); // Every cell except "Hi" is written, even though unchanged
     }
 
     [Fact]

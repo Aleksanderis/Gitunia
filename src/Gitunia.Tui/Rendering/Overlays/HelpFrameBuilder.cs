@@ -48,7 +48,7 @@ public static class HelpFrameBuilder
         var content = Flatten(sections, keysWidth, width, glyphs);
         var first = Math.Clamp(scroll, 0, Math.Max(0, content.Count - rowCount));
 
-        var lines = new List<StyledLine> { OverlayBox.Title(title ?? "Keys: " + view, width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(title ?? $"Keys: {view}", width, glyphs) };
         lines.AddRange(content.Skip(first).Take(rowCount));
         lines.Add(OverlayBox.Text(
             content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}  list keys scroll  Esc close" : "Esc close",
@@ -108,7 +108,7 @@ public static class HelpFrameBuilder
             }
             else if (TextWidth.Of(current) + 1 + TextWidth.Of(remaining) <= columns)
             {
-                current += " " + remaining;
+                current = $"{current} {remaining}";
             }
             else
             {
@@ -157,8 +157,8 @@ public static class HelpFrameBuilder
     {
         var inner = OverlayBox.InnerWidth(width);
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
-            .Append("  " + keys, SegmentRole.OverlayKey)
-            .Append("  " + description, SegmentRole.Plain);
+            .Append($"  {keys}", SegmentRole.OverlayKey)
+            .Append($"  {description}", SegmentRole.Plain);
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 }

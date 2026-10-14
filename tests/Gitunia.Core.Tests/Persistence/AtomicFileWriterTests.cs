@@ -9,7 +9,7 @@ public class AtomicFileWriterTests
     public async Task GivenExistingFile_WhenWriteIsCancelled_ThenOriginalContentSurvivesAndNoTemporaryFileRemains()
     {
         using var directory = new TemporaryDirectory();
-        var path = Path.Combine(directory.Path, "data.json");
+        var path = Path.Combine(directory.DirectoryPath, "data.json");
         await File.WriteAllTextAsync(path, "original", TestContext.Current.CancellationToken);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
@@ -18,14 +18,14 @@ public class AtomicFileWriterTests
             () => AtomicFileWriter.WriteAsync(path, "replacement"u8.ToArray(), cancellation.Token));
 
         Assert.Equal("original", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
-        Assert.Equal([path], Directory.GetFiles(directory.Path));
+        Assert.Equal([path], Directory.GetFiles(directory.DirectoryPath));
     }
 
     [Fact]
     public async Task GivenMissingDirectory_WhenWriting_ThenDirectoryIsCreatedAndContentWritten()
     {
         using var directory = new TemporaryDirectory();
-        var path = Path.Combine(directory.Path, "a", "b", "data.json");
+        var path = Path.Combine(directory.DirectoryPath, "a", "b", "data.json");
 
         await AtomicFileWriter.WriteAsync(path, "hello"u8.ToArray(), TestContext.Current.CancellationToken);
 

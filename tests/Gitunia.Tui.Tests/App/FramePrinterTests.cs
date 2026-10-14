@@ -141,7 +141,7 @@ public class FramePrinterTests
     private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes, PaletteSettings? colors = null)
     {
         var runner = new GitRunner();
-        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, Token);
+        var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, Token);
         using var writer = new StringWriter();
         await FramePrinter.PrintAsync(runner, location, width, height, GraphGlyphSet.Unicode, writer, arrangement, tab, colors, Token);
         return [.. writer.ToString().Split('\n')];

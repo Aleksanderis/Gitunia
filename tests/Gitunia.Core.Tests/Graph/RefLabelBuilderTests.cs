@@ -77,8 +77,8 @@ public class RefLabelBuilderTests
     }
 
     private static CommitDecoration Local(string name, bool isCurrent) =>
-        new("refs/heads/" + name, name, RefKind.LocalBranch, isCurrent);
+        new($"refs/heads/{name}", name, RefKind.LocalBranch, isCurrent);
 
     private static CommitDecoration Remote(string name) =>
-        new("refs/remotes/" + name, name, RefKind.RemoteBranch, false);
+        new($"refs/remotes/{name}", name, RefKind.RemoteBranch, false);
 }

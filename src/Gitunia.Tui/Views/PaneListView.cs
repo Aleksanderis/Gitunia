@@ -14,9 +14,9 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class PaneListView : ListView
 {
-    private readonly DragTracker drag = new();
-    private int lastPointerRow;
-    private bool isAutoScrolling;
+    private readonly DragTracker _drag = new();
+    private int _lastPointerRow;
+    private bool _isAutoScrolling;
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public Func<bool> IsSuppressed { get; set; } = () => false;
@@ -40,7 +40,7 @@ public sealed class PaneListView : ListView
             return true;
         }
 
-        var phase = mouse.Position is { } position ? drag.Feed(mouse.Flags, position.X, position.Y) : DragPhase.None;
+        var phase = mouse.Position is { } position ? _drag.Feed(mouse.Flags, position.X, position.Y) : DragPhase.None;
         DragGrab.Update(this, mouse.Flags, phase);
         if (phase != DragPhase.None)
         {
@@ -71,20 +71,20 @@ public sealed class PaneListView : ListView
 
         if (phase == DragPhase.Press)
         {
-            isAutoScrolling = false;
+            _isAutoScrolling = false;
             return base.OnMouseEvent(mouse);
         }
 
         if (phase == DragPhase.Start)
         {
             FocusPane();
-            SelectItem(drag.Origin.Y);
+            SelectItem(_drag.Origin.Y);
             GestureRaised?.Invoke(MouseGesture.DragStart, null);
         }
 
         if (phase is DragPhase.Start or DragPhase.Move && mouse.Position is { } position)
         {
-            lastPointerRow = position.Y;
+            _lastPointerRow = position.Y;
             var visibleRows = Viewport.Height;
             if (DragAutoScroll.Step(position.Y, visibleRows) == 0)
             {
@@ -102,18 +102,18 @@ public sealed class PaneListView : ListView
     // While the pointer rests above or below the pane no events arrive, so a timer keeps moving the cursor until it is back inside or released.
     private void StartAutoScroll()
     {
-        if (isAutoScrolling || App is null)
+        if (_isAutoScrolling || App is null)
         {
             return;
         }
 
-        isAutoScrolling = true;
+        _isAutoScrolling = true;
         App.AddTimeout(DragAutoScroll.Interval, () =>
         {
-            var step = DragAutoScroll.Step(lastPointerRow, Viewport.Height);
-            if (!drag.IsPressed || step == 0 || IsSuppressed())
+            var step = DragAutoScroll.Step(_lastPointerRow, Viewport.Height);
+            if (!_drag.IsPressed || step == 0 || IsSuppressed())
             {
-                isAutoScrolling = false;
+                _isAutoScrolling = false;
                 return false;
             }
 
@@ -121,7 +121,7 @@ public sealed class PaneListView : ListView
             var target = Math.Clamp((SelectedItem ?? 0) + step, 0, Math.Max(count - 1, 0));
             if (target == (SelectedItem ?? 0))
             {
-                isAutoScrolling = false;
+                _isAutoScrolling = false;
                 return false;
             }
 

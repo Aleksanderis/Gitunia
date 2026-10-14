@@ -10,8 +10,8 @@ public class WorktreeParserTests
     [Fact]
     public void GivenMainAndLinkedWorktrees_WhenParsing_ThenFirstIsMain()
     {
-        var output = Record("worktree /work/repo", "HEAD " + Hash, "branch refs/heads/main")
-            + Record("worktree /work/wt with space", "HEAD " + Hash, "branch refs/heads/feature");
+        var output = Record("worktree /work/repo", $"HEAD {Hash}", "branch refs/heads/main")
+            + Record("worktree /work/wt with space", $"HEAD {Hash}", "branch refs/heads/feature");
 
         var worktrees = WorktreeParser.Parse(output).Items;
 
@@ -36,7 +36,7 @@ public class WorktreeParserTests
     [Fact]
     public void GivenDetachedHead_WhenParsing_ThenNoBranch()
     {
-        var output = Record("worktree /work/repo", "HEAD " + Hash, "detached");
+        var output = Record("worktree /work/repo", $"HEAD {Hash}", "detached");
 
         var worktree = Assert.Single(WorktreeParser.Parse(output).Items);
 
@@ -47,8 +47,8 @@ public class WorktreeParserTests
     [Fact]
     public void GivenLockedWithAndWithoutReason_WhenParsing_ThenReasonIsKept()
     {
-        var output = Record("worktree /a", "HEAD " + Hash, "branch refs/heads/a", "locked on a usb stick")
-            + Record("worktree /b", "HEAD " + Hash, "branch refs/heads/b", "locked");
+        var output = Record("worktree /a", $"HEAD {Hash}", "branch refs/heads/a", "locked on a usb stick")
+            + Record("worktree /b", $"HEAD {Hash}", "branch refs/heads/b", "locked");
 
         var worktrees = WorktreeParser.Parse(output).Items;
 
@@ -61,7 +61,7 @@ public class WorktreeParserTests
     [Fact]
     public void GivenPrunableWorktree_WhenParsing_ThenFlaggedWithReason()
     {
-        var output = Record("worktree /gone", "HEAD " + Hash, "branch refs/heads/gone", "prunable gitdir file points to non-existent location");
+        var output = Record("worktree /gone", $"HEAD {Hash}", "branch refs/heads/gone", "prunable gitdir file points to non-existent location");
 
         var worktree = Assert.Single(WorktreeParser.Parse(output).Items);
 
@@ -82,7 +82,7 @@ public class WorktreeParserTests
     [Fact]
     public void GivenUnknownAttributeAndMissingTerminator_WhenParsing_ThenWarnsAndKeepsRecord()
     {
-        var output = "worktree /work/repo\0HEAD " + Hash + "\0future-thing 1";
+        var output = $"worktree /work/repo\0HEAD {Hash}\0future-thing 1";
 
         var result = WorktreeParser.Parse(output);
 
@@ -93,11 +93,11 @@ public class WorktreeParserTests
     [Fact]
     public void GivenRecordWithoutPath_WhenParsing_ThenSkippedWithWarning()
     {
-        var result = WorktreeParser.Parse(Record("HEAD " + Hash));
+        var result = WorktreeParser.Parse(Record($"HEAD {Hash}"));
 
         Assert.Empty(result.Items);
         Assert.Single(result.Warnings);
     }
 
-    private static string Record(params string[] attributes) => string.Join('\0', attributes) + "\0\0";
+    private static string Record(params string[] attributes) => $"{string.Join('\0', attributes)}\0\0";
 }

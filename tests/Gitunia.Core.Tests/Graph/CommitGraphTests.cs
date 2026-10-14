@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Graph;
 using Gitunia.Git;
 using Xunit;
@@ -8,14 +9,14 @@ public class CommitGraphTests
 {
     private static ObjectId Id(int number)
     {
-        Assert.True(ObjectId.TryParse(number.ToString("x40", System.Globalization.CultureInfo.InvariantCulture), out var id));
+        Assert.True(ObjectId.TryParse(number.ToString("x40", CultureInfo.InvariantCulture), out var id));
         return id;
     }
 
     private static GraphEntry Entry(int number, int laneCount)
     {
         var row = new GraphRow(Id(number), 0, laneCount, []);
-        return new GraphEntry(Id(number), "commit " + number, "Author", DateTimeOffset.UnixEpoch, [], row);
+        return new GraphEntry(Id(number), $"commit {number}", "Author", DateTimeOffset.UnixEpoch, [], row);
     }
 
     [Fact]

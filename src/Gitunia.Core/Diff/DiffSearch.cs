@@ -20,7 +20,7 @@ public static class DiffSearch
         var matches = FindMatches(document, state.Text);
         if (matches.Count == 0)
         {
-            return new DiffSearchUpdate(DiffSearchState.Idle with { Notice = "No match: " + state.Text }, null);
+            return new DiffSearchUpdate(DiffSearchState.Idle with { Notice = $"No match: {state.Text}" }, null);
         }
 
         var target = matches.FirstOrDefault(match => match >= row, matches[0]);

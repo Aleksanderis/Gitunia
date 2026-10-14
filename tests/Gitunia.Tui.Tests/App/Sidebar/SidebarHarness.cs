@@ -22,20 +22,20 @@ namespace Gitunia.Tui.Tests.App.Sidebar;
 /// <summary>A loaded tab with a sidebar handler wired to recorders instead of views.</summary>
 public sealed class SidebarHarness : IDisposable
 {
-    private readonly TabSession session;
-    private readonly TabSession emptySession;
+    private readonly TabSession _session;
+    private readonly TabSession _emptySession;
 
     private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, Repository repository)
     {
         Host = host;
-        this.session = session;
-        emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
-        emptySession.Complete();
+        _session = session;
+        _emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
+        _emptySession.Complete();
         Source = source;
         Handler = new SidebarActionHandler(
             host,
             source,
-            () => HideGraph ? emptySession : session,
+            () => HideGraph ? _emptySession : session,
             () => 10,
             () => SidebarVisible,
             () => DetailVisible,
@@ -93,7 +93,7 @@ public sealed class SidebarHarness : IDisposable
 
     public void Dispose()
     {
-        session.Dispose();
-        emptySession.Dispose();
+        _session.Dispose();
+        _emptySession.Dispose();
     }
 }

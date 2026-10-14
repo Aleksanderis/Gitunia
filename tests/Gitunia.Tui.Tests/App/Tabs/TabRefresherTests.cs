@@ -62,8 +62,8 @@ public class TabRefresherTests
         repository.Commit("root", new TestFile("a.txt", "1"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
-        var gitDirectory = Path.Combine(repository.Path, ".git");
-        var moved = Path.Combine(repository.Path, ".git-moved");
+        var gitDirectory = Path.Combine(repository.WorkingTreePath, ".git");
+        var moved = Path.Combine(repository.WorkingTreePath, ".git-moved");
         Directory.Move(gitDirectory, moved);
         try
         {
@@ -190,11 +190,11 @@ public class TabRefresherTests
 
     private sealed class Harness : IDisposable
     {
-        private readonly Func<int> runCount;
+        private readonly Func<int> _runCount;
 
         private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
         {
-            this.runCount = runCount;
+            _runCount = runCount;
             FinishLoadAsync = finishLoad;
             Reloads = reloads;
             Pump = pump;
@@ -208,7 +208,7 @@ public class TabRefresherTests
         public UiPump Pump { get; }
 
         /// <summary>Number of callbacks the refresher posted that the pump has already run (watcher events applied before the load finished). Counted after the run, not at post time: a posted callback still queued has not told the refresher about the change yet.</summary>
-        public int RunCount => runCount();
+        public int RunCount => _runCount();
 
         public Func<Task> FinishLoadAsync { get; }
 
@@ -240,7 +240,7 @@ public class TabRefresherTests
         private static async Task<Harness> CreateAsync(TestRepository repository, bool start, bool loadFirst)
         {
             var runner = new GitRunner();
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;

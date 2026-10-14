@@ -32,8 +32,8 @@ public static class Screen
     private static void DrawChrome(CellBuffer buffer, ScreenModel model)
     {
         var width = buffer.Width;
-        buffer.Put(0, 0, (" ● Gitunia  ─  " + model.RepoName).PadRight(width), Style.Bold | Style.Reverse);
-        buffer.Put(0, 1, " 1 " + model.RepoName + " ", Style.Reverse);
+        buffer.Put(0, 0, ($" ● Gitunia  ─  {model.RepoName}").PadRight(width), Style.Bold | Style.Reverse);
+        buffer.Put(0, 1, $" 1 {model.RepoName} ", Style.Reverse);
         buffer.Put(4 + model.RepoName.Length, 1, " +  (tabs: M1)", Style.Dim);
     }
 
@@ -47,7 +47,7 @@ public static class Screen
         for (var row = 0; row < rows && top + row < model.Sidebar.Count; row++)
         {
             var item = model.Sidebar[top + row];
-            var text = item.Header ? "▾ " + item.Text : "  " + item.Text;
+            var text = item.Header ? $"▾ {item.Text}" : $"  {item.Text}";
             buffer.Put(x + 1, y + 1 + row, Clip(text, width - 2), item.Header ? Style.Bold : Style.None, item.Header ? (byte)110 : (byte)0);
             if (top + row == model.SidebarCursor.Selection && model.Focus == Pane.Sidebar)
             {

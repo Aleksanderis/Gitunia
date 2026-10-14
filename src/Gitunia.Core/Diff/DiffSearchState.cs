@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Gitunia.Core.Diff;
 
 /// <summary>A search inside one diff document.</summary>
@@ -27,7 +29,7 @@ public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOn
         var cursor = Phase == DiffSearchPhase.Editing ? "_" : string.Empty;
         var position = Matches.Count == 0 ? "0" : PositionOf(row);
         var text = $"/{Text}{cursor}  {position}/{Matches.Count}";
-        return Notice.Length > 0 ? text + "  " + Notice : text;
+        return Notice.Length > 0 ? $"{text}  {Notice}" : text;
     }
 
     private string PositionOf(int row)
@@ -36,7 +38,7 @@ public sealed record DiffSearchState(DiffSearchPhase Phase, string Text, IReadOn
         {
             if (Matches[index] == row)
             {
-                return (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return (index + 1).ToString(CultureInfo.InvariantCulture);
             }
         }
 

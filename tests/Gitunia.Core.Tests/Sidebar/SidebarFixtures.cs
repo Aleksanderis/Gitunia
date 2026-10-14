@@ -29,15 +29,15 @@ internal static class SidebarFixtures
     }
 
     public static GitRef Branch(string name, string? checkedOutIn = null, bool isCurrent = false, int? ahead = null, int? behind = null) =>
-        Ref("refs/heads/" + name, name, RefKind.LocalBranch, checkedOutIn, isCurrent, ahead, behind, null);
+        Ref($"refs/heads/{name}", name, RefKind.LocalBranch, checkedOutIn, isCurrent, ahead, behind, null);
 
     public static GitRef Remote(string name, string? symbolicTarget = null) =>
-        Ref("refs/remotes/" + name, name, RefKind.RemoteBranch, null, false, null, null, symbolicTarget);
+        Ref($"refs/remotes/{name}", name, RefKind.RemoteBranch, null, false, null, null, symbolicTarget);
 
-    public static GitRef Tag(string name) => Ref("refs/tags/" + name, name, RefKind.Tag, null, false, null, null, null);
+    public static GitRef Tag(string name) => Ref($"refs/tags/{name}", name, RefKind.Tag, null, false, null, null, null);
 
     public static WorktreeInfo Worktree(string path, string? branch, bool isMain = false, bool isLocked = false, bool isPrunable = false) =>
-        new(path, new string('a', 40), branch is null ? null : "refs/heads/" + branch, branch is null, false, isLocked, null, isPrunable, null, isMain);
+        new(path, new string('a', 40), branch is null ? null : $"refs/heads/{branch}", branch is null, false, isLocked, null, isPrunable, null, isMain);
 
     public static StashEntry Stash(int index, string message) => new(index, $"stash@{{{index}}}", new string('c', 40), message);
 

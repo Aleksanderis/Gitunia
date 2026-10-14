@@ -148,6 +148,6 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
 
         var wasPinned = host.Workspace.IsPinned(tab.Location.RootPath);
         host.Dispatch(new TogglePinCommand(tab.Location.RootPath));
-        Message = wasPinned ? "unpinned " + tab.DisplayName : "pinned " + tab.DisplayName + ": it stays at the top of the repository picker";
+        Message = wasPinned ? $"unpinned {tab.DisplayName}" : $"pinned {tab.DisplayName}: it stays at the top of the repository picker";
     }
 }

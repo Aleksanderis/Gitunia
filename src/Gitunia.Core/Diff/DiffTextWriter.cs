@@ -8,9 +8,9 @@ public static class DiffTextWriter
     /// <summary>One row as it reads in a diff: added, removed and context rows get their <c>+</c>, <c>-</c> or space prefix back.</summary>
     public static string Line(DiffRow row) => row.Kind switch
     {
-        DiffRowKind.Added => "+" + row.Text,
-        DiffRowKind.Removed => "-" + row.Text,
-        DiffRowKind.Context => " " + row.Text,
+        DiffRowKind.Added => $"+{row.Text}",
+        DiffRowKind.Removed => $"-{row.Text}",
+        DiffRowKind.Context => $" {row.Text}",
         _ => row.Text,
     };
 

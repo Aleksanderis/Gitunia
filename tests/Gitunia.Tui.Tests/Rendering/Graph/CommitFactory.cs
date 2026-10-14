@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Graph;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
@@ -11,7 +12,7 @@ public static class CommitFactory
     /// <summary>An id whose first seven hex digits are the number, so the short hash shown in the graph is readable.</summary>
     public static ObjectId Id(int number)
     {
-        Assert.True(ObjectId.TryParse(number.ToString("x7", System.Globalization.CultureInfo.InvariantCulture).PadRight(40, '0'), out var id));
+        Assert.True(ObjectId.TryParse(number.ToString("x7", CultureInfo.InvariantCulture).PadRight(40, '0'), out var id));
         return id;
     }
 

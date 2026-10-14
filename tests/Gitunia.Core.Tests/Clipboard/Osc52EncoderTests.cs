@@ -14,7 +14,7 @@ public class Osc52EncoderTests
         var result = Osc52Encoder.Encode("héllo", Direct);
 
         Assert.Equal(Osc52Status.Ready, result.Status);
-        Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes("héllo")) + "\u001b\\", result.Sequence);
+        Assert.Equal($"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes("héllo"))}\u001b\\", result.Sequence);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class Osc52EncoderTests
         Assert.All(chunks, chunk => Assert.StartsWith("\u001bP", chunk, StringComparison.Ordinal));
         Assert.All(chunks, chunk => Assert.True(chunk.Length <= 2 + 76));
         var joined = string.Concat(chunks.Select(chunk => chunk[2..]));
-        Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)) + "\a", joined);
+        Assert.Equal($"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\a", joined);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class Osc52EncoderTests
 
             var chunks = result.Sequence.Split("\u001b\\", StringSplitOptions.RemoveEmptyEntries);
             var joined = string.Concat(chunks.Select(chunk => chunk[2..]));
-            Assert.Equal("\u001b]52;c;" + Convert.ToBase64String(Encoding.UTF8.GetBytes(text)) + "\a", joined);
+            Assert.Equal($"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\a", joined);
             Assert.Equal(1, joined.Count(character => character == '\u001b'));
         }
     }

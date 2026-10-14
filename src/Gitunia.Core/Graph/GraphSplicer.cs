@@ -11,8 +11,8 @@ namespace Gitunia.Core.Graph;
 /// </summary>
 public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
 {
-    private Dictionary<ObjectId, int>? indexById;
-    private int highestObservedIndex = -1;
+    private Dictionary<ObjectId, int>? _indexById;
+    private int _highestObservedIndex = -1;
 
     /// <summary>Number of rows of the previous graph.</summary>
     public int PreviousCount => previous.Count;
@@ -29,8 +29,8 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
             return -1;
         }
 
-        var isAfterEarlierRows = previousIndex > highestObservedIndex;
-        highestObservedIndex = Math.Max(highestObservedIndex, previousIndex);
+        var isAfterEarlierRows = previousIndex > _highestObservedIndex;
+        _highestObservedIndex = Math.Max(_highestObservedIndex, previousIndex);
         return isAfterEarlierRows && SameLayout(previous[previousIndex].Row, entry.Row) ? previousIndex : -1;
     }
 
@@ -79,15 +79,15 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
 
     private Dictionary<ObjectId, int> IndexById()
     {
-        if (indexById is null)
+        if (_indexById is null)
         {
-            indexById = new Dictionary<ObjectId, int>(previous.Count);
+            _indexById = new Dictionary<ObjectId, int>(previous.Count);
             for (var index = 0; index < previous.Count; index++)
             {
-                indexById[previous[index].Id] = index;
+                _indexById[previous[index].Id] = index;
             }
         }
 
-        return indexById;
+        return _indexById;
     }
 }

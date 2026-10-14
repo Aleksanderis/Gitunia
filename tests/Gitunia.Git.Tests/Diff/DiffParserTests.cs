@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Tests.Fixtures;
@@ -186,7 +187,7 @@ public class DiffParserTests
     {
         var parser = new DiffParser();
         var files = new List<DiffFile>();
-        var bytes = System.Text.Encoding.UTF8.GetBytes(DiffFixtures.NoNewlineBothSides);
+        var bytes = Encoding.UTF8.GetBytes(DiffFixtures.NoNewlineBothSides);
         bytes[^40] = 0xFF;
         bytes[^41] = 0xFE;
 
@@ -205,7 +206,7 @@ public class DiffParserTests
         var files = new List<DiffFile>();
         var longestLine = patch.Split('\n').Max(line => line.Length);
 
-        foreach (var value in System.Text.Encoding.UTF8.GetBytes(patch))
+        foreach (var value in Encoding.UTF8.GetBytes(patch))
         {
             parser.Feed([value], files);
             Assert.True(parser.BufferedByteCount <= longestLine);

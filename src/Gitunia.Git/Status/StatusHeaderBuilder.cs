@@ -10,11 +10,11 @@ internal sealed class StatusHeaderBuilder
     private const string UnbornObjectName = "(initial)";
     private const string DetachedBranchName = "(detached)";
 
-    private string? objectName;
-    private string? branchName;
-    private string? upstream;
-    private int? ahead;
-    private int? behind;
+    private string? _objectName;
+    private string? _branchName;
+    private string? _upstream;
+    private int? _ahead;
+    private int? _behind;
 
     public void Add(string line, List<string> warnings)
     {
@@ -25,13 +25,13 @@ internal sealed class StatusHeaderBuilder
         switch (key)
         {
             case "branch.oid":
-                objectName = value;
+                _objectName = value;
                 break;
             case "branch.head":
-                branchName = value;
+                _branchName = value;
                 break;
             case "branch.upstream":
-                upstream = value;
+                _upstream = value;
                 break;
             case "branch.ab":
                 if (!TryParseCounts(value))
@@ -50,12 +50,12 @@ internal sealed class StatusHeaderBuilder
 
     public StatusBranch Build()
     {
-        var unborn = objectName == UnbornObjectName;
-        var commit = objectName is null || unborn ? null : objectName;
-        var head = branchName == DetachedBranchName
+        var unborn = _objectName == UnbornObjectName;
+        var commit = _objectName is null || unborn ? null : _objectName;
+        var head = _branchName == DetachedBranchName
             ? new HeadState(HeadKind.Detached, null, commit)
-            : new HeadState(unborn ? HeadKind.Unborn : HeadKind.Branch, branchName, commit);
-        return new StatusBranch(head, upstream, ahead, behind);
+            : new HeadState(unborn ? HeadKind.Unborn : HeadKind.Branch, _branchName, commit);
+        return new StatusBranch(head, _upstream, _ahead, _behind);
     }
 
     /// <summary>Reads <c>+2 -1</c>.</summary>
@@ -68,8 +68,8 @@ internal sealed class StatusHeaderBuilder
             && int.TryParse(parts[0].AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var aheadCount)
             && int.TryParse(parts[1].AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var behindCount))
         {
-            ahead = aheadCount;
-            behind = behindCount;
+            _ahead = aheadCount;
+            _behind = behindCount;
             return true;
         }
 

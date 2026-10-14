@@ -19,7 +19,7 @@ public class DiffPatchWriterTests
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Forward);
 
         Assert.Equal(
-            Header + "@@ -3,4 +3,5 @@ void Run()\n context before\n old\n+new one\n context after\n tail\n",
+            $"{Header}@@ -3,4 +3,5 @@ void Run()\n context before\n old\n+new one\n context after\n tail\n",
             patch);
     }
 
@@ -30,7 +30,7 @@ public class DiffPatchWriterTests
 
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Forward);
 
-        Assert.Equal(Header + "@@ -3,4 +3,3 @@ void Run()\n context before\n-old\n context after\n tail\n", patch);
+        Assert.Equal($"{Header}@@ -3,4 +3,3 @@ void Run()\n context before\n-old\n context after\n tail\n", patch);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class DiffPatchWriterTests
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Reverse);
 
         Assert.Equal(
-            Header + "@@ -3,4 +3,5 @@ void Run()\n context before\n+new one\n new two\n context after\n tail\n",
+            $"{Header}@@ -3,4 +3,5 @@ void Run()\n context before\n+new one\n new two\n context after\n tail\n",
             patch);
     }
 
@@ -79,7 +79,7 @@ public class DiffPatchWriterTests
     {
         var patch = DiffPatchWriter.WriteHunks(TwoHunkFile, [1]);
 
-        Assert.Equal(Header + "@@ -20 +21 @@\n-single\n+single changed\n", patch);
+        Assert.Equal($"{Header}@@ -20 +21 @@\n-single\n+single changed\n", patch);
         Assert.Equal("@@ -20 +21 @@\n-single\n+single changed\n", DiffPatchWriter.WriteHunk(TwoHunkFile.Hunks[1]));
     }
 

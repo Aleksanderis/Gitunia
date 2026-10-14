@@ -82,7 +82,7 @@ public class SidebarFrameTests
     [Fact]
     public void GivenScrolledSidebar_WhenComposing_ThenRowsStartAtTheTopRow()
     {
-        var rows = Enumerable.Range(0, 10).Select(index => Branch("branch" + index)).ToArray();
+        var rows = Enumerable.Range(0, 10).Select(index => Branch($"branch{index}")).ToArray();
 
         var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 9, GraphGlyphSet.Unicode, null, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
 

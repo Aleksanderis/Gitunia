@@ -13,50 +13,50 @@ namespace Gitunia.Tui.App.Sidebar;
 /// </summary>
 public sealed class SidebarPresenter
 {
-    private readonly WorkspaceHost host;
-    private readonly ListView list;
-    private readonly SidebarListSource source;
-    private bool isSyncing;
+    private readonly WorkspaceHost _host;
+    private readonly ListView _list;
+    private readonly SidebarListSource _source;
+    private bool _isSyncing;
 
     public SidebarPresenter(WorkspaceHost host, ListView list, SidebarListSource source)
     {
-        this.host = host;
-        this.list = list;
-        this.source = source;
+        _host = host;
+        _list = list;
+        _source = source;
         host.Changed += Sync;
         list.ValueChanged += (_, _) => OnSelected();
     }
 
     private void Sync()
     {
-        isSyncing = true;
+        _isSyncing = true;
         try
         {
-            var tab = host.Workspace.ActiveTab;
-            source.Update(tab);
-            var rowCount = source.Rows.Length;
-            list.SelectedItem = rowCount == 0 || tab is null ? null : SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rowCount);
-            if (list.SelectedItem is not null)
+            var tab = _host.Workspace.ActiveTab;
+            _source.Update(tab);
+            var rowCount = _source.Rows.Length;
+            _list.SelectedItem = rowCount == 0 || tab is null ? null : SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rowCount);
+            if (_list.SelectedItem is not null)
             {
-                list.EnsureSelectedItemVisible();
+                _list.EnsureSelectedItemVisible();
             }
 
-            list.SetNeedsDraw();
+            _list.SetNeedsDraw();
         }
         finally
         {
-            isSyncing = false;
+            _isSyncing = false;
         }
     }
 
     private void OnSelected()
     {
-        if (isSyncing || list.SelectedItem is not { } item || host.Workspace.ActiveTabId is not { } tabId)
+        if (_isSyncing || _list.SelectedItem is not { } item || _host.Workspace.ActiveTabId is not { } tabId)
         {
             return;
         }
 
-        host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Sidebar)));
-        host.Dispatch(new TabCommand(tabId, new SetSidebarCursorCommand(item)));
+        _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(PaneKind.Sidebar)));
+        _host.Dispatch(new TabCommand(tabId, new SetSidebarCursorCommand(item)));
     }
 }

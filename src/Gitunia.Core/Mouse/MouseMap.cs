@@ -6,12 +6,12 @@ namespace Gitunia.Core.Mouse;
 /// </summary>
 public sealed class MouseMap
 {
-    private readonly IReadOnlyDictionary<string, string> viewParents;
+    private readonly IReadOnlyDictionary<string, string> _viewParents;
 
     public MouseMap(IEnumerable<MouseBinding> bindings, IReadOnlyDictionary<string, string>? viewParents = null)
     {
         Bindings = [.. bindings];
-        this.viewParents = viewParents ?? new Dictionary<string, string>();
+        _viewParents = viewParents ?? new Dictionary<string, string>();
     }
 
     public IReadOnlyList<MouseBinding> Bindings { get; }
@@ -31,7 +31,7 @@ public sealed class MouseMap
                 }
             }
 
-            if (!viewParents.TryGetValue(current, out var parent))
+            if (!_viewParents.TryGetValue(current, out var parent))
             {
                 break;
             }

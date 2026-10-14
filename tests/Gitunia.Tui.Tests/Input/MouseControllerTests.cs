@@ -7,8 +7,8 @@ namespace Gitunia.Tui.Tests.Input;
 
 public class MouseControllerTests
 {
-    private readonly List<ExecutedAction> executed = [];
-    private bool suppressed;
+    private readonly List<ExecutedAction> _executed = [];
+    private bool _suppressed;
 
     [Fact]
     public void GivenAWheelOnTheGraph_WhenHandled_ThenListDownRunsWithTheWheelCount()
@@ -18,7 +18,7 @@ public class MouseControllerTests
         var ran = controller.Handle(DefaultKeymap.GraphView, MouseGesture.WheelDown);
 
         Assert.True(ran);
-        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], _executed);
     }
 
     [Fact]
@@ -28,7 +28,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.TabsView, MouseGesture.Click, 3);
 
-        Assert.Equal([new ExecutedAction(ActionIds.TabNext, 3)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.TabNext, 3)], _executed);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.DetailView, MouseGesture.DoubleClick);
 
-        Assert.Equal([new ExecutedAction(ActionIds.DetailOpenDiff, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.DetailOpenDiff, null)], _executed);
     }
 
     [Fact]
@@ -49,54 +49,54 @@ public class MouseControllerTests
         var ran = controller.Handle(DefaultKeymap.GraphView, MouseGesture.Click);
 
         Assert.False(ran);
-        Assert.Empty(executed);
+        Assert.Empty(_executed);
     }
 
     [Fact]
     public void GivenAnOverlayIsOpen_WhenHandlingAGesture_ThenNothingRunsBehindIt()
     {
         var controller = CreateController();
-        suppressed = true;
+        _suppressed = true;
 
         var ran = controller.Handle(DefaultKeymap.GraphView, MouseGesture.WheelDown);
 
         Assert.False(ran);
-        Assert.Empty(executed);
+        Assert.Empty(_executed);
     }
 
     [Fact]
     public void GivenAnOverlayIsOpen_WhenTheWheelTurnsOnAnOverlayView_ThenTheOverlayStillScrolls()
     {
         var controller = CreateController();
-        suppressed = true;
+        _suppressed = true;
 
         var ran = controller.Handle(DefaultKeymap.HelpView, MouseGesture.WheelDown);
 
         Assert.True(ran);
-        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.ListDown, DefaultMouseMap.WheelLines)], _executed);
     }
 
     [Fact]
     public void GivenAnOverlayIsOpen_WhenClickingOutsideIt_ThenItCancelsLikeEsc()
     {
         var controller = CreateController();
-        suppressed = true;
+        _suppressed = true;
 
         var ran = controller.Handle(DefaultMouseMap.BackdropView, MouseGesture.Click);
 
         Assert.True(ran);
-        Assert.Equal([new ExecutedAction(ActionIds.Cancel, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.Cancel, null)], _executed);
     }
 
     [Fact]
     public void GivenAPaletteIsOpen_WhenClickingAnEntry_ThenTheEntryRuns()
     {
         var controller = CreateController();
-        suppressed = true;
+        _suppressed = true;
 
         controller.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
 
-        Assert.Equal([new ExecutedAction(ActionIds.CommandExecute, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.CommandExecute, null)], _executed);
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.GraphView, gesture, 7);
 
-        Assert.Equal([new ExecutedAction(new ActionId(action), 7)], executed);
+        Assert.Equal([new ExecutedAction(new ActionId(action), 7)], _executed);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultKeymap.DiffView, MouseGesture.DragStart);
 
-        Assert.Equal([new ExecutedAction(ActionIds.VisualToggle, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.VisualToggle, null)], _executed);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.CommandsButton, MouseGesture.Click);
 
-        Assert.Equal([new ExecutedAction(ActionIds.PaletteOpen, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.PaletteOpen, null)], _executed);
     }
 
     [Fact]
@@ -138,14 +138,14 @@ public class MouseControllerTests
 
         controller.Handle(DefaultMouseMap.NewTabButton, MouseGesture.Click);
 
-        Assert.Equal([new ExecutedAction(ActionIds.PickerOpen, null)], executed);
+        Assert.Equal([new ExecutedAction(ActionIds.PickerOpen, null)], _executed);
     }
 
     [Fact]
     public void GivenAnOverlayIsOpen_WhenClickingTheCommandsButton_ThenNothingRuns()
     {
         var controller = CreateController();
-        suppressed = true;
+        _suppressed = true;
 
         Assert.False(controller.Handle(DefaultMouseMap.CommandsButton, MouseGesture.Click));
     }
@@ -166,9 +166,9 @@ public class MouseControllerTests
 
         controller.Handle(buttonView, MouseGesture.Click);
 
-        Assert.Equal([new ExecutedAction(new ActionId(action), null)], executed);
+        Assert.Equal([new ExecutedAction(new ActionId(action), null)], _executed);
     }
 
     private MouseController CreateController() =>
-        new(DefaultMouseMap.Create(), (action, count) => executed.Add(new ExecutedAction(action, count)), () => suppressed);
+        new(DefaultMouseMap.Create(), (action, count) => _executed.Add(new ExecutedAction(action, count)), () => _suppressed);
 }

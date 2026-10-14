@@ -7,18 +7,18 @@ public sealed class ChangeRecorder
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
 
-    private readonly object gate = new();
-    private RepositoryChangeKinds seen;
-    private int callCount;
-    private TaskCompletionSource changed = NewSignal();
+    private readonly object _gate = new();
+    private RepositoryChangeKinds _seen;
+    private int _callCount;
+    private TaskCompletionSource _changed = NewSignal();
 
     public int CallCount
     {
         get
         {
-            lock (gate)
+            lock (_gate)
             {
-                return callCount;
+                return _callCount;
             }
         }
     }
@@ -27,21 +27,21 @@ public sealed class ChangeRecorder
     {
         get
         {
-            lock (gate)
+            lock (_gate)
             {
-                return seen;
+                return _seen;
             }
         }
     }
 
     public void Record(RepositoryChangeKinds kinds)
     {
-        lock (gate)
+        lock (_gate)
         {
-            seen |= kinds;
-            callCount++;
-            changed.TrySetResult();
-            changed = NewSignal();
+            _seen |= kinds;
+            _callCount++;
+            _changed.TrySetResult();
+            _changed = NewSignal();
         }
     }
 
@@ -53,14 +53,14 @@ public sealed class ChangeRecorder
         while (true)
         {
             Task signal;
-            lock (gate)
+            lock (_gate)
             {
-                if ((seen & expected) == expected)
+                if ((_seen & expected) == expected)
                 {
                     return;
                 }
 
-                signal = changed.Task;
+                signal = _changed.Task;
             }
 
             try

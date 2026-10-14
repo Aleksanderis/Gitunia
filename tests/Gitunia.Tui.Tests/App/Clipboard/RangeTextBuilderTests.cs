@@ -23,7 +23,7 @@ public class RangeTextBuilderTests
 
         var text = RangeTextBuilder.Graph(graph, new RowRange(2, 1));
 
-        Assert.Equal(CommitFactory.Id(2) + "\n" + CommitFactory.Id(1) + "\n", text);
+        Assert.Equal($"{CommitFactory.Id(2)}\n{CommitFactory.Id(1)}\n", text);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class RangeTextBuilderTests
     {
         var graph = CommitFactory.Graph(CommitFactory.Commit(1, "a", []));
 
-        Assert.Equal(CommitFactory.Id(1) + "\n", RangeTextBuilder.Graph(graph, new RowRange(0, 9)));
+        Assert.Equal($"{CommitFactory.Id(1)}\n", RangeTextBuilder.Graph(graph, new RowRange(0, 9)));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class RangeTextBuilderTests
         var text = RangeTextBuilder.Diff(source, new RowRange(firstLine, firstLine + 1));
 
         Assert.True(source.LineOf(4) - firstLine > 1);
-        Assert.Equal("+" + new string('n', 60) + "\n", text);
+        Assert.Equal($"+{new string('n', 60)}\n", text);
     }
 
     [Fact]

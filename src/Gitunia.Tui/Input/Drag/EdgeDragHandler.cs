@@ -9,7 +9,7 @@ namespace Gitunia.Tui.Input.Drag;
 /// </summary>
 public sealed class EdgeDragHandler
 {
-    private readonly DragTracker tracker = new();
+    private readonly DragTracker _tracker = new();
 
     /// <summary>Raised with the view-relative column of a click.</summary>
     public event Action<int>? Clicked;
@@ -24,7 +24,7 @@ public sealed class EdgeDragHandler
     public bool Handle(View view, Mouse mouse)
     {
         var screen = mouse.ScreenPosition;
-        var phase = tracker.Feed(mouse.Flags, screen.X, screen.Y);
+        var phase = _tracker.Feed(mouse.Flags, screen.X, screen.Y);
         DragGrab.Update(view, mouse.Flags, phase);
         switch (phase)
         {

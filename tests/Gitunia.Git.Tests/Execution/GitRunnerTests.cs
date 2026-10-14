@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Xunit;
@@ -78,7 +79,7 @@ public class GitRunnerTests
     [Fact]
     public async Task GivenMissingExecutable_WhenRunning_ThenNotFoundError()
     {
-        var runner = new GitRunner(new GitRunnerOptions(Path.Combine(AnyDirectory, "gitunia-no-such-git-" + Guid.NewGuid().ToString("N"))));
+        var runner = new GitRunner(new GitRunnerOptions(Path.Combine(AnyDirectory, $"gitunia-no-such-git-{Guid.NewGuid().ToString("N")}")));
 
         await Assert.ThrowsAsync<GitNotFoundException>(
             () => runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken));
@@ -95,7 +96,7 @@ public class GitRunnerTests
             collected.AddRange(chunk);
         }
 
-        Assert.Equal("hello", System.Text.Encoding.UTF8.GetString(collected.ToArray()));
+        Assert.Equal("hello", Encoding.UTF8.GetString(collected.ToArray()));
     }
 
     [Fact]
@@ -203,16 +204,16 @@ public class GitRunnerTests
     public async Task GivenEnvironmentOverride_WhenRunning_ThenProcessSeesIt()
     {
         using var fake = FakeGitExecutable.Create("printf '%s|%s' \"$GIT_TERMINAL_PROMPT\" \"$GITUNIA_PROBE\"", "<nul set /p =\"%GIT_TERMINAL_PROMPT%|%GITUNIA_PROBE%\"");
-        var runner = new GitRunner(new GitRunnerOptions(fake.Path, EnvironmentOverrides: new Dictionary<string, string?> { ["GITUNIA_PROBE"] = "yes" }));
+        var runner = new GitRunner(new GitRunnerOptions(fake.ExecutablePath, EnvironmentOverrides: new Dictionary<string, string?> { ["GITUNIA_PROBE"] = "yes" }));
 
         var result = await runner.RunAsync(AnyDirectory, ["status"], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("0|yes", result.StandardOutputText);
     }
 
-    private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.Path));
+    private static GitRunner RunnerFor(FakeGitExecutable fake) => new(new GitRunnerOptions(fake.ExecutablePath));
 
-    private static string MarkerPath() => Path.Combine(Path.GetTempPath(), "gitunia-marker-" + Guid.NewGuid().ToString("N"));
+    private static string MarkerPath() => Path.Combine(Path.GetTempPath(), $"gitunia-marker-{Guid.NewGuid().ToString("N")}");
 
     private static async Task AssertNeverMarkedAsync(string marker)
     {
@@ -222,11 +223,11 @@ public class GitRunnerTests
             // The cmd script cannot record its process id, so the only option is to outwait it.
             await Task.Delay(TimeSpan.FromSeconds(3));
         }
-        else if (!File.Exists(marker + ".pid"))
+        else if (!File.Exists($"{marker}.pid"))
         {
             Assert.Fail("the fake never recorded its process id");
         }
-        else if (int.TryParse((await File.ReadAllTextAsync(marker + ".pid")).Trim(), out var processId))
+        else if (int.TryParse((await File.ReadAllTextAsync($"{marker}.pid")).Trim(), out var processId))
         {
             try
             {

@@ -53,7 +53,7 @@ public class StatusLogTests
         var log = StatusLog.Empty;
         for (var index = 1; index <= StatusLog.HistoryCapacity + 5; index++)
         {
-            log = log.Post("message " + index, StatusSeverity.Info);
+            log = log.Post($"message {index}", StatusSeverity.Info);
         }
 
         Assert.Equal(StatusLog.HistoryCapacity, log.History.Count);

@@ -26,12 +26,12 @@ public static class WhichKeyFrameBuilder
         var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + rows.Take(rowCount).Max(row => TextWidth.Of(row.Description)) + 1;
         var width = Math.Clamp(wanted, OverlayBox.MinimumWidth, Math.Min(MaximumWidth, screenWidth));
 
-        var lines = new List<StyledLine> { OverlayBox.Title(pending + "-", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title($"{pending}-", width, glyphs) };
         foreach (var row in rows.Take(rowCount))
         {
             var keys = row.Key + new string(' ', keysWidth - TextWidth.Of(row.Key));
             var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
-                .Append(" " + keys, SegmentRole.OverlayKey)
+                .Append($" {keys}", SegmentRole.OverlayKey)
                 .Append(new string(' ', KeyGap) + row.Description, SegmentRole.Plain);
             lines.Add(OverlayBox.Wrap(builder.Build(), glyphs));
         }

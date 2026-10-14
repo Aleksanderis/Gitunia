@@ -29,8 +29,8 @@ public sealed class SidebarActionHandler(
     Action<KeyMode> setMode,
     ClipboardCopier? clipboard = null)
 {
-    private bool isEditingFilter;
-    private TabId editingTabId;
+    private bool _isEditingFilter;
+    private TabId _editingTabId;
 
     /// <summary>The graph is shown (it is hidden while the detail or diff pane is zoomed).</summary>
     public Func<bool> IsGraphVisible { get; set; } = () => true;
@@ -42,11 +42,11 @@ public sealed class SidebarActionHandler(
     public string Message { get; private set; } = string.Empty;
 
     /// <summary>The filter is being typed (the keymap is in Insert mode).</summary>
-    public bool IsEditingFilter => isEditingFilter;
+    public bool IsEditingFilter => _isEditingFilter;
 
     /// <summary>The sidebar state the surrounding views draw: the filter line and the focus highlight.</summary>
     public SidebarChrome Chrome => host.Workspace.ActiveTab is { } tab
-        ? new SidebarChrome(tab.Sidebar.FilterText, isEditingFilter, tab.View.FocusedPane == PaneKind.Sidebar)
+        ? new SidebarChrome(tab.Sidebar.FilterText, _isEditingFilter, tab.View.FocusedPane == PaneKind.Sidebar)
         : SidebarChrome.Idle;
 
     /// <summary>Returns true when the action was handled here and the graph view must not act on it.</summary>
@@ -58,7 +58,7 @@ public sealed class SidebarActionHandler(
             return false;
         }
 
-        if (isEditingFilter && editingTabId != tab.Id)
+        if (_isEditingFilter && _editingTabId != tab.Id)
         {
             // The active tab changed while typing: the filter belongs to the old tab.
             StopEditing();
@@ -69,7 +69,7 @@ public sealed class SidebarActionHandler(
             return true;
         }
 
-        if (isEditingFilter)
+        if (_isEditingFilter)
         {
             return HandleFilterEditing(action);
         }
@@ -80,7 +80,7 @@ public sealed class SidebarActionHandler(
     /// <summary>Edits the filter with a key typed in Insert mode: printable text is appended, Backspace removes the last character.</summary>
     public void OnKey(KeyEvent key)
     {
-        if (!isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Id != editingTabId)
+        if (!_isEditingFilter || host.Workspace.ActiveTab is not { } tab || tab.Id != _editingTabId)
         {
             return;
         }
@@ -213,8 +213,8 @@ public sealed class SidebarActionHandler(
         }
         else if (action == ActionIds.SidebarFilter)
         {
-            isEditingFilter = true;
-            editingTabId = tab.Id;
+            _isEditingFilter = true;
+            _editingTabId = tab.Id;
             setMode(KeyMode.Insert);
         }
         else if (action == ActionIds.NavigateBack)
@@ -278,14 +278,14 @@ public sealed class SidebarActionHandler(
         }
         else if (row.CommitHash is null || !ObjectId.TryParse(row.CommitHash, out var commit))
         {
-            Message = row.Label + " has no commits yet";
+            Message = $"{row.Label} has no commits yet";
         }
         else
         {
             var index = session?.Graph.IndexOf(commit) ?? -1;
             if (index < 0)
             {
-                Message = session is { IsLoading: true } ? row.Label + " is not loaded yet" : row.Label + " is not in the graph";
+                Message = session is { IsLoading: true } ? $"{row.Label} is not loaded yet" : $"{row.Label} is not in the graph";
             }
             else
             {
@@ -296,7 +296,7 @@ public sealed class SidebarActionHandler(
 
     private void StopEditing()
     {
-        isEditingFilter = false;
+        _isEditingFilter = false;
         setMode(KeyMode.Normal);
     }
 

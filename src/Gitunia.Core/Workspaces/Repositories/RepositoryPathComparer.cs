@@ -5,9 +5,9 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <summary>Compares repository root paths: case-insensitive on Windows and macOS (default file systems), case-sensitive elsewhere, ignoring a trailing separator.</summary>
 public sealed class RepositoryPathComparer : IEqualityComparer<string>
 {
-    private readonly StringComparer comparer;
+    private readonly StringComparer _comparer;
 
-    private RepositoryPathComparer(StringComparer comparer) => this.comparer = comparer;
+    private RepositoryPathComparer(StringComparer comparer) => _comparer = comparer;
 
     /// <summary>The comparer for the current operating system.</summary>
     public static RepositoryPathComparer Instance { get; } = Create(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS());
@@ -17,10 +17,10 @@ public sealed class RepositoryPathComparer : IEqualityComparer<string>
         new(ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
 
     /// <inheritdoc />
-    public bool Equals(string? left, string? right) => comparer.Equals(Normalize(left), Normalize(right));
+    public bool Equals(string? left, string? right) => _comparer.Equals(Normalize(left), Normalize(right));
 
     /// <inheritdoc />
-    public int GetHashCode([DisallowNull] string obj) => comparer.GetHashCode(Normalize(obj)!);
+    public int GetHashCode([DisallowNull] string obj) => _comparer.GetHashCode(Normalize(obj)!);
 
     private static string? Normalize(string? path) => path is null
         ? null

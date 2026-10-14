@@ -12,26 +12,26 @@ public sealed class TestRepository : IDisposable
 {
     private static readonly DateTimeOffset Epoch = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    private readonly string rootDirectory;
-    private readonly string emptyConfigPath;
-    private int commitCounter;
+    private readonly string _rootDirectory;
+    private readonly string _emptyConfigPath;
+    private int _commitCounter;
 
     private TestRepository(string rootDirectory, string path)
     {
-        this.rootDirectory = rootDirectory;
-        Path = path;
-        emptyConfigPath = System.IO.Path.Combine(rootDirectory, "empty.gitconfig");
-        File.WriteAllText(emptyConfigPath, string.Empty);
+        _rootDirectory = rootDirectory;
+        WorkingTreePath = path;
+        _emptyConfigPath = Path.Combine(rootDirectory, "empty.gitconfig");
+        File.WriteAllText(_emptyConfigPath, string.Empty);
     }
 
     /// <summary>The working tree of the main repository.</summary>
-    public string Path { get; }
+    public string WorkingTreePath { get; }
 
     /// <summary>Creates an empty repository whose initial branch is <c>main</c>.</summary>
     public static TestRepository Create(bool bare = false)
     {
-        var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-repo-" + Guid.NewGuid().ToString("N"));
-        var path = System.IO.Path.Combine(root, "repo");
+        var root = Path.Combine(Path.GetTempPath(), $"gitunia-repo-{Guid.NewGuid().ToString("N")}");
+        var path = Path.Combine(root, "repo");
         Directory.CreateDirectory(path);
         var repository = new TestRepository(root, path);
         repository.Git(bare ? ["init", "-q", "--bare", "-b", "main"] : ["init", "-q", "-b", "main"]);
@@ -54,15 +54,15 @@ public sealed class TestRepository : IDisposable
     /// <summary>Deletes a file from the working tree (not staged).</summary>
     public TestRepository Delete(string relativePath)
     {
-        File.Delete(System.IO.Path.Combine(Path, relativePath));
+        File.Delete(Path.Combine(WorkingTreePath, relativePath));
         return this;
     }
 
     /// <summary>Writes a working-tree file, creating directories; not staged.</summary>
     public TestRepository WriteFile(string relativePath, string content)
     {
-        var fullPath = System.IO.Path.Combine(Path, relativePath);
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath)!);
+        var fullPath = Path.Combine(WorkingTreePath, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
         File.WriteAllText(fullPath, content);
         return this;
     }
@@ -94,22 +94,22 @@ public sealed class TestRepository : IDisposable
     /// <summary>Merges with <c>--no-ff</c> so a merge commit always exists.</summary>
     public TestRepository Merge(string branch)
     {
-        Git("merge", "-q", "--no-ff", "-m", "Merge " + branch, branch);
+        Git("merge", "-q", "--no-ff", "-m", $"Merge {branch}", branch);
         return this;
     }
 
     /// <summary>Merges expecting a conflict; leaves the merge in progress.</summary>
     public TestRepository MergeExpectingConflict(string branch)
     {
-        Git(["merge", "-q", "--no-ff", "-m", "Merge " + branch, branch], acceptedExitCodes: [1]);
+        Git(["merge", "-q", "--no-ff", "-m", $"Merge {branch}", branch], acceptedExitCodes: [1]);
         return this;
     }
 
     /// <summary>Adds a linked worktree in a sibling directory and returns its path.</summary>
     public string AddWorktree(string name, string branch, bool createBranch = false)
     {
-        var path = System.IO.Path.Combine(rootDirectory, "worktrees", name);
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        var path = Path.Combine(_rootDirectory, "worktrees", name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         Git(createBranch ? ["worktree", "add", "-q", "-b", branch, path] : ["worktree", "add", "-q", path, branch]);
         return path;
     }
@@ -124,14 +124,14 @@ public sealed class TestRepository : IDisposable
     public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes)
     {
         // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.
-        var moment = Epoch.AddMinutes(commitCounter++);
+        var moment = Epoch.AddMinutes(_commitCounter++);
 
         var stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         var runner = new GitRunner(new GitRunnerOptions(
             EnvironmentOverrides: new Dictionary<string, string?>
             {
-                ["GIT_CONFIG_GLOBAL"] = emptyConfigPath,
-                ["GIT_CONFIG_SYSTEM"] = emptyConfigPath,
+                ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
+                ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
                 ["GIT_CONFIG_NOSYSTEM"] = "1",
                 ["GIT_CONFIG_COUNT"] = "2",
                 ["GIT_CONFIG_KEY_0"] = "commit.gpgsign",
@@ -151,7 +151,7 @@ public sealed class TestRepository : IDisposable
                 ["GIT_COMMITTER_DATE"] = stamp,
             }));
         var result = runner
-            .RunAsync(Path, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
+            .RunAsync(WorkingTreePath, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
             .GetAwaiter()
             .GetResult();
         return result.StandardOutputText;
@@ -159,12 +159,12 @@ public sealed class TestRepository : IDisposable
 
     public void Dispose()
     {
-        if (!Directory.Exists(rootDirectory))
+        if (!Directory.Exists(_rootDirectory))
         {
             return;
         }
 
-        foreach (var file in Directory.EnumerateFiles(rootDirectory, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(_rootDirectory, "*", SearchOption.AllDirectories))
         {
             // Git object files are read-only, which blocks deletion on Windows.
             File.SetAttributes(file, FileAttributes.Normal);
@@ -172,7 +172,7 @@ public sealed class TestRepository : IDisposable
 
         try
         {
-            Directory.Delete(rootDirectory, recursive: true);
+            Directory.Delete(_rootDirectory, recursive: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

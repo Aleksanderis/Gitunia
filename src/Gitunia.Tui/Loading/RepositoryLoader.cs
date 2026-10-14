@@ -49,7 +49,7 @@ public static class RepositoryLoader
             // Not only git failures: a broken pipe or a bug must end the loading state with a message, never hang it.
             postToUi(() =>
             {
-                statuses.Error(Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath)) + ": could not load the graph: " + exception.Message);
+                statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath))}: could not load the graph: {exception.Message}");
                 session.Fail(exception.Message);
             });
         }
@@ -80,7 +80,7 @@ public static class RepositoryLoader
         catch (GitException exception)
         {
             // The graph load reports its own failure; this part would otherwise leave the tab label and branch silently empty.
-            postToUi(() => statuses.Error(Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath)) + ": could not read the repository status: " + exception.Message));
+            postToUi(() => statuses.Error($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(repository.Location.RootPath))}: could not read the repository status: {exception.Message}"));
         }
     }
 }

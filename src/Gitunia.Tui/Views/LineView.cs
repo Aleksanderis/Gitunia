@@ -11,28 +11,28 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class LineView(Func<int, StyledLine> build) : View
 {
-    private readonly EdgeDragHandler pointer = new();
+    private readonly EdgeDragHandler _pointer = new();
 
     /// <summary>Raised with the view-relative column of a click.</summary>
     public event Action<int>? Clicked
     {
-        add => pointer.Clicked += value;
-        remove => pointer.Clicked -= value;
+        add => _pointer.Clicked += value;
+        remove => _pointer.Clicked -= value;
     }
 
     /// <summary>Raised with the screen column and row of the pointer while it drags the row.</summary>
     public event Action<int, int>? Dragged
     {
-        add => pointer.Dragged += value;
-        remove => pointer.Dragged -= value;
+        add => _pointer.Dragged += value;
+        remove => _pointer.Dragged -= value;
     }
 
-    protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
+    protected override bool OnDrawingContent(DrawContext? context)
     {
         LinePainter.Paint(this, build(Viewport.Width), 0, 0, isFocused: false);
         return true;
     }
 
     protected override bool OnMouseEvent(Mouse mouse) =>
-        pointer.IsListening && pointer.Handle(this, mouse) || base.OnMouseEvent(mouse);
+        _pointer.IsListening && _pointer.Handle(this, mouse) || base.OnMouseEvent(mouse);
 }

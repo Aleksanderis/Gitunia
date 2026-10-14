@@ -17,7 +17,7 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
-    private GraphRowOptions? cachedOptions;
+    private GraphRowOptions? _cachedOptions;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -78,11 +78,11 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     private GraphRowOptions OptionsFor(int width)
     {
         var laneColumns = GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width);
-        if (cachedOptions is null || cachedOptions.Width != width || cachedOptions.LaneColumns != laneColumns || cachedOptions.Highlight != Highlight)
+        if (_cachedOptions is null || _cachedOptions.Width != width || _cachedOptions.LaneColumns != laneColumns || _cachedOptions.Highlight != Highlight)
         {
-            cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight);
+            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight);
         }
 
-        return cachedOptions;
+        return _cachedOptions;
     }
 }

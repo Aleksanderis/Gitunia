@@ -5,22 +5,22 @@ namespace Gitunia.Tui.App.Clipboard;
 /// <summary>Runs <see cref="CopyToClipboardEffect"/>s: the only place that writes OSC 52 to the terminal.</summary>
 public sealed class ClipboardWriter
 {
-    private readonly TextWriter output;
-    private readonly Osc52Options options;
+    private readonly TextWriter _output;
+    private readonly Osc52Options _options;
 
     public ClipboardWriter(TextWriter output, Osc52Options options)
     {
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(options);
-        this.output = output;
-        this.options = options;
+        _output = output;
+        _options = options;
     }
 
     public ClipboardOutcome Run(CopyToClipboardEffect effect)
     {
         ArgumentNullException.ThrowIfNull(effect);
 
-        var result = Osc52Encoder.Encode(effect.Text, options);
+        var result = Osc52Encoder.Encode(effect.Text, _options);
         if (result.Status != Osc52Status.Ready)
         {
             return new ClipboardOutcome(false, result.Message);
@@ -28,8 +28,8 @@ public sealed class ClipboardWriter
 
         try
         {
-            output.Write(result.Sequence);
-            output.Flush();
+            _output.Write(result.Sequence);
+            _output.Flush();
         }
         catch (Exception exception) when (exception is IOException or ObjectDisposedException)
         {

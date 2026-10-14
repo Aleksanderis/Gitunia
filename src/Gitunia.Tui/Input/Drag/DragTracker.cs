@@ -10,15 +10,15 @@ namespace Gitunia.Tui.Input.Drag;
 /// </summary>
 public sealed class DragTracker
 {
-    private bool isPressed;
-    private bool hasMoved;
-    private bool swallowNextClick;
+    private bool _isPressed;
+    private bool _hasMoved;
+    private bool _swallowNextClick;
 
     /// <summary>Where the button went down.</summary>
     public ScreenPoint Origin { get; private set; }
 
     /// <summary>True between a press and its release.</summary>
-    public bool IsPressed => isPressed;
+    public bool IsPressed => _isPressed;
 
     public DragPhase Feed(MouseFlags flags, int x, int y)
     {
@@ -29,23 +29,23 @@ public sealed class DragTracker
 
         if (flags.HasFlag(MouseFlags.LeftButtonPressed))
         {
-            isPressed = true;
-            hasMoved = false;
-            swallowNextClick = false;
+            _isPressed = true;
+            _hasMoved = false;
+            _swallowNextClick = false;
             Origin = new ScreenPoint(x, y);
             return DragPhase.Press;
         }
 
-        if (flags.HasFlag(MouseFlags.LeftButtonReleased) && isPressed)
+        if (flags.HasFlag(MouseFlags.LeftButtonReleased) && _isPressed)
         {
-            isPressed = false;
-            swallowNextClick = hasMoved;
-            return hasMoved ? DragPhase.End : DragPhase.None;
+            _isPressed = false;
+            _swallowNextClick = _hasMoved;
+            return _hasMoved ? DragPhase.End : DragPhase.None;
         }
 
-        if ((flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked)) && swallowNextClick)
+        if ((flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked)) && _swallowNextClick)
         {
-            swallowNextClick = false;
+            _swallowNextClick = false;
             return DragPhase.SwallowClick;
         }
 
@@ -54,19 +54,19 @@ public sealed class DragTracker
 
     private DragPhase FeedMove(int x, int y)
     {
-        if (!isPressed)
+        if (!_isPressed)
         {
             return DragPhase.None;
         }
 
-        if (!hasMoved)
+        if (!_hasMoved)
         {
             if (new ScreenPoint(x, y) == Origin)
             {
                 return DragPhase.None;
             }
 
-            hasMoved = true;
+            _hasMoved = true;
             return DragPhase.Start;
         }
 

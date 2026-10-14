@@ -16,32 +16,32 @@ public sealed class DiffCache
     /// <summary>Rows kept by default across all entries.</summary>
     public const int DefaultRowBudget = 16_000;
 
-    private readonly int capacity;
-    private readonly int rowBudget;
-    private readonly Dictionary<ObjectId, LinkedListNode<DiffCacheEntry>> nodes = [];
-    private readonly LinkedList<DiffCacheEntry> recentFirst = new();
-    private int rowCount;
+    private readonly int _capacity;
+    private readonly int _rowBudget;
+    private readonly Dictionary<ObjectId, LinkedListNode<DiffCacheEntry>> _nodes = [];
+    private readonly LinkedList<DiffCacheEntry> _recentFirst = new();
+    private int _rowCount;
 
     public DiffCache(int capacity = DefaultCapacity, int rowBudget = DefaultRowBudget)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(rowBudget, 0);
-        this.capacity = capacity;
-        this.rowBudget = rowBudget;
+        _capacity = capacity;
+        _rowBudget = rowBudget;
     }
 
-    public int Count => nodes.Count;
+    public int Count => _nodes.Count;
 
     /// <summary>The rows held by all entries.</summary>
-    public int RowCount => rowCount;
+    public int RowCount => _rowCount;
 
     /// <summary>Looks a commit up and marks it as the most recently used.</summary>
     public bool TryGet(ObjectId commit, out DiffDocument document)
     {
-        if (nodes.TryGetValue(commit, out var node))
+        if (_nodes.TryGetValue(commit, out var node))
         {
-            recentFirst.Remove(node);
-            recentFirst.AddFirst(node);
+            _recentFirst.Remove(node);
+            _recentFirst.AddFirst(node);
             document = node.Value.Document;
             return true;
         }
@@ -51,38 +51,38 @@ public sealed class DiffCache
     }
 
     /// <summary>Whether a commit is cached, without changing its recency.</summary>
-    public bool Contains(ObjectId commit) => nodes.ContainsKey(commit);
+    public bool Contains(ObjectId commit) => _nodes.ContainsKey(commit);
 
     /// <summary>Adds (or refreshes) an entry as the most recently used and evicts the least recently used ones beyond the bounds.</summary>
     public void Add(ObjectId commit, DiffDocument document)
     {
         Remove(commit);
-        if (document.Rows.Count > rowBudget)
+        if (document.Rows.Count > _rowBudget)
         {
             return;
         }
 
-        nodes[commit] = recentFirst.AddFirst(new DiffCacheEntry(commit, document));
-        rowCount += document.Rows.Count;
-        while (nodes.Count > capacity || rowCount > rowBudget)
+        _nodes[commit] = _recentFirst.AddFirst(new DiffCacheEntry(commit, document));
+        _rowCount += document.Rows.Count;
+        while (_nodes.Count > _capacity || _rowCount > _rowBudget)
         {
-            Remove(recentFirst.Last!.Value.Commit);
+            Remove(_recentFirst.Last!.Value.Commit);
         }
     }
 
     public void Clear()
     {
-        nodes.Clear();
-        recentFirst.Clear();
-        rowCount = 0;
+        _nodes.Clear();
+        _recentFirst.Clear();
+        _rowCount = 0;
     }
 
     private void Remove(ObjectId commit)
     {
-        if (nodes.Remove(commit, out var node))
+        if (_nodes.Remove(commit, out var node))
         {
-            recentFirst.Remove(node);
-            rowCount -= node.Value.Document.Rows.Count;
+            _recentFirst.Remove(node);
+            _rowCount -= node.Value.Document.Rows.Count;
         }
     }
 }

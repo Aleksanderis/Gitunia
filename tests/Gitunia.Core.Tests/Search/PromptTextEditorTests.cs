@@ -10,7 +10,7 @@ public class PromptTextEditorTests
     public void GivenPrintableKey_WhenApplying_ThenItIsAppended()
     {
         Assert.Equal("fix:", PromptTextEditor.Apply("fix", new KeyEvent(":")));
-        Assert.Equal("a b", PromptTextEditor.Apply("a", new KeyEvent(" ")) + "b");
+        Assert.Equal("a b", $"{PromptTextEditor.Apply("a", new KeyEvent(" "))}b");
     }
 
     [Fact]

@@ -15,8 +15,8 @@ public static class TestRepositories
         return repository;
     }
 
-    /// <summary>main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, locked/prunable/dirty worktrees, renames and binary files are added by the parser issues that need them.</summary>
-    public static TestRepository Branchy()
+    /// <summary>Main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, locked/prunable/dirty worktrees, renames and binary files are added by the parser issues that need them.</summary>
+    public static TestRepository WithMergedFeatureBranch()
     {
         var repository = TestRepository.Create()
             .Commit("Initial", new TestFile("base.txt", "base\n"))
@@ -31,7 +31,7 @@ public static class TestRepositories
         return repository;
     }
 
-    /// <summary>main plus a linked worktree <c>wt</c> on branch <c>wt-branch</c>.</summary>
+    /// <summary>Main plus a linked worktree <c>wt</c> on branch <c>wt-branch</c>.</summary>
     public static TestRepository WithWorktree(out string worktreePath)
     {
         var repository = Linear(2);
