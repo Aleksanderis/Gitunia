@@ -21,6 +21,9 @@ public enum SegmentRole
     TabButton,
     ActiveTab,
     InactiveTab,
+
+    /// <summary>A repository tab of the tab row that is not the active one: a button, a tinted chip on the bar (underlined where there are no colours, #240).</summary>
+    RepositoryTab,
     StatusMode,
     Status,
     Faint,

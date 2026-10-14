@@ -6,7 +6,7 @@ namespace Gitunia.Tui.Rendering.Tabs;
 
 /// <summary>
 /// Lays the tabs out in one row on the bar: a margin, then each tab as a padded chip <c>  N name markers  </c> (the active one is the
-/// accent chip, the others are muted text on the bar), one blank column between tabs (#220), tabs that do not fit are left out; the branch only when the label has one
+/// accent chip, the others are buttons: tinted chips, #240), one blank column between tabs (#220), tabs that do not fit are left out; the branch only when the label has one
 /// (off by default, #219). At the right end sits the <see cref="CommandsLabel"/> button when the row is wide enough. When the tabs do not all fit, the row starts at
 /// the first tab that keeps the active one visible and shows <c>&lt;</c> before it when tabs are cut off on the left (a cut on the right ends in an ellipsis).
 /// Markers: <c>*</c> dirty, <c>↑n</c> ahead, <c>↓n</c> behind (<c>+n</c>/<c>-n</c> without Unicode), <c>!</c> missing, an ellipsis while loading.

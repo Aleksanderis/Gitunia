@@ -37,7 +37,7 @@ public static class DetailPaneRenderer
         {
             builder.Append(new string(glyphs.Horizontal, button.Start - column), SegmentRole.Rule);
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
-            builder.Append(ButtonText(button.Label, glyphs), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.TabButton);
+            builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.TabButton);
             column = button.Start + button.Width;
         }
 
@@ -70,11 +70,6 @@ public static class DetailPaneRenderer
     /// <summary>The line marked as part of the panel background; the one place both the text frame and the live list view use.</summary>
     public static StyledLine OnPanel(StyledLine line) =>
         line with { Segments = [.. line.Segments.Select(segment => segment with { OnPanel = true })] };
-
-    // The ASCII tier shows a padded button as [Name], so it is a button without colours too; the width stays the same.
-    private static string ButtonText(string label, GraphGlyphSet glyphs) =>
-        glyphs.IsAscii && label.Length > 2 && label[0] == ' ' && label[^1] == ' ' ? $"[{label[1..^1]}]" : label;
-
 
     // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static string FileCountText(int? count) => count switch

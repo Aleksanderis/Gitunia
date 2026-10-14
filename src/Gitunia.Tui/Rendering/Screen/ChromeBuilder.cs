@@ -73,7 +73,9 @@ public static class ChromeBuilder
         for (var index = 0; index < cells.Count; index++)
         {
             builder.Append(index > 0 ? " " : string.Empty, SegmentRole.Status);
-            builder.Append(cells[index].Text, cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.Status);
+            builder.Append(
+                cells[index].IsActive ? cells[index].Text : ButtonLabel.For(cells[index].Text, glyphs.IsAscii),
+                cells[index].IsActive ? SegmentRole.ActiveTab : SegmentRole.RepositoryTab);
         }
 
         builder.Append(" ", SegmentRole.Status);
