@@ -19,13 +19,13 @@ public class GraphColumnsFrameTests
     }
 
     [Fact]
-    public void GivenCommits_WhenRenderingAt120_ThenMessageAbsorbsTheExtraWidth()
+    public void GivenCommits_WhenRenderingAt120_ThenMessageAbsorbsTheExtraWidthAndColumnsGetRoomyGaps()
     {
         Assert.Equal(
             [
-                "●  Add the graph columns                                                             Ada Lovelace     2026-10-13 0000003",
-                "│  修正バグ in the parser                                                            山田太郎         2026-10-12 0000002",
-                "●  A message that is much too long for the column we have for it, so it is cut with… Alexander the G… 2026-10-11 0000001",
+                $"●  Add the graph columns{new string(' ', 55)}Ada Lovelace{new string(' ', 7)}2026-10-13   0000003",
+                $"│  修正バグ in the parser{new string(' ', 54)}山田太郎{new string(' ', 11)}2026-10-12   0000002",
+                "●  A message that is much too long for the column we have for it, so it is …   Alexander the G…   2026-10-11   0000001",
             ],
             Trimmed(120));
     }
@@ -35,11 +35,20 @@ public class GraphColumnsFrameTests
     {
         Assert.Equal(
             [
-                $"●  Add the graph columns{new string(' ', 137)}Ada Lovelace         2026-10-13 0000003",
-                $"│  修正バグ in the parser{new string(' ', 136)}山田太郎             2026-10-12 0000002",
-                $"●  A message that is much too long for the column we have for it, so it is cut with an ellipsis{new string(' ', 66)}Alexander the Great… 2026-10-11 0000001",
+                $"●  Add the graph columns{new string(' ', 131)}Ada Lovelace{new string(' ', 11)}2026-10-13   0000003",
+                $"│  修正バグ in the parser{new string(' ', 130)}山田太郎{new string(' ', 15)}2026-10-12   0000002",
+                $"●  A message that is much too long for the column we have for it, so it is cut with an ellipsis{new string(' ', 60)}Alexander the Great…   2026-10-11   0000001",
             ],
             Trimmed(200));
+    }
+
+    [Theory]
+    [InlineData(120)]
+    [InlineData(160)]
+    [InlineData(200)]
+    public void GivenWideRows_WhenRendering_ThenTheLastColumnIsFollowedByTheRightMargin(int width)
+    {
+        Assert.All(Rows(width), row => Assert.Matches(@"[0-9a-f]{7} {2}$", row));
     }
 
     [Fact]
