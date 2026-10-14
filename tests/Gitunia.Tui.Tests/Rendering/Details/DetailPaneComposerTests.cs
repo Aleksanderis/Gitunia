@@ -67,7 +67,7 @@ public class DetailPaneComposerTests
                 "│                                                │",
                 "│   second                                       │",
                 "╰────────────────────────────────────────────────╯",
-                " NORMAL  1/2  j/k gg G ^d ^u @ ? : q"),
+                " NORMAL  1/2  ? help  : commands  q back  j/k move"),
             frame);
     }
 

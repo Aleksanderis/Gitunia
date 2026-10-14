@@ -146,4 +146,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Code structure:** The git readers are instance classes that hold a `GitRunner` and take a `RepositoryLocation` per call; the `Repository` handle is gone. `GitServices.Create` is the hand-wired composition root, the Tui sees reader interfaces; the details store, diff store and status poller tests use fakes, the rest follow in #269. Startup is unchanged. Done in #252.
 
+**UI:** Key notation is the spelled-out `Ctrl-d` / `Alt-1` form everywhere, and keys and descriptions sit in separate columns (help) or as key plus description pairs (status hints) (#242). Why: `^d` and bare key lists were unreadable without knowing the keys.
+
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).

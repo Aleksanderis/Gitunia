@@ -25,6 +25,9 @@ public enum SegmentRole
     /// <summary>A repository tab of the tab row that is not the active one: a button, a tinted chip on the bar (underlined where there are no colours, #240).</summary>
     RepositoryTab,
     StatusMode,
+
+    /// <summary>The keys of a status bar hint (the description is <see cref="Status"/>).</summary>
+    StatusKey,
     Status,
     Faint,
 

@@ -1,6 +1,8 @@
 using System.Globalization;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Tabs;
 
@@ -9,8 +11,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <summary>Builds the tab row and status bar lines.</summary>
 public static class ChromeBuilder
 {
-    private const string KeyHints = "j/k gg G ^d ^u @ ? : q";
-    private const string PickerHints = "Enter open  Tab accept  Alt-p pin to top  Alt-d forget  Esc close";
+    private const string HintGap = "  ";
 
     public static StyledLine Tabs(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
@@ -55,10 +56,21 @@ public static class ChromeBuilder
 
         if (model.SearchLine.Length == 0)
         {
-            builder.Append($" {(model.Picker is not null ? PickerHints : model.Hints.Length > 0 ? model.Hints : KeyHints)}", SegmentRole.Status);
+            AppendHints(builder, model.Picker is not null ? PaneHints.ForPicker() : model.Hints ?? PaneHints.For(PaneKind.Graph));
         }
 
         return builder.Build(SegmentRole.Status);
+    }
+
+    private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
+    {
+        for (var index = 0; index < hints.Count; index++)
+        {
+            var hint = hints[index];
+            builder.Append(index == 0 ? " " : HintGap, SegmentRole.Status);
+            builder.Append(hint.Keys, SegmentRole.StatusKey);
+            builder.Append($" {hint.Description}", SegmentRole.Status);
+        }
     }
 
     private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)

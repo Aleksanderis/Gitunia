@@ -11,6 +11,9 @@ public static class HelpFrameBuilder
     private const int MaximumKeysWidth = 20;
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
+    private const string KeysIndent = "  ";
+    private const string ColumnPadding = " ";
+    private const int ColumnSeparatorWidth = 2 * 1 + 1;
 
     /// <summary>Lines the content needs at a screen width (section headings, rows with long descriptions wrapped, and a blank line between sections).</summary>
     public static int ContentHeight(IReadOnlyList<HelpSection> sections, int screenWidth)
@@ -64,9 +67,9 @@ public static class HelpFrameBuilder
     private static int KeysWidth(IReadOnlyList<HelpSection> sections) =>
         Math.Min(MaximumKeysWidth, sections.SelectMany(section => section.Rows).Select(row => TextWidth.Of(row.Keys)).DefaultIfEmpty(0).Max());
 
-    // Inner width minus the two-space indents before the keys and before the description.
+    // Inner width minus the indent before the keys and the separator between the columns.
     private static int DescriptionWidth(IReadOnlyList<HelpSection> sections, int width) =>
-        Math.Max(1, OverlayBox.InnerWidth(width) - KeysWidth(sections) - 4);
+        Math.Max(1, OverlayBox.InnerWidth(width) - KeysWidth(sections) - KeysIndent.Length - ColumnSeparatorWidth);
 
     // Greedy word wrap by display width; a word longer than a line is cut between runes, keeping combining marks with their base.
     private static List<string> WrapText(string text, int columns)
@@ -142,7 +145,7 @@ public static class HelpFrameBuilder
             {
                 var keys = TextWidth.Fit(row.Keys, keysWidth, glyphs.Ellipsis);
                 var padded = keys + new string(' ', Math.Max(0, keysWidth - TextWidth.Of(keys)));
-                                var wrapped = WrapText(row.Description, descriptionWidth);
+                var wrapped = WrapText(row.Description, descriptionWidth);
                 for (var index = 0; index < wrapped.Count; index++)
                 {
                     lines.Add(KeysAndDescription(index == 0 ? padded : blankKeys, wrapped[index], width, glyphs));
@@ -157,8 +160,9 @@ public static class HelpFrameBuilder
     {
         var inner = OverlayBox.InnerWidth(width);
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
-            .Append($"  {keys}", SegmentRole.OverlayKey)
-            .Append($"  {description}", SegmentRole.Plain);
+            .Append($"{KeysIndent}{keys}", SegmentRole.OverlayKey)
+            .Append($"{ColumnPadding}{glyphs.For(LineDirections.Up | LineDirections.Down)}{ColumnPadding}", SegmentRole.Faint)
+            .Append(description, SegmentRole.Plain);
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 }
