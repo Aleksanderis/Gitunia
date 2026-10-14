@@ -114,7 +114,7 @@ public class PaneHintsTests
         }
     }
 
-    // A hint such as "Ctrl-d/u" or "gg/G" lists alternatives; a bare character after a modifier reuses that modifier.
+    // A hint such as "Ctrl-d/u" or "gg/G" lists alternatives; a bare character after "Ctrl-" reuses it (other modifiers are not supported yet). The test checks the key is bound, not that it triggers the action the description names.
     private static IEnumerable<string> ExpandAlternatives(string keys)
     {
         const string ctrlPrefix = "Ctrl-";
