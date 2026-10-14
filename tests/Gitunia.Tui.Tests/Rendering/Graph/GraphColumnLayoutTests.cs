@@ -7,14 +7,17 @@ public class GraphColumnLayoutTests
 {
     [Theory]
     [InlineData(80, 2, 16, 39)]
-    [InlineData(120, 2, 16, 79)]
-    [InlineData(200, 2, 20, 155)]
-    [InlineData(400, 2, 20, 355)]
+    [InlineData(120, 2, 16, 71)]
+    [InlineData(200, 2, 20, 147)]
+    [InlineData(400, 2, 20, 347)]
     public void GivenWideEnoughTerminal_WhenComputing_ThenAllColumnsShowAndMessageTakesTheRest(int width, int laneColumns, int author, int message)
     {
         var columns = GraphColumnLayout.Compute(width, laneColumns);
+        var isSpacious = width - laneColumns * 2 - 1 >= GraphColumnLayout.SpaciousRowWidth;
+        var gap = isSpacious ? GraphColumnLayout.SpaciousColumnGap : GraphColumnLayout.CompactColumnGap;
+        var margin = isSpacious ? GraphColumnLayout.SpaciousRightMargin : 0;
 
-        Assert.Equal(new GraphColumns(laneColumns * 2, message, author, GraphColumnLayout.DateWidth, GraphColumnLayout.HashWidth), columns);
+        Assert.Equal(new GraphColumns(laneColumns * 2, message, author, GraphColumnLayout.DateWidth, GraphColumnLayout.HashWidth, gap, margin), columns);
     }
 
     [Theory]
@@ -32,10 +35,10 @@ public class GraphColumnLayoutTests
     }
 
     [Theory]
-    [InlineData(1, 139, 16, 103)]
-    [InlineData(1, 140, 20, 100)]
-    [InlineData(3, 139, 16, 103)]
-    [InlineData(3, 140, 20, 100)]
+    [InlineData(1, 139, 16, 95)]
+    [InlineData(1, 140, 20, 92)]
+    [InlineData(3, 139, 16, 95)]
+    [InlineData(3, 140, 20, 92)]
     public void GivenSpaceAfterTheLanes_WhenComputing_ThenAuthorWidensAtTheThresholdOnly(int laneColumns, int available, int author, int message)
     {
         var columns = GraphColumnLayout.Compute(available + laneColumns * 2 + 1, laneColumns);
@@ -55,7 +58,7 @@ public class GraphColumnLayoutTests
         Assert.Equal(shown.Order(), shown);
         Assert.All(shown, mask => Assert.True(mask is 0 or 1 or 3 or 7, $"mask {mask}"));
         Assert.Equal(GraphColumnLayout.WideAuthorWidth, all[^1].AuthorWidth);
-        Assert.Equal(357, all[^1].MessageWidth);
+        Assert.Equal(349, all[^1].MessageWidth);
     }
 
     [Theory]
@@ -68,11 +71,34 @@ public class GraphColumnLayoutTests
     {
         var columns = GraphColumnLayout.Compute(width, laneColumns);
         var used = columns.LaneWidth + 1 + columns.MessageWidth
-            + (columns.AuthorWidth > 0 ? 1 + columns.AuthorWidth : 0)
-            + (columns.DateWidth > 0 ? 1 + columns.DateWidth : 0)
-            + (columns.HashWidth > 0 ? 1 + columns.HashWidth : 0);
+            + (columns.AuthorWidth > 0 ? columns.ColumnGap + columns.AuthorWidth : 0)
+            + (columns.DateWidth > 0 ? columns.ColumnGap + columns.DateWidth : 0)
+            + (columns.HashWidth > 0 ? columns.ColumnGap + columns.HashWidth : 0)
+            + (columns.HashWidth > 0 ? columns.RightMargin : 0);
 
         Assert.True(columns.MessageWidth >= 0);
         Assert.True(used <= Math.Max(width, columns.LaneWidth + 1), $"{used} > {width}");
+    }
+
+    [Theory]
+    [InlineData(80)]
+    [InlineData(100)]
+    public void GivenCompactWidth_WhenComputing_ThenGapsStayOneColumnWithNoMargin(int width)
+    {
+        var columns = GraphColumnLayout.Compute(width, 2);
+
+        Assert.Equal(GraphColumnLayout.CompactColumnGap, columns.ColumnGap);
+        Assert.Equal(0, columns.RightMargin);
+    }
+
+    [Theory]
+    [InlineData(160)]
+    [InlineData(200)]
+    public void GivenWideWidth_WhenComputing_ThenGapsAndRightMarginGrow(int width)
+    {
+        var columns = GraphColumnLayout.Compute(width, 2);
+
+        Assert.Equal(GraphColumnLayout.SpaciousColumnGap, columns.ColumnGap);
+        Assert.Equal(GraphColumnLayout.SpaciousRightMargin, columns.RightMargin);
     }
 }
