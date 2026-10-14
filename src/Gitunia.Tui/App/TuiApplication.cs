@@ -13,6 +13,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
@@ -560,33 +561,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var content = DetailContentBuilder.Build(entry, session.Details.Current, _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes);
         session.DetailSource.Update(content);
 
-        // A different commit starts at the top; the same commit whose details just arrived keeps the user's place,
-        // and each tab remembers its own place while the commit stays selected.
-        var selected = 0;
         var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;
-        if (content.ShortHash != previous.ShortHash)
-        {
-            session.DetailSelections.Clear();
-            selected = landing;
-        }
-        else if (previous.Tab != content.Tab)
-        {
-            session.DetailSelections[previous.Tab] = _view.Detail.SelectedItem ?? 0;
-            selected = session.DetailSelections.TryGetValue(content.Tab, out var remembered)
-                ? remembered
-                : landing;
-        }
-        else
-        {
-            selected = _view.Detail.SelectedItem ?? 0;
-            if (previous.Files.Count == 0 && selected < landing)
-            {
-                // The files of the commit just arrived: the cursor goes to the first one, whose diff is shown.
-                selected = landing;
-            }
-        }
-
-        _view.Detail.SelectedItem = content.Rows.Count == 0 ? null : Math.Min(selected, content.Rows.Count - 1);
+        _view.Detail.SelectedItem = session.DetailCursor.Decide(new DetailCursorRequest(
+            previous.ShortHash,
+            content.ShortHash,
+            previous.Tab,
+            content.Tab,
+            previous.Files.Count,
+            landing,
+            _view.Detail.SelectedItem,
+            content.Rows.Count));
         _view.Detail.EnsureSelectedItemVisible();
         _view.Detail.SetNeedsDraw();
         _view.RefreshChrome();

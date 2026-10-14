@@ -153,3 +153,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Graph (#238): a commit with one child and one parent on its own lane is drawn as part of the line (`GraphGlyphSet.LineNode`, `│` / `|`), node dots only where a lane starts, ends, forks or merges. Why: runs of commits on one branch read as a line, dots mark the branch structure. Terminal-drawn glyph tiers stay in #154.
 
 **UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.
+
+**UI:** `Enter` on the Details or Files tab keeps showing a notice instead of switching to Changes (#190, owner decision). Why: the tab switch is explicit (`1`-`3`, click), a key that jumps tabs would surprise.
