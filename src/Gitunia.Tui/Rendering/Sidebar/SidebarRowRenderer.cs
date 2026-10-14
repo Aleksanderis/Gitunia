@@ -65,20 +65,20 @@ public static class SidebarRowRenderer
         _ => SegmentRole.Plain,
     };
 
-    private static List<(string Text, SegmentRole Role)> ExtrasOf(SidebarRow row, SidebarGlyphs sidebarGlyphs)
+    private static List<SidebarExtra> ExtrasOf(SidebarRow row, SidebarGlyphs sidebarGlyphs)
     {
-        var extras = new List<(string, SegmentRole)>();
+        var extras = new List<SidebarExtra>();
         var tracking = (row.Ahead is > 0 ? sidebarGlyphs.Ahead + row.Ahead.Value.ToString(CultureInfo.InvariantCulture) : string.Empty)
             + (row.Behind is > 0 ? sidebarGlyphs.Behind + row.Behind.Value.ToString(CultureInfo.InvariantCulture) : string.Empty);
         if (tracking.Length > 0)
         {
-            extras.Add((tracking, SegmentRole.Punctuation));
+            extras.Add(new SidebarExtra(tracking, SegmentRole.Punctuation));
         }
 
         if (row.Annotation.Length > 0)
         {
             var isBranch = row.Kind is SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch;
-            extras.Add(((isBranch ? WorktreeMarker : string.Empty) + row.Annotation, SegmentRole.Faint));
+            extras.Add(new SidebarExtra($"{(isBranch ? WorktreeMarker : string.Empty)}{row.Annotation}", SegmentRole.Faint));
         }
 
         return extras;

@@ -16,9 +16,9 @@ public class EffectRunnerTests
     public async Task GivenRestoredTabs_WhenStarting_ThenOnlyActiveTabLoadsUntilActivated()
     {
         using var first = TestRepository.Create();
-        first.Commit("root", ("a.txt", "1"));
+        first.Commit("root", new TestFile("a.txt", "1"));
         using var second = TestRepository.Create();
-        second.Commit("root", ("a.txt", "1"));
+        second.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var scratch = Workspace.Empty;
@@ -53,7 +53,7 @@ public class EffectRunnerTests
     public async Task GivenWatchedTab_WhenGitChangesExternally_ThenGraphAndTabStateFollow()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
@@ -69,7 +69,7 @@ public class EffectRunnerTests
         var replaced = 0;
         session.GraphReplaced += () => replaced++;
 
-        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
         await pump.RunUntilAsync(() => session.Graph.Count == 2);
         var replacedBeforeTopic = replaced;
         repository.WriteFile("a.txt", "changed");
@@ -87,7 +87,7 @@ public class EffectRunnerTests
     public async Task GivenLoadedTab_WhenRefreshingManually_ThenGraphIsReloaded()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);

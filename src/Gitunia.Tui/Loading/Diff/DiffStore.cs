@@ -236,7 +236,7 @@ public sealed class DiffStore(
         var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
-        await foreach (var file in DiffReader.ReadCommitAsync(repository, commit, firstParent, token, warnings, lineLimit).ConfigureAwait(false))
+        await foreach (var file in DiffReader.ReadCommitAsync(repository, commit, firstParent, warnings, lineLimit, token).ConfigureAwait(false))
         {
             builder.Add(file);
             fileCut |= file.IsTruncated;

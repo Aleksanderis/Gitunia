@@ -25,7 +25,7 @@ public class TabRefresherTests
     public async Task GivenLoadedTab_WhenTheFirstRefreshRuns_ThenItIsABaselineThatAppliesSectionsWithoutReloadingTheGraph()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         using var harness = await Harness.LoadAsync(repository, start: false);
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
@@ -42,7 +42,7 @@ public class TabRefresherTests
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
         var replaced = 0;
@@ -59,7 +59,7 @@ public class TabRefresherTests
     public async Task GivenManualRefresh_WhenGitFails_ThenTheFailureIsReportedEachTime()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
         var gitDirectory = Path.Combine(repository.Path, ".git");
@@ -87,14 +87,14 @@ public class TabRefresherTests
     public async Task GivenBackgroundTab_WhenTheRepositoryChanges_ThenItRefreshesOnActivation()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
         harness.Refresher.SetActive(false);
 
-        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
 
         // That a hidden watcher stays silent is covered at the watcher level (RepositoryWatcherTests); waiting for silence here would need a sleep.
         // Whether the events arrived before or after activation, the tab ends up refreshing, so this only needs the pump.
@@ -108,14 +108,14 @@ public class TabRefresherTests
     public async Task GivenQuietTab_WhenACommitArrivesAutomatically_ThenTheGraphReloadReusesTheOldRows()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.Commit("second", ("b.txt", "2"));
-        repository.Commit("third", ("c.txt", "3"));
-        repository.Commit("fourth", ("d.txt", "4"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        repository.Commit("third", new TestFile("c.txt", "3"));
+        repository.Commit("fourth", new TestFile("d.txt", "4"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
 
-        repository.Commit("fifth", ("e.txt", "5"));
+        repository.Commit("fifth", new TestFile("e.txt", "5"));
 
         await harness.Pump.RunUntilAsync(() => harness.Reloads.Count == 1);
         Assert.True(harness.Reloads[0].ReusedCount > 0);
@@ -126,8 +126,8 @@ public class TabRefresherTests
     public async Task GivenManualRefresh_WhenItReloadsTheGraph_ThenNoRowIsReused()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
         using var harness = await Harness.LoadAsync(repository);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
 
@@ -141,12 +141,12 @@ public class TabRefresherTests
     public async Task GivenChangeBeforeTheBaseline_WhenTheBaselineRuns_ThenTheGraphIsReadInFull()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.Commit("second", ("b.txt", "2"));
-        repository.Commit("third", ("c.txt", "3"));
-        repository.Commit("fourth", ("d.txt", "4"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        repository.Commit("third", new TestFile("c.txt", "3"));
+        repository.Commit("fourth", new TestFile("d.txt", "4"));
         using var harness = await Harness.StartBeforeLoadAsync(repository);
-        repository.Commit("fifth", ("e.txt", "5"));
+        repository.Commit("fifth", new TestFile("e.txt", "5"));
         await harness.Pump.RunUntilAsync(() => harness.RunCount > 0);
 
         await harness.FinishLoadAsync();
@@ -160,11 +160,11 @@ public class TabRefresherTests
     public async Task GivenCommitBetweenTheLoadAndTheBaselineRead_WhenTheBaselineRuns_ThenTheGraphIsReloadedIncrementally()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.Commit("second", ("b.txt", "2"));
-        repository.Commit("third", ("c.txt", "3"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        repository.Commit("third", new TestFile("c.txt", "3"));
         using var harness = await Harness.LoadAsync(repository, start: false);
-        repository.Commit("fourth", ("d.txt", "4"));
+        repository.Commit("fourth", new TestFile("d.txt", "4"));
 
         harness.Refresher.Start();
 
@@ -177,8 +177,8 @@ public class TabRefresherTests
     public async Task GivenBranchCreatedBetweenTheLoadAndTheBaselineRead_WhenTheBaselineRuns_ThenTheGraphShowsIt()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.Commit("second", ("b.txt", "2"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.Commit("second", new TestFile("b.txt", "2"));
         using var harness = await Harness.LoadAsync(repository, start: false);
         repository.Git("branch", "topic", "HEAD~1");
 

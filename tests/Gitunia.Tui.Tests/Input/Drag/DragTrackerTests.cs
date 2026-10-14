@@ -36,7 +36,7 @@ public class DragTrackerTests
         Assert.Equal(DragPhase.Start, tracker.Feed(Held, 5, 6));
         Assert.Equal(DragPhase.Move, tracker.Feed(Held, 5, 7));
         Assert.Equal(DragPhase.Move, tracker.Feed(Held, 5, 5));
-        Assert.Equal((5, 5), tracker.Origin);
+        Assert.Equal(new ScreenPoint(5, 5), tracker.Origin);
     }
 
     [Fact]

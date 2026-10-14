@@ -124,7 +124,7 @@ public class GraphSplicerTests
         Assert.Null(splicer.Splice(rows, joinIndex, NoDecorations));
     }
 
-    private static (List<GraphEntry> Result, int JoinIndex) Reload(
+    private static ReloadOutcome Reload(
         IReadOnlyList<CommitInfo> old,
         IReadOnlyList<CommitInfo> updated,
         IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>>? decorations = null)
@@ -138,11 +138,11 @@ public class GraphSplicerTests
             var joinIndex = splicer.Observe(rows[^1]);
             if (joinIndex >= 0)
             {
-                return (splicer.Splice(rows, joinIndex, decorations ?? NoDecorations)!, joinIndex);
+                return new ReloadOutcome(splicer.Splice(rows, joinIndex, decorations ?? NoDecorations)!, joinIndex);
             }
         }
 
-        return (rows, -1);
+        return new ReloadOutcome(rows, -1);
     }
 
     private static List<GraphEntry> Entries(IReadOnlyList<CommitInfo> commits)

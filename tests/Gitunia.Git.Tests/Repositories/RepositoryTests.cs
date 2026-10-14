@@ -32,7 +32,7 @@ public class RepositoryTests
     [Fact]
     public async Task GivenSubdirectory_WhenOpening_ThenResolvesToRepositoryRoot()
     {
-        using var testRepository = TestRepository.Create().Commit("Nested", (Path.Combine("a", "b", "file.txt"), "x\n"));
+        using var testRepository = TestRepository.Create().Commit("Nested", new TestFile(Path.Combine("a", "b", "file.txt"), "x\n"));
 
         var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, "a", "b"), Token);
 
@@ -192,9 +192,9 @@ public class RepositoryTests
     public async Task GivenConflictedRevert_WhenDetectingOperation_ThenRevert()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("One", ("file.txt", "one\n"))
-            .Commit("Two", ("file.txt", "two\n"))
-            .Commit("Three", ("file.txt", "three\n"));
+            .Commit("One", new TestFile("file.txt", "one\n"))
+            .Commit("Two", new TestFile("file.txt", "two\n"))
+            .Commit("Three", new TestFile("file.txt", "three\n"));
         testRepository.Git(["revert", "--no-edit", "HEAD~1"], [1]);
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
@@ -214,7 +214,7 @@ public class RepositoryTests
     [Fact]
     public async Task GivenPathWithSpacesAndUnicode_WhenOpening_ThenResolves()
     {
-        using var testRepository = TestRepository.Create().Commit("Odd", (Path.Combine("sub dir ünï", "file.txt"), "x\n"));
+        using var testRepository = TestRepository.Create().Commit("Odd", new TestFile(Path.Combine("sub dir ünï", "file.txt"), "x\n"));
 
         var repository = await Repository.OpenAsync(Runner, Path.Combine(testRepository.Path, "sub dir ünï"), Token);
 
@@ -280,9 +280,9 @@ public class RepositoryTests
     public async Task GivenConflictInLinkedWorktree_WhenDetectingOperation_ThenOnlyThatWorktreeReportsIt()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("Initial", ("conflict.txt", "original\n"))
+            .Commit("Initial", new TestFile("conflict.txt", "original\n"))
             .CheckoutNewBranch("other")
-            .Commit("Other", ("conflict.txt", "other\n"))
+            .Commit("Other", new TestFile("conflict.txt", "other\n"))
             .Checkout("main");
         var worktreePath = testRepository.AddWorktree("work", "side", createBranch: true);
         testRepository.Git(["-C", worktreePath, "checkout", "-q", "-b", "side2"], null);
@@ -301,12 +301,12 @@ public class RepositoryTests
     public async Task GivenMultiCommitCherryPickStopped_WhenDetectingOperation_ThenCherryPickFromSequencer()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("Initial", ("a.txt", "a\n"), ("b.txt", "b\n"))
+            .Commit("Initial", new TestFile("a.txt", "a\n"), new TestFile("b.txt", "b\n"))
             .CheckoutNewBranch("other")
-            .Commit("Other a", ("a.txt", "other a\n"))
-            .Commit("Other b", ("b.txt", "other b\n"))
+            .Commit("Other a", new TestFile("a.txt", "other a\n"))
+            .Commit("Other b", new TestFile("b.txt", "other b\n"))
             .Checkout("main")
-            .Commit("Main a", ("a.txt", "main a\n"));
+            .Commit("Main a", new TestFile("a.txt", "main a\n"));
         testRepository.Git(["cherry-pick", "other~1", "other"], [1]);
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 

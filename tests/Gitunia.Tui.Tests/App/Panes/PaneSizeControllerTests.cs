@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Views;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Panes;
@@ -80,5 +81,5 @@ public class PaneSizeControllerTests
     }
 
     private PaneSizeController CreateController() =>
-        new(() => arrangement, () => focused, () => (120, 40), sizes => applied = sizes);
+        new(() => arrangement, () => focused, () => new ScreenSize(120, 40), sizes => applied = sizes);
 }

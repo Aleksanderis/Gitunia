@@ -12,7 +12,7 @@ public static class CommitDetailsReader
     /// <param name="cancellationToken">Cancels both git processes.</param>
     /// <param name="warnings">Receives the parsers' warnings.</param>
     /// <returns>The details; null when git printed no commit.</returns>
-    public static async Task<CommitDetails?> ReadAsync(Repository repository, ObjectId id, CancellationToken cancellationToken, ICollection<string>? warnings = null)
+    public static async Task<CommitDetails?> ReadAsync(Repository repository, ObjectId id, ICollection<string>? warnings = null, CancellationToken cancellationToken = default)
     {
         var options = new GitRunOptions(ReadOnly: true);
         var collected = warnings ?? new List<string>();

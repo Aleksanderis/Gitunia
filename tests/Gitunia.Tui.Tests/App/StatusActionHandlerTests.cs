@@ -88,7 +88,7 @@ public class StatusActionHandlerTests
     [Fact]
     public async Task GivenIdleDetails_WhenRetrying_ThenNothingToRetry()
     {
-        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         using var session = await CreateSessionAsync(testRepository);
         var handler = new StatusActionHandler(new StatusChannel(), () => session);
 
@@ -100,7 +100,7 @@ public class StatusActionHandlerTests
     [Fact]
     public async Task GivenFailedDetails_WhenRetrying_ThenTheLoadStartsAgain()
     {
-        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         using var session = await CreateSessionAsync(testRepository);
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
         var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

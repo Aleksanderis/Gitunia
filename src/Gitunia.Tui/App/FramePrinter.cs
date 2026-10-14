@@ -38,10 +38,10 @@ public static class FramePrinter
         int height,
         GraphGlyphSet glyphs,
         TextWriter output,
-        CancellationToken cancellationToken,
         PaneArrangement? arrangement = null,
         BottomTab tab = BottomTab.Changes,
-        PaletteSettings? colors = null)
+        PaletteSettings? colors = null,
+        CancellationToken cancellationToken = default)
     {
         var graph = new CommitGraph();
         var repository = new Repository(runner, location);
@@ -56,7 +56,7 @@ public static class FramePrinter
         var detailState = CommitDetailsState.Empty;
         if (selected is not null && DetailLayout.PaneHeight(height) > 0)
         {
-            var details = await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken);
+            var details = await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken: cancellationToken);
             detailState = details is null
                 ? new CommitDetailsState(selected.Id, CommitDetailsStatus.Failed, null, "Commit not found")
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
@@ -102,11 +102,11 @@ public static class FramePrinter
     private static async Task<DiffPaneModel> ReadDiffAsync(Repository repository, GraphEntry selected, CommitDetailsState detailState, CancellationToken cancellationToken)
     {
         // The diff needs the parents; the detail pane is not read when the terminal is too short for it.
-        var details = detailState.Details ?? await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken);
+        var details = detailState.Details ?? await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken: cancellationToken);
         var firstParent = details is { Parents.Count: > 0 } ? details.Parents[0] : (ObjectId?)null;
         var builder = new DiffDocumentBuilder();
         var warnings = new List<string>();
-        await foreach (var file in DiffReader.ReadCommitAsync(repository, selected.Id, firstParent, cancellationToken, warnings, DiffStore.DefaultFileLineLimit))
+        await foreach (var file in DiffReader.ReadCommitAsync(repository, selected.Id, firstParent, warnings, DiffStore.DefaultFileLineLimit, cancellationToken))
         {
             builder.Add(file);
         }

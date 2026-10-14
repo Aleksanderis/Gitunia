@@ -19,6 +19,7 @@ using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -420,7 +421,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\nshort\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -468,11 +469,11 @@ public class DiffPaneControllerTests
     public async Task GivenAMergeCommitSelected_WhenOpeningAFile_ThenTheFirstParentDiffShows()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("root", ("base.txt", "base\n"))
+            .Commit("root", new TestFile("base.txt", "base\n"))
             .CheckoutNewBranch("side")
-            .Commit("side work", ("side.txt", "side\n"))
+            .Commit("side work", new TestFile("side.txt", "side\n"))
             .Checkout("main")
-            .Commit("main work", ("main.txt", "main\n"))
+            .Commit("main work", new TestFile("main.txt", "main\n"))
             .Merge("side");
         using var harness = await DiffHarness.LoadAsync(testRepository);
         harness.SelectFile("side.txt");
@@ -518,7 +519,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenALongLine_WhenTogglingWrap_ThenItTakesMoreLinesAndTheCursorKeepsItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -541,7 +542,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChanges_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\nshort\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -688,7 +689,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOnAndTheCursorOnAContinuationLine_WhenCopyingTheLine_ThenTheWholeRowIsCopied()
     {
-        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -717,7 +718,7 @@ public class DiffPaneControllerTests
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => (ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
         }
@@ -853,11 +854,11 @@ public class DiffPaneControllerTests
         }
 
         private static TestRepository CreateDefaultRepository() => TestRepository.Create()
-            .Commit("root", ("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => $"line {index}\n"))), ("b.txt", "b\n"))
+            .Commit("root", new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => $"line {index}\n"))), new TestFile("b.txt", "b\n"))
             .Commit(
                 "edit",
-                ("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
-                ("b.txt", "b changed\n"));
+                new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
+                new TestFile("b.txt", "b changed\n"));
 
         private static async Task WaitForAsync(Action<Action> subscribe, Action<Action> unsubscribe, Func<bool> condition, string message)
         {

@@ -27,9 +27,9 @@ public static class DiffReader
     public static async IAsyncEnumerable<DiffFile> ReadAsync(
         Repository repository,
         IReadOnlyList<string> command,
-        [EnumeratorCancellation] CancellationToken cancellationToken,
         ICollection<string>? warnings = null,
-        int maximumLinesPerFile = int.MaxValue)
+        int maximumLinesPerFile = int.MaxValue,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfZero(command.Count);
         var arguments = new List<string>(command.Count + FixedOptions.Length) { command[0] };
@@ -83,13 +83,13 @@ public static class DiffReader
         Repository repository,
         ObjectId commit,
         ObjectId? firstParent,
-        CancellationToken cancellationToken,
         ICollection<string>? warnings = null,
-        int maximumLinesPerFile = int.MaxValue)
+        int maximumLinesPerFile = int.MaxValue,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<string> command = firstParent is { } parent
             ? ["diff", parent.ToString(), commit.ToString()]
             : ["show", "--format=", commit.ToString()];
-        return ReadAsync(repository, command, cancellationToken, warnings, maximumLinesPerFile);
+        return ReadAsync(repository, command, warnings, maximumLinesPerFile, cancellationToken);
     }
 }

@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Panes;
 
@@ -12,7 +13,7 @@ namespace Gitunia.Tui.App.Panes;
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="screenSize">The terminal size in columns and rows.</param>
 /// <param name="apply">Stores the new sizes and lays the panes out again.</param>
-public sealed class PaneSizeController(Func<PaneArrangement> arrangement, Func<PaneKind> focusedPane, Func<(int Width, int Height)> screenSize, Action<PaneSizes> apply)
+public sealed class PaneSizeController(Func<PaneArrangement> arrangement, Func<PaneKind> focusedPane, Func<ScreenSize> screenSize, Action<PaneSizes> apply)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -32,7 +33,9 @@ public sealed class PaneSizeController(Func<PaneArrangement> arrangement, Func<P
             return true;
         }
 
-        var (width, height) = screenSize();
+        var size = screenSize();
+        var width = size.Width;
+        var height = size.Height;
         if (PaneResizer.Apply(current.Sizes ?? PaneSizes.Automatic, action, count, focusedPane(), width, height, current.IsDiffOpen) is { } sizes)
         {
             apply(sizes);

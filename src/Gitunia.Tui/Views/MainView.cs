@@ -35,7 +35,7 @@ public sealed class MainView : IDisposable
     private readonly GraphGlyphSet glyphs;
     private readonly Func<PaneArrangement> arrangement;
     private Func<bool> suppressed = () => false;
-    private (int Width, int Height, PaneRects Rects, PaneKind? Focused, string Title, bool IsPicker, bool IsAscii)? gridKey;
+    private GridKey? gridKey;
     private FrameGrid? grid;
 
     public MainView(
@@ -210,7 +210,7 @@ public sealed class MainView : IDisposable
     public OverlayView Overlay { get; }
 
     /// <summary>The terminal size in columns and rows.</summary>
-    public (int Width, int Height) ScreenSize => (Window.Viewport.Width, Window.Viewport.Height);
+    public ScreenSize ScreenSize => new(Window.Viewport.Width, Window.Viewport.Height);
 
     /// <summary>Makes every pane and the picker swallow mouse input while <paramref name="isSuppressed"/> returns true (an overlay is open).</summary>
     public void SuppressMouseWhen(Func<bool> isSuppressed)
@@ -313,7 +313,7 @@ public sealed class MainView : IDisposable
             : Rects();
         PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
         var title = model().RepositoryName.Length > 0 ? model().RepositoryName : "Repo";
-        var key = (ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, glyphs.IsAscii);
+        var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, glyphs.IsAscii);
         if (grid is null || gridKey != key)
         {
             grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");

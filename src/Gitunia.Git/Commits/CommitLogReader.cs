@@ -17,8 +17,8 @@ public static class CommitLogReader
         Repository repository,
         CommitOrder order,
         IReadOnlyList<string> revisions,
-        [EnumeratorCancellation] CancellationToken cancellationToken,
-        ICollection<string>? warnings = null)
+        ICollection<string>? warnings = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var arguments = CommitLogFormat.Arguments(order, revisions.Count == 0 ? DefaultRevisions : revisions);
         var parser = new CommitLogParser();
@@ -57,7 +57,7 @@ public static class CommitLogReader
     public static async Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(Repository repository, CancellationToken cancellationToken)
     {
         var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>();
-        await foreach (var commit in ReadAsync(repository, CommitOrder.Topological, ["--no-walk", .. DefaultRevisions], cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in ReadAsync(repository, CommitOrder.Topological, ["--no-walk", .. DefaultRevisions], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             if (commit.Decorations.Count > 0)
             {

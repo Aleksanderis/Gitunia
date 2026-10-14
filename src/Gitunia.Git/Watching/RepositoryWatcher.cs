@@ -196,9 +196,9 @@ public sealed class RepositoryWatcher : IDisposable
         _debounceTimer.Dispose();
     }
 
-    private List<(string Path, bool IsRecursive)> CreatePlan()
+    private List<WatchTarget> CreatePlan()
     {
-        var plan = new List<(string Path, bool IsRecursive)>();
+        var plan = new List<WatchTarget>();
         AddIfExists(plan, _location.GitDirectory, false);
         if (_location.IsLinkedWorktree)
         {
@@ -215,11 +215,11 @@ public sealed class RepositoryWatcher : IDisposable
         return plan;
     }
 
-    private static void AddIfExists(List<(string Path, bool IsRecursive)> plan, string path, bool isRecursive)
+    private static void AddIfExists(List<WatchTarget> plan, string path, bool isRecursive)
     {
         if (Directory.Exists(path))
         {
-            plan.Add((path, isRecursive));
+            plan.Add(new WatchTarget(path, isRecursive));
         }
     }
 

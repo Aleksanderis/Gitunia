@@ -18,7 +18,7 @@ public class GraphLayoutGitTests
         using var testRepository = GraphGitRepository.CreateBranchy();
         var repository = await Repository.OpenAsync(testRepository.CreateRunner(), testRepository.Path, Token);
         var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, ["--all"], Token))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, ["--all"], cancellationToken: Token))
         {
             commits.Add(commit);
         }

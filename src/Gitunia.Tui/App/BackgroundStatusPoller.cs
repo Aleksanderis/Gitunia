@@ -51,7 +51,7 @@ public sealed class BackgroundStatusPoller : IDisposable
 
             try
             {
-                var status = await StatusReader.ReadStatusAsync(new Repository(runner, tab.Location), false, cancellationToken, UntrackedFilesMode.Normal).ConfigureAwait(false);
+                var status = await StatusReader.ReadStatusAsync(new Repository(runner, tab.Location), false, UntrackedFilesMode.Normal, cancellationToken).ConfigureAwait(false);
                 var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
                 postToUi(() => Apply(tabId, summary));

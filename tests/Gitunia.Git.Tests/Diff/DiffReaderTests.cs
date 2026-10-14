@@ -20,13 +20,13 @@ public class DiffReaderTests
         using var testRepository = TestRepository.Create()
             .Commit(
                 "base",
-                ("plain.txt", "1\n2\n3\n"),
-                ("with space/日本 ü.txt", "x\ny\n"),
-                ("tab\there.txt", "t\n"),
-                ("eol.txt", "no newline"),
-                ("rename me.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"),
-                ("source.txt", "s1\ns2\ns3\ns4\ns5\ns6\ns7\ns8\n"),
-                ("run.sh", "echo\n"));
+                new TestFile("plain.txt", "1\n2\n3\n"),
+                new TestFile("with space/日本 ü.txt", "x\ny\n"),
+                new TestFile("tab\there.txt", "t\n"),
+                new TestFile("eol.txt", "no newline"),
+                new TestFile("rename me.txt", "a\nb\nc\nd\ne\nf\ng\nh\n"),
+                new TestFile("source.txt", "s1\ns2\ns3\ns4\ns5\ns6\ns7\ns8\n"),
+                new TestFile("run.sh", "echo\n"));
         File.WriteAllBytes(System.IO.Path.Combine(testRepository.Path, "logo.bin"), [0, 1, 2, 3, 0, 255]);
         testRepository.Git("add", "logo.bin");
         testRepository.Git("commit", "-q", "-m", "binary");
@@ -63,7 +63,7 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenUserDiffConfig_WhenReadingDiff_ThenFixedOptionsKeepPrefixesAndNoColor()
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("a.txt", "1\n"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
         testRepository.Git("config", "diff.noprefix", "true");
         testRepository.Git("config", "color.ui", "always");
         testRepository.WriteFile("a.txt", "2\n");
@@ -80,8 +80,8 @@ public class DiffReaderTests
     public async Task GivenShowOfACommit_WhenReadingWithEmptyFormat_ThenFilesOfThatCommitAreReturned()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("one", ("a.txt", "1\n"))
-            .Commit("two", ("a.txt", "1\n2\n"), ("b.txt", "b\n"));
+            .Commit("one", new TestFile("a.txt", "1\n"))
+            .Commit("two", new TestFile("a.txt", "1\n2\n"), new TestFile("b.txt", "b\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
         var files = await ReadAllAsync(repository, ["show", "--format=", testRepository.Head], []);
@@ -93,7 +93,7 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenSelectedAdditionOnly_WhenApplyingForwardPatchToIndex_ThenIndexHoldsExactlyThatChange()
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
         testRepository.WriteFile("f.txt", "l1\nX\nY\nl4\nl5\nl6\n");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
@@ -110,7 +110,7 @@ public class DiffReaderTests
     public async Task GivenSecondOfThreeHunksOnly_WhenApplyingForwardPatchToIndex_ThenOtherHunksStayUnstaged()
     {
         var original = string.Concat(Enumerable.Range(1, 30).Select(number => $"line {number}\n"));
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", original));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
         testRepository.WriteFile("f.txt", original.Replace("line 3\n", "three\n").Replace("line 15\n", "fifteen\n").Replace("line 27\n", "twenty-seven\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var file = (await ReadAllAsync(repository, ["diff", "-U1"], [])).Single();
@@ -124,7 +124,7 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenStagedChange_WhenApplyingReversePatchOfOneRemovedLine_ThenOnlyThatLineIsUnstaged()
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "l1\nl2\nl3\nl4\nl5\nl6\n"));
         testRepository.WriteFile("f.txt", "l1\nX\nY\nl4\nl5\nl6\n");
         testRepository.Git("add", "f.txt");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
@@ -139,7 +139,7 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenNoNewlineAtEndOfFile_WhenStagingTheChangedLine_ThenIndexKeepsNoNewline()
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", "a\nb"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb"));
         testRepository.WriteFile("f.txt", "a\nB");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
@@ -154,7 +154,7 @@ public class DiffReaderTests
     [InlineData("removed")]
     public async Task GivenNewlineAtEndOfFileChanges_WhenSelectingOneSideOfTheChange_ThenPatchStillApplies(string selectedSide)
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", "a\nb"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb"));
         testRepository.WriteFile("f.txt", "a\nb\n");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var file = (await ReadAllAsync(repository, ["diff"], [])).Single();
@@ -170,7 +170,7 @@ public class DiffReaderTests
     public async Task GivenStagedChangesInTwoHunks_WhenReversingSelectionsOfBoth_ThenOffsetsAreRightAndOnlyThoseLinesAreUnstaged()
     {
         var original = string.Concat(Enumerable.Range(1, 30).Select(number => $"line {number}\n"));
-        using var testRepository = TestRepository.Create().Commit("base", ("f.txt", original));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
         testRepository.WriteFile("f.txt", original.Replace("line 3\n", "three\nextra\nextra two\n").Replace("line 20\n", string.Empty).Replace("line 27\n", "twenty-seven\n"));
         testRepository.Git("add", "f.txt");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
@@ -199,7 +199,7 @@ public class DiffReaderTests
             changed.Append(number % 10 == 0 ? "changed " : "line ").Append(number).Append('\n');
         }
 
-        using var testRepository = TestRepository.Create().Commit("base", ("big.txt", original.ToString()), ("small.txt", "s\n"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("big.txt", original.ToString()), new TestFile("small.txt", "s\n"));
         testRepository.WriteFile("big.txt", changed.ToString()).WriteFile("small.txt", "t\n");
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
@@ -213,7 +213,7 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenCancelledToken_WhenReading_ThenOperationCancelled()
     {
-        using var testRepository = TestRepository.Create().Commit("base", ("a.txt", "1\n"));
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
@@ -224,7 +224,7 @@ public class DiffReaderTests
     private static async Task<List<DiffFile>> ReadAllAsync(Repository repository, string[] command, List<string> warnings, CancellationToken? token = null)
     {
         var files = new List<DiffFile>();
-        await foreach (var file in DiffReader.ReadAsync(repository, command, token ?? Token, warnings))
+        await foreach (var file in DiffReader.ReadAsync(repository, command, warnings, cancellationToken: token ?? Token))
         {
             files.Add(file);
         }

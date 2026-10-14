@@ -31,8 +31,8 @@ public static class AnsiFrameWriter
         {
             foreach (var segment in line.Segments)
             {
-                var (isSelected, isFocused) = SelectionOf(segment, line);
-                builder.Append(Escape).Append('0').Append(Sequence(Palette.For(segment, isSelected, isFocused, colors), settings.Depth)).Append('m').Append(segment.Text);
+                var selection = SelectionOf(segment, line);
+                builder.Append(Escape).Append('0').Append(Sequence(Palette.For(segment, selection.IsSelected, selection.IsFocused, colors), settings.Depth)).Append('m').Append(segment.Text);
             }
 
             builder.Append(Escape).Append("0m").Append('\n');
@@ -41,12 +41,12 @@ public static class AnsiFrameWriter
         return builder.ToString();
     }
 
-    private static (bool IsSelected, bool IsFocused) SelectionOf(StyledSegment segment, StyledLine line) => segment.Selection switch
+    private static SegmentHighlight SelectionOf(StyledSegment segment, StyledLine line) => segment.Selection switch
     {
-        SegmentSelection.None => (false, false),
-        SegmentSelection.Focused => (true, true),
-        SegmentSelection.Dim => (true, false),
-        _ => (line.IsSelected, true),
+        SegmentSelection.None => new SegmentHighlight(false, false),
+        SegmentSelection.Focused => new SegmentHighlight(true, true),
+        SegmentSelection.Dim => new SegmentHighlight(true, false),
+        _ => new SegmentHighlight(line.IsSelected, true),
     };
 
     // The parameters that follow "0" (reset) for an attribute, each starting with ';'.

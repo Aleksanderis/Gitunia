@@ -67,7 +67,7 @@ public class WorkspaceActionsTests
         Assert.Equal("abc", picker.State!.Query);
     }
 
-    private static (WorkspaceActions Actions, WorkspaceHost Host, PickerController Picker) Create(int tabCount)
+    private static WorkspaceActionsHarness Create(int tabCount)
     {
         var host = new WorkspaceHost(Workspace.Empty);
         for (var index = 0; index < tabCount; index++)
@@ -79,6 +79,6 @@ public class WorkspaceActionsTests
         // Background results are queued and never run: these tests are synchronous and must not race a scan on another thread.
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var picker = new PickerController(new GitRunner(), host, Path.GetTempPath(), pump.Post);
-        return (new WorkspaceActions(host, picker, () => { }), host, picker);
+        return new WorkspaceActionsHarness(new WorkspaceActions(host, picker, () => { }), host, picker);
     }
 }

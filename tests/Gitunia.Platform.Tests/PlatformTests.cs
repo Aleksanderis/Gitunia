@@ -19,19 +19,19 @@ public class DetectionTests
 {
     [Fact]
     public void GivenNoColorAndTruecolor_WhenDetectingColor_ThenNone() =>
-        Assert.Equal(ColorDepth.None, With(("NO_COLOR", "1"), ("COLORTERM", "truecolor")).DetectColor(true));
+        Assert.Equal(ColorDepth.None, With(new EnvironmentVariable("NO_COLOR", "1"), new EnvironmentVariable("COLORTERM", "truecolor")).DetectColor(true));
 
     [Fact]
     public void GivenColortermTruecolor_WhenDetectingColor_ThenTruecolor() =>
-        Assert.Equal(ColorDepth.TrueColor, With(("COLORTERM", "truecolor")).DetectColor(true));
+        Assert.Equal(ColorDepth.TrueColor, With(new EnvironmentVariable("COLORTERM", "truecolor")).DetectColor(true));
 
     [Fact]
     public void GivenTerm256color_WhenDetectingColor_ThenAnsi256() =>
-        Assert.Equal(ColorDepth.Ansi256, With(("TERM", "xterm-256color")).DetectColor(true));
+        Assert.Equal(ColorDepth.Ansi256, With(new EnvironmentVariable("TERM", "xterm-256color")).DetectColor(true));
 
     [Fact]
     public void GivenNonInteractiveConsole_WhenDetectingColor_ThenNone() =>
-        Assert.Equal(ColorDepth.None, With(("COLORTERM", "truecolor")).DetectColor(false));
+        Assert.Equal(ColorDepth.None, With(new EnvironmentVariable("COLORTERM", "truecolor")).DetectColor(false));
 
     [Theory]
     [InlineData("15;0", false)]
@@ -43,7 +43,7 @@ public class DetectionTests
     [InlineData("15", false)]
     [InlineData("7", false)]
     public void GivenColorFgBg_WhenDetectingBackground_ThenOnlyLightBackgroundsAreLight(string value, bool expected) =>
-        Assert.Equal(expected, With(("COLORFGBG", value)).DetectLightBackground());
+        Assert.Equal(expected, With(new EnvironmentVariable("COLORFGBG", value)).DetectLightBackground());
 
     [Fact]
     public void GivenNoColorFgBg_WhenDetectingBackground_ThenDark() =>
@@ -52,19 +52,19 @@ public class DetectionTests
     [Fact]
     public void GivenLocale_WhenDetectingUnicode_ThenUtf8LocalesAreSupported()
     {
-        Assert.True(With(("LANG", "en_US.UTF-8")).DetectUnicode());
-        Assert.False(With(("LANG", "C")).DetectUnicode());
+        Assert.True(With(new EnvironmentVariable("LANG", "en_US.UTF-8")).DetectUnicode());
+        Assert.False(With(new EnvironmentVariable("LANG", "C")).DetectUnicode());
     }
 
     [Fact]
     public void GivenXdgVars_WhenReadingLinuxDirectories_ThenTheyAreUsed()
     {
-        var platform = With(("XDG_CONFIG_HOME", "/x/c"), ("XDG_STATE_HOME", "/x/s"));
+        var platform = With(new EnvironmentVariable("XDG_CONFIG_HOME", "/x/c"), new EnvironmentVariable("XDG_STATE_HOME", "/x/s"));
         Assert.Equal(Path.Combine("/x/c", "gitunia"), platform.ConfigDirectory);
         Assert.Equal(Path.Combine("/x/s", "gitunia"), platform.StateDirectory);
     }
 
-    private static LinuxPlatform With(params (string Key, string Value)[] environment)
+    private static LinuxPlatform With(params EnvironmentVariable[] environment)
     {
         var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
         return new LinuxPlatform(key => dictionary.GetValueOrDefault(key));

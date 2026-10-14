@@ -21,7 +21,7 @@ public class GraphTabBinderTests
     public async Task GivenSelectedCommit_WhenTheGraphIsReplacedWithNewCommitsOnTop_ThenTheSameCommitStaysSelected()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("one", ("a.txt", "1")).Commit("two", ("a.txt", "2")).Commit("three", ("a.txt", "3"));
+        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2")).Commit("three", new TestFile("a.txt", "3"));
         using var harness = await Harness.LoadAsync(repository);
         var selected = harness.Session.Graph[2].Id;
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
@@ -29,7 +29,7 @@ public class GraphTabBinderTests
 
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
-        repository.Commit("four", ("a.txt", "4"));
+        repository.Commit("four", new TestFile("a.txt", "4"));
         harness.Effects.Refresh(harness.TabId);
         await harness.Pump.RunUntilAsync(() => replaced == 1);
 
@@ -42,7 +42,7 @@ public class GraphTabBinderTests
     public async Task GivenSelectedCommit_WhenItDisappearsFromTheGraph_ThenTheNearestRowIsSelectedAndSaved()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("one", ("a.txt", "1")).Commit("two", ("a.txt", "2")).Commit("three", ("a.txt", "3"));
+        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2")).Commit("three", new TestFile("a.txt", "3"));
         using var harness = await Harness.LoadAsync(repository);
         var selected = harness.Session.Graph[0].Id;
         harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
@@ -65,7 +65,7 @@ public class GraphTabBinderTests
         using var repository = TestRepository.Create();
         for (var index = 0; index < 30; index++)
         {
-            repository.Commit("commit " + index, ("a.txt", index.ToString()));
+            repository.Commit("commit " + index, new TestFile("a.txt", index.ToString()));
         }
 
         using var harness = await Harness.LoadAsync(repository);
@@ -77,7 +77,7 @@ public class GraphTabBinderTests
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
 
-        repository.Commit("new", ("a.txt", "new"));
+        repository.Commit("new", new TestFile("a.txt", "new"));
         harness.Effects.Refresh(harness.TabId);
         await harness.Pump.RunUntilAsync(() => replaced == 1);
 

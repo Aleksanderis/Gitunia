@@ -55,10 +55,10 @@ public static class Program
                 options.FrameHeight!.Value,
                 GraphGlyphSet.For(capabilities.Unicode),
                 Console.Out,
-                CancellationToken.None,
                 new PaneArrangement(options.OpenDiff, options.Zoom),
                 options.Tab,
-                options.Colors).GetAwaiter().GetResult();
+                options.Colors,
+                CancellationToken.None).GetAwaiter().GetResult();
             return 0;
         }
 

@@ -1,4 +1,5 @@
 using System.Text;
+using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Git.Diff;
 
@@ -77,7 +78,7 @@ public static class DiffPathText
     /// Splits the text after <c>diff --git </c>. Exact when either path is quoted or both are equal (anything but a
     /// rename or copy); for a rename or copy the result is a guess that the <c>rename from/to</c> lines replace.
     /// </summary>
-    public static (string OldPath, string NewPath)? SplitHeader(string text)
+    public static DiffPaths? SplitHeader(string text)
     {
         if (text.StartsWith('"'))
         {
@@ -87,7 +88,7 @@ public static class DiffPathText
                 return null;
             }
 
-            return (StripPrefix(Unquote(text[..(close + 1)]), true) ?? string.Empty, StripPrefix(Unquote(text[(close + 2)..]), false) ?? string.Empty);
+            return new DiffPaths(StripPrefix(Unquote(text[..(close + 1)]), true) ?? string.Empty, StripPrefix(Unquote(text[(close + 2)..]), false) ?? string.Empty);
         }
 
         if (text.EndsWith('"'))
@@ -98,7 +99,7 @@ public static class DiffPathText
                 return null;
             }
 
-            return (StripPrefix(text[..open], true) ?? string.Empty, StripPrefix(Unquote(text[(open + 1)..]), false) ?? string.Empty);
+            return new DiffPaths(StripPrefix(text[..open], true) ?? string.Empty, StripPrefix(Unquote(text[(open + 1)..]), false) ?? string.Empty);
         }
 
         if (text.Length >= OldPrefix.Length + 1 + NewPrefix.Length && text.Length % 2 == 1)
@@ -106,12 +107,12 @@ public static class DiffPathText
             var middle = text.Length / 2;
             if (text[middle] == ' ' && text.AsSpan(OldPrefix.Length, middle - OldPrefix.Length).SequenceEqual(text.AsSpan(middle + 1 + NewPrefix.Length)))
             {
-                return (StripPrefix(text[..middle], true) ?? string.Empty, StripPrefix(text[(middle + 1)..], false) ?? string.Empty);
+                return new DiffPaths(StripPrefix(text[..middle], true) ?? string.Empty, StripPrefix(text[(middle + 1)..], false) ?? string.Empty);
             }
         }
 
         var separator = text.IndexOf(" b/", StringComparison.Ordinal);
-        return separator < 0 ? null : (StripPrefix(text[..separator], true) ?? string.Empty, StripPrefix(text[(separator + 1)..], false) ?? string.Empty);
+        return separator < 0 ? null : new DiffPaths(StripPrefix(text[..separator], true) ?? string.Empty, StripPrefix(text[(separator + 1)..], false) ?? string.Empty);
     }
 
     private static int ClosingQuote(string text)

@@ -15,7 +15,7 @@ public class IncrementalGraphLoaderTests
     {
         using var testRepository = LongHistory(40);
         var previous = await ReadAllAsync(testRepository);
-        testRepository.Commit("new top", ("new.txt", "1"));
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -43,7 +43,7 @@ public class IncrementalGraphLoaderTests
         var previous = await ReadAllAsync(testRepository);
         testRepository.Branch("topic", "HEAD~20").Tag("v1");
         testRepository.Git("tag", "old-tag", "HEAD~25");
-        testRepository.Commit("new top", ("new.txt", "1"));
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -62,7 +62,7 @@ public class IncrementalGraphLoaderTests
         var previous = await ReadAllAsync(testRepository);
         testRepository.Git("tag", "-d", "old-tag");
         testRepository.Git("branch", "-D", "topic");
-        testRepository.Commit("new top", ("new.txt", "1"));
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -75,10 +75,10 @@ public class IncrementalGraphLoaderTests
     public async Task GivenBranchDeletedWithCommitsBelowTheJoin_WhenReloading_ThenTheCountGuardFallsBackToAFullRead()
     {
         using var testRepository = LongHistory(20);
-        testRepository.CheckoutNewBranch("topic").Commit("only on topic", ("topic.txt", "1")).Checkout("main");
+        testRepository.CheckoutNewBranch("topic").Commit("only on topic", new TestFile("topic.txt", "1")).Checkout("main");
         var previous = await ReadAllAsync(testRepository);
         testRepository.Git("branch", "-D", "topic");
-        testRepository.Commit("new top", ("new.txt", "1"));
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -90,11 +90,11 @@ public class IncrementalGraphLoaderTests
     public async Task GivenBranchDeletedAndOneCommitAdded_WhenReloading_ThenTheGoneCommitIsNotKept()
     {
         using var testRepository = LongHistory(20);
-        testRepository.CheckoutNewBranch("topic").Commit("only on topic", ("topic.txt", "1")).Checkout("main");
-        testRepository.Commit("main 1", ("m1.txt", "1"));
+        testRepository.CheckoutNewBranch("topic").Commit("only on topic", new TestFile("topic.txt", "1")).Checkout("main");
+        testRepository.Commit("main 1", new TestFile("m1.txt", "1"));
         var previous = await ReadAllAsync(testRepository);
         testRepository.Git("branch", "-D", "topic");
-        testRepository.Commit("new top", ("new.txt", "1"));
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -106,11 +106,11 @@ public class IncrementalGraphLoaderTests
     public async Task GivenMergeOfASideBranch_WhenReloading_ThenTheResultEqualsAFullRead()
     {
         using var testRepository = LongHistory(20);
-        testRepository.CheckoutNewBranch("topic").Commit("topic 1", ("t1.txt", "1")).Commit("topic 2", ("t2.txt", "1")).Checkout("main");
-        testRepository.Commit("main 1", ("m1.txt", "1"));
+        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Commit("topic 2", new TestFile("t2.txt", "1")).Checkout("main");
+        testRepository.Commit("main 1", new TestFile("m1.txt", "1"));
         var previous = await ReadAllAsync(testRepository);
         testRepository.Merge("topic");
-        testRepository.Commit("after merge", ("a.txt", "1"));
+        testRepository.Commit("after merge", new TestFile("a.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);
 
@@ -144,7 +144,7 @@ public class IncrementalGraphLoaderTests
     private static TestRepository LongHistory(int count)
     {
         var testRepository = TestRepository.Create();
-        testRepository.Commit("commit 0", ("a.txt", "0"));
+        testRepository.Commit("commit 0", new TestFile("a.txt", "0"));
         for (var number = 1; number < count; number++)
         {
             testRepository.Git("commit", "-q", "--allow-empty", "-m", "commit " + number);

@@ -4,6 +4,7 @@ using Gitunia.Core.Status;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Views;
 using Terminal.Gui.Input;
 using Xunit;
 
@@ -30,7 +31,7 @@ public sealed class OverlayControllerTests : IDisposable
             posted.Enqueue(action);
             postedSignal.Release();
         });
-        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => (80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView, statuses);
+        controller = new OverlayController(engine, keys, timer, (action, count) => RouteAction(controller!, action, count), () => new ScreenSize(80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView, statuses);
         overlays = controller;
         overlays.Changed += () => changes++;
     }

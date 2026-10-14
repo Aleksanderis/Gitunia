@@ -14,7 +14,7 @@ public class DiffPatchWriterTests
     [Fact]
     public void GivenOnlyOneAddedLineSelected_WhenWritingForward_ThenRemovalBecomesContextAndOtherAdditionIsDropped()
     {
-        var selection = Selection((0, [2]));
+        var selection = Selection(new HunkLineSelection(0, [2]));
 
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Forward);
 
@@ -26,7 +26,7 @@ public class DiffPatchWriterTests
     [Fact]
     public void GivenOnlyTheRemovalSelected_WhenWritingForward_ThenAdditionsAreDroppedAndCountsShrink()
     {
-        var selection = Selection((0, [1]));
+        var selection = Selection(new HunkLineSelection(0, [1]));
 
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Forward);
 
@@ -36,7 +36,7 @@ public class DiffPatchWriterTests
     [Fact]
     public void GivenTwoHunksSelected_WhenWritingForward_ThenSecondHunkStartIsShiftedByTheFirst()
     {
-        var selection = Selection((0, [1, 2, 3]), (1, [0, 1]));
+        var selection = Selection(new HunkLineSelection(0, [1, 2, 3]), new HunkLineSelection(1, [0, 1]));
 
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Forward);
 
@@ -47,7 +47,7 @@ public class DiffPatchWriterTests
     [Fact]
     public void GivenOnlyOneAddedLineSelected_WhenWritingReverse_ThenOtherAdditionStaysAsContext()
     {
-        var selection = Selection((0, [2]));
+        var selection = Selection(new HunkLineSelection(0, [2]));
 
         var patch = DiffPatchWriter.WriteSelection(TwoHunkFile, selection, PatchDirection.Reverse);
 
@@ -59,7 +59,7 @@ public class DiffPatchWriterTests
     [Fact]
     public void GivenOnlyContextOrNothingSelected_WhenWriting_ThenEmpty()
     {
-        Assert.Equal(string.Empty, DiffPatchWriter.WriteSelection(TwoHunkFile, Selection((0, [0, 4])), PatchDirection.Forward));
+        Assert.Equal(string.Empty, DiffPatchWriter.WriteSelection(TwoHunkFile, Selection(new HunkLineSelection(0, [0, 4])), PatchDirection.Forward));
         Assert.Equal(string.Empty, DiffPatchWriter.WriteSelection(TwoHunkFile, Selection(), PatchDirection.Forward));
     }
 
@@ -68,7 +68,7 @@ public class DiffPatchWriterTests
     {
         var file = DiffParser.Parse(DiffFixtures.NoNewlineBothSides).Items.Single();
 
-        var patch = DiffPatchWriter.WriteSelection(file, Selection((0, [2])), PatchDirection.Forward);
+        var patch = DiffPatchWriter.WriteSelection(file, Selection(new HunkLineSelection(0, [2])), PatchDirection.Forward);
 
         Assert.EndsWith(" first\n-last\n\\ No newline at end of file\n+last changed\n\\ No newline at end of file\n", patch, StringComparison.Ordinal);
         Assert.Contains("@@ -1,2 +1,2 @@", patch, StringComparison.Ordinal);
@@ -83,6 +83,6 @@ public class DiffPatchWriterTests
         Assert.Equal("@@ -20 +21 @@\n-single\n+single changed\n", DiffPatchWriter.WriteHunk(TwoHunkFile.Hunks[1]));
     }
 
-    private static Dictionary<int, IReadOnlyCollection<int>> Selection(params (int Hunk, int[] Lines)[] entries) =>
+    private static Dictionary<int, IReadOnlyCollection<int>> Selection(params HunkLineSelection[] entries) =>
         entries.ToDictionary(entry => entry.Hunk, entry => (IReadOnlyCollection<int>)entry.Lines);
 }

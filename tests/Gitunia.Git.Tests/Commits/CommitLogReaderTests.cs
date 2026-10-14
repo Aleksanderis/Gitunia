@@ -66,7 +66,7 @@ public class CommitLogReaderTests
     public async Task GivenOddSubjects_WhenReadingLog_ThenTextSurvives()
     {
         using var testRepository = TestRepository.Create()
-            .Commit("ünï 日本 \"quoted\" subject; with | pipes", ("a.txt", "a\n"));
+            .Commit("ünï 日本 \"quoted\" subject; with | pipes", new TestFile("a.txt", "a\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
         var commits = await ReadAllAsync(repository);
@@ -115,7 +115,7 @@ public class CommitLogReaderTests
         var expected = long.Parse((await repository.RunAsync(["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
 
         var count = 0L;
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], Token))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: Token))
         {
             count += commit.Id.IsValid ? 1 : 0;
         }
@@ -135,7 +135,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenRevisionNamedLikeAFile_WhenReadingLog_ThenItIsStillTreatedAsRevision()
     {
-        using var testRepository = TestRepository.Create().Commit("One", ("main", "file named like the branch\n"));
+        using var testRepository = TestRepository.Create().Commit("One", new TestFile("main", "file named like the branch\n"));
         var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
         Assert.Single(await ReadAllAsync(repository, CommitOrder.Topological, "main"));
@@ -162,7 +162,7 @@ public class CommitLogReaderTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], source.Token))
+            await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken: source.Token))
             {
                 Assert.NotNull(commit);
             }
@@ -172,7 +172,7 @@ public class CommitLogReaderTests
     private static async Task<List<CommitInfo>> ReadAllAsync(Repository repository, CommitOrder order = CommitOrder.Topological, params string[] revisions)
     {
         var commits = new List<CommitInfo>();
-        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, revisions, Token))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, revisions, cancellationToken: Token))
         {
             commits.Add(commit);
         }

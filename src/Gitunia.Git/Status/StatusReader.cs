@@ -13,8 +13,8 @@ public static class StatusReader
     public static async Task<StatusSnapshot> ReadStatusAsync(
         Repository repository,
         bool includeIgnored,
-        CancellationToken cancellationToken,
-        UntrackedFilesMode untrackedFiles = UntrackedFilesMode.All)
+        UntrackedFilesMode untrackedFiles,
+        CancellationToken cancellationToken)
     {
         var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? "--untracked-files=all" : "--untracked-files=normal";
         var arguments = new List<string> { "status", "--porcelain=v2", GitOptions.NulTerminated, "--branch", untrackedArgument };

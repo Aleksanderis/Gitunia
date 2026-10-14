@@ -25,5 +25,8 @@ csharp_style_var_for_built_in_types = true:warning
 csharp_style_var_when_type_is_apparent = true:warning
 csharp_style_var_elsewhere = true:warning
 
+# CancellationToken is always the last parameter.
+dotnet_diagnostic.CA1068.severity = warning
+
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none

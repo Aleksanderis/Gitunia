@@ -49,7 +49,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
     /// Terminal size. Deliberately avoids Console.WindowWidth on Unix: touching it makes .NET initialise its own
     /// terminal handling, which resets termios (raw mode lost, echo back) and restores it whenever a child process exits.
     /// </summary>
-    public static (int Width, int Height) GetSize()
+    public static TerminalSize GetSize()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -59,11 +59,11 @@ public sealed unsafe partial class RawTerminal : IDisposable
                 var height = info.Bottom - info.Top + 1;
                 if (width > 0 && height > 0)
                 {
-                    return (width, height);
+                    return new TerminalSize(width, height);
                 }
             }
 
-            return (80, 24);
+            return new TerminalSize(80, 24);
         }
 
         var windowSize = new ushort[4];
@@ -72,11 +72,11 @@ public sealed unsafe partial class RawTerminal : IDisposable
             // TIOCGWINSZ: 0x5413 on Linux, 0x40087468 on macOS
             if (IoCtl(1, OperatingSystem.IsLinux() ? 0x5413UL : 0x40087468UL, sizePointer) == 0 && windowSize[0] > 0 && windowSize[1] > 0)
             {
-                return (windowSize[1], windowSize[0]);
+                return new TerminalSize(windowSize[1], windowSize[0]);
             }
         }
 
-        return (80, 24);
+        return new TerminalSize(80, 24);
     }
 
     public static void Write(ReadOnlySpan<byte> bytes)

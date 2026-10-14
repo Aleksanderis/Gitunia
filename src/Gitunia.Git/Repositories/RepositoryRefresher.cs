@@ -35,7 +35,7 @@ public static class RepositoryRefresher
         var headTask = readHead ? repository.ReadHeadAsync(cancellationToken) : null;
         var refsTask = readRefs ? RefReader.ReadRefsAsync(repository, cancellationToken) : null;
         var worktreesTask = readWorktrees ? RefReader.ReadWorktreesAsync(repository, cancellationToken) : null;
-        var statusTask = readStatus ? StatusReader.ReadStatusAsync(repository, includeIgnored: false, cancellationToken) : null;
+        var statusTask = readStatus ? StatusReader.ReadStatusAsync(repository, includeIgnored: false, UntrackedFilesMode.All, cancellationToken) : null;
 
         var head = headTask is null ? previous!.Head : await headTask.ConfigureAwait(false);
         var refs = refsTask is null ? previous!.Refs : (await refsTask.ConfigureAwait(false)).Items;

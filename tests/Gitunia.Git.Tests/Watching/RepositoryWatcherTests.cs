@@ -27,7 +27,7 @@ public class RepositoryWatcherTests
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
-        testRepository.Commit("external", ("later.txt", "x"));
+        testRepository.Commit("external", new TestFile("later.txt", "x"));
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Refs | RepositoryChangeKinds.Index, Token);
         Assert.False(watcher.IsPolling);
@@ -79,7 +79,7 @@ public class RepositoryWatcherTests
         watcher.Start();
         watcher.SetActive(false);
 
-        testRepository.Commit("while hidden", ("hidden.txt", "x"));
+        testRepository.Commit("while hidden", new TestFile("hidden.txt", "x"));
 
         await stale.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
         Assert.True(watcher.IsStale);
@@ -172,7 +172,7 @@ public class RepositoryWatcherTests
         Assert.Equal(0, watcher.WatcherCount);
         Assert.Equal(0, budget.InUse);
 
-        testRepository.Commit("polled", ("polled.txt", "x"));
+        testRepository.Commit("polled", new TestFile("polled.txt", "x"));
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
     }
@@ -253,7 +253,7 @@ public class RepositoryWatcherTests
         watcher.Start();
 
         using var clone = TestRepository.Create();
-        clone.Commit("c", ("a.txt", "a"));
+        clone.Commit("c", new TestFile("a.txt", "a"));
         clone.Git("push", "-q", origin.Path, "main");
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Refs, Token);

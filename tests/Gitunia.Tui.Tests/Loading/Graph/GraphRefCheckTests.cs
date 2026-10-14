@@ -82,9 +82,9 @@ public class GraphRefCheckTests
     private static TestRepository RepositoryWithHistory()
     {
         var testRepository = TestRepository.Create();
-        testRepository.Commit("root", ("a.txt", "1"));
-        testRepository.Commit("second", ("b.txt", "2"));
-        testRepository.Commit("third", ("c.txt", "3"));
+        testRepository.Commit("root", new TestFile("a.txt", "1"));
+        testRepository.Commit("second", new TestFile("b.txt", "2"));
+        testRepository.Commit("third", new TestFile("c.txt", "3"));
         return testRepository;
     }
 

@@ -20,7 +20,7 @@ public class RepositoryLoaderTests
     public async Task GivenOpenedTab_WhenLoading_ThenGraphHeadAndRefsArriveAndLoadingEnds()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1")).Commit("second", ("a.txt", "2")).Tag("v1");
+        repository.Commit("root", new TestFile("a.txt", "1")).Commit("second", new TestFile("a.txt", "2")).Tag("v1");
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
@@ -47,7 +47,7 @@ public class RepositoryLoaderTests
     public async Task GivenCancelledTab_WhenLoading_ThenSessionStaysLoadingAndNothingThrows()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
@@ -68,7 +68,7 @@ public class RepositoryLoaderTests
     public async Task GivenDirtyRepository_WhenLoading_ThenTheStatusSummaryArrivesForTheTabBar()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1")).WriteFile("untracked.txt", "x");
+        repository.Commit("root", new TestFile("a.txt", "1")).WriteFile("untracked.txt", "x");
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
@@ -85,7 +85,7 @@ public class RepositoryLoaderTests
     public async Task GivenCleanRepository_WhenLoading_ThenTheStatusSummaryIsNotDirty()
     {
         using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
@@ -102,7 +102,7 @@ public class RepositoryLoaderTests
     public async Task GivenRepositoryThatVanished_WhenLoading_ThenTheFailedReadsAreReportedToTheStatusChannel()
     {
         var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        repository.Commit("root", new TestFile("a.txt", "1"));
         var runner = new GitRunner();
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);

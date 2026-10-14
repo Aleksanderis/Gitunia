@@ -122,13 +122,24 @@ public sealed class CommitLogParser
 
     private static CommitDecoration Decorate(string fullName, bool isTag, bool current)
     {
-        (var kind, var prefix) = fullName switch
+        var kind = RefKind.Other;
+        var prefix = string.Empty;
+        if (isTag)
         {
-            _ when isTag => (RefKind.Tag, GitRefPrefixes.Tags),
-            _ when fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) => (RefKind.LocalBranch, GitRefPrefixes.Heads),
-            _ when fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) => (RefKind.RemoteBranch, GitRefPrefixes.Remotes),
-            _ => (RefKind.Other, string.Empty),
-        };
+            kind = RefKind.Tag;
+            prefix = GitRefPrefixes.Tags;
+        }
+        else if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            kind = RefKind.LocalBranch;
+            prefix = GitRefPrefixes.Heads;
+        }
+        else if (fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
+        {
+            kind = RefKind.RemoteBranch;
+            prefix = GitRefPrefixes.Remotes;
+        }
+
         var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
         return new CommitDecoration(fullName, shortName, kind, current);
     }
