@@ -117,7 +117,7 @@ public sealed class SidebarActionHandler(
         JumpToCommit(row);
     }
 
-    private bool TryHandlePaneAction(RepoState tab, ActionId action)
+    private bool TryHandlePaneAction(RepositoryState tab, ActionId action)
     {
         var focused = tab.View.FocusedPane;
         var available = OpenPanes();
@@ -189,7 +189,7 @@ public sealed class SidebarActionHandler(
         return false;
     }
 
-    private bool HandleSidebarAction(RepoState tab, ActionId action, int? count)
+    private bool HandleSidebarAction(RepositoryState tab, ActionId action, int? count)
     {
         if (ListMotion.TryMove(action, count, 0, 1, 1, out _))
         {
@@ -240,7 +240,7 @@ public sealed class SidebarActionHandler(
         return true;
     }
 
-    private void CopyCursor(RepoState tab)
+    private void CopyCursor(RepositoryState tab)
     {
         var rows = source.Rows;
         if (rows.IsEmpty || clipboard is null)
@@ -300,9 +300,9 @@ public sealed class SidebarActionHandler(
         setMode(KeyMode.Normal);
     }
 
-    private void SetFilter(RepoState tab, string text) => Send(tab, new SetSidebarFilterCommand(text));
+    private void SetFilter(RepositoryState tab, string text) => Send(tab, new SetSidebarFilterCommand(text));
 
-    private void FocusPane(RepoState tab, PaneKind pane) => Send(tab, new FocusPaneCommand(pane));
+    private void FocusPane(RepositoryState tab, PaneKind pane) => Send(tab, new FocusPaneCommand(pane));
 
-    private void Send(RepoState tab, RepoCommand command) => host.Dispatch(new TabCommand(tab.Id, command));
+    private void Send(RepositoryState tab, RepositoryCommand command) => host.Dispatch(new TabCommand(tab.Id, command));
 }

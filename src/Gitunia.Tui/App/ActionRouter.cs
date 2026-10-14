@@ -65,7 +65,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             return;
         }
 
-        if (action == ActionIds.RepoRefresh)
+        if (action == ActionIds.RepositoryRefresh)
         {
             Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
             return;

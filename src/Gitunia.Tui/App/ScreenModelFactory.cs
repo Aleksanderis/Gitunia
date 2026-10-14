@@ -18,7 +18,7 @@ public static class ScreenModelFactory
     /// <param name="message">A short notice, empty when none.</param>
     /// <param name="selectedItem">The selected list item, null when nothing is selected.</param>
     /// <param name="tabs">The tab row labels, null for the single-label fallback.</param>
-    /// <param name="picker">The open repo picker, null when closed.</param>
+    /// <param name="picker">The open repository picker, null when closed.</param>
     /// <param name="homeDirectory">The home directory the picker abbreviates to <c>~</c>.</param>
     public static ScreenModel Create(
         Workspace workspace,
@@ -51,6 +51,6 @@ public static class ScreenModelFactory
             HomeDirectory: homeDirectory);
     }
 
-    private static string MissingNotice(RepoState? tab) =>
+    private static string MissingNotice(RepositoryState? tab) =>
         tab is { IsMissing: true } ? $"{tab.Location.RootPath} is missing: Enter locates it, Ctrl-w c closes the tab" : string.Empty;
 }

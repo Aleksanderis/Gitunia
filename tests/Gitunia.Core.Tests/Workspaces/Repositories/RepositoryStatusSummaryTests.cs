@@ -6,14 +6,14 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Workspaces.Repositories;
 
-public class RepoStatusSummaryTests
+public class RepositoryStatusSummaryTests
 {
     [Fact]
     public void GivenCleanStatusWithoutUpstream_WhenSummarizing_ThenNotDirtyAndZeroCounts()
     {
-        var summary = RepoStatusSummary.From(new StatusSnapshot(BranchFor(null, null), [], []));
+        var summary = RepositoryStatusSummary.From(new StatusSnapshot(BranchFor(null, null), [], []));
 
-        Assert.Equal(new RepoStatusSummary(false, 0, 0), summary);
+        Assert.Equal(new RepositoryStatusSummary(false, 0, 0), summary);
     }
 
     [Fact]
@@ -21,9 +21,9 @@ public class RepoStatusSummaryTests
     {
         var entry = new StatusEntry(StatusEntryKind.Untracked, "a.txt", null, FileChangeKind.Unmodified, FileChangeKind.Unmodified, null, ConflictKind.None, null);
 
-        var summary = RepoStatusSummary.From(new StatusSnapshot(BranchFor(2, 5), [entry], []));
+        var summary = RepositoryStatusSummary.From(new StatusSnapshot(BranchFor(2, 5), [entry], []));
 
-        Assert.Equal(new RepoStatusSummary(true, 2, 5), summary);
+        Assert.Equal(new RepositoryStatusSummary(true, 2, 5), summary);
     }
 
     private static StatusBranch BranchFor(int? ahead, int? behind) => new(new HeadState(HeadKind.Branch, "main", null), null, ahead, behind);

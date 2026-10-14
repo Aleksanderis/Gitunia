@@ -3,7 +3,7 @@ using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Picker;
 
-/// <summary>The open repo picker: what was typed, the filtered rows and which one is highlighted. A closed picker is simply no state.</summary>
+/// <summary>The open repository picker: what was typed, the filtered rows and which one is highlighted. A closed picker is simply no state.</summary>
 /// <param name="Query">The typed text: a fuzzy query, or a path when <see cref="IsPathMode"/>.</param>
 /// <param name="Highlight">Index of the highlighted row, 0 when there are no rows.</param>
 /// <param name="Rows">The rows matching the query, best first.</param>

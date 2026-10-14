@@ -250,7 +250,7 @@ public class WorkspaceReducerTests
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(alphaId, new FocusPaneCommand(PaneKind.Sidebar))).Workspace;
 
         var alpha = workspace.FindTab(alphaId)!;
-        Assert.Equal(new RepoViewState(null, 40, "fix", PaneKind.Sidebar), alpha.View);
+        Assert.Equal(new RepositoryViewState(null, 40, "fix", PaneKind.Sidebar), alpha.View);
         Assert.Equal(betaBefore, workspace.FindTab(IdOf(workspace, "beta")));
     }
 

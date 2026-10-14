@@ -14,7 +14,7 @@ public static class RepositoryRefresher
 {
     /// <summary>Reads the repository again for <paramref name="kinds"/>; with no <paramref name="previous"/> snapshot everything is read.</summary>
     public static async Task<RepositoryRefreshResult> RefreshAsync(
-        Repo repo,
+        Repository repository,
         RepositorySnapshot? previous,
         RepositoryChangeKinds kinds,
         CancellationToken cancellationToken)
@@ -32,16 +32,16 @@ public static class RepositoryRefresher
             || kinds.HasFlag(RepositoryChangeKinds.WorkingTree)
             || kinds.HasFlag(RepositoryChangeKinds.Operation);
 
-        var headTask = readHead ? repo.ReadHeadAsync(cancellationToken) : null;
-        var refsTask = readRefs ? RefReader.ReadRefsAsync(repo, cancellationToken) : null;
-        var worktreesTask = readWorktrees ? RefReader.ReadWorktreesAsync(repo, cancellationToken) : null;
-        var statusTask = readStatus ? StatusReader.ReadStatusAsync(repo, includeIgnored: false, cancellationToken) : null;
+        var headTask = readHead ? repository.ReadHeadAsync(cancellationToken) : null;
+        var refsTask = readRefs ? RefReader.ReadRefsAsync(repository, cancellationToken) : null;
+        var worktreesTask = readWorktrees ? RefReader.ReadWorktreesAsync(repository, cancellationToken) : null;
+        var statusTask = readStatus ? StatusReader.ReadStatusAsync(repository, includeIgnored: false, cancellationToken) : null;
 
         var head = headTask is null ? previous!.Head : await headTask.ConfigureAwait(false);
         var refs = refsTask is null ? previous!.Refs : (await refsTask.ConfigureAwait(false)).Items;
         var worktrees = worktreesTask is null ? previous!.Worktrees : (await worktreesTask.ConfigureAwait(false)).Items;
         var status = statusTask is null ? previous!.Status : await statusTask.ConfigureAwait(false);
-        var operation = repo.DetectOperation();
+        var operation = repository.DetectOperation();
 
         if (previous is null)
         {

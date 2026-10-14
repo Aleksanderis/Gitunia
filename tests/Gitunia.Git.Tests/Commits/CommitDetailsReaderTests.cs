@@ -13,20 +13,20 @@ public class CommitDetailsReaderTests
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private static async Task<CommitDetails> ReadAsync(TestRepository repository, string revision)
+    private static async Task<CommitDetails> ReadAsync(TestRepository testRepository, string revision)
     {
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        Assert.True(ObjectId.TryParse(repository.Git("rev-parse", revision).Trim(), out var id));
-        var details = await CommitDetailsReader.ReadAsync(repo, id, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
+        var details = await CommitDetailsReader.ReadAsync(repository, id, Token);
         return Assert.IsType<CommitDetails>(details);
     }
 
     [Fact]
     public async Task GivenRootCommit_WhenReading_ThenFilesAreAddedAndParentsEmpty()
     {
-        using var repository = TestRepository.Create().Commit("root\n\nlong body", ("a.txt", "a\n"), ("dir/b.txt", "b\n"));
+        using var testRepository = TestRepository.Create().Commit("root\n\nlong body", ("a.txt", "a\n"), ("dir/b.txt", "b\n"));
 
-        var details = await ReadAsync(repository, "HEAD");
+        var details = await ReadAsync(testRepository, "HEAD");
 
         Assert.Empty(details.Parents);
         Assert.Equal("root\n\nlong body", details.Message);
@@ -39,13 +39,13 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenModifyDeleteAndRename_WhenReading_ThenEachHasItsKind()
     {
-        using var repository = TestRepository.Create()
+        using var testRepository = TestRepository.Create()
             .Commit("one", ("keep.txt", "k\n"), ("gone.txt", "g\n"), ("old name.txt", "line1\nline2\nline3\nline4\n"));
-        repository.Git("mv", "old name.txt", "new ünï.txt");
-        repository.Git("rm", "-q", "gone.txt");
-        repository.Commit("two", ("keep.txt", "k2\n"));
+        testRepository.Git("mv", "old name.txt", "new ünï.txt");
+        testRepository.Git("rm", "-q", "gone.txt");
+        testRepository.Commit("two", ("keep.txt", "k2\n"));
 
-        var details = await ReadAsync(repository, "HEAD");
+        var details = await ReadAsync(testRepository, "HEAD");
 
         Assert.Contains(new CommitFileChange("keep.txt", null, FileChangeKind.Modified, null), details.Files);
         Assert.Contains(new CommitFileChange("gone.txt", null, FileChangeKind.Deleted, null), details.Files);
@@ -56,12 +56,12 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenMergeCommit_WhenReading_ThenTwoParentsAndFilesAgainstFirstParent()
     {
-        using var repository = TestRepositories.Branchy();
+        using var testRepository = TestRepositories.Branchy();
 
-        var details = await ReadAsync(repository, "HEAD");
+        var details = await ReadAsync(testRepository, "HEAD");
 
         Assert.Equal(2, details.Parents.Count);
-        var expected = repository.Git("diff-tree", "-r", "--name-only", "--no-commit-id", details.Parents[0].ToString(), "HEAD")
+        var expected = testRepository.Git("diff-tree", "-r", "--name-only", "--no-commit-id", details.Parents[0].ToString(), "HEAD")
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         Assert.NotEmpty(expected);
         Assert.Equal(expected.Order(), details.Files.Select(file => file.Path).Order());
@@ -70,9 +70,9 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenCommitWithEmptyChange_WhenReading_ThenNoFiles()
     {
-        using var repository = TestRepository.Create().Commit("root", ("a.txt", "a\n")).Commit("empty");
+        using var testRepository = TestRepository.Create().Commit("root", ("a.txt", "a\n")).Commit("empty");
 
-        var details = await ReadAsync(repository, "HEAD");
+        var details = await ReadAsync(testRepository, "HEAD");
 
         Assert.Empty(details.Files);
         Assert.Equal("empty", details.Subject);
@@ -81,12 +81,12 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenCancelledToken_WhenReading_ThenThrowsCancellation()
     {
-        using var repository = TestRepository.Create().Commit("root", ("a.txt", "a\n"));
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        Assert.True(ObjectId.TryParse(repository.Head, out var id));
+        using var testRepository = TestRepository.Create().Commit("root", ("a.txt", "a\n"));
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        Assert.True(ObjectId.TryParse(testRepository.Head, out var id));
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetailsReader.ReadAsync(repo, id, source.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommitDetailsReader.ReadAsync(repository, id, source.Token));
     }
 }

@@ -8,9 +8,9 @@ public static class StashReader
 {
     private static readonly GitRunOptions PollingOptions = new(ReadOnly: true);
 
-    public static async Task<ParseResult<StashEntry>> ReadStashesAsync(Repo repo, CancellationToken cancellationToken)
+    public static async Task<ParseResult<StashEntry>> ReadStashesAsync(Repository repository, CancellationToken cancellationToken)
     {
-        var result = await repo.RunAsync(["stash", "list", "--format=" + StashParser.Format], PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(["stash", "list", "--format=" + StashParser.Format], PollingOptions, cancellationToken).ConfigureAwait(false);
         return StashParser.Parse(result.StandardOutputText);
     }
 }

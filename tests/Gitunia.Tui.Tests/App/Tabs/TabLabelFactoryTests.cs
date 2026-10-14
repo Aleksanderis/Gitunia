@@ -42,7 +42,7 @@ public class TabLabelFactoryTests
         var workspace = Open(["a"]);
         var id = workspace.Tabs[0].Id;
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(new HeadState(HeadKind.Branch, "feature", null)))).Workspace;
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new StatusLoadedCommand(new RepoStatusSummary(true, 2, 5)))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new StatusLoadedCommand(new RepositoryStatusSummary(true, 2, 5)))).Workspace;
 
         var label = Assert.Single(TabLabelFactory.Create(workspace, _ => false, showBranch: true));
 

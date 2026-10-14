@@ -15,7 +15,7 @@ public class TabSessionTests
     public void GivenFailedLoad_WhenTheGraphIsReplaced_ThenTheLoadErrorIsCleared()
     {
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        using var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(new GitRunner(), location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(new GitRunner(), location), action => action(), TimeSpan.Zero));
         session.Fail("boom");
         Assert.Equal("boom", session.LoadError);
 

@@ -16,7 +16,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="IsLoading">The log is still streaming in.</param>
 /// <param name="Message">A short notice such as "HEAD is not loaded yet", empty when none.</param>
 /// <param name="Tabs">One label per open tab for the tab row; empty falls back to a single label built from the fields above.</param>
-/// <param name="Picker">The open repo picker, which replaces the graph area; null when closed.</param>
+/// <param name="Picker">The open repository picker, which replaces the graph area; null when closed.</param>
 /// <param name="HomeDirectory">The home directory, shown as <c>~</c> in picker paths.</param>
 /// <param name="MessageSeverity">How serious <paramref name="Message"/> is; errors are drawn in the error colour.</param>
 /// <param name="SearchLine">The open search or prompt (<c>/foo_  3/17</c>), shown instead of the position; empty when none.</param>

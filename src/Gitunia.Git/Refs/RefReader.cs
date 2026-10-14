@@ -10,18 +10,18 @@ public static class RefReader
 {
     private static readonly GitRunOptions PollingOptions = new(ReadOnly: true);
 
-    public static async Task<ParseResult<GitRef>> ReadRefsAsync(Repo repo, CancellationToken cancellationToken)
+    public static async Task<ParseResult<GitRef>> ReadRefsAsync(Repository repository, CancellationToken cancellationToken)
     {
-        var result = await repo.RunAsync(
+        var result = await repository.RunAsync(
             ["for-each-ref", "--format=" + RefParser.Format, "refs/heads", "refs/remotes", "refs/tags"],
             PollingOptions,
             cancellationToken).ConfigureAwait(false);
         return RefParser.Parse(result.StandardOutputText);
     }
 
-    public static async Task<ParseResult<WorktreeInfo>> ReadWorktreesAsync(Repo repo, CancellationToken cancellationToken)
+    public static async Task<ParseResult<WorktreeInfo>> ReadWorktreesAsync(Repository repository, CancellationToken cancellationToken)
     {
-        var result = await repo.RunAsync(["worktree", "list", "--porcelain", "-z"], PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(["worktree", "list", "--porcelain", "-z"], PollingOptions, cancellationToken).ConfigureAwait(false);
         return WorktreeParser.Parse(result.StandardOutputText);
     }
 }

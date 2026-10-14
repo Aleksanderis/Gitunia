@@ -15,10 +15,10 @@ public class StashReaderTests
     [Fact]
     public async Task GivenRepositoryWithoutStashes_WhenReading_ThenListIsEmpty()
     {
-        using var repository = TestRepositories.Linear(1);
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var testRepository = TestRepositories.Linear(1);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
-        var result = await StashReader.ReadStashesAsync(repo, Token);
+        var result = await StashReader.ReadStashesAsync(repository, Token);
 
         Assert.Empty(result.Items);
         Assert.Empty(result.Warnings);
@@ -27,21 +27,21 @@ public class StashReaderTests
     [Fact]
     public async Task GivenTwoStashes_WhenReading_ThenNewestIsFirstWithItsMessage()
     {
-        using var repository = TestRepositories.Linear(1);
-        repository.WriteFile("a.txt", "first");
-        repository.Git("add", "-A");
-        repository.Git("stash", "push", "-q", "-m", "first stash");
-        repository.WriteFile("b.txt", "second");
-        repository.Git("add", "-A");
-        repository.Git("stash", "push", "-q", "-m", "second stash");
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var testRepository = TestRepositories.Linear(1);
+        testRepository.WriteFile("a.txt", "first");
+        testRepository.Git("add", "-A");
+        testRepository.Git("stash", "push", "-q", "-m", "first stash");
+        testRepository.WriteFile("b.txt", "second");
+        testRepository.Git("add", "-A");
+        testRepository.Git("stash", "push", "-q", "-m", "second stash");
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
-        var result = await StashReader.ReadStashesAsync(repo, Token);
+        var result = await StashReader.ReadStashesAsync(repository, Token);
 
         Assert.Empty(result.Warnings);
         Assert.Equal(["stash@{0}", "stash@{1}"], result.Items.Select(entry => entry.Name));
         Assert.Contains("second stash", result.Items[0].Message, StringComparison.Ordinal);
         Assert.Contains("first stash", result.Items[1].Message, StringComparison.Ordinal);
-        Assert.Equal(repository.Git("rev-parse", "stash@{0}").Trim(), result.Items[0].CommitHash);
+        Assert.Equal(testRepository.Git("rev-parse", "stash@{0}").Trim(), result.Items[0].CommitHash);
     }
 }

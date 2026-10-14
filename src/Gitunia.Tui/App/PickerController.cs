@@ -10,7 +10,7 @@ using Gitunia.Git.Repositories.Models;
 namespace Gitunia.Tui.App;
 
 /// <summary>
-/// Owns the open repo picker: applies picker commands through the pure reducer, scans for repositories in the background
+/// Owns the open repository picker: applies picker commands through the pure reducer, scans for repositories in the background
 /// and resolves what the user chose into workspace commands. UI thread only; results of background work are posted back.
 /// </summary>
 public sealed class PickerController(GitRunner runner, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,

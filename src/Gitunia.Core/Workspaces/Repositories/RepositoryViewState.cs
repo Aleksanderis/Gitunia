@@ -13,7 +13,7 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="BottomHeight">Rows of the bottom strip the user set, null for automatic.</param>
 /// <param name="DetailWidth">Columns of the detail pane beside an open diff the user set, null for automatic.</param>
 /// <param name="BottomTab">The tab of the bottom detail pane that is showing.</param>
-public sealed record RepoViewState(
+public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
     string FilterText,
@@ -24,5 +24,5 @@ public sealed record RepoViewState(
     BottomTab BottomTab = BottomTab.Changes)
 {
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
-    public static RepoViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);
+    public static RepositoryViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);
 }

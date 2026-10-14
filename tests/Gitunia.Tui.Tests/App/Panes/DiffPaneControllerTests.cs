@@ -420,8 +420,8 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
     {
-        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
-        using var harness = await DiffHarness.LoadAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -467,14 +467,14 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenAMergeCommitSelected_WhenOpeningAFile_ThenTheFirstParentDiffShows()
     {
-        using var repository = TestRepository.Create()
+        using var testRepository = TestRepository.Create()
             .Commit("root", ("base.txt", "base\n"))
             .CheckoutNewBranch("side")
             .Commit("side work", ("side.txt", "side\n"))
             .Checkout("main")
             .Commit("main work", ("main.txt", "main\n"))
             .Merge("side");
-        using var harness = await DiffHarness.LoadAsync(repository);
+        using var harness = await DiffHarness.LoadAsync(testRepository);
         harness.SelectFile("side.txt");
 
         harness.Execute(ActionIds.DetailOpenDiff);
@@ -518,8 +518,8 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenALongLine_WhenTogglingWrap_ThenItTakesMoreLinesAndTheCursorKeepsItsRow()
     {
-        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
-        using var harness = await DiffHarness.LoadAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
         var rows = source.Document.Rows.Count;
@@ -541,8 +541,8 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChanges_ThenTheCursorStaysOnItsRow()
     {
-        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
-        using var harness = await DiffHarness.LoadAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\nshort\n"));
+        using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -688,8 +688,8 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOnAndTheCursorOnAContinuationLine_WhenCopyingTheLine_ThenTheWholeRowIsCopied()
     {
-        using var repository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
-        using var harness = await DiffHarness.LoadAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("long", ("a.txt", new string('x', 150) + "\n"));
+        using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         harness.Execute(ActionIds.DiffToggleWrap);
         harness.Execute(ActionIds.ListBottom);
@@ -740,24 +740,24 @@ public class DiffPaneControllerTests
 
         public KeyMode Mode => keys.Mode;
 
-        public RepoState Tab => Host.Workspace.ActiveTab!;
+        public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
-        public static async Task<DiffHarness> LoadAsync(TestRepository? repository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40, int screenWidth = 60)
+        public static async Task<DiffHarness> LoadAsync(TestRepository? testRepository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40, int screenWidth = 60)
         {
-            var owned = repository is null ? CreateDefaultRepository() : null;
-            var path = (repository ?? owned)!.Path;
+            var owned = testRepository is null ? CreateDefaultRepository() : null;
+            var path = (testRepository ?? owned)!.Path;
             var runner = new GitRunner();
             var location = await RepositoryDiscovery.DiscoverAsync(runner, path, Token);
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
-            var repo = new Repo(runner, location);
+            var repository = new Repository(runner, location);
             var session = new TabSession(
                 tabId,
                 GraphGlyphSet.Unicode,
-                new CommitDetailsStore(repo, action => action(), TimeSpan.Zero),
-                new DiffStore(repo, action => action(), rowLimit));
-            await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+                new CommitDetailsStore(repository, action => action(), TimeSpan.Zero),
+                new DiffStore(repository, action => action(), rowLimit));
+            await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
             var harness = new DiffHarness(host, session, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
@@ -786,7 +786,7 @@ public class DiffPaneControllerTests
             DiffList.SelectedItem = 0;
         }
 
-        public void Send(RepoCommand command) => Host.Dispatch(new TabCommand(Tab.Id, command));
+        public void Send(RepositoryCommand command) => Host.Dispatch(new TabCommand(Tab.Id, command));
 
         public void Execute(ActionId action, int? count = null) => Controller.TryExecute(action, count);
 

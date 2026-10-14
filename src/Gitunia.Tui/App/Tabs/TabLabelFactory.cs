@@ -38,7 +38,7 @@ public static class TabLabelFactory
         return labels;
     }
 
-    private static string WithParent(RepoState tab)
+    private static string WithParent(RepositoryState tab)
     {
         var parent = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(tab.Location.RootPath)) ?? string.Empty);
         return parent.Length == 0 ? tab.DisplayName : tab.DisplayName + " (" + parent + ")";

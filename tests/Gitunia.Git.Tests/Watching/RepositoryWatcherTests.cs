@@ -21,13 +21,13 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenWatchedRepository_WhenExternalCommit_ThenRefsAndIndexAreReported()
     {
-        using var repository = TestRepositories.Linear(2);
+        using var testRepository = TestRepositories.Linear(2);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
-        repository.Commit("external", ("later.txt", "x"));
+        testRepository.Commit("external", ("later.txt", "x"));
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Refs | RepositoryChangeKinds.Index, Token);
         Assert.False(watcher.IsPolling);
@@ -37,13 +37,13 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenWatchedRepository_WhenWorkingTreeFileChanges_ThenWorkingTreeIsReported()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
-        repository.WriteFile(Path.Combine("sub", "new.txt"), "hello");
+        testRepository.WriteFile(Path.Combine("sub", "new.txt"), "hello");
 
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
     }
@@ -51,16 +51,16 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenBurstOfWrites_WhenDebounced_ThenFewerCallbacksThanWrites()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), options, recorder.Record);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), options, recorder.Record);
         watcher.Start();
 
         for (var index = 0; index < 20; index++)
         {
-            repository.WriteFile("burst.txt", index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            testRepository.WriteFile("burst.txt", index.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
@@ -70,16 +70,16 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenBackgroundTab_WhenChangeHappens_ThenItIsStaleAndReportsOnActivation()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         var stale = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         watcher.BecameStale += () => stale.TrySetResult();
         watcher.Start();
         watcher.SetActive(false);
 
-        repository.Commit("while hidden", ("hidden.txt", "x"));
+        testRepository.Commit("while hidden", ("hidden.txt", "x"));
 
         await stale.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
         Assert.True(watcher.IsStale);
@@ -95,11 +95,11 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenBackgroundTab_WhenSeveralChangesArrive_ThenBecameStaleIsRaisedOnceAndRearmsAfterActivation()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var queued = new List<Action>();
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record, queued.Add);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record, queued.Add);
         var raised = 0;
         watcher.BecameStale += () => raised++;
 
@@ -127,11 +127,11 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenActiveTabWithPendingChange_WhenHidden_ThenBecameStaleIsRaisedOnce()
     {
-        using var repository = TestRepositories.Linear(1);
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var testRepository = TestRepositories.Linear(1);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var queued = new List<Action>();
         var slowOptions = new RepositoryWatcherOptions(TimeSpan.FromHours(1), TimeSpan.FromHours(2), TimeSpan.FromHours(1));
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), slowOptions, _ => { }, queued.Add);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), slowOptions, _ => { }, queued.Add);
 
         watcher.ReportChange(RepositoryChangeKinds.Refs);
         Assert.Empty(queued);
@@ -145,10 +145,10 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenBackgroundTab_WhenNothingChanged_ThenActivationReportsNothing()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
         watcher.SetActive(false);
@@ -161,18 +161,18 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenBudgetTooSmall_WhenStarting_ThenTabPollsAndStillSeesCommits()
     {
-        using var repository = TestRepositories.Linear(1);
+        using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
         var budget = new WatchBudget(0);
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, budget, FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, budget, FastOptions, recorder.Record);
         watcher.Start();
 
         Assert.True(watcher.IsPolling);
         Assert.Equal(0, watcher.WatcherCount);
         Assert.Equal(0, budget.InUse);
 
-        repository.Commit("polled", ("polled.txt", "x"));
+        testRepository.Commit("polled", ("polled.txt", "x"));
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Head | RepositoryChangeKinds.Refs, Token);
     }
@@ -182,11 +182,11 @@ public class RepositoryWatcherTests
     {
         using var first = TestRepositories.Linear(1);
         using var second = TestRepositories.Linear(1);
-        var firstRepo = await Repo.OpenAsync(Runner, first.Path, Token);
-        var secondRepo = await Repo.OpenAsync(Runner, second.Path, Token);
+        var firstRepository = await Repository.OpenAsync(Runner, first.Path, Token);
+        var secondRepository = await Repository.OpenAsync(Runner, second.Path, Token);
         var budget = new WatchBudget(5);
-        using var firstWatcher = new RepositoryWatcher(firstRepo.Location, budget, FastOptions, _ => { });
-        using var secondWatcher = new RepositoryWatcher(secondRepo.Location, budget, FastOptions, _ => { });
+        using var firstWatcher = new RepositoryWatcher(firstRepository.Location, budget, FastOptions, _ => { });
+        using var secondWatcher = new RepositoryWatcher(secondRepository.Location, budget, FastOptions, _ => { });
 
         firstWatcher.Start();
         secondWatcher.Start();
@@ -200,10 +200,10 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenWatcherDisposed_WhenDisposing_ThenBudgetIsReleased()
     {
-        using var repository = TestRepositories.Linear(1);
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var testRepository = TestRepositories.Linear(1);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
         var budget = new WatchBudget();
-        var watcher = new RepositoryWatcher(repo.Location, budget, FastOptions, _ => { });
+        var watcher = new RepositoryWatcher(repository.Location, budget, FastOptions, _ => { });
         watcher.Start();
         Assert.True(budget.InUse > 0);
 
@@ -215,14 +215,14 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenWatchedRepositoryWithoutWorktrees_WhenWorktreeIsAdded_ThenWorktreesAreReported()
     {
-        using var repository = TestRepositories.Linear(1);
-        repository.Branch("topic");
+        using var testRepository = TestRepositories.Linear(1);
+        testRepository.Branch("topic");
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
-        repository.AddWorktree("late", "topic");
+        testRepository.AddWorktree("late", "topic");
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Worktrees, Token);
     }
@@ -230,10 +230,10 @@ public class RepositoryWatcherTests
     [Fact]
     public async Task GivenLinkedWorktreeTab_WhenCommittingThere_ThenTabSeesRefsAndIndex()
     {
-        using var repository = TestRepositories.WithWorktree(out var worktreePath);
+        using var testRepository = TestRepositories.WithWorktree(out var worktreePath);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, worktreePath, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, worktreePath, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
         File.WriteAllText(Path.Combine(worktreePath, "wt.txt"), "x");
@@ -248,8 +248,8 @@ public class RepositoryWatcherTests
     {
         using var origin = TestRepository.Create(bare: true);
         var recorder = new ChangeRecorder();
-        var repo = await Repo.OpenAsync(Runner, origin.Path, Token);
-        using var watcher = new RepositoryWatcher(repo.Location, new WatchBudget(), FastOptions, recorder.Record);
+        var repository = await Repository.OpenAsync(Runner, origin.Path, Token);
+        using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
         using var clone = TestRepository.Create();

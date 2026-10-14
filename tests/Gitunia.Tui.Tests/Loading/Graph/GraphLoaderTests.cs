@@ -10,11 +10,11 @@ namespace Gitunia.Tui.Tests.Loading.Graph;
 
 public class GraphLoaderTests
 {
-    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository repository, int? maximumCommits = null)
+    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)
     {
-        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
         var batches = new List<IReadOnlyList<GraphEntry>>();
-        await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, maximumCommits, CancellationToken.None))
+        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, maximumCommits, CancellationToken.None))
         {
             batches.Add(batch);
         }
@@ -25,13 +25,13 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenBranchyHistory_WhenStreaming_ThenRowsMatchTheBatchLayoutAndRefsAreAttached()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
-        repository.CheckoutNewBranch("topic").Commit("on topic", ("b.txt", "1"));
-        repository.Checkout("main").Commit("on main", ("c.txt", "1"));
-        repository.Merge("topic").Tag("v1");
+        using var testRepository = TestRepository.Create();
+        testRepository.Commit("root", ("a.txt", "1"));
+        testRepository.CheckoutNewBranch("topic").Commit("on topic", ("b.txt", "1"));
+        testRepository.Checkout("main").Commit("on main", ("c.txt", "1"));
+        testRepository.Merge("topic").Tag("v1");
 
-        var entries = (await LoadAsync(repository)).SelectMany(batch => batch).ToList();
+        var entries = (await LoadAsync(testRepository)).SelectMany(batch => batch).ToList();
 
         Assert.Equal("Merge topic", entries[0].Subject);
         Assert.Equal("root", entries[3].Subject);
@@ -46,14 +46,14 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenMoreCommitsThanTheFirstBatch_WhenStreaming_ThenFirstBatchIsSmallAndNothingIsLost()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", ("a.txt", "1"));
+        using var testRepository = TestRepository.Create();
+        testRepository.Commit("root", ("a.txt", "1"));
         for (var number = 1; number < 200; number++)
         {
-            repository.Git("commit", "-q", "--allow-empty", "-m", "commit " + number);
+            testRepository.Git("commit", "-q", "--allow-empty", "-m", "commit " + number);
         }
 
-        var batches = await LoadAsync(repository);
+        var batches = await LoadAsync(testRepository);
 
         Assert.True(batches.Count >= 2);
         Assert.True(batches[0].Count <= 150);
@@ -63,10 +63,10 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenMaximum_WhenStreaming_ThenStopsAfterThatManyCommits()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", ("a.txt", "1")).Commit("two", ("a.txt", "2")).Commit("three", ("a.txt", "3"));
+        using var testRepository = TestRepository.Create();
+        testRepository.Commit("one", ("a.txt", "1")).Commit("two", ("a.txt", "2")).Commit("three", ("a.txt", "3"));
 
-        var entries = (await LoadAsync(repository, maximumCommits: 2)).SelectMany(batch => batch).ToList();
+        var entries = (await LoadAsync(testRepository, maximumCommits: 2)).SelectMany(batch => batch).ToList();
 
         Assert.Equal(["three", "two"], entries.Select(entry => entry.Subject).ToArray());
     }
@@ -74,15 +74,15 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenCancelledToken_WhenStreaming_ThenItStopsWithCancellation()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("one", ("a.txt", "1"));
-        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, CancellationToken.None);
+        using var testRepository = TestRepository.Create();
+        testRepository.Commit("one", ("a.txt", "1"));
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, null, cancellation.Token))
+            await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, cancellation.Token))
             {
                 Assert.NotEmpty(batch);
             }

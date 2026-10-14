@@ -22,7 +22,7 @@ public static class GraphLoader
     /// <param name="maximumCommits">Stop after this many commits, or read everything when null.</param>
     /// <param name="cancellationToken">Cancels the stream and kills git.</param>
     public static async IAsyncEnumerable<IReadOnlyList<GraphEntry>> StreamAsync(
-        Repo repo,
+        Repository repository,
         CommitOrder order,
         int? maximumCommits,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ public static class GraphLoader
         var batchAge = Stopwatch.StartNew();
         var total = 0;
 
-        await foreach (var commit in CommitLogReader.ReadAsync(repo, order, [], cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, order, [], cancellationToken).ConfigureAwait(false))
         {
             var row = builder.Append(commit);
             batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));

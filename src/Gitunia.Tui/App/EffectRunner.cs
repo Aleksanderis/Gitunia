@@ -104,8 +104,8 @@ public sealed class EffectRunner : IDisposable
             previous.Dispose();
         }
 
-        var repo = new Repo(runner, tab.Location);
-        var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(repo, postToUi, detailDebounce), new DiffStore(repo, postToUi));
+        var repository = new Repository(runner, tab.Location);
+        var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(repository, postToUi, detailDebounce), new DiffStore(repository, postToUi));
         sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
@@ -116,7 +116,7 @@ public sealed class EffectRunner : IDisposable
             refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => RepoLoader.RunAsync(runner, location, session, host, statuses, postToUi, token), CancellationToken.None);
+            _ = Task.Run(() => RepositoryLoader.RunAsync(runner, location, session, host, statuses, postToUi, token), CancellationToken.None);
         }
 
         // Only the active tab loads now; background tabs keep an empty session until first activated (docs/architecture.md, "Many tabs").

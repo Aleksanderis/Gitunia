@@ -16,7 +16,7 @@ namespace Gitunia.Tui.Loading.Commits;
 /// </summary>
 public sealed class CommitDetailsStore : IDisposable
 {
-    private readonly Repo repo;
+    private readonly Repository repository;
     private readonly Action<Action> postToUi;
     private readonly TimeSpan debounce;
     private readonly Func<TimeSpan, CancellationToken, Task> delay;
@@ -32,7 +32,7 @@ public sealed class CommitDetailsStore : IDisposable
     /// <param name="cache">The cache of loaded details; the default is a <see cref="CommitDetailsCache"/> with its default bounds.</param>
     /// <param name="timeProvider">The clock that tells a fresh selection from one in a quick run of moves; tests inject one they control.</param>
     public CommitDetailsStore(
-        Repo repo,
+        Repository repository,
         Action<Action> postToUi,
         TimeSpan debounce,
         Func<TimeSpan, CancellationToken, Task>? delay = null,
@@ -42,7 +42,7 @@ public sealed class CommitDetailsStore : IDisposable
         this.delay = delay ?? Task.Delay;
         this.cache = cache ?? new CommitDetailsCache();
         this.timeProvider = timeProvider ?? TimeProvider.System;
-        this.repo = repo;
+        this.repository = repository;
         this.postToUi = postToUi;
         this.debounce = debounce;
     }
@@ -154,7 +154,7 @@ public sealed class CommitDetailsStore : IDisposable
             try
             {
                 token.ThrowIfCancellationRequested();
-                var details = await CommitDetailsReader.ReadAsync(repo, neighbour, token).ConfigureAwait(false);
+                var details = await CommitDetailsReader.ReadAsync(repository, neighbour, token).ConfigureAwait(false);
                 if (details is not null)
                 {
                     postToUi(() => RememberPrefetched(details, token));
@@ -178,7 +178,7 @@ public sealed class CommitDetailsStore : IDisposable
         try
         {
             await delay(wait, token).ConfigureAwait(false);
-            details = await CommitDetailsReader.ReadAsync(repo, commit, token).ConfigureAwait(false);
+            details = await CommitDetailsReader.ReadAsync(repository, commit, token).ConfigureAwait(false);
             postToUi(() => Complete(commit, details, string.Empty, token));
         }
         catch (OperationCanceledException)

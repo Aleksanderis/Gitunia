@@ -9,13 +9,13 @@ namespace Gitunia.Core.Tests.Sidebar;
 
 public class SidebarReducerTests
 {
-    private static RepoState TabWithBranches() => Tab(refs: [Branch("a"), Branch("b"), Branch("c"), Remote("origin/a")]);
+    private static RepositoryState TabWithBranches() => Tab(refs: [Branch("a"), Branch("b"), Branch("c"), Remote("origin/a")]);
 
-    private static RepoState Reduce(RepoState tab, SidebarCommand command) => RepoReducer.Reduce(tab, command);
+    private static RepositoryState Reduce(RepositoryState tab, SidebarCommand command) => RepositoryReducer.Reduce(tab, command);
 
-    private static RepoState MoveTo(RepoState tab, int index) => Reduce(tab, new SetSidebarCursorCommand(index));
+    private static RepositoryState MoveTo(RepositoryState tab, int index) => Reduce(tab, new SetSidebarCursorCommand(index));
 
-    private static string SelectedLabel(RepoState tab) => SidebarBuilder.Build(tab)[tab.Sidebar.Cursor].Label;
+    private static string SelectedLabel(RepositoryState tab) => SidebarBuilder.Build(tab)[tab.Sidebar.Cursor].Label;
 
     [Fact]
     public void GivenCursorOnTop_WhenMovingDownThreeTimes_ThenCursorWalksTheRowsAndStopsAtTheEnd()

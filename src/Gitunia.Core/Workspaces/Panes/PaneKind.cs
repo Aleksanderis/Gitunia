@@ -1,6 +1,6 @@
 namespace Gitunia.Core.Workspaces.Panes;
 
-/// <summary>The panes of a repo tab, in focus-cycling order.</summary>
+/// <summary>The panes of a repository tab, in focus-cycling order.</summary>
 public enum PaneKind
 {
     Sidebar,

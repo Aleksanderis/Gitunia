@@ -17,18 +17,18 @@ public static class IncrementalGraphLoader
     /// <param name="repo">The repository to read.</param>
     /// <param name="previous">The rows currently shown (a copy that nobody changes meanwhile); empty means a full read.</param>
     /// <param name="cancellationToken">Cancels the read and kills git.</param>
-    public static async Task<GraphReload> ReloadAsync(Repo repo, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)
+    public static async Task<GraphReload> ReloadAsync(Repository repository, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)
     {
         if (previous.Count == 0)
         {
-            return await ReadAllAsync(repo, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false);
         }
 
         var splicer = new GraphSplicer(previous);
         var builder = new GraphLayoutBuilder();
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
-        await foreach (var commit in CommitLogReader.ReadAsync(repo, CommitOrder.Topological, [], cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in CommitLogReader.ReadAsync(repository, CommitOrder.Topological, [], cancellationToken).ConfigureAwait(false))
         {
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
@@ -45,24 +45,24 @@ public static class IncrementalGraphLoader
         }
 
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
-        if (await CommitLogReader.CountAsync(repo, cancellationToken).ConfigureAwait(false) != expectedCount)
+        if (await CommitLogReader.CountAsync(repository, cancellationToken).ConfigureAwait(false) != expectedCount)
         {
-            return await ReadAllAsync(repo, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false);
         }
 
-        var decorations = await CommitLogReader.ReadTipDecorationsAsync(repo, cancellationToken).ConfigureAwait(false);
+        var decorations = await CommitLogReader.ReadTipDecorationsAsync(repository, cancellationToken).ConfigureAwait(false);
         var spliced = splicer.Splice(rows, joinIndex, decorations);
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).
         return spliced is null
-            ? await ReadAllAsync(repo, cancellationToken).ConfigureAwait(false)
+            ? await ReadAllAsync(repository, cancellationToken).ConfigureAwait(false)
             : new GraphReload(spliced, previous.Count - joinIndex - 1);
     }
 
-    private static async Task<GraphReload> ReadAllAsync(Repo repo, CancellationToken cancellationToken)
+    private static async Task<GraphReload> ReadAllAsync(Repository repository, CancellationToken cancellationToken)
     {
         var entries = new List<GraphEntry>();
-        await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, null, cancellationToken).ConfigureAwait(false))
+        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, null, cancellationToken).ConfigureAwait(false))
         {
             entries.AddRange(batch);
         }

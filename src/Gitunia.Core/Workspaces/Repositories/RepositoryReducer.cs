@@ -4,10 +4,10 @@ using Gitunia.Core.Workspaces.Tabs;
 namespace Gitunia.Core.Workspaces.Repositories;
 
 /// <summary>Pure transitions of one tab's state.</summary>
-public static class RepoReducer
+public static class RepositoryReducer
 {
     /// <summary>Applies a command to one tab's state.</summary>
-    public static RepoState Reduce(RepoState state, RepoCommand command) => command switch
+    public static RepositoryState Reduce(RepositoryState state, RepositoryCommand command) => command switch
     {
         SelectCommitCommand select => state with { View = state.View with { SelectedCommit = select.Commit } },
         ScrollToCommand scroll => state with { View = state.View with { ScrollOffset = Math.Max(0, scroll.Offset) } },
@@ -21,7 +21,7 @@ public static class RepoReducer
         WorktreesLoadedCommand worktrees => state with { Worktrees = worktrees.Worktrees },
         StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
-        SetTabNameCommand rename => state with { CustomName = RepoState.NormalizeName(rename.Name) },
+        SetTabNameCommand rename => state with { CustomName = RepositoryState.NormalizeName(rename.Name) },
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };

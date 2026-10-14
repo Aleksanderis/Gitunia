@@ -25,11 +25,11 @@ public sealed class SidebarHarness : IDisposable
     private readonly TabSession session;
     private readonly TabSession emptySession;
 
-    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, Repo repo)
+    private SidebarHarness(WorkspaceHost host, TabSession session, SidebarListSource source, Repository repository)
     {
         Host = host;
         this.session = session;
-        emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repo, action => action(), TimeSpan.Zero));
+        emptySession = new TabSession(session.TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
         emptySession.Complete();
         Source = source;
         Handler = new SidebarActionHandler(
@@ -66,7 +66,7 @@ public sealed class SidebarHarness : IDisposable
 
     public KeyMode Mode { get; private set; } = KeyMode.Normal;
 
-    public RepoState Tab => Host.Workspace.ActiveTab!;
+    public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
     public static async Task<SidebarHarness> LoadAsync(string repositoryPath)
     {
@@ -75,11 +75,11 @@ public sealed class SidebarHarness : IDisposable
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
 
         // Posting runs the action inline (serialized, like the UI thread would).
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
-        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), new Repo(runner, location));
+        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        return new SidebarHarness(host, session, new SidebarListSource(GraphGlyphSet.Unicode), new Repository(runner, location));
     }
 
     /// <summary>Focuses the sidebar and puts the cursor on the row with this label.</summary>
@@ -89,7 +89,7 @@ public sealed class SidebarHarness : IDisposable
         Send(new SetSidebarCursorCommand(Source.Rows.ToList().FindIndex(row => row.Label == label)));
     }
 
-    public void Send(RepoCommand command) => Host.Dispatch(new TabCommand(Tab.Id, command));
+    public void Send(RepositoryCommand command) => Host.Dispatch(new TabCommand(Tab.Id, command));
 
     public void Dispose()
     {

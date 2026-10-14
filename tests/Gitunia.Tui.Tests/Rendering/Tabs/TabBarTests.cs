@@ -160,14 +160,14 @@ public class TabBarTests
     [Fact]
     public void GivenAVeryLongTabName_WhenTheActiveTabIsFirst_ThenItStillEndsBeforeTheButton()
     {
-        var name = new string('x', RepoState40());
+        var name = new string('x', RepositoryState40());
         var cells = TabBarLayout.Layout([Label(1, name, isActive: true, branch: null)], 60, GraphGlyphSet.Unicode);
 
         Assert.Equal(1, Assert.Single(cells).Number);
         Assert.True(cells[0].Start + cells[0].Width < TabBarLayout.CommandsStart(60)!.Value);
     }
 
-    private static int RepoState40() => RepoState.MaximumNameLength;
+    private static int RepositoryState40() => RepositoryState.MaximumNameLength;
 
     [Fact]
     public void GivenTabRow_WhenHitTestingColumns_ThenTheTabUnderTheColumnIsFoundAndGapsAreNot()

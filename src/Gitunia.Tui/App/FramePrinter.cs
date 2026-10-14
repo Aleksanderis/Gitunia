@@ -44,19 +44,19 @@ public static class FramePrinter
         PaletteSettings? colors = null)
     {
         var graph = new CommitGraph();
-        var repo = new Repo(runner, location);
+        var repository = new Repository(runner, location);
         var wanted = ScreenLayout.GraphHeight(height);
-        await foreach (var batch in GraphLoader.StreamAsync(repo, CommitOrder.Topological, wanted, cancellationToken))
+        await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, wanted, cancellationToken))
         {
             graph.AddRange(batch);
         }
 
-        var head = await repo.ReadHeadAsync(cancellationToken);
+        var head = await repository.ReadHeadAsync(cancellationToken);
         var selected = graph.Count > 0 ? graph[0] : null;
         var detailState = CommitDetailsState.Empty;
         if (selected is not null && DetailLayout.PaneHeight(height) > 0)
         {
-            var details = await CommitDetailsReader.ReadAsync(repo, selected.Id, cancellationToken);
+            var details = await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken);
             detailState = details is null
                 ? new CommitDetailsState(selected.Id, CommitDetailsStatus.Failed, null, "Commit not found")
                 : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
@@ -70,7 +70,7 @@ public static class FramePrinter
         }
 
         var diff = arrangement.IsDiffOpen && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
-            ? await ReadDiffAsync(repo, selected, detailState, cancellationToken)
+            ? await ReadDiffAsync(repository, selected, detailState, cancellationToken)
             : null;
         var content = DetailContentBuilder.Build(selected, detailState, tab);
         var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
@@ -85,7 +85,7 @@ public static class FramePrinter
             graph.Count,
             false,
             string.Empty);
-        var sidebar = await ReadSidebarAsync(repo, location, head, cancellationToken);
+        var sidebar = await ReadSidebarAsync(repository, location, head, cancellationToken);
         var lines = ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement);
         if (colors is not null)
         {
@@ -99,14 +99,14 @@ public static class FramePrinter
         }
     }
 
-    private static async Task<DiffPaneModel> ReadDiffAsync(Repo repo, GraphEntry selected, CommitDetailsState detailState, CancellationToken cancellationToken)
+    private static async Task<DiffPaneModel> ReadDiffAsync(Repository repository, GraphEntry selected, CommitDetailsState detailState, CancellationToken cancellationToken)
     {
         // The diff needs the parents; the detail pane is not read when the terminal is too short for it.
-        var details = detailState.Details ?? await CommitDetailsReader.ReadAsync(repo, selected.Id, cancellationToken);
+        var details = detailState.Details ?? await CommitDetailsReader.ReadAsync(repository, selected.Id, cancellationToken);
         var firstParent = details is { Parents.Count: > 0 } ? details.Parents[0] : (ObjectId?)null;
         var builder = new DiffDocumentBuilder();
         var warnings = new List<string>();
-        await foreach (var file in DiffReader.ReadCommitAsync(repo, selected.Id, firstParent, cancellationToken, warnings, DiffStore.DefaultFileLineLimit))
+        await foreach (var file in DiffReader.ReadCommitAsync(repository, selected.Id, firstParent, cancellationToken, warnings, DiffStore.DefaultFileLineLimit))
         {
             builder.Add(file);
         }
@@ -114,13 +114,13 @@ public static class FramePrinter
         return new DiffPaneModel(builder.Build(warnings), selected.Id.ToString()[..7], 0, 0, false);
     }
 
-    private static async Task<SidebarModel> ReadSidebarAsync(Repo repo, RepositoryLocation location, HeadState head, CancellationToken cancellationToken)
+    private static async Task<SidebarModel> ReadSidebarAsync(Repository repository, RepositoryLocation location, HeadState head, CancellationToken cancellationToken)
     {
-        var refs = await RefReader.ReadRefsAsync(repo, cancellationToken);
-        var worktrees = await RefReader.ReadWorktreesAsync(repo, cancellationToken);
-        var stashes = await StashReader.ReadStashesAsync(repo, cancellationToken);
-        var tab = RepoState.Create(new TabId(1), location);
-        foreach (var command in new RepoCommand[]
+        var refs = await RefReader.ReadRefsAsync(repository, cancellationToken);
+        var worktrees = await RefReader.ReadWorktreesAsync(repository, cancellationToken);
+        var stashes = await StashReader.ReadStashesAsync(repository, cancellationToken);
+        var tab = RepositoryState.Create(new TabId(1), location);
+        foreach (var command in new RepositoryCommand[]
         {
             new HeadLoadedCommand(head),
             new RefsLoadedCommand([.. refs.Items]),
@@ -128,7 +128,7 @@ public static class FramePrinter
             new StashesLoadedCommand([.. stashes.Items]),
         })
         {
-            tab = RepoReducer.Reduce(tab, command);
+            tab = RepositoryReducer.Reduce(tab, command);
         }
 
         return new SidebarModel(SidebarBuilder.Build(tab), 0, 0, string.Empty, false, false);
