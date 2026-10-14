@@ -9,11 +9,11 @@ public class PaletteEntryBuilderTests
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
     [Fact]
-    public void GivenTheDefaultKeymap_WhenBuildingEntries_ThenEveryRegisteredActionAppearsWithItsBinding()
+    public void GivenTheDefaultKeymap_WhenBuildingEntries_ThenEveryNonModalActionAppearsWithItsBinding()
     {
         var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
 
-        foreach (var action in Table.Bindings.Select(binding => binding.Action).Distinct())
+        foreach (var action in Table.Bindings.Select(binding => binding.Action).Distinct().Where(action => !ActionCatalog.IsModalOnly(action)))
         {
             var entry = Assert.Single(entries, candidate => candidate.Action == action);
             Assert.NotEqual(string.Empty, entry.Keys);
@@ -48,6 +48,30 @@ public class PaletteEntryBuilderTests
         var nextHunk = entries.FindIndex(entry => entry.Action == ActionIds.DiffNextHunk);
 
         Assert.True(jumpToHead < nextHunk);
+    }
+
+    [Fact]
+    public void GivenModalOnlyActions_WhenBuildingEntries_ThenTheyAreHidden()
+    {
+        var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
+
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.ConfirmYes);
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.ConfirmNo);
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.PickerNext);
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.PickerAccept);
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.InputAccept);
+        Assert.Contains(entries, entry => entry.Action == ActionIds.PickerOpen);
+    }
+
+    [Fact]
+    public void GivenAnUnimplementedAction_WhenBuildingEntries_ThenItIsListedButMarked()
+    {
+        var unimplemented = new HashSet<ActionId> { ActionIds.GraphJumpToHead };
+
+        var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView, unimplemented);
+
+        Assert.False(entries.Single(entry => entry.Action == ActionIds.GraphJumpToHead).IsImplemented);
+        Assert.True(entries.Single(entry => entry.Action == ActionIds.ListDown).IsImplemented);
     }
 
     [Fact]
