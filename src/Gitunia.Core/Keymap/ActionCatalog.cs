@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Gitunia.Core.Keymap;
 
 /// <summary>Human-readable titles of the actions, shown by the command palette, the help overlay and the which-key popup.</summary>
@@ -106,7 +108,7 @@ public static class ActionCatalog
     };
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>
-    public static IReadOnlySet<ActionId> Unimplemented { get; } = new HashSet<ActionId>();
+    public static IReadOnlySet<ActionId> Unimplemented { get; } = FrozenSet<ActionId>.Empty;
 
     /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
     public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);
