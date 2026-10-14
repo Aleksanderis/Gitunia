@@ -1,9 +1,11 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;

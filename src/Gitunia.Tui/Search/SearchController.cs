@@ -1,6 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Search;
-using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Search;

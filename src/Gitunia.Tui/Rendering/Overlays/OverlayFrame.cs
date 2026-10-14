@@ -1,3 +1,5 @@
+using Gitunia.Tui.Rendering.Styling;
+
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>A rectangle of styled lines to draw over the screen, with its position. Plain data, so frames are testable without a terminal.</summary>

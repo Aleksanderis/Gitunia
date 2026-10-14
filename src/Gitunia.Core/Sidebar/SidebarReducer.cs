@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Sidebar;
 

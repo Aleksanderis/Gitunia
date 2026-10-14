@@ -1,5 +1,5 @@
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Tests.Persistence;
 

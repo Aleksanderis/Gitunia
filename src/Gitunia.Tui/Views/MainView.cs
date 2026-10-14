@@ -1,7 +1,13 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
-using Gitunia.Core.Workspaces;
-using Gitunia.Tui.Rendering;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Rendering.Details;
+using Gitunia.Tui.Rendering.Diff;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Sidebar;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Window = Terminal.Gui.Views.Window;

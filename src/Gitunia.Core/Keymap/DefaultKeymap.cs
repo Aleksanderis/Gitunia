@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Panes;
+
 namespace Gitunia.Core.Keymap;
 
 /// <summary>

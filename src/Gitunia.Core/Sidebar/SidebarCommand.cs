@@ -1,5 +1,5 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Sidebar;
 

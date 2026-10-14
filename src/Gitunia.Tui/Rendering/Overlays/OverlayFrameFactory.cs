@@ -1,4 +1,5 @@
 using Gitunia.Core.Overlays;
+using Gitunia.Tui.Rendering.Graph;
 
 namespace Gitunia.Tui.Rendering.Overlays;
 

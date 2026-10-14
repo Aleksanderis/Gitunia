@@ -1,6 +1,10 @@
-using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Status;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Tui.App;
 

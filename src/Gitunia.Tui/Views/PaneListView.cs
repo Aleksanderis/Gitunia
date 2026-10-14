@@ -1,5 +1,6 @@
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Input.Drag;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 

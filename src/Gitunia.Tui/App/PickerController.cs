@@ -1,7 +1,11 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.App;
 

@@ -1,5 +1,5 @@
 using Gitunia.Core.Diff;
-using Gitunia.Git;
+using Gitunia.Git.Diff;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;

@@ -1,4 +1,5 @@
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Picker;
 

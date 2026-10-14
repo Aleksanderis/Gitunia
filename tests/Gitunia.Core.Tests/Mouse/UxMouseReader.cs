@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Tests.Keymap;
 
 namespace Gitunia.Core.Tests.Mouse;
 

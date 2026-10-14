@@ -1,5 +1,5 @@
 using System.Globalization;
-using Gitunia.Git;
+using Gitunia.Git.Execution;
 
 namespace Gitunia.Core.Tests.Graph;
 

@@ -1,8 +1,8 @@
 using Gitunia.Platform;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
 using Xunit;
-using StyledSegment = Gitunia.Tui.Rendering.StyledSegment;
+using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 
 namespace Gitunia.Tui.Tests.Views;
 

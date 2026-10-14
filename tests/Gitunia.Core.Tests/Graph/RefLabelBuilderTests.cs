@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Graph;

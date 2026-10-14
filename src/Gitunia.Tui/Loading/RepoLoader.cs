@@ -1,7 +1,17 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Loading.Graph;
 
 namespace Gitunia.Tui.Loading;
 

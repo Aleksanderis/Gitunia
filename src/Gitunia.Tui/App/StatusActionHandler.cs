@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
+using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.App;
 

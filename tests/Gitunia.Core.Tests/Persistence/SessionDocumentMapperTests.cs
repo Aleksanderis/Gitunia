@@ -1,6 +1,9 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Xunit;
 

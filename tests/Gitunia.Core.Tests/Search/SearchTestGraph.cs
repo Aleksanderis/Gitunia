@@ -1,6 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Tests.Graph;
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
 
 namespace Gitunia.Core.Tests.Search;
 

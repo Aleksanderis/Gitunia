@@ -1,5 +1,6 @@
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Picker;

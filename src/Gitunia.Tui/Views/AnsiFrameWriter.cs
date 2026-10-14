@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text;
 using Gitunia.Platform;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Drawing;
 using Attribute = Terminal.Gui.Drawing.Attribute;
-using StyledSegment = Gitunia.Tui.Rendering.StyledSegment;
+using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;
 
 namespace Gitunia.Tui.Views;
 

@@ -1,6 +1,6 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Git;
-using Gitunia.Tui.Tests.Rendering;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Input;
 using Xunit;
 

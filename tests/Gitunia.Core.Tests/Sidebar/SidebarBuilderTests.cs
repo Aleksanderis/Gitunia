@@ -1,5 +1,5 @@
 using Gitunia.Core.Sidebar;
-using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Xunit;
 using static Gitunia.Core.Tests.Sidebar.SidebarFixtures;
 

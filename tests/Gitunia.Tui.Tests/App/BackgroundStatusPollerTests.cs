@@ -1,5 +1,6 @@
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Xunit;

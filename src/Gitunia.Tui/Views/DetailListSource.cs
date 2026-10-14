@@ -1,7 +1,10 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Lists;
-using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Details;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;

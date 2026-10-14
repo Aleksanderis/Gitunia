@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Search;
 using Gitunia.Git;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Search;

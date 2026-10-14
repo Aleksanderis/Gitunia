@@ -1,5 +1,5 @@
 using System.Globalization;
-using Gitunia.Git;
+using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Core.Diff;
 
