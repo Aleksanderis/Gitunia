@@ -218,7 +218,7 @@ public class DiffStoreTests
 
         store.Load(tip, small, [big, small]);
         await pump.RunUntilAsync(() => store.CachedCount == 2);
-        
+
         Assert.Equal(2, store.CachedCount);
         Assert.True(store.Load(small, big));
         Assert.Equal(DiffStatus.Loaded, store.Status);
