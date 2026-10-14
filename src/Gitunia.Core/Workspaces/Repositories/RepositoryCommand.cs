@@ -5,7 +5,7 @@ using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Workspaces.Repositories;
 
-/// <summary>A change to one tab's <see cref="RepoState"/>.</summary>
+/// <summary>A change to one tab's <see cref="RepositoryState"/>.</summary>
 public abstract record RepositoryCommand
 {
     private protected RepositoryCommand()

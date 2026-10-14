@@ -25,7 +25,7 @@ public sealed class CommitDetailsStore : IDisposable
     private CancellationTokenSource? pending;
     private long? lastSelectTimestamp;
 
-    /// <param name="repo">The repository the commits belong to.</param>
+    /// <param name="repository">The repository the commits belong to.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
     /// <param name="debounce">How long a selection must stay put before the commit is read, when it follows another move closely.</param>
     /// <param name="delay">Waits out the debounce; tests inject one they control, the default is <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</param>

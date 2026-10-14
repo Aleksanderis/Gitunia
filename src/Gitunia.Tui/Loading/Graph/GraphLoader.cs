@@ -17,7 +17,7 @@ public static class GraphLoader
     private const int BatchSize = 2000;
     private static readonly TimeSpan MaximumBatchAge = TimeSpan.FromMilliseconds(40);
 
-    /// <param name="repo">The repository to read.</param>
+    /// <param name="repository">The repository to read.</param>
     /// <param name="order">Commit order of the log.</param>
     /// <param name="maximumCommits">Stop after this many commits, or read everything when null.</param>
     /// <param name="cancellationToken">Cancels the stream and kills git.</param>

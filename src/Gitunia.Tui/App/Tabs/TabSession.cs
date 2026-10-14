@@ -10,7 +10,7 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Tabs;
 
 /// <summary>
-/// The runtime side of one tab that the immutable <see cref="RepoState"/> does not hold: the streamed graph rows,
+/// The runtime side of one tab that the immutable <see cref="RepositoryState"/> does not hold: the streamed graph rows,
 /// the list source drawing them and the load in flight. Touched from the UI thread only.
 /// </summary>
 public sealed class TabSession : IDisposable

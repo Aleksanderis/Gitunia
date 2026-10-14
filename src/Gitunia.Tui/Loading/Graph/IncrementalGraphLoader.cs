@@ -14,7 +14,7 @@ namespace Gitunia.Tui.Loading.Graph;
 /// </summary>
 public static class IncrementalGraphLoader
 {
-    /// <param name="repo">The repository to read.</param>
+    /// <param name="repository">The repository to read.</param>
     /// <param name="previous">The rows currently shown (a copy that nobody changes meanwhile); empty means a full read.</param>
     /// <param name="cancellationToken">Cancels the read and kills git.</param>
     public static async Task<GraphReload> ReloadAsync(Repository repository, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)

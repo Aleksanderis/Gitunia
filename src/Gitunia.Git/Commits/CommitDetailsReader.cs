@@ -7,7 +7,7 @@ namespace Gitunia.Git.Commits;
 /// <summary>Reads the message, people, parents and changed files of one commit.</summary>
 public static class CommitDetailsReader
 {
-    /// <param name="repo">The repository.</param>
+    /// <param name="repository">The repository.</param>
     /// <param name="id">The commit to read.</param>
     /// <param name="cancellationToken">Cancels both git processes.</param>
     /// <param name="warnings">Receives the parsers' warnings.</param>
