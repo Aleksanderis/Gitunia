@@ -5,7 +5,7 @@ Contract between Gitunia.Git and everything above it.
 ## Running git
 
 - Minimum supported git is 2.43 (older releases lack worktree and ref-listing behaviour we rely on and are out of mainstream support). Detect the version at startup with a clear error below it; feature-detect newer capabilities (for example relative worktree paths, 2.48) instead of raising the floor.
-- Repo-scoped API. Every operation is invoked through a `Repo` handle bound to an explicit path; git is run with that path as working directory (`-C`), never relying on the app's cwd. Repo discovery (`rev-parse --show-toplevel/--git-common-dir`) validates paths the user opens, including bare repos, linked worktrees (kept as their own location, flagged `IsLinkedWorktree`, with the shared `CommonDirectory` for grouping them under their main repo) and non-repos (`NotARepositoryException`). A path inside a git directory resolves its working tree from the `gitdir` pointer, the `.git` directory name or `core.worktree`, and fails clearly otherwise.
+- Repository-scoped API. Every operation is invoked through a `Repository` handle bound to an explicit path; git is run with that path as working directory (`-C`), never relying on the app's cwd. Repository discovery (`rev-parse --show-toplevel/--git-common-dir`) validates paths the user opens, including bare repos, linked worktrees (kept as their own location, flagged `IsLinkedWorktree`, with the shared `CommonDirectory` for grouping them under their main repo) and non-repos (`NotARepositoryException`). A path inside a git directory resolves its working tree from the `gitdir` pointer, the `.git` directory name or `core.worktree`, and fails clearly otherwise.
 - Spawn `git` with `ProcessStartInfo` (no shell), arguments as a list, `-c core.quotepath=off` and similar per-call `-c` flags rather than mutating user config.
 - Environment: `LC_ALL=C` for parsed output, `GIT_TERMINAL_PROMPT=0` for background calls, `GIT_OPTIONAL_LOCKS=0` for read-only status polling (avoids fighting the user's other git processes over `index.lock`). Nothing else is set.
 - Prefer machine formats: `status --porcelain=v2 -z`, `for-each-ref --format=...`, `log --format=... -z`, `worktree list --porcelain -z`, `rev-list --parents`, `diff --raw -z`, `cat-file --batch` for bulk object reads.
@@ -21,7 +21,7 @@ Contract between Gitunia.Git and everything above it.
 
 ## Models
 
-- Repo: path, git dir, common dir, HEAD state (branch, detached, unborn), operation in progress (merge, rebase, cherry-pick, revert, bisect).
+- Repository: path, git dir, common dir, HEAD state (branch, detached, unborn), operation in progress (merge, rebase, cherry-pick, revert, bisect).
 - Worktree: path, HEAD, branch, locked, prunable, bare, per-worktree dirty summary. Worktrees are first-class: every view that shows a branch also shows which worktree has it checked out.
 - Branch/ref: local, remote, tag, upstream, ahead/behind, last commit, checked-out-in (worktree).
 - Commit graph: hash, parents, author, date, subject, refs; lane assignment computed incrementally from `rev-list --parents` order. Graph layout is a pure function so it can be tested and cached.

@@ -20,7 +20,7 @@ public class SessionDocumentMapperTests
         workspace = WorkspaceReducer.Reduce(workspace, new TogglePinCommand(SessionFixtures.AbsolutePath("beta"))).Workspace;
         var betaId = workspace.FindTabByRootPath(SessionFixtures.AbsolutePath("beta"))!.Id;
         Assert.True(ObjectId.TryParse(CommitHex, out var commit));
-        var view = new RepoViewState(commit, 42, "fix", PaneKind.Detail);
+        var view = new RepositoryViewState(commit, 42, "fix", PaneKind.Detail);
         workspace = workspace with
         {
             ActiveTabId = betaId,
@@ -99,7 +99,7 @@ public class SessionDocumentMapperTests
         var restored = SessionDocumentMapper.ToWorkspace(document, _ => true).Workspace;
 
         var tab = Assert.Single(restored.Tabs);
-        Assert.Equal(RepoViewState.Initial, tab.View);
+        Assert.Equal(RepositoryViewState.Initial, tab.View);
         Assert.Equal(tab.Id, restored.ActiveTabId);
         Assert.Equal([SessionFixtures.AbsolutePath("a")], restored.Recents);
         Assert.Empty(restored.Pins);

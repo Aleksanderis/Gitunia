@@ -9,7 +9,7 @@ namespace Gitunia.Core.Sidebar;
 public static class SidebarReducer
 {
     /// <summary>Applies a sidebar command to the tab.</summary>
-    public static RepoState Reduce(RepoState tab, SidebarCommand command)
+    public static RepositoryState Reduce(RepositoryState tab, SidebarCommand command)
     {
         var rows = SidebarBuilder.Build(tab);
         var cursor = SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length);
@@ -27,7 +27,7 @@ public static class SidebarReducer
         };
     }
 
-    private static RepoState Expand(RepoState tab, ImmutableArray<SidebarRow> rows, int cursor)
+    private static RepositoryState Expand(RepositoryState tab, ImmutableArray<SidebarRow> rows, int cursor)
     {
         if (rows.IsEmpty)
         {
@@ -48,7 +48,7 @@ public static class SidebarReducer
         return cursor + 1 < rows.Length && !rows[cursor + 1].IsSection ? WithCursor(tab, cursor + 1) : tab;
     }
 
-    private static RepoState Collapse(RepoState tab, ImmutableArray<SidebarRow> rows, int cursor)
+    private static RepositoryState Collapse(RepositoryState tab, ImmutableArray<SidebarRow> rows, int cursor)
     {
         if (rows.IsEmpty)
         {
@@ -72,7 +72,7 @@ public static class SidebarReducer
         return tab;
     }
 
-    private static RepoState Toggle(RepoState tab, ImmutableArray<SidebarRow> rows, int cursor)
+    private static RepositoryState Toggle(RepositoryState tab, ImmutableArray<SidebarRow> rows, int cursor)
     {
         if (rows.IsEmpty || !rows[cursor].IsSection || tab.Sidebar.HasFilter)
         {
@@ -83,7 +83,7 @@ public static class SidebarReducer
         return SetFolded(tab, row.Section, folded: row.IsExpanded);
     }
 
-    private static RepoState SetFolded(RepoState tab, SidebarSection section, bool folded)
+    private static RepositoryState SetFolded(RepositoryState tab, SidebarSection section, bool folded)
     {
         var collapsed = tab.Sidebar.CollapsedSections.Remove(section);
         if (folded)
@@ -94,7 +94,7 @@ public static class SidebarReducer
         return tab with { Sidebar = tab.Sidebar with { CollapsedSections = collapsed } };
     }
 
-    private static RepoState SetFilter(RepoState tab, string text)
+    private static RepositoryState SetFilter(RepositoryState tab, string text)
     {
         var filtered = tab with { Sidebar = tab.Sidebar with { FilterText = text, Cursor = 0 } };
         var rows = SidebarBuilder.Build(filtered);
@@ -102,5 +102,5 @@ public static class SidebarReducer
         return WithCursor(filtered, firstEntry);
     }
 
-    private static RepoState WithCursor(RepoState tab, int cursor) => tab with { Sidebar = tab.Sidebar with { Cursor = cursor } };
+    private static RepositoryState WithCursor(RepositoryState tab, int cursor) => tab with { Sidebar = tab.Sidebar with { Cursor = cursor } };
 }

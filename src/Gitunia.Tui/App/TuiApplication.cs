@@ -536,7 +536,7 @@ public sealed class TuiApplication(GitRunner runner, ConsoleCapabilities capabil
         }
     }
 
-    // The tab of the bottom pane is repo tab state: whoever changed it (key, click, restored session), the rows follow.
+    // The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows follow.
     private void OnBottomTabMaybeChanged()
     {
         if (ActiveSession() is { } session && host.Workspace.ActiveTab is { } tab && session.DetailSource.Content.Tab != tab.View.BottomTab)

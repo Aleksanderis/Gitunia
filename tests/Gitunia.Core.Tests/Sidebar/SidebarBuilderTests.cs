@@ -9,7 +9,7 @@ public class SidebarBuilderTests
 {
     private static string[] Labels(IEnumerable<SidebarRow> rows) => [.. rows.Select(row => row.Label)];
 
-    private static RepoState Unfolded(RepoState tab) => tab with { Sidebar = tab.Sidebar with { CollapsedSections = [] } };
+    private static RepositoryState Unfolded(RepositoryState tab) => tab with { Sidebar = tab.Sidebar with { CollapsedSections = [] } };
 
     [Fact]
     public void GivenNothingLoaded_WhenBuilding_ThenOnlySectionHeadersWithZeroCounts()

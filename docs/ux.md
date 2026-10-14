@@ -16,7 +16,7 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 
 - The app opens with or without a repo: `gitunia` (restore last session, or repo picker if none), `gitunia <path>` (open that repo as a tab, also from outside any repo; a subdirectory resolves to its repo root).
 - Tab bar shows repo name (path on disambiguation), branch and a dirty/ahead/behind marker, and background-activity state.
-- Repo picker: fuzzy search over recent, pinned and discovered repos (configurable scan roots), open by typing a path, close/pin entries. Pinning (#218) keeps a repository at the top of the picker, right after the open tabs and above recents and discovered repositories, however long ago it was opened; pins are saved in the session file and never expire (recents are limited to the last 50). Opening an already-open repo focuses its tab.
+- Repository picker: fuzzy search over recent, pinned and discovered repos (configurable scan roots), open by typing a path, close/pin entries. Pinning (#218) keeps a repository at the top of the picker, right after the open tabs and above recents and discovered repositories, however long ago it was opened; pins are saved in the session file and never expire (recents are limited to the last 50). Opening an already-open repo focuses its tab.
 - Each tab keeps its own selection, scroll, filters and focused pane.  Closing the active tab activates its right neighbour (left if it was last).
 
 ## Modes

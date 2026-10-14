@@ -15,10 +15,10 @@ public class StatusReaderTests
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private static async Task<StatusSnapshot> ReadAsync(TestRepository repository, bool includeIgnored = false)
+    private static async Task<StatusSnapshot> ReadAsync(TestRepository testRepository, bool includeIgnored = false)
     {
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
-        var snapshot = await StatusReader.ReadStatusAsync(repo, includeIgnored, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var snapshot = await StatusReader.ReadStatusAsync(repository, includeIgnored, Token);
         Assert.Empty(snapshot.Warnings);
         return snapshot;
     }
@@ -28,13 +28,13 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenUntrackedDirectory_WhenReadingWithNormalMode_ThenItIsOneEntryButStillDirty()
     {
-        using var repository = TestRepositories.Linear(1);
-        repository.WriteFile("dir/one.txt", "1\n");
-        repository.WriteFile("dir/two.txt", "2\n");
-        var repo = await Repo.OpenAsync(Runner, repository.Path, Token);
+        using var testRepository = TestRepositories.Linear(1);
+        testRepository.WriteFile("dir/one.txt", "1\n");
+        testRepository.WriteFile("dir/two.txt", "2\n");
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
 
-        var all = await StatusReader.ReadStatusAsync(repo, false, Token);
-        var normal = await StatusReader.ReadStatusAsync(repo, false, Token, UntrackedFilesMode.Normal);
+        var all = await StatusReader.ReadStatusAsync(repository, false, Token);
+        var normal = await StatusReader.ReadStatusAsync(repository, false, Token, UntrackedFilesMode.Normal);
 
         Assert.Equal(2, all.Entries.Count);
         var entry = Assert.Single(normal.Entries);
@@ -44,22 +44,22 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenCleanRepository_WhenReadingStatus_ThenNoEntriesAndBranchHead()
     {
-        using var repository = TestRepositories.Linear(2);
+        using var testRepository = TestRepositories.Linear(2);
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         Assert.Empty(snapshot.Entries);
-        Assert.Equal(new HeadState(HeadKind.Branch, "main", repository.Head), snapshot.Branch.Head);
+        Assert.Equal(new HeadState(HeadKind.Branch, "main", testRepository.Head), snapshot.Branch.Head);
         Assert.Null(snapshot.Branch.UpstreamName);
     }
 
     [Fact]
     public async Task GivenUnbornBranchWithUntrackedFile_WhenReadingStatus_ThenUnbornHead()
     {
-        using var repository = TestRepository.Create();
-        repository.WriteFile("first.txt", "a\n");
+        using var testRepository = TestRepository.Create();
+        testRepository.WriteFile("first.txt", "a\n");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         Assert.Equal(new HeadState(HeadKind.Unborn, "main", null), snapshot.Branch.Head);
         var entry = Assert.Single(snapshot.Entries);
@@ -69,29 +69,29 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenDetachedHead_WhenReadingStatus_ThenDetachedHead()
     {
-        using var repository = TestRepositories.Linear(2);
-        repository.Git("checkout", "-q", "--detach", "HEAD~1");
+        using var testRepository = TestRepositories.Linear(2);
+        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         Assert.Equal(HeadKind.Detached, snapshot.Branch.Head.Kind);
         Assert.Null(snapshot.Branch.Head.BranchName);
-        Assert.Equal(repository.Head, snapshot.Branch.Head.CommitHash);
+        Assert.Equal(testRepository.Head, snapshot.Branch.Head.CommitHash);
     }
 
     [Fact]
     public async Task GivenBranchAheadAndBehindUpstream_WhenReadingStatus_ThenCountsAreRead()
     {
-        using var repository = TestRepositories.Linear(2);
-        repository.Branch("upstream");
-        repository.Git("branch", "--set-upstream-to=upstream", "main");
-        repository.Commit("Local one", ("local1.txt", "a\n"));
-        repository.Commit("Local two", ("local2.txt", "a\n"));
-        repository.Checkout("upstream");
-        repository.Commit("Remote one", ("remote1.txt", "a\n"));
-        repository.Checkout("main");
+        using var testRepository = TestRepositories.Linear(2);
+        testRepository.Branch("upstream");
+        testRepository.Git("branch", "--set-upstream-to=upstream", "main");
+        testRepository.Commit("Local one", ("local1.txt", "a\n"));
+        testRepository.Commit("Local two", ("local2.txt", "a\n"));
+        testRepository.Checkout("upstream");
+        testRepository.Commit("Remote one", ("remote1.txt", "a\n"));
+        testRepository.Checkout("main");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         Assert.Equal("upstream", snapshot.Branch.UpstreamName);
         Assert.Equal(2, snapshot.Branch.Ahead);
@@ -101,16 +101,16 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedUnstagedAndUntrackedFiles_WhenReadingStatus_ThenEachKindIsReported()
     {
-        using var repository = TestRepository.Create().Commit("Initial", ("tracked.txt", "a\n"), ("staged.txt", "a\n"), ("both.txt", "a\n"));
-        repository.WriteFile("tracked.txt", "changed\n");
-        repository.WriteFile("staged.txt", "changed\n");
-        repository.Git("add", "staged.txt");
-        repository.WriteFile("both.txt", "first\n");
-        repository.Git("add", "both.txt");
-        repository.WriteFile("both.txt", "second\n");
-        repository.WriteFile(Path.Combine("sub", "untracked.txt"), "u\n");
+        using var testRepository = TestRepository.Create().Commit("Initial", ("tracked.txt", "a\n"), ("staged.txt", "a\n"), ("both.txt", "a\n"));
+        testRepository.WriteFile("tracked.txt", "changed\n");
+        testRepository.WriteFile("staged.txt", "changed\n");
+        testRepository.Git("add", "staged.txt");
+        testRepository.WriteFile("both.txt", "first\n");
+        testRepository.Git("add", "both.txt");
+        testRepository.WriteFile("both.txt", "second\n");
+        testRepository.WriteFile(Path.Combine("sub", "untracked.txt"), "u\n");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         var byPath = snapshot.Entries.ToDictionary(entry => entry.Path);
         Assert.Equal((FileChangeKind.Unmodified, FileChangeKind.Modified), (byPath["tracked.txt"].IndexChange, byPath["tracked.txt"].WorktreeChange));
@@ -122,10 +122,10 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedRename_WhenReadingStatus_ThenRenameWithSourceIsReported()
     {
-        using var repository = TestRepository.Create().Commit("Initial", ("old name.txt", Numbered(40)));
-        repository.Git("mv", "old name.txt", "ünï cødé.txt");
+        using var testRepository = TestRepository.Create().Commit("Initial", ("old name.txt", Numbered(40)));
+        testRepository.Git("mv", "old name.txt", "ünï cødé.txt");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         var entry = Assert.Single(snapshot.Entries);
         Assert.Equal(StatusEntryKind.Renamed, entry.Kind);
@@ -137,15 +137,15 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenStagedCopyWithCopyDetectionEnabled_WhenReadingStatus_ThenCopyIsReported()
     {
-        using var repository = TestRepository.Create().Commit("Initial", ("original.txt", Numbered(40)));
-        repository.Git("config", "status.renames", "copies");
+        using var testRepository = TestRepository.Create().Commit("Initial", ("original.txt", Numbered(40)));
+        testRepository.Git("config", "status.renames", "copies");
 
         // Git only detects a copy when the source is modified in the same change.
-        repository.WriteFile("original.txt", Numbered(40) + "modified\n");
-        repository.WriteFile("copy.txt", Numbered(40) + "extra\n");
-        repository.Git("add", "original.txt", "copy.txt");
+        testRepository.WriteFile("original.txt", Numbered(40) + "modified\n");
+        testRepository.WriteFile("copy.txt", Numbered(40) + "extra\n");
+        testRepository.Git("add", "original.txt", "copy.txt");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         var entry = Assert.Single(snapshot.Entries, candidate => candidate.Kind == StatusEntryKind.Copied);
         Assert.Equal("copy.txt", entry.Path);
@@ -155,15 +155,15 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenOddPaths_WhenReadingStatus_ThenPathsAreReportedVerbatim()
     {
-        using var repository = TestRepositories.OddPaths();
+        using var testRepository = TestRepositories.OddPaths();
         foreach (var path in new[] { "with space.txt", "ünï cødé.txt", "quote's.txt", Path.Combine("dir with space", "nested file.txt") })
         {
-            repository.WriteFile(path, "changed\n");
+            testRepository.WriteFile(path, "changed\n");
         }
 
-        repository.WriteFile("日本語 ✓.txt", "new\n");
+        testRepository.WriteFile("日本語 ✓.txt", "new\n");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         Assert.Equal(
             ["dir with space/nested file.txt", "quote's.txt", "with space.txt", "ünï cødé.txt", "日本語 ✓.txt"],
@@ -173,11 +173,11 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenIgnoredFile_WhenReadingWithAndWithoutIgnored_ThenOnlyIncludedOnRequest()
     {
-        using var repository = TestRepository.Create().Commit("Initial", (".gitignore", "*.log\n"));
-        repository.WriteFile("debug.log", "x\n");
+        using var testRepository = TestRepository.Create().Commit("Initial", (".gitignore", "*.log\n"));
+        testRepository.WriteFile("debug.log", "x\n");
 
-        var without = await ReadAsync(repository);
-        var with = await ReadAsync(repository, includeIgnored: true);
+        var without = await ReadAsync(testRepository);
+        var with = await ReadAsync(testRepository, includeIgnored: true);
 
         Assert.Empty(without.Entries);
         var entry = Assert.Single(with.Entries);
@@ -188,9 +188,9 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenMergeConflict_WhenReadingStatus_ThenUnmergedEntryIsReported()
     {
-        using var repository = TestRepositories.Conflicted();
+        using var testRepository = TestRepositories.Conflicted();
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         var entry = Assert.Single(snapshot.Entries);
         Assert.Equal(StatusEntryKind.Unmerged, entry.Kind);
@@ -201,16 +201,16 @@ public class StatusReaderTests
     [Fact]
     public async Task GivenDeletedByThemConflict_WhenReadingStatus_ThenConflictKindIsRead()
     {
-        using var repository = TestRepository.Create()
+        using var testRepository = TestRepository.Create()
             .Commit("Initial", ("file.txt", "a\n"))
             .CheckoutNewBranch("other")
             .Commit("Other change", ("file.txt", "other\n"))
             .Checkout("main");
-        repository.Git("rm", "-q", "file.txt");
-        repository.Git("commit", "-q", "-m", "Delete file");
-        repository.MergeExpectingConflict("other");
+        testRepository.Git("rm", "-q", "file.txt");
+        testRepository.Git("commit", "-q", "-m", "Delete file");
+        testRepository.MergeExpectingConflict("other");
 
-        var snapshot = await ReadAsync(repository);
+        var snapshot = await ReadAsync(testRepository);
 
         var entry = Assert.Single(snapshot.Entries);
         Assert.Equal(ConflictKind.DeletedByUs, entry.Conflict);

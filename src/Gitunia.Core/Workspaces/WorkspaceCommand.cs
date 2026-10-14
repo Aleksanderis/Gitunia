@@ -47,5 +47,5 @@ public sealed record RemoveRecentCommand(string RootPath) : WorkspaceCommand;
 
 /// <summary>A command for one tab, routed by id. Dropped when the tab is no longer open (a late git result).</summary>
 /// <param name="TabId">The target tab.</param>
-/// <param name="Command">The command for that tab's repo state.</param>
-public sealed record TabCommand(TabId TabId, RepoCommand Command) : WorkspaceCommand;
+/// <param name="Command">The command for that tab's repository state.</param>
+public sealed record TabCommand(TabId TabId, RepositoryCommand Command) : WorkspaceCommand;

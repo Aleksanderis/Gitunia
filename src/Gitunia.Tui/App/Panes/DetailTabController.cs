@@ -4,7 +4,7 @@ using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Tui.App.Panes;
 
-/// <summary>Switches the tab of the bottom detail pane; the choice is part of the repo tab's view state, so it is saved with the session.</summary>
+/// <summary>Switches the tab of the bottom detail pane; the choice is part of the repository tab's view state, so it is saved with the session.</summary>
 /// <param name="host">The workspace the tab state lives in.</param>
 public sealed class DetailTabController(WorkspaceHost host)
 {

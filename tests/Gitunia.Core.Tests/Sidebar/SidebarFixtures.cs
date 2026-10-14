@@ -13,13 +13,13 @@ internal static class SidebarFixtures
 {
     public const string RepositoryPath = "/work/repo";
 
-    public static RepoState Tab(
+    public static RepositoryState Tab(
         IEnumerable<GitRef>? refs = null,
         IEnumerable<WorktreeInfo>? worktrees = null,
         IEnumerable<StashEntry>? stashes = null)
     {
         var location = new RepositoryLocation(RepositoryPath, Path.Combine(RepositoryPath, ".git"), Path.Combine(RepositoryPath, ".git"), false, false);
-        var tab = RepoState.Create(new TabId(1), location);
+        var tab = RepositoryState.Create(new TabId(1), location);
         return tab with
         {
             Refs = [.. refs ?? []],

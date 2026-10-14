@@ -41,7 +41,7 @@ public static class WorkspaceReducer
         }
 
         var id = new TabId(workspace.NextTabNumber);
-        var tab = RepoState.Create(id, command.Location);
+        var tab = RepositoryState.Create(id, command.Location);
         var opened = workspace with
         {
             Tabs = workspace.Tabs.Add(tab),
@@ -110,7 +110,7 @@ public static class WorkspaceReducer
             return workspace;
         }
 
-        var updated = RepoReducer.Reduce(workspace.Tabs[index], command.Command);
+        var updated = RepositoryReducer.Reduce(workspace.Tabs[index], command.Command);
         return workspace with { Tabs = workspace.Tabs.SetItem(index, updated) };
     }
 

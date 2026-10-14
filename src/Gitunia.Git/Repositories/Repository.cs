@@ -9,11 +9,11 @@ namespace Gitunia.Git.Repositories;
 /// A repository or worktree bound to an explicit path. Every git call made through it runs against that path;
 /// nothing depends on the process working directory.
 /// </summary>
-public sealed class Repo
+public sealed class Repository
 {
     private const string BranchPrefix = "refs/heads/";
 
-    public Repo(GitRunner runner, RepositoryLocation location)
+    public Repository(GitRunner runner, RepositoryLocation location)
     {
         Runner = runner;
         Location = location;
@@ -24,10 +24,10 @@ public sealed class Repo
     public RepositoryLocation Location { get; }
 
     /// <summary>Discovers the repository containing <paramref name="path"/> and binds a handle to it.</summary>
-    public static async Task<Repo> OpenAsync(GitRunner runner, string path, CancellationToken cancellationToken)
+    public static async Task<Repository> OpenAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
         var location = await RepositoryDiscovery.DiscoverAsync(runner, path, cancellationToken).ConfigureAwait(false);
-        return new Repo(runner, location);
+        return new Repository(runner, location);
     }
 
     /// <summary>Runs git against this repository or worktree.</summary>

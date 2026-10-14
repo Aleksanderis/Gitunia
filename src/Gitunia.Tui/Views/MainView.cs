@@ -223,7 +223,7 @@ public sealed class MainView : IDisposable
         picker.IsSuppressed = isSuppressed;
     }
 
-    /// <summary>Shows the repo picker in place of the graph, or the graph again.</summary>
+    /// <summary>Shows the repository picker in place of the graph, or the graph again.</summary>
     public void ShowPicker(bool isOpen)
     {
         if (picker.Visible == isOpen)

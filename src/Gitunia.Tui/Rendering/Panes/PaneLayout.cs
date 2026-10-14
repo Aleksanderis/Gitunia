@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Screen;
 namespace Gitunia.Tui.Rendering.Panes;
 
 /// <summary>
-/// Lays out the repo screen inside the frame (the first and last column and the rows of the top and bottom edge belong to
+/// Lays out the repository screen inside the frame (the first and last column and the rows of the top and bottom edge belong to
 /// <see cref="FrameGrid"/>, and so does the line between two panes). Without a diff the detail pane spans the bottom (see <see cref="DetailLayout"/>). An open diff
 /// sits to the right of a compact detail pane (the changed-files list, about a third of the width) and replaces it only on
 /// very narrow screens. A zoomed pane takes the whole area

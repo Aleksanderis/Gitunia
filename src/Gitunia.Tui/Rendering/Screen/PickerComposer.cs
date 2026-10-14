@@ -5,7 +5,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Screen;
 
-/// <summary>Lays out the repo picker (prompt, hint, rows, notice) as styled lines of an exact size, without a terminal.</summary>
+/// <summary>Lays out the repository picker (prompt, hint, rows, notice) as styled lines of an exact size, without a terminal.</summary>
 public static class PickerComposer
 {
     /// <summary>Rows above the list: the prompt and the hint.</summary>

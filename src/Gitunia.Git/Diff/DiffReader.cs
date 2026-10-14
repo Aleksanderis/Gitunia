@@ -25,7 +25,7 @@ public static class DiffReader
     /// <param name="warnings">Receives the parser's warnings once the stream ends.</param>
     /// <param name="maximumLinesPerFile">Hunk lines kept per file; the rest are dropped and the file is marked <see cref="DiffFile.IsTruncated"/>.</param>
     public static async IAsyncEnumerable<DiffFile> ReadAsync(
-        Repo repo,
+        Repository repository,
         IReadOnlyList<string> command,
         [EnumeratorCancellation] CancellationToken cancellationToken,
         ICollection<string>? warnings = null,
@@ -43,8 +43,8 @@ public static class DiffReader
         var completed = new List<DiffFile>();
         try
         {
-            await foreach (var chunk in repo.Runner
-                .StreamAsync(repo.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
+            await foreach (var chunk in repository.Runner
+                .StreamAsync(repository.Location.CommandPath, arguments, new GitRunOptions(ReadOnly: true), cancellationToken)
                 .ConfigureAwait(false))
             {
                 parser.Feed(chunk, completed);
@@ -80,7 +80,7 @@ public static class DiffReader
     /// when <paramref name="firstParent"/> is null.
     /// </summary>
     public static IAsyncEnumerable<DiffFile> ReadCommitAsync(
-        Repo repo,
+        Repository repository,
         ObjectId commit,
         ObjectId? firstParent,
         CancellationToken cancellationToken,
@@ -90,6 +90,6 @@ public static class DiffReader
         IReadOnlyList<string> command = firstParent is { } parent
             ? ["diff", parent.ToString(), commit.ToString()]
             : ["show", "--format=", commit.ToString()];
-        return ReadAsync(repo, command, cancellationToken, warnings, maximumLinesPerFile);
+        return ReadAsync(repository, command, cancellationToken, warnings, maximumLinesPerFile);
     }
 }

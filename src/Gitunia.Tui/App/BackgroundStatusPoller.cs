@@ -51,8 +51,8 @@ public sealed class BackgroundStatusPoller : IDisposable
 
             try
             {
-                var status = await StatusReader.ReadStatusAsync(new Repo(runner, tab.Location), false, cancellationToken, UntrackedFilesMode.Normal).ConfigureAwait(false);
-                var summary = RepoStatusSummary.From(status);
+                var status = await StatusReader.ReadStatusAsync(new Repository(runner, tab.Location), false, cancellationToken, UntrackedFilesMode.Normal).ConfigureAwait(false);
+                var summary = RepositoryStatusSummary.From(status);
                 var tabId = tab.Id;
                 postToUi(() => Apply(tabId, summary));
             }
@@ -94,7 +94,7 @@ public sealed class BackgroundStatusPoller : IDisposable
         }
     }
 
-    private void Apply(TabId tabId, RepoStatusSummary summary)
+    private void Apply(TabId tabId, RepositoryStatusSummary summary)
     {
         // The tab may have been activated while the read ran; its own loader and refresher then own the status.
         if (cancellation.IsCancellationRequested || host.Workspace.ActiveTabId == tabId || host.Workspace.FindTab(tabId) is not { } tab || tab.Status == summary)

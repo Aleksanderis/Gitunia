@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.Rendering.Panes;
 
-/// <summary>Where every piece of the repo screen sits, as <see cref="PaneLayout"/> computed it.</summary>
+/// <summary>Where every piece of the repository screen sits, as <see cref="PaneLayout"/> computed it.</summary>
 /// <param name="Sidebar">Rows of the sidebar list.</param>
 /// <param name="SidebarFilter">The sidebar's filter row below its list.</param>
 /// <param name="SidebarDivider">The line between the sidebar and the graph.</param>

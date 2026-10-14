@@ -224,7 +224,7 @@ public class TabRefresherTests
 
         public StatusChannel Statuses { get; }
 
-        public RepoState Tab => Host.Workspace.FindTab(TabId)!;
+        public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
         public static Task<Harness> LoadAsync(TestRepository repository, bool start = true) => CreateAsync(repository, start, loadFirst: true);
 
@@ -245,9 +245,9 @@ public class TabRefresherTests
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
             var statuses = new StatusChannel();
-            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
             session.MarkStarted();
-            Task LoadAsync() => RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+            Task LoadAsync() => RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             if (loadFirst)
             {
                 await LoadAsync();

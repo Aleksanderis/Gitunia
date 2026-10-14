@@ -8,7 +8,7 @@ using Terminal.Gui.ViewBase;
 
 namespace Gitunia.Tui.Views;
 
-/// <summary>The repo picker area: draws the composed picker and reports clicks on rows (a click highlights) and the gestures the mouse map decides on.</summary>
+/// <summary>The repository picker area: draws the composed picker and reports clicks on rows (a click highlights) and the gestures the mouse map decides on.</summary>
 public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : View
 {
     /// <summary>True while something modal owns the screen: mouse input is swallowed.</summary>

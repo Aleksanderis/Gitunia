@@ -11,7 +11,7 @@ public static class StatusReader
 
     /// <summary>Runs <c>status --porcelain=v2 -z --branch</c>; untracked files are listed individually unless <paramref name="untrackedFiles"/> says otherwise.</summary>
     public static async Task<StatusSnapshot> ReadStatusAsync(
-        Repo repo,
+        Repository repository,
         bool includeIgnored,
         CancellationToken cancellationToken,
         UntrackedFilesMode untrackedFiles = UntrackedFilesMode.All)
@@ -23,7 +23,7 @@ public static class StatusReader
             arguments.Add("--ignored=traditional");
         }
 
-        var result = await repo.RunAsync(arguments, PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(arguments, PollingOptions, cancellationToken).ConfigureAwait(false);
         return StatusParser.Parse(result.StandardOutputText);
     }
 }

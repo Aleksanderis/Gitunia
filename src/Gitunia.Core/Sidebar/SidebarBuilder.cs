@@ -14,7 +14,7 @@ public static class SidebarBuilder
 
     /// <summary>The rows in display order: each non-empty section header followed by its entries unless the section is folded.</summary>
     /// <remarks>An active filter keeps only matching entries, drops sections without matches and unfolds the rest.</remarks>
-    public static ImmutableArray<SidebarRow> Build(RepoState tab)
+    public static ImmutableArray<SidebarRow> Build(RepositoryState tab)
     {
         var state = tab.Sidebar;
         var rows = ImmutableArray.CreateBuilder<SidebarRow>();
@@ -50,7 +50,7 @@ public static class SidebarBuilder
         _ => "Stashes",
     };
 
-    private static IEnumerable<SidebarRow> Entries(RepoState tab, SidebarSection section) => section switch
+    private static IEnumerable<SidebarRow> Entries(RepositoryState tab, SidebarSection section) => section switch
     {
         SidebarSection.Branches => References(tab, RefKind.LocalBranch, SidebarSection.Branches, SidebarRowKind.LocalBranch),
         SidebarSection.Remotes => References(tab, RefKind.RemoteBranch, SidebarSection.Remotes, SidebarRowKind.RemoteBranch),
@@ -59,7 +59,7 @@ public static class SidebarBuilder
         _ => tab.Stashes.Select(StashRow),
     };
 
-    private static IEnumerable<SidebarRow> References(RepoState tab, RefKind kind, SidebarSection section, SidebarRowKind rowKind) =>
+    private static IEnumerable<SidebarRow> References(RepositoryState tab, RefKind kind, SidebarSection section, SidebarRowKind rowKind) =>
         tab.Refs
             // Symbolic refs such as origin/HEAD are aliases, not branches of their own.
             .Where(reference => reference.Kind == kind && reference.SymbolicTarget is null)
@@ -77,7 +77,7 @@ public static class SidebarBuilder
                 reference.Ahead,
                 reference.Behind));
 
-    private static SidebarRow WorktreeRow(RepoState tab, WorktreeInfo worktree)
+    private static SidebarRow WorktreeRow(RepositoryState tab, WorktreeInfo worktree)
     {
         var branch = worktree.IsBare
             ? "bare"

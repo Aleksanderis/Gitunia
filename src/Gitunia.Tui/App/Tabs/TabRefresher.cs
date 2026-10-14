@@ -132,10 +132,10 @@ public sealed class TabRefresher : IDisposable
     {
         try
         {
-            var repo = new Repo(runner, location);
-            var result = await RepositoryRefresher.RefreshAsync(repo, previous, kinds, token).ConfigureAwait(false);
+            var repository = new Repository(runner, location);
+            var result = await RepositoryRefresher.RefreshAsync(repository, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
-            var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repo, token).ConfigureAwait(false)).Items : null;
+            var stashes = refsMoved ? (await StashReader.ReadStashesAsync(repository, token).ConfigureAwait(false)).Items : null;
             GraphReload? reload = null;
 
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
@@ -145,7 +145,7 @@ public sealed class TabRefresher : IDisposable
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
-                reload = await IncrementalGraphLoader.ReloadAsync(repo, previousRows, token).ConfigureAwait(false);
+                reload = await IncrementalGraphLoader.ReloadAsync(repository, previousRows, token).ConfigureAwait(false);
             }
 
             postToUi(() => Apply(previous is null, isManual, result, stashes, reload));
@@ -191,7 +191,7 @@ public sealed class TabRefresher : IDisposable
             if (changed.HasFlag(RepositorySections.Status))
             {
                 var status = result.Snapshot.Status;
-                var summary = RepoStatusSummary.From(status);
+                var summary = RepositoryStatusSummary.From(status);
                 host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
             }
 

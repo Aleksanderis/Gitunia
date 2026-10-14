@@ -62,7 +62,7 @@ public class StatusActionHandlerTests
         statuses.Warning("careful");
         var handler = new StatusActionHandler(statuses, () => null);
 
-        Assert.False(handler.TryHandleFallback(ActionIds.RepoRefresh));
+        Assert.False(handler.TryHandleFallback(ActionIds.RepositoryRefresh));
 
         Assert.NotNull(statuses.Log.Latest);
     }
@@ -72,7 +72,7 @@ public class StatusActionHandlerTests
     {
         var handler = new StatusActionHandler(new StatusChannel(), () => null);
 
-        Assert.False(handler.TryHandle(ActionIds.RepoRefresh));
+        Assert.False(handler.TryHandle(ActionIds.RepositoryRefresh));
     }
 
     [Fact]
@@ -88,8 +88,8 @@ public class StatusActionHandlerTests
     [Fact]
     public async Task GivenIdleDetails_WhenRetrying_ThenNothingToRetry()
     {
-        using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));
-        using var session = await CreateSessionAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        using var session = await CreateSessionAsync(testRepository);
         var handler = new StatusActionHandler(new StatusChannel(), () => session);
 
         handler.TryHandle(ActionIds.DetailRetry);
@@ -100,8 +100,8 @@ public class StatusActionHandlerTests
     [Fact]
     public async Task GivenFailedDetails_WhenRetrying_ThenTheLoadStartsAgain()
     {
-        using var repository = TestRepository.Create().Commit("one", ("a.txt", "1"));
-        using var session = await CreateSessionAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "1"));
+        using var session = await CreateSessionAsync(testRepository);
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
         var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         session.Details.Changed += () =>
@@ -121,9 +121,9 @@ public class StatusActionHandlerTests
         Assert.Equal(CommitDetailsStatus.Loading, session.Details.Current.Status);
     }
 
-    private static async Task<TabSession> CreateSessionAsync(TestRepository repository)
+    private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
     {
-        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, Token);
-        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repo, action => action(), TimeSpan.FromMilliseconds(1)));
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.FromMilliseconds(1)));
     }
 }

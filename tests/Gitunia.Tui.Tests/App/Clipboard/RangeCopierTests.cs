@@ -31,8 +31,8 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenAGraphRange_WhenCopying_ThenTheHashesGoToTheClipboardAndTheNoticeIsEmpty()
     {
-        using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
-        using var session = await CreateSessionAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var session = await CreateSessionAsync(testRepository);
 
         var result = CreateCopier(session).Copy(PaneKind.Graph, new RowRange(0, 1));
 
@@ -44,8 +44,8 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenARangeWithoutRowsOrInTheSidebar_WhenCopying_ThenNothingIsCopied()
     {
-        using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
-        using var session = await CreateSessionAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var session = await CreateSessionAsync(testRepository);
 
         Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), CreateCopier(session).Copy(PaneKind.Graph, new RowRange(5, 6)));
         Assert.Equal(new RangeCopyResult(false, "Nothing to copy"), CreateCopier(session).Copy(PaneKind.Sidebar, new RowRange(0, 0)));
@@ -55,8 +55,8 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public async Task GivenAClipboardThatRefusesTheText_WhenCopying_ThenTheResultSaysNotCopied()
     {
-        using var repository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
-        using var session = await CreateSessionAsync(repository);
+        using var testRepository = TestRepository.Create().Commit("one", ("a.txt", "a\n"));
+        using var session = await CreateSessionAsync(testRepository);
         var statuses = new StatusChannel();
         var copier = new RangeCopier(new ClipboardCopier(new ClipboardWriter(terminal, new Osc52Options(Osc52Mode.Direct, 10)), statuses), () => session);
 
@@ -73,10 +73,10 @@ public class RangeCopierTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static async Task<TabSession> CreateSessionAsync(TestRepository repository)
+    private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
     {
-        var repo = await Repo.OpenAsync(new GitRunner(), repository.Path, TestContext.Current.CancellationToken);
-        var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repo, action => action(), TimeSpan.Zero));
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, TestContext.Current.CancellationToken);
+        var session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(repository, action => action(), TimeSpan.Zero));
         session.Append(CommitFactory.Graph(CommitFactory.Commit(2, "b", [1]), CommitFactory.Commit(1, "a", [])).ToArray());
         return session;
     }

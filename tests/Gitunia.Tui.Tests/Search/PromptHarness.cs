@@ -26,7 +26,7 @@ public sealed class PromptHarness : IDisposable
     {
         // Search never selects a commit, so the details store never runs a process in these tests.
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
-        Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(new GitRunner(), location), action => action(), TimeSpan.Zero));
+        Session = new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(new GitRunner(), location), action => action(), TimeSpan.Zero));
         Session.Append([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         if (!isLoading)
         {

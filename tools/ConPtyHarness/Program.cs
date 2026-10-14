@@ -1,5 +1,5 @@
 // Windows-only smoke harness: runs an exe under a ConPTY pseudoconsole, sends keys, reads the VT output.
-// Usage: ConPtyHarness <exe> <repoPath> [--strict] [--expect-first <text>] [--expect-after-j <text>]
+// Usage: ConPtyHarness <exe> <repositoryPath> [--strict] [--expect-first <text>] [--expect-after-j <text>]
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;

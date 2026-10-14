@@ -40,7 +40,7 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
 
     /// <summary>Rebuilds the rows when something they depend on changed. Returns true when the rows are new.</summary>
     /// <param name="tab">The active tab, or null when there is none.</param>
-    public bool Update(RepoState? tab)
+    public bool Update(RepositoryState? tab)
     {
         if (tab is null)
         {

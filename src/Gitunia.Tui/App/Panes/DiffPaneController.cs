@@ -319,7 +319,7 @@ public sealed class DiffPaneController : IPromptHandler
         return new DiffPaneModel(diff.Source.Document, hash, CursorRow(diff), diff.Source.RowOf(diffList.Viewport.Y), isFocused, diff.Search.Highlight, diff.Source.IsWrapped);
     }
 
-    private bool ExecuteInDiff(RepoState tab, DiffSession diff, ActionId action, int? count)
+    private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
     {
         if (diff.Search.Phase == DiffSearchPhase.Editing)
         {
@@ -406,7 +406,7 @@ public sealed class DiffPaneController : IPromptHandler
         return true;
     }
 
-    private void OpenSelectedFile(RepoState tab, DiffSession diff)
+    private void OpenSelectedFile(RepositoryState tab, DiffSession diff)
     {
         var details = activeSession()?.Details.Current;
         var source = activeSession()?.DetailSource;
@@ -485,7 +485,7 @@ public sealed class DiffPaneController : IPromptHandler
         return file >= 0 && file < document.FilePaths.Count ? document.FilePaths[file][0] : null;
     }
 
-    private void Close(RepoState tab, DiffSession diff)
+    private void Close(RepositoryState tab, DiffSession diff)
     {
         if (ShowsWithChanges())
         {

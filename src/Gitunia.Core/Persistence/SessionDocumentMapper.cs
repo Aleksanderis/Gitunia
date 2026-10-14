@@ -62,7 +62,7 @@ public static class SessionDocumentMapper
     /// <param name="directoryExists">Whether a directory exists; injected so the mapper stays pure.</param>
     public static WorkspaceUpdate ToWorkspace(SessionDocument document, Func<string, bool> directoryExists)
     {
-        var tabs = ImmutableArray.CreateBuilder<RepoState>();
+        var tabs = ImmutableArray.CreateBuilder<RepositoryState>();
         var effects = ImmutableArray.CreateBuilder<WorkspaceEffect>();
         TabId? activeId = null;
         var nextNumber = 1;
@@ -77,7 +77,7 @@ public static class SessionDocumentMapper
 
             var id = new TabId(nextNumber++);
             var isMissing = !directoryExists(location.CommandPath);
-            var tab = RepoState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = RepoState.NormalizeName(documentTabs[index].CustomName) };
+            var tab = RepositoryState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = RepositoryState.NormalizeName(documentTabs[index].CustomName) };
             tabs.Add(tab);
             if (!isMissing)
             {
@@ -117,7 +117,7 @@ public static class SessionDocumentMapper
         return new RepositoryLocation(tab.IsBare ? null : tab.WorkingTreePath, tab.GitDirectory!, commonDirectory, tab.IsBare, tab.IsLinkedWorktree);
     }
 
-    private static RepoViewState ReadView(SessionTabDocument tab)
+    private static RepositoryViewState ReadView(SessionTabDocument tab)
     {
         ObjectId? selected = ObjectId.TryParse(tab.SelectedCommit ?? string.Empty, out var objectId) ? objectId : null;
         var pane = Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
@@ -125,8 +125,8 @@ public static class SessionDocumentMapper
             : PaneKind.Graph;
         var bottomTab = Enum.TryParse<BottomTab>(tab.BottomTab, ignoreCase: false, out var parsedTab) && Enum.IsDefined(parsedTab)
             ? parsedTab
-            : RepoViewState.Initial.BottomTab;
-        return new RepoViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
+            : RepositoryViewState.Initial.BottomTab;
+        return new RepositoryViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
     }
 
     // The layout clamps to what fits; here only negative values falls back to automatic.

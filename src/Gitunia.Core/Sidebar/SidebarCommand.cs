@@ -3,8 +3,8 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Sidebar;
 
-/// <summary>A change to the sidebar of one tab; routed like any <see cref="RepoCommand"/>.</summary>
-public abstract record SidebarCommand : RepoCommand;
+/// <summary>A change to the sidebar of one tab; routed like any <see cref="RepositoryCommand"/>.</summary>
+public abstract record SidebarCommand : RepositoryCommand;
 
 /// <summary>Move the cursor with a list motion (<c>j</c>, <c>gg</c>, <c>5G</c>, <c>Ctrl-d</c> ...); other actions are ignored.</summary>
 /// <param name="Action">The bound list action.</param>

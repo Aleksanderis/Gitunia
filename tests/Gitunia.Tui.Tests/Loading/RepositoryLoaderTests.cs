@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading;
 
-public class RepoLoaderTests
+public class RepositoryLoaderTests
 {
     [Fact]
     public async Task GivenOpenedTab_WhenLoading_ThenGraphHeadAndRefsArriveAndLoadingEnds()
@@ -26,12 +26,12 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
         var changes = 0;
         session.Changed += () => changes++;
 
         // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
         Assert.False(session.IsLoading);
         Assert.Equal(string.Empty, session.LoadError);
@@ -52,12 +52,12 @@ public class RepoLoaderTests
         var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
         await session.Cancellation.CancelAsync();
 
         var statuses = new StatusChannel();
 
-        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+        await RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         Assert.Empty(statuses.Log.History);
         Assert.True(session.IsLoading);
@@ -74,11 +74,11 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
-        Assert.Equal(new RepoStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+        Assert.Equal(new RepositoryStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
 
     [Fact]
@@ -91,11 +91,11 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
 
-        await RepoLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await RepositoryLoader.RunAsync(runner, location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
 
-        Assert.Equal(new RepoStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+        Assert.Equal(new RepositoryStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
     }
 
     [Fact]
@@ -108,10 +108,10 @@ public class RepoLoaderTests
         var host = new WorkspaceHost(Workspace.Empty);
         host.Dispatch(new OpenRepositoryCommand(location));
         var statuses = new StatusChannel();
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repo(runner, location), action => action(), TimeSpan.Zero));
+        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(new Repository(runner, location), action => action(), TimeSpan.Zero));
         repository.Dispose();
 
-        await RepoLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+        await RepositoryLoader.RunAsync(runner, location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
         var texts = statuses.Log.History.Select(message => message.Text).ToList();
         Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));

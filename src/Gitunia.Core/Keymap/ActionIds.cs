@@ -121,9 +121,9 @@ public static class ActionIds
 
     public static ActionId PickerRemoveRecent { get; } = new("picker.remove-recent");
 
-    public static ActionId RepoPin { get; } = new("repo.pin");
+    public static ActionId RepositoryPin { get; } = new("repo.pin");
 
-    public static ActionId RepoRefresh { get; } = new("repo.refresh");
+    public static ActionId RepositoryRefresh { get; } = new("repo.refresh");
 
     public static ActionId SearchNext { get; } = new("search.next");
 

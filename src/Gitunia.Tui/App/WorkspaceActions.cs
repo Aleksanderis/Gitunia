@@ -5,7 +5,7 @@ using Gitunia.Core.Workspaces;
 namespace Gitunia.Tui.App;
 
 /// <summary>
-/// Maps the workspace-level actions (tabs, pinning, the repo picker) to workspace and picker commands. Anything else is
+/// Maps the workspace-level actions (tabs, pinning, the repository picker) to workspace and picker commands. Anything else is
 /// left to the <see cref="ActionRouter"/>: <see cref="TryExecute"/> returns false for actions it does not own.
 /// </summary>
 public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker, Action quit)
@@ -51,7 +51,7 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
         {
             CloseActiveTab();
         }
-        else if (action == ActionIds.RepoPin)
+        else if (action == ActionIds.RepositoryPin)
         {
             PinActiveRepository();
         }

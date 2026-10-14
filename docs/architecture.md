@@ -16,7 +16,7 @@ State layer (pure: (State, Command) -> (State, Effects))
 Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 ```
 
-- standalone workspace model. `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos) and each tab owns an independent `RepoState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts without any repo (empty workspace shows the repo picker) and restores the previous session when there is one.
+- standalone workspace model. `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos) and each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts without any repo (empty workspace shows the repo picker) and restores the previous session when there is one.
 - persistence (open tabs, recents, pins, per-tab view state, config) lives in the user config/state dir, written atomically; a corrupt or missing file must never prevent startup.
 - three layers, strictly one-way dependencies: Rendering -> State -> Git. Git knows nothing about state or UI; State knows nothing about the console.
 - State is pure and testable without a terminal. Effects (run a git command, open an editor, copy to clipboard) are returned as data and executed by a runner that feeds results back as commands.
