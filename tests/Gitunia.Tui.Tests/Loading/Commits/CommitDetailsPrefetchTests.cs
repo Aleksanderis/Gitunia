@@ -202,10 +202,17 @@ public class CommitDetailsPrefetchTests
         store.Select(reader.Commits[0], [reader.Commits[1]]);
         await WaitForPostsAsync(posted, 2);
         var other = reader.Commits[2];
-        store.Select(other);
+        // Take the results queued so far before selecting: the load of the new selection posts its own result, and running that one would load it.
+        var stale = new List<Action>();
         while (queued.TryDequeue(out var action))
         {
-            action();
+            stale.Add(action);
+        }
+
+        store.Select(other);
+        foreach (var staleAction in stale)
+        {
+            staleAction();
         }
 
         Assert.Equal(other, store.Current.Commit);
