@@ -13,7 +13,7 @@ public class RepositoryRefresherTests
 {
     private static readonly GitRunner Runner = new();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
-    private static readonly RepositoryRefresher Refresher = new(new RefReader(Runner), new StatusReader(Runner));
+    private static readonly RepositoryRefresher Refresher = new(new RefReader(Runner), new StatusReader(Runner), new RepositoryOperationDetector());
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -84,5 +84,28 @@ public class RepositoryRefresherTests
         var result = await Refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
 
         Assert.NotEqual(RepositoryOperation.None, result.Snapshot.Operation);
+    }
+
+    [Fact]
+    public async Task GivenDetectorReportingAnOperation_WhenRefreshing_ThenItEndsUpInTheSnapshotAndTheChangedSections()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var detector = new StubOperationDetector();
+        var refresher = new RepositoryRefresher(new RefReader(Runner), new StatusReader(Runner), detector);
+        var first = await refresher.RefreshAsync(location, null, RepositoryChangeKinds.All, Token);
+        detector.Operation = RepositoryOperation.Rebase;
+
+        var second = await refresher.RefreshAsync(location, first.Snapshot, RepositoryChangeKinds.Operation, Token);
+
+        Assert.Equal(RepositoryOperation.Rebase, second.Snapshot.Operation);
+        Assert.Equal(RepositorySections.Operation, second.Changed);
+    }
+
+    private sealed class StubOperationDetector : IRepositoryOperationDetector
+    {
+        public RepositoryOperation Operation { get; set; } = RepositoryOperation.None;
+
+        public RepositoryOperation Detect(RepositoryLocation location) => Operation;
     }
 }

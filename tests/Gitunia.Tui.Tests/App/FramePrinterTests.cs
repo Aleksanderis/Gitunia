@@ -142,7 +142,7 @@ public class FramePrinterTests
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
         using var writer = new StringWriter();
-        await FramePrinter.PrintAsync(TestGit.Services, location, width, height, GraphGlyphSet.Unicode, writer, arrangement, tab, colors, Token);
+        await new FramePrinter(TestGit.Services).PrintAsync(location, width, height, GraphGlyphSet.Unicode, writer, arrangement, tab, colors, Token);
         return [.. writer.ToString().Split('\n')];
     }
 }

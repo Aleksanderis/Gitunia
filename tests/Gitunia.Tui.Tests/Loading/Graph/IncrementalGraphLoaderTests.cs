@@ -1,39 +1,77 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Graph;
 
+// The cases about reusing rows and the count guard run on a fake commit log. The cases below that compare a reload with a full read of real
+// topology (merges, deleted branches, amended commits, ref changes on old commits) keep real temporary repositories: the topology and the
+// decorations the real log reports are what they test.
 public class IncrementalGraphLoaderTests
 {
     [Fact]
     public async Task GivenNewCommitOnTop_WhenReloading_ThenOldRowsAreReusedAndTheResultEqualsAFullRead()
     {
-        using var testRepository = LongHistory(40);
-        var previous = await ReadAllAsync(testRepository);
-        testRepository.Commit("new top", new TestFile("new.txt", "1"));
+        var commitLog = FakeCommitLogReader.Chain(40);
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.AddOnTop("new top");
 
-        var reload = await ReloadAsync(testRepository, previous);
+        var reload = await ReloadAsync(commitLog, previous);
 
         Assert.True(reload.ReusedCount >= 38, $"Reused {reload.ReusedCount}");
-        await AssertEqualToFullReadAsync(testRepository, reload);
         Assert.Equal("new top", reload.Entries[0].Subject);
+        Assert.Equal(41, reload.Entries.Count);
+        Assert.Equal((await ReadAllAsync(commitLog)).Select(entry => entry.Id), reload.Entries.Select(entry => entry.Id));
     }
 
     [Fact]
     public async Task GivenNothingChanged_WhenReloading_ThenEverythingBelowTheFirstRowIsReused()
     {
-        using var testRepository = LongHistory(20);
-        var previous = await ReadAllAsync(testRepository);
+        var commitLog = FakeCommitLogReader.Chain(20);
+        var previous = await ReadAllAsync(commitLog);
 
-        var reload = await ReloadAsync(testRepository, previous);
+        var reload = await ReloadAsync(commitLog, previous);
 
         Assert.Equal(19, reload.ReusedCount);
-        await AssertEqualToFullReadAsync(testRepository, reload);
+        Assert.Equal(previous.Select(entry => entry.Id), reload.Entries.Select(entry => entry.Id));
+    }
+
+    [Fact]
+    public async Task GivenCommitCountThatDisagreesWithTheReusedPart_WhenReloading_ThenTheCountGuardFallsBackToAFullRead()
+    {
+        var commitLog = FakeCommitLogReader.Chain(20);
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.Commits.RemoveAt(commitLog.Commits.Count - 1);
+
+        var reload = await ReloadAsync(commitLog, previous);
+
+        Assert.Equal(0, reload.ReusedCount);
+        Assert.Equal(19, reload.Entries.Count);
+    }
+
+    [Fact]
+    public async Task GivenEmptyPreviousGraph_WhenReloading_ThenEverythingIsRead()
+    {
+        var commitLog = FakeCommitLogReader.Chain(10);
+
+        var reload = await ReloadAsync(commitLog, []);
+
+        Assert.Equal(0, reload.ReusedCount);
+        Assert.Equal(10, reload.Entries.Count);
+    }
+
+    [Fact]
+    public async Task GivenReadFailure_WhenReloading_ThenTheFailureReachesTheCaller()
+    {
+        var commitLog = FakeCommitLogReader.Chain(5);
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.Failure = new GitException("boom");
+
+        await Assert.ThrowsAsync<GitException>(() => ReloadAsync(commitLog, previous));
     }
 
     [Fact]
@@ -130,16 +168,19 @@ public class IncrementalGraphLoaderTests
         await AssertEqualToFullReadAsync(testRepository, reload);
     }
 
-    [Fact]
-    public async Task GivenEmptyPreviousGraph_WhenReloading_ThenEverythingIsRead()
+    private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
     {
-        using var testRepository = LongHistory(10);
+        var entries = new List<GraphEntry>();
+        await foreach (var batch in new GraphLoader(commitLog).StreamAsync(FakeStatusReader.LocationOf("incremental"), CommitOrder.Topological, null, CancellationToken.None))
+        {
+            entries.AddRange(batch);
+        }
 
-        var reload = await ReloadAsync(testRepository, []);
-
-        Assert.Equal(0, reload.ReusedCount);
-        await AssertEqualToFullReadAsync(testRepository, reload);
+        return [.. entries];
     }
+
+    private static Task<GraphReload> ReloadAsync(FakeCommitLogReader commitLog, IReadOnlyList<GraphEntry> previous) =>
+        new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog)).ReloadAsync(FakeStatusReader.LocationOf("incremental"), previous, CancellationToken.None);
 
     private static TestRepository LongHistory(int count)
     {

@@ -14,11 +14,13 @@ public sealed class RepositoryRefresher : IRepositoryRefresher
 {
     private readonly IRefReader _refReader;
     private readonly IStatusReader _statusReader;
+    private readonly IRepositoryOperationDetector _operationDetector;
 
-    public RepositoryRefresher(IRefReader refReader, IStatusReader statusReader)
+    public RepositoryRefresher(IRefReader refReader, IStatusReader statusReader, IRepositoryOperationDetector operationDetector)
     {
         _refReader = refReader;
         _statusReader = statusReader;
+        _operationDetector = operationDetector;
     }
 
     public async Task<RepositoryRefreshResult> RefreshAsync(
@@ -49,7 +51,7 @@ public sealed class RepositoryRefresher : IRepositoryRefresher
         var refs = refsTask is null ? previous!.Refs : (await refsTask.ConfigureAwait(false)).Items;
         var worktrees = worktreesTask is null ? previous!.Worktrees : (await worktreesTask.ConfigureAwait(false)).Items;
         var status = statusTask is null ? previous!.Status : await statusTask.ConfigureAwait(false);
-        var operation = RepositoryOperationDetector.Detect(location);
+        var operation = _operationDetector.Detect(location);
 
         if (previous is null)
         {

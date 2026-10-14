@@ -10,6 +10,7 @@ public class RepositoryOperationDetectorTests
 {
     private static readonly GitRunner Runner = new();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
+    private static readonly RepositoryOperationDetector Detector = new();
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -19,7 +20,7 @@ public class RepositoryOperationDetectorTests
         using var testRepository = TestRepositories.WithMergedFeatureBranch();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.None, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.None, Detector.Detect(location));
     }
 
     [Fact]
@@ -28,7 +29,7 @@ public class RepositoryOperationDetectorTests
         using var testRepository = TestRepositories.Conflicted();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.Merge, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.Merge, Detector.Detect(location));
     }
 
     [Fact]
@@ -39,7 +40,7 @@ public class RepositoryOperationDetectorTests
         testRepository.Git(["rebase", "other"], [1]);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.Rebase, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.Rebase, Detector.Detect(location));
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public class RepositoryOperationDetectorTests
         testRepository.Git(["cherry-pick", "other"], [1]);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.CherryPick, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.CherryPick, Detector.Detect(location));
     }
 
     [Fact]
@@ -63,7 +64,7 @@ public class RepositoryOperationDetectorTests
         testRepository.Git(["revert", "--no-edit", "HEAD~1"], [1]);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.Revert, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.Revert, Detector.Detect(location));
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class RepositoryOperationDetectorTests
         testRepository.Git("bisect", "start");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.Bisect, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.Bisect, Detector.Detect(location));
     }
 
     [Fact]
@@ -93,8 +94,8 @@ public class RepositoryOperationDetectorTests
         var linked = await Discovery.DiscoverAsync(worktreePath, Token);
         var main = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.Merge, RepositoryOperationDetector.Detect(linked));
-        Assert.Equal(RepositoryOperation.None, RepositoryOperationDetector.Detect(main));
+        Assert.Equal(RepositoryOperation.Merge, Detector.Detect(linked));
+        Assert.Equal(RepositoryOperation.None, Detector.Detect(main));
     }
 
     [Fact]
@@ -110,6 +111,6 @@ public class RepositoryOperationDetectorTests
         testRepository.Git(["cherry-pick", "other~1", "other"], [1]);
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
-        Assert.Equal(RepositoryOperation.CherryPick, RepositoryOperationDetector.Detect(location));
+        Assert.Equal(RepositoryOperation.CherryPick, Detector.Detect(location));
     }
 }

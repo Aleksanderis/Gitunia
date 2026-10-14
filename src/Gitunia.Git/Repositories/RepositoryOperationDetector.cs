@@ -2,11 +2,10 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Repositories;
 
-/// <summary>Detects a stopped multi-step operation (rebase, merge, ...) of a worktree.</summary>
-public static class RepositoryOperationDetector
+/// <summary>Detects a stopped multi-step operation (rebase, merge, ...) of a worktree from the state files in its git directory.</summary>
+public sealed class RepositoryOperationDetector : IRepositoryOperationDetector
 {
-    /// <summary>Detects a stopped multi-step operation from the state files in this worktree's git directory.</summary>
-    public static RepositoryOperation Detect(RepositoryLocation location)
+    public RepositoryOperation Detect(RepositoryLocation location)
     {
         var gitDirectory = location.GitDirectory;
         if (Directory.Exists(Path.Combine(gitDirectory, "rebase-merge")))
