@@ -67,6 +67,17 @@ public class PaneHintsTests
         Assert.DoesNotContain('^', text);
     }
 
+    [Theory]
+    [MemberData(nameof(Panes))]
+    public void GivenAPaneAt80Columns_WhenBuildingTheStatusBar_ThenHelpAndCommandsStayVisible(PaneKind pane)
+    {
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 1, 1, false, "Could not read the stashes: boom", Hints: PaneHints.For(pane));
+
+        var text = string.Concat(ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
+
+        Assert.Contains("? help  : commands", text, StringComparison.Ordinal);
+    }
+
     private static string StatusText(ScreenModel model) =>
         string.Concat(ChromeBuilder.Status(model, 160, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 }

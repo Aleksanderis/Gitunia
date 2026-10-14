@@ -67,7 +67,7 @@ public class DetailPaneComposerTests
                 "│                                                │",
                 "│   second                                       │",
                 "╰────────────────────────────────────────────────╯",
-                " NORMAL  1/2  j/k move  gg/G top/end  Ctrl-d/u pa…"),
+                " NORMAL  1/2  ? help  : commands  q back  j/k move"),
             frame);
     }
 

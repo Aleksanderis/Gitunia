@@ -3,6 +3,7 @@ namespace Gitunia.Core.Keymap;
 /// <summary>Human-readable titles of the actions, shown by the command palette, the help overlay and the which-key popup.</summary>
 public static class ActionCatalog
 {
+    private const string TabNextChord = "gt";
     private const string TabGoToPrefix = "tab.go-to.";
 
     private static readonly Dictionary<string, string> Titles = new()
@@ -94,9 +95,13 @@ public static class ActionCatalog
             return title;
         }
 
-        return action.Value.StartsWith(TabGoToPrefix, StringComparison.Ordinal)
-            ? $"Go to tab {action.Value[TabGoToPrefix.Length..]} (same as {action.Value[TabGoToPrefix.Length..]}gt)"
-            : action.Value;
+        if (!action.Value.StartsWith(TabGoToPrefix, StringComparison.Ordinal))
+        {
+            return action.Value;
+        }
+
+        var number = action.Value[TabGoToPrefix.Length..];
+        return $"Go to tab {number} (same as {number}{TabNextChord})";
     }
 
     /// <summary>True when <paramref name="action"/> has a real title.</summary>

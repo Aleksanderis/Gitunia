@@ -12,7 +12,8 @@ public static class HelpFrameBuilder
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
     private const string KeysIndent = "  ";
-    private const int ColumnSeparatorWidth = 3;
+    private const string ColumnPadding = " ";
+    private const int ColumnSeparatorWidth = 2 * 1 + 1;
 
     /// <summary>Lines the content needs at a screen width (section headings, rows with long descriptions wrapped, and a blank line between sections).</summary>
     public static int ContentHeight(IReadOnlyList<HelpSection> sections, int screenWidth)
@@ -160,7 +161,7 @@ public static class HelpFrameBuilder
         var inner = OverlayBox.InnerWidth(width);
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
             .Append($"{KeysIndent}{keys}", SegmentRole.OverlayKey)
-            .Append($" {glyphs.For(LineDirections.Up | LineDirections.Down)} ", SegmentRole.Faint)
+            .Append($"{ColumnPadding}{glyphs.For(LineDirections.Up | LineDirections.Down)}{ColumnPadding}", SegmentRole.Faint)
             .Append(description, SegmentRole.Plain);
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
