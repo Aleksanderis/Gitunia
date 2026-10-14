@@ -51,7 +51,7 @@ public static class ScreenComposer
             ? PickerRects(width, height)
             : PaneLayout.Compute(width, height, layout.IsDiffOpen && diff is not null, layout.Zoomed, layout.Sizes);
         var focused = FocusedPane(sidebar, detail, diff);
-        var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repo";
+        var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
         var grid = FrameGrid.Build(width, height, rects, isPicker ? PaneKind.Graph : focused, glyphs, isPicker ? string.Empty : sidebarTitle, isPicker ? string.Empty : "History");
         var overlays = new List<PaneLines>();
         if (isPicker)
