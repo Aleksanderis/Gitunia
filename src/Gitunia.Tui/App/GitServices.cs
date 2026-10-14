@@ -54,7 +54,7 @@ public sealed record GitServices(
             refs,
             status,
             stashes,
-            new RepositoryRefresher(refs, status),
+            new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),
             new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));

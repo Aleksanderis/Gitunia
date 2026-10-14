@@ -48,8 +48,7 @@ public static class Program
 
         if (options.PrintsFrame)
         {
-            FramePrinter.PrintAsync(
-                services,
+            new FramePrinter(services).PrintAsync(
                 location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,

@@ -2,7 +2,8 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
@@ -13,13 +14,18 @@ using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Graph;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Tabs;
 
+// The cases about the watcher (changes arriving from the file system, background tabs, the baseline racing a change) and the graph
+// topology the incremental reload reads keep real temporary repositories. The manual refresh, its failure reporting and applying the
+// sections of a result run on fakes of the readers and the refresher.
 public class TabRefresherTests
 {
     private static readonly RepositoryWatcherOptions FastOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
+    private static readonly RepositoryWatcherOptions QuietOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromHours(1));
 
     [Fact]
     public async Task GivenLoadedTab_WhenTheFirstRefreshRuns_ThenItIsABaselineThatAppliesSectionsWithoutReloadingTheGraph()
@@ -41,10 +47,7 @@ public class TabRefresherTests
     [Fact]
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1"));
-        using var harness = await Harness.LoadAsync(repository);
-        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+        using var harness = await FakeHarness.LoadAsync();
         var replaced = 0;
         harness.Session.GraphReplaced += () => replaced++;
 
@@ -58,29 +61,33 @@ public class TabRefresherTests
     [Fact]
     public async Task GivenManualRefresh_WhenGitFails_ThenTheFailureIsReportedEachTime()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1"));
-        using var harness = await Harness.LoadAsync(repository);
-        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
-        var gitDirectory = Path.Combine(repository.WorkingTreePath, ".git");
-        var moved = Path.Combine(repository.WorkingTreePath, ".git-moved");
-        Directory.Move(gitDirectory, moved);
-        try
-        {
-            harness.Refresher.RefreshNow();
-            await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest?.Severity == StatusSeverity.Error && !harness.Refresher.IsRefreshing);
-            Assert.Contains("could not refresh", harness.Statuses.Log.Latest!.Text);
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("not a git repository");
 
-            harness.Statuses.Dismiss();
-            harness.Refresher.RefreshNow();
-            await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest is not null && !harness.Refresher.IsRefreshing);
+        harness.Refresher.RefreshNow();
+        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest?.Severity == StatusSeverity.Error && !harness.Refresher.IsRefreshing);
+        Assert.Contains("could not refresh", harness.Statuses.Log.Latest!.Text);
 
-            Assert.Contains("could not refresh", harness.Statuses.Log.Latest!.Text);
-        }
-        finally
-        {
-            Directory.Move(moved, gitDirectory);
-        }
+        harness.Statuses.Dismiss();
+        harness.Refresher.RefreshNow();
+        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest is not null && !harness.Refresher.IsRefreshing);
+
+        Assert.Contains("could not refresh", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenFailedRefresh_WhenTheNextOneSucceeds_ThenTheChangedSectionsAreApplied()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("boom");
+        harness.Refresher.RefreshNow();
+        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest?.Severity == StatusSeverity.Error && !harness.Refresher.IsRefreshing);
+        harness.RepositoryRefresher.Failure = null;
+        harness.RepositoryRefresher.Snapshot = harness.RepositoryRefresher.Snapshot with { Head = new HeadState(HeadKind.Branch, "topic", null) };
+
+        harness.Refresher.RefreshNow();
+
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Head!.BranchName == "topic");
     }
 
     [Fact]
@@ -269,6 +276,66 @@ public class TabRefresherTests
             }
 
             return new Harness(host, tabId, session, refresher, statuses, pump, reloads, () => Volatile.Read(ref ran), LoadAsync);
+        }
+    }
+
+    private sealed class FakeHarness : IDisposable
+    {
+        private FakeHarness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, FakeRepositoryRefresher repositoryRefresher, StatusChannel statuses, UiPump pump)
+        {
+            Host = host;
+            TabId = tabId;
+            Session = session;
+            Refresher = refresher;
+            RepositoryRefresher = repositoryRefresher;
+            Statuses = statuses;
+            Pump = pump;
+        }
+
+        public UiPump Pump { get; }
+
+        public WorkspaceHost Host { get; }
+
+        public TabId TabId { get; }
+
+        public TabSession Session { get; }
+
+        public TabRefresher Refresher { get; }
+
+        public FakeRepositoryRefresher RepositoryRefresher { get; }
+
+        public StatusChannel Statuses { get; }
+
+        public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
+
+        /// <summary>Loads a three-commit tab from fakes, starts the refresher and waits until its baseline refresh is done.</summary>
+        public static async Task<FakeHarness> LoadAsync()
+        {
+            var location = FakeStatusReader.LocationOf("refresher");
+            var commitLog = FakeCommitLogReader.Chain(3);
+            var refs = new FakeRefReader();
+            var stashes = new FakeStashReader();
+            var host = new WorkspaceHost(Workspace.Empty);
+            host.Dispatch(new OpenRepositoryCommand(location));
+            var tabId = host.Workspace.ActiveTabId!.Value;
+            var statuses = new StatusChannel();
+            var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), location, action => action(), TimeSpan.Zero));
+            session.MarkStarted();
+            var graphLoader = new GraphLoader(commitLog);
+            await new RepositoryLoader(refs, new FakeStatusReader(), graphLoader, new SidebarDataLoader(refs, stashes))
+                .RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+            var pump = new UiPump(TestContext.Current.CancellationToken);
+            var repositoryRefresher = new FakeRepositoryRefresher();
+            var refresher = new TabRefresher(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader), host, session, location, statuses, pump.Post, new WatchBudget(), QuietOptions);
+            refresher.Start();
+            await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount > 0 && !refresher.IsRefreshing);
+            return new FakeHarness(host, tabId, session, refresher, repositoryRefresher, statuses, pump);
+        }
+
+        public void Dispose()
+        {
+            Refresher.Dispose();
+            Session.Dispose();
         }
     }
 }

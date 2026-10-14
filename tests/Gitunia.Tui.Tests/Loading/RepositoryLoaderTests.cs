@@ -1,118 +1,156 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
-using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Graph;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.App;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading;
 
+// Every test here runs on fakes of the readers: what is under test is how the loader hands results to the UI and reports failures,
+// not git. The wiring against real git is covered by EffectRunnerTests and TabRefresherTests.
 public class RepositoryLoaderTests
 {
     [Fact]
     public async Task GivenOpenedTab_WhenLoading_ThenGraphHeadAndRefsArriveAndLoadingEnds()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1")).Commit("second", new TestFile("a.txt", "2")).Tag("v1");
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
-        host.Dispatch(new OpenRepositoryCommand(location));
-        var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        harness.CommitLog.AddOnTop("second");
+        harness.Refs.Refs.Add(new GitRef("refs/tags/v1", "v1", RefKind.Tag, "1", "1", null, null, null, false, false, null, null));
         var changes = 0;
-        session.Changed += () => changes++;
+        harness.Session.Changed += () => changes++;
 
         // Posts run inline but serialized by InlineUi, standing in for the single UI thread.
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await harness.RunAsync();
 
-        Assert.False(session.IsLoading);
-        Assert.Equal(string.Empty, session.LoadError);
-        Assert.Equal(2, session.Graph.Count);
-        Assert.Equal(2, session.Source.Count);
+        Assert.False(harness.Session.IsLoading);
+        Assert.Equal(string.Empty, harness.Session.LoadError);
+        Assert.Equal(2, harness.Session.Graph.Count);
+        Assert.Equal(2, harness.Session.Source.Count);
         Assert.True(changes >= 2);
-        var tab = host.Workspace.FindTab(tabId)!;
-        Assert.Equal("main", tab.Head!.BranchName);
-        Assert.Contains(tab.Refs, reference => reference.Name == "v1");
+        Assert.Equal("main", harness.Tab.Head!.BranchName);
+        Assert.Contains(harness.Tab.Refs, reference => reference.Name == "v1");
     }
 
     [Fact]
     public async Task GivenCancelledTab_WhenLoading_ThenSessionStaysLoadingAndNothingThrows()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1"));
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
-        host.Dispatch(new OpenRepositoryCommand(location));
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
-        await session.Cancellation.CancelAsync();
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        await harness.Session.Cancellation.CancelAsync();
 
-        var statuses = new StatusChannel();
+        await harness.RunAsync();
 
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
-
-        Assert.Empty(statuses.Log.History);
-        Assert.True(session.IsLoading);
-        Assert.Equal(0, session.Graph.Count);
+        Assert.Empty(harness.Statuses.Log.History);
+        Assert.True(harness.Session.IsLoading);
+        Assert.Equal(0, harness.Session.Graph.Count);
     }
 
     [Fact]
     public async Task GivenDirtyRepository_WhenLoading_ThenTheStatusSummaryArrivesForTheTabBar()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1")).WriteFile("untracked.txt", "x");
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
-        host.Dispatch(new OpenRepositoryCommand(location));
-        var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        harness.Status.SetDirty(harness.Location, true);
 
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await harness.RunAsync();
 
-        Assert.Equal(new RepositoryStatusSummary(true, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+        Assert.Equal(new RepositoryStatusSummary(true, 0, 0), harness.Tab.Status);
     }
 
     [Fact]
     public async Task GivenCleanRepository_WhenLoading_ThenTheStatusSummaryIsNotDirty()
     {
-        using var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1"));
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
-        host.Dispatch(new OpenRepositoryCommand(location));
-        var tabId = host.Workspace.ActiveTabId!.Value;
-        using var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
 
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
+        await harness.RunAsync();
 
-        Assert.Equal(new RepositoryStatusSummary(false, 0, 0), host.Workspace.FindTab(tabId)!.Status);
+        Assert.Equal(new RepositoryStatusSummary(false, 0, 0), harness.Tab.Status);
     }
 
     [Fact]
     public async Task GivenRepositoryThatVanished_WhenLoading_ThenTheFailedReadsAreReportedToTheStatusChannel()
     {
-        var repository = TestRepository.Create();
-        repository.Commit("root", new TestFile("a.txt", "1"));
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
-        var host = new WorkspaceHost(Workspace.Empty);
-        host.Dispatch(new OpenRepositoryCommand(location));
-        var statuses = new StatusChannel();
-        using var session = new TabSession(host.Workspace.ActiveTabId!.Value, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
-        repository.Dispose();
+        using var harness = new Harness();
+        var failure = new GitException("not a git repository");
+        harness.Refs.WorktreesFailure = failure;
+        harness.Stashes.Failure = failure;
+        harness.CommitLog.Failure = failure;
 
-        await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+        await harness.RunAsync();
 
-        var texts = statuses.Log.History.Select(message => message.Text).ToList();
+        var texts = harness.Statuses.Log.History.Select(message => message.Text).ToList();
         Assert.Contains(texts, text => text.Contains("could not read the worktrees", StringComparison.Ordinal));
         Assert.Contains(texts, text => text.Contains("could not read the stashes", StringComparison.Ordinal));
         Assert.Contains(texts, text => text.Contains(": could not load the graph:", StringComparison.Ordinal));
-        Assert.NotEqual(string.Empty, session.LoadError);
-        Assert.All(statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
+        Assert.NotEqual(string.Empty, harness.Session.LoadError);
+        Assert.All(harness.Statuses.Log.History, message => Assert.Equal(StatusSeverity.Error, message.Severity));
+    }
+
+    [Fact]
+    public async Task GivenHeadReadFails_WhenLoading_ThenTheStatusReadFailureIsReportedAndTheGraphStillLoads()
+    {
+        using var harness = new Harness();
+        harness.CommitLog.AddOnTop("root");
+        harness.Refs.HeadFailure = new GitException("boom");
+
+        await harness.RunAsync();
+
+        var texts = harness.Statuses.Log.History.Select(message => message.Text).ToList();
+        Assert.Contains(texts, text => text.Contains("could not read the repository status: boom", StringComparison.Ordinal));
+        Assert.Equal(1, harness.Session.Graph.Count);
+        Assert.False(harness.Session.IsLoading);
+    }
+
+    private sealed class Harness : IDisposable
+    {
+        public Harness()
+        {
+            Location = FakeStatusReader.LocationOf("loader");
+            Host = new WorkspaceHost(Workspace.Empty);
+            Host.Dispatch(new OpenRepositoryCommand(Location));
+            TabId = Host.Workspace.ActiveTabId!.Value;
+            Session = new TabSession(TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), Location, action => action(), TimeSpan.Zero));
+            Loader = new RepositoryLoader(Refs, Status, new GraphLoader(CommitLog), new SidebarDataLoader(Refs, Stashes));
+        }
+
+        public RepositoryLocation Location { get; }
+
+        public FakeCommitLogReader CommitLog { get; } = new();
+
+        public FakeRefReader Refs { get; } = new();
+
+        public FakeStatusReader Status { get; } = new();
+
+        public FakeStashReader Stashes { get; } = new();
+
+        public StatusChannel Statuses { get; } = new();
+
+        public WorkspaceHost Host { get; }
+
+        public TabId TabId { get; }
+
+        public TabSession Session { get; }
+
+        public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
+
+        private RepositoryLoader Loader { get; }
+
+        public Task RunAsync() => Loader.RunAsync(Location, Session, Host, Statuses, InlineUi.Post, Session.Cancellation.Token);
+
+        public void Dispose() => Session.Dispose();
     }
 }

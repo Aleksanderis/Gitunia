@@ -1,27 +1,17 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Graph;
 
+// The merged-history case keeps a real repository: the lanes and the decorations come from real topology and real refs. The batching,
+// limit, cancellation and failure cases only need a stream of commits and run on a fake commit log.
 public class GraphLoaderTests
 {
-    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)
-    {
-        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
-        var batches = new List<IReadOnlyList<GraphEntry>>();
-        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, maximumCommits, CancellationToken.None))
-        {
-            batches.Add(batch);
-        }
-
-        return batches;
-    }
-
     [Fact]
     public async Task GivenMergedFeatureBranchHistory_WhenStreaming_ThenRowsMatchTheBatchLayoutAndRefsAreAttached()
     {
@@ -46,14 +36,7 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenMoreCommitsThanTheFirstBatch_WhenStreaming_ThenFirstBatchIsSmallAndNothingIsLost()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("root", new TestFile("a.txt", "1"));
-        for (var number = 1; number < 200; number++)
-        {
-            testRepository.Git("commit", "-q", "--allow-empty", "-m", $"commit {number}");
-        }
-
-        var batches = await LoadAsync(testRepository);
+        var batches = await LoadAsync(FakeCommitLogReader.Chain(200));
 
         Assert.True(batches.Count >= 2);
         Assert.True(batches[0].Count <= 150);
@@ -63,29 +46,55 @@ public class GraphLoaderTests
     [Fact]
     public async Task GivenMaximum_WhenStreaming_ThenStopsAfterThatManyCommits()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2")).Commit("three", new TestFile("a.txt", "3"));
+        var entries = (await LoadAsync(FakeCommitLogReader.Chain(3), maximumCommits: 2)).SelectMany(batch => batch).ToList();
 
-        var entries = (await LoadAsync(testRepository, maximumCommits: 2)).SelectMany(batch => batch).ToList();
-
-        Assert.Equal(["three", "two"], entries.Select(entry => entry.Subject).ToArray());
+        Assert.Equal(["commit 3", "commit 2"], entries.Select(entry => entry.Subject).ToArray());
     }
 
     [Fact]
     public async Task GivenCancelledToken_WhenStreaming_ThenItStopsWithCancellation()
     {
-        using var testRepository = TestRepository.Create();
-        testRepository.Commit("one", new TestFile("a.txt", "1"));
-        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellation.Token))
+            await foreach (var batch in new GraphLoader(FakeCommitLogReader.Chain(1)).StreamAsync(FakeStatusReader.LocationOf("graph"), CommitOrder.Topological, null, cancellation.Token))
             {
                 Assert.NotEmpty(batch);
             }
         });
+    }
+
+    [Fact]
+    public async Task GivenReadFailure_WhenStreaming_ThenTheFailureReachesTheCaller()
+    {
+        var commitLog = FakeCommitLogReader.Chain(1);
+        commitLog.Failure = new GitException("boom");
+
+        await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
+    }
+
+    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)
+    {
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
+        var batches = new List<IReadOnlyList<GraphEntry>>();
+        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, maximumCommits, CancellationToken.None))
+        {
+            batches.Add(batch);
+        }
+
+        return batches;
+    }
+
+    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(FakeCommitLogReader commitLog, int? maximumCommits = null)
+    {
+        var batches = new List<IReadOnlyList<GraphEntry>>();
+        await foreach (var batch in new GraphLoader(commitLog).StreamAsync(FakeStatusReader.LocationOf("graph"), CommitOrder.Topological, maximumCommits, CancellationToken.None))
+        {
+            batches.Add(batch);
+        }
+
+        return batches;
     }
 }

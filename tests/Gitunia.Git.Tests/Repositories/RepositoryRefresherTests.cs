@@ -13,7 +13,7 @@ public class RepositoryRefresherTests
 {
     private static readonly GitRunner Runner = new();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
-    private static readonly RepositoryRefresher Refresher = new(new RefReader(Runner), new StatusReader(Runner));
+    private static readonly RepositoryRefresher Refresher = new(new RefReader(Runner), new StatusReader(Runner), new RepositoryOperationDetector());
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 

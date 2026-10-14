@@ -6,31 +6,33 @@ using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
+// The restored-tab case runs on fakes: it is about which tabs load. The other cases need real file system watchers, real refs and a real
+// manual refresh against git, so they keep real temporary repositories.
 public class EffectRunnerTests
 {
+    private static readonly RepositoryWatcherOptions QuietOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromHours(1));
+
     [Fact]
     public async Task GivenRestoredTabs_WhenStarting_ThenOnlyActiveTabLoadsUntilActivated()
     {
-        using var first = TestRepository.Create();
-        first.Commit("root", new TestFile("a.txt", "1"));
-        using var second = TestRepository.Create();
-        second.Commit("root", new TestFile("a.txt", "1"));
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var scratch = Workspace.Empty;
-        foreach (var path in new[] { first.WorkingTreePath, second.WorkingTreePath })
+        foreach (var name in new[] { "first", "second" })
         {
-            var location = await TestGit.Services.Discovery.DiscoverAsync(path, CancellationToken.None);
-            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(FakeStatusReader.LocationOf(name))).Workspace;
         }
 
         var firstId = scratch.Tabs[0].Id;
         var secondId = scratch.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        using var effects = new EffectRunner(fakes.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: QuietOptions);
 
         host.Restore(new WorkspaceUpdate(
             scratch with { ActiveTabId = firstId },
