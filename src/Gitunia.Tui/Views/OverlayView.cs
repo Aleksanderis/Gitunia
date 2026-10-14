@@ -1,6 +1,7 @@
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 

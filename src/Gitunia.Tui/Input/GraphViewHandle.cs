@@ -1,4 +1,4 @@
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.Input;

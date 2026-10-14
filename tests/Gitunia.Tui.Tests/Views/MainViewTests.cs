@@ -4,6 +4,8 @@ using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
+using Gitunia.Tui.Views.Theme;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Views;

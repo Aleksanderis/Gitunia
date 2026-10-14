@@ -1,7 +1,5 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching.Models;

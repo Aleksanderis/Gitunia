@@ -1,5 +1,5 @@
-using Gitunia.Core.Workspaces;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Overlays;
 
 namespace Gitunia.Tui.Tests.App;
 

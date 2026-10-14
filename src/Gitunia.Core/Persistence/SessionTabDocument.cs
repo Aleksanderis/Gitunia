@@ -1,5 +1,3 @@
-using Gitunia.Core.Workspaces.Tabs;
-
 namespace Gitunia.Core.Persistence;
 
 /// <summary>One open tab as stored in the session file. Every field has a default so older or hand-edited files still load.</summary>

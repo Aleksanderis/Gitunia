@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Gitunia.Core.Diff;
-using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 

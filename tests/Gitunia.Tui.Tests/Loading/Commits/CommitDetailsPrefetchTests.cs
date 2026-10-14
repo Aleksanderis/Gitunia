@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Gitunia.Git;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;

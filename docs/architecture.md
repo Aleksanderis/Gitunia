@@ -29,8 +29,8 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
   Gitunia.Git/        process runner, parsers, readers (instance classes with an interface where the Tui consumes them), repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
-  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap, Search, Workspaces with Panes, Repositories and Tabs subfolders, ...)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, Panes, Sidebar, Tabs)
+  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap and Search with a `Models/` subfolder, Workspaces with Panes, Repositories and Tabs subfolders, ...)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views; subfolders Lists, Theme), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, CommandLine, Details, Overlays, Panes, Sidebar, Tabs)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/
@@ -44,7 +44,7 @@ tools/
 scripts/              helper scripts (bash and PowerShell): fixture and big-repo generators, measurement harness
 ```
 
-Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`.
+Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`. Unused usings fail the build (IDE0005; it needs `GenerateDocumentationFile`, so the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`). Small `Models/` folders (Refs, Watching, Execution) stay for consistency.
 
 Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
 

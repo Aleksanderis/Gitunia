@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;

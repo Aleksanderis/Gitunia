@@ -1,23 +1,16 @@
 using Gitunia.Core.Diff;
 using Gitunia.Core.Graph;
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
-using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Diff;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Git.Stash;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
-using Gitunia.Tui.Loading.Graph;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -25,6 +18,7 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Theme;
 
 namespace Gitunia.Tui.App;
 

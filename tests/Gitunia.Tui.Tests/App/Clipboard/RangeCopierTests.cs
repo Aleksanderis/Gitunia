@@ -4,8 +4,6 @@ using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;

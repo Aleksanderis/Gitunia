@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 using Xunit;
 

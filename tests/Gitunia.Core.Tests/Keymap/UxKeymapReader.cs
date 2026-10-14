@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Tests.Keymap;
 

@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Input;
 using Xunit;

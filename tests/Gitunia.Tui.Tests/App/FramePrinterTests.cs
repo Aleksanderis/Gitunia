@@ -1,12 +1,10 @@
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Theme;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;

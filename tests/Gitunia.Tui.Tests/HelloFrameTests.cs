@@ -1,5 +1,4 @@
 using Gitunia.Platform;
-using Gitunia.Tui;
 using Xunit;
 
 namespace Gitunia.Tui.Tests;

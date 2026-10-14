@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Keymap;

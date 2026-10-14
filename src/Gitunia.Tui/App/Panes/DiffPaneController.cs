@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;

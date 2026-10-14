@@ -29,6 +29,9 @@ csharp_style_var_elsewhere = true:warning
 dotnet_diagnostic.CA1068.severity = warning
 dotnet_diagnostic.IDE1006.severity = warning
 
+# Unused usings fail the build.
+dotnet_diagnostic.IDE0005.severity = warning
+
 # Private and protected instance fields are _camelCase (consts and statics excluded).
 dotnet_naming_rule.instance_fields_underscore.symbols = instance_fields
 dotnet_naming_rule.instance_fields_underscore.style = underscore_camel_case

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Search;

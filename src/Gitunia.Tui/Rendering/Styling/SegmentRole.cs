@@ -1,5 +1,3 @@
-using Gitunia.Git.Diff.Models;
-
 namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>What a piece of text means; the view maps a role to colours and text styles, tests ignore it.</summary>

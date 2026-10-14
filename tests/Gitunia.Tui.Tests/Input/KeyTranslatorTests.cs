@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.Input;
 using Terminal.Gui.Input;
 using Xunit;

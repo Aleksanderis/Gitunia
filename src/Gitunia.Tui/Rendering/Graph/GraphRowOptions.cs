@@ -1,4 +1,4 @@
-using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 
 namespace Gitunia.Tui.Rendering.Graph;
 

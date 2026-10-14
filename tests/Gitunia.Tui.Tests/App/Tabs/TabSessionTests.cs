@@ -1,6 +1,4 @@
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Execution;
-using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;

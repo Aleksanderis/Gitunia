@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
 using Attribute = Terminal.Gui.Drawing.Attribute;
 using StyledSegment = Gitunia.Tui.Rendering.Styling.StyledSegment;

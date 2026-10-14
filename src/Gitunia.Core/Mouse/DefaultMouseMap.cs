@@ -1,5 +1,4 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Core.Mouse;
 

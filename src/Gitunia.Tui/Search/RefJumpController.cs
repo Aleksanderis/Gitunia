@@ -1,6 +1,8 @@
 using System.Globalization;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
+using Gitunia.Core.Search.Models;
 using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Input;

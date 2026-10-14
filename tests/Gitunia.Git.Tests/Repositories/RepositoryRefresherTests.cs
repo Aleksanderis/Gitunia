@@ -1,10 +1,10 @@
 using Gitunia.Git.Execution;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching.Models;
-using Gitunia.Git.Refs;
-using Gitunia.Git.Status;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Repositories;

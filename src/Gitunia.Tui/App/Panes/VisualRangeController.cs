@@ -1,8 +1,9 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.App.Clipboard;
-using Gitunia.Tui.Views;
+using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.Panes;

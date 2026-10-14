@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.Input;
