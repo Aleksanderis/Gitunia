@@ -112,6 +112,18 @@ public class KeyTranslatorTests
     }
 
     [Fact]
+    public void GivenPickerInInsertMode_WhenPressingCtrlL_ThenItAccepts()
+    {
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        var state = KeymapState.Initial.WithMode(KeyMode.Insert);
+
+        var result = engine.Process(state, Translate(Key.L.WithCtrl), DefaultKeymap.PickerView);
+
+        Assert.Equal(new KeyEvent("l", KeyModifiers.Ctrl), Translate(Key.L.WithCtrl).Normalize());
+        Assert.Equal(ActionIds.PickerAccept, result.Action);
+    }
+
+    [Fact]
     public void GivenPickerInInsertMode_WhenPressingCtrlJAndCtrlCaret_ThenHighlightMovesAndPreviousTabFires()
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());
