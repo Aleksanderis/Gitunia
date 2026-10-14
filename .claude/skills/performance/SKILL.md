@@ -9,8 +9,8 @@ Targets and verified numbers are in `docs/architecture.md` ("Performance targets
 
 ## Measure before optimising
 
-- Write the straightforward version first. Optimise only a path you measured (`scripts/measure.sh`, `scripts/measure-tabs.sh`, `scripts/gen-big-repo.sh`; harness contract in `docs/testing.md`) or one whose cost is plainly proportional to repository size (per commit, per file, per line, per frame).
-- Record before and after numbers (median plus p95, binary type, repo size) in the PR. An optimisation without a number is not accepted; neither is a change that makes code harder to read for an unmeasured gain.
+- Write the straightforward version first. Optimise only a path you measured. End-to-end: `scripts/measure.sh`, `scripts/measure-tabs.sh`, `scripts/gen-big-repo.sh` (tmux based, Linux/macOS only, not available on Windows; contract in `docs/testing.md`). For a pure parser or layout function: an ad hoc timed loop over the output of the 100k-commit repo, with the command in the PR.
+- Record before and after numbers (median plus p95, binary type, repo size) in the PR. An optimisation without a number is not accepted, except a simple, readable change on a path whose cost is clearly proportional to repository size (per commit, per file, per line, per frame); the PR must then say it was not measured. A change that makes code harder to read for an unmeasured gain is never accepted.
 - Measure the Native AOT binary, not `dotnet run`: JIT and AOT numbers differ.
 
 ## What counts as a hot path
@@ -31,9 +31,9 @@ Parsers of `git log`, `status`, `diff` and `for-each-ref` output; graph layout; 
 - Parse over `ReadOnlySpan<char>` or `ReadOnlySpan<byte>`; slice instead of `Substring` or `Split`. Allocate a string only for the part that is kept.
 - Spans cannot cross `await` or be stored in classes: parse synchronously per record, then store the result.
 - Reuse buffers (`ArrayPool<T>`, a reused `StringBuilder`, a per-frame buffer that is cleared, not recreated) where the lifetime is clear and the size is large or the path runs per frame. Always return pooled buffers and never keep a reference after returning.
-- Struct versus class: small immutable data that lives in big arrays (per-commit layout, cell, row) is a `readonly record struct` (no tuples, see CLAUDE.md), kept small (about 16-24 bytes). Anything long-lived, shared, nullable or mutated is a class or record. Do not box (interfaces, `object`, non-generic collections).
+- Struct versus class: small immutable data that lives in big arrays (per-commit layout, cell, row) is a `readonly record struct` (no tuples, see CLAUDE.md), kept small (a guideline, not a measured limit). Anything long-lived, shared, nullable or mutated is a class or record. Do not box (interfaces, `object`, non-generic collections).
 - Hoist invariants: static readonly argument lists and option objects (also a CLAUDE.md rule), precomputed delimiters and lookup tables, `static` lambdas instead of capturing ones in hot code.
-- String interpolation is the house style, but not inside per-frame or per-row loops where it allocates: write into a buffer or reuse a cached string.
+- String interpolation stays the house style. Replace it with buffer writes or a cached string only in a per-frame or per-row loop where measurement shows it matters, and say so in the PR. The same applies to avoiding LINQ.
 - Intern or share long-lived repeated strings (ref names, author names); store hashes compactly, not as a 40-char string per use.
 
 ## Caching and laziness
@@ -47,14 +47,14 @@ Parsers of `git log`, `status`, `diff` and `for-each-ref` output; graph layout; 
 
 - Pre-size when the count is known (`new List<T>(capacity)`, dictionary capacity). Arrays or `List<T>` for dense, index-addressed data; `Dictionary` or `HashSet` only for real lookups.
 - Flat arrays of structs (or struct-of-arrays) for per-commit data; avoid one object per commit plus child lists.
-- Do not copy collections to guard against mutation in hot paths; expose `IReadOnlyList<T>` or a span over the same storage.
+- Do not copy collections to guard against mutation in hot paths; expose `IReadOnlyList<T>` (index into it with a `for` loop) or a span over the same storage.
 - Many concatenations: `StringBuilder` or span writes, never `+` in a loop. `string.Create`, `Span<char>` and `stackalloc` (small, bounded sizes only) for fixed shapes.
 - Ordinal comparisons (`StringComparison.Ordinal`, ordinal dictionaries) for git data; culture-sensitive comparison is slow and wrong for refs and paths.
 - Do not recompute display width per frame for unchanged text; cache it per row or string.
 
 ## Rendering
 
-- Diff against the previous frame; one buffered flush per frame; no per-cell allocations; no work for rows that did not change.
+- Frame diffing and the single flush are specified in `docs/architecture.md`; add no per-cell allocations and no work for unchanged rows.
 - Invalidate narrowly (the changed pane or row) on selection or data changes, not the whole screen.
 
 ## AOT and startup
