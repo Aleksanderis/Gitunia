@@ -25,7 +25,7 @@ public static class GraphRowRenderer
         var ellipsis = options.Glyphs.Ellipsis;
         var isMatch = options.Highlight is { } query && GraphSearchMatcher.IsMatch(query, entry);
         var builder = new LineBuilder(options.Width, ellipsis);
-        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs);
+        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0);
         var usedLaneWidth = UsedLaneWidth(cells);
         var areaWidth = columns.LaneWidth + 1;
         var gap = Math.Min(MinimumLaneGap, areaWidth - usedLaneWidth);
