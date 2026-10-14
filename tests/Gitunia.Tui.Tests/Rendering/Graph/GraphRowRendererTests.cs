@@ -91,6 +91,34 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenCommitWithARefInTheMiddleOfALine_WhenRendering_ThenItKeepsItsNodeDot()
+    {
+        var tag = new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false);
+
+        var rows = Rows(
+            GraphGlyphSet.Unicode,
+            40,
+            CommitFactory.Commit(3, "tip", [2]),
+            CommitFactory.Commit(2, "tagged", [1], tag),
+            CommitFactory.Commit(1, "root", []));
+
+        Assert.StartsWith("●", rows[1]);
+    }
+
+    [Fact]
+    public void GivenCommitWithoutARefInTheMiddleOfALine_WhenRendering_ThenItIsPartOfTheLine()
+    {
+        var rows = Rows(
+            GraphGlyphSet.Unicode,
+            40,
+            CommitFactory.Commit(3, "tip", [2]),
+            CommitFactory.Commit(2, "plain", [1]),
+            CommitFactory.Commit(1, "root", []));
+
+        Assert.StartsWith("│", rows[1]);
+    }
+
+    [Fact]
     public void GivenAllRefKinds_WhenRendering_ThenDecorationsListedLikeGit()
     {
         var commit = CommitFactory.Commit(
