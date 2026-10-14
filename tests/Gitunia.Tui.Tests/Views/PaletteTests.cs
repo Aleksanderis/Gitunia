@@ -24,6 +24,17 @@ public class PaletteTests
 
     [Theory]
     [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenAskingForThePanelScheme_ThenItsNormalColourIsThePanelBackground(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        var scheme = Palette.PanelScheme(colors);
+
+        Assert.Equal(colors.PanelBackground, scheme.Normal.Background);
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
