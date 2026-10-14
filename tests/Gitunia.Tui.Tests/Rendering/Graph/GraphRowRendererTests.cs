@@ -32,7 +32,7 @@ public class GraphRowRendererTests
         Assert.Equal(
             [
                 "○─╮  merge side",
-                "● │  main work",
+                "│ │  main work",
                 "├─●  side work",
                 "●  root",
             ],
@@ -47,7 +47,7 @@ public class GraphRowRendererTests
         Assert.Equal(
             [
                 "o-\\  merge side",
-                "* |  main work",
+                "| |  main work",
                 "|-*  side work",
                 "*  root",
             ],

@@ -33,7 +33,7 @@ public class ScreenComposerTests
                 "   1 repo",
                 "╭─ History ────────────────────────────╮",
                 "│ ○─╮  merge side                      │",
-                "│ ● │  main work                       │",
+                "│ │ │  main work                       │",
                 "│ ├─●  side work                       │",
                 "│ ●  root                              │",
                 "╰──────────────────────────────────────╯",
@@ -52,7 +52,7 @@ public class ScreenComposerTests
                 "   1 repo",
                 "+- History ----------------------------+",
                 "| o-\\  merge side                      |",
-                "| * |  main work                       |",
+                "| | |  main work                       |",
                 "| |-*  side work                       |",
                 "| *  root                              |",
                 "+--------------------------------------+",
@@ -67,7 +67,7 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(3, 4), graph, 2, 1, 40, 8, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith("│ ● │  ", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│ │ │  ", lines[2].Text, StringComparison.Ordinal);
         Assert.StartsWith("│ ├─●  ", lines[3].Text, StringComparison.Ordinal);
         Assert.Equal([false, true, false], lines.Skip(2).Take(3).Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)).ToArray());
     }

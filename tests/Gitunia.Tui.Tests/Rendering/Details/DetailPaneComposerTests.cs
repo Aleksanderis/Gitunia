@@ -148,11 +148,33 @@ public class DetailPaneComposerTests
         Assert.StartsWith("─Details─Changes─Files", title.Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(BottomTab.Details, "Details")]
+    [InlineData(BottomTab.Changes, "Changes")]
+    [InlineData(BottomTab.Files, "Files")]
+    public void GivenThe12ColumnMinimum_WhenRenderingTheTitle_ThenTheSelectedTabLabelIsVisible(BottomTab tab, string label)
+    {
+        var content = LoadedContent(TwoCommits(), tab);
+
+        var title = DetailPaneRenderer.RenderTitle(content, true, 12, GraphGlyphSet.Unicode);
+
+        Assert.Equal(12, TextWidth.Of(title.Text));
+        Assert.StartsWith($"─{label}", title.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenThe12ColumnMinimum_WhenLookingForTheSelectedTabUnderAClick_ThenItIsFound()
+    {
+        var strip = DetailTabStrip.Layout(12, BottomTab.Files);
+
+        Assert.Equal("DetailTab.Files", TitleButton.ViewAt(strip, 2));
+    }
+
     [Fact]
     public void GivenTheTabStrip_WhenLookingForTheLabelUnderAColumn_ThenItMatchesWhatTheTitleDraws()
     {
-        var wide = DetailTabStrip.Layout(50);
-        var narrow = DetailTabStrip.Layout(24);
+        var wide = DetailTabStrip.Layout(50, BottomTab.Changes);
+        var narrow = DetailTabStrip.Layout(24, BottomTab.Changes);
 
         Assert.Equal([1, 11, 21], wide.Select(button => button.Start));
         Assert.Equal("DetailTab.Details", TitleButton.ViewAt(wide, 3));

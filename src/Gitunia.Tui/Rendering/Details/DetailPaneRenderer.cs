@@ -31,7 +31,7 @@ public static class DetailPaneRenderer
     public static StyledLine RenderTitle(DetailContent content, bool isFocused, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
-        var strip = DetailTabStrip.Layout(width);
+        var strip = DetailTabStrip.Layout(width, content.Tab);
         var column = 0;
         foreach (var button in strip)
         {
