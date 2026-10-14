@@ -115,6 +115,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 |---|---|
 | Section titles, buttons, diff file header, the focused pane's frame | accent, bold |
 | Graph lanes | a cycle of 12 colours (6 in 16-colour mode) |
+| Graph commit marks (#238) | a commit with one child and one parent on its own lane is part of the line (`│`, ASCII `\|`); node dots (`●`, merge `○`; ASCII `*`, `o`) only where a lane starts, ends, forks or merges | the lane's colour |
 | Local branch / current branch (HEAD) / remote branch / tag | green / cyan / purple / yellow, bold (remote branches are not red: red means an error or a deletion, #222; blue on a light terminal in the 16-colour scheme, where yellow and purple are taken) |
 | Hash, date, line numbers, hints, counts, punctuation | muted |
 | Added line or file / removed / modified | green / red / yellow; hunk header cyan |

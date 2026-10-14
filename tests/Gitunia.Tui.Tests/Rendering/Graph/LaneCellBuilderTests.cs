@@ -61,4 +61,41 @@ public class LaneCellBuilderTests
 
         Assert.Equal("├─● ", Draw(GraphGlyphSet.Unicode, 2, 1, edges));
     }
+
+    [Fact]
+    public void GivenCommitWithOneChildAndOneParentOnItsLane_WhenDrawing_ThenItIsPartOfTheLine()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 0, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+        };
+
+        Assert.Equal("│ ", Draw(GraphGlyphSet.Unicode, 1, 0, edges));
+        Assert.Equal("| ", Draw(GraphGlyphSet.Ascii, 1, 0, edges));
+    }
+
+    [Fact]
+    public void GivenBranchTipAndRoot_WhenDrawing_ThenTheyStayNodes()
+    {
+        var tip = new[] { new GraphEdge(GraphEdgeKind.Outgoing, 0, 0) };
+        var root = new[] { new GraphEdge(GraphEdgeKind.Incoming, 0, 0) };
+
+        Assert.Equal("● ", Draw(GraphGlyphSet.Unicode, 1, 0, tip));
+        Assert.Equal("● ", Draw(GraphGlyphSet.Unicode, 1, 0, root));
+        Assert.Equal("* ", Draw(GraphGlyphSet.Ascii, 1, 0, root));
+    }
+
+    [Fact]
+    public void GivenCommitWhereAnotherLaneJoins_WhenDrawing_ThenItStaysANode()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 0, 0),
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+        };
+
+        Assert.Equal("●─╯ ", Draw(GraphGlyphSet.Unicode, 2, 0, edges));
+    }
 }

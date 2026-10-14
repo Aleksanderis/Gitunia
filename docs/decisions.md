@@ -149,3 +149,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Key notation is the spelled-out `Ctrl-d` / `Alt-1` form everywhere, and keys and descriptions sit in separate columns (help) or as key plus description pairs (status hints) (#242). Why: `^d` and bare key lists were unreadable without knowing the keys.
 
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
+
+**UI:** Graph (#238): a commit with one child and one parent on its own lane is drawn as part of the line (`GraphGlyphSet.LineNode`, `│` / `|`), node dots only where a lane starts, ends, forks or merges. Why: runs of commits on one branch read as a line, dots mark the branch structure. Terminal-drawn glyph tiers stay in #154.

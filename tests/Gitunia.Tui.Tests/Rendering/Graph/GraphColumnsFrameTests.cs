@@ -12,7 +12,7 @@ public class GraphColumnsFrameTests
         Assert.Equal(
             [
                 "●  Add the graph columns                     Ada Lovelace     2026-10-13 0000003",
-                "●  修正バグ in the parser                    山田太郎         2026-10-12 0000002",
+                "│  修正バグ in the parser                    山田太郎         2026-10-12 0000002",
                 "●  A message that is much too long for the … Alexander the G… 2026-10-11 0000001",
             ],
             Trimmed(80));
@@ -24,7 +24,7 @@ public class GraphColumnsFrameTests
         Assert.Equal(
             [
                 "●  Add the graph columns                                                             Ada Lovelace     2026-10-13 0000003",
-                "●  修正バグ in the parser                                                            山田太郎         2026-10-12 0000002",
+                "│  修正バグ in the parser                                                            山田太郎         2026-10-12 0000002",
                 "●  A message that is much too long for the column we have for it, so it is cut with… Alexander the G… 2026-10-11 0000001",
             ],
             Trimmed(120));
@@ -36,7 +36,7 @@ public class GraphColumnsFrameTests
         Assert.Equal(
             [
                 $"●  Add the graph columns{new string(' ', 137)}Ada Lovelace         2026-10-13 0000003",
-                $"●  修正バグ in the parser{new string(' ', 136)}山田太郎             2026-10-12 0000002",
+                $"│  修正バグ in the parser{new string(' ', 136)}山田太郎             2026-10-12 0000002",
                 $"●  A message that is much too long for the column we have for it, so it is cut with an ellipsis{new string(' ', 66)}Alexander the Great… 2026-10-11 0000001",
             ],
             Trimmed(200));

@@ -20,6 +20,8 @@ public static class LaneCellBuilder
 
         var nodeLane = Math.Min(row.Lane, laneColumns - 1);
         var outgoingCount = 0;
+        var incomingCount = 0;
+        var isOnLane = true;
         foreach (var edge in row.Edges)
         {
             switch (edge.Kind)
@@ -29,10 +31,13 @@ public static class LaneCellBuilder
                     Add(directions, lanes, throughLane * 2, LineDirections.Up | LineDirections.Down, throughLane);
                     break;
                 case GraphEdgeKind.Incoming:
+                    incomingCount++;
+                    isOnLane &= Math.Min(edge.FromLane, laneColumns - 1) == nodeLane;
                     Connect(directions, lanes, Math.Min(edge.FromLane, laneColumns - 1), nodeLane, LineDirections.Up);
                     break;
                 default:
                     outgoingCount++;
+                    isOnLane &= Math.Min(edge.ToLane, laneColumns - 1) == nodeLane;
                     Connect(directions, lanes, Math.Min(edge.ToLane, laneColumns - 1), nodeLane, LineDirections.Down);
                     break;
             }
@@ -46,7 +51,10 @@ public static class LaneCellBuilder
                 : new GraphCell(glyphs.For(directions[column]), lanes[column]);
         }
 
-        cells[nodeLane * 2] = new GraphCell(outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node, nodeLane);
+        // A commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
+        var isLineCommit = isOnLane && incomingCount == 1 && outgoingCount == 1;
+        var nodeGlyph = isLineCommit ? glyphs.LineNode : outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
+        cells[nodeLane * 2] = new GraphCell(nodeGlyph, nodeLane);
         return cells;
     }
 
