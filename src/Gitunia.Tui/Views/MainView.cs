@@ -316,7 +316,7 @@ public sealed class MainView : IDisposable
             ? new PaneRects(Empty, Empty, Empty, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(ScreenWidth), ScreenLayout.GraphHeight(ScreenHeight())), Empty, Empty, Empty, Empty, Empty)
             : Rects();
         PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
-        var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repo";
+        var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repository";
         var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, _glyphs.IsAscii);
         if (_grid is null || _gridKey != key)
         {

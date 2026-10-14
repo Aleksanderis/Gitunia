@@ -158,4 +158,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-15
 
+**UI:** User-visible text spells out "Repository", never "Repo" (sidebar title fallback, picker tag, docs; #262, owner decision). Stable ids such as `repo.pin` keep the short form.
+
 **UI:** Graph (#280, owner): a commit that carries any ref (branch, tag, remote, HEAD) keeps the node dot; only unlabelled commits become the line. Why: the line glyph under a label read as missing.

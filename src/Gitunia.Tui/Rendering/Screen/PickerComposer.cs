@@ -124,7 +124,7 @@ public static class PickerComposer
 
         if (row.Tags.HasFlag(PickerTags.Directory))
         {
-            tags.Add(row.Tags.HasFlag(PickerTags.Repository) ? "repo" : "dir");
+            tags.Add(row.Tags.HasFlag(PickerTags.Repository) ? "repository" : "dir");
         }
         else if (!row.IsOpen && !row.IsPinned)
         {

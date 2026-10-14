@@ -6,18 +6,18 @@ Milestone goals and exit criteria. Tasks are GitHub issues grouped by these mile
 
 Goal: settle the renderer and prove Native AOT works for this app.
 
-- Prove standalone launch: run from a non-repo directory with `gitunia <path>` and with no args.
+- Prove standalone launch: run from a non-repository directory with `gitunia <path>` and with no args.
 - Skeleton solution (layout in `architecture.md`), `PublishAot=true`, analyzers on.
 - Spike A: commit list from streamed `git log` with vim navigation in Terminal.Gui v2.
 - Spike B: same in a minimal custom renderer (cell buffer, diff flush, VT input parser, mouse optional).
-- Measure: AOT publish size, cold start, key-to-frame latency, resize handling, scroll on a 100k-commit repo.
+- Measure: AOT publish size, cold start, key-to-frame latency, resize handling, scroll on a 100k-commit repository.
 - Done when: a decision is logged in `decisions.md` (renderer chosen), the build/test/publish commands are in `CLAUDE.md`, and spike code is either promoted or deleted.
 
 ## M1 - Read-only browser
 
-Workspace first: repo picker, tabs (open/close/switch), recents/pins, session persistence, launch from any directory or with a path.
+Workspace first: repository picker, tabs (open/close/switch), recents/pins, session persistence, launch from any directory or with a path.
 Graph view (incremental lanes), sidebar with branches/remotes/tags/worktrees, commit details, file list, diff viewer, search, command palette and keymap infrastructure.
-Done when: you can open several repos in tabs from outside any repo, restart and get them back, and navigate a real mid-size repo entirely by keyboard and the graph matches `git log --graph` topology.
+Done when: you can open several repositories in tabs from outside any repository, restart and get them back, and navigate a real mid-size repository entirely by keyboard and the graph matches `git log --graph` topology.
 
 ## M2 - Working tree
 
