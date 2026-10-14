@@ -29,9 +29,14 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     private readonly StatusActionHandler _statusActions = new(statuses, activeSession);
     private readonly DetailPathCopier _pathCopier = new(clipboard);
+    private string _message = string.Empty;
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
-    public string Message { get; private set; } = string.Empty;
+    public string Message
+    {
+        get => _message == StillLoadingNotice && activeSession()?.IsLoading != true ? string.Empty : _message;
+        private set => _message = value;
+    }
 
     /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
     public Func<bool>? Refresh { get; set; }
@@ -120,6 +125,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (ListMotion.TryMove(action, count, list.SelectedItem ?? 0, itemCount, list.Viewport.Height, out var target))
         {
             Select(list, target);
+            // A count targets a line, so only a plain G (jump to the end) is hinted; the hint ends with the load.
             if (action == ActionIds.ListBottom && count is null && FocusedPane == PaneKind.Graph && activeSession()?.IsLoading == true)
             {
                 Message = StillLoadingNotice;

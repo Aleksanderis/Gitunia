@@ -54,6 +54,17 @@ public class ActionRouterTests
         Assert.Equal(string.Empty, harness.Router.Message);
     }
 
+    [Fact]
+    public void GivenTheHintShows_WhenTheLoadFinishes_ThenTheHintIsGone()
+    {
+        using var harness = new RouterHarness(isLoading: true);
+        harness.Router.Execute(ActionIds.ListBottom, null);
+
+        harness.Session.Complete();
+
+        Assert.Equal(string.Empty, harness.Router.Message);
+    }
+
     private sealed class RouterHarness : IDisposable
     {
         private readonly TabSession _session;
@@ -78,6 +89,8 @@ public class ActionRouterTests
             var sidebar = new SidebarActionHandler(host, new SidebarListSource(GraphGlyphSet.Unicode), () => _session, () => 10, () => false, () => false, _ => { }, _ => { }, copier);
             Router = new ActionRouter(host, GraphList, detailList, () => _session, () => { }, sidebar, statuses, copier);
         }
+
+        public TabSession Session => _session;
 
         public ListView GraphList { get; }
 
