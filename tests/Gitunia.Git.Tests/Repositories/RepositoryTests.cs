@@ -30,6 +30,26 @@ public class RepositoryTests
     }
 
     [Fact]
+    public async Task GivenDefaultOptions_WhenCommandExitsWithOne_ThenItThrows()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => repository.RunAsync(["config", "--get", "no.such.key"], null, Token));
+    }
+
+    [Fact]
+    public async Task GivenAcceptedExitCode_WhenCommandExitsWithOne_ThenItReturnsTheResult()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+
+        var result = await repository.RunAsync(["config", "--get", "no.such.key"], GitRunOptions.ReadOnlyRunAllowingNoMatch, Token);
+
+        Assert.Equal(GitRunOptions.NoMatchExitCode, result.ExitCode);
+    }
+
+    [Fact]
     public async Task GivenSubdirectory_WhenOpening_ThenResolvesToRepositoryRoot()
     {
         using var testRepository = TestRepository.Create().Commit("Nested", new TestFile(Path.Combine("a", "b", "file.txt"), "x\n"));

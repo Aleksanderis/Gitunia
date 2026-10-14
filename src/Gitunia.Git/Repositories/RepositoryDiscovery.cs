@@ -8,6 +8,10 @@ namespace Gitunia.Git.Repositories;
 /// <summary>Resolves any path (root, subdirectory, linked worktree, bare repository, inside a git directory) to a <see cref="RepositoryLocation"/>.</summary>
 public static class RepositoryDiscovery
 {
+    private static readonly string[] BasicsArguments = ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"];
+
+    private static readonly string[] CoreWorktreeArguments = ["config", "--get", "core.worktree"];
+
     /// <exception cref="NotARepositoryException">The path does not exist or is outside any repository.</exception>
     public static async Task<RepositoryLocation> DiscoverAsync(GitRunner runner, string path, CancellationToken cancellationToken)
     {
@@ -23,8 +27,8 @@ public static class RepositoryDiscovery
         {
             basics = await runner.RunAsync(
                 fullPath,
-                ["rev-parse", "--path-format=absolute", "--is-bare-repository", "--is-inside-git-dir", "--git-dir", "--git-common-dir"],
-                new GitRunOptions(ReadOnly: true),
+                BasicsArguments,
+                GitRunOptions.ReadOnlyRun,
                 cancellationToken).ConfigureAwait(false);
         }
         // The runner sets LC_ALL=C, so the message text is stable.
@@ -61,7 +65,7 @@ public static class RepositoryDiscovery
         var result = await runner.RunAsync(
             path,
             ["rev-parse", "--path-format=absolute", "--show-toplevel"],
-            new GitRunOptions(ReadOnly: true),
+            GitRunOptions.ReadOnlyRun,
             cancellationToken).ConfigureAwait(false);
         return Path.GetFullPath(result.StandardOutputText.Trim());
     }
@@ -89,8 +93,8 @@ public static class RepositoryDiscovery
 
         var configured = await runner.RunAsync(
             path,
-            ["config", "--get", "core.worktree"],
-            new GitRunOptions(ReadOnly: true, AcceptedExitCodes: [1]),
+            CoreWorktreeArguments,
+            GitRunOptions.ReadOnlyRunAllowingNoMatch,
             cancellationToken).ConfigureAwait(false);
         var worktree = configured.StandardOutputText.Trim();
         if (worktree.Length == 0)

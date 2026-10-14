@@ -7,7 +7,11 @@ namespace Gitunia.Git.Status;
 /// <summary>Reads the working tree status of a repository or worktree.</summary>
 public static class StatusReader
 {
-    private static readonly GitRunOptions PollingOptions = new(ReadOnly: true);
+    private const string UntrackedAll = "--untracked-files=all";
+    private const string UntrackedNormal = "--untracked-files=normal";
+    private const string IgnoredTraditional = "--ignored=traditional";
+
+    private static readonly string[] FixedArguments = ["status", "--porcelain=v2", GitOptions.NulTerminated, "--branch"];
 
     /// <summary>Runs <c>status --porcelain=v2 -z --branch</c>; untracked files are listed individually unless <paramref name="untrackedFiles"/> says otherwise.</summary>
     public static async Task<StatusSnapshot> ReadStatusAsync(
@@ -16,14 +20,12 @@ public static class StatusReader
         UntrackedFilesMode untrackedFiles,
         CancellationToken cancellationToken)
     {
-        var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? "--untracked-files=all" : "--untracked-files=normal";
-        var arguments = new List<string> { "status", "--porcelain=v2", GitOptions.NulTerminated, "--branch", untrackedArgument };
-        if (includeIgnored)
-        {
-            arguments.Add("--ignored=traditional");
-        }
+        var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? UntrackedAll : UntrackedNormal;
+        string[] arguments = includeIgnored
+            ? [.. FixedArguments, untrackedArgument, IgnoredTraditional]
+            : [.. FixedArguments, untrackedArgument];
 
-        var result = await repository.RunAsync(arguments, PollingOptions, cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(arguments, GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
         return StatusParser.Parse(result.StandardOutputText);
     }
 }

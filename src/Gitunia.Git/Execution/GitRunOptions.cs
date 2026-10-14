@@ -9,5 +9,14 @@ public sealed record GitRunOptions(
     bool ReadOnly = false,
     IReadOnlyCollection<int>? AcceptedExitCodes = null)
 {
+    /// <summary>Exit code of commands such as <c>config --get</c> and <c>symbolic-ref -q</c> when nothing matches.</summary>
+    public const int NoMatchExitCode = 1;
+
     public static readonly GitRunOptions Default = new();
+
+    /// <summary>Shared options for read-only runs (polling and readers).</summary>
+    public static readonly GitRunOptions ReadOnlyRun = new(ReadOnly: true);
+
+    /// <summary>Read-only runs where <see cref="NoMatchExitCode"/> means "no result" rather than failure.</summary>
+    public static readonly GitRunOptions ReadOnlyRunAllowingNoMatch = new(ReadOnly: true, AcceptedExitCodes: [NoMatchExitCode]);
 }
