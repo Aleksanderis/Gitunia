@@ -161,3 +161,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** User-visible text spells out "Repository", never "Repo" (sidebar title fallback, picker tag, docs; #262, owner decision). Stable ids such as `repo.pin` keep the short form.
 
 **UI:** Graph (#280, owner): a commit that carries any ref (branch, tag, remote, HEAD) keeps the node dot; only unlabelled commits become the line. Why: the line glyph under a label read as missing.
+
+**UI:** Palette (#96, owner did not answer, recommended default taken): modal-only actions (`confirm.*`, `picker.*` except open, palette/input accept, `Esc`) are hidden; actions bound before their feature are listed greyed out. Keeps the palette to what a user can run.

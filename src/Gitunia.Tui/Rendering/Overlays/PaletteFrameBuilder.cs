@@ -38,7 +38,7 @@ public static class PaletteFrameBuilder
         for (var offset = 0; offset < rowCount && top + offset < visible.Count; offset++)
         {
             var entry = visible[top + offset];
-            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, SegmentRole.Plain, SegmentRole.OverlayKey, top + offset == selected));
+            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint, entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint, top + offset == selected));
         }
 
         while (lines.Count < rowCount + 1)
