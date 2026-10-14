@@ -32,12 +32,12 @@ public static class LaneCellBuilder
                     break;
                 case GraphEdgeKind.Incoming:
                     incomingCount++;
-                    isOnLane &= Math.Min(edge.FromLane, laneColumns - 1) == nodeLane;
+                    isOnLane &= edge.FromLane == row.Lane;
                     Connect(directions, lanes, Math.Min(edge.FromLane, laneColumns - 1), nodeLane, LineDirections.Up);
                     break;
                 default:
                     outgoingCount++;
-                    isOnLane &= Math.Min(edge.ToLane, laneColumns - 1) == nodeLane;
+                    isOnLane &= edge.ToLane == row.Lane;
                     Connect(directions, lanes, Math.Min(edge.ToLane, laneColumns - 1), nodeLane, LineDirections.Down);
                     break;
             }
