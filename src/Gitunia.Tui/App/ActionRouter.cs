@@ -24,6 +24,9 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListView detailList, Func<TabSession?> activeSession, Action quit, SidebarActionHandler sidebar, StatusChannel statuses, ClipboardCopier clipboard)
 {
+    /// <summary>The notice shown when <c>G</c> stops at the last loaded commit because the log is still streaming in.</summary>
+    public const string StillLoadingNotice = "Still loading: at the last loaded commit";
+
     private readonly StatusActionHandler _statusActions = new(statuses, activeSession);
     private readonly DetailPathCopier _pathCopier = new(clipboard);
 
@@ -117,6 +120,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (ListMotion.TryMove(action, count, list.SelectedItem ?? 0, itemCount, list.Viewport.Height, out var target))
         {
             Select(list, target);
+            if (action == ActionIds.ListBottom && count is null && FocusedPane == PaneKind.Graph && activeSession()?.IsLoading == true)
+            {
+                Message = StillLoadingNotice;
+            }
         }
         else if (action == ActionIds.GraphJumpToHead)
         {
