@@ -156,6 +156,21 @@ public class PaletteTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GivenTrueColorScheme_WhenDrawingARepositoryTab_ThenItStandsOutFromTheBarAndFromTheActiveTab(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        var tab = Palette.For(new StyledSegment(" 2 beta ", SegmentRole.RepositoryTab), false, false, colors);
+        var bar = Palette.For(new StyledSegment(" ", SegmentRole.Status), false, false, colors);
+        var active = Palette.For(new StyledSegment(" 1 alpha ", SegmentRole.ActiveTab), false, false, colors);
+
+        Assert.NotEqual(bar.Background, tab.Background);
+        Assert.NotEqual(active.Background, tab.Background);
+    }
+
+    [Theory]
     [InlineData(ColorDepth.Ansi16, false)]
     [InlineData(ColorDepth.None, false)]
     [InlineData(ColorDepth.TrueColor, false)]

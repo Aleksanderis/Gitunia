@@ -64,14 +64,24 @@ public class TabBarTests
     }
 
     [Fact]
-    public void GivenTheActiveAndAnInactiveTab_WhenRendering_ThenOnlyTheActiveOneIsTheChipAndTheRestIsOnTheBar()
+    public void GivenTheActiveAndAnInactiveTab_WhenRendering_ThenTheActiveOneIsTheChipAndTheOthersAreButtons()
     {
         var line = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null), Label(2, "beta", branch: null)), 80, GraphGlyphSet.Unicode);
 
         Assert.Single(line.Segments, segment => segment.Role == SegmentRole.ActiveTab);
         Assert.Equal("  1 alpha  ", line.Segments.Single(segment => segment.Role == SegmentRole.ActiveTab).Text);
-        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.InactiveTab);
+        Assert.Equal("  2 beta  ", line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab).Text);
         Assert.Equal(80, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenTabsWithoutUnicode_WhenRendering_ThenInactiveTabsAreBracketedWithTheSameWidth()
+    {
+        var labels = new[] { Label(1, "alpha", isActive: true, branch: null), Label(2, "beta", branch: null) };
+        var line = ChromeBuilder.Tabs(Model(labels), 80, GraphGlyphSet.Ascii);
+
+        Assert.Equal("[ 2 beta ]", line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab).Text);
+        Assert.Equal(TabBarLayout.Layout(labels, 80, GraphGlyphSet.Ascii)[1].Width, TextWidth.Of(line.Segments.Single(segment => segment.Role == SegmentRole.RepositoryTab).Text));
     }
 
     [Fact]
