@@ -84,13 +84,10 @@ Log of settled choices that cut across docs. Agents follow these without asking.
 
 - M1 UX follow-ups (owner, 2026-10-14): #238 draws same-branch commits as a line using other glyphs only (the terminal-drawn glyph tiers stay in #154); #242 keeps `Alt-1`..`Alt-9` for tab jumping, documents `3gt` as the multiplexer-safe alternative and leaves configurable keys to #46; #244 adds more space between graph columns and side padding where the width allows; #194 keeps `G` stopping at the last loaded commit and shows a hint while loading; #190 keeps the notice for `Enter` on the Details and Files tabs. The owner's review of M1 (#200) is done before these issues, since its fixes set new baselines.
 
-## 2026-10-14 (owner review of M1, #200)
+## 2026-10-14
 
 - **Process:** Decision entries are short: 1-3 lines (decision and why), a bold topic tag, a blank line between entries; implementation detail lives in the area doc or the issue. Why: the log grew to ~62 KB and became hard to read for the owner and for agents. Rewrite tracked in #253.
 
 - **Code structure:** Folders group by domain first, technical kind second (`Models/` inside a domain); test folders mirror the code. Why: one flat folder with 72 files hides what belongs together. Tracked in #246.
 
 - **Code structure:** Pure parsers and formatters stay static; classes with I/O, a clock or a cache become instances with constructor injection, wired by hand in the composition root, interfaces only where another layer needs a fake, no DI container. Why: static is not a performance gain, but it leaves no seam for effect tests; a reflection-based container conflicts with AOT and startup. Tracked in #252.
-
-- **Code style:** Spelled-out type names (`Repository`), `_field` naming, token last, no tuples, string interpolation, no fully qualified names, capitalised comments, named constants for git format values. Why: owner review rules, now in CLAUDE.md.
-

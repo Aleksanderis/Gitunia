@@ -24,7 +24,7 @@ You get an issue number and/or a branch. Establish the diff yourself: `git diff 
 8. **Performance.** Nothing materializes a whole large graph eagerly; no per-frame allocations in hot render paths; streaming and virtualization where the docs call for them.
 9. **Tests.** Risk areas in `docs/testing.md` covered by tests that would fail if the code were wrong; real temp repos with isolated config; no network or wall-clock dependence.
 10. **Docs.** Stale docs updated, decisions logged (short dated entry with a topic tag, 1-3 lines, no implementation detail), affected issues noted.
-11. **Code style.** The CLAUDE.md rules the build cannot enforce: comments start with a capital letter, string interpolation instead of `+`, no tuples, no fully qualified names, no magic numbers or letters (named constants, defined once), `CancellationToken` last, folders by domain with mirrored test folders, static only for pure functions.
+11. **Code style.** The CLAUDE.md "Rules" the build cannot enforce (until #251 lands, that includes `_field` naming): type names, token last, tuples, interpolation, qualified names, capitalised comments, named constants for git format values, static readonly argument lists, folders and mirrored test folders, static vs instance. Check against the exact wording there.
 12. **Hygiene.** Conventional commits, no stray files, debug output or commented-out code.
 
 You may run the project's build and test commands. Do not modify files.
