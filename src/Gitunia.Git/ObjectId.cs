@@ -8,28 +8,28 @@ namespace Gitunia.Git;
 /// </summary>
 public readonly struct ObjectId : IEquatable<ObjectId>
 {
-    private readonly ulong first;
-    private readonly ulong second;
-    private readonly ulong third;
-    private readonly ulong fourth;
-    private readonly byte byteCount;
+    private readonly ulong _first;
+    private readonly ulong _second;
+    private readonly ulong _third;
+    private readonly ulong _fourth;
+    private readonly byte _byteCount;
 
     private ObjectId(ReadOnlySpan<byte> bytes)
     {
         Span<byte> padded = stackalloc byte[32];
         bytes.CopyTo(padded);
-        first = BinaryPrimitives.ReadUInt64LittleEndian(padded);
-        second = BinaryPrimitives.ReadUInt64LittleEndian(padded[8..]);
-        third = BinaryPrimitives.ReadUInt64LittleEndian(padded[16..]);
-        fourth = BinaryPrimitives.ReadUInt64LittleEndian(padded[24..]);
-        byteCount = (byte)bytes.Length;
+        _first = BinaryPrimitives.ReadUInt64LittleEndian(padded);
+        _second = BinaryPrimitives.ReadUInt64LittleEndian(padded[8..]);
+        _third = BinaryPrimitives.ReadUInt64LittleEndian(padded[16..]);
+        _fourth = BinaryPrimitives.ReadUInt64LittleEndian(padded[24..]);
+        _byteCount = (byte)bytes.Length;
     }
 
     /// <summary>Whether this is a real id (the default value is not).</summary>
-    public bool IsValid => byteCount != 0;
+    public bool IsValid => _byteCount != 0;
 
     /// <summary>A 64-bit mix of every byte of the id, for building fingerprints (not a stable format; do not persist it).</summary>
-    public ulong Hash64 => first ^ (second * 0x9E3779B97F4A7C15UL) ^ (third * 0xC2B2AE3D27D4EB4FUL) ^ (fourth * 0x165667B19E3779F9UL);
+    public ulong Hash64 => _first ^ (_second * 0x9E3779B97F4A7C15UL) ^ (_third * 0xC2B2AE3D27D4EB4FUL) ^ (_fourth * 0x165667B19E3779F9UL);
 
     /// <summary>Parses 40 (SHA-1) or 64 (SHA-256) hex digits given as ASCII bytes.</summary>
     public static bool TryParse(ReadOnlySpan<byte> hexDigits, out ObjectId objectId)
@@ -80,21 +80,21 @@ public readonly struct ObjectId : IEquatable<ObjectId>
     public static bool operator !=(ObjectId left, ObjectId right) => !left.Equals(right);
 
     public bool Equals(ObjectId other) =>
-        first == other.first && second == other.second && third == other.third && fourth == other.fourth && byteCount == other.byteCount;
+        _first == other._first && _second == other._second && _third == other._third && _fourth == other._fourth && _byteCount == other._byteCount;
 
     public override bool Equals(object? obj) => obj is ObjectId other && Equals(other);
 
-    public override int GetHashCode() => HashCode.Combine(first, second, third, fourth);
+    public override int GetHashCode() => HashCode.Combine(_first, _second, _third, _fourth);
 
     /// <summary>Lowercase hex, the form git prints.</summary>
     public override string ToString()
     {
         Span<byte> bytes = stackalloc byte[32];
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes, first);
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes[8..], second);
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes[16..], third);
-        BinaryPrimitives.WriteUInt64LittleEndian(bytes[24..], fourth);
-        return Convert.ToHexStringLower(bytes[..byteCount]);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes, _first);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes[8..], _second);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes[16..], _third);
+        BinaryPrimitives.WriteUInt64LittleEndian(bytes[24..], _fourth);
+        return Convert.ToHexStringLower(bytes[.._byteCount]);
     }
 
     private static int HexValue(byte digit) => digit switch

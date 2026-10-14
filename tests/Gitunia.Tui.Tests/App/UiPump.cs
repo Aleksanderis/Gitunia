@@ -10,9 +10,9 @@ public sealed class UiPump(CancellationToken cancellationToken)
 {
     private static readonly TimeSpan GuardTimeout = TimeSpan.FromSeconds(30);
 
-    private readonly Channel<Action> queue = Channel.CreateUnbounded<Action>();
+    private readonly Channel<Action> _queue = Channel.CreateUnbounded<Action>();
 
-    public void Post(Action action) => queue.Writer.TryWrite(action);
+    public void Post(Action action) => _queue.Writer.TryWrite(action);
 
     /// <summary>Runs posted callbacks on the calling thread until the condition holds; the guard timeout only bounds a hang.</summary>
     public async Task RunUntilAsync(Func<bool> condition)
@@ -21,7 +21,7 @@ public sealed class UiPump(CancellationToken cancellationToken)
         guard.CancelAfter(GuardTimeout);
         while (!condition())
         {
-            var action = await queue.Reader.ReadAsync(guard.Token);
+            var action = await _queue.Reader.ReadAsync(guard.Token);
             action();
         }
     }

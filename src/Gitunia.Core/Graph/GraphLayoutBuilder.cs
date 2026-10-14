@@ -10,43 +10,43 @@ namespace Gitunia.Core.Graph;
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
-    // lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
-    private readonly List<ObjectId> lanes = [];
-    private readonly List<GraphRow> rows = [];
+    // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
+    private readonly List<ObjectId> _lanes = [];
+    private readonly List<GraphRow> _rows = [];
 
     /// <summary>All rows laid out so far, in feed order.</summary>
-    public IReadOnlyList<GraphRow> Rows => rows.AsReadOnly();
+    public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
 
     /// <summary>Number of lanes currently open below the last row.</summary>
-    public int OpenLaneCount => lanes.Count;
+    public int OpenLaneCount => _lanes.Count;
 
     /// <summary>Lays out the next commit and returns its row.</summary>
     public GraphRow Append(CommitInfo commit)
     {
         var commitId = commit.Id;
-        var edges = new List<GraphEdge>(lanes.Count + commit.Parents.Count);
+        var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
         var nodeLane = IndexOfLane(commitId);
         if (nodeLane < 0)
         {
             nodeLane = FindFreeLane();
-            if (nodeLane == lanes.Count)
+            if (nodeLane == _lanes.Count)
             {
-                lanes.Add(default);
+                _lanes.Add(default);
             }
         }
 
-        for (var lane = 0; lane < lanes.Count; lane++)
+        for (var lane = 0; lane < _lanes.Count; lane++)
         {
-            if (!lanes[lane].IsValid)
+            if (!_lanes[lane].IsValid)
             {
                 continue;
             }
 
-            if (lanes[lane] == commitId)
+            if (_lanes[lane] == commitId)
             {
                 edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane));
-                lanes[lane] = default;
+                _lanes[lane] = default;
             }
             else
             {
@@ -61,12 +61,12 @@ public sealed class GraphLayoutBuilder
             if (parentLane < 0)
             {
                 parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
-                if (parentLane == lanes.Count)
+                if (parentLane == _lanes.Count)
                 {
-                    lanes.Add(default);
+                    _lanes.Add(default);
                 }
 
-                lanes[parentLane] = parent;
+                _lanes[parentLane] = parent;
             }
 
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane));
@@ -80,7 +80,7 @@ public sealed class GraphLayoutBuilder
 
         TrimFreeLanes();
         var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes());
-        rows.Add(row);
+        _rows.Add(row);
         return row;
     }
 
@@ -98,9 +98,9 @@ public sealed class GraphLayoutBuilder
 
     private int IndexOfLane(ObjectId commitId)
     {
-        for (var lane = 0; lane < lanes.Count; lane++)
+        for (var lane = 0; lane < _lanes.Count; lane++)
         {
-            if (lanes[lane] == commitId)
+            if (_lanes[lane] == commitId)
             {
                 return lane;
             }
@@ -114,26 +114,26 @@ public sealed class GraphLayoutBuilder
     // later parent may reuse: its line simply continues straight down.
     private int FindFreeLane()
     {
-        for (var lane = 0; lane < lanes.Count; lane++)
+        for (var lane = 0; lane < _lanes.Count; lane++)
         {
-            if (!lanes[lane].IsValid)
+            if (!_lanes[lane].IsValid)
             {
                 return lane;
             }
         }
 
-        return lanes.Count;
+        return _lanes.Count;
     }
 
     // FNV-style mix over (lane index, waited-for commit) of the occupied lanes.
     private ulong FingerprintLanes()
     {
         var hash = 14695981039346656037UL;
-        for (var lane = 0; lane < lanes.Count; lane++)
+        for (var lane = 0; lane < _lanes.Count; lane++)
         {
-            if (lanes[lane].IsValid)
+            if (_lanes[lane].IsValid)
             {
-                hash = (hash ^ lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
+                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
             }
         }
 
@@ -142,12 +142,12 @@ public sealed class GraphLayoutBuilder
 
     private void TrimFreeLanes()
     {
-        var count = lanes.Count;
-        while (count > 0 && !lanes[count - 1].IsValid)
+        var count = _lanes.Count;
+        while (count > 0 && !_lanes[count - 1].IsValid)
         {
             count--;
         }
 
-        lanes.RemoveRange(count, lanes.Count - count);
+        _lanes.RemoveRange(count, _lanes.Count - count);
     }
 }

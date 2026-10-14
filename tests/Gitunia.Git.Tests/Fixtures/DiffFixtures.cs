@@ -156,5 +156,5 @@ public static class DiffFixtures
         " keep",
         "-gone");
 
-    private static string Lines(params string[] lines) => string.Join('\n', lines) + "\n";
+    private static string Lines(params string[] lines) => $"{string.Join('\n', lines)}\n";
 }

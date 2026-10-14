@@ -14,20 +14,20 @@ namespace Gitunia.Tui.Rendering.Styling;
 /// </summary>
 public sealed class FrameGrid
 {
-    private readonly int width;
-    private readonly int height;
-    private readonly GraphGlyphSet glyphs;
-    private readonly LineDirections[] connections;
-    private readonly bool[] focusedCells;
-    private readonly Dictionary<int, StyledSegment> titleCells = [];
+    private readonly int _width;
+    private readonly int _height;
+    private readonly GraphGlyphSet _glyphs;
+    private readonly LineDirections[] _connections;
+    private readonly bool[] _focusedCells;
+    private readonly Dictionary<int, StyledSegment> _titleCells = [];
 
     private FrameGrid(int width, int height, GraphGlyphSet glyphs)
     {
-        this.width = Math.Max(0, width);
-        this.height = Math.Max(0, height);
-        this.glyphs = glyphs;
-        connections = new LineDirections[this.width * this.height];
-        focusedCells = new bool[this.width * this.height];
+        _width = Math.Max(0, width);
+        _height = Math.Max(0, height);
+        _glyphs = glyphs;
+        _connections = new LineDirections[_width * _height];
+        _focusedCells = new bool[_width * _height];
     }
 
     /// <summary>The grid of a screen.</summary>
@@ -52,21 +52,21 @@ public sealed class FrameGrid
     /// <summary>The cell at a position: a line character, a title character, or a space where the grid has nothing.</summary>
     public StyledSegment Cell(int column, int row)
     {
-        if (column < 0 || column >= width || row < 0 || row >= height)
+        if (column < 0 || column >= _width || row < 0 || row >= _height)
         {
             return new StyledSegment(" ", SegmentRole.Plain, Selection: SegmentSelection.None);
         }
 
-        var index = row * width + column;
-        if (titleCells.TryGetValue(index, out var title))
+        var index = row * _width + column;
+        if (_titleCells.TryGetValue(index, out var title))
         {
             return title;
         }
 
-        var directions = connections[index];
+        var directions = _connections[index];
         return directions == LineDirections.None
             ? new StyledSegment(" ", SegmentRole.Plain, Selection: SegmentSelection.None)
-            : new StyledSegment(Glyph(directions).ToString(), focusedCells[index] ? SegmentRole.FocusedBorder : SegmentRole.Border, Selection: SegmentSelection.None);
+            : new StyledSegment(Glyph(directions).ToString(), _focusedCells[index] ? SegmentRole.FocusedBorder : SegmentRole.Border, Selection: SegmentSelection.None);
     }
 
     /// <summary>The cells of one row from <paramref name="column"/>, <paramref name="count"/> of them, as a line.</summary>
@@ -93,7 +93,7 @@ public sealed class FrameGrid
             {
                 for (var offset = 0; offset < segmentWidth; offset++)
                 {
-                    Append(segments, Cell(column + offset, row) is { Role: SegmentRole.Border or SegmentRole.FocusedBorder } cell ? cell : new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Border, Selection: SegmentSelection.None));
+                    Append(segments, Cell(column + offset, row) is { Role: SegmentRole.Border or SegmentRole.FocusedBorder } cell ? cell : new StyledSegment(_glyphs.Horizontal.ToString(), SegmentRole.Border, Selection: SegmentSelection.None));
                 }
             }
             else
@@ -121,9 +121,9 @@ public sealed class FrameGrid
 
     private char Glyph(LineDirections directions)
     {
-        if (!glyphs.IsAscii)
+        if (!_glyphs.IsAscii)
         {
-            return glyphs.For(directions);
+            return _glyphs.For(directions);
         }
 
         return directions switch
@@ -171,21 +171,21 @@ public sealed class FrameGrid
 
     private void Connect(int column, int row, LineDirections directions, bool isFocused)
     {
-        if (column < 0 || column >= width || row < 0 || row >= height)
+        if (column < 0 || column >= _width || row < 0 || row >= _height)
         {
             return;
         }
 
-        var index = row * width + column;
-        connections[index] |= directions;
-        focusedCells[index] |= isFocused;
+        var index = row * _width + column;
+        _connections[index] |= directions;
+        _focusedCells[index] |= isFocused;
     }
 
     // " Title " as a chip after one stretch of line, when there is room for it and a stretch of line after it.
     // A long title is cut with an ellipsis; a wide character takes its first column and leaves the next one empty.
     private void PlaceTitle(string title, int left, int row, int innerWidth, bool isFocused)
     {
-        var fitted = TextWidth.Fit(title, innerWidth - 4, glyphs.Ellipsis);
+        var fitted = TextWidth.Fit(title, innerWidth - 4, _glyphs.Ellipsis);
         if (fitted.Length == 0)
         {
             return;
@@ -193,14 +193,14 @@ public sealed class FrameGrid
 
         var role = isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab;
         var column = left + 2;
-        foreach (var rune in (" " + fitted + " ").EnumerateRunes())
+        foreach (var rune in ($" {fitted} ").EnumerateRunes())
         {
             var runeWidth = TextWidth.Of(rune);
             for (var offset = 0; offset < Math.Max(1, runeWidth); offset++)
             {
-                if (column + offset >= 0 && column + offset < width && row >= 0 && row < height)
+                if (column + offset >= 0 && column + offset < _width && row >= 0 && row < _height)
                 {
-                    titleCells[row * width + column + offset] = new StyledSegment(offset == 0 ? rune.ToString() : string.Empty, role, Selection: SegmentSelection.None);
+                    _titleCells[row * _width + column + offset] = new StyledSegment(offset == 0 ? rune.ToString() : string.Empty, role, Selection: SegmentSelection.None);
                 }
             }
 

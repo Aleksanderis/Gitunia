@@ -44,7 +44,7 @@ public class DetailPrefetchPlanTests
     private static CommitGraph Chain(int count)
     {
         var commits = Enumerable.Range(0, count)
-            .Select(number => CommitFactory.Commit(number, "commit " + number, number + 1 < count ? [number + 1] : []))
+            .Select(number => CommitFactory.Commit(number, $"commit {number}", number + 1 < count ? [number + 1] : []))
             .ToArray();
         return CommitFactory.Graph(commits);
     }

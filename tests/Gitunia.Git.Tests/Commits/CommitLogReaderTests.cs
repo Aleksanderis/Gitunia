@@ -18,8 +18,8 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenBranchyRepository_WhenReadingLog_ThenEveryCommitAppearsChildrenBeforeParents()
     {
-        using var testRepository = TestRepositories.Branchy();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository);
 
@@ -36,7 +36,7 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepositories.Linear(1);
         testRepository.Git("commit", "--allow-empty", "-m", "late", "--date=2026-10-13T23:30:00-0500");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository);
 
@@ -48,8 +48,8 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenMergeCommit_WhenReadingLog_ThenHasTwoParentsAndDecorations()
     {
-        using var testRepository = TestRepositories.Branchy();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository);
 
@@ -67,7 +67,7 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepository.Create()
             .Commit("ünï 日本 \"quoted\" subject; with | pipes", new TestFile("a.txt", "a\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository);
 
@@ -79,7 +79,7 @@ public class CommitLogReaderTests
     {
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Git("checkout", "-q", "--detach", "HEAD");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository, CommitOrder.ByDate, "HEAD");
 
@@ -90,7 +90,7 @@ public class CommitLogReaderTests
     public async Task GivenUnbornBranch_WhenReadingLog_ThenEmpty()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Empty(await ReadAllAsync(repository));
     }
@@ -98,8 +98,8 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenSingleBranchRevision_WhenReadingLog_ThenOnlyThatHistory()
     {
-        using var testRepository = TestRepositories.Branchy();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var commits = await ReadAllAsync(repository, CommitOrder.Topological, "feature");
 
@@ -127,7 +127,7 @@ public class CommitLogReaderTests
     public async Task GivenUnknownRevision_WhenReadingLog_ThenGitErrorPropagates()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         await Assert.ThrowsAsync<GitCommandFailedException>(() => ReadAllAsync(repository, CommitOrder.Topological, "no-such-branch"));
     }
@@ -136,7 +136,7 @@ public class CommitLogReaderTests
     public async Task GivenRevisionNamedLikeAFile_WhenReadingLog_ThenItIsStillTreatedAsRevision()
     {
         using var testRepository = TestRepository.Create().Commit("One", new TestFile("main", "file named like the branch\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Single(await ReadAllAsync(repository, CommitOrder.Topological, "main"));
     }
@@ -147,7 +147,7 @@ public class CommitLogReaderTests
         using var testRepository = TestRepositories.Linear(1);
         testRepository.WriteFile("file.txt", "changed\n");
         testRepository.Git("stash", "push", "-q");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Single(await ReadAllAsync(repository));
     }
@@ -156,7 +156,7 @@ public class CommitLogReaderTests
     public async Task GivenCancellation_WhenReadingLog_ThenOperationCancelled()
     {
         using var testRepository = TestRepositories.Linear(3);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var source = new CancellationTokenSource();
         await source.CancelAsync();
 

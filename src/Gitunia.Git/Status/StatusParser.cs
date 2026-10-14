@@ -93,7 +93,7 @@ public static class StatusParser
 
     private static StatusEntry? ParseUnmerged(string record, List<string> warnings)
     {
-        // u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
+        // Unmerged entry: u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
         var fields = record.Split(' ', 11);
         if (fields.Length < 11 || !TryParseCodes(fields[1], warnings, out var indexChange, out var worktreeChange))
         {

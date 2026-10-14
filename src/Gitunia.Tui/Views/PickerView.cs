@@ -1,4 +1,5 @@
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Picker;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
@@ -23,7 +24,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised for a double-click on a row and for the wheel.</summary>
     public event Action<MouseGesture>? GestureRaised;
 
-    protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
+    protected override bool OnDrawingContent(DrawContext? context)
     {
         if (model().Picker is not { } picker)
         {
@@ -86,6 +87,6 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
         return true;
     }
 
-    private string? ButtonAt(Gitunia.Core.Picker.PickerRow row, int column) =>
+    private string? ButtonAt(PickerRow row, int column) =>
         TitleButton.ViewAt(PickerRowButtons.Layout(row, Viewport.Width), column);
 }

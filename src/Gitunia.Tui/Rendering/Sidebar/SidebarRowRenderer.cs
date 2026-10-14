@@ -18,14 +18,14 @@ public static class SidebarRowRenderer
         if (row.IsSection)
         {
             builder
-                .Append(" " + (row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed) + " ", SegmentRole.SectionTitle)
+                .Append($" {(row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed)} ", SegmentRole.SectionTitle)
                 .Append(row.Label, SegmentRole.SectionTitle)
-                .Append(" " + row.Count.ToString(CultureInfo.InvariantCulture), SegmentRole.Faint);
+                .Append($" {row.Count.ToString(CultureInfo.InvariantCulture)}", SegmentRole.Faint);
             return builder.Build(isSelected: isSelected);
         }
 
         const string indent = "  ";
-        var prefix = indent + (row.IsCurrent ? "*" : " ") + " ";
+        var prefix = $"{indent}{(row.IsCurrent ? "*" : " ")} ";
         var extras = ExtrasOf(row, sidebarGlyphs);
         var extrasWidth = extras.Sum(extra => 1 + TextWidth.Of(extra.Text));
         var available = width - TextWidth.Of(prefix);

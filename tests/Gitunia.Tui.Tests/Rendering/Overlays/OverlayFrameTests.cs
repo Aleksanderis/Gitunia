@@ -56,7 +56,7 @@ public class OverlayFrameTests
     [Fact]
     public void GivenWordLongerThanALine_WhenRendering_ThenItIsCutWithoutSplittingSurrogatesOrCombiningMarks()
     {
-        var word = string.Concat(Enumerable.Repeat("\U0001F600", 12)) + new string('e', 10) + "\u0301" + new string('x', 30);
+        var word = $"{string.Concat(Enumerable.Repeat("\U0001F600", 12))}{new string('e', 10)}\u0301{new string('x', 30)}";
         var sections = new List<HelpSection> { new("S", [new HelpRow("k", word)]) };
 
         var frame = HelpFrameBuilder.Build(sections, string.Empty, 0, 30, 30, GraphGlyphSet.Unicode);
@@ -79,7 +79,7 @@ public class OverlayFrameTests
     [Fact]
     public void GivenLongMessageAtTheLastRow_WhenScrolledToTheEnd_ThenTheTailShows()
     {
-        var sections = new List<HelpSection> { new("S", [new HelpRow("e", string.Join(' ', Enumerable.Range(0, 60).Select(index => "word" + index)))]) };
+        var sections = new List<HelpSection> { new("S", [new HelpRow("e", string.Join(' ', Enumerable.Range(0, 60).Select(index => $"word{index}")))]) };
         var maximum = HelpFrameBuilder.MaximumScroll(sections, 30, 8);
 
         var frame = HelpFrameBuilder.Build(sections, string.Empty, maximum + 10, 30, 8, GraphGlyphSet.Unicode);

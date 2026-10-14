@@ -20,7 +20,7 @@ public static partial class UxKeymapReader
             directory = directory.Parent;
         }
 
-        throw new FileNotFoundException("docs/ux.md not found above " + AppContext.BaseDirectory);
+        throw new FileNotFoundException($"docs/ux.md not found above {AppContext.BaseDirectory}");
     }
 
     /// <summary>One binding per documented key token; Picker rows are Insert mode, Palette rows Command mode, all others Normal.</summary>

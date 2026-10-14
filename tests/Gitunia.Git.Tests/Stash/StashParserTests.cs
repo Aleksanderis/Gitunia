@@ -7,7 +7,7 @@ public class StashParserTests
 {
     private const string Hash = "1111111111111111111111111111111111111111";
 
-    private static string Record(string selector, string subject) => selector + "\0" + Hash + "\0" + subject + "\x1e\n";
+    private static string Record(string selector, string subject) => $"{selector}\0{Hash}\0{subject}\x1e\n";
 
     [Fact]
     public void GivenTwoStashes_WhenParsing_ThenIndexNameAndMessageAreRead()

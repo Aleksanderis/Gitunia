@@ -44,9 +44,9 @@ public static class DetailPaneRenderer
         if (content.ShortHash.Length > 0)
         {
             builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
-            builder.Append(" " + content.ShortHash + " ", SegmentRole.Hash);
+            builder.Append($" {content.ShortHash} ", SegmentRole.Hash);
             builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
-            builder.Append(" " + FileCountText(content.FileCount) + " ", SegmentRole.Faint);
+            builder.Append($" {FileCountText(content.FileCount)} ", SegmentRole.Faint);
         }
 
         return builder.BuildRule(glyphs.Horizontal);
@@ -73,7 +73,7 @@ public static class DetailPaneRenderer
 
     // The ASCII tier shows a padded button as [Name], so it is a button without colours too; the width stays the same.
     private static string ButtonText(string label, GraphGlyphSet glyphs) =>
-        glyphs.IsAscii && label.Length > 2 && label[0] == ' ' && label[^1] == ' ' ? "[" + label[1..^1] + "]" : label;
+        glyphs.IsAscii && label.Length > 2 && label[0] == ' ' && label[^1] == ' ' ? $"[{label[1..^1]}]" : label;
 
 
     // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
@@ -81,6 +81,6 @@ public static class DetailPaneRenderer
     {
         null => ".. files",
         1 => "1 file",
-        { } number => number.ToString(CultureInfo.InvariantCulture) + " files",
+        { } number => $"{number.ToString(CultureInfo.InvariantCulture)} files",
     };
 }

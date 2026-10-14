@@ -142,7 +142,7 @@ public static class GraphRowRenderer
                     builder.Append(label.Name, SegmentRole.RemoteBranch);
                     break;
                 case RefKind.Tag:
-                    builder.Append("tag: " + label.Name, SegmentRole.Tag);
+                    builder.Append($"tag: {label.Name}", SegmentRole.Tag);
                     break;
                 case RefKind.Head:
                     builder.Append("HEAD", SegmentRole.CurrentBranch);

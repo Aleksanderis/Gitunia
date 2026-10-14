@@ -72,7 +72,7 @@ public class WorkspaceActionsTests
         var host = new WorkspaceHost(Workspace.Empty);
         for (var index = 0; index < tabCount; index++)
         {
-            var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-actions", "repo" + index);
+            var root = Path.Combine(Path.GetTempPath(), "gitunia-workspace-actions", $"repo{index}");
             host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false)));
         }
 

@@ -7,7 +7,7 @@ namespace Gitunia.Tui;
 /// <summary>Colours/styles shared by the polished sample; mirrors the custom renderer demo's look.</summary>
 public static class Look
 {
-    /// <summary>xterm-256 palette index to true colour, so we can reuse the custom demo's exact colours.</summary>
+    /// <summary>Xterm-256 palette index to true colour, so we can reuse the custom demo's exact colours.</summary>
     public static Color Xterm(int index)
     {
         if (index >= 232)

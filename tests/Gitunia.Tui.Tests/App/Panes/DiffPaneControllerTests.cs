@@ -1,3 +1,5 @@
+using System.Drawing;
+using System.Text;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
@@ -421,7 +423,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\nshort\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -430,7 +432,7 @@ public class DiffPaneControllerTests
         var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
 
         harness.DiffList.Width = 30;
-        harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
+        harness.DiffList.SetRelativeLayout(new Size(80, 24));
 
         Assert.Equal(28, source.Width);
         Assert.Equal(row, source.RowOf(harness.DiffList.SelectedItem!.Value));
@@ -519,7 +521,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenALongLine_WhenTogglingWrap_ThenItTakesMoreLinesAndTheCursorKeepsItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -542,7 +544,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChanges_ThenTheCursorStaysOnItsRow()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\nshort\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         var source = harness.Session.Diff!.Source;
@@ -551,7 +553,7 @@ public class DiffPaneControllerTests
         var row = source.RowOf(harness.DiffList.SelectedItem!.Value);
 
         harness.DiffList.Width = 30;
-        harness.DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
+        harness.DiffList.SetRelativeLayout(new Size(80, 24));
         harness.Execute(ActionIds.ListUp);
         harness.Execute(ActionIds.ListDown);
 
@@ -689,7 +691,7 @@ public class DiffPaneControllerTests
     [Fact]
     public async Task GivenWrapOnAndTheCursorOnAContinuationLine_WhenCopyingTheLine_ThenTheWholeRowIsCopied()
     {
-        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", new string('x', 150) + "\n"));
+        using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\n"));
         using var harness = await DiffHarness.LoadAsync(testRepository);
         await harness.OpenAsync("a.txt");
         harness.Execute(ActionIds.DiffToggleWrap);
@@ -701,24 +703,24 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DiffCopyLine);
 
-        Assert.Equal("+" + new string('x', 150), harness.CopiedText());
+        Assert.Equal($"+{new string('x', 150)}", harness.CopiedText());
     }
 
     private sealed class DiffHarness : IDisposable
     {
-        private readonly TestRepository? ownedRepository;
-        private readonly KeyHolder keys = new();
+        private readonly TestRepository? _ownedRepository;
+        private readonly KeyHolder _keys = new();
 
         private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
             Host = host;
             Session = session;
-            this.ownedRepository = ownedRepository;
+            _ownedRepository = ownedRepository;
             ScreenWidth = screenWidth;
             DetailList = new ListView { Source = session.DetailSource };
             DiffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
-            DiffList.SetRelativeLayout(new System.Drawing.Size(80, 24));
-            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => keys.Mode = mode, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+            DiffList.SetRelativeLayout(new Size(80, 24));
+            Controller = new DiffPaneController(host, () => Session, DetailList, DiffList, mode => _keys.Mode = mode, () => new ScreenSize(ScreenWidth, screenHeight), () => { }, () => { }, new ClipboardCopier(new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
         }
@@ -739,14 +741,14 @@ public class DiffPaneControllerTests
         /// <summary>What the controller wrote to the terminal (OSC 52 sequences).</summary>
         public StringWriter Clipboard { get; } = new();
 
-        public KeyMode Mode => keys.Mode;
+        public KeyMode Mode => _keys.Mode;
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
         public static async Task<DiffHarness> LoadAsync(TestRepository? testRepository = null, int rowLimit = DiffStore.DefaultRowLimit, int screenHeight = 40, int screenWidth = 60)
         {
             var owned = testRepository is null ? CreateDefaultRepository() : null;
-            var path = (testRepository ?? owned)!.Path;
+            var path = (testRepository ?? owned)!.WorkingTreePath;
             var runner = new GitRunner();
             var location = await RepositoryDiscovery.DiscoverAsync(runner, path, Token);
             var host = new WorkspaceHost(Workspace.Empty);
@@ -771,7 +773,7 @@ public class DiffPaneControllerTests
             const string prefix = "\u001b]52;c;";
             Assert.StartsWith(prefix, sequence, StringComparison.Ordinal);
             var payload = sequence[prefix.Length..sequence.IndexOf('\u001b', prefix.Length)];
-            return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            return Encoding.UTF8.GetString(Convert.FromBase64String(payload));
         }
 
         public void SelectFirstRowOfKind(DiffRowKind kind)
@@ -850,7 +852,7 @@ public class DiffPaneControllerTests
         public void Dispose()
         {
             Session.Dispose();
-            ownedRepository?.Dispose();
+            _ownedRepository?.Dispose();
         }
 
         private static TestRepository CreateDefaultRepository() => TestRepository.Create()

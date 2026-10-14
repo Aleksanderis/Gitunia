@@ -15,11 +15,11 @@ public static class OverlayBox
     public static int InnerWidth(int width) => width - BorderWidth;
 
     public static StyledLine Title(string text, int width, GraphGlyphSet glyphs) =>
-        new LineBuilder(width, glyphs.Ellipsis).Append(" " + text, SegmentRole.OverlayTitle).Build(SegmentRole.OverlayTitle);
+        new LineBuilder(width, glyphs.Ellipsis).Append($" {text}", SegmentRole.OverlayTitle).Build(SegmentRole.OverlayTitle);
 
     /// <summary>A body row of plain text.</summary>
     public static StyledLine Text(string text, int width, GraphGlyphSet glyphs, SegmentRole role = SegmentRole.Plain) =>
-        Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append(" " + text, role).Build(), glyphs);
+        Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs);
 
     /// <summary>A body row with a left part and a right part pushed to the right edge.</summary>
     public static StyledLine TwoColumns(
@@ -37,7 +37,7 @@ public static class OverlayBox
         var leftFitted = TextWidth.Fit(left, Math.Max(0, inner - rightWidth - 4), glyphs.Ellipsis);
         var gap = Math.Max(1, inner - 2 - TextWidth.Of(leftFitted) - rightWidth);
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
-            .Append(" " + leftFitted, leftRole)
+            .Append($" {leftFitted}", leftRole)
             .Append(new string(' ', gap), leftRole)
             .Append(rightFitted, rightRole)
             .Append(" ", rightRole);

@@ -11,13 +11,13 @@ public sealed class KeyBindingTable
 {
     public const string GlobalView = "Global";
 
-    private readonly Dictionary<string, string> viewParents;
-    private readonly ConcurrentDictionary<EffectiveBindingsKey, IReadOnlyList<KeyBinding>> effectiveCache = new();
+    private readonly Dictionary<string, string> _viewParents;
+    private readonly ConcurrentDictionary<EffectiveBindingsKey, IReadOnlyList<KeyBinding>> _effectiveCache = new();
 
     public KeyBindingTable(IEnumerable<KeyBinding> bindings, IReadOnlyDictionary<string, string>? viewParents = null)
     {
         Bindings = [.. bindings];
-        this.viewParents = viewParents is null ? [] : new Dictionary<string, string>(viewParents);
+        _viewParents = viewParents is null ? [] : new Dictionary<string, string>(viewParents);
     }
 
     public IReadOnlyList<KeyBinding> Bindings { get; }
@@ -29,8 +29,8 @@ public sealed class KeyBindingTable
         {
             var views = new HashSet<string> { GlobalView };
             views.UnionWith(Bindings.Select(binding => binding.View));
-            views.UnionWith(viewParents.Keys);
-            views.UnionWith(viewParents.Values);
+            views.UnionWith(_viewParents.Keys);
+            views.UnionWith(_viewParents.Values);
             return views;
         }
     }
@@ -43,7 +43,7 @@ public sealed class KeyBindingTable
         while (current != GlobalView && !chain.Contains(current))
         {
             chain.Add(current);
-            current = viewParents.GetValueOrDefault(current, GlobalView);
+            current = _viewParents.GetValueOrDefault(current, GlobalView);
         }
 
         chain.Add(GlobalView);
@@ -53,7 +53,7 @@ public sealed class KeyBindingTable
     /// <summary>The bindings active in a mode and view after inheritance and shadowing, most specific view first.</summary>
     public IReadOnlyList<KeyBinding> EffectiveBindings(KeyMode mode, string view)
     {
-        return effectiveCache.GetOrAdd(new EffectiveBindingsKey(mode, view), key => ComputeEffective(key.Mode, key.View));
+        return _effectiveCache.GetOrAdd(new EffectiveBindingsKey(mode, view), key => ComputeEffective(key.Mode, key.View));
     }
 
     /// <summary>Finds duplicate bindings and prefixes that would hide a longer chord. An empty list means the table is consistent.</summary>

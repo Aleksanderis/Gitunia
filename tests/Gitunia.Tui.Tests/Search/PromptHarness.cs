@@ -9,6 +9,7 @@ using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Search;
 using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.Tests.Search;
@@ -19,8 +20,8 @@ namespace Gitunia.Tui.Tests.Search;
 /// </summary>
 public sealed class PromptHarness : IDisposable
 {
-    private readonly KeyController keys;
-    private readonly List<IPromptHandler> prompts = [];
+    private readonly KeyController _keys;
+    private readonly List<IPromptHandler> _prompts = [];
 
     public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null, Queue<Action>? deferred = null)
     {
@@ -38,17 +39,17 @@ public sealed class PromptHarness : IDisposable
             () => Session,
             () => SelectedRow,
             row => SelectedRow = row,
-            mode => keys!.SetMode(mode),
+            mode => _keys!.SetMode(mode),
             () => Redraws++);
-        prompts.Add(new Gitunia.Tui.Search.RefJumpController(handle, () => references));
-        prompts.Add(new Gitunia.Tui.Search.SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
-        Session.Changed += () => prompts.ForEach(prompt => prompt.OnGraphChanged());
-        keys = new KeyController(
+        _prompts.Add(new RefJumpController(handle, () => references));
+        _prompts.Add(new SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
+        Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());
+        _keys = new KeyController(
             new KeymapEngine(DefaultKeymap.Create()),
             (action, count) =>
             {
                 Notice = string.Empty;
-                foreach (var prompt in prompts)
+                foreach (var prompt in _prompts)
                 {
                     if (prompt.TryExecute(action, count))
                     {
@@ -58,7 +59,7 @@ public sealed class PromptHarness : IDisposable
                 }
             })
         {
-            TextKeyHandler = key => prompts.Any(prompt => prompt.HandleTextKey(key)),
+            TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key)),
         };
     }
 
@@ -70,11 +71,11 @@ public sealed class PromptHarness : IDisposable
 
     public string Notice { get; private set; } = string.Empty;
 
-    public KeyMode Mode => keys.Mode;
+    public KeyMode Mode => _keys.Mode;
 
-    public string StatusLine => prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+    public string StatusLine => _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty;
 
-    public void Press(Key key) => keys.Handle(key, DefaultKeymap.GraphView);
+    public void Press(Key key) => _keys.Handle(key, DefaultKeymap.GraphView);
 
     public void Type(string text)
     {

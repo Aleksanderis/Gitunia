@@ -16,7 +16,7 @@ public class GraphLayoutGitTests
     public async Task GivenBranchyRepository_WhenLayingOutTheRealLog_ThenOrderMatchesGitLogGraphAndTopologyMatchesGitsParentLinks(CommitOrder order)
     {
         using var testRepository = GraphGitRepository.CreateBranchy();
-        var repository = await Repository.OpenAsync(testRepository.CreateRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(testRepository.CreateRunner(), testRepository.WorkingTreePath, Token);
         var commits = new List<CommitInfo>();
         await foreach (var commit in CommitLogReader.ReadAsync(repository, order, ["--all"], cancellationToken: Token))
         {
@@ -29,7 +29,7 @@ public class GraphLayoutGitTests
         Assert.Contains(commits, commit => commit.Parents.Count == 4);
         Assert.Equal(2, commits.Count(commit => commit.Parents.Count == 0));
 
-        // git log --graph prints one '*' node per commit in the same order we received them (same ordering flags).
+        // The git log --graph output has one '*' node per commit, in the same order we received them (same ordering flags).
         var orderFlag = order == CommitOrder.Topological ? "--topo-order" : "--date-order";
         var graphOutput = testRepository.Git("log", "--graph", orderFlag, "--all", "--format=%H");
         var graphIds = graphOutput

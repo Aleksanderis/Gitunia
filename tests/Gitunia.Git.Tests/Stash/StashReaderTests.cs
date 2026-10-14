@@ -16,7 +16,7 @@ public class StashReaderTests
     public async Task GivenRepositoryWithoutStashes_WhenReading_ThenListIsEmpty()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await StashReader.ReadStashesAsync(repository, Token);
 
@@ -34,7 +34,7 @@ public class StashReaderTests
         testRepository.WriteFile("b.txt", "second");
         testRepository.Git("add", "-A");
         testRepository.Git("stash", "push", "-q", "-m", "second stash");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await StashReader.ReadStashesAsync(repository, Token);
 

@@ -18,7 +18,7 @@ public static class GraphTestData
         "Test",
         "test@example.com",
         DateTimeOffset.UnixEpoch,
-        "Commit " + number.ToString(CultureInfo.InvariantCulture),
+        $"Commit {number.ToString(CultureInfo.InvariantCulture)}",
         []);
 
     /// <summary>

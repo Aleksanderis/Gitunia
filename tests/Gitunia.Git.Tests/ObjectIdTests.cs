@@ -42,7 +42,7 @@ public class ObjectIdTests
     public void GivenDifferentIds_WhenComparing_ThenNotEqual()
     {
         Assert.True(ObjectId.TryParse(Sha1, out var first));
-        Assert.True(ObjectId.TryParse(Sha1[..^1] + "8", out var second));
+        Assert.True(ObjectId.TryParse($"{Sha1[..^1]}8", out var second));
 
         Assert.NotEqual(first, second);
         Assert.True(first != second);

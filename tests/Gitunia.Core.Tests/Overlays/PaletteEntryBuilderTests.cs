@@ -26,7 +26,7 @@ public class PaletteEntryBuilderTests
     {
         var missing = Table.Bindings.Select(binding => binding.Action).Distinct().Where(action => !ActionCatalog.IsDescribed(action)).ToList();
 
-        Assert.True(missing.Count == 0, "Actions without a title in ActionCatalog: " + string.Join(", ", missing));
+        Assert.True(missing.Count == 0, $"Actions without a title in ActionCatalog: {string.Join(", ", missing)}");
     }
 
     [Fact]

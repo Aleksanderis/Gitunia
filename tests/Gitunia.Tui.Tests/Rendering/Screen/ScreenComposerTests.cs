@@ -78,7 +78,7 @@ public class ScreenComposerTests
         var lines = ScreenComposer.Compose(Model(1, 4), Diamond(), 0, 0, 30, 12, GraphGlyphSet.Unicode);
 
         Assert.Equal(12, lines.Count);
-        Assert.All(lines.Skip(6).Take(4), line => Assert.Equal("│" + new string(' ', 28) + "│", line.Text));
+        Assert.All(lines.Skip(6).Take(4), line => Assert.Equal($"│{new string(' ', 28)}│", line.Text));
         Assert.All(lines.Skip(6).Take(4), line => Assert.DoesNotContain(line.Segments, segment => segment.Selection is SegmentSelection.Focused or SegmentSelection.Dim));
     }
 

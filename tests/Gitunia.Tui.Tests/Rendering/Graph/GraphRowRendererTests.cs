@@ -178,7 +178,7 @@ public class GraphRowRendererTests
         var commits = new List<CommitInfo>();
         for (var lane = 0; lane < 6; lane++)
         {
-            commits.Add(CommitFactory.Commit(100 + lane, "branch " + lane, [lane]));
+            commits.Add(CommitFactory.Commit(100 + lane, $"branch {lane}", [lane]));
         }
 
         var graph = CommitFactory.Graph(commits.ToArray());

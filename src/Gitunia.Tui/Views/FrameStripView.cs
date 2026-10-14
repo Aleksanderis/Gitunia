@@ -12,13 +12,13 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class FrameStripView(Func<FrameGrid> grid) : View
 {
-    private readonly EdgeDragHandler pointer = new();
+    private readonly EdgeDragHandler _pointer = new();
 
     /// <summary>Raised with the screen column and row of the pointer while the strip is dragged.</summary>
     public event Action<int, int>? Dragged
     {
-        add => pointer.Dragged += value;
-        remove => pointer.Dragged -= value;
+        add => _pointer.Dragged += value;
+        remove => _pointer.Dragged -= value;
     }
 
     protected override bool OnDrawingContent(DrawContext? context)
@@ -33,5 +33,5 @@ public sealed class FrameStripView(Func<FrameGrid> grid) : View
         return true;
     }
 
-    protected override bool OnMouseEvent(Mouse mouse) => pointer.IsListening && pointer.Handle(this, mouse) || base.OnMouseEvent(mouse);
+    protected override bool OnMouseEvent(Mouse mouse) => _pointer.IsListening && _pointer.Handle(this, mouse) || base.OnMouseEvent(mouse);
 }

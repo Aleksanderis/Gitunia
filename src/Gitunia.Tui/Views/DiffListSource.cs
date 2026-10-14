@@ -13,9 +13,9 @@ namespace Gitunia.Tui.Views;
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
 public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
-    private DiffWrapMap? map;
-    private int paneWidth;
-    private int gutterDigits = DiffRowRenderer.GutterDigits(0);
+    private DiffWrapMap? _map;
+    private int _paneWidth;
+    private int _gutterDigits = DiffRowRenderer.GutterDigits(0);
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -27,15 +27,15 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>The pane width in columns, set by the controller on every layout change; wrapping needs it. Zero shows the rows unwrapped.</summary>
     public int Width
     {
-        get => paneWidth;
+        get => _paneWidth;
         set
         {
-            if (paneWidth != value && IsWrapped)
+            if (_paneWidth != value && IsWrapped)
             {
                 RangeInvalidated?.Invoke();
             }
 
-            paneWidth = value;
+            _paneWidth = value;
         }
     }
 
@@ -58,8 +58,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     {
         Document = document;
         RangeInvalidated?.Invoke();
-        map = null;
-        gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
+        _map = null;
+        _gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
         Notify();
     }
 
@@ -68,7 +68,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     {
         IsWrapped = isWrapped;
         RangeInvalidated?.Invoke();
-        map = null;
+        _map = null;
         Notify();
     }
 
@@ -94,7 +94,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var line = current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected)
             : current is null && item >= 0 && item < Document.Rows.Count
-                ? DiffRowRenderer.Render(Document.Rows[item], width, gutterDigits, Highlight, selected, glyphs)
+                ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs)
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
         LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
@@ -111,22 +111,22 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             return null;
         }
 
-        if (map is null || !ReferenceEquals(map.Document, Document))
+        if (_map is null || !ReferenceEquals(_map.Document, Document))
         {
-            map = DiffWrapMap.Build(Document, width);
+            _map = DiffWrapMap.Build(Document, width);
         }
-        else if (map.Width != width)
+        else if (_map.Width != width)
         {
-            map = map.Resize(width);
+            _map = _map.Resize(width);
         }
 
-        return map;
+        return _map;
     }
 
     private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected)
     {
         var row = current.RowOf(item);
-        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, gutterDigits, Highlight, isSelected, glyphs);
+        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, _gutterDigits, Highlight, isSelected, glyphs);
     }
 
     private void Notify()

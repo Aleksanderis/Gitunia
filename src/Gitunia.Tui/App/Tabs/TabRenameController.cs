@@ -12,32 +12,32 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
 {
-    private TabId? renaming;
-    private string text = string.Empty;
+    private TabId? _renaming;
+    private string _text = string.Empty;
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => renaming is null ? string.Empty : "rename tab (empty: repository name): " + text + "_";
+    public string StatusLine => _renaming is null ? string.Empty : $"rename tab (empty: repository name): {_text}_";
 
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
         if (action == ActionIds.TabRename && host.Workspace.ActiveTab is { } tab)
         {
-            renaming = tab.Id;
-            text = tab.Title;
+            _renaming = tab.Id;
+            _text = tab.Title;
             setMode(KeyMode.Insert);
         }
-        else if (action == ActionIds.InputAccept && renaming is { } id)
+        else if (action == ActionIds.InputAccept && _renaming is { } id)
         {
-            renaming = null;
+            _renaming = null;
             setMode(KeyMode.Normal);
-            host.Dispatch(new TabCommand(id, new SetTabNameCommand(text)));
-            Notice = host.Workspace.FindTab(id) is { } renamed ? "tab is now " + renamed.Title : string.Empty;
+            host.Dispatch(new TabCommand(id, new SetTabNameCommand(_text)));
+            Notice = host.Workspace.FindTab(id) is { } renamed ? $"tab is now {renamed.Title}" : string.Empty;
         }
-        else if (action == ActionIds.Cancel && renaming is not null)
+        else if (action == ActionIds.Cancel && _renaming is not null)
         {
-            renaming = null;
+            _renaming = null;
             setMode(KeyMode.Normal);
         }
         else
@@ -51,14 +51,14 @@ public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setM
 
     public bool HandleTextKey(KeyEvent key)
     {
-        if (renaming is null)
+        if (_renaming is null)
         {
             return false;
         }
 
-        if (PromptTextEditor.Apply(text, key) is { } edited)
+        if (PromptTextEditor.Apply(_text, key) is { } edited)
         {
-            text = edited;
+            _text = edited;
         }
 
         redraw();

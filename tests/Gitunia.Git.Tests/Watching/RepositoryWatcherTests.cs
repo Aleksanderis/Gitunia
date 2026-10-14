@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
@@ -23,7 +24,7 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(2);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
@@ -39,7 +40,7 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
@@ -53,14 +54,14 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), options, recorder.Record);
         watcher.Start();
 
         for (var index = 0; index < 20; index++)
         {
-            testRepository.WriteFile("burst.txt", index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            testRepository.WriteFile("burst.txt", index.ToString(CultureInfo.InvariantCulture));
         }
 
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
@@ -72,7 +73,7 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         var stale = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         watcher.BecameStale += () => stale.TrySetResult();
@@ -97,7 +98,7 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var queued = new List<Action>();
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record, queued.Add);
         var raised = 0;
@@ -128,7 +129,7 @@ public class RepositoryWatcherTests
     public async Task GivenActiveTabWithPendingChange_WhenHidden_ThenBecameStaleIsRaisedOnce()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var queued = new List<Action>();
         var slowOptions = new RepositoryWatcherOptions(TimeSpan.FromHours(1), TimeSpan.FromHours(2), TimeSpan.FromHours(1));
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), slowOptions, _ => { }, queued.Add);
@@ -147,7 +148,7 @@ public class RepositoryWatcherTests
     {
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
@@ -164,7 +165,7 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         var recorder = new ChangeRecorder();
         var budget = new WatchBudget(0);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, budget, FastOptions, recorder.Record);
         watcher.Start();
 
@@ -182,8 +183,8 @@ public class RepositoryWatcherTests
     {
         using var first = TestRepositories.Linear(1);
         using var second = TestRepositories.Linear(1);
-        var firstRepository = await Repository.OpenAsync(Runner, first.Path, Token);
-        var secondRepository = await Repository.OpenAsync(Runner, second.Path, Token);
+        var firstRepository = await Repository.OpenAsync(Runner, first.WorkingTreePath, Token);
+        var secondRepository = await Repository.OpenAsync(Runner, second.WorkingTreePath, Token);
         var budget = new WatchBudget(5);
         using var firstWatcher = new RepositoryWatcher(firstRepository.Location, budget, FastOptions, _ => { });
         using var secondWatcher = new RepositoryWatcher(secondRepository.Location, budget, FastOptions, _ => { });
@@ -201,7 +202,7 @@ public class RepositoryWatcherTests
     public async Task GivenWatcherDisposed_WhenDisposing_ThenBudgetIsReleased()
     {
         using var testRepository = TestRepositories.Linear(1);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var budget = new WatchBudget();
         var watcher = new RepositoryWatcher(repository.Location, budget, FastOptions, _ => { });
         watcher.Start();
@@ -218,7 +219,7 @@ public class RepositoryWatcherTests
         using var testRepository = TestRepositories.Linear(1);
         testRepository.Branch("topic");
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
@@ -248,13 +249,13 @@ public class RepositoryWatcherTests
     {
         using var origin = TestRepository.Create(bare: true);
         var recorder = new ChangeRecorder();
-        var repository = await Repository.OpenAsync(Runner, origin.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, origin.WorkingTreePath, Token);
         using var watcher = new RepositoryWatcher(repository.Location, new WatchBudget(), FastOptions, recorder.Record);
         watcher.Start();
 
         using var clone = TestRepository.Create();
         clone.Commit("c", new TestFile("a.txt", "a"));
-        clone.Git("push", "-q", origin.Path, "main");
+        clone.Git("push", "-q", origin.WorkingTreePath, "main");
 
         await recorder.WaitForAsync(RepositoryChangeKinds.Refs, Token);
     }

@@ -11,15 +11,15 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// </summary>
 public sealed class DiffWrapMap
 {
-    private readonly int[] starts;
-    private readonly int[] textColumns;
+    private readonly int[] _starts;
+    private readonly int[] _textColumns;
 
     private DiffWrapMap(DiffDocument document, int width, int[] starts, int[] textColumns)
     {
         Document = document;
         Width = width;
-        this.starts = starts;
-        this.textColumns = textColumns;
+        _starts = starts;
+        _textColumns = textColumns;
     }
 
     public DiffDocument Document { get; }
@@ -27,7 +27,7 @@ public sealed class DiffWrapMap
     public int Width { get; }
 
     /// <summary>Screen lines in all.</summary>
-    public int Count => starts[^1];
+    public int Count => _starts[^1];
 
     public static DiffWrapMap Build(DiffDocument document, int width)
     {
@@ -41,20 +41,20 @@ public sealed class DiffWrapMap
     }
 
     /// <summary>The same document at another pane width, reusing the measured row widths instead of scanning every row's text again.</summary>
-    public DiffWrapMap Resize(int width) => width == Width ? this : Layout(Document, width, textColumns);
+    public DiffWrapMap Resize(int width) => width == Width ? this : Layout(Document, width, _textColumns);
 
     /// <summary>First screen line of <paramref name="row"/>.</summary>
-    public int StartOf(int row) => starts[Math.Clamp(row, 0, starts.Length - 1)];
+    public int StartOf(int row) => _starts[Math.Clamp(row, 0, _starts.Length - 1)];
 
     /// <summary>The row shown on screen line <paramref name="line"/>.</summary>
     public int RowOf(int line)
     {
         var low = 0;
-        var high = starts.Length - 2;
+        var high = _starts.Length - 2;
         while (low < high)
         {
             var middle = (low + high + 1) / 2;
-            if (starts[middle] <= line)
+            if (_starts[middle] <= line)
             {
                 low = middle;
             }

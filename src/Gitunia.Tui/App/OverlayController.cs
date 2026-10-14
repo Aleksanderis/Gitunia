@@ -19,15 +19,15 @@ public sealed class OverlayController
     /// <summary>How long a chord stays pending before the which-key popup appears.</summary>
     public static readonly TimeSpan WhichKeyDelay = TimeSpan.FromMilliseconds(500);
 
-    private readonly KeymapEngine engine;
-    private readonly KeyController keys;
-    private readonly WhichKeyTimer whichKeyTimer;
-    private readonly Action<ActionId, int?> run;
-    private readonly Func<ScreenSize> screenSize;
-    private readonly GraphGlyphSet glyphs;
-    private readonly Func<string> baseView;
-    private readonly StatusChannel statuses;
-    private IReadOnlyList<HelpSection> helpSections = [];
+    private readonly KeymapEngine _engine;
+    private readonly KeyController _keys;
+    private readonly WhichKeyTimer _whichKeyTimer;
+    private readonly Action<ActionId, int?> _run;
+    private readonly Func<ScreenSize> _screenSize;
+    private readonly GraphGlyphSet _glyphs;
+    private readonly Func<string> _baseView;
+    private readonly StatusChannel _statuses;
+    private IReadOnlyList<HelpSection> _helpSections = [];
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
     /// <param name="keys">The key controller whose mode this controller switches.</param>
@@ -47,14 +47,14 @@ public sealed class OverlayController
         Func<string> baseView,
         StatusChannel statuses)
     {
-        this.engine = engine;
-        this.keys = keys;
-        this.whichKeyTimer = whichKeyTimer;
-        this.run = run;
-        this.screenSize = screenSize;
-        this.glyphs = glyphs;
-        this.baseView = baseView;
-        this.statuses = statuses;
+        _engine = engine;
+        _keys = keys;
+        _whichKeyTimer = whichKeyTimer;
+        _run = run;
+        _screenSize = screenSize;
+        _glyphs = glyphs;
+        _baseView = baseView;
+        _statuses = statuses;
         keys.PendingChanged += OnPendingChanged;
         keys.TextKeyPressed += OnTextKey;
         statuses.Changed += OnStatusChanged;
@@ -71,17 +71,17 @@ public sealed class OverlayController
         OverlayKind.Help => DefaultKeymap.HelpView,
         OverlayKind.Messages => DefaultKeymap.MessagesView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
-        _ => baseView(),
+        _ => _baseView(),
     };
 
     /// <summary>The frame to draw over the screen, or null when nothing is showing.</summary>
     public OverlayFrame? CurrentFrame()
     {
-        var size = screenSize();
+        var size = _screenSize();
         var width = size.Width;
         var height = size.Height;
-        var rows = State.WhichKeyVisible ? WhichKeyBuilder.Build(engine.Continuations(keys.State, ViewName)) : [];
-        return OverlayFrameFactory.Create(State, helpSections, keys.PendingText, rows, width, height, glyphs);
+        var rows = State.WhichKeyVisible ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName)) : [];
+        return OverlayFrameFactory.Create(State, _helpSections, _keys.PendingText, rows, width, height, _glyphs);
     }
 
     /// <summary>Handles an action while an overlay may be open; returns true when it was consumed.</summary>
@@ -116,7 +116,7 @@ public sealed class OverlayController
             return false;
         }
 
-        if (PaletteFrameBuilder.EntryIndexAt(palette, frameLine, screenSize().Height) is not { } index)
+        if (PaletteFrameBuilder.EntryIndexAt(palette, frameLine, _screenSize().Height) is not { } index)
         {
             return false;
         }
@@ -130,22 +130,22 @@ public sealed class OverlayController
     {
         if (action == ActionIds.HelpShow)
         {
-            helpSections = HelpBuilder.Build(engine.Table, baseView());
-            Open(OverlayState.OpenHelp(baseView(), keys.Mode), KeyMode.Normal);
+            _helpSections = HelpBuilder.Build(_engine.Table, _baseView());
+            Open(OverlayState.OpenHelp(_baseView(), _keys.Mode), KeyMode.Normal);
             return true;
         }
 
         if (action == ActionIds.StatusHistory)
         {
-            helpSections = [MessageSection()];
-            Open(OverlayState.OpenMessages(keys.Mode), KeyMode.Normal);
+            _helpSections = [MessageSection()];
+            Open(OverlayState.OpenMessages(_keys.Mode), KeyMode.Normal);
             return true;
         }
 
         if (action == ActionIds.PaletteOpen)
         {
-            var palette = new PaletteState(PaletteEntryBuilder.Build(engine.Table, baseView()));
-            Open(OverlayState.OpenPalette(palette, keys.Mode), KeyMode.Command);
+            var palette = new PaletteState(PaletteEntryBuilder.Build(_engine.Table, _baseView()));
+            Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
             return true;
         }
 
@@ -155,7 +155,7 @@ public sealed class OverlayController
     // Newest first; the severity takes the keys column.
     private HelpSection MessageSection()
     {
-        var rows = statuses.Log.History
+        var rows = _statuses.Log.History
             .Reverse()
             .Select(message => new HelpRow(message.Severity.ToString().ToLowerInvariant(), message.Text))
             .ToList();
@@ -169,9 +169,9 @@ public sealed class OverlayController
 
     private void Open(OverlayState state, KeyMode mode)
     {
-        whichKeyTimer.Cancel();
+        _whichKeyTimer.Cancel();
         State = state;
-        keys.SetMode(mode);
+        _keys.SetMode(mode);
         Changed?.Invoke();
     }
 
@@ -179,17 +179,17 @@ public sealed class OverlayController
     {
         var returnMode = State.ReturnMode;
         State = OverlayState.None;
-        keys.SetMode(returnMode);
+        _keys.SetMode(returnMode);
         Changed?.Invoke();
     }
 
     private void ScrollHelp(ActionId action, int? count)
     {
-        var size = screenSize();
+        var size = _screenSize();
         var width = size.Width;
         var height = size.Height;
-        var maximum = HelpFrameBuilder.MaximumScroll(helpSections, width, height);
-        var visible = HelpFrameBuilder.VisibleRows(helpSections, width, height);
+        var maximum = HelpFrameBuilder.MaximumScroll(_helpSections, width, height);
+        var visible = HelpFrameBuilder.VisibleRows(_helpSections, width, height);
         if (ListMotion.TryMove(action, count, State.HelpScroll, maximum + 1, visible, out var target))
         {
             State = State.ScrollHelpTo(target);
@@ -215,7 +215,7 @@ public sealed class OverlayController
             Close();
             if (chosen is not null)
             {
-                run(chosen.Action, null);
+                _run(chosen.Action, null);
             }
         }
     }
@@ -227,7 +227,7 @@ public sealed class OverlayController
             return;
         }
 
-        helpSections = [MessageSection()];
+        _helpSections = [MessageSection()];
         Changed?.Invoke();
     }
 
@@ -261,9 +261,9 @@ public sealed class OverlayController
             return;
         }
 
-        if (!keys.State.HasPending)
+        if (!_keys.State.HasPending)
         {
-            whichKeyTimer.Cancel();
+            _whichKeyTimer.Cancel();
             if (State.WhichKeyVisible)
             {
                 State = State.WithWhichKey(false);
@@ -279,12 +279,12 @@ public sealed class OverlayController
             return;
         }
 
-        whichKeyTimer.Start(ShowWhichKey);
+        _whichKeyTimer.Start(ShowWhichKey);
     }
 
     private void ShowWhichKey()
     {
-        if (State.IsOpen || !keys.State.HasPending)
+        if (State.IsOpen || !_keys.State.HasPending)
         {
             return;
         }

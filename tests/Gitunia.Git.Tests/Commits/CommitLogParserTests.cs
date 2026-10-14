@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
@@ -32,7 +33,7 @@ public class CommitLogParserTests
     [InlineData("-62135596800 -0500", 0)]
     public void GivenRawAuthorDate_WhenParsing_ThenTheAuthorOffsetIsKept(string raw, int offsetMinutes)
     {
-        var text = string.Join('\x1f', HashFor(1), string.Empty, "A", "a@b", raw, string.Empty, "Subject") + "\0";
+        var text = $"{string.Join('\x1f', HashFor(1), string.Empty, "A", "a@b", raw, string.Empty, "Subject")}\0";
 
         var commits = ParseAll(text, 1000, out _);
 
@@ -44,7 +45,7 @@ public class CommitLogParserTests
     public void GivenSha256Hashes_WhenParsing_ThenFullLengthIsKept()
     {
         var hash = new string('a', 64);
-        var text = string.Join('\x1f', hash, hash.Replace('a', 'b'), "A", "a@b", "1", string.Empty, "Subject") + "\0";
+        var text = $"{string.Join('\x1f', hash, hash.Replace('a', 'b'), "A", "a@b", "1", string.Empty, "Subject")}\0";
 
         var commit = Assert.Single(ParseAll(text, 1000, out _));
 
@@ -110,7 +111,7 @@ public class CommitLogParserTests
     [Fact]
     public void GivenBrokenRecords_WhenParsing_ThenSkippedWithWarnings()
     {
-        var text = "only\x1ftwo\0" + "nothex\x1f\x1fa\x1fb\x1f1\x1f\x1fs\0" + Record(5, [4]).Replace(HashFor(4), "zzz") + Record(1, []);
+        var text = $"only\x1ftwo\0nothex\x1f\x1fa\x1fb\x1f1\x1f\x1fs\0{Record(5, [4]).Replace(HashFor(4), "zzz")}{Record(1, [])}";
 
         var commits = ParseAll(text, 1000, out var parser);
 
@@ -140,7 +141,7 @@ public class CommitLogParserTests
 
         for (var number = 100_000; number >= 1; number--)
         {
-            batch.Append(Record(number, number > 1 ? [number - 1] : [], subject: "Commit #" + number));
+            batch.Append(Record(number, number > 1 ? [number - 1] : [], subject: $"Commit #{number}"));
             if (batch.Length > 4000 || number == 1)
             {
                 var bytes = Encoding.UTF8.GetBytes(batch.ToString());
@@ -165,7 +166,7 @@ public class CommitLogParserTests
     private static string Record(int number, int[] parents, string author = "Ann", string email = "ann@example.com", long time = 1_700_000_000, string decorations = "", string subject = "Subject")
     {
         var parentText = string.Join(' ', parents.Select(HashFor));
-        return string.Join('\x1f', HashFor(number), parentText, author, email, time.ToString(), decorations, subject) + "\0";
+        return $"{string.Join('\x1f', HashFor(number), parentText, author, email, time.ToString(), decorations, subject)}\0";
     }
 
     private static List<CommitInfo> ParseAll(string text, int chunkSize, out CommitLogParser parser)
@@ -202,6 +203,6 @@ public class CommitLogParserTests
 
         public IEnumerator<CommitInfo> GetEnumerator() => Enumerable.Empty<CommitInfo>().GetEnumerator();
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

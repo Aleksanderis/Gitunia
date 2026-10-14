@@ -38,11 +38,11 @@ public static class DiffRowRenderer
                 AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight, width);
                 break;
             case DiffRowKind.Warning:
-                AppendText(builder, "! " + row.Text, SegmentRole.Error, highlight, width);
+                AppendText(builder, $"! {row.Text}", SegmentRole.Error, highlight, width);
                 break;
             case DiffRowKind.Note:
             case DiffRowKind.NoNewline:
-                AppendText(builder, "  " + row.Text, SegmentRole.Faint, highlight, width);
+                AppendText(builder, $"  {row.Text}", SegmentRole.Faint, highlight, width);
                 break;
             default:
                 AppendChange(builder, row, width, gutterDigits, highlight);
@@ -123,7 +123,7 @@ public static class DiffRowRenderer
                     builder.Append("  ", textRole);
                     break;
                 case DiffRowKind.Context or DiffRowKind.Added or DiffRowKind.Removed:
-                    builder.Append(Number(row.OldLineNumber, gutterDigits) + " " + Number(row.NewLineNumber, gutterDigits) + " ", SegmentRole.Faint);
+                    builder.Append($"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ", SegmentRole.Faint);
                     var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
                     builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
                     break;
@@ -193,7 +193,7 @@ public static class DiffRowRenderer
             DiffRowKind.Removed => ('-', SegmentRole.DiffRemoved),
             _ => (' ', SegmentRole.Plain),
         };
-        var gutter = Number(row.OldLineNumber, gutterDigits) + " " + Number(row.NewLineNumber, gutterDigits) + " ";
+        var gutter = $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
         builder.Append(gutter, SegmentRole.Faint);
         builder.Append(marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
         AppendText(builder, row.Text, role, highlight, width);

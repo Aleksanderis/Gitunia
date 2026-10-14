@@ -32,14 +32,14 @@ public sealed class DiffStore(
     /// <summary>How long the shown diff must stay put before the neighbours are read, so passing over a commit starts no process.</summary>
     public static readonly TimeSpan PrefetchDelay = TimeSpan.FromMilliseconds(80);
 
-    private readonly DiffCache cache = cache ?? new DiffCache();
-    private readonly Func<TimeSpan, CancellationToken, Task> delay = delay ?? Task.Delay;
-    private CancellationTokenSource? pending;
-    private CancellationTokenSource? prefetching;
-    private IReadOnlyList<ObjectId> wanted = [];
-    private ObjectId? firstParent;
-    private bool isUnlimited;
-    private bool isReleased;
+    private readonly DiffCache _cache = cache ?? new DiffCache();
+    private readonly Func<TimeSpan, CancellationToken, Task> _delay = delay ?? Task.Delay;
+    private CancellationTokenSource? _pending;
+    private CancellationTokenSource? _prefetching;
+    private IReadOnlyList<ObjectId> _wanted = [];
+    private ObjectId? _firstParent;
+    private bool _isUnlimited;
+    private bool _isReleased;
 
     /// <summary>Raised on the UI thread when <see cref="Document"/> or <see cref="Status"/> changed.</summary>
     public event Action? Changed;
@@ -50,7 +50,7 @@ public sealed class DiffStore(
     public bool IsCut { get; private set; }
 
     /// <summary>The number of diffs cached right now (bounded, see <see cref="DiffCache"/>).</summary>
-    public int CachedCount => cache.Count;
+    public int CachedCount => _cache.Count;
 
     public DiffStatus Status { get; private set; } = DiffStatus.None;
 
@@ -69,14 +69,14 @@ public sealed class DiffStore(
             return false;
         }
 
-        isUnlimited = false;
-        isReleased = false;
-        wanted = prefetch ?? [];
-        if (cache.TryGet(commit, out var known))
+        _isUnlimited = false;
+        _isReleased = false;
+        _wanted = prefetch ?? [];
+        if (_cache.TryGet(commit, out var known))
         {
             CancelPending();
             CancelPrefetch();
-            this.firstParent = firstParent;
+            _firstParent = firstParent;
             Commit = commit;
             IsCut = false;
             Status = DiffStatus.Loaded;
@@ -99,8 +99,8 @@ public sealed class DiffStore(
             return false;
         }
 
-        isUnlimited = true;
-        Start(commit, firstParent);
+        _isUnlimited = true;
+        Start(commit, _firstParent);
         return true;
     }
 
@@ -108,16 +108,16 @@ public sealed class DiffStore(
     {
         CancelPending();
         CancelPrefetch();
-        isReleased = false;
-        this.firstParent = firstParent;
+        _isReleased = false;
+        _firstParent = firstParent;
         Commit = commit;
         IsCut = false;
         Status = DiffStatus.Loading;
         Document = DiffDocument.Message("Loading...");
         Changed?.Invoke();
-        pending = new CancellationTokenSource();
-        var token = pending.Token;
-        var limited = !isUnlimited;
+        _pending = new CancellationTokenSource();
+        var token = _pending.Token;
+        var limited = !_isUnlimited;
         _ = Task.Run(() => LoadAsync(commit, firstParent, limited, token), CancellationToken.None);
     }
 
@@ -126,10 +126,10 @@ public sealed class DiffStore(
     {
         CancelPending();
         CancelPrefetch();
-        cache.Clear();
-        wanted = [];
+        _cache.Clear();
+        _wanted = [];
         Commit = null;
-        firstParent = null;
+        _firstParent = null;
         IsCut = false;
         Status = DiffStatus.None;
         Document = DiffDocument.Empty;
@@ -138,9 +138,9 @@ public sealed class DiffStore(
     /// <summary>Drops the cached diffs and stops reading neighbours (the tab is not shown); the diff on show stays.</summary>
     public void ReleaseCache()
     {
-        isReleased = true;
+        _isReleased = true;
         CancelPrefetch();
-        cache.Clear();
+        _cache.Clear();
     }
 
     public void Dispose()
@@ -151,9 +151,9 @@ public sealed class DiffStore(
 
     private void CancelPending()
     {
-        pending?.Cancel();
-        pending?.Dispose();
-        pending = null;
+        _pending?.Cancel();
+        _pending?.Dispose();
+        _pending = null;
     }
 
     private static DiffDocument Present(DiffDocument document) =>
@@ -161,21 +161,21 @@ public sealed class DiffStore(
 
     private void CancelPrefetch()
     {
-        prefetching?.Cancel();
-        prefetching?.Dispose();
-        prefetching = null;
+        _prefetching?.Cancel();
+        _prefetching?.Dispose();
+        _prefetching = null;
     }
 
     private void StartPrefetch()
     {
-        var commits = wanted.Where(candidate => candidate != Commit && !cache.Contains(candidate)).Distinct().ToArray();
+        var commits = _wanted.Where(candidate => candidate != Commit && !_cache.Contains(candidate)).Distinct().ToArray();
         if (commits.Length == 0)
         {
             return;
         }
 
-        prefetching = new CancellationTokenSource();
-        var token = prefetching.Token;
+        _prefetching = new CancellationTokenSource();
+        var token = _prefetching.Token;
         _ = Task.Run(() => PrefetchAsync(commits, token), CancellationToken.None);
     }
 
@@ -184,7 +184,7 @@ public sealed class DiffStore(
     {
         try
         {
-            await delay(PrefetchDelay, token).ConfigureAwait(false);
+            await _delay(PrefetchDelay, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -226,7 +226,7 @@ public sealed class DiffStore(
     {
         if (!token.IsCancellationRequested)
         {
-            cache.Add(commit, document);
+            _cache.Add(commit, document);
         }
     }
 
@@ -283,21 +283,21 @@ public sealed class DiffStore(
         if (document is null)
         {
             Status = DiffStatus.Failed;
-            Document = DiffDocument.Message("Could not load the diff: " + error);
+            Document = DiffDocument.Message($"Could not load the diff: {error}");
         }
         else
         {
             Status = DiffStatus.Loaded;
             IsCut = isCut;
             Document = Present(document);
-            if (!isCut && !isReleased)
+            if (!isCut && !_isReleased)
             {
-                cache.Add(commit, document);
+                _cache.Add(commit, document);
             }
         }
 
         Changed?.Invoke();
-        if (Status == DiffStatus.Loaded && !isReleased)
+        if (Status == DiffStatus.Loaded && !_isReleased)
         {
             StartPrefetch();
         }

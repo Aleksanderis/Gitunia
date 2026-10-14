@@ -12,7 +12,7 @@ public class GraphLoaderTests
 {
     private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)
     {
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         var batches = new List<IReadOnlyList<GraphEntry>>();
         await foreach (var batch in GraphLoader.StreamAsync(repository, CommitOrder.Topological, maximumCommits, CancellationToken.None))
         {
@@ -50,7 +50,7 @@ public class GraphLoaderTests
         testRepository.Commit("root", new TestFile("a.txt", "1"));
         for (var number = 1; number < 200; number++)
         {
-            testRepository.Git("commit", "-q", "--allow-empty", "-m", "commit " + number);
+            testRepository.Git("commit", "-q", "--allow-empty", "-m", $"commit {number}");
         }
 
         var batches = await LoadAsync(testRepository);
@@ -76,7 +76,7 @@ public class GraphLoaderTests
     {
         using var testRepository = TestRepository.Create();
         testRepository.Commit("one", new TestFile("a.txt", "1"));
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, CancellationToken.None);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, CancellationToken.None);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 

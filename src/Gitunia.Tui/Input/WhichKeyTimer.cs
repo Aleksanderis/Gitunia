@@ -6,29 +6,29 @@ namespace Gitunia.Tui.Input;
 /// </summary>
 public sealed class WhichKeyTimer(TimeSpan delay, Action<Action> postToUi) : IDisposable
 {
-    private readonly object gate = new();
-    private Timer? timer;
-    private int generation;
+    private readonly object _gate = new();
+    private Timer? _timer;
+    private int _generation;
 
     /// <summary>Waits <see cref="delay"/> (restarting any earlier wait), then runs <paramref name="elapsed"/> on the UI thread.</summary>
     public void Start(Action elapsed)
     {
         int current;
-        lock (gate)
+        lock (_gate)
         {
-            timer?.Dispose();
-            current = ++generation;
-            timer = new Timer(_ => postToUi(() => RunIfCurrent(current, elapsed)), null, delay, Timeout.InfiniteTimeSpan);
+            _timer?.Dispose();
+            current = ++_generation;
+            _timer = new Timer(_ => postToUi(() => RunIfCurrent(current, elapsed)), null, delay, Timeout.InfiniteTimeSpan);
         }
     }
 
     public void Cancel()
     {
-        lock (gate)
+        lock (_gate)
         {
-            generation++;
-            timer?.Dispose();
-            timer = null;
+            _generation++;
+            _timer?.Dispose();
+            _timer = null;
         }
     }
 
@@ -36,9 +36,9 @@ public sealed class WhichKeyTimer(TimeSpan delay, Action<Action> postToUi) : IDi
 
     private void RunIfCurrent(int expected, Action elapsed)
     {
-        lock (gate)
+        lock (_gate)
         {
-            if (generation != expected)
+            if (_generation != expected)
             {
                 return;
             }

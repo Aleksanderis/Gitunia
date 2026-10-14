@@ -11,7 +11,7 @@ public class CommitDetailsParserTests
     private static readonly string Parent = new('b', 40);
 
     private static string Record(string parents, string message) =>
-        string.Join('\x1f', Hash, parents, "Ann", "ann@x.org", "2026-01-02T03:04:05+02:00", "Bob", "bob@x.org", "2026-01-03T00:00:00Z", message) + "\0";
+        $"{string.Join('\x1f', Hash, parents, "Ann", "ann@x.org", "2026-01-02T03:04:05+02:00", "Bob", "bob@x.org", "2026-01-03T00:00:00Z", message)}\0";
 
     private static CommitDetails? Parse(string text, List<string> warnings) => CommitDetailsParser.Parse(Encoding.UTF8.GetBytes(text), warnings);
 
@@ -65,7 +65,7 @@ public class CommitDetailsParserTests
     public void GivenInvalidTime_WhenParsing_ThenWarnsAndFallsBackToEpoch()
     {
         var warnings = new List<string>();
-        var text = string.Join('\x1f', Hash, string.Empty, "A", "a@b", "nonsense", "A", "a@b", "nonsense", "m") + "\0";
+        var text = $"{string.Join('\x1f', Hash, string.Empty, "A", "a@b", "nonsense", "A", "a@b", "nonsense", "m")}\0";
 
         var details = Parse(text, warnings);
 

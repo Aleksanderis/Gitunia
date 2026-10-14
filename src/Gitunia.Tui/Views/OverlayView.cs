@@ -9,7 +9,7 @@ namespace Gitunia.Tui.Views;
 /// <summary>A floating box (help, palette, which-key popup) that is moved and sized to an <see cref="OverlayFrame"/> and hidden when there is none.</summary>
 public sealed class OverlayView : View
 {
-    private OverlayFrame? frame;
+    private OverlayFrame? _frame;
 
     public OverlayView()
     {
@@ -26,7 +26,7 @@ public sealed class OverlayView : View
     /// <summary>Shows <paramref name="newFrame"/>, or hides the view when it is null.</summary>
     public void Show(OverlayFrame? newFrame)
     {
-        frame = newFrame;
+        _frame = newFrame;
         if (newFrame is null)
         {
             Visible = false;
@@ -60,16 +60,16 @@ public sealed class OverlayView : View
         return true;
     }
 
-    protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
+    protected override bool OnDrawingContent(DrawContext? context)
     {
-        if (frame is null)
+        if (_frame is null)
         {
             return true;
         }
 
-        for (var row = 0; row < frame.Lines.Count; row++)
+        for (var row = 0; row < _frame.Lines.Count; row++)
         {
-            LinePainter.Paint(this, frame.Lines[row], 0, row, isFocused: true);
+            LinePainter.Paint(this, _frame.Lines[row], 0, row, isFocused: true);
         }
 
         return true;

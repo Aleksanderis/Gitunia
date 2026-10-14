@@ -95,7 +95,7 @@ public static class ActionCatalog
         }
 
         return action.Value.StartsWith(TabGoToPrefix, StringComparison.Ordinal)
-            ? "Go to tab " + action.Value[TabGoToPrefix.Length..]
+            ? $"Go to tab {action.Value[TabGoToPrefix.Length..]}"
             : action.Value;
     }
 

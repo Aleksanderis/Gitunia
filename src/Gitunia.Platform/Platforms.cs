@@ -28,7 +28,7 @@ public sealed class WindowsPlatform : PlatformBase
 /// <summary>Explicit "unsupported" path for any other OS: keeps everything under a dot-directory under the home dir.</summary>
 public sealed class UnsupportedPlatform : PlatformBase
 {
-    public override string ConfigDirectory => Path.Combine(Home, "." + PlatformInfo.AppDirectoryName);
+    public override string ConfigDirectory => Path.Combine(Home, $".{PlatformInfo.AppDirectoryName}");
 
-    public override string StateDirectory => Path.Combine(Home, "." + PlatformInfo.AppDirectoryName, "state");
+    public override string StateDirectory => Path.Combine(Home, $".{PlatformInfo.AppDirectoryName}", "state");
 }

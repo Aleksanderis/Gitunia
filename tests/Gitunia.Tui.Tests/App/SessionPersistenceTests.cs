@@ -16,7 +16,7 @@ public class SessionPersistenceTests
     [Fact]
     public async Task GivenOpenedTab_WhenFlushing_ThenTheSessionFileHoldsTheTab()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
             var store = new SessionStore(directory);
@@ -43,7 +43,7 @@ public class SessionPersistenceTests
     [Fact]
     public void GivenNothingChangedSinceStart_WhenFlushing_ThenNoFileIsWritten()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         var store = new SessionStore(directory);
         var host = new WorkspaceHost(Workspace.Empty);
         using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
@@ -57,7 +57,7 @@ public class SessionPersistenceTests
     [Fact]
     public void GivenUnwritableSessionLocation_WhenSavingRepeatedly_ThenOneErrorMessageIsPosted()
     {
-        var blocker = Path.Combine(Path.GetTempPath(), "gitunia-session-blocker-" + Guid.NewGuid().ToString("N"));
+        var blocker = Path.Combine(Path.GetTempPath(), $"gitunia-session-blocker-{Guid.NewGuid().ToString("N")}");
         File.WriteAllText(blocker, "not a directory");
         try
         {
@@ -84,7 +84,7 @@ public class SessionPersistenceTests
     [Fact]
     public async Task GivenChangeAndShortDebounce_WhenWaiting_ThenTheSessionIsSavedWithoutAFlush()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
             var store = new SessionStore(directory);
@@ -116,7 +116,7 @@ public class SessionPersistenceTests
     [Fact]
     public async Task GivenChangedPaneSizes_WhenFlushingAndLoading_ThenTheTabHasTheSizes()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
             var store = new SessionStore(directory, _ => true);
@@ -144,7 +144,7 @@ public class SessionPersistenceTests
     [Fact]
     public async Task GivenSessionFileWithoutSizeKeys_WhenLoading_ThenTheTabHasAutomaticSizes()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
             Directory.CreateDirectory(directory);
@@ -176,7 +176,7 @@ public class SessionPersistenceTests
     [Fact]
     public async Task GivenSessionFileWithNegativeAndZeroSizes_WhenLoading_ThenNegativeIsAutomaticAndZeroKept()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "gitunia-session-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
         try
         {
             Directory.CreateDirectory(directory);

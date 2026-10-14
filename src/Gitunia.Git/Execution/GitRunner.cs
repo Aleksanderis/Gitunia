@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,11 +15,11 @@ public sealed class GitRunner
 {
     private const int ReadBufferSize = 64 * 1024;
 
-    private readonly GitRunnerOptions options;
+    private readonly GitRunnerOptions _options;
 
     public GitRunner(GitRunnerOptions? options = null)
     {
-        this.options = options ?? new GitRunnerOptions();
+        _options = options ?? new GitRunnerOptions();
     }
 
     /// <summary>Runs git in the repository or worktree at <paramref name="repositoryPath"/> and collects all output.</summary>
@@ -69,7 +70,7 @@ public sealed class GitRunner
                 process.Kill(entireProcessTree: true);
             }
         }
-        catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
         {
             // Already exited or exiting.
         }
@@ -80,7 +81,7 @@ public sealed class GitRunner
 
     private Process Start(IReadOnlyList<string> arguments, GitRunOptions runOptions)
     {
-        var startInfo = new ProcessStartInfo(options.Executable)
+        var startInfo = new ProcessStartInfo(_options.Executable)
         {
             UseShellExecute = false,
             RedirectStandardInput = true,
@@ -102,9 +103,9 @@ public sealed class GitRunner
             startInfo.Environment["GIT_OPTIONAL_LOCKS"] = "0";
         }
 
-        if (options.EnvironmentOverrides is not null)
+        if (_options.EnvironmentOverrides is not null)
         {
-            foreach ((var name, var value) in options.EnvironmentOverrides)
+            foreach ((var name, var value) in _options.EnvironmentOverrides)
             {
                 if (value is null)
                 {
@@ -122,10 +123,10 @@ public sealed class GitRunner
         {
             process.Start();
         }
-        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or FileNotFoundException)
+        catch (Exception exception) when (exception is Win32Exception or FileNotFoundException)
         {
             process.Dispose();
-            throw new GitNotFoundException(options.Executable, exception);
+            throw new GitNotFoundException(_options.Executable, exception);
         }
 
         // Git must never wait for input.
@@ -135,7 +136,7 @@ public sealed class GitRunner
 
     private async Task<GitResult> RunCoreAsync(IReadOnlyList<string> arguments, GitRunOptions runOptions, CancellationToken cancellationToken)
     {
-        var timeout = runOptions.Timeout ?? options.EffectiveTimeout;
+        var timeout = runOptions.Timeout ?? _options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(timeout);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
         using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
@@ -171,7 +172,7 @@ public sealed class GitRunner
         GitRunOptions runOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var timeout = runOptions.Timeout ?? options.EffectiveTimeout;
+        var timeout = runOptions.Timeout ?? _options.EffectiveTimeout;
         using var timeoutSource = new CancellationTokenSource(Timeout.InfiniteTimeSpan);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
         using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);

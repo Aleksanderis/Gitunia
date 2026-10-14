@@ -1,3 +1,4 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Search;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
@@ -12,7 +13,7 @@ public class SearchHighlightTests
     private static ScreenModel Model(string searchLine = "") =>
         new("repo", "main", 1, 1, "INSERT", string.Empty, 1, 3, false, string.Empty, searchLine);
 
-    private static Gitunia.Core.Graph.CommitGraph Graph() => CommitFactory.Graph(
+    private static CommitGraph Graph() => CommitFactory.Graph(
         CommitFactory.Commit(3, "Fix the Parser", [2]),
         CommitFactory.Commit(2, "Add tests", [1]),
         CommitFactory.Commit(1, "fix lint", []));

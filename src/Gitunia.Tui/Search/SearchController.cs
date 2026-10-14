@@ -26,7 +26,7 @@ public sealed class SearchController(GraphViewHandle view, Action<Action> postTo
             }
 
             var text = GraphSearchStatusText.Describe(session.Search, view.SelectedRow(), session.Graph.Count);
-            return session.Search.Notice.Length > 0 ? text + "  " + session.Search.Notice : text;
+            return session.Search.Notice.Length > 0 ? $"{text}  {session.Search.Notice}" : text;
         }
     }
 

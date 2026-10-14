@@ -65,7 +65,7 @@ public class GraphTabBinderTests
         using var repository = TestRepository.Create();
         for (var index = 0; index < 30; index++)
         {
-            repository.Commit("commit " + index, new TestFile("a.txt", index.ToString()));
+            repository.Commit($"commit {index}", new TestFile("a.txt", index.ToString()));
         }
 
         using var harness = await Harness.LoadAsync(repository);
@@ -111,7 +111,7 @@ public class GraphTabBinderTests
         public static async Task<Harness> LoadAsync(TestRepository repository)
         {
             var runner = new GitRunner();
-            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.Path, CancellationToken.None);
+            var location = await RepositoryDiscovery.DiscoverAsync(runner, repository.WorkingTreePath, CancellationToken.None);
             var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
             var tabId = update.Workspace.Tabs[0].Id;
             var pump = new UiPump(TestContext.Current.CancellationToken);

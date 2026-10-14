@@ -23,7 +23,7 @@ public sealed class CommitStore
         chunk.CopyTo(_data.AsSpan(_length));
         _length += chunk.Length;
 
-        // index complete lines only; a partial trailing line waits for the next chunk
+        // Index complete lines only; a partial trailing line waits for the next chunk
         var lineStart = Count == 0 ? 0 : _starts[Count - 1] + LineLength(Count - 1) + 1;
         for (var i = Math.Max(_scanned, lineStart); i < _length; i++)
         {

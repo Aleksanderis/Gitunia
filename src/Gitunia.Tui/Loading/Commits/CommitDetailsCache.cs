@@ -16,32 +16,32 @@ public sealed class CommitDetailsCache
     /// <summary>Changed files kept by default across all entries (a file change is roughly 100 to 200 bytes).</summary>
     public const int DefaultFileBudget = 20_000;
 
-    private readonly int capacity;
-    private readonly int fileBudget;
-    private readonly Dictionary<ObjectId, LinkedListNode<CommitDetails>> nodes = [];
-    private readonly LinkedList<CommitDetails> recentFirst = new();
-    private int fileCount;
+    private readonly int _capacity;
+    private readonly int _fileBudget;
+    private readonly Dictionary<ObjectId, LinkedListNode<CommitDetails>> _nodes = [];
+    private readonly LinkedList<CommitDetails> _recentFirst = new();
+    private int _fileCount;
 
     public CommitDetailsCache(int capacity = DefaultCapacity, int fileBudget = DefaultFileBudget)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(fileBudget, 0);
-        this.capacity = capacity;
-        this.fileBudget = fileBudget;
+        _capacity = capacity;
+        _fileBudget = fileBudget;
     }
 
-    public int Count => nodes.Count;
+    public int Count => _nodes.Count;
 
     /// <summary>The changed files held by all entries.</summary>
-    public int FileCount => fileCount;
+    public int FileCount => _fileCount;
 
     /// <summary>Looks a commit up and marks it as the most recently used.</summary>
     public bool TryGet(ObjectId commit, out CommitDetails details)
     {
-        if (nodes.TryGetValue(commit, out var node))
+        if (_nodes.TryGetValue(commit, out var node))
         {
-            recentFirst.Remove(node);
-            recentFirst.AddFirst(node);
+            _recentFirst.Remove(node);
+            _recentFirst.AddFirst(node);
             details = node.Value;
             return true;
         }
@@ -51,38 +51,38 @@ public sealed class CommitDetailsCache
     }
 
     /// <summary>Whether a commit is cached, without changing its recency.</summary>
-    public bool Contains(ObjectId commit) => nodes.ContainsKey(commit);
+    public bool Contains(ObjectId commit) => _nodes.ContainsKey(commit);
 
     /// <summary>Adds (or refreshes) an entry as the most recently used and evicts the least recently used ones beyond the bounds. A commit alone over the file budget is not kept.</summary>
     public void Add(CommitDetails details)
     {
         Remove(details.Id);
-        if (details.Files.Count > fileBudget)
+        if (details.Files.Count > _fileBudget)
         {
             return;
         }
 
-        nodes[details.Id] = recentFirst.AddFirst(details);
-        fileCount += details.Files.Count;
-        while (nodes.Count > capacity || fileCount > fileBudget)
+        _nodes[details.Id] = _recentFirst.AddFirst(details);
+        _fileCount += details.Files.Count;
+        while (_nodes.Count > _capacity || _fileCount > _fileBudget)
         {
-            Remove(recentFirst.Last!.Value.Id);
+            Remove(_recentFirst.Last!.Value.Id);
         }
     }
 
     public void Clear()
     {
-        nodes.Clear();
-        recentFirst.Clear();
-        fileCount = 0;
+        _nodes.Clear();
+        _recentFirst.Clear();
+        _fileCount = 0;
     }
 
     private void Remove(ObjectId commit)
     {
-        if (nodes.Remove(commit, out var node))
+        if (_nodes.Remove(commit, out var node))
         {
-            recentFirst.Remove(node);
-            fileCount -= node.Value.Files.Count;
+            _recentFirst.Remove(node);
+            _fileCount -= node.Value.Files.Count;
         }
     }
 }

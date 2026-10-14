@@ -16,21 +16,21 @@ public static class GraphSearchStatusText
             return string.Empty;
         }
 
-        var text = "/" + state.Text + (state.Phase == SearchPhase.Editing ? "_" : string.Empty);
+        var text = $"/{state.Text}{(state.Phase == SearchPhase.Editing ? "_" : string.Empty)}";
         if (state.Query is null)
         {
             return text;
         }
 
-        var matchCount = state.Matches.Length.ToString(CultureInfo.InvariantCulture) + (state.IsComplete ? string.Empty : "+");
+        var matchCount = $"{state.Matches.Length.ToString(CultureInfo.InvariantCulture)}{(state.IsComplete ? string.Empty : "+")}";
         var position = state.Matches.IndexOf(selectedIndex);
-        var summary = position >= 0 ? (position + 1).ToString(CultureInfo.InvariantCulture) + "/" + matchCount : matchCount + " found";
+        var summary = position >= 0 ? $"{(position + 1).ToString(CultureInfo.InvariantCulture)}/{matchCount}" : $"{matchCount} found";
         if (!state.IsComplete && loadedCount > 0)
         {
             var percent = (int)Math.Min(100L, (long)state.Scanned * 100 / loadedCount);
-            summary += " searching " + percent.ToString(CultureInfo.InvariantCulture) + "%";
+            summary = $"{summary} searching {percent.ToString(CultureInfo.InvariantCulture)}%";
         }
 
-        return text + "  " + summary;
+        return $"{text}  {summary}";
     }
 }

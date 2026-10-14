@@ -24,7 +24,7 @@ public class GraphSplicerTests
         var (result, joinIndex) = Reload(old, updated);
 
         Assert.True(joinIndex >= 0);
-        Assert.True(400 - joinIndex - 1 > 300, "Expected most rows below the join to be reused, joined at " + joinIndex);
+        Assert.True(400 - joinIndex - 1 > 300, $"Expected most rows below the join to be reused, joined at {joinIndex}");
         AssertEqualToFullLayout(updated, result);
     }
 

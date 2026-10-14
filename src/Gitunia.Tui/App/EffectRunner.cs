@@ -19,39 +19,39 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class EffectRunner : IDisposable
 {
-    private readonly GitRunner runner;
-    private readonly WorkspaceHost host;
-    private readonly Action<Action> postToUi;
-    private readonly StatusChannel statuses;
-    private readonly GraphGlyphSet glyphs;
-    private readonly TimeSpan detailDebounce;
-    private readonly Dictionary<TabId, TabSession> sessions = [];
-    private readonly Dictionary<TabId, Action> pendingLoads = [];
-    private readonly Dictionary<TabId, TabRefresher> refreshers = [];
-    private readonly WatchBudget watchBudget;
-    private readonly RepositoryWatcherOptions watcherOptions;
+    private readonly GitRunner _runner;
+    private readonly WorkspaceHost _host;
+    private readonly Action<Action> _postToUi;
+    private readonly StatusChannel _statuses;
+    private readonly GraphGlyphSet _glyphs;
+    private readonly TimeSpan _detailDebounce;
+    private readonly Dictionary<TabId, TabSession> _sessions = [];
+    private readonly Dictionary<TabId, Action> _pendingLoads = [];
+    private readonly Dictionary<TabId, TabRefresher> _refreshers = [];
+    private readonly WatchBudget _watchBudget;
+    private readonly RepositoryWatcherOptions _watcherOptions;
 
     public EffectRunner(GitRunner runner, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null, RepositoryWatcherOptions? watcherOptions = null, WatchBudget? watchBudget = null)
     {
-        this.watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
-        this.watchBudget = watchBudget ?? new WatchBudget();
-        this.detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
-        this.runner = runner;
-        this.host = host;
-        this.postToUi = postToUi;
-        this.glyphs = glyphs;
-        this.statuses = statuses;
+        _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
+        _watchBudget = watchBudget ?? new WatchBudget();
+        _detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
+        _runner = runner;
+        _host = host;
+        _postToUi = postToUi;
+        _glyphs = glyphs;
+        _statuses = statuses;
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;
     }
 
     /// <summary>The runtime session of an open tab, or null.</summary>
-    public TabSession? SessionOf(TabId tabId) => sessions.GetValueOrDefault(tabId);
+    public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>
     public bool Refresh(TabId tabId)
     {
-        if (!refreshers.TryGetValue(tabId, out var refresher))
+        if (!_refreshers.TryGetValue(tabId, out var refresher))
         {
             return false;
         }
@@ -62,12 +62,12 @@ public sealed class EffectRunner : IDisposable
 
     public void Dispose()
     {
-        foreach (var refresher in refreshers.Values)
+        foreach (var refresher in _refreshers.Values)
         {
             refresher.Dispose();
         }
 
-        refreshers.Clear();
+        _refreshers.Clear();
     }
 
     private void Run(WorkspaceEffect effect)
@@ -78,9 +78,9 @@ public sealed class EffectRunner : IDisposable
                 StartLoad(load);
                 break;
             case CancelLoadEffect cancel:
-                pendingLoads.Remove(cancel.TabId);
+                _pendingLoads.Remove(cancel.TabId);
                 DisposeRefresher(cancel.TabId);
-                if (sessions.Remove(cancel.TabId, out var closed))
+                if (_sessions.Remove(cancel.TabId, out var closed))
                 {
                     closed.Dispose();
                 }
@@ -91,48 +91,48 @@ public sealed class EffectRunner : IDisposable
 
     private void StartLoad(LoadRepositoryEffect load)
     {
-        var tab = host.Workspace.FindTab(load.TabId);
+        var tab = _host.Workspace.FindTab(load.TabId);
         if (tab is null)
         {
             return;
         }
 
-        pendingLoads.Remove(load.TabId);
+        _pendingLoads.Remove(load.TabId);
         DisposeRefresher(load.TabId);
-        if (sessions.Remove(load.TabId, out var previous))
+        if (_sessions.Remove(load.TabId, out var previous))
         {
             previous.Dispose();
         }
 
-        var repository = new Repository(runner, tab.Location);
-        var session = new TabSession(load.TabId, glyphs, new CommitDetailsStore(repository, postToUi, detailDebounce), new DiffStore(repository, postToUi));
-        sessions[load.TabId] = session;
+        var repository = new Repository(_runner, tab.Location);
+        var session = new TabSession(load.TabId, _glyphs, new CommitDetailsStore(repository, _postToUi, _detailDebounce), new DiffStore(repository, _postToUi));
+        _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
         void Start()
         {
             session.MarkStarted();
-            var refresher = new TabRefresher(runner, host, session, tab.Location, statuses, postToUi, watchBudget, watcherOptions);
-            refreshers[load.TabId] = refresher;
+            var refresher = new TabRefresher(_runner, _host, session, tab.Location, _statuses, _postToUi, _watchBudget, _watcherOptions);
+            _refreshers[load.TabId] = refresher;
             refresher.Start();
-            refresher.SetActive(host.Workspace.ActiveTabId == load.TabId);
-            _ = Task.Run(() => RepositoryLoader.RunAsync(runner, location, session, host, statuses, postToUi, token), CancellationToken.None);
+            refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
+            _ = Task.Run(() => RepositoryLoader.RunAsync(_runner, location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
         // Only the active tab loads now; background tabs keep an empty session until first activated (docs/architecture.md, "Many tabs").
-        if (host.Workspace.ActiveTabId == load.TabId)
+        if (_host.Workspace.ActiveTabId == load.TabId)
         {
             Start();
         }
         else
         {
-            pendingLoads[load.TabId] = Start;
+            _pendingLoads[load.TabId] = Start;
         }
     }
 
     private void DisposeRefresher(TabId tabId)
     {
-        if (refreshers.Remove(tabId, out var refresher))
+        if (_refreshers.Remove(tabId, out var refresher))
         {
             refresher.Dispose();
         }
@@ -141,8 +141,8 @@ public sealed class EffectRunner : IDisposable
     private void OnHostChanged()
     {
         StartActiveTabLoad();
-        var activeId = host.Workspace.ActiveTabId;
-        foreach (var (tabId, refresher) in refreshers)
+        var activeId = _host.Workspace.ActiveTabId;
+        foreach (var (tabId, refresher) in _refreshers)
         {
             refresher.SetActive(tabId == activeId);
         }
@@ -150,7 +150,7 @@ public sealed class EffectRunner : IDisposable
 
     private void StartActiveTabLoad()
     {
-        if (pendingLoads.Count > 0 && host.Workspace.ActiveTabId is { } active && pendingLoads.Remove(active, out var start))
+        if (_pendingLoads.Count > 0 && _host.Workspace.ActiveTabId is { } active && _pendingLoads.Remove(active, out var start))
         {
             start();
         }

@@ -13,12 +13,12 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, ListView graph, GraphListSource emptySource, Action redraw)
 {
-    private bool hasShown;
-    private TabId? shownTabId;
-    private TabSession? shownSession;
-    private bool restorePending;
-    private int itemBeforeReplace;
-    private int rowBeforeReplace;
+    private bool _hasShown;
+    private TabId? _shownTabId;
+    private TabSession? _shownSession;
+    private bool _restorePending;
+    private int _itemBeforeReplace;
+    private int _rowBeforeReplace;
 
     /// <summary>Raised when the shown tab changed, with the session that was shown and the one that is shown now (either may be null).</summary>
     public event Action<TabSession?, TabSession?>? Switched;
@@ -33,14 +33,14 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     public void Sync()
     {
         var activeId = host.Workspace.ActiveTabId;
-        if (hasShown && activeId == shownTabId)
+        if (_hasShown && activeId == _shownTabId)
         {
             return;
         }
 
-        hasShown = true;
-        shownTabId = activeId;
-        var previousSession = shownSession;
+        _hasShown = true;
+        _shownTabId = activeId;
+        var previousSession = _shownSession;
         if (previousSession is not null)
         {
             previousSession.Changed -= OnSessionChanged;
@@ -48,19 +48,19 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
             previousSession.GraphReplaced -= OnGraphReplaced;
         }
 
-        shownSession = activeId is { } id ? effects.SessionOf(id) : null;
+        _shownSession = activeId is { } id ? effects.SessionOf(id) : null;
         IsSuspended = true;
         try
         {
-            graph.Source = shownSession?.Source ?? emptySource;
+            graph.Source = _shownSession?.Source ?? emptySource;
             graph.SelectedItem = null;
-            restorePending = shownSession is not null;
-            Switched?.Invoke(previousSession, shownSession);
-            if (shownSession is not null)
+            _restorePending = _shownSession is not null;
+            Switched?.Invoke(previousSession, _shownSession);
+            if (_shownSession is not null)
             {
-                shownSession.Changed += OnSessionChanged;
-                shownSession.GraphReplacing += OnGraphReplacing;
-                shownSession.GraphReplaced += OnGraphReplaced;
+                _shownSession.Changed += OnSessionChanged;
+                _shownSession.GraphReplacing += OnGraphReplacing;
+                _shownSession.GraphReplaced += OnGraphReplaced;
                 TryRestore();
             }
         }
@@ -75,14 +75,14 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
     private void OnGraphReplacing()
     {
-        itemBeforeReplace = graph.SelectedItem ?? 0;
-        rowBeforeReplace = Math.Max(0, itemBeforeReplace - graph.Viewport.Y);
+        _itemBeforeReplace = graph.SelectedItem ?? 0;
+        _rowBeforeReplace = Math.Max(0, _itemBeforeReplace - graph.Viewport.Y);
     }
 
     // A refreshed log keeps the selected commit selected and on the same screen row; when the commit is gone the old position stays.
     private void OnGraphReplaced()
     {
-        if (shownSession is not { } session)
+        if (_shownSession is not { } session)
         {
             return;
         }
@@ -90,8 +90,8 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         var count = session.Source.Count;
         var wanted = host.Workspace.ActiveTab?.View.SelectedCommit;
         var index = wanted is { } commit ? session.Graph.IndexOf(commit) : -1;
-        var item = index >= 0 ? index + ScreenLayout.ReservedLeadingRows : Math.Min(itemBeforeReplace, Math.Max(0, count - 1));
-        var top = Math.Clamp(item - rowBeforeReplace, 0, Math.Max(0, count - graph.Viewport.Height));
+        var item = index >= 0 ? index + ScreenLayout.ReservedLeadingRows : Math.Min(_itemBeforeReplace, Math.Max(0, count - 1));
+        var top = Math.Clamp(item - _rowBeforeReplace, 0, Math.Max(0, count - graph.Viewport.Height));
         IsSuspended = index >= 0 || wanted is null;
         try
         {
@@ -116,7 +116,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
     private void OnSessionChanged()
     {
-        if (restorePending)
+        if (_restorePending)
         {
             IsSuspended = true;
             try
@@ -137,16 +137,16 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     private void TryRestore()
     {
         var tab = host.Workspace.ActiveTab;
-        if (shownSession is not { } session || tab is null)
+        if (_shownSession is not { } session || tab is null)
         {
-            restorePending = false;
+            _restorePending = false;
             return;
         }
 
         var count = session.Source.Count;
         if (count == 0)
         {
-            restorePending = session.IsLoading;
+            _restorePending = session.IsLoading;
             return;
         }
 
@@ -166,6 +166,6 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
             graph.Viewport = graph.Viewport with { Y = Math.Min(offset, Math.Max(0, count - height)) };
         }
 
-        restorePending = false;
+        _restorePending = false;
     }
 }

@@ -16,8 +16,8 @@ public class RefReaderTests
     [Fact]
     public async Task GivenBranchyRepository_WhenReadingRefs_ThenBranchesAndTagAreListed()
     {
-        using var testRepository = TestRepositories.Branchy();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await RefReader.ReadRefsAsync(repository, Token);
 
@@ -33,7 +33,7 @@ public class RefReaderTests
     public async Task GivenUnbornBranch_WhenReadingRefs_ThenNoRefsAndOneWorktree()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Empty((await RefReader.ReadRefsAsync(repository, Token)).Items);
         var worktree = Assert.Single((await RefReader.ReadWorktreesAsync(repository, Token)).Items);
@@ -45,7 +45,7 @@ public class RefReaderTests
     {
         using var testRepository = TestRepositories.Linear(2);
         testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var result = await RefReader.ReadRefsAsync(repository, Token);
 
@@ -57,7 +57,7 @@ public class RefReaderTests
     public async Task GivenUnbornBranch_WhenReadingWorktrees_ThenHeadHashIsNull()
     {
         using var testRepository = TestRepository.Create();
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         Assert.Null(Assert.Single((await RefReader.ReadWorktreesAsync(repository, Token)).Items).HeadHash);
     }
@@ -69,7 +69,7 @@ public class RefReaderTests
         testRepository.Branch("feature/ünï_branch");
         testRepository.Tag("release/1.0");
         var worktreePath = testRepository.AddWorktree("wt with space", "feature/ünï_branch");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var refs = (await RefReader.ReadRefsAsync(repository, Token)).Items;
 
@@ -83,16 +83,16 @@ public class RefReaderTests
     {
         using var origin = TestRepository.Create(bare: true);
         using var local = TestRepository.Create().Commit("One", new TestFile("f.txt", "1\n"));
-        local.Git("remote", "add", "origin", origin.Path);
+        local.Git("remote", "add", "origin", origin.WorkingTreePath);
         local.Git("push", "-q", "-u", "origin", "main");
         local.Commit("Two local", new TestFile("f.txt", "2\n"));
         // Make origin move independently: push a second commit built from a clone.
-        var clonePath = Path.Combine(Path.GetDirectoryName(local.Path)!, "clone");
-        local.Git("clone", "-q", origin.Path, clonePath);
+        var clonePath = Path.Combine(Path.GetDirectoryName(local.WorkingTreePath)!, "clone");
+        local.Git("clone", "-q", origin.WorkingTreePath, clonePath);
         local.Git(["-C", clonePath, "-c", "user.name=T", "-c", "user.email=t@e.com", "commit", "-q", "--allow-empty", "-m", "Remote two"], null);
         local.Git("-C", clonePath, "push", "-q", "origin", "main");
         local.Git("fetch", "-q", "origin");
-        var repository = await Repository.OpenAsync(Runner, local.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, local.WorkingTreePath, Token);
 
         var main = (await RefReader.ReadRefsAsync(repository, Token)).Items.Single(reference => reference.Name == "main");
 
@@ -110,7 +110,7 @@ public class RefReaderTests
         testRepository.AddWorktree("detached-wt", "HEAD~1", createBranch: false);
         testRepository.Git("worktree", "lock", "--reason", "keep me", locked);
         Directory.Delete(prunable, recursive: true);
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var worktrees = (await RefReader.ReadWorktreesAsync(repository, Token)).Items;
 

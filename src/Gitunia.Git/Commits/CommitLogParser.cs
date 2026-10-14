@@ -14,15 +14,15 @@ public sealed class CommitLogParser
     private static readonly ObjectId[] NoParents = [];
     private static readonly CommitDecoration[] NoDecorations = [];
 
-    private readonly List<byte> carry = [];
-    private readonly List<string> warnings = [];
-    private readonly Dictionary<string, string> internedText = [];
+    private readonly List<byte> _carry = [];
+    private readonly List<string> _warnings = [];
+    private readonly Dictionary<string, string> _internedText = [];
 
     /// <summary>Everything the parser could not understand so far.</summary>
-    public IReadOnlyList<string> Warnings => warnings;
+    public IReadOnlyList<string> Warnings => _warnings;
 
     /// <summary>Bytes of an unfinished commit held back (never more than one commit).</summary>
-    public int BufferedByteCount => carry.Count;
+    public int BufferedByteCount => _carry.Count;
 
     /// <summary>Parses the next chunk and appends every commit completed by it to <paramref name="output"/>.</summary>
     public void Feed(ReadOnlySpan<byte> chunk, ICollection<CommitInfo> output)
@@ -34,13 +34,13 @@ public sealed class CommitLogParser
             {
                 foreach (var value in chunk)
                 {
-                    carry.Add(value);
+                    _carry.Add(value);
                 }
 
                 return;
             }
 
-            if (carry.Count == 0)
+            if (_carry.Count == 0)
             {
                 ParseRecord(chunk[..terminator], output);
             }
@@ -48,11 +48,11 @@ public sealed class CommitLogParser
             {
                 foreach (var value in chunk[..terminator])
                 {
-                    carry.Add(value);
+                    _carry.Add(value);
                 }
 
-                ParseRecord(carry.ToArray(), output);
-                carry.Clear();
+                ParseRecord(_carry.ToArray(), output);
+                _carry.Clear();
             }
 
             chunk = chunk[(terminator + 1)..];
@@ -62,10 +62,10 @@ public sealed class CommitLogParser
     /// <summary>Call after the last chunk; reports a truncated final commit.</summary>
     public void Complete()
     {
-        if (carry.Count > 0)
+        if (_carry.Count > 0)
         {
-            warnings.Add($"Output ended inside a commit record ({carry.Count} bytes dropped)");
-            carry.Clear();
+            _warnings.Add($"Output ended inside a commit record ({_carry.Count} bytes dropped)");
+            _carry.Clear();
         }
     }
 
@@ -161,26 +161,26 @@ public sealed class CommitLogParser
         SplitFields(record, fields, out var count);
         if (count < CommitLogFormat.FieldCount)
         {
-            warnings.Add($"Skipped commit record with {count} fields");
+            _warnings.Add($"Skipped commit record with {count} fields");
             return;
         }
 
         if (!ObjectId.TryParse(record[fields[0]], out var id))
         {
-            warnings.Add("Skipped commit record with an invalid hash");
+            _warnings.Add("Skipped commit record with an invalid hash");
             return;
         }
 
         var parents = ParseParents(record[fields[1]]);
         if (parents is null)
         {
-            warnings.Add($"Skipped commit {id} with an invalid parent list");
+            _warnings.Add($"Skipped commit {id} with an invalid parent list");
             return;
         }
 
         if (!TryParseAuthorTime(record[fields[4]], out var authorTime))
         {
-            warnings.Add($"Commit {id} has an invalid author time");
+            _warnings.Add($"Commit {id} has an invalid author time");
         }
 
         output.Add(new CommitInfo(
@@ -273,12 +273,12 @@ public sealed class CommitLogParser
     private string Intern(ReadOnlySpan<byte> utf8)
     {
         var text = Encoding.UTF8.GetString(utf8);
-        if (internedText.TryGetValue(text, out var existing))
+        if (_internedText.TryGetValue(text, out var existing))
         {
             return existing;
         }
 
-        internedText[text] = text;
+        _internedText[text] = text;
         return text;
     }
 }

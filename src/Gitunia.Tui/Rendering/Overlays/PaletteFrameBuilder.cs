@@ -29,7 +29,7 @@ public static class PaletteFrameBuilder
         var selected = window.Selected;
         var top = window.Top;
 
-        var lines = new List<StyledLine> { OverlayBox.Title(": " + palette.Query + "_", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title($": {palette.Query}_", width, glyphs) };
         if (visible.Count == 0)
         {
             lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));

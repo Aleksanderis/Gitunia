@@ -50,8 +50,8 @@ public sealed class CellBuffer
             return;
         }
 
-        Put(x, y, "┌" + new string('─', width - 2) + "┐", style);
-        Put(x, y + height - 1, "└" + new string('─', width - 2) + "┘", style);
+        Put(x, y, $"┌{new string('─', width - 2)}┐", style);
+        Put(x, y + height - 1, $"└{new string('─', width - 2)}┘", style);
         for (var row = 1; row < height - 1; row++)
         {
             Put(x, y + row, "│", style);
@@ -60,7 +60,7 @@ public sealed class CellBuffer
 
         if (title.Length > 0 && width > 6)
         {
-            var label = " " + (title.Length > width - 6 ? title[..(width - 6)] : title) + " ";
+            var label = $" {(title.Length > width - 6 ? title[..(width - 6)] : title)} ";
             Put(x + 2, y, label, style);
         }
     }

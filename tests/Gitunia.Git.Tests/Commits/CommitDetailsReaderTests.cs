@@ -15,7 +15,7 @@ public class CommitDetailsReaderTests
 
     private static async Task<CommitDetails> ReadAsync(TestRepository testRepository, string revision)
     {
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));
         var details = await CommitDetailsReader.ReadAsync(repository, id, cancellationToken: Token);
         return Assert.IsType<CommitDetails>(details);
@@ -56,7 +56,7 @@ public class CommitDetailsReaderTests
     [Fact]
     public async Task GivenMergeCommit_WhenReading_ThenTwoParentsAndFilesAgainstFirstParent()
     {
-        using var testRepository = TestRepositories.Branchy();
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
 
         var details = await ReadAsync(testRepository, "HEAD");
 
@@ -82,7 +82,7 @@ public class CommitDetailsReaderTests
     public async Task GivenCancelledToken_WhenReading_ThenThrowsCancellation()
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n"));
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         Assert.True(ObjectId.TryParse(testRepository.Head, out var id));
         using var source = new CancellationTokenSource();
         await source.CancelAsync();

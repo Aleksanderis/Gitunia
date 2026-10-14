@@ -6,8 +6,8 @@ namespace Gitunia.Git.Execution;
 /// <summary>Detects the installed git version and enforces the minimum.</summary>
 public static class GitVersionDetector
 {
-    /// <exception cref="GitVersionTooOldException">git is older than <see cref="GitVersion.Minimum"/>.</exception>
-    /// <exception cref="GitNotFoundException">git cannot be started.</exception>
+    /// <exception cref="GitVersionTooOldException">Git is older than <see cref="GitVersion.Minimum"/>.</exception>
+    /// <exception cref="GitNotFoundException">Git cannot be started.</exception>
     public static async Task<GitVersion> DetectAsync(GitRunner runner, CancellationToken cancellationToken)
     {
         var result = await runner.RunGlobalAsync(["--version"], GitRunOptions.Default, cancellationToken).ConfigureAwait(false);

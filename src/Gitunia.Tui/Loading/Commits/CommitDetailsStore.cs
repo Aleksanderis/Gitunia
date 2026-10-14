@@ -16,14 +16,14 @@ namespace Gitunia.Tui.Loading.Commits;
 /// </summary>
 public sealed class CommitDetailsStore : IDisposable
 {
-    private readonly Repository repository;
-    private readonly Action<Action> postToUi;
-    private readonly TimeSpan debounce;
-    private readonly Func<TimeSpan, CancellationToken, Task> delay;
-    private readonly TimeProvider timeProvider;
-    private readonly CommitDetailsCache cache;
-    private CancellationTokenSource? pending;
-    private long? lastSelectTimestamp;
+    private readonly Repository _repository;
+    private readonly Action<Action> _postToUi;
+    private readonly TimeSpan _debounce;
+    private readonly Func<TimeSpan, CancellationToken, Task> _delay;
+    private readonly TimeProvider _timeProvider;
+    private readonly CommitDetailsCache _cache;
+    private CancellationTokenSource? _pending;
+    private long? _lastSelectTimestamp;
 
     /// <param name="repository">The repository the commits belong to.</param>
     /// <param name="postToUi">Runs an action on the UI thread.</param>
@@ -39,12 +39,12 @@ public sealed class CommitDetailsStore : IDisposable
         CommitDetailsCache? cache = null,
         TimeProvider? timeProvider = null)
     {
-        this.delay = delay ?? Task.Delay;
-        this.cache = cache ?? new CommitDetailsCache();
-        this.timeProvider = timeProvider ?? TimeProvider.System;
-        this.repository = repository;
-        this.postToUi = postToUi;
-        this.debounce = debounce;
+        _delay = delay ?? Task.Delay;
+        _cache = cache ?? new CommitDetailsCache();
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _repository = repository;
+        _postToUi = postToUi;
+        _debounce = debounce;
     }
 
     /// <summary>Raised on the UI thread when <see cref="Current"/> changed.</summary>
@@ -53,7 +53,7 @@ public sealed class CommitDetailsStore : IDisposable
     public CommitDetailsState Current { get; private set; } = CommitDetailsState.Empty;
 
     /// <summary>The number of commits whose details are cached right now (bounded, see <see cref="CommitDetailsCache"/>).</summary>
-    public int CachedCount => cache.Count;
+    public int CachedCount => _cache.Count;
 
     /// <summary>Makes <paramref name="commit"/> the selected commit and loads its details unless they are known already.</summary>
     /// <param name="commit">The commit to show.</param>
@@ -65,12 +65,12 @@ public sealed class CommitDetailsStore : IDisposable
             return;
         }
 
-        var now = timeProvider.GetTimestamp();
-        var isFresh = lastSelectTimestamp is not { } last || timeProvider.GetElapsedTime(last, now) >= debounce;
-        lastSelectTimestamp = now;
+        var now = _timeProvider.GetTimestamp();
+        var isFresh = _lastSelectTimestamp is not { } last || _timeProvider.GetElapsedTime(last, now) >= _debounce;
+        _lastSelectTimestamp = now;
         CancelPending();
         var wanted = WantedForPrefetch(commit, prefetch);
-        if (cache.TryGet(commit, out var known))
+        if (_cache.TryGet(commit, out var known))
         {
             Current = new CommitDetailsState(commit, CommitDetailsStatus.Loaded, known, string.Empty);
             Changed?.Invoke();
@@ -80,9 +80,9 @@ public sealed class CommitDetailsStore : IDisposable
 
         Current = new CommitDetailsState(commit, CommitDetailsStatus.Loading, null, string.Empty);
         Changed?.Invoke();
-        pending = new CancellationTokenSource();
-        var token = pending.Token;
-        var wait = isFresh ? TimeSpan.Zero : debounce;
+        _pending = new CancellationTokenSource();
+        var token = _pending.Token;
+        var wait = isFresh ? TimeSpan.Zero : _debounce;
         _ = Task.Run(() => LoadAsync(commit, wait, wanted, token), CancellationToken.None);
     }
 
@@ -104,9 +104,9 @@ public sealed class CommitDetailsStore : IDisposable
 
     private void CancelPending()
     {
-        pending?.Cancel();
-        pending?.Dispose();
-        pending = null;
+        _pending?.Cancel();
+        _pending?.Dispose();
+        _pending = null;
     }
 
     private ObjectId[] WantedForPrefetch(ObjectId commit, IReadOnlyList<ObjectId>? prefetch)
@@ -116,7 +116,7 @@ public sealed class CommitDetailsStore : IDisposable
             return [];
         }
 
-        return prefetch.Where(candidate => candidate != commit && !cache.Contains(candidate)).Distinct().ToArray();
+        return prefetch.Where(candidate => candidate != commit && !_cache.Contains(candidate)).Distinct().ToArray();
     }
 
     private void StartPrefetch(ObjectId[] wanted)
@@ -126,8 +126,8 @@ public sealed class CommitDetailsStore : IDisposable
             return;
         }
 
-        pending = new CancellationTokenSource();
-        var token = pending.Token;
+        _pending = new CancellationTokenSource();
+        var token = _pending.Token;
         _ = Task.Run(() => PrefetchAfterDebounceAsync(wanted, token), CancellationToken.None);
     }
 
@@ -136,7 +136,7 @@ public sealed class CommitDetailsStore : IDisposable
         try
         {
             // The neighbours of a commit the user is only passing over are not worth a process each.
-            await delay(debounce, token).ConfigureAwait(false);
+            await _delay(_debounce, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -154,10 +154,10 @@ public sealed class CommitDetailsStore : IDisposable
             try
             {
                 token.ThrowIfCancellationRequested();
-                var details = await CommitDetailsReader.ReadAsync(repository, neighbour, cancellationToken: token).ConfigureAwait(false);
+                var details = await CommitDetailsReader.ReadAsync(_repository, neighbour, cancellationToken: token).ConfigureAwait(false);
                 if (details is not null)
                 {
-                    postToUi(() => RememberPrefetched(details, token));
+                    _postToUi(() => RememberPrefetched(details, token));
                 }
             }
             catch (OperationCanceledException)
@@ -177,9 +177,9 @@ public sealed class CommitDetailsStore : IDisposable
         CommitDetails? details;
         try
         {
-            await delay(wait, token).ConfigureAwait(false);
-            details = await CommitDetailsReader.ReadAsync(repository, commit, cancellationToken: token).ConfigureAwait(false);
-            postToUi(() => Complete(commit, details, string.Empty, token));
+            await _delay(wait, token).ConfigureAwait(false);
+            details = await CommitDetailsReader.ReadAsync(_repository, commit, cancellationToken: token).ConfigureAwait(false);
+            _postToUi(() => Complete(commit, details, string.Empty, token));
         }
         catch (OperationCanceledException)
         {
@@ -188,7 +188,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         catch (Exception exception)
         {
-            postToUi(() => Complete(commit, null, exception.Message, token));
+            _postToUi(() => Complete(commit, null, exception.Message, token));
             return;
         }
 
@@ -212,7 +212,7 @@ public sealed class CommitDetailsStore : IDisposable
         }
         else
         {
-            cache.Add(details);
+            _cache.Add(details);
             Current = new CommitDetailsState(commit, CommitDetailsStatus.Loaded, details, string.Empty);
         }
 
@@ -223,7 +223,7 @@ public sealed class CommitDetailsStore : IDisposable
     {
         if (!token.IsCancellationRequested)
         {
-            cache.Add(details);
+            _cache.Add(details);
         }
     }
 }

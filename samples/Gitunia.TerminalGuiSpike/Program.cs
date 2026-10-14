@@ -40,12 +40,12 @@ public static class Program
         var header = new SegmentView
         {
             X = 0, Y = 0, Width = Dim.Fill(), Height = 1, Fill = Look.Style(TextStyle.Bold | TextStyle.Reverse),
-            Build = () => [(" ● Gitunia  ─  " + repositoryName, Look.Style(TextStyle.Bold | TextStyle.Reverse))],
+            Build = () => [($" ● Gitunia  ─  {repositoryName}", Look.Style(TextStyle.Bold | TextStyle.Reverse))],
         };
         var tabs = new SegmentView
         {
             X = 0, Y = 1, Width = Dim.Fill(), Height = 1,
-            Build = () => [(" 1 " + repositoryName + " ", Look.Style(TextStyle.Reverse)), (" +  (tabs: M1)", Look.Style(TextStyle.Faint))],
+            Build = () => [($" 1 {repositoryName} ", Look.Style(TextStyle.Reverse)), (" +  (tabs: M1)", Look.Style(TextStyle.Faint))],
         };
 
         // Pane borders: bold when focused, faint otherwise (same cue as the custom demo).
@@ -143,7 +143,7 @@ public static class Program
             var mode = _searching ? "SEARCH" : "NORMAL";
             var position = count == 0 ? 0 : (_active.SelectedItem ?? 0) + 1;
             statusText = _searching
-                ? " /" + _query
+                ? $" /{_query}"
                 : $" {mode}  [{(_active == list ? "Graph" : "Refs")}]  {position}/{count}  Tab j/k gg G ^d ^u / n N q";
             if (graph.Count > 0)
             {
@@ -192,7 +192,7 @@ public static class Program
                 }
             }
 
-            statusText = " no match: " + _query;
+            statusText = $" no match: {_query}";
             status.SetNeedsDraw();
         }
 

@@ -8,8 +8,8 @@ public class TestRepositoryTests
     [Fact]
     public void GivenSameRecipe_WhenBuiltTwice_ThenCommitHashesAreIdentical()
     {
-        using var first = TestRepositories.Branchy();
-        using var second = TestRepositories.Branchy();
+        using var first = TestRepositories.WithMergedFeatureBranch();
+        using var second = TestRepositories.WithMergedFeatureBranch();
 
         Assert.Equal("ee569fa4c4631b3dcb1a69fc54cc5fa344956d4a", first.Head);
 
@@ -28,7 +28,7 @@ public class TestRepositoryTests
     [Fact]
     public void GivenAmbientGitIdentityAndConfig_WhenCommitting_ThenFixtureIdentityIsUsed()
     {
-        var home = Path.Combine(Path.GetTempPath(), "gitunia-home-" + Guid.NewGuid().ToString("N"));
+        var home = Path.Combine(Path.GetTempPath(), $"gitunia-home-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(home);
         var config = Path.Combine(home, "config");
         File.WriteAllText(config, "[user]\n\tname = Ambient\n");
@@ -54,7 +54,7 @@ public class TestRepositoryTests
     [Fact]
     public void GivenBranchyRepository_WhenListingRefs_ThenShapeMatches()
     {
-        using var repository = TestRepositories.Branchy();
+        using var repository = TestRepositories.WithMergedFeatureBranch();
 
         var branches = repository.Git("for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/tags");
 

@@ -17,13 +17,13 @@ public class StatusReaderTests
 
     private static async Task<StatusSnapshot> ReadAsync(TestRepository testRepository, bool includeIgnored = false)
     {
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
         var snapshot = await StatusReader.ReadStatusAsync(repository, includeIgnored, UntrackedFilesMode.All, Token);
         Assert.Empty(snapshot.Warnings);
         return snapshot;
     }
 
-    private static string Numbered(int count) => string.Concat(Enumerable.Range(1, count).Select(number => number + "\n"));
+    private static string Numbered(int count) => string.Concat(Enumerable.Range(1, count).Select(number => $"{number}\n"));
 
     [Fact]
     public async Task GivenUntrackedDirectory_WhenReadingWithNormalMode_ThenItIsOneEntryButStillDirty()
@@ -31,7 +31,7 @@ public class StatusReaderTests
         using var testRepository = TestRepositories.Linear(1);
         testRepository.WriteFile("dir/one.txt", "1\n");
         testRepository.WriteFile("dir/two.txt", "2\n");
-        var repository = await Repository.OpenAsync(Runner, testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(Runner, testRepository.WorkingTreePath, Token);
 
         var all = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.All, Token);
         var normal = await StatusReader.ReadStatusAsync(repository, false, UntrackedFilesMode.Normal, Token);
@@ -141,8 +141,8 @@ public class StatusReaderTests
         testRepository.Git("config", "status.renames", "copies");
 
         // Git only detects a copy when the source is modified in the same change.
-        testRepository.WriteFile("original.txt", Numbered(40) + "modified\n");
-        testRepository.WriteFile("copy.txt", Numbered(40) + "extra\n");
+        testRepository.WriteFile("original.txt", $"{Numbered(40)}modified\n");
+        testRepository.WriteFile("copy.txt", $"{Numbered(40)}extra\n");
         testRepository.Git("add", "original.txt", "copy.txt");
 
         var snapshot = await ReadAsync(testRepository);

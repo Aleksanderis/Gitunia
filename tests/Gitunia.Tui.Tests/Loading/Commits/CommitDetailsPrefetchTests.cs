@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Globalization;
 using Gitunia.Git;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
@@ -15,7 +17,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenNeighbours_WhenSelectingACommit_ThenTheyAreReadInTheBackgroundAndSelectingThemIsInstant()
     {
         using var testRepository = ChainOfCommits(4);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
         var head = IdOf(testRepository, "HEAD");
@@ -35,7 +37,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenCachedCommit_WhenSelectingItWithNeighbours_ThenTheNeighboursAreReadAfterTheDebounce()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
         var head = IdOf(testRepository, "HEAD");
@@ -56,7 +58,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenPrefetchWaitingForTheDebounce_WhenAnotherCommitIsSelected_ThenThePrefetchIsCancelled()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var head = IdOf(testRepository, "HEAD");
         var parent = IdOf(testRepository, "HEAD~1");
         var grandparent = IdOf(testRepository, "HEAD~2");
@@ -103,7 +105,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenSmallCache_WhenPrefetchingMoreThanItHolds_ThenTheCacheStaysWithinItsBound()
     {
         using var testRepository = ChainOfCommits(5);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1), cache: new CommitDetailsCache(capacity: 2));
 
@@ -117,7 +119,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenUnreadableNeighbour_WhenPrefetching_ThenTheSelectionStaysLoadedAndTheOtherNeighboursAreRead()
     {
         using var testRepository = ChainOfCommits(2);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
@@ -133,7 +135,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenPauseBetweenMoves_WhenSelecting_ThenTheCommitIsReadAtOnceOnlyAfterThePause()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var debounce = TimeSpan.FromMilliseconds(100);
         var waits = new List<TimeSpan>();
         var posted = new SemaphoreSlim(0);
@@ -172,7 +174,7 @@ public class CommitDetailsPrefetchTests
     public async Task GivenUncachedCommit_WhenItLoads_ThenThePrefetchWaitsForTheDebounceToo()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
         var debounce = TimeSpan.FromMilliseconds(100);
         var waits = new List<TimeSpan>();
         var posted = new SemaphoreSlim(0);
@@ -203,8 +205,8 @@ public class CommitDetailsPrefetchTests
     public async Task GivenResultsQueuedForTheUiThread_WhenAnotherCommitIsSelectedBeforeTheyRun_ThenTheyAreDropped()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
-        var queued = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
+        var queued = new ConcurrentQueue<Action>();
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
 
@@ -226,8 +228,8 @@ public class CommitDetailsPrefetchTests
     public async Task GivenPrefetchedDetailsAlreadyOnTheUiThread_WhenAnotherCommitIsSelected_ThenTheyStayCached()
     {
         using var testRepository = ChainOfCommits(3);
-        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.Path, Token);
-        var queued = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+        var repository = await Repository.OpenAsync(new GitRunner(), testRepository.WorkingTreePath, Token);
+        var queued = new ConcurrentQueue<Action>();
         var posted = new SemaphoreSlim(0);
         using var store = new CommitDetailsStore(repository, action => { queued.Enqueue(action); posted.Release(); }, TimeSpan.FromMilliseconds(1));
         store.Select(IdOf(testRepository, "HEAD"), [IdOf(testRepository, "HEAD~1")]);
@@ -247,7 +249,7 @@ public class CommitDetailsPrefetchTests
         var testRepository = TestRepository.Create();
         for (var number = 1; number <= count; number++)
         {
-            testRepository.Commit("commit " + number, new TestFile("a.txt", number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            testRepository.Commit($"commit {number}", new TestFile("a.txt", number.ToString(CultureInfo.InvariantCulture)));
         }
 
         return testRepository;

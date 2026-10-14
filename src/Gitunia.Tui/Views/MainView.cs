@@ -8,6 +8,7 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
+using Terminal.Gui.Drawing;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Window = Terminal.Gui.Views.Window;
@@ -17,26 +18,26 @@ namespace Gitunia.Tui.Views;
 /// <summary>The first screen: tab row, the framed panes and the status bar, laid out like <see cref="ScreenLayout"/>.</summary>
 public sealed class MainView : IDisposable
 {
-    private readonly TabBarView tabs;
-    private readonly PickerView picker;
-    private readonly LineView status;
-    private readonly LineView sidebarFilter;
-    private readonly FrameStripView divider;
-    private readonly FrameStripView[] edges;
-    private readonly LineView detailTitle;
-    private readonly LineView diffTitle;
-    private readonly FrameStripView bottomDividerView;
+    private readonly TabBarView _tabs;
+    private readonly PickerView _picker;
+    private readonly LineView _status;
+    private readonly LineView _sidebarFilter;
+    private readonly FrameStripView _divider;
+    private readonly FrameStripView[] _edges;
+    private readonly LineView _detailTitle;
+    private readonly LineView _diffTitle;
+    private readonly FrameStripView _bottomDividerView;
     /// <summary>The view name reported for the wheel over an overlay; the application maps it to the open overlay's own view.</summary>
     public const string OverlayGestureView = "Overlay";
 
     private static readonly PaneRect Empty = new(0, 0, 0, 0);
 
-    private readonly Func<ScreenModel> model;
-    private readonly GraphGlyphSet glyphs;
-    private readonly Func<PaneArrangement> arrangement;
-    private Func<bool> suppressed = () => false;
-    private GridKey? gridKey;
-    private FrameGrid? grid;
+    private readonly Func<ScreenModel> _model;
+    private readonly GraphGlyphSet _glyphs;
+    private readonly Func<PaneArrangement> _arrangement;
+    private Func<bool> _suppressed = () => false;
+    private GridKey? _gridKey;
+    private FrameGrid? _grid;
 
     public MainView(
         Func<ScreenModel> model,
@@ -48,10 +49,10 @@ public sealed class MainView : IDisposable
         Func<int, StyledLine> diffTitleLine,
         DiffListSource diffSource)
     {
-        this.arrangement = arrangement;
-        this.model = model;
-        this.glyphs = glyphs;
-        tabs = new TabBarView(model, glyphs)
+        _arrangement = arrangement;
+        _model = model;
+        _glyphs = glyphs;
+        _tabs = new TabBarView(model, glyphs)
         {
             X = 0,
             Y = ScreenLayout.TabRow,
@@ -67,7 +68,7 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             Source = sidebarSource,
         };
-        sidebarFilter = new LineView(width =>
+        _sidebarFilter = new LineView(width =>
         {
             var chrome = sidebarChrome();
             return PanePadding.Wrap(SidebarRowRenderer.FilterLine(chrome.FilterText, chrome.IsEditingFilter, PanePadding.TextWidth(width), glyphs));
@@ -78,14 +79,14 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().SidebarFilter.Width),
             Height = Dim.Func(_ => Rects().SidebarFilter.Height),
         };
-        edges =
+        _edges =
         [
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
             new FrameStripView(CurrentGrid) { X = 0, Y = Pos.Func(_ => ScreenLayout.FrameBottom(ScreenHeight())), Width = Dim.Fill(), Height = 1 },
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
             new FrameStripView(CurrentGrid) { X = Pos.Func(_ => Math.Max(0, ScreenWidth - 1)), Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
         ];
-        divider = new FrameStripView(CurrentGrid)
+        _divider = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().SidebarDivider.X),
             Y = ScreenLayout.GraphTop,
@@ -100,7 +101,7 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Graph.Height),
             CanFocus = true,
         };
-        detailTitle = new LineView(width => CurrentGrid().ResolveRules(detailTitleLine(width), Rects().DetailTitle.Y, Rects().DetailTitle.X))
+        _detailTitle = new LineView(width => CurrentGrid().ResolveRules(detailTitleLine(width), Rects().DetailTitle.Y, Rects().DetailTitle.X))
         {
             X = Pos.Func(_ => Rects().DetailTitle.X),
             Y = Pos.Func(_ => Rects().DetailTitle.Y),
@@ -115,14 +116,14 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Detail.Height),
             CanFocus = true,
         };
-        bottomDividerView = new FrameStripView(CurrentGrid)
+        _bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),
             Y = Pos.Func(_ => Rects().BottomDivider.Y),
             Width = Dim.Func(_ => Rects().BottomDivider.Width),
             Height = Dim.Func(_ => Rects().BottomDivider.Height),
         };
-        diffTitle = new LineView(width => CurrentGrid().ResolveRules(diffTitleLine(width), Rects().DiffTitle.Y, Rects().DiffTitle.X))
+        _diffTitle = new LineView(width => CurrentGrid().ResolveRules(diffTitleLine(width), Rects().DiffTitle.Y, Rects().DiffTitle.X))
         {
             X = Pos.Func(_ => Rects().DiffTitle.X),
             Y = Pos.Func(_ => Rects().DiffTitle.Y),
@@ -138,7 +139,7 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             Source = diffSource,
         };
-        picker = new PickerView(model, glyphs)
+        _picker = new PickerView(model, glyphs)
         {
             X = 1,
             Y = ScreenLayout.GraphTop,
@@ -146,33 +147,33 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())),
             Visible = false,
         };
-        status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
+        _status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
             Width = Dim.Fill(),
             Height = 1,
         };
-        Window = new Window { Title = string.Empty, BorderStyle = Terminal.Gui.Drawing.LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
+        Window = new Window { Title = string.Empty, BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
-        tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
-        tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);
-        tabs.CommandsClicked += () => Gestured?.Invoke(DefaultMouseMap.CommandsButton, MouseGesture.Click, null);
-        picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
-        picker.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        _tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);
+        _tabs.CommandsClicked += () => Gestured?.Invoke(DefaultMouseMap.CommandsButton, MouseGesture.Click, null);
+        _picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
+        _picker.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         Graph.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, target);
         Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
         Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
         Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
-        divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
-        bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
-        detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
-        diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
-        detailTitle.Clicked += OnDetailTitleClicked;
-        diffTitle.Clicked += OnDiffTitleClicked;
+        _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
+        _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
+        _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
+        _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
+        _detailTitle.Clicked += OnDetailTitleClicked;
+        _diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
-        Window.Add(tabs, edges[0], edges[1], edges[2], edges[3], Sidebar, sidebarFilter, divider, Graph, detailTitle, Detail, bottomDividerView, diffTitle, Diff, picker, status, Overlay);
+        Window.Add(_tabs, _edges[0], _edges[1], _edges[2], _edges[3], Sidebar, _sidebarFilter, _divider, Graph, _detailTitle, Detail, _bottomDividerView, _diffTitle, Diff, _picker, _status, Overlay);
     }
 
     /// <summary>
@@ -190,8 +191,8 @@ public sealed class MainView : IDisposable
     /// <summary>Raised with the row index when a picker row is clicked (the highlight follows the pointer).</summary>
     public event Action<int>? PickerRowClicked
     {
-        add => picker.RowClicked += value;
-        remove => picker.RowClicked -= value;
+        add => _picker.RowClicked += value;
+        remove => _picker.RowClicked -= value;
     }
 
     public Window Window { get; }
@@ -215,30 +216,30 @@ public sealed class MainView : IDisposable
     /// <summary>Makes every pane and the picker swallow mouse input while <paramref name="isSuppressed"/> returns true (an overlay is open).</summary>
     public void SuppressMouseWhen(Func<bool> isSuppressed)
     {
-        suppressed = isSuppressed;
+        _suppressed = isSuppressed;
         Graph.IsSuppressed = isSuppressed;
         Sidebar.IsSuppressed = isSuppressed;
         Detail.IsSuppressed = isSuppressed;
         Diff.IsSuppressed = isSuppressed;
-        picker.IsSuppressed = isSuppressed;
+        _picker.IsSuppressed = isSuppressed;
     }
 
     /// <summary>Shows the repository picker in place of the graph, or the graph again.</summary>
     public void ShowPicker(bool isOpen)
     {
-        if (picker.Visible == isOpen)
+        if (_picker.Visible == isOpen)
         {
             return;
         }
 
-        picker.Visible = isOpen;
+        _picker.Visible = isOpen;
         Graph.Visible = !isOpen;
         if (!isOpen)
         {
             Graph.SetFocus();
         }
 
-        picker.SetNeedsDraw();
+        _picker.SetNeedsDraw();
         Graph.SetNeedsDraw();
     }
 
@@ -247,20 +248,20 @@ public sealed class MainView : IDisposable
     /// <summary>Redraws the tab row, frame and status bar after the model changed.</summary>
     public void RefreshChrome()
     {
-        tabs.SetNeedsDraw();
-        status.SetNeedsDraw();
-        picker.SetNeedsDraw();
-        sidebarFilter.SetNeedsDraw();
-        divider.SetNeedsDraw();
-        foreach (var edge in edges)
+        _tabs.SetNeedsDraw();
+        _status.SetNeedsDraw();
+        _picker.SetNeedsDraw();
+        _sidebarFilter.SetNeedsDraw();
+        _divider.SetNeedsDraw();
+        foreach (var edge in _edges)
         {
             edge.SetNeedsDraw();
         }
 
         Sidebar.SetNeedsDraw();
-        detailTitle.SetNeedsDraw();
-        diffTitle.SetNeedsDraw();
-        bottomDividerView.SetNeedsDraw();
+        _detailTitle.SetNeedsDraw();
+        _diffTitle.SetNeedsDraw();
+        _bottomDividerView.SetNeedsDraw();
     }
 
     public void Dispose() => Window.Dispose();
@@ -270,7 +271,7 @@ public sealed class MainView : IDisposable
     // A click on a pane's title row focuses the pane, like a click in its list.
     private void FocusFromTitle(PaneListView pane)
     {
-        if (!suppressed() && !pane.HasFocus)
+        if (!_suppressed() && !pane.HasFocus)
         {
             pane.SetFocus();
         }
@@ -278,13 +279,13 @@ public sealed class MainView : IDisposable
 
     private void OnDetailTitleClicked(int column)
     {
-        if (suppressed())
+        if (_suppressed())
         {
             return;
         }
 
         FocusFromTitle(Detail);
-        if (TitleButton.ViewAt(DetailTabStrip.Layout(detailTitle.Viewport.Width), column) is { } tabView)
+        if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width), column) is { } tabView)
         {
             Gestured?.Invoke(tabView, MouseGesture.Click, null);
         }
@@ -292,13 +293,13 @@ public sealed class MainView : IDisposable
 
     private void OnDiffTitleClicked(int column)
     {
-        if (suppressed())
+        if (_suppressed())
         {
             return;
         }
 
         FocusFromTitle(Diff);
-        var buttons = DiffTitleButtons.Layout(diffTitle.Viewport.Width);
+        var buttons = DiffTitleButtons.Layout(_diffTitle.Viewport.Width);
         if (TitleButton.ViewAt(buttons, column) is { } buttonView)
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
@@ -307,25 +308,25 @@ public sealed class MainView : IDisposable
 
     private FrameGrid CurrentGrid()
     {
-        var isPicker = picker.Visible;
+        var isPicker = _picker.Visible;
         var rects = isPicker
             ? new PaneRects(Empty, Empty, Empty, new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(ScreenWidth), ScreenLayout.GraphHeight(ScreenHeight())), Empty, Empty, Empty, Empty, Empty)
             : Rects();
         PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
-        var title = model().RepositoryName.Length > 0 ? model().RepositoryName : "Repo";
-        var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, glyphs.IsAscii);
-        if (grid is null || gridKey != key)
+        var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repo";
+        var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, _glyphs.IsAscii);
+        if (_grid is null || _gridKey != key)
         {
-            grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
-            gridKey = key;
+            _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
+            _gridKey = key;
         }
 
-        return grid;
+        return _grid;
     }
 
     private PaneRects Rects()
     {
-        var current = arrangement();
+        var current = _arrangement();
         return PaneLayout.Compute(ScreenWidth, ScreenHeight(), current.IsDiffOpen, current.Zoomed, current.Sizes);
     }
 }

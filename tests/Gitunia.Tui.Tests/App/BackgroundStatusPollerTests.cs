@@ -17,7 +17,7 @@ public class BackgroundStatusPollerTests
         using var background = TestRepository.Create();
         background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
         var runner = new GitRunner();
-        var workspace = await OpenAsync(runner, active.Path, background.Path);
+        var workspace = await OpenAsync(runner, active.WorkingTreePath, background.WorkingTreePath);
         var activeId = workspace.Tabs[0].Id;
         var backgroundId = workspace.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
@@ -40,7 +40,7 @@ public class BackgroundStatusPollerTests
         using var background = TestRepository.Create();
         background.Commit("root", new TestFile("a.txt", "1")).WriteFile("a.txt", "changed");
         var runner = new GitRunner();
-        var workspace = await OpenAsync(runner, active.Path, background.Path);
+        var workspace = await OpenAsync(runner, active.WorkingTreePath, background.WorkingTreePath);
         var backgroundId = workspace.Tabs[1].Id;
         var host = new WorkspaceHost(Workspace.Empty);
         host.Restore(new WorkspaceUpdate(workspace with { ActiveTabId = workspace.Tabs[0].Id }, []));

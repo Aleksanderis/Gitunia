@@ -20,12 +20,12 @@ namespace Gitunia.Tui.Views;
 /// </summary>
 public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
 {
-    private ImmutableArray<GitRef> lastRefs;
-    private ImmutableArray<WorktreeInfo> lastWorktrees;
-    private ImmutableArray<StashEntry> lastStashes;
-    private ImmutableArray<SidebarSection> lastCollapsed;
-    private string? lastFilter;
-    private string? lastPath;
+    private ImmutableArray<GitRef> _lastRefs;
+    private ImmutableArray<WorktreeInfo> _lastWorktrees;
+    private ImmutableArray<StashEntry> _lastStashes;
+    private ImmutableArray<SidebarSection> _lastCollapsed;
+    private string? _lastFilter;
+    private string? _lastPath;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -44,16 +44,16 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
     {
         if (tab is null)
         {
-            return lastPath is not null && Set(null, [], default, default, default, default, null);
+            return _lastPath is not null && Set(null, [], default, default, default, default, null);
         }
 
         var state = tab.Sidebar;
-        var unchanged = lastPath == tab.CommandPath
-            && lastRefs == tab.Refs
-            && lastWorktrees == tab.Worktrees
-            && lastStashes == tab.Stashes
-            && lastCollapsed == state.CollapsedSections
-            && lastFilter == state.FilterText;
+        var unchanged = _lastPath == tab.CommandPath
+            && _lastRefs == tab.Refs
+            && _lastWorktrees == tab.Worktrees
+            && _lastStashes == tab.Stashes
+            && _lastCollapsed == state.CollapsedSections
+            && _lastFilter == state.FilterText;
         return !unchanged && Set(tab.CommandPath, SidebarBuilder.Build(tab), tab.Refs, tab.Worktrees, tab.Stashes, state.CollapsedSections, state.FilterText);
     }
 
@@ -87,12 +87,12 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
         ImmutableArray<SidebarSection> collapsed,
         string? filter)
     {
-        lastPath = path;
-        lastRefs = refs;
-        lastWorktrees = worktrees;
-        lastStashes = stashes;
-        lastCollapsed = collapsed;
-        lastFilter = filter;
+        _lastPath = path;
+        _lastRefs = refs;
+        _lastWorktrees = worktrees;
+        _lastStashes = stashes;
+        _lastCollapsed = collapsed;
+        _lastFilter = filter;
         Rows = rows;
         if (!SuspendCollectionChangedEvent)
         {

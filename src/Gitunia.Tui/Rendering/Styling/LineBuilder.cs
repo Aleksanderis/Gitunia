@@ -3,11 +3,11 @@ namespace Gitunia.Tui.Rendering.Styling;
 /// <summary>Builds one line of an exact width: appended text is cut at the right edge and the rest is padded with spaces.</summary>
 public sealed class LineBuilder(int width, string ellipsis)
 {
-    private readonly List<StyledSegment> segments = [];
-    private int used;
+    private readonly List<StyledSegment> _segments = [];
+    private int _used;
 
     /// <summary>Columns still free.</summary>
-    public int Remaining => Math.Max(0, width - used);
+    public int Remaining => Math.Max(0, width - _used);
 
     /// <summary>Adds text, shortened to the remaining columns.</summary>
     public LineBuilder Append(string text, SegmentRole role, int colorIndex = 0)
@@ -20,8 +20,8 @@ public sealed class LineBuilder(int width, string ellipsis)
         var fitted = TextWidth.Fit(text, Remaining, ellipsis);
         if (fitted.Length > 0)
         {
-            segments.Add(new StyledSegment(fitted, role, colorIndex));
-            used += TextWidth.Of(fitted);
+            _segments.Add(new StyledSegment(fitted, role, colorIndex));
+            _used += TextWidth.Of(fitted);
         }
 
         return this;
@@ -32,8 +32,8 @@ public sealed class LineBuilder(int width, string ellipsis)
     {
         foreach (var segment in line.Segments)
         {
-            segments.Add(segment);
-            used += TextWidth.Of(segment.Text);
+            _segments.Add(segment);
+            _used += TextWidth.Of(segment.Text);
         }
 
         return this;
@@ -44,11 +44,11 @@ public sealed class LineBuilder(int width, string ellipsis)
     {
         if (Remaining > 0)
         {
-            segments.Add(new StyledSegment(new string(fill, Remaining), SegmentRole.Rule));
-            used = width;
+            _segments.Add(new StyledSegment(new string(fill, Remaining), SegmentRole.Rule));
+            _used = width;
         }
 
-        return new StyledLine(segments);
+        return new StyledLine(_segments);
     }
 
     /// <summary>Pads the rest of the line with spaces of <paramref name="fillRole"/> and returns it.</summary>
@@ -56,10 +56,10 @@ public sealed class LineBuilder(int width, string ellipsis)
     {
         if (Remaining > 0)
         {
-            segments.Add(new StyledSegment(new string(' ', Remaining), fillRole));
-            used = width;
+            _segments.Add(new StyledSegment(new string(' ', Remaining), fillRole));
+            _used = width;
         }
 
-        return new StyledLine(segments, isSelected);
+        return new StyledLine(_segments, isSelected);
     }
 }

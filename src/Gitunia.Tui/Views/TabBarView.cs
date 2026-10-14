@@ -20,7 +20,7 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised when the "+" button after the last tab is clicked.</summary>
     public event Action? NewTabClicked;
 
-    protected override bool OnDrawingContent(Terminal.Gui.ViewBase.DrawContext? context)
+    protected override bool OnDrawingContent(DrawContext? context)
     {
         LinePainter.Paint(this, ChromeBuilder.Tabs(model(), Viewport.Width, glyphs), 0, 0, isFocused: false);
         return true;

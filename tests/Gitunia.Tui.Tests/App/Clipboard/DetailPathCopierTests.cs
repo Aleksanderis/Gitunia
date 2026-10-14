@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
@@ -14,7 +15,7 @@ namespace Gitunia.Tui.Tests.App.Clipboard;
 
 public class DetailPathCopierTests : IDisposable
 {
-    private readonly StringWriter terminal = new();
+    private readonly StringWriter _terminal = new();
 
     [Fact]
     public void GivenAFileRow_WhenCopying_ThenItsPathGoesToTheClipboard()
@@ -24,7 +25,7 @@ public class DetailPathCopierTests : IDisposable
         var notice = CreateCopier().Copy(source, source.Content.FirstFileRow + 1);
 
         Assert.Equal(string.Empty, notice);
-        Assert.Equal(Osc52Sequence("docs/b.md"), terminal.ToString());
+        Assert.Equal(Osc52Sequence("docs/b.md"), _terminal.ToString());
     }
 
     [Fact]
@@ -35,7 +36,7 @@ public class DetailPathCopierTests : IDisposable
         var notice = CreateCopier().Copy(source, source.Content.FirstFileRow - 1);
 
         Assert.Equal("Select a file to copy its path", notice);
-        Assert.Equal(string.Empty, terminal.ToString());
+        Assert.Equal(string.Empty, _terminal.ToString());
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public class DetailPathCopierTests : IDisposable
         var notice = CreateCopier().Copy(source, source.Content.FirstFileRow + 1);
 
         Assert.Equal("Select a file to copy its path", notice);
-        Assert.Equal(string.Empty, terminal.ToString());
+        Assert.Equal(string.Empty, _terminal.ToString());
     }
 
     [Fact]
@@ -56,12 +57,12 @@ public class DetailPathCopierTests : IDisposable
 
         Assert.Equal("Select a file to copy its path", CreateCopier().Copy(source, null));
         Assert.Equal("Select a file to copy its path", CreateCopier().Copy(null, 0));
-        Assert.Equal(string.Empty, terminal.ToString());
+        Assert.Equal(string.Empty, _terminal.ToString());
     }
 
     public void Dispose()
     {
-        terminal.Dispose();
+        _terminal.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -77,8 +78,8 @@ public class DetailPathCopierTests : IDisposable
         return source;
     }
 
-    private static string Osc52Sequence(string text) => "\u001b]52;c;" + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text)) + "\u001b\\";
+    private static string Osc52Sequence(string text) => $"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\u001b\\";
 
     private DetailPathCopier CreateCopier() =>
-        new(new ClipboardCopier(new ClipboardWriter(terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
+        new(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()));
 }

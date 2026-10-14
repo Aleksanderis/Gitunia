@@ -14,18 +14,18 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
 {
     private const string FileHeaderPrefix = "diff --git ";
 
-    private readonly List<byte> carry = [];
-    private readonly List<string> warnings = [];
+    private readonly List<byte> _carry = [];
+    private readonly List<string> _warnings = [];
 
-    private DiffFileBuilder? current;
-    private bool skippingCombined;
-    private bool reportedInvalidText;
+    private DiffFileBuilder? _current;
+    private bool _skippingCombined;
+    private bool _reportedInvalidText;
 
     /// <summary>Everything the parser could not understand so far.</summary>
-    public IReadOnlyList<string> Warnings => warnings;
+    public IReadOnlyList<string> Warnings => _warnings;
 
     /// <summary>Bytes of an unfinished line held back (never more than one line).</summary>
-    public int BufferedByteCount => carry.Count;
+    public int BufferedByteCount => _carry.Count;
 
     /// <summary>Parses a whole diff at once.</summary>
     public static ParseResult<DiffFile> Parse(string patch)
@@ -47,13 +47,13 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
             {
                 foreach (var value in chunk)
                 {
-                    carry.Add(value);
+                    _carry.Add(value);
                 }
 
                 return;
             }
 
-            if (carry.Count == 0)
+            if (_carry.Count == 0)
             {
                 AddLine(chunk[..terminator], output);
             }
@@ -61,11 +61,11 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
             {
                 foreach (var value in chunk[..terminator])
                 {
-                    carry.Add(value);
+                    _carry.Add(value);
                 }
 
-                AddLine(carry.ToArray(), output);
-                carry.Clear();
+                AddLine(_carry.ToArray(), output);
+                _carry.Clear();
             }
 
             chunk = chunk[(terminator + 1)..];
@@ -75,10 +75,10 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
     /// <summary>Call after the last chunk; emits the final file.</summary>
     public void Complete(ICollection<DiffFile> output)
     {
-        if (carry.Count > 0)
+        if (_carry.Count > 0)
         {
-            AddLine(carry.ToArray(), output);
-            carry.Clear();
+            AddLine(_carry.ToArray(), output);
+            _carry.Clear();
         }
 
         EmitCurrent(output);
@@ -89,50 +89,50 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
         var line = Decode(bytes);
         var startsFile = line.StartsWith(FileHeaderPrefix, StringComparison.Ordinal);
         var startsCombined = line.StartsWith("diff --cc ", StringComparison.Ordinal) || line.StartsWith("diff --combined ", StringComparison.Ordinal);
-        if (current is not null && current.IsInHunkBody)
+        if (_current is not null && _current.IsInHunkBody)
         {
-            current.Add(line);
+            _current.Add(line);
             return;
         }
 
         if (startsFile || startsCombined)
         {
             EmitCurrent(output);
-            skippingCombined = startsCombined;
+            _skippingCombined = startsCombined;
             if (startsCombined)
             {
-                warnings.Add($"Skipped combined diff '{line}'");
+                _warnings.Add($"Skipped combined diff '{line}'");
             }
             else
             {
-                current = new DiffFileBuilder(line, warnings, maximumLinesPerFile);
+                _current = new DiffFileBuilder(line, _warnings, maximumLinesPerFile);
             }
 
             return;
         }
 
-        if (!skippingCombined)
+        if (!_skippingCombined)
         {
-            current?.Add(line);
+            _current?.Add(line);
         }
     }
 
     private void EmitCurrent(ICollection<DiffFile> output)
     {
-        if (current is not null)
+        if (_current is not null)
         {
-            output.Add(current.Build());
-            current = null;
+            output.Add(_current.Build());
+            _current = null;
         }
     }
 
     /// <summary>Decodes UTF-8; invalid bytes become U+FFFD (once per parser a warning says the text is not an exact copy).</summary>
     private string Decode(ReadOnlySpan<byte> bytes)
     {
-        if (!reportedInvalidText && !Utf8.IsValid(bytes))
+        if (!_reportedInvalidText && !Utf8.IsValid(bytes))
         {
-            reportedInvalidText = true;
-            warnings.Add("The diff contains bytes that are not valid UTF-8; they were replaced and the text is not an exact copy");
+            _reportedInvalidText = true;
+            _warnings.Add("The diff contains bytes that are not valid UTF-8; they were replaced and the text is not an exact copy");
         }
 
         return Encoding.UTF8.GetString(bytes);

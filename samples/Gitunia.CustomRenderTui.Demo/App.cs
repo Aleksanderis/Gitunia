@@ -149,8 +149,8 @@ public sealed partial class App : IDisposable
     private void Draw()
     {
         var status = _searching
-            ? "/" + _input
-            : $" NORMAL  [{_focus}]  {_graphCursor.Selection + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q" + (_query.Length > 0 ? $"  [/{_query}]" : string.Empty);
+            ? $"/{_input}"
+            : $" NORMAL  [{_focus}]  {_graphCursor.Selection + 1}/{_graph.Count}{(_loading ? " loading..." : string.Empty)}  Tab j/k gg G ^d ^u / n N q{(_query.Length > 0 ? $"  [/{_query}]" : string.Empty)}";
         Screen.Draw(_buffer, new ScreenModel
         {
             RepoName = Path.GetFileName(_repositoryPath.TrimEnd(Path.DirectorySeparatorChar)),

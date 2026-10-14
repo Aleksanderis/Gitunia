@@ -15,7 +15,7 @@ public sealed class SessionStore
 
     private const long MaximumFileBytes = 4 * 1024 * 1024;
 
-    private readonly Func<string, bool> directoryExists;
+    private readonly Func<string, bool> _directoryExists;
 
     /// <summary>Creates a store for a state directory (from <c>IPlatform.StateDirectory</c>; tests pass a temp directory).</summary>
     /// <param name="stateDirectory">The directory holding the session file.</param>
@@ -23,7 +23,7 @@ public sealed class SessionStore
     public SessionStore(string stateDirectory, Func<string, bool>? directoryExists = null)
     {
         FilePath = Path.Combine(stateDirectory, FileName);
-        this.directoryExists = directoryExists ?? Directory.Exists;
+        _directoryExists = directoryExists ?? Directory.Exists;
     }
 
     /// <summary>The full path of the session file.</summary>
@@ -71,10 +71,10 @@ public sealed class SessionStore
 
         if (document.Version != SessionDocument.CurrentVersion)
         {
-            return SetAside("the session file is from another version of gitunia", ".v" + document.Version + ".bak", SessionLoadStatus.UnsupportedVersion);
+            return SetAside("the session file is from another version of gitunia", $".v{document.Version}.bak", SessionLoadStatus.UnsupportedVersion);
         }
 
-        var update = SessionDocumentMapper.ToWorkspace(document, directoryExists);
+        var update = SessionDocumentMapper.ToWorkspace(document, _directoryExists);
         return new SessionLoadResult(update, SessionLoadStatus.Restored, null);
     }
 
@@ -100,7 +100,7 @@ public sealed class SessionStore
             var target = FilePath + suffix;
             if (suffix == ".corrupt" && File.Exists(target))
             {
-                target += "." + Guid.NewGuid().ToString("N")[..8];
+                target = $"{target}.{Guid.NewGuid().ToString("N")[..8]}";
             }
 
             File.Move(FilePath, target, overwrite: true);

@@ -55,7 +55,7 @@ public static class DiffPaneRenderer
             .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
         if (pane.ShortHash.Length > 0)
         {
-            builder.Append(" " + pane.ShortHash, SegmentRole.Hash);
+            builder.Append($" {pane.ShortHash}", SegmentRole.Hash);
         }
 
         var fileCount = pane.Document.FileRows.Count;
@@ -64,11 +64,10 @@ public static class DiffPaneRenderer
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);
             builder.Append(
-                $"  file {(fileIndex + 1).ToString(CultureInfo.InvariantCulture)}/{fileCount.ToString(CultureInfo.InvariantCulture)}"
-                + $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
+                $"  file {(fileIndex + 1).ToString(CultureInfo.InvariantCulture)}/{fileCount.ToString(CultureInfo.InvariantCulture)}  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
                 SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
-            builder.Append("  " + pane.Document.FilePaths[fileIndex][0] + " ", SegmentRole.Plain);
+            builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);
         }
         else
         {

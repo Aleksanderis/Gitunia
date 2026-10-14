@@ -33,7 +33,7 @@ public static class KeyNames
         var names = new List<string> { Enter, Escape, Tab, Backspace, Delete, Up, Down, Left, Right, Home, End, PageUp, PageDown };
         for (var number = 1; number <= 12; number++)
         {
-            names.Add("F" + number);
+            names.Add($"F{number}");
         }
 
         return names.ToDictionary(name => name.ToLowerInvariant(), name => name);

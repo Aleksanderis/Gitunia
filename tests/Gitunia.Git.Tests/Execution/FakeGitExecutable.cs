@@ -3,31 +3,31 @@ namespace Gitunia.Git.Tests.Execution;
 /// <summary>A throwaway script standing in for git, so tests can simulate slow, failing or chatty processes.</summary>
 public sealed class FakeGitExecutable : IDisposable
 {
-    private readonly string directory;
+    private readonly string _directory;
 
     private FakeGitExecutable(string directory, string path)
     {
-        this.directory = directory;
-        Path = path;
+        _directory = directory;
+        ExecutablePath = path;
     }
 
-    public string Path { get; }
+    public string ExecutablePath { get; }
 
     /// <summary>Creates a script from a body for the current OS: <paramref name="unixBody"/> for sh, <paramref name="windowsBody"/> for cmd.</summary>
     public static FakeGitExecutable Create(string unixBody, string windowsBody)
     {
-        var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "gitunia-fake-" + Guid.NewGuid().ToString("N"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-fake-{Guid.NewGuid().ToString("N")}");
         Directory.CreateDirectory(directory);
         string path;
         if (OperatingSystem.IsWindows())
         {
-            path = System.IO.Path.Combine(directory, "fakegit.cmd");
-            File.WriteAllText(path, "@echo off\r\n" + windowsBody + "\r\n");
+            path = Path.Combine(directory, "fakegit.cmd");
+            File.WriteAllText(path, $"@echo off\r\n{windowsBody}\r\n");
         }
         else
         {
-            path = System.IO.Path.Combine(directory, "fakegit");
-            File.WriteAllText(path, "#!/bin/sh\n" + unixBody + "\n");
+            path = Path.Combine(directory, "fakegit");
+            File.WriteAllText(path, $"#!/bin/sh\n{unixBody}\n");
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
 
@@ -57,7 +57,7 @@ public sealed class FakeGitExecutable : IDisposable
     {
         try
         {
-            Directory.Delete(directory, recursive: true);
+            Directory.Delete(_directory, recursive: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

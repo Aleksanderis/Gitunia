@@ -81,7 +81,7 @@ public class TabBarTests
         var narrow = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 40, GraphGlyphSet.Unicode);
 
         Assert.Equal(TabBarLayout.CommandsLabel, wide.Segments.Last(segment => segment.Role == SegmentRole.BarButton).Text);
-        Assert.EndsWith(TabBarLayout.CommandsLabel + " ", wide.Text, StringComparison.Ordinal);
+        Assert.EndsWith($"{TabBarLayout.CommandsLabel} ", wide.Text, StringComparison.Ordinal);
         Assert.True(TabBarLayout.IsOnCommands(80, 70));
         Assert.False(TabBarLayout.IsOnCommands(80, 10));
         Assert.DoesNotContain(narrow.Segments, segment => segment.Role == SegmentRole.BarButton && segment.Text == TabBarLayout.CommandsLabel);
@@ -109,7 +109,7 @@ public class TabBarTests
     [InlineData(100)]
     public void GivenTooManyTabs_WhenLayingOut_ThenThePlusButtonStaysInsideTheRowBeforeTheCommands(int width)
     {
-        var labels = Enumerable.Range(1, 14).Select(number => Label(number, "repo" + number, isActive: number == 1, branch: null)).ToArray();
+        var labels = Enumerable.Range(1, 14).Select(number => Label(number, $"repo{number}", isActive: number == 1, branch: null)).ToArray();
         var cells = TabBarLayout.Layout(labels, width, GraphGlyphSet.Unicode);
 
         var end = TabBarLayout.NewTabStart(cells) + TabBarLayout.NewTabLabel.Length;
@@ -119,7 +119,7 @@ public class TabBarTests
     [Fact]
     public void GivenMoreTabsThanFit_WhenTheLastIsActive_ThenTheRowScrollsToKeepItVisible()
     {
-        var labels = Enumerable.Range(1, 8).Select(number => Label(number, "repo" + number, isActive: number == 8, branch: null)).ToArray();
+        var labels = Enumerable.Range(1, 8).Select(number => Label(number, $"repo{number}", isActive: number == 8, branch: null)).ToArray();
 
         var row = Row(60, GraphGlyphSet.Unicode, labels);
 
@@ -131,7 +131,7 @@ public class TabBarTests
     [Fact]
     public void GivenMoreTabsThanFit_WhenTheFirstIsActive_ThenTheRowStartsAtTheFirstTab()
     {
-        var labels = Enumerable.Range(1, 8).Select(number => Label(number, "repo" + number, isActive: number == 1, branch: null)).ToArray();
+        var labels = Enumerable.Range(1, 8).Select(number => Label(number, $"repo{number}", isActive: number == 1, branch: null)).ToArray();
 
         var row = Row(60, GraphGlyphSet.Unicode, labels);
 
@@ -144,7 +144,7 @@ public class TabBarTests
     [InlineData(120)]
     public void GivenTooManyTabs_WhenLayingOut_ThenNoTabReachesTheCommandsButtonAndEveryColumnHasOneOwner(int width)
     {
-        var labels = Enumerable.Range(1, 14).Select(number => Label(number, "repo" + number, isActive: number == 1, branch: null)).ToArray();
+        var labels = Enumerable.Range(1, 14).Select(number => Label(number, $"repo{number}", isActive: number == 1, branch: null)).ToArray();
 
         var cells = TabBarLayout.Layout(labels, width, GraphGlyphSet.Unicode);
 

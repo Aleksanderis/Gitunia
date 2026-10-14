@@ -12,8 +12,8 @@ public sealed class LaneLayout
     public const byte Empty = 0;
     public const byte Pipe = 1;
     public const byte Node = 2;
-    public const byte Merge = 3; // a lane converging into this commit's lane
-    public const byte Fork = 4; // a lane opened by this commit for a second parent
+    public const byte Merge = 3; // A lane converging into this commit's lane
+    public const byte Fork = 4; // A lane opened by this commit for a second parent
 
     private readonly List<ulong> _lanes = [];
     private byte[] _glyphs = new byte[1 << 16];

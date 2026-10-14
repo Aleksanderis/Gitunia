@@ -50,7 +50,7 @@ public class DiffRowRendererTests
     [Fact]
     public void GivenAVeryLongLine_WhenRendering_ThenItIsCutToTheWidthWithAnEllipsisAndMatchesInViewStayHighlighted()
     {
-        var text = "needle" + string.Concat(Enumerable.Repeat("\tx", 500_000));
+        var text = $"needle{string.Concat(Enumerable.Repeat("\tx", 500_000))}";
         var row = new DiffRow(DiffRowKind.Added, text, null, 1, 0);
 
         var line = DiffRowRenderer.Render(row, 40, 3, "needle", false, Glyphs);

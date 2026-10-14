@@ -22,7 +22,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Be conservative with destructive operations (reset --hard, force push, branch/worktree delete, stash drop, discarding changes): confirm in the UI and keep an undo path (reflog hint) where git allows.
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Names are spelled out: no truncated or single-letter names (`platform`, `dictionary`, `selection`, `buffer`, not `p`, `d`, `sel`, `buf`); loop indexes and well-known domain terms excepted. This applies to variables, parameters, members and test locals.
-- Type names are spelled out too (`Repository`, not `Repo`). Private and protected instance fields are `_camelCase` (consts and statics excluded; enforced by `.editorconfig` once #251 lands).
+- Type names are spelled out too (`Repository`, not `Repo`). Private and protected instance fields are `_camelCase` (consts and statics excluded; enforced as a warning, error in the build, by `.editorconfig`).
 - `CancellationToken` is always the last parameter. No tuples in signatures, fields or members: use a small record or struct.
 - Build text with string interpolation, not `+`. No fully qualified names: use `using` imports (rename a member if it hides a type). Comments, doc comments included, start with a capital letter.
 - No magic numbers, letters or strings from git output or formats: named constants, defined once next to the format they describe (shared ones in one place, e.g. ref prefixes). Fixed argument lists and option objects are static readonly, not rebuilt per call.

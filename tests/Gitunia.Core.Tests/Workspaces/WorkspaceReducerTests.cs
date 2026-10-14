@@ -142,8 +142,8 @@ public class WorkspaceReducerTests
         var comparer = RepositoryPathComparer.Create(ignoreCase: false);
 
         Assert.True(comparer.Equals(
-            "a" + Path.AltDirectorySeparatorChar + "repo",
-            "a" + Path.DirectorySeparatorChar + "repo"));
+            $"a{Path.AltDirectorySeparatorChar}repo",
+            $"a{Path.DirectorySeparatorChar}repo"));
     }
 
     [Fact]

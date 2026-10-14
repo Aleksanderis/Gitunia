@@ -24,15 +24,15 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private static readonly TimeSpan DefaultScanningDelay = TimeSpan.FromMilliseconds(150);
 
-    private readonly TimeSpan listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
-    private readonly TimeSpan scanningDelayValue = scanningDelay ?? DefaultScanningDelay;
-    private readonly Func<string, IReadOnlyList<string>> listDirectoriesFunction = listDirectories ?? ListDirectories;
-    private CancellationTokenSource? listingCancellation;
-    private bool completeAfterListing;
-    private ImmutableArray<string> discovered = [];
-    private DateTime lastScan = DateTime.MinValue;
-    private bool isScanning;
-    private int openRequest;
+    private readonly TimeSpan _listingTimeoutValue = listingTimeout ?? DefaultListingTimeout;
+    private readonly TimeSpan _scanningDelayValue = scanningDelay ?? DefaultScanningDelay;
+    private readonly Func<string, IReadOnlyList<string>> _listDirectoriesFunction = listDirectories ?? ListDirectories;
+    private CancellationTokenSource? _listingCancellation;
+    private bool _completeAfterListing;
+    private ImmutableArray<string> _discovered = [];
+    private DateTime _lastScan = DateTime.MinValue;
+    private bool _isScanning;
+    private int _openRequest;
 
     /// <summary>Raised after the picker opened, closed or changed, so the view can redraw.</summary>
     public event Action? Changed;
@@ -48,7 +48,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     public void Open(TabId? locatingTabId = null, string initialQuery = "")
     {
         CancelListing();
-        completeAfterListing = false;
+        _completeAfterListing = false;
         State = PickerReducer.Open(CreateContext(), locatingTabId, initialQuery);
         if (State.IsListing)
         {
@@ -61,9 +61,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     public void Close()
     {
-        openRequest++;
+        _openRequest++;
         CancelListing();
-        completeAfterListing = false;
+        _completeAfterListing = false;
         State = null;
         Changed?.Invoke();
     }
@@ -73,7 +73,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
         if (State is { IsListing: true } && command is CompletePathCommand)
         {
             // Tab during a pending listing is applied once the candidates arrive.
-            completeAfterListing = true;
+            _completeAfterListing = true;
             return;
         }
 
@@ -91,9 +91,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             }
 
             Changed?.Invoke();
-            if (command is ListingCompletedCommand && completeAfterListing && !reduced.IsListing)
+            if (command is ListingCompletedCommand && _completeAfterListing && !reduced.IsListing)
             {
-                completeAfterListing = false;
+                _completeAfterListing = false;
                 Apply(new CompletePathCommand());
             }
         }
@@ -164,8 +164,8 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     /// <summary>Resolves a directory to its repository in the background, then opens it in a tab (or says why not).</summary>
     public void OpenPath(string path, TabId? replacing = null)
     {
-        var request = ++openRequest;
-        Apply(new SetMessageCommand("opening " + path + "..."));
+        var request = ++_openRequest;
+        Apply(new SetMessageCommand($"opening {path}..."));
         _ = Task.Run(async () =>
         {
             try
@@ -186,7 +186,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private void Opened(int request, RepositoryLocation location, TabId? replacing)
     {
-        if (request != openRequest)
+        if (request != _openRequest)
         {
             return;
         }
@@ -202,7 +202,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private void Failed(int request, string message)
     {
-        if (request == openRequest && IsOpen)
+        if (request == _openRequest && IsOpen)
         {
             Apply(new SetMessageCommand(message));
         }
@@ -211,7 +211,7 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     private string BaseDirectory() => host.Workspace.ActiveTab?.Location.RootPath ?? homeDirectory;
 
     private PickerContext CreateContext() =>
-        new(host.Workspace, discovered, homeDirectory, BaseDirectory(), listDirectoriesFunction, IsRepository);
+        new(host.Workspace, _discovered, homeDirectory, BaseDirectory(), _listDirectoriesFunction, IsRepository);
 
     // Lists the candidates of a typed path on the thread pool; a newer keystroke cancels the older listing and a slow file system
     // times out (the blocked directory call itself cannot be interrupted, it just finishes unobserved).
@@ -219,9 +219,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
     {
         CancelListing();
         var cancellation = new CancellationTokenSource();
-        listingCancellation = cancellation;
+        _listingCancellation = cancellation;
         var context = CreateContext();
-        var timeout = listingTimeoutValue;
+        var timeout = _listingTimeoutValue;
         var parentToken = cancellation.Token;
 
         // The source is disposed on the UI thread (CancelListing or the completion callback), so a late Cancel never hits a disposed source.
@@ -235,12 +235,12 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
             try
             {
                 var work = Task.Run(() => PathCompleter.ListCandidates(query, context, token), CancellationToken.None);
-                var first = await Task.WhenAny(work, Task.Delay(scanningDelayValue, token)).ConfigureAwait(false);
+                var first = await Task.WhenAny(work, Task.Delay(_scanningDelayValue, token)).ConfigureAwait(false);
                 if (first != work)
                 {
                     postToUi(() =>
                     {
-                        if (ReferenceEquals(listingCancellation, cancellation) && IsOpen)
+                        if (ReferenceEquals(_listingCancellation, cancellation) && IsOpen)
                         {
                             Apply(new ShowScanningCommand(query));
                         }
@@ -265,9 +265,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
             postToUi(() =>
             {
-                if (ReferenceEquals(listingCancellation, cancellation) && IsOpen)
+                if (ReferenceEquals(_listingCancellation, cancellation) && IsOpen)
                 {
-                    listingCancellation = null;
+                    _listingCancellation = null;
                     cancellation.Dispose();
                     Apply(new ListingCompletedCommand(query, rows, message));
                 }
@@ -277,9 +277,9 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private void CancelListing()
     {
-        if (listingCancellation is { } cancellation)
+        if (_listingCancellation is { } cancellation)
         {
-            listingCancellation = null;
+            _listingCancellation = null;
             cancellation.Cancel();
             cancellation.Dispose();
         }
@@ -287,13 +287,13 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
     private void StartScan()
     {
-        if (isScanning || DateTime.UtcNow - lastScan < RescanInterval)
+        if (_isScanning || DateTime.UtcNow - _lastScan < RescanInterval)
         {
             return;
         }
 
-        isScanning = true;
-        lastScan = DateTime.UtcNow;
+        _isScanning = true;
+        _lastScan = DateTime.UtcNow;
         var roots = RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
         _ = Task.Run(() =>
         {
@@ -309,8 +309,8 @@ public sealed class PickerController(GitRunner runner, WorkspaceHost host, strin
 
             postToUi(() =>
             {
-                isScanning = false;
-                discovered = found;
+                _isScanning = false;
+                _discovered = found;
                 Refresh();
             });
         });
