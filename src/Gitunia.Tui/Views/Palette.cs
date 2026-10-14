@@ -69,6 +69,7 @@ public static class Palette
             SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
             SegmentRole.TabButton => new RoleAppearance(colors.Muted, colors.BarBackground, colors.BarBackground == Color.None ? colors.MutedStyle | TextStyle.Underline : TextStyle.None, true),
+            SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle, true),
             SegmentRole.InactiveTab => new RoleAppearance(Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
             SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
             SegmentRole.SearchMatch => new RoleAppearance(colors.MatchForeground, colors.MatchBackground, colors.MatchStyle, true),
