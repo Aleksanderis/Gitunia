@@ -3,8 +3,14 @@ using System.Collections.Immutable;
 using System.Collections.Specialized;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Stash;
+using Gitunia.Git.Worktrees;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Sidebar;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;

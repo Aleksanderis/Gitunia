@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
-using Gitunia.Git;
+using Gitunia.Git.Stash;
+using Gitunia.Git.Worktrees;
 
 namespace Gitunia.Core.Workspaces;
 

@@ -1,5 +1,5 @@
 using Gitunia.Core.Search;
-using Gitunia.Git;
+using Gitunia.Git.Refs.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Search;

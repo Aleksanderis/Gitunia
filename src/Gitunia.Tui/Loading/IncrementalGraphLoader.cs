@@ -1,5 +1,7 @@
 using Gitunia.Core.Graph;
-using Gitunia.Git;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Repositories;
 
 namespace Gitunia.Tui.Loading;
 

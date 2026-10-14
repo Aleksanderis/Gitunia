@@ -1,6 +1,9 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Stash;
 using Gitunia.Tui.App;
 
 namespace Gitunia.Tui.Loading;

@@ -1,4 +1,4 @@
-using Gitunia.Git;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Core.Workspaces;
 

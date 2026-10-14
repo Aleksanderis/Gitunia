@@ -1,5 +1,8 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git;
+using Gitunia.Git.Diff;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories;
 
 namespace Gitunia.Tui.Loading;
 

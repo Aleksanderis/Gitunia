@@ -1,7 +1,9 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;

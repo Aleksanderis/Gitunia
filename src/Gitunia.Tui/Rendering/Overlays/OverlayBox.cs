@@ -1,3 +1,6 @@
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Styling;
+
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>Draws the frame around an overlay: a title bar, side rules and a bottom rule. Content rows are built for the inner width.</summary>

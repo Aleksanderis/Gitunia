@@ -1,5 +1,7 @@
 using Gitunia.Core.Graph;
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading;
 using Xunit;

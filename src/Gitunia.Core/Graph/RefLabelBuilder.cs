@@ -1,4 +1,5 @@
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Graph;
 

@@ -3,8 +3,14 @@ using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git;
+using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 

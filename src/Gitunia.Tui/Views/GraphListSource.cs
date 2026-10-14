@@ -4,6 +4,10 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views;

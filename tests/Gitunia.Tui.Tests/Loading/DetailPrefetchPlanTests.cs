@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Tests.Rendering;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading;

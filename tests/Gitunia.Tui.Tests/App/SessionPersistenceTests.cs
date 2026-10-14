@@ -1,7 +1,7 @@
-using Gitunia.Core.Status;
 using Gitunia.Core.Persistence;
+using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Xunit;
 

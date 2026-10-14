@@ -1,0 +1,65 @@
+using Gitunia.Core.Graph;
+using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
+using Xunit;
+
+namespace Gitunia.Tui.Tests.Rendering.Graph;
+
+public class LaneCellBuilderTests
+{
+    private static string Draw(GraphGlyphSet glyphs, int laneColumns, int nodeLane, params GraphEdge[] edges)
+    {
+        var row = new GraphRow(CommitFactory.Id(1), nodeLane, laneColumns, edges);
+        return new string(LaneCellBuilder.Build(row, laneColumns, glyphs).Select(cell => cell.Glyph).ToArray());
+    }
+
+    [Fact]
+    public void GivenOctopusMerge_WhenDrawing_ThenInnerParentLaneIsATeeDown()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 1),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 2),
+        };
+
+        Assert.Equal("○─┬─╮ ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+        Assert.Equal("o---\\ ", Draw(GraphGlyphSet.Ascii, 3, 0, edges));
+    }
+
+    [Fact]
+    public void GivenLaneEndingUnderAHorizontal_WhenDrawing_ThenInnerLaneIsATeeUp()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 1, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 0, 2),
+        };
+
+        Assert.Equal("●─┴─╮ ", Draw(GraphGlyphSet.Unicode, 3, 0, edges));
+    }
+
+    [Fact]
+    public void GivenThroughLaneAndLaneEndingAtTheNode_WhenDrawing_ThenNothingCutsTheThroughLane()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Through, 0, 0),
+            new GraphEdge(GraphEdgeKind.Outgoing, 1, 0),
+        };
+
+        Assert.Equal("├─● ", Draw(GraphGlyphSet.Unicode, 2, 1, edges));
+    }
+
+    [Fact]
+    public void GivenLeftwardLaneEndingAndReusedForAParent_WhenDrawing_ThenOneTee()
+    {
+        var edges = new[]
+        {
+            new GraphEdge(GraphEdgeKind.Incoming, 0, 1),
+            new GraphEdge(GraphEdgeKind.Outgoing, 1, 0),
+        };
+
+        Assert.Equal("├─● ", Draw(GraphGlyphSet.Unicode, 2, 1, edges));
+    }
+}

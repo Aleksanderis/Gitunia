@@ -1,7 +1,8 @@
-using Gitunia.Core.Picker;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Xunit;
 

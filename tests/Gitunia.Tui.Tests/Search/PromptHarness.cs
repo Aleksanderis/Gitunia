@@ -1,11 +1,15 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
-using Gitunia.Tui.App;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Rendering;
+using Gitunia.Tui.Rendering.Graph;
 using Terminal.Gui.Input;
 
 namespace Gitunia.Tui.Tests.Search;

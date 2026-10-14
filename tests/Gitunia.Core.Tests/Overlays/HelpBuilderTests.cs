@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Tests.Keymap;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;

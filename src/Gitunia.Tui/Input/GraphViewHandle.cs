@@ -1,5 +1,5 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs;
 
 namespace Gitunia.Tui.Input;
 

@@ -1,5 +1,7 @@
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Status.Models;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Workspaces;

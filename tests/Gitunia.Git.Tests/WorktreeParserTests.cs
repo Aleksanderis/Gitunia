@@ -1,3 +1,4 @@
+using Gitunia.Git.Worktrees;
 using Xunit;
 
 namespace Gitunia.Git.Tests;

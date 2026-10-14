@@ -28,9 +28,9 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 ```
 src/
   Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
-  Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models
+  Gitunia.Git/        process runner, parsers, repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
   Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types: styled lines, graph and sidebar glyphs, frame composer), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router)
+  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views, palette), Input (key and mouse translation, keymap and mouse controllers), Loading (streaming from git), Search (graph search and jump-to-ref prompts), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, Panes, Sidebar, Tabs)
   Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
 samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/
@@ -43,6 +43,8 @@ tools/
   ConPtyHarness/      Windows pseudoconsole smoke harness (standalone, used by the custom renderer workflow)
 scripts/              helper scripts (bash and PowerShell): fixture and big-repo generators, measurement harness
 ```
+
+Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`.
 
 Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
 

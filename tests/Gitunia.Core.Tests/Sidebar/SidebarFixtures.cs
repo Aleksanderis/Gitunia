@@ -1,6 +1,9 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Stash;
+using Gitunia.Git.Worktrees;
 
 namespace Gitunia.Core.Tests.Sidebar;
 

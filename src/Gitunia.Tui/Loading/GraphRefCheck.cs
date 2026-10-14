@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
-using Gitunia.Git;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading;
 

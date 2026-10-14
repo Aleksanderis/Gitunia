@@ -1,6 +1,7 @@
-using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Tests.Rendering;
+using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading;
