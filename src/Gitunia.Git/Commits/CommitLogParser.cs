@@ -1,5 +1,6 @@
 using System.Text;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Git.Commits;
@@ -10,8 +11,6 @@ namespace Gitunia.Git.Commits;
 /// </summary>
 public sealed class CommitLogParser
 {
-    private const int FieldCount = 7;
-
     private static readonly ObjectId[] NoParents = [];
     private static readonly CommitDecoration[] NoDecorations = [];
 
@@ -30,7 +29,7 @@ public sealed class CommitLogParser
     {
         while (chunk.Length > 0)
         {
-            var terminator = chunk.IndexOf(CommitLogFormat.RecordTerminator);
+            var terminator = chunk.IndexOf(GitSeparators.RecordTerminator);
             if (terminator < 0)
             {
                 foreach (var value in chunk)
@@ -76,7 +75,7 @@ public sealed class CommitLogParser
         var start = 0;
         for (var index = 0; index < record.Length && count < fields.Length - 1; index++)
         {
-            if (record[index] == CommitLogFormat.FieldSeparator)
+            if (record[index] == GitSeparators.UnitSeparator)
             {
                 fields[count++] = start..index;
                 start = index + 1;
@@ -128,17 +127,17 @@ public sealed class CommitLogParser
         if (isTag)
         {
             kind = RefKind.Tag;
-            prefix = "refs/tags/";
+            prefix = GitRefPrefixes.Tags;
         }
-        else if (fullName.StartsWith("refs/heads/", StringComparison.Ordinal))
+        else if (fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
         {
             kind = RefKind.LocalBranch;
-            prefix = "refs/heads/";
+            prefix = GitRefPrefixes.Heads;
         }
-        else if (fullName.StartsWith("refs/remotes/", StringComparison.Ordinal))
+        else if (fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
         {
             kind = RefKind.RemoteBranch;
-            prefix = "refs/remotes/";
+            prefix = GitRefPrefixes.Remotes;
         }
 
         var shortName = fullName.StartsWith(prefix, StringComparison.Ordinal) ? fullName[prefix.Length..] : fullName;
@@ -158,9 +157,9 @@ public sealed class CommitLogParser
             return;
         }
 
-        Span<Range> fields = stackalloc Range[FieldCount];
+        Span<Range> fields = stackalloc Range[CommitLogFormat.FieldCount];
         SplitFields(record, fields, out var count);
-        if (count < FieldCount)
+        if (count < CommitLogFormat.FieldCount)
         {
             warnings.Add($"Skipped commit record with {count} fields");
             return;
