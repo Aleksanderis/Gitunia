@@ -8,15 +8,18 @@ public static class RefParser
 {
     /// <summary>The <c>--format</c> value the parser expects: eight NUL-separated fields, each ref ended by a record separator (0x1e) so paths with newlines survive.</summary>
     public const string Format =
-        "%(refname)%00%(objectname)%00%(*objectname)%00%(upstream)%00%(upstream:track,nobracket)%00%(HEAD)%00%(worktreepath)%00%(symref)%1e";
+        $"%(refname){Nul}%(objectname){Nul}%(*objectname){Nul}%(upstream){Nul}%(upstream:track,nobracket){Nul}%(HEAD){Nul}%(worktreepath){Nul}%(symref){GitSeparators.RecordSeparatorPlaceholder}";
 
-    private const int FieldCount = 8;
+    /// <summary>Number of NUL-separated fields in <see cref="Format"/>.</summary>
+    public const int FieldCount = 8;
+
+    private const string Nul = GitSeparators.NulPlaceholder;
 
     public static ParseResult<GitRef> Parse(string output)
     {
         var refs = new List<GitRef>();
         var warnings = new List<string>();
-        foreach (var record in output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var record in output.Split(GitSeparators.RecordSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
             var line = record.Trim('\n');
             if (line.Length == 0)
@@ -60,15 +63,15 @@ public static class RefParser
 
     private static RefKind KindOf(string fullName) => fullName switch
     {
-        _ when fullName.StartsWith("refs/heads/", StringComparison.Ordinal) => RefKind.LocalBranch,
-        _ when fullName.StartsWith("refs/remotes/", StringComparison.Ordinal) => RefKind.RemoteBranch,
-        _ when fullName.StartsWith("refs/tags/", StringComparison.Ordinal) => RefKind.Tag,
+        _ when fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) => RefKind.LocalBranch,
+        _ when fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) => RefKind.RemoteBranch,
+        _ when fullName.StartsWith(GitRefPrefixes.Tags, StringComparison.Ordinal) => RefKind.Tag,
         _ => RefKind.Other,
     };
 
     private static string ShortName(string fullName)
     {
-        var second = fullName.IndexOf('/', "refs/".Length);
+        var second = fullName.IndexOf('/', GitRefPrefixes.Root.Length);
         return fullName[(second + 1)..];
     }
 

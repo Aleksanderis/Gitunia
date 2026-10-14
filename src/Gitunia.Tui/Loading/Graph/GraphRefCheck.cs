@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -45,7 +46,7 @@ public static class GraphRefCheck
 
         if (snapshot.Head.Kind == HeadKind.Branch && snapshot.Head.BranchName is not null)
         {
-            expected[CurrentKey] = "refs/heads/" + snapshot.Head.BranchName;
+            expected[CurrentKey] = $"{GitRefPrefixes.Heads}{snapshot.Head.BranchName}";
         }
 
         if (snapshot.Head.Kind == HeadKind.Detached && snapshot.Head.CommitHash is not null)

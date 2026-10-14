@@ -48,7 +48,7 @@ public static class CommitLogReader
     /// <summary>Number of commits <see cref="ReadAsync"/> returns for the default revisions (every ref except the stash), or -1 when no number came back.</summary>
     public static async Task<int> CountAsync(Repository repository, CancellationToken cancellationToken)
     {
-        var result = await repository.RunAsync(["rev-list", "--count", .. DefaultRevisions, "--"], new GitRunOptions(ReadOnly: true), cancellationToken).ConfigureAwait(false);
+        var result = await repository.RunAsync(["rev-list", "--count", .. DefaultRevisions, GitOptions.EndOfOptions], new GitRunOptions(ReadOnly: true), cancellationToken).ConfigureAwait(false);
         return int.TryParse(result.StandardOutputText.Trim(), out var count) ? count : -1;
     }
 

@@ -11,6 +11,14 @@ public class RefParserTests
     private const string HashThree = "3333333333333333333333333333333333333333";
 
     [Fact]
+    public void GivenTheFormat_WhenCountingSeparators_ThenFieldCountMatches()
+    {
+        var separators = RefParser.Format.Split(GitSeparators.NulPlaceholder).Length - 1;
+
+        Assert.Equal(RefParser.FieldCount, separators + 1);
+    }
+
+    [Fact]
     public void GivenCurrentBranchWithUpstream_WhenParsing_ThenAheadBehindAndWorktreeAreSet()
     {
         var output = Line("refs/heads/main", HashOne, upstream: "refs/remotes/origin/main", track: "ahead 2, behind 1", head: "*", worktree: "/work/repo");

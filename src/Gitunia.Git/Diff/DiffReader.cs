@@ -11,7 +11,7 @@ public static class DiffReader
     /// <summary>Flags that make the patch text predictable whatever the user's git config says.</summary>
     private static readonly string[] FixedOptions =
     [
-        "--no-color",
+        GitOptions.NoColor,
         "--no-ext-diff",
         "--no-textconv",
         "--src-prefix=a/",

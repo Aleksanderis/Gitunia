@@ -13,7 +13,7 @@ public static class RefReader
     public static async Task<ParseResult<GitRef>> ReadRefsAsync(Repository repository, CancellationToken cancellationToken)
     {
         var result = await repository.RunAsync(
-            ["for-each-ref", "--format=" + RefParser.Format, "refs/heads", "refs/remotes", "refs/tags"],
+            ["for-each-ref", $"--format={RefParser.Format}", GitRefPrefixes.Heads, GitRefPrefixes.Remotes, GitRefPrefixes.Tags],
             PollingOptions,
             cancellationToken).ConfigureAwait(false);
         return RefParser.Parse(result.StandardOutputText);

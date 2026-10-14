@@ -29,7 +29,7 @@ public static class CommitFileChangeParser
             }
 
             var statusText = Encoding.UTF8.GetString(metadata[(space + 1)..]);
-            var hasTwoPaths = statusText[0] is 'R' or 'C';
+            var hasTwoPaths = statusText[0] is FileChangeLetters.Renamed or FileChangeLetters.Copied;
             var first = NextField(output, ref position);
             var second = hasTwoPaths ? NextField(output, ref position) : default;
             if (first.Length == 0 || (hasTwoPaths && second.Length == 0))
@@ -38,7 +38,7 @@ public static class CommitFileChangeParser
                 continue;
             }
 
-            if (KindOf(statusText[0]) is not { } kind)
+            if (FileChangeLetters.KindOf(statusText[0], allowUnmodified: false) is not { } kind)
             {
                 warnings.Add($"Skipped a raw diff entry with the unknown status '{statusText}'");
                 continue;
@@ -66,18 +66,6 @@ public static class CommitFileChangeParser
         position += end < 0 ? rest.Length : end + 1;
         return field;
     }
-
-    private static FileChangeKind? KindOf(char letter) => letter switch
-    {
-        'A' => FileChangeKind.Added,
-        'M' => FileChangeKind.Modified,
-        'D' => FileChangeKind.Deleted,
-        'R' => FileChangeKind.Renamed,
-        'C' => FileChangeKind.Copied,
-        'T' => FileChangeKind.TypeChanged,
-        'U' => FileChangeKind.UpdatedButUnmerged,
-        _ => null,
-    };
 
     private static int? ParseSimilarity(string statusText) =>
         statusText.Length > 1 && int.TryParse(statusText.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var score) ? score : null;

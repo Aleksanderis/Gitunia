@@ -7,8 +7,6 @@ namespace Gitunia.Git.Commits;
 /// <summary>Parses the output of <c>git log -1 -z</c> in <see cref="CommitDetailsFormat"/> into a <see cref="CommitDetails"/> without files.</summary>
 public static class CommitDetailsParser
 {
-    private const int FieldCount = 9;
-
     private static readonly ObjectId[] NoParents = [];
 
     /// <param name="output">Raw stdout.</param>
@@ -29,12 +27,12 @@ public static class CommitDetailsParser
             return null;
         }
 
-        Span<Range> fields = stackalloc Range[FieldCount];
+        Span<Range> fields = stackalloc Range[CommitDetailsFormat.FieldCount];
         var count = 0;
         var start = 0;
-        for (var index = 0; index < record.Length && count < FieldCount - 1; index++)
+        for (var index = 0; index < record.Length && count < CommitDetailsFormat.FieldCount - 1; index++)
         {
-            if (record[index] == CommitDetailsFormat.FieldSeparator)
+            if (record[index] == GitSeparators.UnitSeparator)
             {
                 fields[count++] = start..index;
                 start = index + 1;
@@ -42,9 +40,9 @@ public static class CommitDetailsParser
         }
 
         fields[count++] = start..record.Length;
-        if (count < FieldCount)
+        if (count < CommitDetailsFormat.FieldCount)
         {
-            warnings.Add($"Commit record has {count} fields instead of {FieldCount}");
+            warnings.Add($"Commit record has {count} fields instead of {CommitDetailsFormat.FieldCount}");
             return null;
         }
 
