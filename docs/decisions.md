@@ -30,7 +30,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Terminal.Gui needs `Application.MaximumIterationsPerSecond` ~100 (default 25 gave ~34 ms key latency), an append-only list source for streamed commits, and key handling at the application level. Why and further pitfalls: `architecture.md`, "Design notes".
 
-**UI:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `git-layer.md`, "Design notes".
+**Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `git-layer.md`, "Design notes".
 
 **Architecture:** The renderer stays swappable but only Terminal.Gui is maintained; `src/Gitunia.CustomRenderTui` is a parked future option, not referenced by the app and only kept building in CI. Terminal.Gui types stay in the rendering project and no renderer interface is added until a second renderer is revived.
 
@@ -72,7 +72,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Architecture:** Background tabs load lazily (#91, #111): only the active tab loads, idle preloading was rejected (first visit ~37 ms, ~0.5-1 MB per loaded tab). Background markers come from a status poller (#129).
 
-**UI:** `Ctrl-j`, `Ctrl-^` and `Ctrl-h` arrive as other keys in Terminal.Gui 2.5.0 under tmux; `KeyTranslator` maps them back so the documented bindings work.
+**UI:** `Ctrl-j`, `Ctrl-^` and `Ctrl-h` arrive as other keys in Terminal.Gui 2.5.0 under tmux; `KeyTranslator` maps `Ctrl-j` and `Ctrl-^` back so the documented bindings work; `Ctrl-h` arrives as `Ctrl-Backspace` and is not mapped.
 
 **Architecture:** Session wiring (#81): restore at startup, `gitunia <path>` opens or focuses a tab, no tabs opens the picker, save is debounced 500 ms and flushed on exit; tab markers stay current through `TabRefresher` (#90).
 
@@ -90,7 +90,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Status messages (#93) go through one global `StatusChannel` with a log of the last 50; key-action notices stay transient. Dismiss `<space>x`, history `<space>m`.
 
-**Git layer:** Graph reload after a refresh is incremental (#126). Why: a full re-read of 100k commits took ~840 ms (git itself ~780 ms), the incremental one ~105 ms; history rewritten below the join with the same commit count is only noticed by a manual refresh (`r`).
+**Git layer:** Graph reload after a refresh is incremental (#126). Why: a full re-read of 100k commits took ~840 ms (git itself ~780 ms), the incremental one ~105 ms; only a `git replace` ref that keeps the commit count goes unnoticed until a manual refresh (`r`).
 
 **UI:** Diff extras (#106): word wrap is real wrapping, "Load anyway" (`L`) lifts the row caps, and the diff follows the graph selection. Dropped: progressive display while streaming and binary content.
 
@@ -134,7 +134,9 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-14
 
-**UI:** M1 follow-ups from the owner: same-branch commits drawn as a line using other glyphs (#238, terminal-drawn tiers stay in #154), `Alt-1`..`Alt-9` keep jumping tabs and `3gt` is the multiplexer-safe alternative (#242), more space between graph columns (#244), `G` stops at the last loaded commit with a hint while loading (#194), the notice for `Enter` on Details and Files stays (#190). The owner's M1 review (#200) comes first.
+**UI:** M1 follow-ups from the owner: same-branch commits drawn as a line (#238), `Alt-1`..`Alt-9` keep jumping tabs with `3gt` as the multiplexer-safe alternative (#242), more space between graph columns (#244).
+
+**UI:** `G` stops at the last loaded commit and shows a hint while loading (#194); the notice for `Enter` on Details and Files stays (#190). The owner's M1 review (#200) comes first.
 
 **Process:** Decision entries are short: 1-3 lines (decision and why), a bold topic tag, a blank line between entries; detail lives in the area doc or the issue. Why: the log grew to ~62 KB and was hard to read. Done in #253.
 
