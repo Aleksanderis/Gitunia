@@ -287,7 +287,8 @@ public sealed class MainView : IDisposable
         }
 
         FocusFromTitle(Detail);
-        if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width, (Detail.Source as DetailListSource)?.Content.Tab ?? BottomTab.Changes), column) is { } tabView)
+        var selectedTab = (Detail.Source as DetailListSource)?.Content.Tab ?? BottomTab.Changes;
+        if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width, selectedTab), column) is { } tabView)
         {
             Gestured?.Invoke(tabView, MouseGesture.Click, null);
         }
