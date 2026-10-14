@@ -29,7 +29,7 @@ effort: medium
 - New key bindings: add the row to the keymap table in `docs/ux.md` in the same PR.
 - Run the AOT publish if you added a dependency or touched anything reflection-adjacent.
 - Loose ends must not be lost. Anything you notice and do not fix in this PR (a known limit, a deferred case, an unwired piece, a manual check you could not run, a decision for the owner, a missing prerequisite for a later issue) gets registered before you finish, in exactly one of these ways: add it to the Acceptance or body of the existing issue that will own it (`gh issue edit` or a comment), or open a new issue (right milestone, area label, `Blocked by:` line if it depends on something; label `question` for an owner decision). A note in `docs/decisions.md`, a PR comment or your report is not registration. List every registered item with its issue number in the PR body under "Follow-ups". If a later issue's prerequisite is missing, add the new issue to that later issue's `Blocked by:` line.
-- Update stale docs in the same PR. Log cross-cutting decisions in `docs/decisions.md`.
+- Update stale docs in the same PR. Log cross-cutting decisions in `docs/decisions.md` as a short entry under the dated heading: bold topic tag, 1-3 lines (decision and why), no implementation detail (that goes in the area doc), blank line between entries.
 
 ## 4. Deliver
 
