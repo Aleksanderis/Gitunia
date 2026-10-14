@@ -8,10 +8,10 @@ public class LaneCellBuilderTests
 {
     private static string Draw(GraphGlyphSet glyphs, int laneColumns, int nodeLane, params GraphEdge[] edges)
     {
-        return Draw(glyphs, laneColumns, nodeLane, false, edges);
+        return DrawWith(glyphs, laneColumns, nodeLane, false, edges);
     }
 
-    private static string Draw(GraphGlyphSet glyphs, int laneColumns, int nodeLane, bool isDecorated, params GraphEdge[] edges)
+    private static string DrawWith(GraphGlyphSet glyphs, int laneColumns, int nodeLane, bool isDecorated, params GraphEdge[] edges)
     {
         var row = new GraphRow(CommitFactory.Id(1), nodeLane, laneColumns, edges);
         return new string(LaneCellBuilder.Build(row, laneColumns, glyphs, isDecorated).Select(cell => cell.Glyph).ToArray());
@@ -89,8 +89,8 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
         };
 
-        Assert.Equal("● ", Draw(GraphGlyphSet.Unicode, 1, 0, true, edges));
-        Assert.Equal("* ", Draw(GraphGlyphSet.Ascii, 1, 0, true, edges));
+        Assert.Equal("● ", DrawWith(GraphGlyphSet.Unicode, 1, 0, true, edges));
+        Assert.Equal("* ", DrawWith(GraphGlyphSet.Ascii, 1, 0, true, edges));
     }
 
     [Fact]

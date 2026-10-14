@@ -52,7 +52,7 @@ public static class LaneCellBuilder
                 : new GraphCell(glyphs.For(directions[column]), lanes[column]);
         }
 
-        // A plain commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
+        // An unlabelled commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
         var isLineCommit = !isDecorated && isOnLane && incomingCount == 1 && outgoingCount == 1;
         var nodeGlyph = isLineCommit ? glyphs.LineNode : outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
         cells[nodeLane * 2] = new GraphCell(nodeGlyph, nodeLane);
