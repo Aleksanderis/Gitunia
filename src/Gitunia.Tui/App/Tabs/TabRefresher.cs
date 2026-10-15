@@ -73,10 +73,10 @@ public sealed class TabRefresher : IDisposable
     /// <summary>Marks the tab visible or hidden; a hidden tab reports its pending changes when shown again.</summary>
     public void SetActive(bool isActive) => _watcher.SetActive(isActive);
 
-    /// <summary>Manual refresh: reads everything and reloads the graph.</summary>
-    public void RefreshNow()
+    /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
+    public void RefreshNow(bool announce = true)
     {
-        _announce = true;
+        _announce = announce;
         Request(RepositoryChangeKinds.All, true);
     }
 

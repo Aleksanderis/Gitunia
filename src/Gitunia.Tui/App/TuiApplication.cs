@@ -12,8 +12,10 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
+using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
+using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
@@ -40,7 +42,7 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitServices services, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable
+public sealed class TuiApplication(GitServices services, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable, ITerminalSuspender
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
@@ -68,6 +70,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
+    private SuspendableUiInvoker _uiInvoker = null!;
+    private Action? _suspendedWork;
+    private Action? _resumed;
 
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
@@ -78,11 +83,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-        using var app = Application.Create();
-        _application = app;
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
-        app.Init();
-        ConfigurePalette();
+        CreateApplication();
+        _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new WorkspaceHost(Workspace.Empty);
         _effects = new EffectRunner(services, _host, InvokeOnUi, glyphs, _statuses);
@@ -145,6 +148,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             () => _view.ScreenSize,
             ApplyPaneSizes);
+        _router.ExternalTools = new ExternalToolActions(
+            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool, PauseForEnter),
+            () => _host.Workspace.ActiveTab?.Location,
+            SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi);
@@ -237,14 +244,32 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         try
         {
             _application.Run(_view.Window);
+            while (_suspendedWork is not null)
+            {
+                RunSuspended();
+                _application.Run(_view.Window);
+            }
         }
         finally
         {
             _statusPoller.Dispose();
             persistence.Flush();
+            _application.Dispose();
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Stops the main loop; <see cref="Run"/> then shuts the driver down (the terminal is back in its normal mode, the
+    /// input thread is gone), runs <paramref name="work"/> and starts the driver again, which redraws at the current size.
+    /// </summary>
+    public void Suspend(Action work, Action resumed)
+    {
+        _suspendedWork = work;
+        _resumed = resumed;
+        _uiInvoker.Suspend();
+        _application.RequestStop();
     }
 
     public void Dispose()
@@ -428,7 +453,63 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
-    private void InvokeOnUi(Action action) => _application.Invoke(action);
+    private void RunSuspended()
+    {
+        var work = _suspendedWork;
+        var resumed = _resumed;
+        _suspendedWork = null;
+        _resumed = null;
+        _application.Dispose();
+        try
+        {
+            work?.Invoke();
+        }
+        finally
+        {
+            CreateApplication();
+            _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+            _uiInvoker.Resume(_application.Invoke);
+            if (resumed is not null)
+            {
+                _application.Invoke(resumed);
+            }
+        }
+    }
+
+    // The same setup for the first start and for every restart after a hand-off to an external tool.
+    private void CreateApplication()
+    {
+        _application = Application.Create();
+        _application.Init();
+        ConfigurePalette();
+    }
+
+    // The tool's own output (git's reason for failing) is on the screen; keep it there until a key is pressed.
+    private static void PauseForEnter()
+    {
+        Console.Out.WriteLine();
+        Console.Out.Write("Press Enter to return to gitunia...");
+        Console.Out.Flush();
+        Console.In.ReadLine();
+    }
+
+    private void RefreshAfterTool(RepositoryLocation location)
+    {
+        if (_host.Workspace.ActiveTabId is { } tabId && _host.Workspace.FindTab(tabId)?.Location == location)
+        {
+            _effects.Refresh(tabId, announce: false);
+        }
+    }
+
+    private string? SelectedCommitHash()
+    {
+        var index = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var graph = ActiveSession()?.Graph;
+
+        return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
+    }
+
+    private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
 
     private void RequestStop() => _application.RequestStop();
 

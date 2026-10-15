@@ -135,6 +135,12 @@ public static class ActionIds
 
     public static ActionId RepositoryRefresh { get; } = new("repo.refresh");
 
+    public static ActionId ToolCommitEditor { get; } = new("tool.commit-editor");
+
+    public static ActionId ToolDifftool { get; } = new("tool.difftool");
+
+    public static ActionId ToolMergetool { get; } = new("tool.mergetool");
+
     public static ActionId SearchNext { get; } = new("search.next");
 
     public static ActionId SearchOpen { get; } = new("search.open");
