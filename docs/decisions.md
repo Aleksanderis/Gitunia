@@ -191,3 +191,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** Non-UTF-8 paths (#94): status output is decoded surrogate-escaped (`GitPathText`) and paths reach git on stdin (`--pathspec-from-file=-`), never as arguments. Line and hunk patches of files with invalid UTF-8 are refused (`InexactPatchException`); such files are staged whole. Affects #30, #31, #33.
 
 **UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
+
+**UI:** Commit message editor (#314): an own `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete, its replacement is a separate package to vet for AOT); testable without a terminal.
