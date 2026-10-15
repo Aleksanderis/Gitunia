@@ -169,3 +169,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Code structure:** Unused usings (IDE0005) fail the build; Roslyn needs `GenerateDocumentationFile` for it, so doc warnings CS1573/1591 are silenced (CS1574/1734 were re-enabled in #295). Small `Models/` folders (Refs, Watching, Execution) stay for consistency (#258).
 
 **UI:** Status bar hints (#287, owner): wording stays short and is not derived from `ActionCatalog` titles; each hint names an `ActionId` per key and a test checks the default keymap binds the key to it.
+
+**UI:** Graph lane 0 (#301, owner): when a branch is checked out, lane 0 is reserved for the first-parent chain of its tip, so the current branch is a straight shaft on the left and other branches join it from the right. A detached or unborn HEAD keeps the leftmost-free-lane layout. Why: other tips listed first (`origin/main`, merged features) pushed the current branch off the left edge and bent it.

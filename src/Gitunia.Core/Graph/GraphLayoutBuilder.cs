@@ -7,12 +7,25 @@ namespace Gitunia.Core.Graph;
 /// Assigns lanes to commits fed in topological order (children before parents), one row at a time, so a partial
 /// log can be shown while the rest is still loading. The result depends only on the sequence of commits, never on
 /// how it was split into <see cref="Append"/> calls. Rows are immutable; the builder only keeps the open lanes.
+/// When the commit of the checked-out branch is given, lane 0 is reserved for its first-parent chain: no other commit
+/// takes lane 0 until the chain ends, and every chain commit sits in lane 0, so the current branch is a straight
+/// shaft on the left. Without it (detached HEAD, no commits) the leftmost free lane is used.
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
     private readonly List<GraphRow> _rows = [];
+
+    // The next commit of the reserved first-parent chain of HEAD (lane 0); the default (invalid) id when there is no chain
+    // or it has ended. Lane 0 is not handed out to anything else while this is valid.
+    private ObjectId _chainNext;
+
+    /// <param name="headCommit">The commit the checked-out branch points at; null for a detached or unborn HEAD.</param>
+    public GraphLayoutBuilder(ObjectId? headCommit = null)
+    {
+        _chainNext = headCommit ?? default;
+    }
 
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
@@ -26,15 +39,14 @@ public sealed class GraphLayoutBuilder
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
-        var nodeLane = IndexOfLane(commitId);
+        var isChain = _chainNext.IsValid && commitId == _chainNext;
+        var nodeLane = isChain ? 0 : IndexOfLane(commitId);
         if (nodeLane < 0)
         {
             nodeLane = FindFreeLane();
-            if (nodeLane == _lanes.Count)
-            {
-                _lanes.Add(default);
-            }
         }
+
+        EnsureLane(nodeLane);
 
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
@@ -57,19 +69,37 @@ public sealed class GraphLayoutBuilder
         for (var parentIndex = 0; parentIndex < commit.Parents.Count; parentIndex++)
         {
             var parent = commit.Parents[parentIndex];
-            var parentLane = IndexOfLane(parent);
-            if (parentLane < 0)
+            int parentLane;
+            if (isChain && parentIndex == 0)
             {
-                parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
-                if (parentLane == _lanes.Count)
+                // The chain stays in lane 0 even when another lane already waits for this parent (that lane joins it later).
+                parentLane = 0;
+                _chainNext = parent;
+                _lanes[0] = parent;
+            }
+            else if (_chainNext.IsValid && parent == _chainNext)
+            {
+                parentLane = 0;
+                EnsureLane(0);
+                _lanes[0] = parent;
+            }
+            else
+            {
+                parentLane = IndexOfLane(parent);
+                if (parentLane < 0)
                 {
-                    _lanes.Add(default);
+                    parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
+                    EnsureLane(parentLane);
+                    _lanes[parentLane] = parent;
                 }
-
-                _lanes[parentLane] = parent;
             }
 
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane));
+        }
+
+        if (isChain && commit.Parents.Count == 0)
+        {
+            _chainNext = default;
         }
 
         var laneCount = nodeLane + 1;
@@ -109,12 +139,21 @@ public sealed class GraphLayoutBuilder
         return -1;
     }
 
-    // Leftmost free lane, or the next new one. A commit has at most one lane waiting for it (a parent is only added
-    // when no lane already waits for it), so the only lane that can end in a row is the node lane itself, which a
-    // later parent may reuse: its line simply continues straight down.
+    private void EnsureLane(int lane)
+    {
+        while (_lanes.Count <= lane)
+        {
+            _lanes.Add(default);
+        }
+    }
+
+    // Leftmost free lane, or the next new one; lane 0 is skipped while it is reserved for the chain of HEAD. Only the
+    // lane of the commit being laid out can end in a row, and a later parent may reuse it: its line simply continues
+    // straight down.
     private int FindFreeLane()
     {
-        for (var lane = 0; lane < _lanes.Count; lane++)
+        var first = _chainNext.IsValid ? 1 : 0;
+        for (var lane = first; lane < _lanes.Count; lane++)
         {
             if (!_lanes[lane].IsValid)
             {
@@ -122,7 +161,7 @@ public sealed class GraphLayoutBuilder
             }
         }
 
-        return _lanes.Count;
+        return Math.Max(_lanes.Count, first);
     }
 
     // FNV-style mix over (lane index, waited-for commit) of the occupied lanes.
@@ -134,6 +173,16 @@ public sealed class GraphLayoutBuilder
             if (_lanes[lane].IsValid)
             {
                 hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
+            }
+        }
+
+        if (_chainNext.IsValid)
+        {
+            // The reservation shapes the rows below (even when lane 0 is still empty), so it is part of what must match.
+            hash = (hash ^ 0x9E3779B97F4A7C15UL) * 1099511628211UL;
+            if (_lanes.Count == 0 || !_lanes[0].IsValid)
+            {
+                hash = (hash ^ _chainNext.Hash64) * 1099511628211UL;
             }
         }
 

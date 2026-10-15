@@ -24,7 +24,7 @@ Contract between Gitunia.Git and everything above it.
 - Repository: path, git dir, common dir, HEAD state (branch, detached, unborn; `RefReader.ReadHeadAsync`), operation in progress (merge, rebase, cherry-pick, revert, bisect).
 - Worktree: path, HEAD, branch, locked, prunable, bare, per-worktree dirty summary. Worktrees are first-class: every view that shows a branch also shows which worktree has it checked out.
 - Branch/ref: local, remote, tag, upstream, ahead/behind, last commit, checked-out-in (worktree).
-- Commit graph: hash, parents, author, date, subject, refs; lane assignment computed incrementally from `rev-list --parents` order. Graph layout is a pure function so it can be tested and cached.
+- Commit graph: hash, parents, author, date, subject, refs; lane assignment computed incrementally from `rev-list --parents` order. Lane 0 is reserved for the first-parent chain of the checked-out branch's tip (`GraphLayoutBuilder(headCommit)`, tip found by `ICommitLogReader.ReadCurrentBranchTipAsync`, read concurrently with the log): no other commit takes lane 0 until that chain ends, a chain commit whose parent is already waited for in another lane still puts it in lane 0 (the other lane joins with an incoming edge), and the reservation is part of `GraphRow.LaneFingerprint`, so an incremental reload after HEAD moved cannot join rows laid out for another HEAD and falls back to reading further or fully. A detached or unborn HEAD gives no head commit and the leftmost free lane is used. Graph layout is a pure function so it can be tested and cached.
 - Status: staged/unstaged/untracked/conflicted per path, with hunk/line addressing for partial staging (`git apply --cached` with generated patches).
 
 ## Refresh

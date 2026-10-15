@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Commits;
@@ -73,5 +74,23 @@ public sealed class CommitLogReader : ICommitLogReader
         }
 
         return decorations;
+    }
+
+    public async Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        var decorations = await ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
+        foreach (var (id, list) in decorations)
+        {
+            for (var index = 0; index < list.Count; index++)
+            {
+                if (list[index].IsCurrent && list[index].Kind == RefKind.LocalBranch)
+                {
+                    return id;
+                }
+            }
+        }
+
+        // A detached HEAD shows a RefKind.Head decoration instead.
+        return null;
     }
 }
