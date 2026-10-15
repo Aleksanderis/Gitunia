@@ -58,6 +58,7 @@ Run from the repo root:
 - Test: `dotnet test`
 - AOT publish (fails on any `IL*` warning): `dotnet publish src/Gitunia.Tui -c Release -o <outdir>`; smoke run: `<outdir>/gitunia`
 - Formatting is enforced by `.editorconfig` during build (`EnforceCodeStyleInBuild`).
+- Quality inspections the build cannot see (captured disposed or modified variables, unused members, redundant arguments): `scripts/inspect.sh` (or `scripts/inspect.ps1`) runs JetBrains inspectcode, the same engine as Rider. It is not part of the edit loop: run `scripts/inspect.sh --changed` (~10 s) after finishing a change that touches lambdas, events or `using`, and the full run (~40 s) once before opening a PR (the reviewer does the same). Fix what it reports; the tool is pinned in `dotnet-tools.json`.
 
 ## Working autonomously
 
