@@ -1,3 +1,4 @@
+using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 
 namespace Gitunia.Core.Graph;
@@ -6,9 +7,10 @@ namespace Gitunia.Core.Graph;
 public static class GraphLayout
 {
     /// <param name="commits">Commits ordered children before parents.</param>
-    public static IReadOnlyList<GraphRow> Compute(IEnumerable<CommitInfo> commits)
+    /// <param name="headCommit">The commit of the checked-out branch whose first-parent chain gets lane 0; null when HEAD is detached.</param>
+    public static IReadOnlyList<GraphRow> Compute(IEnumerable<CommitInfo> commits, ObjectId? headCommit = null)
     {
-        var builder = new GraphLayoutBuilder();
+        var builder = new GraphLayoutBuilder(headCommit);
         builder.AppendRange(commits);
         return builder.Rows;
     }

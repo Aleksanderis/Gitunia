@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Tests.Fakes;
@@ -83,5 +84,17 @@ public sealed class FakeCommitLogReader : ICommitLogReader
 
         var decorated = Commits.Where(commit => commit.Decorations.Count > 0).ToDictionary(commit => commit.Id, commit => commit.Decorations);
         return Task.FromResult(decorated);
+    }
+
+    public Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Failure is not null)
+        {
+            return Task.FromException<ObjectId?>(Failure);
+        }
+
+        var tip = Commits.FirstOrDefault(commit => commit.Decorations.Any(decoration => decoration.IsCurrent && decoration.Kind == RefKind.LocalBranch));
+        return Task.FromResult(tip?.Id);
     }
 }

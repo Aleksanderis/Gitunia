@@ -168,6 +168,96 @@ public class IncrementalGraphLoaderTests
         await AssertEqualToFullReadAsync(testRepository, reload);
     }
 
+    [Fact]
+    public async Task GivenManyMergedFeatureBranchesAndAnotherTipListedFirst_WhenReading_ThenTheCurrentBranchChainIsStraightInLaneZero()
+    {
+        using var testRepository = LongHistory(3);
+        for (var number = 1; number <= 5; number++)
+        {
+            testRepository.CheckoutNewBranch($"feature-{number}").Commit($"feature {number}", new TestFile($"f{number}.txt", "1"));
+            testRepository.Checkout("main").Commit($"main {number}", new TestFile($"m{number}.txt", "1")).Merge($"feature-{number}");
+        }
+
+        // A branch whose tip is newer than HEAD, so it is listed before HEAD's tip.
+        testRepository.CheckoutNewBranch("ahead").Commit("ahead", new TestFile("ahead.txt", "1")).Checkout("main");
+
+        var entries = await ReadAllAsync(testRepository);
+
+        AssertFirstParentChainInLaneZero(testRepository, entries);
+    }
+
+    [Fact]
+    public async Task GivenDetachedHead_WhenReading_ThenNoLaneIsReserved()
+    {
+        using var testRepository = LongHistory(3);
+        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t.txt", "1")).Checkout("main");
+        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
+
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
+        var commits = new List<CommitInfo>();
+        await foreach (var commit in TestGit.Services.CommitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: CancellationToken.None))
+        {
+            commits.Add(commit);
+        }
+
+        var entries = await ReadAllAsync(testRepository);
+
+        Assert.Null(await TestGit.Services.CommitLog.ReadCurrentBranchTipAsync(location, CancellationToken.None));
+        Assert.Equal(GraphLayout.Compute(commits).Select(row => row.Edges), entries.Select(entry => entry.Row.Edges));
+    }
+
+    [Fact]
+    public async Task GivenHeadMovedToAnotherBranch_WhenReloading_ThenTheResultEqualsAFullReadWithTheNewChainInLaneZero()
+    {
+        using var testRepository = LongHistory(20);
+        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Commit("topic 2", new TestFile("t2.txt", "1")).Checkout("main");
+        testRepository.Commit("main 1", new TestFile("m1.txt", "1"));
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Checkout("topic");
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries]);
+    }
+
+    [Fact]
+    public async Task GivenHeadMovedDownTheSameBranch_WhenReloading_ThenTheResultEqualsAFullReadWithTheChainInLaneZero()
+    {
+        using var testRepository = LongHistory(20);
+        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Checkout("main");
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Git("reset", "-q", "--hard", "HEAD~5");
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries]);
+    }
+
+    [Fact]
+    public async Task GivenCurrentBranchSwitchedToDetachedHead_WhenReloading_ThenTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(20);
+        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Checkout("main");
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Git("checkout", "-q", "--detach", "topic");
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+    }
+
+    private static void AssertFirstParentChainInLaneZero(TestRepository testRepository, GraphEntry[] entries)
+    {
+        var chain = testRepository.Git("rev-list", "--first-parent", "HEAD").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+        var chainEntries = entries.Where(entry => chain.Contains(entry.Id.ToString())).ToArray();
+
+        Assert.Equal(chain.Count, chainEntries.Length);
+        Assert.All(chainEntries, entry => Assert.Equal(0, entry.Row.Lane));
+        Assert.All(entries.TakeWhile(entry => entry.Id.ToString() != chainEntries[^1].Id.ToString()).Where(entry => !chain.Contains(entry.Id.ToString())), entry => Assert.NotEqual(0, entry.Row.Lane));
+    }
+
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
     {
         var entries = new List<GraphEntry>();

@@ -1,7 +1,9 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Commits;
@@ -73,5 +75,33 @@ public sealed class CommitLogReader : ICommitLogReader
         }
 
         return decorations;
+    }
+
+    public async Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorations;
+        try
+        {
+            decorations = await ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
+        }
+        catch (GitException)
+        {
+            // Only the lane of the current branch depends on this, so a failure must not stop the graph from loading.
+            return null;
+        }
+
+        foreach (var (id, list) in decorations)
+        {
+            for (var index = 0; index < list.Count; index++)
+            {
+                if (list[index].IsCurrent && list[index].Kind == RefKind.LocalBranch)
+                {
+                    return id;
+                }
+            }
+        }
+
+        // A detached HEAD shows a RefKind.Head decoration instead.
+        return null;
     }
 }
