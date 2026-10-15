@@ -1,4 +1,3 @@
-using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
