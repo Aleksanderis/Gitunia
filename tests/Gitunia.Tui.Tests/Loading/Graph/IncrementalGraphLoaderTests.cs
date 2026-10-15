@@ -279,6 +279,25 @@ public class IncrementalGraphLoaderTests
         await AssertEqualToFullReadAsync(testRepository, reload);
     }
 
+    [Fact]
+    public async Task GivenACommitAboveHeadReachedOnlyThroughAMergeAfterItsBranchWasDeleted_WhenReloading_ThenTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(5);
+        testRepository.CheckoutNewBranch("feat").Commit("feat 1", new TestFile("f1.txt", "1"));
+        testRepository.Checkout("main~2").CheckoutNewBranch("other").Commit("other 1", new TestFile("o1.txt", "1"));
+        testRepository.Merge("feat").Commit("other 2", new TestFile("o2.txt", "1")).Checkout("main");
+        var previous = await ReadAllAsync(testRepository);
+        Assert.Equal(0, previous.Single(entry => entry.Subject == "feat 1").Row.Lane);
+
+        // Feat 1 is above HEAD with or without the branch (the set does not depend on the refs), so its lane must not change.
+        testRepository.Git("branch", "-D", "feat");
+        testRepository.Checkout("other").Commit("other 3", new TestFile("o3.txt", "1")).Checkout("main");
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        Assert.Equal(0, reload.Entries.Single(entry => entry.Subject == "feat 1").Row.Lane);
+    }
+
     // The commits above HEAD whose first-parent chain reaches it, from first-parent walks of every local branch.
     private static HashSet<string> AheadOfHead(TestRepository testRepository)
     {

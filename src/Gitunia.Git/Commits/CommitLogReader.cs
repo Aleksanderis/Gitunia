@@ -17,10 +17,14 @@ public sealed class CommitLogReader : ICommitLogReader
 
     private static readonly string[] TipRevisions = ["--no-walk", .. DefaultRevisions];
 
-    // The commits whose first-parent chain reaches a commit (that commit is excluded by the caller), parents first; a first-parent walk is
-    // much cheaper than the full ancestry on a large history, and the first parent is all the layout needs.
+    // Every commit that descends from HEAD, parents first, each line followed by its parents. HEAD itself is excluded,
+    // and the result must not depend on which refs reach a commit, so the walk follows all parents (a first-parent
+    // walk would drop a commit that only a merge reaches).
     private static readonly string[] DescendantsArguments =
-        ["rev-list", "--parents", "--topo-order", "--reverse", "--first-parent", "--ancestry-path", .. DefaultRevisions];
+    [
+        "rev-list", "--parents", "--topo-order", "--reverse", "--ancestry-path", .. DefaultRevisions,
+        $"{GitOptions.ExcludeRevisionPrefix}{GitOptions.HeadRevision}", GitOptions.EndOfOptions,
+    ];
 
     private readonly GitRunner _runner;
 
@@ -110,26 +114,38 @@ public sealed class CommitLogReader : ICommitLogReader
         return null;
     }
 
-    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(
+        RepositoryLocation location,
+        CancellationToken cancellationToken)
     {
+        // Both runs start at once: the descendants of HEAD need no tip id, they are matched to it afterwards.
+        var descendantsTask = ReadDescendantsOutputAsync(location, cancellationToken);
         var head = await ReadCurrentBranchTipAsync(location, cancellationToken).ConfigureAwait(false);
+        var output = await descendantsTask.ConfigureAwait(false);
         if (head is null)
         {
             return HeadLayoutInfo.None;
         }
 
+        return new HeadLayoutInfo(head, output is null ? null : FirstParentDescendantsParser.Parse(output, head.Value));
+    }
+
+    // Null when git failed (an unborn HEAD does): only the shape of the lane layout depends on this, so a failure must
+    // not stop the graph from loading.
+    private async Task<string?> ReadDescendantsOutputAsync(
+        RepositoryLocation location,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            string[] arguments = [.. DescendantsArguments, $"{GitOptions.ExcludeRevisionPrefix}{head.Value}", GitOptions.EndOfOptions];
             var result = await _runner
-                .RunAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+                .RunAsync(location.CommandPath, DescendantsArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
                 .ConfigureAwait(false);
-            return new HeadLayoutInfo(head, FirstParentDescendantsParser.Parse(result.StandardOutputText, head.Value));
+            return result.StandardOutputText;
         }
         catch (GitException)
         {
-            // Only the shape of the lane layout depends on the descendants, so a failure must not stop the graph from loading.
-            return new HeadLayoutInfo(head, HeadLayoutInfo.None.FirstParentDescendants);
+            return null;
         }
     }
 }

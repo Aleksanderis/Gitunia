@@ -58,7 +58,8 @@ public readonly struct ObjectId : IEquatable<ObjectId>
         return true;
     }
 
-    public static bool TryParse(string hexDigits, out ObjectId objectId)
+    /// <summary>Parses 40 (SHA-1) or 64 (SHA-256) hex digits given as characters.</summary>
+    public static bool TryParse(ReadOnlySpan<char> hexDigits, out ObjectId objectId)
     {
         Span<byte> ascii = stackalloc byte[Math.Min(hexDigits.Length, 64)];
         if (hexDigits.Length > 64)
@@ -74,6 +75,8 @@ public readonly struct ObjectId : IEquatable<ObjectId>
 
         return TryParse(ascii, out objectId);
     }
+
+    public static bool TryParse(string hexDigits, out ObjectId objectId) => TryParse(hexDigits.AsSpan(), out objectId);
 
     public static bool operator ==(ObjectId left, ObjectId right) => left.Equals(right);
 

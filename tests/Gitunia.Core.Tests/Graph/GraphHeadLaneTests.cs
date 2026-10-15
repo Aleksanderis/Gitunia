@@ -60,6 +60,17 @@ public class GraphHeadLaneTests
     }
 
     [Fact]
+    public void GivenFailedAboveHeadRead_WhenLayingOutFromThatLayout_ThenATipDirectlyAboveHeadStillTakesLaneZero()
+    {
+        var commits = new[] { Commit(1, 2), Commit(2, 3), Commit(3) };
+        var builder = GraphLayoutBuilder.For(new HeadLayoutInfo(Id(2), null));
+
+        var rows = builder.AppendRange(commits);
+
+        Assert.Equal([0, 0, 0], rows.Select(row => row.Lane));
+    }
+
+    [Fact]
     public void GivenTwoBranchesAheadBySeveralCommits_WhenLayingOutWithTheAboveHeadSet_ThenTheFirstChainTakesLaneZeroAndTheOtherJoinsIt()
     {
         // 1-2 and 3-4 are both ahead of HEAD 5; they meet at HEAD.

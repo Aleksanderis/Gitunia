@@ -98,12 +98,25 @@ public sealed class FakeCommitLogReader : ICommitLogReader
         return Task.FromResult(tip?.Id);
     }
 
-    /// <summary>The commits that descend from the current branch tip by first parents, or none by default; <see cref="ReadHeadLayoutAsync"/> reports them.</summary>
-    public HashSet<ObjectId> FirstParentDescendantsOfHead { get; } = [];
-
     public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
         var tip = await ReadCurrentBranchTipAsync(location, cancellationToken);
-        return tip is null ? HeadLayoutInfo.None : new HeadLayoutInfo(tip, FirstParentDescendantsOfHead);
+        if (tip is null)
+        {
+            return HeadLayoutInfo.None;
+        }
+
+        // Commits are listed newest first, so walking the list backwards sees parents before children.
+        var descendants = new HashSet<ObjectId>();
+        for (var index = Commits.Count - 1; index >= 0; index--)
+        {
+            var parents = Commits[index].Parents;
+            if (parents.Count > 0 && (parents[0] == tip || descendants.Contains(parents[0])))
+            {
+                descendants.Add(Commits[index].Id);
+            }
+        }
+
+        return new HeadLayoutInfo(tip, descendants);
     }
 }

@@ -177,3 +177,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Diff title buttons (#302, owner): chips like the tabs with words (`‹ file`, `hunk ›`, `wrap`, `zoom`) instead of key-like brackets; the `[x]` close button is gone (the diff is part of the Changes tab).
 
 **UI:** Pane padding (#244, owner): two blank columns inside the frame for the History list and the bottom detail and diff panes from 100 columns of screen width, one below (the sidebar keeps one). The graph's own two-column right margin stays, so History has four blank columns at its right end on wide screens (kept on purpose, #301 owns the lane layout). The diff title has no hash (the detail title shows it).
+
+**UI:** Graph lane 0 and ahead branches (#308, owner follow-up to #307): commits above HEAD whose first-parent chain reaches it continue the lane 0 shaft upwards, so a branch ahead by any number of commits (for example `origin/main`) is straight too; this supersedes "deeper ahead branches still bend in". Why: the topmost branch should run straight and leftmost; the layout gets the set from one extra git run (cost in `docs/performance.md`).

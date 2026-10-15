@@ -51,7 +51,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenDetachedHead_WhenReadingCurrentBranchTip_ThenNull()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
@@ -61,7 +61,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenAnotherBranchCheckedOutInALinkedWorktree_WhenReadingCurrentBranchTip_ThenItIsTheTipOfTheBranchOfThisWorktree()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         testRepository.AddWorktree("side", "side", createBranch: true);
         testRepository.Git("-C", testRepository.AddWorktree("side-2", "side-2", createBranch: true), "commit", "-q", "--allow-empty", "-m", "elsewhere");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
@@ -105,7 +105,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenBranchesAheadOfHead_WhenReadingHeadLayout_ThenTheAheadCommitsAreTheFirstParentDescendantsOfTheTip()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         var head = testRepository.Head;
         testRepository.CheckoutNewBranch("ahead").Commit("ahead 1").Commit("ahead 2").Commit("ahead 3");
         var expected = testRepository.Git("rev-list", "--first-parent", $"{head}..ahead").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -123,6 +123,7 @@ public class CommitLogReaderTests
 
         Assert.Equal(head, layout.Head?.ToString());
         Assert.Equal(5, expected.Count);
+        Assert.NotNull(layout.FirstParentDescendants);
         Assert.Equal(expected.Order(), layout.FirstParentDescendants.Select(id => id.ToString()).Order());
     }
 
@@ -140,6 +141,7 @@ public class CommitLogReaderTests
         var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
 
         Assert.Equal(testRepository.Head, layout.Head?.ToString());
+        Assert.NotNull(layout.FirstParentDescendants);
         Assert.DoesNotContain(layout.FirstParentDescendants, id => id.ToString() == merge);
         Assert.Empty(layout.FirstParentDescendants);
     }
@@ -147,14 +149,14 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenDetachedHead_WhenReadingHeadLayout_ThenNoHeadAndNoDescendants()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 
         var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
 
         Assert.Null(layout.Head);
-        Assert.Empty(layout.FirstParentDescendants);
+        Assert.Null(layout.FirstParentDescendants);
     }
 
     [Fact]
@@ -166,7 +168,7 @@ public class CommitLogReaderTests
         var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
 
         Assert.Null(layout.Head);
-        Assert.Empty(layout.FirstParentDescendants);
+        Assert.Null(layout.FirstParentDescendants);
     }
 
     [Fact]

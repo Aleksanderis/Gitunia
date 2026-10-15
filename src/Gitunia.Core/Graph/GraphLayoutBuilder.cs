@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 
@@ -10,12 +11,12 @@ namespace Gitunia.Core.Graph;
 /// When the commit of the checked-out branch is given, lane 0 is reserved for its first-parent chain: no other commit
 /// takes lane 0 until the chain ends, and every chain commit sits in lane 0, so the current branch is a straight
 /// shaft on the left. The commits above HEAD whose first-parent chain reaches it (a branch ahead of HEAD such as
-/// <c>origin/main</c>), given as a set because the streamed layout cannot tell it from the log, continue that shaft upwards
-/// in lane 0 while it is free. Without the head commit (detached HEAD, no commits) the leftmost free lane is used.
+/// <c>origin/main</c>), given as a set because the streamed layout cannot tell it from the log, continue that shaft
+/// upwards in lane 0 while it is free. Without the head commit (detached HEAD, no commits) the leftmost free lane is used.
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
-    private static readonly HashSet<ObjectId> EmptySet = [];
+    private static readonly IReadOnlySet<ObjectId> EmptySet = FrozenSet<ObjectId>.Empty;
 
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
@@ -28,15 +29,16 @@ public sealed class GraphLayoutBuilder
     // Commits above HEAD whose first-parent chain reaches it; they take lane 0 while it is free. Empty without a head.
     private readonly IReadOnlySet<ObjectId> _aboveHead;
 
-    // When the set is known, a tip above HEAD is in it, so HEAD is never pulled into lane 0 early by another commit's parent
-    // link: it waits where it is and joins lane 0 when its own row comes.
+    // When the set is known, a tip above HEAD is in it, so HEAD is never pulled into lane 0 early by another commit's
+    // parent link: it waits where it is and joins lane 0 when its own row comes.
     private readonly bool _aboveHeadKnown;
 
     /// <param name="headCommit">The commit the checked-out branch points at; null for a detached or unborn HEAD.</param>
     /// <param name="aboveHead">
     /// The commits whose first-parent chain reaches <paramref name="headCommit"/> (not including it), for example the
-    /// commits of <c>origin/main</c> when it is ahead; null if not known. A pure function of the history and the head,
-    /// so it needs no part in <see cref="GraphRow.LaneFingerprint"/>.
+    /// commits of <c>origin/main</c> when it is ahead; null if not known. A pure function of the history and the head
+    /// (membership depends only on a commit's first-parent chain, not on which refs reach it), so it needs no part in
+    /// <see cref="GraphRow.LaneFingerprint"/>.
     /// </param>
     public GraphLayoutBuilder(ObjectId? headCommit = null, IReadOnlySet<ObjectId>? aboveHead = null)
     {
@@ -101,7 +103,7 @@ public sealed class GraphLayoutBuilder
             }
             else if (isAboveHead && parentIndex == 0 && IsOnOrAboveHead(parent))
             {
-                // The shaft continues down: the first parent is in lane 0 too, even when another lane waits for it as well.
+                // The shaft continues down: the first parent is in lane 0 too, even when another lane waits for it.
                 parentLane = 0;
                 _lanes[0] = parent;
             }
@@ -168,7 +170,8 @@ public sealed class GraphLayoutBuilder
     }
 
     // Lane 0 is empty or already waits for this commit.
-    private bool IsLaneZeroFreeFor(ObjectId commitId) => _lanes.Count == 0 || !_lanes[0].IsValid || _lanes[0] == commitId;
+    private bool IsLaneZeroFreeFor(ObjectId commitId) =>
+        _lanes.Count == 0 || !_lanes[0].IsValid || _lanes[0] == commitId;
 
     private bool IsOnOrAboveHead(ObjectId commitId) => commitId == _chainNext || _aboveHead.Contains(commitId);
 
