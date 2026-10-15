@@ -1,3 +1,4 @@
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Panes;

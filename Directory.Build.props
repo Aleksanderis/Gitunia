@@ -10,7 +10,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PublishDocumentationFile>false</PublishDocumentationFile>
-    <NoWarn>$(NoWarn);CS1573;CS1574;CS1591;CS1734</NoWarn>
+    <NoWarn>$(NoWarn);CS1573;CS1591</NoWarn>
     <InvariantGlobalization>true</InvariantGlobalization>
     <IsAotCompatible Condition="'$(IsTestProject)' != 'true'">true</IsAotCompatible>
   </PropertyGroup>

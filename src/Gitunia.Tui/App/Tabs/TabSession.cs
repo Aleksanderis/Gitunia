@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
