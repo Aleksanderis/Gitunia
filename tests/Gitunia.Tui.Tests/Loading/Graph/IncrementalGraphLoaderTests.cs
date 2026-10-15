@@ -252,14 +252,21 @@ public class IncrementalGraphLoaderTests
         await AssertEqualToFullReadAsync(testRepository, reload);
     }
 
-    private static void AssertFirstParentChainInLaneZero(TestRepository testRepository, GraphEntry[] entries, string? aheadTip = null)
+    private static void AssertFirstParentChainInLaneZero(
+        TestRepository testRepository,
+        GraphEntry[] entries,
+        string? aheadTip = null)
     {
         var chain = testRepository.Git("rev-list", "--first-parent", "HEAD").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
         var chainEntries = entries.Where(entry => chain.Contains(entry.Id.ToString())).ToArray();
 
         Assert.Equal(chain.Count, chainEntries.Length);
         Assert.All(chainEntries, entry => Assert.Equal(0, entry.Row.Lane));
-        Assert.All(entries.TakeWhile(entry => entry.Id.ToString() != chainEntries[^1].Id.ToString()).Where(entry => !chain.Contains(entry.Id.ToString()) && entry.Id.ToString() != aheadTip), entry => Assert.NotEqual(0, entry.Row.Lane));
+        var lastChainId = chainEntries[^1].Id.ToString();
+        var others = entries
+            .TakeWhile(entry => entry.Id.ToString() != lastChainId)
+            .Where(entry => !chain.Contains(entry.Id.ToString()) && entry.Id.ToString() != aheadTip);
+        Assert.All(others, entry => Assert.NotEqual(0, entry.Row.Lane));
     }
 
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)

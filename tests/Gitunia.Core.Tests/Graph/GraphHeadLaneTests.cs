@@ -36,6 +36,17 @@ public class GraphHeadLaneTests
     }
 
     [Fact]
+    public void GivenBranchTwoCommitsAheadOfHead_WhenLayingOut_ThenTheTipBendsInFromLaneOne()
+    {
+        var commits = new[] { Commit(1, 2), Commit(2, 3), Commit(3, 4), Commit(4) };
+
+        var rows = GraphLayout.Compute(commits, Id(3));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([1, 1, 0, 0], rows.Select(row => row.Lane));
+    }
+
+    [Fact]
     public void GivenTwoBranchesAheadOfHead_WhenLayingOut_ThenTheFirstTakesLaneZeroAndTheOtherBendsInFromTheRight()
     {
         var commits = new[] { Commit(1, 3), Commit(2, 3), Commit(3, 4), Commit(4) };
@@ -114,8 +125,9 @@ public class GraphHeadLaneTests
 
         for (var index = 0; index < lastChainIndex; index++)
         {
-            // Only a tip above HEAD whose first-parent chain leads to it may share lane 0 (a branch ahead of HEAD).
-            if (!chain.Contains(rows[index].Id) && !FirstParentChain(commits, rows[index].Id).Contains(head))
+            // Only a direct child of HEAD (a branch one commit ahead) may share lane 0 with the chain.
+            var isDirectChild = commits.Any(commit => commit.Id == rows[index].Id && commit.Parents.Count > 0 && commit.Parents[0] == head);
+            if (!chain.Contains(rows[index].Id) && !isDirectChild)
             {
                 Assert.NotEqual(0, rows[index].Lane);
             }

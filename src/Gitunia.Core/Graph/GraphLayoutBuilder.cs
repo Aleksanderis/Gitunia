@@ -9,7 +9,8 @@ namespace Gitunia.Core.Graph;
 /// how it was split into <see cref="Append"/> calls. Rows are immutable; the builder only keeps the open lanes.
 /// When the commit of the checked-out branch is given, lane 0 is reserved for its first-parent chain: no other commit
 /// takes lane 0 until the chain ends, and every chain commit sits in lane 0, so the current branch is a straight
-/// shaft on the left; a tip directly above the chain (a branch ahead of HEAD) takes lane 0 too. Without it (detached HEAD, no commits) the leftmost free lane is used.
+/// shaft on the left; a tip directly above HEAD (a branch one commit ahead) takes lane 0 too. Without it (detached
+/// HEAD, no commits) the leftmost free lane is used.
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
@@ -139,9 +140,9 @@ public sealed class GraphLayoutBuilder
         return -1;
     }
 
-    // A tip no lane waits for whose first parent is the next commit of the reserved chain (a branch that is ahead of
-    // HEAD, such as origin/main) continues the chain upwards: it takes lane 0 and the shaft stays straight. Only while
-    // lane 0 is still empty, so the first such tip gets it and later ones bend in from the right.
+    // A tip no lane waits for whose first parent is the next commit of the reserved chain (before HEAD's row that is
+    // HEAD itself: a branch one commit ahead, such as origin/main) continues the chain upwards: it takes lane 0 and the
+    // shaft stays straight. Only while lane 0 is still empty, so the first such tip gets it and later ones bend in.
     private bool IsDirectDescendantOfChain(CommitInfo commit) =>
         _chainNext.IsValid
         && commit.Parents.Count > 0
