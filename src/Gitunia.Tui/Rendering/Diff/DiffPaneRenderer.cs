@@ -81,6 +81,11 @@ public static class DiffPaneRenderer
         {
             builder.Append("  [wrap]", SegmentRole.Faint);
         }
+
+        if (pane.OptionsLabel.Length > 0)
+        {
+            builder.Append($"  {pane.OptionsLabel}", SegmentRole.Faint);
+        }
     }
 
     private static int HunksUpTo(IReadOnlyList<int> hunkRows, int row)

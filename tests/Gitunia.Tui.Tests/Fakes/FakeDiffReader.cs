@@ -18,6 +18,9 @@ public sealed class FakeDiffReader : IDiffReader
     /// <summary>The number of commit diffs started so far.</summary>
     public int ReadCount { get; private set; }
 
+    /// <summary>The options of the latest commit read.</summary>
+    public DiffOptions? LastOptions { get; private set; }
+
     /// <summary>A file with one hunk that adds these lines.</summary>
     public static DiffFile FileAdding(string path, IEnumerable<string> lines)
     {
@@ -64,11 +67,13 @@ public sealed class FakeDiffReader : IDiffReader
         ObjectId? firstParent,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
         cancellationToken.ThrowIfCancellationRequested();
         ReadCount++;
+        LastOptions = options;
         if (!_commits.TryGetValue(commit, out var known))
         {
             throw new GitException($"unknown commit {commit}");

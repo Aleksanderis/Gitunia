@@ -263,6 +263,43 @@ public class DiffReaderTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await ReadAllAsync(location, ["diff"], [], source.Token));
     }
 
+    [Fact]
+    public async Task GivenOptions_WhenReadingACommit_ThenContextWholeFileAndWhitespaceFollowThem()
+    {
+        var lines = Enumerable.Range(1, 40).Select(number => $"line {number}").ToArray();
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", string.Join('\n', lines) + "\n"));
+        var edited = lines.ToArray();
+        edited[19] = "line 20 changed";
+        edited[4] = "  line 5";
+        testRepository.WriteFile("a.txt", string.Join('\n', edited) + "\n");
+        testRepository.Git("add", "-A");
+        testRepository.Git("commit", "-q", "-m", "edit");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var commit = IdOf(testRepository, "HEAD");
+        var parent = IdOf(testRepository, "HEAD~1");
+
+        var normal = await ReadCommitAsync(location, commit, parent, DiffOptions.Default);
+        var wider = await ReadCommitAsync(location, commit, parent, DiffOptions.Default.MoreContext());
+        var whole = await ReadCommitAsync(location, commit, parent, DiffOptions.Default with { WholeFile = true });
+        var withoutWhitespace = await ReadCommitAsync(location, commit, parent, DiffOptions.Default with { IgnoreWhitespace = true });
+
+        Assert.Equal(2, normal.Hunks.Count);
+        Assert.Equal(40, whole.Hunks.Single().Lines.Count(line => line.Kind != DiffLineKind.Removed));
+        Assert.True(wider.Hunks.Sum(hunk => hunk.Lines.Count) > normal.Hunks.Sum(hunk => hunk.Lines.Count));
+        Assert.Single(withoutWhitespace.Hunks);
+    }
+
+    private static async Task<DiffFile> ReadCommitAsync(RepositoryLocation location, ObjectId commit, ObjectId parent, DiffOptions options)
+    {
+        var files = new List<DiffFile>();
+        await foreach (var file in Diff.ReadCommitAsync(location, commit, parent, options: options, cancellationToken: Token))
+        {
+            files.Add(file);
+        }
+
+        return files.Single();
+    }
+
     private static ObjectId IdOf(TestRepository testRepository, string revision)
     {
         Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", revision).Trim(), out var id));

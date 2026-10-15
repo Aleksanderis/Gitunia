@@ -110,7 +110,7 @@ public class OverlayFrameTests
                 "│ Show the Files tab                                                gf │",
                 "│ Move down                                                   j / Down │",
                 "│ Move up                                                       k / Up │",
-                "│ 1/73  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/77  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);

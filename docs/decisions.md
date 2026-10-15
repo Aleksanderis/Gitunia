@@ -182,3 +182,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The diff title row has no `‹ file` / `file ›` buttons (#310): files are chosen in the file list, `[f`/`]f` stay. Buttons count every click of a quick burst (the toolkit reports the second and third as double and triple click); a triple click elsewhere stays ignored.
 
 **UI:** Commit messages (#32, owner): a built-in Insert-mode editor and `$EDITOR` hand-off (#51) both exist, as in most git clients. Supersedes "no built-in text editor". Working tree is its own view: unstaged and staged lists left, diff right, message box below with SignOff, No-Verify and Amend options (#28).
+
+**UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace are `+`/`-`, `F`, `W` in the diff and reload through git (`-U<n>`, `-w`), per tab and not saved. Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
