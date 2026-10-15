@@ -50,7 +50,7 @@ public sealed partial class App : IDisposable
         using var cancellationTokenSource = new CancellationTokenSource();
         terminal.Resized += () => _events.Writer.TryWrite(new Resize());
 
-        (var width, var height) = RawTerminal.GetSize();
+        var (width, height) = RawTerminal.GetSize();
         _buffer.Resize(width, height);
         _ = GitLogRunner.RunAsync(
             _repositoryPath,
@@ -58,6 +58,7 @@ public sealed partial class App : IDisposable
             () => _events.Writer.TryWrite("done"),
             cancellationTokenSource.Token);
         _ = LoadRefsAsync(cancellationTokenSource.Token);
+
         var reader = new Thread(() => ReadInput(terminal)) { IsBackground = true };
         reader.Start();
 
@@ -65,7 +66,7 @@ public sealed partial class App : IDisposable
         while (!_quit)
         {
             var dirty = false;
-            if (!reading.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
+            if (!reading.WaitToReadAsync(cancellationTokenSource.Token).AsTask().GetAwaiter().GetResult())
             {
                 break;
             }
@@ -128,7 +129,7 @@ public sealed partial class App : IDisposable
                 _detailCursor.ToStart();
                 return true;
             case Resize:
-                (var width, var height) = RawTerminal.GetSize();
+                var (width, height) = RawTerminal.GetSize();
                 _buffer.Resize(width, height);
                 return true;
             case KeyEvent key:

@@ -119,7 +119,7 @@ public sealed class EffectRunner : IDisposable
             _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
-        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/architecture.md, "Many tabs").
+        // Only the active tab loads now; background tabs keep an empty session until first activated (docs/performance.md, "Many tabs").
         if (_host.Workspace.ActiveTabId == load.TabId)
         {
             Start();

@@ -5,15 +5,8 @@
 - Test where the risk is: parsing git output, graph layout, destructive operations, worktree handling, key handling, and rendering regressions. Plain wiring gets no tests.
 - Real `git` against real temporary repos for the Git layer. No mocking the process runner except for timeout/cancellation/error-path tests.
 - State and keymap logic is pure and tested without a terminal.
-- No test touches the user's repos, global git config or network. Isolation recipe and fixture shapes are in the `testing` skill.
-- No new sleeps or polling loops to wait for background work. Wait on a signal: `UiPump` (queues posted UI callbacks and runs them on the test thread until a condition holds; stores are UI-thread-only, so a test that reads store state while a load is in flight must not post inline from the loader thread), a `TaskCompletionSource` completed from the store's `Changed` event or a file watcher, or an injected delay (e.g. the `delay` parameter of `CommitDetailsStore`, `scanningDelay` of `PickerController`). A guard timeout only bounds a hang. `RepositoryWatcher.BecameStale` is the signal for a background tab turning stale.
-- Fake git scripts (`FakeGitExecutable`) are probe-run once after writing (they exit at once when `GITUNIA_FAKE_PROBE` is set) and retried on "Text file busy": a process forked by a parallel test can hold the fresh file open for writing until its exec. Tests that cancel a running fake wait for `ProcessIdSignal` (the fake renames its `.pid` file into place) instead of a delay.
-- Accepted intrinsic timer waits (the wait is the thing under test): in `GitRunnerTests`, the timeout-kill test (2 s runner timeout on Unix, which also covers the fake start-up; 300 ms on Windows, where the fake marks after 2 s), the slow-consumer test (consumer sleeps 600 ms against a 200 ms runner timeout) and the stalled-stream test (the fake prints once, then sleeps; the idle timeout is 2 s, not 500 ms, because the timer also covers process start-up, which can exceed 500 ms under CPU load so the first chunk never arrives) and, on Windows only, `AssertNeverMarkedAsync` outwaiting 3 s because the cmd fake cannot record its pid. On Linux/macOS that helper waits for the process to exit. Measured under load (#182): 100 runs of the stalled-stream test with one busy loop per core (14 cores) all passed on that 14-core dev machine (`dotnet test --no-build --filter ThenTimeoutAfterFirstChunk` in a loop, one `while :; do :; done` per core). A 2-4 core CI runner is untested; if it flakes, widen the timeout first.
+- No test touches the user's repos, global git config or network. Isolation recipe, naming, waiting rules and fixture shapes are in the `testing` skill.
 - A failing test blocks merge. No coverage percentage gate.
-
-## Naming
-
-Test methods are named `Given<Context>_When<Action>_Then<Outcome>` in PascalCase, the three parts separated by underscores (CA1707 is off under `tests/`).
 
 ## Layers
 
@@ -32,7 +25,7 @@ CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run 
 
 ## Performance checks
 
-A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load and layout on a generated 100k-commit repo. Record numbers in `docs/architecture.md` when targets are verified.
+A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load and layout on a generated 100k-commit repo. Record numbers in `docs/performance.md` when targets are verified.
 
 ### Big repo
 
@@ -56,20 +49,6 @@ Metrics: `binary_bytes`, `cold_start_ms_{median,p95,max}`, `key_latency_ms_{medi
 
 ## Screenshots
 
-UI pull requests carry 2-3 real screenshots (colours, glyphs, layout) next to the `--print-frame` text. `scripts/screenshot.sh` (Linux/macOS; needs bash, tmux, rsvg-convert, dotnet, git, and `gh` for publish/clean; a missing tool prints which one and exits 3; Windows is unsupported and exits 2, there is no PowerShell twin because tmux has no Windows build) does everything locally; CI never runs it.
+UI pull requests carry 2-3 real screenshots. Procedure, flags and limits: the `screenshots` skill.
 
-- `scripts/screenshot.sh render --binary <gitunia> [--out <dir>] [--scenarios default,diff,narrow,light] [--repo <dir>]`: runs the real binary in a private tmux server (truecolor, private `XDG_*`) on a deterministic throwaway repo (generated under a temp dir unless `--repo`; never point it at a real repo), captures `capture-pane -p -e`, converts it with `tools/AnsiToSvg` (built on first use into `~/.cache/gitunia/screenshot`) and rsvg-convert into `<dir>/<scenario>.png`. Scenarios: `default` 120x36, `diff` (`Enter Enter`: the file diff open), `narrow` 64x30, `light` (a light terminal background; the app has no theme setting yet, so this shows how the colours hold up on a light background).
-- `scripts/screenshot.sh publish --pr <n>`: pushes the PNGs to `pr-<n>/<short sha>/` on `main` of the separate `<owner>/<repo>-screenshots` repository (private; override with `GITUNIA_SCREENSHOTS_REPO=owner/name`; plain push, never forced, only that repository) and prints markdown for a PR comment. Links are `https://github.com/<owner>/<repo>-screenshots/raw/<screenshots commit>/pr-<n>/<sha>/<scenario>.png` (they render for viewers with access to that repository; `raw.githubusercontent.com` would need a token) and are pinned to a commit, so later pushes never break them. The script exits 4 when the repository cannot be cloned.
-- `scripts/screenshot.sh clean`: removes `pr-<n>` directories whose PR is merged or closed and pushes the removal. Run it after merging. Agents never force-push, so the screenshots repository's history keeps every image: old pinned links keep working and `clean` only tidies the tip. Because it is a separate repository, the owner can reset its history whenever the size matters (that breaks old pinned links, which only matter while a PR is open); the code repository never grows from screenshots. `publish`/`clean` commit as `Claude (implementer)` (override with `GITUNIA_AGENT_ROLE`) with an `Agent:` trailer and retry a rejected push once after `pull --rebase`. Needs tmux 3.2 or newer.
-- Agents attach the images, they never read them back (token cost). Look at one yourself only when debugging the pipeline.
-- Known limits: the font is whatever the machine has (JetBrains Mono if installed, else DejaVu/Liberation Mono), so glyph widths and Nerd Font icons differ from the owner's terminal: those stay a manual check (#196). A frame is captured once after it settles; animations and the mouse are not covered.
-
-## Design notes
-
-Details moved out of `decisions.md` (#253). Notes are historical: where a later note contradicts an earlier one, the later one wins.
-
-- CI minutes (#211): the free plan allows 2,000 Actions minutes a month for private repos (690 were used in the first days of M1). `ci.yml` therefore skips draft PRs (it runs when one is marked ready), PRs whose base branch is `review/**` (owner review-only PRs, never merged) and docs-only PRs (`docs/**`, `**/*.md`, `.claude/**`, the same list as pushes to `main`). Agents open PRs as drafts, build and test locally, and run `gh pr ready` once the reviewer has no blockers; a docs-only PR is merged on the reviewer verdict alone. Considered and not done: paid minutes (about $0.006-0.008 per Linux minute) and a self-hosted runner; revisit if the OS matrix in M4 (Windows 2x, macOS 10x) needs more.
-
-- Screenshots of the real UI (#227): ANSI frame to PNG with `tmux capture-pane -p -e` of the live binary, `tools/AnsiToSvg` (a small C# tool, one `<text>` run per style with an explicit x per character so the grid never drifts) and `rsvg-convert`. Chosen over `freeze`/`aha` (not installed, extra dependency), chromium (heavy, ~1 s startup per image) and a `--print-frame --colors` mode (does not exist; the issue allowed the tmux capture, and it needs no change to rendering code, so it also shows the real key-driven states such as the open diff). Local only, never in CI. Hosting: first an orphan `screenshots` branch (superseded, see the screenshots repository note below); `pr-<n>/<sha>/`, links pinned to the commit because the repo is private; `clean` removes merged PRs' directories from the tip (history keeps them). Light theme means a light terminal background until the app gets a theme.
-
-- Screenshots repository (#229, owner decision 2026-10-13): the orphan `screenshots` branch moved to the separate private repository `Aleksanderis/Gitunia-screenshots` (`main`), same `pr-<n>/<sha>/` layout. Why: a branch of the code repository is fetched by every clone and its history keeps every image forever, `clean` cannot reclaim space and agents pushed a branch of the main repository; in a separate repository the history can be reset by the owner without touching the code repository. Considered and not taken: release assets (really deletable, but untested for inline rendering in private-repo comments, and the issue asked for git hosting), the wiki repository (same growth, needs the wiki enabled and a first page made in the web UI), drag-and-drop uploads (no API), external image hosts (public). The images of PRs #198, #228 and #236 were copied over (same paths), the links in their PR comments rewritten, and the `screenshots` branch deleted. Agents may push to the screenshots repository without asking (plain pushes only, never forced), like their `feature/`/`fix/` branches; CLAUDE.md "Pushing" says so.
+Design history (CI minutes, screenshot hosting, accepted timer waits): `docs/history/testing.md`.

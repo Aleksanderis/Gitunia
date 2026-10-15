@@ -24,7 +24,7 @@ public static class GitLogRunner
         {
             using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("git did not start");
             process.StandardInput.Close();
-            using var registration = cancellationToken.Register(() =>
+            await using var registration = cancellationToken.Register(() =>
             {
                 try
                 {
@@ -34,9 +34,11 @@ public static class GitLogRunner
                 {
                 }
             });
+
             var stream = process.StandardOutput.BaseStream;
             var buffer = new byte[1 << 16];
             int bytesRead;
+            
             while ((bytesRead = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
             {
                 onChunk(buffer.AsSpan(0, bytesRead).ToArray());
