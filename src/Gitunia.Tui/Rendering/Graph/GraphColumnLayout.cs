@@ -5,7 +5,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <summary>
 /// Decides the columns of a graph row from the terminal width, as pure data (like <see cref="PaneLayout"/>). The message
 /// column takes all the width the other columns leave, so a wide terminal is used in full; date and hash have fixed
-/// widths, the author column is wider on wide rows, and columns are dropped, hash first, then
+/// widths (the date shows the time too when it fits, else the date alone), the author column is wider on wide rows, and columns are dropped, hash first, then
 /// date, then author, when the message would get fewer than <see cref="MinimumMessageWidth"/> columns. From
 /// <see cref="SpaciousRowWidth"/> columns the gaps between the columns are wider and the row keeps a right margin (#244).
 /// </summary>
@@ -23,8 +23,11 @@ public static class GraphColumnLayout
     /// <summary>Row width (after the lanes) from which the author column is wide.</summary>
     public const int WideRowWidth = 140;
 
-    /// <summary>Columns of the date column: <c>yyyy-MM-dd</c>.</summary>
-    public const int DateWidth = 10;
+    /// <summary>Columns of the date-only column: <c>yyyy-MM-dd</c>, the fallback when the time does not fit.</summary>
+    public const int DateOnlyWidth = 10;
+
+    /// <summary>Columns of the date column with the time: <c>yyyy-MM-dd HH:mm</c> (#318).</summary>
+    public const int DateWidth = 16;
 
     /// <summary>Columns of the short hash.</summary>
     public const int HashWidth = 7;
@@ -59,10 +62,11 @@ public static class GraphColumnLayout
         {
             author = authorWidth;
             fixedColumns += gap + authorWidth;
-            if (Fits(available, fixedColumns + gap + DateWidth))
+            var dateWidth = Fits(available, fixedColumns + gap + DateWidth) ? DateWidth : DateOnlyWidth;
+            if (Fits(available, fixedColumns + gap + dateWidth))
             {
-                date = DateWidth;
-                fixedColumns += gap + DateWidth;
+                date = dateWidth;
+                fixedColumns += gap + dateWidth;
                 if (Fits(available, fixedColumns + gap + HashWidth))
                 {
                     hash = HashWidth;

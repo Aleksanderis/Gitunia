@@ -13,6 +13,7 @@ public static class GraphRowRenderer
 {
     private const int HashLength = 7;
     private const string DateFormat = "yyyy-MM-dd";
+    private const string DateTimeFormat = "yyyy-MM-dd HH:mm";
 
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
@@ -47,7 +48,7 @@ public static class GraphRowRenderer
 
         if (columns.DateWidth > 0)
         {
-            AppendColumn(builder, entry.AuthorTime.DateTime.ToString(DateFormat, CultureInfo.InvariantCulture), columns.DateWidth, SegmentRole.Faint, columns.ColumnGap, ellipsis);
+            AppendColumn(builder, entry.AuthorTime.DateTime.ToString(columns.DateWidth >= GraphColumnLayout.DateWidth ? DateTimeFormat : DateFormat, CultureInfo.InvariantCulture), columns.DateWidth, SegmentRole.Faint, columns.ColumnGap, ellipsis);
         }
 
         if (columns.HashWidth > 0)
