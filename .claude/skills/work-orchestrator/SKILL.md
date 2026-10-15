@@ -15,7 +15,7 @@ You are the orchestrator, not the implementer. Each issue is delivered by a suba
 
 - At most 3 subagents at a time (token budget); queue the rest and start the next only when one finishes. One subagent per issue, each in its own worktree (`isolation: "worktree"`). Only issues that are independent run together: different files, no shared contracts, not the same keymap rows; issues that touch the same shell files run fewer at once.
 - Launched agents: pass `model: sonnet` and `effort: medium` explicitly (`high` only for a clearly hard issue, such as an algorithm or a parser with many edge cases); never `opus`, and never `haiku` for work that needs judgment. The `reviewer` agent sets its own model and effort in its definition.
-- Lean prompts, never the orchestrator's context: the issue number, the branch name (`feature/<n>-<slug>`), the few docs sections the agent needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, "follow the `work-task` skill and CLAUDE.md", and a request for a report of at most 10 lines.
+- Lean prompts, never the orchestrator's context: the issue number, the branch name (`feature/<n>-<slug>`), the few docs sections the agent needs (name sections, not whole files), a two-line summary of the current state of the code it builds on, the paths it may touch, "follow the `work-task` skill and CLAUDE.md", and the report format below (at most 5 lines).
 - Rate limits: a limit error kills running agents and names the reset time. Launch nothing new and never delete the failed agents' worktrees or branches. After the reset resume the same agent with `SendMessage` (it keeps its context); only if impossible, relaunch it with a prompt that says to continue from its branch's existing commits. Schedule a wake-up for the reset time instead of idling.
 
 ## 0. Readiness
@@ -24,11 +24,10 @@ Look for a readiness report from the `work-readiness` skill for this milestone (
 
 ## 1. Rebuild state from GitHub (never from memory)
 
-Run these, nothing else, to see where things are:
+Run `scripts/orchestrator-state.sh "<milestone>"` and nothing else: it prints one line per open issue (labels, blockers with OPEN/closed), the open PRs, the worktrees and the issues where the owner answered last. Never read issue bodies, comment threads or `gh issue list --json body` output in the session; if you must read one issue (to act on an owner answer, or to write a prompt), read only that issue's latest comment.
 
-- `gh issue list --state open --milestone "<milestone>" --json number,title,labels,body` and the `Blocked by:` lines (a blocker is closed when `gh issue view <n> --json state` says CLOSED). The `Blocked by:` line is the order.
-- `gh pr list --state open` (work awaiting merge or owner review) and `git worktree list` plus `git branch -a` (unfinished agents; their branches may hold pushed work-in-progress).
-- `gh issue list --state open --label needs-owner` and `--label question`: for each, read the latest comment. If it has no `<!-- agent:` marker, the owner has answered (same GitHub account, so the marker is the only signal): act on it (see "Labels for the owner" in `work-task`: implement, log, or close) and reply with an agent-marked comment. Do not remove the label; do not list an answered issue as "waiting for the owner" in the status comment.
+- The `Blocked by:` line is the order; an issue with an OPEN blocker is not startable.
+- Issues listed as "owner answered last": act on the answer (see "Labels for the owner" in `work-task`: implement, log, or close) and reply with an agent-marked comment. Do not remove the label; do not list an answered issue as "waiting for the owner" in the status comment.
 - Skip `spike`, `destructive` and `needs-review` issues as `work-task` says, and never pick the `tracking` issue as work.
 
 If a worktree or feature branch exists for an issue with no merged PR, that issue is in flight: resume it (`work-task`'s rate-limit rules), do not start it over.
@@ -37,9 +36,16 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 
 - Pick up to 3 independent unblocked issues (different files, no shared contracts or keymap rows). Prefer finishing in-flight issues first. If issues touch the same shell files, run fewer at once.
 - Launch one subagent per issue with the lean prompt above. Do not paste docs or earlier reports into prompts.
-- Work in batches of at most 3 issues, never more than 3 agents at once. When a batch is done (merged or stopped for the owner), clean up, re-run step 1 and start the next batch; keep going until a stop condition in step 4 holds. The session stays small because agents report in 10 lines and the details live in PR comments.
-- As each agent reports (max 10 lines, details are in its PR comments): confirm the PR is merged (`gh pr view <n> --json state`), stop the agent (`TaskStop`; ignore "not running"), then clean up: `git worktree remove -f -f <path>`, delete its local feature branch and its `worktree-agent-*` branch only after `git branch --merged main` confirms they are merged, then `git fetch -p`. Pull `main`. Then start the next queued issue.
-- Loose-end check: when an agent reports, make sure each item under "owner must know" or "Follow-ups" is registered as an issue or in an existing issue (see `work-task`); if one is only in a report, PR comment or `docs/decisions.md`, register it yourself (`gh issue create`/`gh issue edit`) before you stop the agent. Never end a session with unregistered loose ends.
+- Work in batches of at most 3 issues, never more than 3 agents at once. When a batch is done (merged or stopped for the owner), re-run step 1 and start the next batch; keep going until a stop condition in step 4 holds. The session stays small because agents report in 5 lines, cleanup is one script call and the details live in PR comments.
+- Report format every agent must use (put it in the prompt, it is the only thing the orchestrator reads), at most 5 lines:
+  1. `PR #<n> merged|open|stopped; closes #<issue>`
+  2. `Follow-ups: #a, #b` (issue numbers already registered) or `Follow-ups: none`
+  3. `Owner must know: <one line>` or `none`
+  4. Optional: one line of anything that changes how the next issues should run.
+- As each agent reports: if line 1 says merged, run `scripts/orchestrator-cleanup.sh <pr> <agent-id>` with the agent id from the launch result (verifies the PR is merged, removes the worktree and merged local branches, prunes, pulls `main`; it prints one line). Stop the agent if still listed (`TaskStop`; ignore "not running"). Then start the next queued issue. Do not run the underlying git commands by hand.
+- Loose ends: the agent registers them (`work-task`) and lists the issue numbers in line 2; trust the numbers. Check only when a report says a loose end exists but names no issue: register it yourself (`gh issue create`/`gh issue edit`). Never end a session with unregistered loose ends.
+- Delegate chores instead of doing them in the session: anything that needs more than two commands or reading more than a few lines of output (resolving a conflict between two finished PRs, investigating a failed CI run, registering several loose ends, the hand-over status comment) goes to a short-lived subagent with a three-line prompt and a one-line report.
+- Keep your own messages to the owner to one or two lines per event; no recaps of reports.
 - Do not read PR diffs or agent output files yourself; trust the PR comments and CI. Open the PR only if an agent reports a problem.
 
 ## 3. Rate limits and failures
@@ -49,11 +55,11 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 
 ## 4. Stop and hand over
 
-Stop when any of these holds: nothing is unblocked (every remaining issue is done, blocked or waiting for the owner), the session context passes about 150k tokens (finish the running issues first, launch no new ones), or the owner asked you to stop.
+Stop when any of these holds: nothing is unblocked (every remaining issue is done, blocked or waiting for the owner), or the owner asked you to stop. There is no token limit rule: the session cannot measure its own context, so it stays small by construction (compact state script, 5-line reports, cleanup script, chores delegated).
 
 Before ending:
 
-1. Check that every loose end from this session's agent reports is registered as an issue, then check `git worktree list`, `git branch -a` and `git fetch -p`: nothing of a merged PR may remain, and unmerged work is listed.
+1. Run `scripts/orchestrator-state.sh` once more: nothing of a merged PR may remain (worktrees, local or remote branches), and unmerged work is listed. Every loose end named in a report must have its issue number.
 2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing), in the same shape as the readiness report (a short plain-language summary on top, orchestrator details in a collapsed `<details>` block) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
 3. Tell the owner: "start a new session with `work-orchestrator` to continue" and nothing else is needed, since GitHub holds the state.
 
