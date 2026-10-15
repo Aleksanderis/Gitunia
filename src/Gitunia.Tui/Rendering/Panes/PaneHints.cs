@@ -59,11 +59,23 @@ public static class PaneHints
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> WorkingTree =
+    private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
+        new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
+        new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
+        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
+        new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingStaged =
+    [
+        .. Pinned,
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
+        new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
         new("Tab", "other list", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
@@ -83,7 +95,8 @@ public static class PaneHints
         PaneKind.Sidebar => Sidebar,
         PaneKind.Detail => Detail,
         PaneKind.Diff => Diff,
-        PaneKind.WorkingUnstaged or PaneKind.WorkingStaged => WorkingTree,
+        PaneKind.WorkingUnstaged => WorkingUnstaged,
+        PaneKind.WorkingStaged => WorkingStaged,
         _ => Graph,
     };
 

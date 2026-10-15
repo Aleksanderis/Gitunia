@@ -38,6 +38,8 @@ public sealed class TabRefresher : IDisposable
     private bool _isRunning;
     private bool _isDisposed;
     private string _lastError = string.Empty;
+    private List<Action> _waiting = [];
+    private List<Action> _inFlight = [];
 
     public TabRefresher(IRepositoryRefresher refresher, IStashReader stashes, IncrementalGraphLoader graphLoader, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
     {
@@ -78,6 +80,16 @@ public sealed class TabRefresher : IDisposable
     {
         _announce = announce;
         Request(RepositoryChangeKinds.All, true);
+    }
+
+    /// <summary>
+    /// Re-reads the index-dependent status now (after this app changed the index) and runs <paramref name="applied"/> on the UI thread once a
+    /// read that started after this call has been applied or has failed. A read already running does not count: it may predate the change.
+    /// </summary>
+    public void RefreshStatus(Action applied)
+    {
+        _waiting.Add(applied);
+        Request(RepositoryChangeKinds.Index | RepositoryChangeKinds.WorkingTree, false);
     }
 
     public void Dispose()
@@ -121,6 +133,8 @@ public sealed class TabRefresher : IDisposable
         _pending = RepositoryChangeKinds.None;
         _forceGraph = false;
         _isRunning = true;
+        _inFlight = _waiting;
+        _waiting = [];
         var previous = _snapshot;
         var token = _session.Cancellation.Token;
 
@@ -164,6 +178,7 @@ public sealed class TabRefresher : IDisposable
     private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload)
     {
         _isRunning = false;
+        var applied = TakeInFlight();
         if (_isDisposed)
         {
             return;
@@ -211,12 +226,29 @@ public sealed class TabRefresher : IDisposable
             _statuses.Post($"{RepositoryName()}: refreshed");
         }
 
+        RunAll(applied);
         RunNext();
+    }
+
+    private List<Action> TakeInFlight()
+    {
+        var taken = _inFlight;
+        _inFlight = [];
+        return taken;
+    }
+
+    private static void RunAll(List<Action> actions)
+    {
+        foreach (var action in actions)
+        {
+            action();
+        }
     }
 
     private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual)
     {
         _isRunning = false;
+        var applied = TakeInFlight();
         _pending |= kinds;
         _forceGraph |= reloadGraph;
         _announce |= isManual;
@@ -232,6 +264,8 @@ public sealed class TabRefresher : IDisposable
             _lastError = message;
             _statuses.Error(message);
         }
+
+        RunAll(applied);
     }
 
     private string RepositoryName() => Path.GetFileName(Path.TrimEndingDirectorySeparator(_location.RootPath));

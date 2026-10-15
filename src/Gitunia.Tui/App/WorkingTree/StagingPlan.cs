@@ -1,0 +1,15 @@
+namespace Gitunia.Tui.App.WorkingTree;
+
+/// <summary>What a stage or unstage will do, or why it will not.</summary>
+/// <param name="Paths">Paths to hand to git; empty when refused.</param>
+/// <param name="Name">The printable name of the one file, empty for several.</param>
+/// <param name="Count">Files affected.</param>
+/// <param name="Skipped">Conflicted files left out.</param>
+/// <param name="Notice">Why nothing runs, empty when something does.</param>
+public sealed record StagingPlan(IReadOnlyList<string> Paths, string Name, int Count, int Skipped, string Notice)
+{
+    public static StagingPlan Refused(string notice) => new([], string.Empty, 0, 0, notice);
+
+    public static StagingPlan For(IReadOnlyList<string> paths, string name, int count, int skipped) =>
+        new(paths, name, count, skipped, string.Empty);
+}
