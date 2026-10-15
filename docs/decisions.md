@@ -104,7 +104,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The bottom pane has three tabs (#169: Details, Changes, Files), a fresh tab opens on Changes, and the Files tab is a placeholder until its own issue.
 
-**UI:** Graph rows are a table (#168): lanes, message, author, date, short hash; narrowing the terminal drops hash, then date, then author. Why: fixed widths keep columns still while commits stream in.
+**UI:** Graph rows are a table (#168): lanes, message, author, date, short hash; narrowing the terminal drops hash, then date, then author (#318: the date column shows `yyyy-MM-dd HH:mm`; the time goes before the date). Why: fixed widths keep columns still while commits stream in.
 
 **UI:** Look and feel (#171): background tint for the selected row, GitHub-like palette in 24-bit colour with a 16-colour tier and `NO_COLOR` fallback, dark unless `COLORFGBG` says light. Contrast is a test (4.5, dividers 3.0).
 

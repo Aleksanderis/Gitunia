@@ -48,7 +48,9 @@ public static class GraphRowRenderer
 
         if (columns.DateWidth > 0)
         {
-            AppendColumn(builder, entry.AuthorTime.DateTime.ToString(columns.DateWidth >= GraphColumnLayout.DateWidth ? DateTimeFormat : DateFormat, CultureInfo.InvariantCulture), columns.DateWidth, SegmentRole.Faint, columns.ColumnGap, ellipsis);
+            var format = columns.DateWidth == GraphColumnLayout.DateOnlyWidth ? DateFormat : DateTimeFormat;
+            var date = entry.AuthorTime.DateTime.ToString(format, CultureInfo.InvariantCulture);
+            AppendColumn(builder, date, columns.DateWidth, SegmentRole.Faint, columns.ColumnGap, ellipsis);
         }
 
         if (columns.HashWidth > 0)

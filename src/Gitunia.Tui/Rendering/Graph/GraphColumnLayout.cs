@@ -5,8 +5,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <summary>
 /// Decides the columns of a graph row from the terminal width, as pure data (like <see cref="PaneLayout"/>). The message
 /// column takes all the width the other columns leave, so a wide terminal is used in full; date and hash have fixed
-/// widths (the date shows the time too when it fits, else the date alone), the author column is wider on wide rows, and columns are dropped, hash first, then
-/// date, then author, when the message would get fewer than <see cref="MinimumMessageWidth"/> columns. From
+/// widths (the date shows the time too when it fits, else the date alone), the author column is wider on wide rows,
+/// and columns are dropped, hash first, then the time, then the date, then author, when the message would get fewer than <see cref="MinimumMessageWidth"/> columns. From
 /// <see cref="SpaciousRowWidth"/> columns the gaps between the columns are wider and the row keeps a right margin (#244).
 /// </summary>
 public static class GraphColumnLayout
