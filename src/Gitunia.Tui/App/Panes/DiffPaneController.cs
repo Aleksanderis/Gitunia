@@ -225,7 +225,7 @@ public sealed class DiffPaneController : IPromptHandler
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
-                diff.Source.Width = PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList));
+                diff.Source.Width = ListTextWidth();
                 if (diff.Source.Count > 0)
                 {
                     _diffList.SelectedItem = Math.Min(diff.Source.LineOf(diff.SelectedRow), diff.Source.Count - 1);
@@ -311,6 +311,8 @@ public sealed class DiffPaneController : IPromptHandler
         _setMode(KeyMode.Normal);
         _diffList.SetNeedsDraw();
     }
+
+    private int ListTextWidth() => PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList));
 
     private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused)
     {
@@ -614,7 +616,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
     private void SyncWidth()
     {
-        if (_isSyncing || _activeSession()?.Diff is not { } diff || diff.Source.Width == PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList)))
+        if (_isSyncing || _activeSession()?.Diff is not { } diff || diff.Source.Width == ListTextWidth())
         {
             return;
         }
@@ -624,13 +626,13 @@ public sealed class DiffPaneController : IPromptHandler
         {
             if (!diff.Source.IsWrapped)
             {
-                diff.Source.Width = PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList));
+                diff.Source.Width = ListTextWidth();
                 return;
             }
 
             var row = CursorRow(diff);
             var top = diff.Source.RowOf(_diffList.Viewport.Y);
-            diff.Source.Width = PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList));
+            diff.Source.Width = ListTextWidth();
             _isRestoring = true;
             try
             {

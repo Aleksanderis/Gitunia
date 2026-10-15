@@ -173,3 +173,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Bottom pane tabs (#300): inactive tabs reuse the repository tab chip role (`TabButton` removed); the selected tab of an unfocused pane has its own role (`SelectedTab`: bold on the chip, bold underline without colours), so it stays distinct in every tier.
 
 **UI:** Diff title buttons (#302, owner): chips like the tabs with words (`‹ file`, `hunk ›`, `wrap`, `zoom`) instead of key-like brackets; the `[x]` close button is gone (the diff is part of the Changes tab).
+
+**UI:** Pane padding (#244, owner): two blank columns inside the frame for the History list and the bottom detail and diff panes from 100 columns of screen width, one below (the sidebar keeps one). The graph's own two-column right margin stays, so History has four blank columns at its right end on wide screens (kept on purpose, #301 owns the lane layout). The diff title has no hash (the detail title shows it).
