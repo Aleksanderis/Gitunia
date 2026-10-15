@@ -59,6 +59,8 @@ public static class DefaultMouseMap
         [DefaultKeymap.DiffView] = DefaultKeymap.ListsView,
         [DefaultKeymap.WorkingUnstagedView] = DefaultKeymap.ListsView,
         [DefaultKeymap.WorkingStagedView] = DefaultKeymap.ListsView,
+        [DefaultKeymap.WorkingUnstagedDiffView] = DefaultKeymap.ListsView,
+        [DefaultKeymap.WorkingStagedDiffView] = DefaultKeymap.ListsView,
     };
 
     /// <summary>The views of the overlays: their gestures run even though an open overlay otherwise suppresses the panes behind it.</summary>
@@ -72,6 +74,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.GraphView, MouseGesture.DoubleClick, ActionIds.GraphOpenDetails),
         new(DefaultKeymap.DetailView, MouseGesture.DoubleClick, ActionIds.DetailOpenDiff),
+        new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeOpenDiff),
+        new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeOpenDiff),
         new(DefaultKeymap.SidebarView, MouseGesture.Click, ActionIds.SidebarActivate),
         new(TabsView, MouseGesture.Click, ActionIds.TabNext, UsesTarget: true),
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),

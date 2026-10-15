@@ -15,6 +15,8 @@ public static class DefaultKeymap
     public const string DiffView = "Diff";
     public const string WorkingUnstagedView = "WorkingUnstaged";
     public const string WorkingStagedView = "WorkingStaged";
+    public const string WorkingUnstagedDiffView = "WorkingUnstagedDiff";
+    public const string WorkingStagedDiffView = "WorkingStagedDiff";
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
     public const string HelpView = "Help";
@@ -33,6 +35,8 @@ public static class DefaultKeymap
         [DiffView] = ListsView,
         [WorkingUnstagedView] = ListsView,
         [WorkingStagedView] = ListsView,
+        [WorkingUnstagedDiffView] = ListsView,
+        [WorkingStagedDiffView] = ListsView,
         [ListsView] = KeyBindingTable.GlobalView,
         [PickerView] = KeyBindingTable.GlobalView,
         [PaletteView] = KeyBindingTable.GlobalView,
@@ -49,6 +53,7 @@ public static class DefaultKeymap
         AddLists(bindings);
         AddViews(bindings);
         AddWorkingTreeLists(bindings);
+        AddWorkingTreeDiffs(bindings);
         AddPicker(bindings);
         AddPalette(bindings);
         AddModals(bindings);
@@ -169,6 +174,35 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
+            Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
+        }
+    }
+
+    // The two sides of the working-tree diff share the keys of the history diff; the side-specific ones (stage, unstage, discard) come with their issues.
+    private static void AddWorkingTreeDiffs(List<KeyBinding> bindings)
+    {
+        foreach (var view in (string[])[WorkingUnstagedDiffView, WorkingStagedDiffView])
+        {
+            Add(bindings, NormalOnly, view, "<space>r", ActionIds.RepositoryRefresh);
+            Add(bindings, NormalOnly, view, "]c", ActionIds.DiffNextHunk);
+            Add(bindings, NormalOnly, view, "[c", ActionIds.DiffPreviousHunk);
+            Add(bindings, NormalOnly, view, "]f", ActionIds.DiffNextFile);
+            Add(bindings, NormalOnly, view, "[f", ActionIds.DiffPreviousFile);
+            Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "w", ActionIds.DiffToggleWrap);
+            Add(bindings, NormalOnly, view, "L", ActionIds.DiffLoadAnyway);
+            Add(bindings, NormalOnly, view, "+", ActionIds.DiffMoreContext);
+            Add(bindings, NormalOnly, view, "-", ActionIds.DiffLessContext);
+            Add(bindings, NormalOnly, view, "F", ActionIds.DiffToggleWholeFile);
+            Add(bindings, NormalOnly, view, "W", ActionIds.DiffToggleIgnoreWhitespace);
+            Add(bindings, NormalOnly, view, "S", ActionIds.DiffToggleSideBySide);
+            Add(bindings, NormalOnly, view, "/", ActionIds.DiffSearchOpen);
+            Add(bindings, NormalOnly, view, "n", ActionIds.DiffSearchNext);
+            Add(bindings, NormalOnly, view, "N", ActionIds.DiffSearchPrevious);
+            Add(bindings, NormalOnly, view, "y", ActionIds.DiffCopyLine);
+            Add(bindings, NormalOnly, view, "Y", ActionIds.DiffCopyFile);
         }
     }
 

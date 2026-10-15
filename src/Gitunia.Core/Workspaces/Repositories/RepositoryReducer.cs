@@ -47,22 +47,34 @@ public static class RepositoryReducer
         return FollowSelectionWhenFocusedListIsEmpty(reloaded);
     }
 
-    // The focused list ran empty (the last file was staged or unstaged): focus goes where the selection went.
+    // The focused list ran empty (the last file was staged or unstaged): focus goes where the selection went. A diff follows
+    // its file the same way (the file moved to the other side), and with no file left focus returns to the Unstaged list.
     private static RepositoryState FollowSelectionWhenFocusedListIsEmpty(RepositoryState state)
     {
-        if (state.View.Mode != TabViewMode.WorkingTree || state.WorkingTree is not { Selection: { } selection } tree)
+        if (state.View.Mode != TabViewMode.WorkingTree || state.WorkingTree is not { } tree)
         {
             return state;
         }
 
         var focused = state.View.FocusedPane;
+        if (tree.Selection is not { } selection)
+        {
+            return WorkingPanes.IsDiff(focused) ? state with { View = state.View with { FocusedPane = PaneKind.WorkingUnstaged } } : state;
+        }
+
         var isFocusedListEmpty = focused switch
         {
             PaneKind.WorkingUnstaged => tree.Unstaged.Count == 0,
             PaneKind.WorkingStaged => tree.Staged.Count == 0,
             _ => false,
         };
-        return isFocusedListEmpty ? state with { View = state.View with { FocusedPane = PaneOf(selection.Section) } } : state;
+        if (isFocusedListEmpty)
+        {
+            return state with { View = state.View with { FocusedPane = PaneOf(selection.Section) } };
+        }
+
+        var diffOfSelection = WorkingPanes.DiffOf(selection.Section);
+        return WorkingPanes.IsDiff(focused) && focused != diffOfSelection ? state with { View = state.View with { FocusedPane = diffOfSelection } } : state;
     }
 
     private static RepositoryState OpenWorkingTree(RepositoryState state)
@@ -75,6 +87,14 @@ public static class RepositoryReducer
     // Focusing a list moves the selection into it, on the row the cursor was on (clamped), so the cursor and the focus never disagree.
     private static RepositoryState FocusPane(RepositoryState state, PaneKind pane)
     {
+        if (WorkingPanes.IsDiff(pane))
+        {
+            // A diff shows the selected file: focus the side that file is on, and none when nothing is selected.
+            return state.WorkingTree?.Selection is { } selected
+                ? state with { View = state.View with { FocusedPane = WorkingPanes.DiffOf(selected.Section) } }
+                : state;
+        }
+
         var focused = state with { View = state.View with { FocusedPane = pane } };
         if (pane is not (PaneKind.WorkingUnstaged or PaneKind.WorkingStaged) || state.WorkingTree is not { } tree)
         {

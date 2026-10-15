@@ -116,6 +116,7 @@ public static class ActionCatalog
         ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
         ["working-tree.copy-path"] = "Copy the file path",
+        ["working-tree.open-diff"] = "Go to the diff of the file",
         ["working-tree.open"] = "Open the working tree",
         ["working-tree.toggle"] = "Open or leave the working tree",
     };

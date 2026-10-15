@@ -19,6 +19,12 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabRefresher : IDisposable
 {
+    private const RepositoryChangeKinds StatusKinds = RepositoryChangeKinds.Head
+        | RepositoryChangeKinds.Refs
+        | RepositoryChangeKinds.Index
+        | RepositoryChangeKinds.WorkingTree
+        | RepositoryChangeKinds.Operation;
+
     private readonly IRepositoryRefresher _refresher;
     private readonly IStashReader _stashes;
     private readonly IncrementalGraphLoader _graphLoader;
@@ -149,7 +155,7 @@ public sealed class TabRefresher : IDisposable
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, token).ConfigureAwait(false);
             }
 
-            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload));
+            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds)));
         }
         catch (OperationCanceledException)
         {
@@ -161,7 +167,7 @@ public sealed class TabRefresher : IDisposable
         }
     }
 
-    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload)
+    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload, bool readStatus)
     {
         _isRunning = false;
         if (_isDisposed)
@@ -193,6 +199,11 @@ public sealed class TabRefresher : IDisposable
             {
                 _host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(result.Snapshot.Status)));
             }
+            else if (readStatus)
+            {
+                // The letters did not change, but a file may have (a second edit of a modified file): its diff reads again.
+                _session.NotifyStatusRead();
+            }
 
             if (stashes is not null && _host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))
             {
@@ -213,6 +224,9 @@ public sealed class TabRefresher : IDisposable
 
         RunNext();
     }
+
+    // The kinds that make the refresher read the status (see RepositoryRefresher).
+    private static bool ReadsStatus(RepositoryChangeKinds kinds) => (kinds & StatusKinds) != RepositoryChangeKinds.None;
 
     private void Fail(Exception exception, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual)
     {

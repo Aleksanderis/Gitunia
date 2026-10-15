@@ -121,15 +121,12 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 | WorkingUnstaged | `<space>A` | Stage all |
 | WorkingStaged | `<space>U` | Unstage all |
 | WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
-| WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
 | WorkingUnstaged / WorkingStaged | `<space>c` | Write the commit message (focus the box, Insert mode) |
 | WorkingUnstaged / WorkingStaged | `<space>te` | Commit with `$EDITOR` |
 | WorkingUnstagedDiff | `<space>a` | Stage the hunk, or the Visual-selected lines |
 | WorkingStagedDiff | `<space>u` | Unstage the hunk, or the Visual-selected lines |
 | WorkingUnstagedDiff | `<space>d` | Discard the hunk or selected lines (Confirm) |
 | WorkingUnstagedDiff / WorkingStagedDiff | `<space>c` | Write the commit message |
-| WorkingUnstagedDiff / WorkingStagedDiff | `]c` `[c` `]f` `[f` `w` `+` `-` `F` `W` `S` `y` `/` `n` `N` | As the history diff (1c) |
-| WorkingUnstagedDiff / WorkingStagedDiff | `q` / `Esc` / `h` | Back to the file list |
 | WorkingMessage | `i` / `Enter` | Edit the message (Insert mode) |
 | WorkingMessage | `<space>c` | Commit |
 | WorkingMessage | `<space>te` | Commit with `$EDITOR` |
@@ -247,6 +244,34 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingStaged | `<space>r` | Refresh the status |
 | WorkingStaged | `y` | Copy the path of the file under the cursor |
 | WorkingStaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
+| WorkingUnstaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
+| WorkingStaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
+| WorkingUnstagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
+| WorkingUnstagedDiff | `]c` `[c` | Next / previous hunk |
+| WorkingUnstagedDiff | `]f` `[f` | Next / previous file (the diff holds the one file under the list cursor, so these only report the end) |
+| WorkingUnstagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingUnstagedDiff | `/` `n` `N` | Search in diff, next, previous |
+| WorkingUnstagedDiff | `w` | Toggle word wrap |
+| WorkingUnstagedDiff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
+| WorkingUnstagedDiff | `Y` | Copy the displayed rows of the file (not a pasteable patch) |
+| WorkingUnstagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
+| WorkingUnstagedDiff | `F` | Toggle showing the whole file instead of hunks (title `[file]`) |
+| WorkingUnstagedDiff | `W` | Toggle ignoring whitespace-only changes (title `[-w]`) |
+| WorkingUnstagedDiff | `S` | Toggle the side-by-side view (title `[split]`; needs 80 text columns) |
+| WorkingUnstagedDiff | `L` | Load anyway: read the file without the row and per-file limits |
+| WorkingStagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
+| WorkingStagedDiff | `]c` `[c` | Next / previous hunk |
+| WorkingStagedDiff | `]f` `[f` | Next / previous file (the diff holds the one file under the list cursor, so these only report the end) |
+| WorkingStagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingStagedDiff | `/` `n` `N` | Search in diff, next, previous |
+| WorkingStagedDiff | `w` | Toggle word wrap |
+| WorkingStagedDiff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
+| WorkingStagedDiff | `Y` | Copy the displayed rows of the file (not a pasteable patch) |
+| WorkingStagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
+| WorkingStagedDiff | `F` | Toggle showing the whole file instead of hunks (title `[file]`) |
+| WorkingStagedDiff | `W` | Toggle ignoring whitespace-only changes (title `[-w]`) |
+| WorkingStagedDiff | `S` | Toggle the side-by-side view (title `[split]`; needs 80 text columns) |
+| WorkingStagedDiff | `L` | Load anyway: read the file without the row and per-file limits |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |
@@ -287,6 +312,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `graph.open-details` | Same as `Enter`: focus the commit details |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff |
+| WorkingUnstaged | Double-click | `working-tree.open-diff` | Same as `Enter`: go to the diff of the file |
+| WorkingStaged | Double-click | `working-tree.open-diff` | Same as `Enter`: go to the diff of the file |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab (#232): open the repository picker for a new tab, same as `Ctrl-t` |

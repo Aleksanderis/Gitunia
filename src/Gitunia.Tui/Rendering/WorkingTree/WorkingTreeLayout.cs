@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 
@@ -7,7 +8,7 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <summary>
 /// Lays out the working-tree view inside the frame (docs/ux.md, workflow 2): the Unstaged and Staged lists stacked on the left, the
 /// diff on top of the message box on the right; the sidebar is hidden, so the view gets the whole width. Screens narrower than
-/// <see cref="MinimumWidthForSideBySide"/> columns show one pane at a time: the focused list. Boxes share their edges
+/// <see cref="MinimumWidthForSideBySide"/> columns show one pane at a time: the focused list, or the diff once it has focus. Boxes share their edges
 /// (one line between two panes), as in <see cref="PaneLayout"/>.
 /// </summary>
 public static class WorkingTreeLayout
@@ -44,10 +45,13 @@ public static class WorkingTreeLayout
         }
 
         var whole = new PaneRect(1, top, inner, area);
-        var onlyStaged = focused == PaneKind.WorkingStaged;
+        var onlyStaged = WorkingPanes.SectionOf(focused) == WorkingTreeSection.Staged;
         if (screenWidth < MinimumWidthForSideBySide)
         {
-            return new WorkingTreeRects(onlyStaged ? none : whole, onlyStaged ? whole : none, none, none);
+            // One pane at a time: the diff once it was asked for (Enter), else the focused list.
+            return WorkingPanes.IsDiff(focused)
+                ? new WorkingTreeRects(none, none, whole, none)
+                : new WorkingTreeRects(onlyStaged ? none : whole, onlyStaged ? whole : none, none, none);
         }
 
         var listWidth = Math.Clamp(inner / ListWidthDivisor, MinimumListWidth, MaximumListWidth);

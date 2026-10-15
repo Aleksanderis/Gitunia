@@ -41,6 +41,12 @@ public static class PaneNavigator
     /// <param name="available">The open panes.</param>
     public static PaneKind StepVertically(PaneKind current, bool down, IReadOnlyCollection<PaneKind> available)
     {
+        if (WorkingPanes.IsDiff(current))
+        {
+            // The diff is the whole right column for now: nothing above or below it.
+            return current;
+        }
+
         if (current is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged)
         {
             // The working-tree view stacks the lists: Unstaged above Staged.

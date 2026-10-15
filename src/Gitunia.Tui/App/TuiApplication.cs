@@ -66,6 +66,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private WhichKeyTimer _whichKeyTimer = null!;
     private PickerController _picker = null!;
     private DiffPaneController _diffPane = null!;
+    private WorkingDiffController _workingDiff = null!;
     private WorkspaceActions _workspaceActions = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
@@ -134,7 +135,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.RefreshChrome,
             clipboard);
         _router.Diff = _diffPane;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard);
+        _workingDiff = new WorkingDiffController(
+            _host,
+            ActiveSession,
+            _view.WorkingDiff,
+            mode => _keys.SetMode(mode),
+            _view.RefreshChrome,
+            clipboard);
+        _view.WorkingDiffTitle = _workingDiff.TitleText;
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard) { Diff = _workingDiff };
         _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
@@ -179,7 +188,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _router.ViewName,
             _statuses);
         _overlays.Changed += RefreshOverlay;
-        _prompts = [_diffPane, .. CreatePrompts()];
+        _prompts = [_diffPane, _workingDiff, .. CreatePrompts()];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -206,6 +215,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(_view.Diff, PaneKind.Diff);
         _view.WorkingUnstaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingUnstaged, PaneKind.WorkingUnstaged);
         _view.WorkingStaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingStaged, PaneKind.WorkingStaged);
+        _view.WorkingDiff.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingDiff, SelectedWorkingDiffPane());
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
@@ -298,7 +308,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         // The sidebar and the working-tree lists have no ranges yet; dragging there only moves the selection.
         if (gesture == MouseGesture.DragStart
-            && viewName is DefaultKeymap.SidebarView or DefaultKeymap.WorkingUnstagedView or DefaultKeymap.WorkingStagedView)
+            && viewName is DefaultKeymap.SidebarView
+                or DefaultKeymap.WorkingUnstagedView
+                or DefaultKeymap.WorkingStagedView
+                or DefaultKeymap.WorkingUnstagedDiffView
+                or DefaultKeymap.WorkingStagedDiffView)
         {
             return;
         }
@@ -407,6 +421,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         PaneKind.Diff => _view.Diff,
         PaneKind.WorkingUnstaged => _view.WorkingUnstaged,
         PaneKind.WorkingStaged => _view.WorkingStaged,
+        PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => _view.WorkingDiff,
         _ => _view.Graph,
     };
 
@@ -414,7 +429,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private void OnPaneFocused(View pane, PaneKind kind)
     {
         // While panes are shown or hidden the toolkit moves the focus on its own; that is not the user's choice.
-        var isWorkingPane = kind is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged;
+        var isWorkingPane = WorkingPanes.IsWorking(kind);
         var isWorkingView = _host.Workspace.ActiveTab?.View.Mode == TabViewMode.WorkingTree;
         var isUserChoice = isWorkingPane == isWorkingView && !_view.IsChangingVisibility;
         if (isUserChoice && pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId
@@ -423,6 +438,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
         }
     }
+
+    // The diff pane of the side the selected file is on (a click on the diff box focuses that one).
+    private PaneKind SelectedWorkingDiffPane() =>
+        WorkingPanes.DiffOf(_host.Workspace.ActiveTab?.WorkingTree?.Selection?.Section ?? WorkingTreeSection.Unstaged);
 
     private void SelectGraphItem(int item)
     {
@@ -593,6 +612,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _visual.End();
         _view.Detail.Source = current?.DetailSource;
         _diffPane.OnTabSwitched(previous, current);
+        _workingDiff.OnTabSwitched(previous, current);
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;

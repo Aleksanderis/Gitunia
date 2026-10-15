@@ -98,13 +98,14 @@ public static class ScreenComposer
         }
 
         var rects = WorkingTreeLayout.Compute(width, height, working.Focused);
-        var isUnstagedFocused = working.Focused != PaneKind.WorkingStaged;
+        var isUnstagedFocused = working.Focused == PaneKind.WorkingUnstaged;
+        var isStagedFocused = working.Focused == PaneKind.WorkingStaged;
         var tree = working.Tree;
         var boxes = new List<FrameBox>
         {
             new(rects.Unstaged, isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Unstaged)),
-            new(rects.Staged, !isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
-            new(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
+            new(rects.Staged, isStagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
+            new(rects.Diff, WorkingPanes.IsDiff(working.Focused), WorkingTreePaneRenderer.DiffTitle(tree, working.Diff)),
             new(rects.Message, false, WorkingTreePaneRenderer.MessageTitle),
         };
         var grid = FrameGrid.Build(width, height, boxes, glyphs);
@@ -113,11 +114,13 @@ public static class ScreenComposer
         AddWorkingList(
             overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
         AddWorkingList(
-            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, !isUnstagedFocused, padding, glyphs);
-        AddPlaceholder(
-            overlays,
-            rects.Diff,
-            WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
+            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, isStagedFocused, padding, glyphs);
+        if (!rects.Diff.IsEmpty)
+        {
+            var diffRows = WorkingTreePaneRenderer.DiffLines(working.Diff, rects.Diff, padding, glyphs);
+            overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y, diffRows, SegmentSelection.Focused));
+        }
+
         AddPlaceholder(
             overlays,
             rects.Message,
