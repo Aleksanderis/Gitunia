@@ -81,4 +81,17 @@ public class DragTrackerTests
 
         Assert.Equal(DragPhase.None, tracker.Feed(MouseFlags.WheeledDown, 3, 3));
     }
+
+    [Theory]
+    [InlineData(MouseFlags.LeftButtonDoubleClicked)]
+    [InlineData(MouseFlags.LeftButtonTripleClicked)]
+    public void GivenADrag_WhenARepeatedClickFollows_ThenItIsSwallowedLikeAClick(MouseFlags flags)
+    {
+        var tracker = new DragTracker();
+        tracker.Feed(MouseFlags.LeftButtonPressed, 5, 5);
+        tracker.Feed(MouseFlags.LeftButtonPressed | MouseFlags.PositionReport, 5, 8);
+        tracker.Feed(MouseFlags.LeftButtonReleased, 5, 8);
+
+        Assert.Equal(DragPhase.SwallowClick, tracker.Feed(flags, 5, 8));
+    }
 }
