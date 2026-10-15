@@ -19,6 +19,7 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="Sidebar">Folded sections, name filter and cursor of the sidebar.</param>
 /// <param name="IsMissing">The repository directory disappeared; the tab stays so the user can locate or close it.</param>
 /// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
+/// <param name="WorkingTree">The full status and its selection, null until the tab has loaded one (background tabs keep only <paramref name="Status"/>).</param>
 /// <param name="CustomName">The name the user gave the tab (#219), null to show the repository name.</param>
 public sealed record RepositoryState(
     TabId Id,
@@ -31,7 +32,8 @@ public sealed record RepositoryState(
     SidebarState Sidebar,
     bool IsMissing,
     RepositoryStatusSummary? Status = null,
-    string? CustomName = null)
+    string? CustomName = null,
+    WorkingTreeState? WorkingTree = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

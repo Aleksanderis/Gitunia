@@ -18,6 +18,8 @@ public static class RepositoryReducer
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
         StatusLoadedCommand status => state with { Status = status.Summary },
+        WorkingTreeLoadedCommand loaded => ReduceWorkingTree(state, loaded),
+        SelectWorkingTreeFileCommand pick => SelectFile(state, pick),
         WorktreesLoadedCommand worktrees => state with { Worktrees = worktrees.Worktrees },
         StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
@@ -25,4 +27,36 @@ public static class RepositoryReducer
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };
+
+    private static RepositoryState ReduceWorkingTree(RepositoryState state, WorkingTreeLoadedCommand loaded)
+    {
+        if (state.WorkingTree is { } current && WorkingTreeState.SameContent(current.Snapshot, loaded.Snapshot))
+        {
+            var summary = RepositoryStatusSummary.From(loaded.Snapshot);
+            return state.Status == summary ? state : state with { Status = summary };
+        }
+
+        return state with
+        {
+            WorkingTree = WorkingTreeState.Reconcile(state.WorkingTree, loaded.Snapshot),
+            Status = RepositoryStatusSummary.From(loaded.Snapshot),
+        };
+    }
+
+    private static RepositoryState SelectFile(RepositoryState state, SelectWorkingTreeFileCommand pick)
+    {
+        if (state.WorkingTree is not { } tree)
+        {
+            return state;
+        }
+
+        var list = pick.Section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged;
+        if (list.Count == 0)
+        {
+            return state;
+        }
+
+        var index = Math.Clamp(pick.Index, 0, list.Count - 1);
+        return state with { WorkingTree = tree with { Selection = new WorkingTreeSelection(pick.Section, list[index].Path, index) } };
+    }
 }

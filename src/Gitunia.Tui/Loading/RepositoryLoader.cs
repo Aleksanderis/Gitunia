@@ -79,8 +79,7 @@ public sealed class RepositoryLoader
             var refs = await refsTask.ConfigureAwait(false);
             postToUi(() => host.Dispatch(new TabCommand(tabId, new RefsLoadedCommand([.. refs.Items]))));
             var status = await statusTask.ConfigureAwait(false);
-            var summary = RepositoryStatusSummary.From(status);
-            postToUi(() => host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary))));
+            postToUi(() => host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(status))));
         }
         catch (OperationCanceledException)
         {
