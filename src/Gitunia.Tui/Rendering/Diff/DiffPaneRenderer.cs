@@ -40,17 +40,13 @@ public static class DiffPaneRenderer
         var segments = new List<StyledSegment>(RenderTitleText(pane, buttons[0].Start - 1, glyphs).Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
         for (var index = 0; index < buttons.Count; index++)
         {
-            segments.Add(new StyledSegment(ButtonText(buttons[index].Label, glyphs), SegmentRole.RepositoryTab));
+            segments.Add(new StyledSegment(ButtonLabel.For(buttons[index].Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
             segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         }
 
         segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         return new StyledLine(segments);
     }
-
-    // The arrows are one cell wide in Unicode; ASCII has <, > and brackets (same widths).
-    private static string ButtonText(string label, GraphGlyphSet glyphs) =>
-        glyphs.IsAscii ? ButtonLabel.For(label, true).Replace('‹', '<').Replace('›', '>') : label;
 
     private static StyledLine RenderTitleText(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
     {

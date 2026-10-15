@@ -47,22 +47,32 @@ public class DiffTitleButtonsTests
     }
 
     [Theory]
-    [InlineData(30)]
-    [InlineData(45)]
-    [InlineData(60)]
-    [InlineData(80)]
-    [InlineData(120)]
-    public void GivenAnyWidth_WhenLayingOut_ThenHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(int width)
+    [InlineData(30, false)]
+    [InlineData(45, false)]
+    [InlineData(60, false)]
+    [InlineData(80, false)]
+    [InlineData(120, false)]
+    [InlineData(30, true)]
+    [InlineData(60, true)]
+    [InlineData(80, true)]
+    [InlineData(120, true)]
+    public void GivenAnyWidthAndTier_WhenLayingOut_ThenHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(int width, bool isAscii)
     {
         var buttons = DiffTitleButtons.Layout(width);
-        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true), width, GraphGlyphSet.Unicode);
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true), width, glyphs);
 
         Assert.Equal(width, TextWidth.Of(title.Text));
+        if (isAscii)
+        {
+            Assert.All(title.Text, character => Assert.True(character < 128));
+        }
+
         for (var index = 0; index < buttons.Count; index++)
         {
             var button = buttons[index];
             Assert.True(button.Start + button.Width <= width - 1);
-            Assert.Equal(button.Label, title.Text.Substring(button.Start, button.Width));
+            Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Text.Substring(button.Start, button.Width));
             if (index > 0)
             {
                 Assert.True(button.Start > buttons[index - 1].Start + buttons[index - 1].Width);
@@ -101,7 +111,7 @@ public class DiffTitleButtonsTests
 
         Assert.Equal(100, TextWidth.Of(title.Text));
         Assert.Contains("[< file]-[file >]-[< hunk]-[hunk >]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("x", title.Text.Split("zoom]")[1], StringComparison.Ordinal);
+        Assert.EndsWith("[zoom]--", title.Text, StringComparison.Ordinal);
     }
 
     [Fact]
