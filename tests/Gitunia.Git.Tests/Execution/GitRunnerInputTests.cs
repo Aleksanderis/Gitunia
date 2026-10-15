@@ -4,6 +4,7 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Status;
 using Gitunia.Git.Status.Models;
@@ -60,6 +61,55 @@ public class GitRunnerInputTests
         var fromFile = await Runner.RunAsync(testRepository.WorkingTreePath, ["hash-object", "big.bin"], cancellationToken: Token);
 
         Assert.Equal(fromFile.StandardOutputText, result.StandardOutputText);
+    }
+
+    [Fact]
+    public async Task GivenGitExitsWithoutReadingLargeInput_WhenRunning_ThenCommandFailureIsReportedNotAnIoError()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var input = new byte[8 * 1024 * 1024];
+
+        var error = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => Runner.RunAsync(
+                testRepository.WorkingTreePath,
+                ["rev-parse", "--verify", "no-such-ref"],
+                new GitRunOptions(StandardInput: input),
+                Token));
+
+        Assert.NotEqual(0, error.ExitCode);
+    }
+
+    [Fact]
+    public async Task GivenGitNeverReadsLargeInput_WhenTimeoutElapses_ThenTimeoutErrorInsteadOfHanging()
+    {
+        using var fake = FakeGitExecutable.Sleeping();
+        var runner = new GitRunner(new GitRunnerOptions(fake.ExecutablePath));
+        var input = new byte[8 * 1024 * 1024];
+
+        await Assert.ThrowsAsync<GitTimeoutException>(
+            () => runner.RunAsync(
+                Path.GetTempPath(),
+                ["fetch"],
+                new GitRunOptions(Timeout: TimeSpan.FromSeconds(2), StandardInput: input),
+                Token));
+    }
+
+    [Fact]
+    public async Task GivenStandardInputOnAStream_WhenStreaming_ThenItIsIgnoredAndStdinIsClosed()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        var output = new List<byte>();
+
+        await foreach (var chunk in Runner.StreamAsync(
+            testRepository.WorkingTreePath,
+            ["hash-object", "--stdin"],
+            new GitRunOptions(StandardInput: Encoding.UTF8.GetBytes("hello\n")),
+            Token))
+        {
+            output.AddRange(chunk);
+        }
+
+        Assert.Equal("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391", Encoding.UTF8.GetString([.. output]).Trim());
     }
 
     [Fact]

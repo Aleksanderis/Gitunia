@@ -23,11 +23,12 @@ public static class DiffPatchWriter
         return builder.ToString();
     }
 
-    /// <summary>The hunk exactly as git printed it. Takes no file, so the caller checks <see cref="DiffFile.HasInvalidText"/> first.</summary>
-    public static string WriteHunk(DiffHunk hunk)
+    /// <summary>The hunk at <paramref name="hunkIndex"/> exactly as git printed it (without the file header).</summary>
+    public static string WriteHunk(DiffFile file, int hunkIndex)
     {
+        ThrowIfInexact(file);
         var builder = new StringBuilder();
-        AppendHunk(builder, hunk);
+        AppendHunk(builder, file.Hunks[hunkIndex]);
         return builder.ToString();
     }
 

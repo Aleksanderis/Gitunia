@@ -40,4 +40,13 @@ public class GitPathTextTests
 
         Assert.Equal(new byte[] { 0x61, 0x20, 0x62, 0, 0x78, 0xFF, 0 }, bytes);
     }
+
+    [Theory]
+    [InlineData('\uDC00')]
+    [InlineData('\uDD00')]
+    [InlineData('\uDC7F')]
+    public void GivenSurrogateThatDecodeNeverProduces_WhenEncoding_ThenRefused(char surrogate)
+    {
+        Assert.Throws<ArgumentException>(() => GitPathText.Encode($"a{surrogate}b"));
+    }
 }

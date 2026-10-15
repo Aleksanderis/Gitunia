@@ -81,7 +81,7 @@ public class DiffPatchWriterTests
         var patch = DiffPatchWriter.WriteHunks(TwoHunkFile, [1]);
 
         Assert.Equal($"{Header}@@ -20 +21 @@\n-single\n+single changed\n", patch);
-        Assert.Equal("@@ -20 +21 @@\n-single\n+single changed\n", DiffPatchWriter.WriteHunk(TwoHunkFile.Hunks[1]));
+        Assert.Equal("@@ -20 +21 @@\n-single\n+single changed\n", DiffPatchWriter.WriteHunk(TwoHunkFile, 1));
     }
 
     [Fact]

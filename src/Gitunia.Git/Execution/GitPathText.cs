@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text;
+using System.Text.Unicode;
 
 namespace Gitunia.Git.Execution;
 
@@ -13,16 +14,25 @@ namespace Gitunia.Git.Execution;
 public static class GitPathText
 {
     private const int EscapeBase = 0xDC00;
+    private const int FirstInvalidByte = 0x80;
+    private const int MaximumUtf8Bytes = 4;
 
     public static string Decode(ReadOnlySpan<byte> bytes)
     {
+        if (Utf8.IsValid(bytes))
+        {
+            return Encoding.UTF8.GetString(bytes);
+        }
+
         var builder = new StringBuilder(bytes.Length);
+        Span<char> characters = stackalloc char[2];
         while (bytes.Length > 0)
         {
             var status = Rune.DecodeFromUtf8(bytes, out var rune, out var consumed);
             if (status == OperationStatus.Done)
             {
-                builder.Append(rune.ToString());
+                var written = rune.EncodeToUtf16(characters);
+                builder.Append(characters[..written]);
             }
             else
             {
@@ -42,13 +52,18 @@ public static class GitPathText
     public static byte[] Encode(string text)
     {
         var bytes = new List<byte>(text.Length);
-        Span<byte> buffer = stackalloc byte[4];
+        Span<byte> buffer = stackalloc byte[MaximumUtf8Bytes];
         for (var index = 0; index < text.Length; index++)
         {
             var character = text[index];
             if (char.IsLowSurrogate(character))
             {
                 // A low surrogate after a high one was consumed with it below, so this one is an escaped byte.
+                if (character < EscapeBase + FirstInvalidByte || character > EscapeBase + byte.MaxValue)
+                {
+                    throw new ArgumentException("Text holds a surrogate that Decode does not produce.", nameof(text));
+                }
+
                 bytes.Add((byte)(character - EscapeBase));
             }
             else if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))

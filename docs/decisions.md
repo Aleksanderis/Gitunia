@@ -187,3 +187,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
 
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
+
+**Git layer:** Non-UTF-8 paths (#94): status output is decoded surrogate-escaped (`GitPathText`) and paths reach git on stdin (`--pathspec-from-file=-`), never as arguments. Line and hunk patches of files with invalid UTF-8 are refused (`InexactPatchException`); such files are staged whole. Affects #30, #31, #33.
