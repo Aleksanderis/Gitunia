@@ -77,6 +77,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
         new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
         new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext),
+        new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
+        new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),

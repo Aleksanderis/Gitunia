@@ -134,7 +134,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.RefreshChrome,
             clipboard);
         _router.Diff = _diffPane;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard);
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging());
         _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
@@ -377,6 +377,14 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Window.SetNeedsLayout();
         _view.RefreshChrome();
     }
+
+    private StagingActions CreateStaging() => new(
+        _host,
+        services.IndexWriter,
+        _statuses,
+        InvokeOnUi,
+        _effects.RefreshStatus,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None);
 
     private TabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 

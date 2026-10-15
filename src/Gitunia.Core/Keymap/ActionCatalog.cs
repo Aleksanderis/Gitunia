@@ -118,6 +118,10 @@ public static class ActionCatalog
         ["working-tree.copy-path"] = "Copy the file path",
         ["working-tree.open"] = "Open the working tree",
         ["working-tree.toggle"] = "Open or leave the working tree",
+        ["working-tree.stage"] = "Stage the file",
+        ["working-tree.stage-all"] = "Stage all files",
+        ["working-tree.unstage"] = "Unstage the file",
+        ["working-tree.unstage-all"] = "Unstage all files",
     };
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>

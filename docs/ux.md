@@ -88,6 +88,8 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 
 **Built in #29** (lists and layout only; the click on a tab's dirty marker is #331 and the palette entries are `Open the working tree` and `Open or leave the working tree`): the view opens and closes as described below, shows the Unstaged and Staged lists with their counts and status letters (`M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted with the kind of conflict; a rename or copy as `old -> new` in the Staged list, an edit of the renamed file under its new path in Unstaged; a path that is not valid UTF-8 shows its stray bytes as replacement characters), keeps one cursor per tab (state: `WorkingTreeState.Selection`, the conflicted group first in the Unstaged display order) and moves it with the list motions, the wheel and clicks. Diff and message box are boxes with a note until #314 and the working-tree diff exist. On a screen under 80 columns only the focused list shows (`Tab` switches); under 7 rows of content the two lists do not stack and the focused one takes the left column. The view mode is not saved with the session (a restart opens on the history).
 
+**Built in #30** (whole files; `IndexWriter` in the git layer): `<space>a` `<space>u` `<space>A` `<space>U` and the double-click run `add`, `restore --staged` (`rm --cached` on an unborn branch) with the paths on stdin and `--literal-pathspecs`, off the UI thread, one operation per tab at a time (a key pressed meanwhile says "busy"). When the operation is done the tab re-reads its status and the cursor lands on the same index, so the keys repeat. Stage all skips conflicted files and says how many; unstaging a rename passes both paths. Failures show git's message in the status bar. Not built yet: Visual ranges of files and the `stage all` / `unstage all` title buttons (#340), marking a conflicted file resolved (#341), hunks and lines (#31).
+
 **Open and leave.** `<space>s` (global) toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `q`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc`/`q` in the diff and the message box step back to the lists first (the 1c rule). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
 
 **Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message; `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between Unstaged and Staged (stacked), `Ctrl-w l` from either goes to the diff; `l`/`Enter` on a file moves into its diff, `h`/`Esc` back; `y` copies the file's path. `v` (Visual) is extended to the file lists and the working-tree diff by the implementing issues, with the Mouse drag; in a file list a Visual range works with `<space>a`, `<space>u` and `<space>d` (the Confirm names the count), in the diff they act on the selected lines (rows marked `(Visual)` when they join the Keymap table).
@@ -116,10 +118,7 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 
 | View | Key | Action |
 |---|---|---|
-| WorkingUnstaged | `<space>a` | Stage the file; on a conflicted file mark it resolved |
-| WorkingStaged | `<space>u` | Unstage the file |
-| WorkingUnstaged | `<space>A` | Stage all |
-| WorkingStaged | `<space>U` | Unstage all |
+| WorkingUnstaged | `<space>a` | On a conflicted file: mark it resolved after a Confirm (#341; until then it is refused) |
 | WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
 | WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
 | WorkingUnstaged / WorkingStaged | `<space>c` | Write the commit message (focus the box, Insert mode) |
@@ -243,9 +242,13 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Detail | `h` / `Esc` | Back to graph |
 | WorkingUnstaged | `<space>r` | Refresh the status |
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
+| WorkingUnstaged | `<space>a` | Stage the file under the cursor (the cursor keeps its index; a conflicted file is refused until #341) |
+| WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
 | WorkingUnstaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
 | WorkingStaged | `<space>r` | Refresh the status |
 | WorkingStaged | `y` | Copy the path of the file under the cursor |
+| WorkingStaged | `<space>u` | Unstage the file under the cursor (a rename unstages both paths) |
+| WorkingStaged | `<space>U` | Unstage all files |
 | WorkingStaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
@@ -311,6 +314,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | DetailTab.Details | Click | `detail.tab-details` | The `Details` label in the detail pane's title row, same as `gd` (also focuses the pane) |
 | DetailTab.Changes | Click | `detail.tab-changes` | The `Changes` label, same as `gc` |
 | DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |
+| WorkingUnstaged | Double-click | `working-tree.stage` | Stage the file (same as `<space>a`) |
+| WorkingStaged | Double-click | `working-tree.unstage` | Unstage the file (same as `<space>u`) |
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |

@@ -183,6 +183,14 @@ public static class ActionIds
 
     public static ActionId WorkingTreeToggle { get; } = new("working-tree.toggle");
 
+    public static ActionId WorkingTreeStage { get; } = new("working-tree.stage");
+
+    public static ActionId WorkingTreeStageAll { get; } = new("working-tree.stage-all");
+
+    public static ActionId WorkingTreeUnstage { get; } = new("working-tree.unstage");
+
+    public static ActionId WorkingTreeUnstageAll { get; } = new("working-tree.unstage-all");
+
     /// <summary>Jump to tab <paramref name="number"/> (1-based).</summary>
     public static ActionId TabGoTo(int number) => new($"tab.go-to.{number}");
 }

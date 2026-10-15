@@ -17,7 +17,8 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="host">The workspace.</param>
 /// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
 /// <param name="clipboard">Copies the path of a file.</param>
-public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageHeight, ClipboardCopier clipboard)
+/// <param name="staging">Stages and unstages files.</param>
+public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageHeight, ClipboardCopier clipboard, StagingActions staging)
 {
     private static readonly PaneKind[] ListPanes = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
 
@@ -57,7 +58,7 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         {
             Send(tab, new LeaveWorkingTreeCommand());
         }
-        else if (!TryFocus(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action))
+        else if (!TryFocus(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action))
         {
             Message = $"{ActionCatalog.Describe(action)}: not available in the working-tree view";
         }
@@ -151,6 +152,17 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         }
 
         clipboard.Copy(WorkingTreeRowRenderer.Printable(selection.Path), "file path");
+        return true;
+    }
+
+    private bool TryStage(RepositoryState tab, ActionId action)
+    {
+        if (!StagingActions.Handles(action))
+        {
+            return false;
+        }
+
+        Message = staging.Execute(tab, action);
         return true;
     }
 

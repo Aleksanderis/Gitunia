@@ -201,3 +201,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** `q` always quits from any pane (it first closes an open overlay or ends a Visual range); `h` and `Esc` step back a pane (#333). Supersedes the "q goes back one level" rule: a key that sometimes only moves focus reads as a bug. Working-tree view keys in workflow 2 must not bind `q` to leaving.
 
 **UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the bare keys of the earlier working-tree and external-tool entries; mapping in `docs/ux.md` ("Key rule"); `<space>j` is reserved for the quick jump (#334).
+
+**UI:** Stage and unstage (#30): stage all takes everything in Unstaged except conflicted files (skipped and counted), untracked files included; one index operation per tab, and the next action waits for the status re-read so the cursor keeps its index. Paths are always literal (--literal-pathspecs). Open: Visual ranges #340, resolve a conflicted file #341.

@@ -160,7 +160,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
     }
 
-    // The two file lists of the working-tree view share their keys; the side-specific ones (stage, unstage, discard) come with their issues.
+    // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard comes with its issue.
     private static void AddWorkingTreeLists(List<KeyBinding> bindings)
     {
         foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView])
@@ -170,6 +170,11 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
         }
+
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
+        Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
+        Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);
     }
 
     // The graph feeds the bottom pane with its selection, so the tabs switch from there too.
