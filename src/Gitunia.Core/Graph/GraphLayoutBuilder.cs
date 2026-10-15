@@ -15,11 +15,11 @@ namespace Gitunia.Core.Graph;
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
+    private static readonly HashSet<ObjectId> EmptySet = [];
+
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
     private readonly List<GraphRow> _rows = [];
-
-    private static readonly HashSet<ObjectId> EmptySet = [];
 
     // The next commit of the reserved first-parent chain of HEAD (lane 0); the default (invalid) id when there is no chain
     // or it has ended. Lane 0 is not handed out to anything else while this is valid.
