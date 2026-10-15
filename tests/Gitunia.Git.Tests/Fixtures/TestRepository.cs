@@ -164,10 +164,14 @@ public sealed class TestRepository : IDisposable
             return;
         }
 
-        foreach (var file in Directory.EnumerateFiles(_rootDirectory, "*", SearchOption.AllDirectories))
+        // Object files are read-only, which blocks deletion on Windows. Elsewhere file names may not be valid UTF-8,
+        // which .NET cannot address.
+        if (OperatingSystem.IsWindows())
         {
-            // Git object files are read-only, which blocks deletion on Windows.
-            File.SetAttributes(file, FileAttributes.Normal);
+            foreach (var file in Directory.EnumerateFiles(_rootDirectory, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+            }
         }
 
         try

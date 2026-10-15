@@ -33,6 +33,7 @@ internal sealed class DiffFileBuilder
     private int _storedLineCount;
     private bool _lastLineStored;
     private bool _isTruncated;
+    private bool _hasInvalidText;
 
     private string? _openHeaderText;
     private int _openOldStart;
@@ -64,6 +65,9 @@ internal sealed class DiffFileBuilder
 
     /// <summary>True while hunk lines are still expected, so a line that looks like a new file header is hunk content.</summary>
     public bool IsInHunkBody => _openHeaderText is not null && (_remainingOld > 0 || _remainingNew > 0);
+
+    /// <summary>A line of this file was not valid UTF-8, so the decoded text is not an exact copy.</summary>
+    public void MarkInvalidText() => _hasInvalidText = true;
 
     public void Add(string line)
     {
@@ -125,7 +129,7 @@ internal sealed class DiffFileBuilder
             newPath = null;
         }
 
-        return new DiffFile(oldPath, newPath, status, _oldMode, _newMode, _similarity, _isBinary, _headerLines, _hunks) { IsTruncated = _isTruncated };
+        return new DiffFile(oldPath, newPath, status, _oldMode, _newMode, _similarity, _isBinary, _headerLines, _hunks) { IsTruncated = _isTruncated, HasInvalidText = _hasInvalidText };
     }
 
     private void ParseHeaderLine(string line)

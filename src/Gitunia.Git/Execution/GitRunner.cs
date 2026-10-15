@@ -129,8 +129,6 @@ public sealed class GitRunner
             throw new GitNotFoundException(_options.Executable, exception);
         }
 
-        // Git must never wait for input.
-        process.StandardInput.Close();
         return process;
     }
 
@@ -144,7 +142,8 @@ public sealed class GitRunner
         {
             var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
             var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
-            await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false);
+            var inputTask = WriteInputAsync(process, runOptions.StandardInput, linked.Token);
+            await Task.WhenAll(outputTask, errorTask, inputTask).ConfigureAwait(false);
             var output = outputTask.Result;
             var error = errorTask.Result;
             await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
@@ -177,6 +176,7 @@ public sealed class GitRunner
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
         using var process = await Task.Run(() => Start(arguments, runOptions), CancellationToken.None).ConfigureAwait(false);
         var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
+        await WriteInputAsync(process, null, linked.Token).ConfigureAwait(false);
         var output = process.StandardOutput.BaseStream;
         var buffer = new byte[ReadBufferSize];
         try
@@ -236,6 +236,35 @@ public sealed class GitRunner
         catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested && !callerToken.IsCancellationRequested)
         {
             throw new GitTimeoutException(arguments, timeout);
+        }
+    }
+
+    /// <summary>Feeds stdin and closes it (git must never wait for input). A git that exits before reading everything is not an error here; its exit code tells.</summary>
+    private static async Task WriteInputAsync(Process process, byte[]? input, CancellationToken cancellationToken)
+    {
+        var stream = process.StandardInput.BaseStream;
+        try
+        {
+            if (input is { Length: > 0 })
+            {
+                await stream.WriteAsync(input, cancellationToken).ConfigureAwait(false);
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (IOException)
+        {
+            // Broken pipe: git stopped reading.
+        }
+        finally
+        {
+            try
+            {
+                stream.Close();
+            }
+            catch (IOException)
+            {
+                // Same.
+            }
         }
     }
 

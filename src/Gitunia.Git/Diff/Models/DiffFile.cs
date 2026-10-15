@@ -25,5 +25,11 @@ public sealed record DiffFile(
     /// <summary>Hunk lines beyond the parser's per-file limit were dropped; the hunks hold only the first lines.</summary>
     public bool IsTruncated { get; init; }
 
+    /// <summary>
+    /// A line of this file (path or content) was not valid UTF-8 and was replaced while decoding, so patch text built
+    /// from it is not an exact copy; <see cref="DiffPatchWriter"/> refuses to build one. Stage such files whole by path.
+    /// </summary>
+    public bool HasInvalidText { get; init; }
+
     public bool IsModeChange => OldMode is not null && NewMode is not null && OldMode != NewMode;
 }

@@ -33,6 +33,6 @@ public sealed class StatusReader : IStatusReader
             : [.. FixedArguments, untrackedArgument];
 
         var result = await _runner.RunAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
-        return StatusParser.Parse(result.StandardOutputText);
+        return StatusParser.Parse(GitPathText.Decode(result.StandardOutput));
     }
 }

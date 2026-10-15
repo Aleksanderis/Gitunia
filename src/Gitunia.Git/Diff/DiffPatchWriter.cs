@@ -12,6 +12,7 @@ public static class DiffPatchWriter
     /// <summary>The file exactly as git printed it (header lines, then every hunk).</summary>
     public static string WriteFile(DiffFile file)
     {
+        ThrowIfInexact(file);
         var builder = new StringBuilder();
         AppendHeader(builder, file);
         foreach (var hunk in file.Hunks)
@@ -22,17 +23,19 @@ public static class DiffPatchWriter
         return builder.ToString();
     }
 
-    /// <summary>The hunk exactly as git printed it.</summary>
-    public static string WriteHunk(DiffHunk hunk)
+    /// <summary>The hunk at <paramref name="hunkIndex"/> exactly as git printed it (without the file header).</summary>
+    public static string WriteHunk(DiffFile file, int hunkIndex)
     {
+        ThrowIfInexact(file);
         var builder = new StringBuilder();
-        AppendHunk(builder, hunk);
+        AppendHunk(builder, file.Hunks[hunkIndex]);
         return builder.ToString();
     }
 
     /// <summary>The file header followed by the chosen hunks, unchanged.</summary>
     public static string WriteHunks(DiffFile file, IReadOnlyCollection<int> hunkIndexes)
     {
+        ThrowIfInexact(file);
         var builder = new StringBuilder();
         AppendHeader(builder, file);
         for (var index = 0; index < file.Hunks.Count; index++)
@@ -59,6 +62,7 @@ public static class DiffPatchWriter
         IReadOnlyDictionary<int, IReadOnlyCollection<int>> selectedLines,
         PatchDirection direction)
     {
+        ThrowIfInexact(file);
         var body = new StringBuilder();
         var offset = 0;
         for (var hunkIndex = 0; hunkIndex < file.Hunks.Count; hunkIndex++)
@@ -137,6 +141,14 @@ public static class DiffPatchWriter
         }
 
         return result;
+    }
+
+    private static void ThrowIfInexact(DiffFile file)
+    {
+        if (file.HasInvalidText)
+        {
+            throw new InexactPatchException(file.Path);
+        }
     }
 
     private static string CultureFree(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
