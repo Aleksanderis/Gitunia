@@ -68,7 +68,7 @@ Each later workflow (3-7 at the end of this section) needs a written step-by-ste
 
 1. `Ctrl-w h` (or `Tab` cycling) focuses the sidebar (sections: branches, remotes, tags, worktrees, stashes). `j`/`k` move, `l`/`Enter` expand a section, `h` collapses it (or moves to the parent).
 2. `Enter` on a branch, remote branch or tag selects its commit in the graph and keeps focus in the sidebar; `l` on a leaf moves focus to the graph. Each branch shows the worktree that holds it.
-3. `/` filters the sidebar entries by name (Insert mode: type, `Backspace` erases, `Enter` keeps the filter and returns to Normal mode, `Esc` drops it). The filter also matches the worktree shown beside a branch and unfolds every section with a match; in Normal mode `Esc` clears an active filter, and otherwise (like `q`) returns focus to the graph.
+3. `/` filters the sidebar entries by name (Insert mode: type, `Backspace` erases, `Enter` keeps the filter and returns to Normal mode, `Esc` drops it). The filter also matches the worktree shown beside a branch and unfolds every section with a match; in Normal mode `Esc` clears an active filter, and otherwise returns focus to the graph.
 4. A section header shows its entry count; Remotes and Tags are folded by default. A branch shows `wt:<directory>` for the worktree that has it checked out (`*` marks the current branch and the current worktree) and `↑n↓m` against its upstream. A stash is not a graph node, so `Enter` on it only says so. The sidebar is hidden below 60 columns.
 
 ### 1c. Diff viewing
