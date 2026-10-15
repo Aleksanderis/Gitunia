@@ -17,6 +17,15 @@ public sealed class CommitLogReader : ICommitLogReader
 
     private static readonly string[] TipRevisions = ["--no-walk", .. DefaultRevisions];
 
+    // Every commit that descends from HEAD, parents first, each line followed by its parents. HEAD itself is excluded,
+    // and the result must not depend on which refs reach a commit, so the walk follows all parents (a first-parent
+    // walk would drop a commit that only a merge reaches).
+    private static readonly string[] DescendantsArguments =
+    [
+        "rev-list", "--parents", "--topo-order", "--reverse", "--ancestry-path", .. DefaultRevisions,
+        $"{GitOptions.ExcludeRevisionPrefix}{GitOptions.HeadRevision}", GitOptions.EndOfOptions,
+    ];
+
     private readonly GitRunner _runner;
 
     public CommitLogReader(GitRunner runner)
@@ -103,5 +112,40 @@ public sealed class CommitLogReader : ICommitLogReader
 
         // A detached HEAD shows a RefKind.Head decoration instead.
         return null;
+    }
+
+    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(
+        RepositoryLocation location,
+        CancellationToken cancellationToken)
+    {
+        // Both runs start at once: the descendants of HEAD need no tip id, they are matched to it afterwards.
+        var descendantsTask = ReadDescendantsOutputAsync(location, cancellationToken);
+        var head = await ReadCurrentBranchTipAsync(location, cancellationToken).ConfigureAwait(false);
+        var output = await descendantsTask.ConfigureAwait(false);
+        if (head is null)
+        {
+            return HeadLayoutInfo.None;
+        }
+
+        return new HeadLayoutInfo(head, output is null ? null : FirstParentDescendantsParser.Parse(output, head.Value));
+    }
+
+    // Null when git failed (an unborn HEAD does): only the shape of the lane layout depends on this, so a failure must
+    // not stop the graph from loading.
+    private async Task<string?> ReadDescendantsOutputAsync(
+        RepositoryLocation location,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _runner
+                .RunAsync(location.CommandPath, DescendantsArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+                .ConfigureAwait(false);
+            return result.StandardOutputText;
+        }
+        catch (GitException)
+        {
+            return null;
+        }
     }
 }

@@ -97,4 +97,26 @@ public sealed class FakeCommitLogReader : ICommitLogReader
         var tip = Commits.FirstOrDefault(commit => commit.Decorations.Any(decoration => decoration.IsCurrent && decoration.Kind == RefKind.LocalBranch));
         return Task.FromResult(tip?.Id);
     }
+
+    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        var tip = await ReadCurrentBranchTipAsync(location, cancellationToken);
+        if (tip is null)
+        {
+            return HeadLayoutInfo.None;
+        }
+
+        // Commits are listed newest first, so walking the list backwards sees parents before children.
+        var descendants = new HashSet<ObjectId>();
+        for (var index = Commits.Count - 1; index >= 0; index--)
+        {
+            var parents = Commits[index].Parents;
+            if (parents.Count > 0 && (parents[0] == tip || descendants.Contains(parents[0])))
+            {
+                descendants.Add(Commits[index].Id);
+            }
+        }
+
+        return new HeadLayoutInfo(tip, descendants);
+    }
 }

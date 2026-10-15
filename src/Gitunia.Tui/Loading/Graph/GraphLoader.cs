@@ -35,7 +35,7 @@ public sealed class GraphLoader
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Started before the log so the extra git call overlaps with git producing the first rows.
-        var headTask = _commitLog.ReadCurrentBranchTipAsync(location, cancellationToken);
+        var headTask = _commitLog.ReadHeadLayoutAsync(location, cancellationToken);
         GraphLayoutBuilder? builder = null;
         var batch = new List<GraphEntry>(FirstBatchSize);
         var batchSize = FirstBatchSize;
@@ -44,7 +44,7 @@ public sealed class GraphLoader
 
         await foreach (var commit in _commitLog.ReadAsync(location, order, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
-            builder ??= new GraphLayoutBuilder(await headTask.ConfigureAwait(false));
+            builder ??= GraphLayoutBuilder.For(await headTask.ConfigureAwait(false));
             var row = builder.Append(commit);
             batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));
             total++;

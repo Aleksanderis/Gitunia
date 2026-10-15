@@ -35,13 +35,13 @@ public sealed class IncrementalGraphLoader
         }
 
         var splicer = new GraphSplicer(previous);
-        var headTask = _commitLog.ReadCurrentBranchTipAsync(location, cancellationToken);
+        var headTask = _commitLog.ReadHeadLayoutAsync(location, cancellationToken);
         GraphLayoutBuilder? builder = null;
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
         await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
-            builder ??= new GraphLayoutBuilder(await headTask.ConfigureAwait(false));
+            builder ??= GraphLayoutBuilder.For(await headTask.ConfigureAwait(false));
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
             joinIndex = splicer.Observe(entry);
