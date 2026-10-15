@@ -169,3 +169,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Code structure:** Unused usings (IDE0005) fail the build; Roslyn needs `GenerateDocumentationFile` for it, so doc warnings CS1573/1591 are silenced (CS1574/1734 were re-enabled in #295). Small `Models/` folders (Refs, Watching, Execution) stay for consistency (#258).
 
 **UI:** Status bar hints (#287, owner): wording stays short and is not derived from `ActionCatalog` titles; each hint names an `ActionId` per key and a test checks the default keymap binds the key to it.
+
+**UI:** Bottom pane tabs (#300): inactive tabs reuse the repository tab chip role (`TabButton` removed); the selected tab of an unfocused pane has its own role (`SelectedTab`: bold on the chip, bold underline without colours), so it stays distinct in every tier.
