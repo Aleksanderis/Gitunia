@@ -2,7 +2,7 @@
 
 Short dated log of settled choices that cut across docs. Agents follow these without asking. Open questions live in `roadmap.md`.
 
-Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), 1-3 lines (decision and why), a blank line between entries. Implementation detail, measurements and limits go in the area doc (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`, "Design notes" sections) or stay in the issue or PR. When a decision changes, append a new entry that supersedes the old one.
+Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), 1-3 lines (decision and why), a blank line between entries. Implementation detail, measurements and limits go in the area doc (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`, or `docs/history/` for the why and the measurements) or stay in the issue or PR. When a decision changes, append a new entry that supersedes the old one.
 
 ## 2026-10-10
 
@@ -26,11 +26,11 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** PRs are merged with a merge commit (never squash or rebase) and the branch is deleted afterwards. Why: the owner wants the full branch history visible in the graph.
 
-**UI:** Renderer is Terminal.Gui v2 (2.5.0), not a custom renderer (M0 decision #7, owner chose after the spikes). Why: toolkit widgets are far easier to read and maintain, and it is fast enough; accepted costs are startup near the 100 ms budget, a larger binary and a native library. Numbers: `architecture.md`, "Design notes".
+**UI:** Renderer is Terminal.Gui v2 (2.5.0), not a custom renderer (M0 decision #7, owner chose after the spikes). Why: toolkit widgets are far easier to read and maintain, and it is fast enough; accepted costs are startup near the 100 ms budget, a larger binary and a native library. Numbers: `docs/history/architecture.md`.
 
-**UI:** Terminal.Gui needs `Application.MaximumIterationsPerSecond` ~100 (default 25 gave ~34 ms key latency), an append-only list source for streamed commits, and key handling at the application level. Why and further pitfalls: `architecture.md`, "Design notes".
+**UI:** Terminal.Gui needs `Application.MaximumIterationsPerSecond` ~100 (default 25 gave ~34 ms key latency), an append-only list source for streamed commits, and key handling at the application level. Why and further pitfalls: `docs/history/architecture.md`.
 
-**Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `git-layer.md`, "Design notes".
+**Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `docs/history/git-layer.md`.
 
 **Architecture:** The renderer stays swappable but only Terminal.Gui is maintained; `src/Gitunia.CustomRenderTui` is a parked future option, not referenced by the app and only kept building in CI. Terminal.Gui types stay in the rendering project and no renderer interface is added until a second renderer is revived.
 
@@ -38,15 +38,15 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The Terminal.Gui spike (#4) is kept as a reference sample in `samples/Gitunia.TerminalGuiSpike` (tag `archive/spike-4-terminal-gui-heavy`), unmaintained; the custom demo's look is achievable in Terminal.Gui.
 
-**Code structure:** Conventions from the PR #60 review live in `CLAUDE.md`: no truncated names, one type per file, scripts in `scripts/`, tmux-based interactive testing is Linux/macOS only.
+**Code structure:** Conventions from the PR #60 review live in `.claude/rules/csharp-style.md`: no truncated names, one type per file, scripts in `scripts/`, tmux-based interactive testing is Linux/macOS only.
 
 **UI:** The owner confirmed Terminal.Gui as the renderer, so M1 UI work may start. Key style for M1 (#8): agents draft it from vim, yazi and lazygit patterns, the owner adjusts after use, so the keymap stays data-driven.
 
-**UI:** M1 key design (#8): `Tab` and `Ctrl-w` + direction move pane focus, single keys per view with a `<space>` leader for global actions, chords show which-key after 500 ms and never time out, Insert mode swallows printable keys. Detail: `ux.md`, "Design notes".
+**UI:** M1 key design (#8): `Tab` and `Ctrl-w` + direction move pane focus, single keys per view with a `<space>` leader for global actions, chords show which-key after 500 ms and never time out, Insert mode swallows printable keys. Detail: `docs/history/ux.md`.
 
 **Git layer:** Commit ids are a fixed 40-byte `ObjectId` struct (#13) instead of interned strings. Why: no allocation per parent link or comparison; the default log excludes `refs/stash`.
 
-**Git layer:** The diff parser (#15) is incremental, keeps every header and hunk line verbatim so patches reproduce git's text, and partial staging builds patches from hunk and line selections. Limits (combined diffs, invalid UTF-8, binary files): `git-layer.md`, "Design notes".
+**Git layer:** The diff parser (#15) is incremental, keeps every header and hunk line verbatim so patches reproduce git's text, and partial staging builds patches from hunk and line selections. Limits (combined diffs, invalid UTF-8, binary files): `docs/history/git-layer.md`.
 
 **Architecture:** Graph lane layout (#16) is incremental with stable columns: a lane waits for exactly one commit id, lanes are not shifted left. Why: columns must not jump while scrolling or loading, and cost is O(open lanes) per commit.
 
@@ -54,7 +54,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Architecture:** Workspace state (#17) is immutable records with a pure reducer; tab ids are never reused, late results for closed tabs are dropped, tabs dedupe by root path.
 
-**Architecture:** The graph view (#22) keeps Terminal.Gui code in `Views` and `Input`; `Rendering` has only text frames (`--print-frame WxH` prints one for snapshot tests and CI smoke). Graph rows keep a compact entry, not the full `CommitInfo`. Detail: `architecture.md`, "Design notes".
+**Architecture:** The graph view (#22) keeps Terminal.Gui code in `Views` and `Input`; `Rendering` has only text frames (`--print-frame WxH` prints one for snapshot tests and CI smoke). Graph rows keep a compact entry, not the full `CommitInfo`. Detail: `docs/history/architecture.md`.
 
 **UI:** An Esc followed by a key within a few milliseconds arrives as `Alt-<key>` (terminal limitation); scripts must send them separately.
 
@@ -86,7 +86,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Mouse is optional and the keyboard path stays complete; if Terminal.Gui's mouse is limited over tmux or ssh, document the limits.
 
-**UI:** The diff viewer (#25) always loads the whole commit's diff (against its first parent), not one file, because file jumps and rename detection need all files; layout is pure data (`PaneLayout`). Detail: `ux.md`, "Design notes".
+**UI:** The diff viewer (#25) always loads the whole commit's diff (against its first parent), not one file, because file jumps and rename detection need all files; layout is pure data (`PaneLayout`). Detail: `docs/history/ux.md`.
 
 **UI:** Status messages (#93) go through one global `StatusChannel` with a log of the last 50; key-action notices stay transient. Dismiss `<space>x`, history `<space>m`.
 
@@ -94,7 +94,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Diff extras (#106): word wrap is real wrapping, "Load anyway" (`L`) lifts the row caps, and the diff follows the graph selection. Dropped: progressive display while streaming and binary content.
 
-**UI:** The mouse follows the key path (#64): gestures map to action ids through a mouse map and run the same handlers as keys; the toolkit's own wheel scrolling is replaced. Detail: `ux.md`, "Design notes".
+**UI:** The mouse follows the key path (#64): gestures map to action ids through a mouse map and run the same handlers as keys; the toolkit's own wheel scrolling is replaced. Detail: `docs/history/ux.md`.
 
 **UI:** Drag, resize, buttons and overlays (#100) follow the same rule; drag-select is the existing Visual mode, and pane resizing has keys (`Ctrl-w > < + - =`) because nothing may be mouse-only.
 
@@ -114,7 +114,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Graph ref labels (#214) fold a remote-tracking branch into the local branch of the same name on the same commit and hide `*/HEAD`; merging is by name, not by configured upstream.
 
-**UI:** Every pane is a titled box with shared edges and one column of padding (#197), rounded outer corners, focus shown by the accent box and filled title chip. Why: separate boxes cost two rows and columns each. Research (ideas only): lazygit, btop, zellij; sources in `ux.md`, "Design notes".
+**UI:** Every pane is a titled box with shared edges and one column of padding (#197), rounded outer corners, focus shown by the accent box and filled title chip. Why: separate boxes cost two rows and columns each. Research (ideas only): lazygit, btop, zellij; sources in `docs/history/ux.md`.
 
 **UI:** Owner review of PR #198 (#217-#223): the header row is removed (its command-palette click moved to a ` : commands ` button), remote branches are purple, tabs show `N name markers`, `Ctrl-w r` renames a tab, and a pin keeps a repository at the top of the picker.
 
@@ -122,7 +122,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Ref label glyphs (owner review of #198): `◆ ` marks the current branch and ` ↔` a branch that also stands for its remote; the bottom pane's tabs are buttons on a panel background. Why: emoji looked odd; both glyphs are one cell wide in common fonts.
 
-**UI:** Diffs are part of the Changes tab (owner decision): at 72 columns or more the diff sits beside the file list and `j`/`k` in the list show that file's diff at once; narrower screens keep the on-demand open. Rules for `h`/`l`: `ux.md`, "Design notes".
+**UI:** Diffs are part of the Changes tab (owner decision): at 72 columns or more the diff sits beside the file list and `j`/`k` in the list show that file's diff at once; narrower screens keep the on-demand open. Rules for `h`/`l`: `docs/history/ux.md`.
 
 **Architecture:** Diff prefetch (#225) reads the neighbours of the shown commit into a bounded cache (`diff_step_ms` ~37 to ~20 ms); bigger commits are not prefetched, a partial-diff cache was tried and dropped (#235).
 

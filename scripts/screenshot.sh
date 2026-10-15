@@ -2,7 +2,7 @@
 # Screenshots of the real UI for pull requests (Linux/macOS; bash, tmux, rsvg-convert, dotnet, git; `gh` for publish/clean).
 # Pipeline: the real binary runs in a private tmux server on a throwaway repo, `tmux capture-pane -p -e`
 # gives the ANSI frame, tools/AnsiToSvg turns it into an SVG and rsvg-convert into a PNG. Headless, no network.
-# Windows is unsupported (no tmux): the script says so and exits 2. See docs/testing.md ("Screenshots").
+# Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
 #   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,narrow,light] [--repo <dir>]

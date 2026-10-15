@@ -1,11 +1,11 @@
 ---
 name: performance
-description: Performance and memory checklist for Gitunia hot paths (git output parsers, graph layout, rendering, caches, startup). Use when you write or review code that parses git output, lays out or scrolls the graph, renders per frame, caches data, or runs at startup, or when a change touches the numbers in docs/architecture.md.
+description: Performance and memory checklist for Gitunia hot paths (git output parsers, graph layout, rendering, caches, startup). Use when you write or review code that parses git output, lays out or scrolls the graph, renders per frame, caches data, or runs at startup, or when a change touches the numbers in docs/performance.md.
 ---
 
 # Performance and memory
 
-Targets and verified numbers are in `docs/architecture.md` ("Performance targets", "Verified numbers"); read that section first, do not repeat it here. Budgets: cold start to first frame under 100 ms, scrolling a 100k-commit graph without dropped frames, background tabs cheap, input never blocked by a git process.
+Targets and verified numbers are in `docs/performance.md`; read it first, do not repeat it here. Budgets: cold start to first frame under 100 ms, scrolling a 100k-commit graph without dropped frames, background tabs cheap, input never blocked by a git process.
 
 ## Measure before optimising
 
@@ -31,8 +31,8 @@ Parsers of `git log`, `status`, `diff` and `for-each-ref` output; graph layout; 
 - Parse over `ReadOnlySpan<char>` or `ReadOnlySpan<byte>`; slice instead of `Substring` or `Split`. Allocate a string only for the part that is kept.
 - Spans cannot cross `await` or be stored in classes: parse synchronously per record, then store the result.
 - Reuse buffers (`ArrayPool<T>`, a reused `StringBuilder`, a per-frame buffer that is cleared, not recreated) where the lifetime is clear and the size is large or the path runs per frame. Always return pooled buffers and never keep a reference after returning.
-- Struct versus class: small immutable data that lives in big arrays (per-commit layout, cell, row) is a `readonly record struct` (no tuples, see CLAUDE.md), kept small (a guideline, not a measured limit). Anything long-lived, shared, nullable or mutated is a class or record. Do not box (interfaces, `object`, non-generic collections).
-- Hoist invariants: static readonly argument lists and option objects (also a CLAUDE.md rule), precomputed delimiters and lookup tables, `static` lambdas instead of capturing ones in hot code.
+- Struct versus class: small immutable data that lives in big arrays (per-commit layout, cell, row) is a `readonly record struct` (no tuples, see `.claude/rules/csharp-style.md`), kept small (a guideline, not a measured limit). Anything long-lived, shared, nullable or mutated is a class or record. Do not box (interfaces, `object`, non-generic collections).
+- Hoist invariants: static readonly argument lists and option objects (also a rule in `.claude/rules/csharp-style.md`), precomputed delimiters and lookup tables, `static` lambdas instead of capturing ones in hot code.
 - String interpolation stays the house style. Replace it with buffer writes or a cached string only in a per-frame or per-row loop where measurement shows it matters, and say so in the PR. The same applies to avoiding LINQ.
 - Intern or share long-lived repeated strings (ref names, author names); store hashes compactly, not as a 40-char string per use.
 
@@ -62,7 +62,7 @@ Parsers of `git log`, `status`, `diff` and `for-each-ref` output; graph layout; 
 - No reflection, runtime codegen or `dynamic`; use source generators (`System.Text.Json` source gen). Reflection-based serializers, `Activator` and expression compilation break or slow AOT.
 - Startup path: nothing that is not needed for the first frame (no git calls for background tabs, no config scans, no regex construction, no large static initialisers, no assembly scanning). Defer the rest until after the first frame.
 - Prefer source-generated regex or none; avoid generic instantiations over many value types (binary size, startup).
-- After adding a dependency or touching anything reflection-adjacent, run the AOT publish (CLAUDE.md) and re-measure cold start against `docs/architecture.md`.
+- After adding a dependency or touching anything reflection-adjacent, run the AOT publish (command in CLAUDE.md) and re-measure cold start against `docs/performance.md`.
 - Spawning `git` dominates cost: batch (one call yielding many NUL-separated records) instead of one process per item, and never poll on the UI thread.
 
 ## Reporting
