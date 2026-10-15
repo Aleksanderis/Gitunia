@@ -36,7 +36,7 @@ public class GraphHeadLaneTests
     }
 
     [Fact]
-    public void GivenBranchTwoCommitsAheadOfHead_WhenLayingOut_ThenTheTipBendsInFromLaneOne()
+    public void GivenBranchTwoCommitsAheadOfHeadAndNoAboveHeadSet_WhenLayingOut_ThenTheTipBendsInFromLaneOne()
     {
         var commits = new[] { Commit(1, 2), Commit(2, 3), Commit(3, 4), Commit(4) };
 
@@ -44,6 +44,43 @@ public class GraphHeadLaneTests
 
         Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
         Assert.Equal([1, 1, 0, 0], rows.Select(row => row.Lane));
+    }
+
+    [Fact]
+    public void GivenBranchThreeCommitsAheadOfHead_WhenLayingOutWithTheAboveHeadSet_ThenTheWholeShaftIsStraightInLaneZero()
+    {
+        // 1 (origin/main) is three commits ahead of HEAD 3 (issue #308); 2 is another tip meeting it at 4.
+        var commits = new[] { Commit(1, 2), Commit(2, 3), Commit(5, 4), Commit(3, 4), Commit(4) };
+
+        var rows = GraphLayout.Compute(commits, Id(3), AboveHead(commits, Id(3)));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([0, 0, 1, 0, 0], rows.Select(row => row.Lane));
+        Assert.All(rows.Take(2), row => Assert.All(row.Edges, edge => Assert.Equal(0, edge.ToLane)));
+    }
+
+    [Fact]
+    public void GivenTwoBranchesAheadBySeveralCommits_WhenLayingOutWithTheAboveHeadSet_ThenTheFirstChainTakesLaneZeroAndTheOtherJoinsIt()
+    {
+        // 1-2 and 3-4 are both ahead of HEAD 5; they meet at HEAD.
+        var commits = new[] { Commit(1, 2), Commit(3, 4), Commit(2, 5), Commit(4, 5), Commit(5, 6), Commit(6) };
+
+        var rows = GraphLayout.Compute(commits, Id(5), AboveHead(commits, Id(5)));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([0, 1, 0, 1, 0, 0], rows.Select(row => row.Lane));
+    }
+
+    [Fact]
+    public void GivenAheadMergeWhoseSecondParentIsHead_WhenLayingOutWithTheAboveHeadSet_ThenTheFirstParentStaysInLaneZero()
+    {
+        // 1 merges 2 (first parent, ahead of HEAD 3) and HEAD itself as the second parent.
+        var commits = new[] { Commit(1, 2, 3), Commit(2, 3), Commit(3, 4), Commit(4) };
+
+        var rows = GraphLayout.Compute(commits, Id(3), AboveHead(commits, Id(3)));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([0, 0, 0, 0], rows.Select(row => row.Lane));
     }
 
     [Fact]
@@ -136,6 +173,64 @@ public class GraphHeadLaneTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
+    public void GivenRandomHistoryAndTheAboveHeadSet_WhenLayingOut_ThenTheChainAndTheTopAheadCommitAreLaneZeroAndNothingElseUsesItEarlier(int seed)
+    {
+        var commits = RandomHistory(seed, count: 400, window: 12);
+        var head = Id(new Random(seed).Next(1, 200));
+        var chain = FirstParentChain(commits, head);
+        var aboveHead = AboveHead(commits, head);
+
+        var rows = GraphLayout.Compute(commits, head, aboveHead);
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        var lastChainIndex = -1;
+        for (var index = 0; index < rows.Count; index++)
+        {
+            if (chain.Contains(rows[index].Id))
+            {
+                Assert.Equal(0, rows[index].Lane);
+                lastChainIndex = index;
+            }
+        }
+
+        var firstAbove = rows.FirstOrDefault(row => aboveHead.Contains(row.Id));
+        if (firstAbove is not null)
+        {
+            Assert.Equal(0, firstAbove.Lane);
+        }
+
+        for (var index = 0; index < lastChainIndex; index++)
+        {
+            if (!chain.Contains(rows[index].Id) && !aboveHead.Contains(rows[index].Id))
+            {
+                Assert.NotEqual(0, rows[index].Lane);
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void GivenAnyChunkingAndHeadAndTheAboveHeadSet_WhenAppendingIncrementally_ThenRowsEqualTheFullLayout(int seed)
+    {
+        var commits = RandomHistory(seed, count: 300, window: 10);
+        var head = Id(new Random(seed).Next(1, 150));
+        var aboveHead = AboveHead(commits, head);
+        var full = GraphLayout.Compute(commits, head, aboveHead);
+        var random = new Random(seed);
+        var builder = new GraphLayoutBuilder(head, aboveHead);
+
+        var position = 0;
+        while (position < commits.Count)
+        {
+            var size = Math.Min(random.Next(1, 40), commits.Count - position);
+            builder.AppendRange(commits.Skip(position).Take(size));
+            position += size;
+            Assert.True(GraphRowComparer.AreEqual(full.Take(position).ToArray(), builder.Rows));
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
     public void GivenAnyChunkingAndHead_WhenAppendingIncrementally_ThenRowsEqualTheFullLayout(int seed)
     {
         var commits = RandomHistory(seed, count: 300, window: 10);
@@ -163,6 +258,22 @@ public class GraphHeadLaneTests
         var detached = GraphLayout.Compute(commits);
 
         Assert.NotEqual(forTwo[0].LaneFingerprint, detached[0].LaneFingerprint);
+    }
+
+    // The commits above the head whose first-parent chain reaches it, found bottom-up over the children-first list.
+    private static HashSet<ObjectId> AboveHead(IReadOnlyList<CommitInfo> commits, ObjectId head)
+    {
+        var result = new HashSet<ObjectId>();
+        for (var index = commits.Count - 1; index >= 0; index--)
+        {
+            var commit = commits[index];
+            if (commit.Parents.Count > 0 && (commit.Parents[0] == head || result.Contains(commit.Parents[0])))
+            {
+                result.Add(commit.Id);
+            }
+        }
+
+        return result;
     }
 
     private static HashSet<ObjectId> FirstParentChain(IReadOnlyList<CommitInfo> commits, ObjectId head)

@@ -187,7 +187,34 @@ public class IncrementalGraphLoaderTests
         var ahead = testRepository.Git("rev-parse", "ahead").Trim();
         Assert.Equal(ahead, entries[0].Id.ToString());
         Assert.Equal(0, entries[0].Row.Lane);
-        AssertFirstParentChainInLaneZero(testRepository, entries, ahead);
+        AssertFirstParentChainInLaneZero(testRepository, entries, [ahead]);
+    }
+
+    [Fact]
+    public async Task GivenBranchSeveralCommitsAheadOfHead_WhenReadingAndReloadingAfterAnotherAheadCommit_ThenTheAheadChainStaysInLaneZero()
+    {
+        using var testRepository = LongHistory(5);
+        testRepository.CheckoutNewBranch("ahead")
+            .Commit("ahead 1", new TestFile("a1.txt", "1"))
+            .Commit("ahead 2", new TestFile("a2.txt", "1"))
+            .Commit("ahead 3", new TestFile("a3.txt", "1"))
+            .Checkout("main~2")
+            .CheckoutNewBranch("side")
+            .Commit("side 1", new TestFile("s1.txt", "1"))
+            .Checkout("main");
+
+        var entries = await ReadAllAsync(testRepository);
+
+        var aheadOfHead = AheadOfHead(testRepository);
+        Assert.Equal(3, aheadOfHead.Count);
+        AssertFirstParentChainInLaneZero(testRepository, entries, aheadOfHead);
+        Assert.All(entries.Where(entry => aheadOfHead.Contains(entry.Id.ToString())), entry => Assert.Equal(0, entry.Row.Lane));
+
+        testRepository.Checkout("ahead").Commit("ahead 4", new TestFile("a4.txt", "1")).Checkout("main");
+        var reload = await ReloadAsync(testRepository, entries);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        Assert.Equal(0, reload.Entries.Single(entry => entry.Subject == "ahead 4").Row.Lane);
     }
 
     [Fact]
@@ -236,7 +263,7 @@ public class IncrementalGraphLoaderTests
         var reload = await ReloadAsync(testRepository, previous);
 
         await AssertEqualToFullReadAsync(testRepository, reload);
-        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries]);
+        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries], AheadOfHead(testRepository));
     }
 
     [Fact]
@@ -252,10 +279,27 @@ public class IncrementalGraphLoaderTests
         await AssertEqualToFullReadAsync(testRepository, reload);
     }
 
+    // The commits above HEAD whose first-parent chain reaches it, from first-parent walks of every local branch.
+    private static HashSet<string> AheadOfHead(TestRepository testRepository)
+    {
+        var head = testRepository.Head;
+        var ahead = new HashSet<string>();
+        foreach (var branch in testRepository.Git("for-each-ref", "--format=%(refname)", "refs/heads").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var chain = testRepository.Git("rev-list", "--first-parent", branch).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            if (chain.Contains(head))
+            {
+                ahead.UnionWith(chain.TakeWhile(id => id != head));
+            }
+        }
+
+        return ahead;
+    }
+
     private static void AssertFirstParentChainInLaneZero(
         TestRepository testRepository,
         GraphEntry[] entries,
-        string? aheadTip = null)
+        HashSet<string>? aheadOfHead = null)
     {
         var chain = testRepository.Git("rev-list", "--first-parent", "HEAD").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
         var chainEntries = entries.Where(entry => chain.Contains(entry.Id.ToString())).ToArray();
@@ -265,7 +309,7 @@ public class IncrementalGraphLoaderTests
         var lastChainId = chainEntries[^1].Id.ToString();
         var others = entries
             .TakeWhile(entry => entry.Id.ToString() != lastChainId)
-            .Where(entry => !chain.Contains(entry.Id.ToString()) && entry.Id.ToString() != aheadTip);
+            .Where(entry => !chain.Contains(entry.Id.ToString()) && (aheadOfHead is null || !aheadOfHead.Contains(entry.Id.ToString())));
         Assert.All(others, entry => Assert.NotEqual(0, entry.Row.Lane));
     }
 

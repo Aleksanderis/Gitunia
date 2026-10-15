@@ -9,8 +9,9 @@ namespace Gitunia.Core.Graph;
 /// how it was split into <see cref="Append"/> calls. Rows are immutable; the builder only keeps the open lanes.
 /// When the commit of the checked-out branch is given, lane 0 is reserved for its first-parent chain: no other commit
 /// takes lane 0 until the chain ends, and every chain commit sits in lane 0, so the current branch is a straight
-/// shaft on the left; a tip directly above HEAD (a branch one commit ahead) takes lane 0 too. Without it (detached
-/// HEAD, no commits) the leftmost free lane is used.
+/// shaft on the left. The commits above HEAD whose first-parent chain reaches it (a branch ahead of HEAD such as
+/// <c>origin/main</c>), given as a set because the streamed layout cannot tell it from the log, continue that shaft upwards
+/// in lane 0 while it is free. Without the head commit (detached HEAD, no commits) the leftmost free lane is used.
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
@@ -18,15 +19,34 @@ public sealed class GraphLayoutBuilder
     private readonly List<ObjectId> _lanes = [];
     private readonly List<GraphRow> _rows = [];
 
+    private static readonly HashSet<ObjectId> EmptySet = [];
+
     // The next commit of the reserved first-parent chain of HEAD (lane 0); the default (invalid) id when there is no chain
     // or it has ended. Lane 0 is not handed out to anything else while this is valid.
     private ObjectId _chainNext;
 
+    // Commits above HEAD whose first-parent chain reaches it; they take lane 0 while it is free. Empty without a head.
+    private readonly IReadOnlySet<ObjectId> _aboveHead;
+
+    // When the set is known, a tip above HEAD is in it, so HEAD is never pulled into lane 0 early by another commit's parent
+    // link: it waits where it is and joins lane 0 when its own row comes.
+    private readonly bool _aboveHeadKnown;
+
     /// <param name="headCommit">The commit the checked-out branch points at; null for a detached or unborn HEAD.</param>
-    public GraphLayoutBuilder(ObjectId? headCommit = null)
+    /// <param name="aboveHead">
+    /// The commits whose first-parent chain reaches <paramref name="headCommit"/> (not including it), for example the
+    /// commits of <c>origin/main</c> when it is ahead; null if not known. A pure function of the history and the head,
+    /// so it needs no part in <see cref="GraphRow.LaneFingerprint"/>.
+    /// </param>
+    public GraphLayoutBuilder(ObjectId? headCommit = null, IReadOnlySet<ObjectId>? aboveHead = null)
     {
         _chainNext = headCommit ?? default;
+        _aboveHead = headCommit is null ? EmptySet : aboveHead ?? EmptySet;
+        _aboveHeadKnown = headCommit is not null && aboveHead is not null;
     }
+
+    /// <summary>A builder for the checked-out branch as read from git.</summary>
+    public static GraphLayoutBuilder For(HeadLayoutInfo head) => new(head.Head, head.FirstParentDescendants);
 
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
@@ -41,7 +61,8 @@ public sealed class GraphLayoutBuilder
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
         var isChain = _chainNext.IsValid && commitId == _chainNext;
-        var nodeLane = isChain ? 0 : IndexOfLane(commitId);
+        var isAboveHead = !isChain && _aboveHead.Contains(commitId) && IsLaneZeroFreeFor(commitId);
+        var nodeLane = isChain || isAboveHead ? 0 : IndexOfLane(commitId);
         if (nodeLane < 0)
         {
             nodeLane = IsDirectDescendantOfChain(commit) ? 0 : FindFreeLane();
@@ -78,7 +99,13 @@ public sealed class GraphLayoutBuilder
                 _chainNext = parent;
                 _lanes[0] = parent;
             }
-            else if (_chainNext.IsValid && parent == _chainNext)
+            else if (isAboveHead && parentIndex == 0 && IsOnOrAboveHead(parent))
+            {
+                // The shaft continues down: the first parent is in lane 0 too, even when another lane waits for it as well.
+                parentLane = 0;
+                _lanes[0] = parent;
+            }
+            else if (!_aboveHeadKnown && _chainNext.IsValid && parent == _chainNext && IsLaneZeroFreeFor(parent))
             {
                 parentLane = 0;
                 EnsureLane(0);
@@ -140,6 +167,11 @@ public sealed class GraphLayoutBuilder
         return -1;
     }
 
+    // Lane 0 is empty or already waits for this commit.
+    private bool IsLaneZeroFreeFor(ObjectId commitId) => _lanes.Count == 0 || !_lanes[0].IsValid || _lanes[0] == commitId;
+
+    private bool IsOnOrAboveHead(ObjectId commitId) => commitId == _chainNext || _aboveHead.Contains(commitId);
+
     // A tip no lane waits for whose first parent is the next commit of the reserved chain (before HEAD's row that is
     // HEAD itself: a branch one commit ahead, such as origin/main) continues the chain upwards: it takes lane 0 and the
     // shaft stays straight. Only while lane 0 is still empty, so the first such tip gets it and later ones bend in.
@@ -147,6 +179,7 @@ public sealed class GraphLayoutBuilder
         _chainNext.IsValid
         && commit.Parents.Count > 0
         && commit.Parents[0] == _chainNext
+        && !_aboveHeadKnown
         && (_lanes.Count == 0 || !_lanes[0].IsValid);
 
     private void EnsureLane(int lane)

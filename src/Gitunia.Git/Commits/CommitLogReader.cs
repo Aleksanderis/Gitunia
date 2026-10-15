@@ -17,6 +17,11 @@ public sealed class CommitLogReader : ICommitLogReader
 
     private static readonly string[] TipRevisions = ["--no-walk", .. DefaultRevisions];
 
+    // The commits whose first-parent chain reaches a commit (that commit is excluded by the caller), parents first; a first-parent walk is
+    // much cheaper than the full ancestry on a large history, and the first parent is all the layout needs.
+    private static readonly string[] DescendantsArguments =
+        ["rev-list", "--parents", "--topo-order", "--reverse", "--first-parent", "--ancestry-path", .. DefaultRevisions];
+
     private readonly GitRunner _runner;
 
     public CommitLogReader(GitRunner runner)
@@ -103,5 +108,28 @@ public sealed class CommitLogReader : ICommitLogReader
 
         // A detached HEAD shows a RefKind.Head decoration instead.
         return null;
+    }
+
+    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        var head = await ReadCurrentBranchTipAsync(location, cancellationToken).ConfigureAwait(false);
+        if (head is null)
+        {
+            return HeadLayoutInfo.None;
+        }
+
+        try
+        {
+            string[] arguments = [.. DescendantsArguments, $"{GitOptions.ExcludeRevisionPrefix}{head.Value}", GitOptions.EndOfOptions];
+            var result = await _runner
+                .RunAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+                .ConfigureAwait(false);
+            return new HeadLayoutInfo(head, FirstParentDescendantsParser.Parse(result.StandardOutputText, head.Value));
+        }
+        catch (GitException)
+        {
+            // Only the shape of the lane layout depends on the descendants, so a failure must not stop the graph from loading.
+            return new HeadLayoutInfo(head, HeadLayoutInfo.None.FirstParentDescendants);
+        }
     }
 }

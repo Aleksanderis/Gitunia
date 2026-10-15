@@ -26,4 +26,11 @@ public interface ICommitLogReader
 
     /// <summary>The commit the checked-out local branch points at, or null when HEAD is detached or unborn; the graph reserves lane 0 for its first-parent chain.</summary>
     Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// What the lane layout needs about the checked-out branch: its tip (as <see cref="ReadCurrentBranchTipAsync"/>) and the commits above it
+    /// whose first-parent chain reaches the tip (a branch ahead of HEAD such as <c>origin/main</c>), so they can stay in lane 0.
+    /// A failed read of the descendants gives an empty set instead of an error.
+    /// </summary>
+    Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken);
 }

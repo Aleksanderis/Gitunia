@@ -103,6 +103,73 @@ public class CommitLogReaderTests
     }
 
     [Fact]
+    public async Task GivenBranchesAheadOfHead_WhenReadingHeadLayout_ThenTheAheadCommitsAreTheFirstParentDescendantsOfTheTip()
+    {
+        using var testRepository = TestRepositories.Linear(3);
+        var head = testRepository.Head;
+        testRepository.CheckoutNewBranch("ahead").Commit("ahead 1").Commit("ahead 2").Commit("ahead 3");
+        var expected = testRepository.Git("rev-list", "--first-parent", $"{head}..ahead").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+        testRepository.Checkout("main").CheckoutNewBranch("side").Commit("side 1");
+        expected.Add(testRepository.Head);
+
+        // A merge on the ahead branch (an ahead commit is its first parent) is above HEAD; the merged-in commit, forked below HEAD, is not.
+        testRepository.Checkout("main~1").CheckoutNewBranch("topic").Commit("topic 1");
+        testRepository.Checkout("ahead").Merge("topic");
+        expected.Add(testRepository.Head);
+        testRepository.Checkout("main");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
+
+        Assert.Equal(head, layout.Head?.ToString());
+        Assert.Equal(5, expected.Count);
+        Assert.Equal(expected.Order(), layout.FirstParentDescendants.Select(id => id.ToString()).Order());
+    }
+
+    [Fact]
+    public async Task GivenMergeReachingHeadOnlyThroughItsSecondParent_WhenReadingHeadLayout_ThenTheMergeIsNotADescendant()
+    {
+        using var testRepository = TestRepositories.Linear(2);
+        testRepository.Branch("base", "HEAD~1");
+        testRepository.Checkout("base").CheckoutNewBranch("other").Commit("other 1");
+        testRepository.Git("merge", "-q", "--no-ff", "-m", "merge main", "main");
+        var merge = testRepository.Head;
+        testRepository.Checkout("main");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
+
+        Assert.Equal(testRepository.Head, layout.Head?.ToString());
+        Assert.DoesNotContain(layout.FirstParentDescendants, id => id.ToString() == merge);
+        Assert.Empty(layout.FirstParentDescendants);
+    }
+
+    [Fact]
+    public async Task GivenDetachedHead_WhenReadingHeadLayout_ThenNoHeadAndNoDescendants()
+    {
+        using var testRepository = TestRepositories.Linear(3);
+        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
+
+        Assert.Null(layout.Head);
+        Assert.Empty(layout.FirstParentDescendants);
+    }
+
+    [Fact]
+    public async Task GivenUnbornHead_WhenReadingHeadLayout_ThenNoHeadAndNoDescendants()
+    {
+        using var testRepository = TestRepository.Create();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var layout = await CommitLog.ReadHeadLayoutAsync(location, Token);
+
+        Assert.Null(layout.Head);
+        Assert.Empty(layout.FirstParentDescendants);
+    }
+
+    [Fact]
     public async Task GivenOddSubjects_WhenReadingLog_ThenTextSurvives()
     {
         using var testRepository = TestRepository.Create()
