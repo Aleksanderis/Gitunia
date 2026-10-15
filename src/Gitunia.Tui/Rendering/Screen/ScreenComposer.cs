@@ -60,7 +60,7 @@ public static class ScreenComposer
         }
         else
         {
-            AddPanes(overlays, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects);
+            AddPanes(overlays, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects, PanePadding.ColumnsFor(width));
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
@@ -86,23 +86,26 @@ public static class ScreenComposer
         SidebarModel? sidebar,
         SearchQuery? highlight,
         DiffPaneModel? diff,
-        PaneRects rects)
+        PaneRects rects,
+        int paddingColumns)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
         if (!rects.Graph.IsEmpty)
         {
             var graphHeight = rects.Graph.Height;
-            var textWidth = PanePadding.TextWidth(rects.Graph.Width);
+            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns);
             var options = new GraphRowOptions(textWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth), glyphs, highlight);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
             {
                 var item = topItem + offset;
                 var commitIndex = item - ScreenLayout.ReservedLeadingRows;
-                graphLines.Add(PanePadding.Wrap(commitIndex >= 0 && commitIndex < graph.Count
-                    ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
-                    : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0)));
+                graphLines.Add(PanePadding.Wrap(
+                    commitIndex >= 0 && commitIndex < graph.Count
+                        ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
+                        : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0),
+                    paddingColumns));
             }
 
             overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
@@ -111,17 +114,17 @@ public static class ScreenComposer
         if (sidebar is not null && !rects.Sidebar.IsEmpty)
         {
             var sidebarLines = SidebarPane.Compose(sidebar, PanePadding.TextWidth(rects.Sidebar.Width), rects.Sidebar.Height + rects.SidebarFilter.Height, glyphs);
-            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. sidebarLines.Select(PanePadding.Wrap)], sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
+            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. sidebarLines.Select(line => PanePadding.Wrap(line))], sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
         }
 
         if (showDetail)
         {
-            overlays.Add(new PaneLines(rects.DetailTitle.X, rects.DetailTitle.Y, DetailPaneRenderer.RenderPane(detail!, rects.DetailTitle.Width, rects.Detail.Height, glyphs), SegmentSelection.Focused));
+            overlays.Add(new PaneLines(rects.DetailTitle.X, rects.DetailTitle.Y, DetailPaneRenderer.RenderPane(detail!, rects.DetailTitle.Width, rects.Detail.Height, glyphs, paddingColumns), SegmentSelection.Focused));
         }
 
         if (showDiff)
         {
-            overlays.Add(new PaneLines(rects.DiffTitle.X, rects.DiffTitle.Y, DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs), SegmentSelection.Focused));
+            overlays.Add(new PaneLines(rects.DiffTitle.X, rects.DiffTitle.Y, DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs, paddingColumns), SegmentSelection.Focused));
         }
     }
 

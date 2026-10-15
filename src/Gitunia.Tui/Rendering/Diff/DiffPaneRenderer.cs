@@ -9,24 +9,26 @@ namespace Gitunia.Tui.Rendering.Diff;
 public static class DiffPaneRenderer
 {
     /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <see cref="DiffPaneModel.TopRow"/>; the rows are padded (<see cref="PanePadding"/>).</summary>
-    public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs)
+    public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs) };
         var digits = DiffRowRenderer.GutterDigits(pane.Document.MaximumLineNumber);
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
-            var textWidth = PanePadding.TextWidth(width);
-            lines.Add(PanePadding.Wrap(row >= 0 && row < pane.Document.Rows.Count
-                ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, digits, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
-                : new LineBuilder(textWidth, glyphs.Ellipsis).Build()));
+            var textWidth = PanePadding.TextWidth(width, paddingColumns);
+            lines.Add(PanePadding.Wrap(
+                row >= 0 && row < pane.Document.Rows.Count
+                    ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, digits, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
+                    : new LineBuilder(textWidth, glyphs.Ellipsis).Build(),
+                paddingColumns));
         }
 
         return lines;
     }
 
     /// <summary>
-    /// The title: the commit, the file under the cursor and its position among the files and the hunks, then the buttons
+    /// The title: the file under the cursor and its position among the files and the hunks, then the buttons
     /// (<see cref="DiffTitleButtons"/>) at the right end when the row is wide enough.
     /// </summary>
     public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
@@ -53,11 +55,6 @@ public static class DiffPaneRenderer
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
             .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
-        if (pane.ShortHash.Length > 0)
-        {
-            builder.Append($" {pane.ShortHash}", SegmentRole.Hash);
-        }
-
         var fileCount = pane.Document.FileRows.Count;
         if (fileCount > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
         {

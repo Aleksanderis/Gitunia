@@ -110,7 +110,7 @@ public sealed class FramePrinter
             builder.Add(file);
         }
 
-        return new DiffPaneModel(builder.Build(warnings), selected.Id.ToString()[..7], 0, 0, false);
+        return new DiffPaneModel(builder.Build(warnings), 0, 0, false);
     }
 
     private async Task<SidebarModel> ReadSidebarAsync(RepositoryLocation location, HeadState head, CancellationToken cancellationToken)

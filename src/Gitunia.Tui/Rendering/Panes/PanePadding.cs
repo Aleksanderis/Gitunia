@@ -5,16 +5,25 @@ namespace Gitunia.Tui.Rendering.Panes;
 /// <summary>The blank columns between a pane's frame and its text, so text does not hug the lines.</summary>
 public static class PanePadding
 {
-    /// <summary>Blank columns on each side of a pane's text.</summary>
+    /// <summary>Blank columns on each side of a pane's text on compact screens.</summary>
     public const int Columns = 1;
 
+    /// <summary>Blank columns on each side of the text of the history and the bottom panes on spacious screens (#244).</summary>
+    public const int SpaciousColumns = 2;
+
+    /// <summary>Screen width from which the history and the bottom panes use <see cref="SpaciousColumns"/> (the graph's own threshold).</summary>
+    public const int SpaciousScreenWidth = 100;
+
+    /// <summary>Padding columns of the history and the bottom panes on a screen of <paramref name="screenWidth"/> columns.</summary>
+    public static int ColumnsFor(int screenWidth) => screenWidth >= SpaciousScreenWidth ? SpaciousColumns : Columns;
+
     /// <summary>Columns left for text in a pane of <paramref name="paneWidth"/> columns.</summary>
-    public static int TextWidth(int paneWidth) => Math.Max(0, paneWidth - 2 * Columns);
+    public static int TextWidth(int paneWidth, int columns = Columns) => Math.Max(0, paneWidth - 2 * columns);
 
     /// <summary>The line with the padding on both sides; the padding is selected with the line.</summary>
-    public static StyledLine Wrap(StyledLine line)
+    public static StyledLine Wrap(StyledLine line, int columns = Columns)
     {
-        var padding = new StyledSegment(new string(' ', Columns), SegmentRole.Plain);
+        var padding = new StyledSegment(new string(' ', columns), SegmentRole.Plain);
         return new StyledLine([padding, .. line.Segments, padding], line.IsSelected);
     }
 }

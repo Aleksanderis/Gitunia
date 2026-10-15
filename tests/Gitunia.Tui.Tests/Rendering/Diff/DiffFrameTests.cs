@@ -34,6 +34,39 @@ public class DiffFrameTests
     }
 
     [Fact]
+    public void GivenAnOpenDiff_WhenComposingAt160Columns_ThenTheBottomPanesAndHistoryKeepTwoBlankColumnsFromTheFrame()
+    {
+        var lines = Compose(160, 45, new PaneArrangement(true, null));
+
+        Assert.Equal(45, lines.Count);
+        Assert.All(lines, line => Assert.True(TextWidth.Of(line) <= 160));
+        Assert.Contains(lines, line => line.Contains("added line", StringComparison.Ordinal) && line.EndsWith("  │", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.StartsWith("│  ", StringComparison.Ordinal) && line.Contains("a.txt", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(40)]
+    [InlineData(100)]
+    [InlineData(160)]
+    public void GivenADiffWithAFile_WhenRenderingTheTitle_ThenItHasNoCommitHash(int width)
+    {
+        var document = new DiffDocument([new DiffRow(DiffRowKind.FileHeader, "a.txt", null, null, 0)], [], [0], [["a.txt"]], 1);
+
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(document, 0, 0, true), width, GraphGlyphSet.Unicode);
+
+        Assert.DoesNotContain(title.Segments, segment => segment.Role == SegmentRole.Hash);
+        Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnOpenDiff_WhenComposingAt80Columns_ThenTheBottomPanesKeepOneBlankColumn()
+    {
+        var lines = Compose(80, 24, new PaneArrangement(true, null));
+
+        Assert.Contains(lines, line => line.StartsWith("│ ", StringComparison.Ordinal) && !line.StartsWith("│  ", StringComparison.Ordinal) && line.Contains("a.txt", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenAnOpenDiff_WhenComposingBelowTheSideBySideThreshold_ThenTheDiffReplacesTheDetailPane()
     {
         var lines = Compose(PaneLayout.MinimumWidthForSideBySide - 1, 30, new PaneArrangement(true, null));
@@ -104,7 +137,7 @@ public class DiffFrameTests
             [["a.txt"]],
             1);
         var model = new ScreenModel("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 2, false, string.Empty);
-        var diff = withDiff ? new DiffPaneModel(document, "0000002", 0, 0, false) : null;
+        var diff = withDiff ? new DiffPaneModel(document, 0, 0, false) : null;
         return [.. ScreenComposer.Compose(model, graph, 0, 0, width, height, GraphGlyphSet.Unicode, new DetailPaneModel(content, 0, 0, false), null, null, diff, arrangement).Select(line => line.Text)];
     }
 }
