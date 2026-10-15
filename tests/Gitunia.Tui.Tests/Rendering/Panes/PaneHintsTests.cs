@@ -82,17 +82,17 @@ public class PaneHintsTests
 
     [Theory]
     [MemberData(nameof(Panes))]
-    public void GivenAPane_WhenCheckingItsHints_ThenEveryKeyIsBoundInTheDefaultKeymapForThatPane(PaneKind pane)
+    public void GivenAPane_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInTheDefaultKeymapForThatPane(PaneKind pane)
     {
         var view = ViewFor(pane);
 
-        AssertKeysAreBound(PaneHints.For(pane), KeyMode.Normal, view);
+        AssertKeysTriggerActions(PaneHints.For(pane), KeyMode.Normal, view);
     }
 
     [Fact]
-    public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyIsBoundInThePickerView()
+    public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
-        AssertKeysAreBound(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
+        AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
     }
 
     private static string ViewFor(PaneKind pane) => pane switch
@@ -103,19 +103,24 @@ public class PaneHintsTests
         _ => DefaultKeymap.GraphView,
     };
 
-    private static void AssertKeysAreBound(IReadOnlyList<KeyHint> hints, KeyMode mode, string view)
+    private static void AssertKeysTriggerActions(IReadOnlyList<KeyHint> hints, KeyMode mode, string view)
     {
-        var bound = DefaultKeymap.Create().EffectiveBindings(mode, view).Select(binding => binding.Sequence).ToHashSet();
+        var bindings = DefaultKeymap.Create().EffectiveBindings(mode, view);
         foreach (var hint in hints)
         {
-            foreach (var keys in ExpandAlternatives(hint.Keys))
+            var alternatives = ExpandAlternatives(hint.Keys).ToList();
+            Assert.True(alternatives.Count == hint.Actions.Length, $"The hint '{hint.Keys} {hint.Description}' lists {alternatives.Count} keys but names {hint.Actions.Length} actions.");
+            for (var index = 0; index < alternatives.Count; index++)
             {
-                Assert.True(bound.Contains(KeySequenceParser.Parse(keys)), $"The hint '{hint.Keys} {hint.Description}' shows '{keys}', which is not bound in the {view} view ({mode} mode).");
+                var sequence = KeySequenceParser.Parse(alternatives[index]);
+                var binding = bindings.FirstOrDefault(candidate => candidate.Sequence.Equals(sequence));
+                Assert.True(binding is not null, $"The hint '{hint.Keys} {hint.Description}' shows '{alternatives[index]}', which is not bound in the {view} view ({mode} mode).");
+                Assert.True(binding.Action == hint.Actions[index], $"The hint '{hint.Keys} {hint.Description}' shows '{alternatives[index]}' for {hint.Actions[index]}, but the {view} view binds it to {binding.Action}.");
             }
         }
     }
 
-    // A hint such as "Ctrl-d/u" or "gg/G" lists alternatives; a bare character after "Ctrl-" reuses it (other modifiers are not supported yet). The test checks the key is bound, not that it triggers the action the description names.
+    // A hint such as "Ctrl-d/u" or "gg/G" lists alternatives; a bare character after "Ctrl-" reuses it (other modifiers are not supported yet). Each alternative maps to the action at the same index.
     private static IEnumerable<string> ExpandAlternatives(string keys)
     {
         const string ctrlPrefix = "Ctrl-";

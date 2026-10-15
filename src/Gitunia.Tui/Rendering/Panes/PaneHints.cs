@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -8,59 +9,59 @@ public static class PaneHints
 {
     private static readonly ImmutableArray<KeyHint> Pinned =
     [
-        new("?", "help"),
-        new(":", "commands"),
-        new("q", "back"),
+        new("?", "help", [ActionIds.HelpShow]),
+        new(":", "commands", [ActionIds.PaletteOpen]),
+        new("q", "back", [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Graph =
     [
         .. Pinned,
-        new("j/k", "move"),
-        new("gg/G", "top/end"),
-        new("Ctrl-d/u", "page"),
-        new("@", "HEAD"),
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
+        new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
+        new("@", "HEAD", [ActionIds.GraphJumpToHead]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Sidebar =
     [
         .. Pinned,
-        new("j/k", "move"),
-        new("l/Enter", "expand"),
-        new("h", "collapse"),
-        new("/", "filter"),
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
+        new("h", "collapse", [ActionIds.SidebarCollapse]),
+        new("/", "filter", [ActionIds.SidebarFilter]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Detail =
     [
         .. Pinned,
-        new("j/k", "move"),
-        new("]/[", "tabs"),
-        new("l", "open diff"),
-        new("h", "back"),
-        new("r", "retry"),
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
+        new("l", "open diff", [ActionIds.DetailOpenDiff]),
+        new("h", "back", [ActionIds.NavigateBack]),
+        new("r", "retry", [ActionIds.DetailRetry]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Diff =
     [
         .. Pinned,
-        new("j/k", "scroll"),
-        new("]c/[c", "hunk"),
-        new("]f/[f", "file"),
-        new("/", "search"),
-        new("n/N", "next/prev match"),
-        new("w", "wrap"),
-        new("L", "load all"),
-        new("h", "back"),
+        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
+        new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
+        new("/", "search", [ActionIds.DiffSearchOpen]),
+        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
+        new("w", "wrap", [ActionIds.DiffToggleWrap]),
+        new("L", "load all", [ActionIds.DiffLoadAnyway]),
+        new("h", "back", [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Picker =
     [
-        new("Enter", "open"),
-        new("Tab", "accept"),
-        new("Alt-p", "pin to top"),
-        new("Alt-d", "forget"),
-        new("Esc", "close"),
+        new("Enter", "open", [ActionIds.PickerAccept]),
+        new("Tab", "accept", [ActionIds.PickerCompletePath]),
+        new("Alt-p", "pin to top", [ActionIds.PickerPin]),
+        new("Alt-d", "forget", [ActionIds.PickerRemoveRecent]),
+        new("Esc", "close", [ActionIds.Cancel]),
     ];
 
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
