@@ -171,3 +171,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Status bar hints (#287, owner): wording stays short and is not derived from `ActionCatalog` titles; each hint names an `ActionId` per key and a test checks the default keymap binds the key to it.
 
 **UI:** Graph lane 0 (#301, owner): when a branch is checked out, lane 0 is reserved for the first-parent chain of its tip, so the current branch is a straight shaft on the left and other branches join it from the right. A detached or unborn HEAD keeps the leftmost-free-lane layout. Why: other tips listed first (`origin/main`, merged features) pushed the current branch off the left edge and bent it.
+
+**UI:** Bottom pane tabs (#300): inactive tabs reuse the repository tab chip role (`TabButton` removed); the selected tab of an unfocused pane has its own role (`SelectedTab`: bold on the chip, bold underline without colours), so it stays distinct in every tier.

@@ -121,7 +121,49 @@ public class DetailPaneComposerTests
         var roles = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Changes" or "Files").Select(segment => segment.Role).ToArray();
         Assert.Equal(3, roles.Length);
         Assert.Equal(SegmentRole.ActiveTab, roles[expectedIndex]);
-        Assert.Equal(2, roles.Count(role => role == SegmentRole.TabButton));
+        Assert.Equal(2, roles.Count(role => role == SegmentRole.RepositoryTab));
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(24)]
+    [InlineData(28)]
+    [InlineData(29)]
+    [InlineData(50)]
+    public void GivenAnyWidth_WhenRenderingTheTitle_ThenTheUnselectedTabsAreChipsLikeTheRepositoryTabs(int width)
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Changes);
+
+        var title = DetailPaneRenderer.RenderTitle(content, true, width, GraphGlyphSet.Unicode);
+
+        var others = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Files").ToArray();
+        Assert.All(others, segment => Assert.Equal(SegmentRole.RepositoryTab, segment.Role));
+        Assert.DoesNotContain(title.Segments, segment => segment.Role == SegmentRole.Plain);
+    }
+
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(24, false)]
+    [InlineData(28, true)]
+    [InlineData(29, false)]
+    [InlineData(29, true)]
+    [InlineData(50, true)]
+    public void GivenAnyWidthAndGlyphSet_WhenRenderingTheTitle_ThenEachDrawnTabLabelIsFoundByItsHitZone(int width, bool isAscii)
+    {
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var content = LoadedContent(TwoCommits(), BottomTab.Files);
+
+        var title = DetailPaneRenderer.RenderTitle(content, false, width, glyphs).Text;
+        var strip = DetailTabStrip.Layout(width, BottomTab.Files);
+
+        Assert.Contains(strip, button => DetailTabStrip.TabOf(button) == BottomTab.Files);
+        foreach (var button in strip)
+        {
+            Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Substring(button.Start, button.Width));
+            Assert.Equal(button.View, TitleButton.ViewAt(strip, button.Start));
+            Assert.Equal(button.View, TitleButton.ViewAt(strip, button.Start + button.Width - 1));
+            Assert.Null(TitleButton.ViewAt(strip, button.Start - 1));
+        }
     }
 
     [Fact]
@@ -242,7 +284,7 @@ public class DetailPaneComposerTests
         var unfocused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, false), 50, 20)[^8];
 
         Assert.Contains(focused.Segments, segment => segment.Role == SegmentRole.ActiveTab && segment.Text == " Details ");
-        Assert.Contains(unfocused.Segments, segment => segment.Role == SegmentRole.InactiveTab && segment.Text == " Details ");
+        Assert.Contains(unfocused.Segments, segment => segment.Role == SegmentRole.SelectedTab && segment.Text == " Details ");
         Assert.Equal(SegmentRole.FocusedBorder, focused.Segments[0].Role);
     }
 
