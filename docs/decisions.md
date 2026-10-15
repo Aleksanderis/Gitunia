@@ -189,3 +189,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
 
 **Git layer:** Non-UTF-8 paths (#94): status output is decoded surrogate-escaped (`GitPathText`) and paths reach git on stdin (`--pathspec-from-file=-`), never as arguments. Line and hunk patches of files with invalid UTF-8 are refused (`InexactPatchException`); such files are staged whole. Affects #30, #31, #33.
+
+**UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
