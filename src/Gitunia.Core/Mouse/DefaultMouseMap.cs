@@ -57,6 +57,8 @@ public static class DefaultMouseMap
         [DefaultKeymap.DetailView] = DefaultKeymap.ListsView,
         [DefaultKeymap.SidebarView] = DefaultKeymap.ListsView,
         [DefaultKeymap.DiffView] = DefaultKeymap.ListsView,
+        [DefaultKeymap.WorkingUnstagedView] = DefaultKeymap.ListsView,
+        [DefaultKeymap.WorkingStagedView] = DefaultKeymap.ListsView,
     };
 
     /// <summary>The views of the overlays: their gestures run even though an open overlay otherwise suppresses the panes behind it.</summary>

@@ -1,12 +1,14 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Search.Models;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.Rendering.Screen;
 
@@ -74,6 +76,90 @@ public static class ScreenComposer
         }
 
         return lines;
+    }
+
+    /// <summary>Lays out the working-tree view as styled lines, without a terminal: what snapshot tests and <c>--print-frame</c> show.</summary>
+    /// <param name="model">The chrome content.</param>
+    /// <param name="working">What the view shows.</param>
+    /// <param name="width">Terminal columns.</param>
+    /// <param name="height">Terminal rows.</param>
+    /// <param name="glyphs">The character set.</param>
+    public static IReadOnlyList<StyledLine> ComposeWorkingTree(
+        ScreenModel model,
+        WorkingTreeModel working,
+        int width,
+        int height,
+        GraphGlyphSet glyphs)
+    {
+        var lines = new List<StyledLine>(height);
+        if (height > ScreenLayout.TabRow)
+        {
+            lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
+        }
+
+        var rects = WorkingTreeLayout.Compute(width, height, working.Focused);
+        var isUnstagedFocused = working.Focused != PaneKind.WorkingStaged;
+        var tree = working.Tree;
+        var boxes = new List<FrameBox>
+        {
+            new(rects.Unstaged, isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Unstaged)),
+            new(rects.Staged, !isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
+            new(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
+            new(rects.Message, false, WorkingTreePaneRenderer.MessageTitle),
+        };
+        var grid = FrameGrid.Build(width, height, boxes, glyphs);
+        var padding = PanePadding.ColumnsFor(width);
+        var overlays = new List<PaneLines>();
+        AddWorkingList(
+            overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
+        AddWorkingList(
+            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, !isUnstagedFocused, padding, glyphs);
+        AddPlaceholder(
+            overlays,
+            rects.Diff,
+            WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
+        AddPlaceholder(
+            overlays,
+            rects.Message,
+            WorkingTreePaneRenderer.MessagePlaceholderLines(rects.Message, padding, glyphs));
+        for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
+        {
+            lines.Add(BuildRow(grid, row, width, overlays));
+        }
+
+        if (height > ScreenLayout.TabRow + 1)
+        {
+            lines.Add(ChromeBuilder.Status(model, width, glyphs));
+        }
+
+        return lines;
+    }
+
+    private static void AddWorkingList(
+        List<PaneLines> overlays,
+        WorkingTreeState? tree,
+        WorkingTreeSection section,
+        PaneRect rect,
+        int top,
+        bool isFocused,
+        int padding,
+        GraphGlyphSet glyphs)
+    {
+        if (!rect.IsEmpty)
+        {
+            var cursor = tree?.Selection is { } selection && selection.Section == section ? selection.Index : -1;
+            var shownTop = WorkingTreePaneRenderer.TopFor(cursor, top, rect.Height);
+            var rows = WorkingTreePaneRenderer.ListLines(tree, section, rect, shownTop, true, padding, glyphs);
+            overlays.Add(new PaneLines(rect.X, rect.Y, rows, isFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
+        }
+    }
+
+    private static void AddPlaceholder(List<PaneLines> overlays, PaneRect rect, IReadOnlyList<StyledLine> rows)
+    {
+        if (!rect.IsEmpty)
+        {
+            overlays.Add(new PaneLines(rect.X, rect.Y, rows, SegmentSelection.None));
+        }
     }
 
     private static void AddPanes(

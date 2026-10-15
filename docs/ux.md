@@ -82,9 +82,11 @@ Each later workflow (3-7 at the end of this section) needs a written step-by-ste
 
 ### 2. Working-tree view: stage, commit, amend, discard (design for #29-#33, #51, #314)
 
-Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys below are planned: they are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingUnstaged`, `WorkingStaged`, the two diffs and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
+Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys in the planned table below are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingUnstaged`, `WorkingStaged`, the two diffs and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
 
 **Layout.** Left column: `Unstaged` list on top (conflicted files first, in their own group, then modified, deleted, renamed and untracked files, each with its status letter and path) and `Staged` list below it, each titled with its count. Right: the diff of the file under the cursor (the working-tree diff for Unstaged, the index diff for Staged; untracked files show their content as additions) and, below the diff, the message box with an option row `[ ] SignOff  [ ] No-Verify  [ ] Amend` and a `Commit` button. The sidebar is hidden in this view (it gets the whole width); the tab bar stays. Terminals under 80 columns show one pane at a time, as the diff does in 1c. Lists and diff follow the pane, selection, zoom (`<space>z`) and diff option rules of workflows 1 and 1c; the diff is the same widget (hunk navigation, wrap, context, split).
+
+**Built in #29** (lists and layout only; the click on a tab's dirty marker is #331 and the palette entries are `Open the working tree` and `Open or leave the working tree`): the view opens and closes as described below, shows the Unstaged and Staged lists with their counts and status letters (`M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted with the kind of conflict; a rename or copy as `old -> new` in the Staged list, an edit of the renamed file under its new path in Unstaged; a path that is not valid UTF-8 shows its stray bytes as replacement characters), keeps one cursor per tab (state: `WorkingTreeState.Selection`, the conflicted group first in the Unstaged display order) and moves it with the list motions, the wheel and clicks. Diff and message box are boxes with a note until #314 and the working-tree diff exist. On a screen under 80 columns only the focused list shows (`Tab` switches); under 7 rows of content the two lists do not stack and the focused one takes the left column. The view mode is not saved with the session (a restart opens on the history).
 
 **Open and leave.** `<space>s` (global) toggles the view for the active tab; `gs` in the graph opens it, and so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `q`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc`/`q` in the diff and the message box step back to the lists first (the 1c rule). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
 
@@ -108,12 +110,10 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 5. Amend: toggling it on fills the box with HEAD's message when the draft is empty (the draft is kept aside and restored when Amend is toggled off), shows `Amending <short hash> <subject>` in the box title and runs `git commit --amend`; staged changes are added to the amended commit. If HEAD is already on the upstream branch the status bar warns that a force push will be needed. Undo path: the status message after the commit names the old hash ("Amended; previous commit abc1234, `git reset --soft abc1234` restores it") and the reflog keeps it reachable. While a merge is in progress Amend is disabled and the box is prefilled from `MERGE_MSG`.
 6. After a successful commit the draft and Amend are cleared, SignOff and No-Verify keep their state, the lists refresh, the status bar says `Committed abc1234` and focus returns to the lists. The history view picks up the commit through the normal refresh.
 
-**Planned keys** (not in the Keymap table until implemented):
+**Planned keys** (not in the Keymap table until implemented; the open/leave, refresh, copy-path and list-motion keys of #29 are already there):
 
 | View | Key | Action |
 |---|---|---|
-| Global | `<space>s` | Open / leave the working-tree view of the tab |
-| Graph | `gs` | Open the working-tree view |
 | WorkingUnstaged | `s` | Stage the file; on a conflicted file mark it resolved |
 | WorkingStaged | `u` | Unstage the file |
 | WorkingUnstaged | `a` | Stage all |
@@ -121,8 +121,6 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 | WorkingUnstaged | `x` | Discard the file's changes (Confirm) |
 | WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
 | WorkingUnstaged / WorkingStaged | `c` | Write the commit message (focus the box, Insert mode) |
-| WorkingUnstaged / WorkingStaged | `r` | Refresh the status |
-| WorkingUnstaged / WorkingStaged | `q` / `Esc` / `h` | Leave the view |
 | WorkingUnstagedDiff | `s` | Stage the hunk, or the Visual-selected lines |
 | WorkingStagedDiff | `u` | Unstage the hunk, or the Visual-selected lines |
 | WorkingUnstagedDiff | `x` | Discard the hunk or selected lines (Confirm) |
@@ -218,6 +216,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-w =` | Reset the pane sizes to automatic |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
+| Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -228,6 +227,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `Enter` | Focus commit details |
 | Graph | `y` | Copy commit hash |
 | Graph | `r` | Refresh repository |
+| Graph | `gs` | Open the working-tree view (workflow 2) |
 | Graph | `D` | Open the selected commit (against its first parent) in the configured difftool |
 | Graph | `M` | Resolve conflicts in the configured mergetool |
 | Graph | `E` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `ce` does the same) |
@@ -239,6 +239,12 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Detail | `]` `[` | Next / previous tab of the detail pane (Details, Changes, Files; wraps) |
 | Detail | `gd` `gc` `gf` | Show the Details / Changes / Files tab |
 | Detail | `h` / `Esc` | Back to graph |
+| WorkingUnstaged | `r` | Refresh the status |
+| WorkingUnstaged | `y` | Copy the path of the file under the cursor |
+| WorkingUnstaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
+| WorkingStaged | `r` | Refresh the status |
+| WorkingStaged | `y` | Copy the path of the file under the cursor |
+| WorkingStaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |
@@ -268,7 +274,7 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar and Diff. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, one view per button or label) are views of their own.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|

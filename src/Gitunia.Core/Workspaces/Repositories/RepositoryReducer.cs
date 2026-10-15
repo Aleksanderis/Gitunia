@@ -1,4 +1,5 @@
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Workspaces.Repositories;
@@ -12,7 +13,9 @@ public static class RepositoryReducer
         SelectCommitCommand select => state with { View = state.View with { SelectedCommit = select.Commit } },
         ScrollToCommand scroll => state with { View = state.View with { ScrollOffset = Math.Max(0, scroll.Offset) } },
         SetFilterCommand filter => state with { View = state.View with { FilterText = filter.Text } },
-        FocusPaneCommand focus => state with { View = state.View with { FocusedPane = focus.Pane } },
+        FocusPaneCommand focus => FocusPane(state, focus.Pane),
+        OpenWorkingTreeCommand => OpenWorkingTree(state),
+        LeaveWorkingTreeCommand => state with { View = state.View with { Mode = TabViewMode.History, FocusedPane = PaneKind.Graph } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
         HeadLoadedCommand head => state with { Head = head.Head },
@@ -36,12 +39,54 @@ public static class RepositoryReducer
             return state.Status == summary ? state : state with { Status = summary };
         }
 
-        return state with
+        var reloaded = state with
         {
             WorkingTree = WorkingTreeState.Reconcile(state.WorkingTree, loaded.Snapshot),
             Status = RepositoryStatusSummary.From(loaded.Snapshot),
         };
+        return FollowSelectionWhenFocusedListIsEmpty(reloaded);
     }
+
+    // The focused list ran empty (the last file was staged or unstaged): focus goes where the selection went.
+    private static RepositoryState FollowSelectionWhenFocusedListIsEmpty(RepositoryState state)
+    {
+        if (state.View.Mode != TabViewMode.WorkingTree || state.WorkingTree is not { Selection: { } selection } tree)
+        {
+            return state;
+        }
+
+        var focused = state.View.FocusedPane;
+        var isFocusedListEmpty = focused switch
+        {
+            PaneKind.WorkingUnstaged => tree.Unstaged.Count == 0,
+            PaneKind.WorkingStaged => tree.Staged.Count == 0,
+            _ => false,
+        };
+        return isFocusedListEmpty ? state with { View = state.View with { FocusedPane = PaneOf(selection.Section) } } : state;
+    }
+
+    private static RepositoryState OpenWorkingTree(RepositoryState state)
+    {
+        var section = state.WorkingTree is { Unstaged.Count: 0, Staged.Count: > 0 } ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
+        var opened = state with { View = state.View with { Mode = TabViewMode.WorkingTree, FocusedPane = PaneOf(section) } };
+        return FocusPane(opened, PaneOf(section));
+    }
+
+    // Focusing a list moves the selection into it, on the row the cursor was on (clamped), so the cursor and the focus never disagree.
+    private static RepositoryState FocusPane(RepositoryState state, PaneKind pane)
+    {
+        var focused = state with { View = state.View with { FocusedPane = pane } };
+        if (pane is not (PaneKind.WorkingUnstaged or PaneKind.WorkingStaged) || state.WorkingTree is not { } tree)
+        {
+            return focused;
+        }
+
+        var section = pane == PaneKind.WorkingUnstaged ? WorkingTreeSection.Unstaged : WorkingTreeSection.Staged;
+        return tree.Selection?.Section == section ? focused : SelectFile(focused, new SelectWorkingTreeFileCommand(section, tree.Selection?.Index ?? 0));
+    }
+
+    private static PaneKind PaneOf(WorkingTreeSection section) =>
+        section == WorkingTreeSection.Unstaged ? PaneKind.WorkingUnstaged : PaneKind.WorkingStaged;
 
     private static RepositoryState SelectFile(RepositoryState state, SelectWorkingTreeFileCommand pick)
     {

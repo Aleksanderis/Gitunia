@@ -105,6 +105,24 @@ public class SessionDocumentMapperTests
     }
 
     [Theory]
+    [InlineData(PaneKind.WorkingUnstaged)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenATabInTheWorkingTreeView_WhenRoundTripped_ThenItComesBackOnTheGraphInTheHistory(PaneKind pane)
+    {
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha");
+        var id = workspace.ActiveTabId!.Value;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new OpenWorkingTreeCommand())).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new FocusPaneCommand(pane))).Workspace;
+
+        var document = SessionDocumentMapper.ToDocument(workspace);
+        var restored = SessionDocumentMapper.ToWorkspace(document, _ => true).Workspace;
+
+        Assert.Equal(nameof(PaneKind.Graph), document.Tabs![0].FocusedPane);
+        Assert.Equal(PaneKind.Graph, restored.ActiveTab!.View.FocusedPane);
+        Assert.Equal(TabViewMode.History, restored.ActiveTab.View.Mode);
+    }
+
+    [Theory]
     [InlineData(BottomTab.Details)]
     [InlineData(BottomTab.Changes)]
     [InlineData(BottomTab.Files)]

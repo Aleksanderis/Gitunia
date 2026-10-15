@@ -13,6 +13,8 @@ public static class DefaultKeymap
     public const string DetailView = "Detail";
     public const string SidebarView = "Sidebar";
     public const string DiffView = "Diff";
+    public const string WorkingUnstagedView = "WorkingUnstaged";
+    public const string WorkingStagedView = "WorkingStaged";
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
     public const string HelpView = "Help";
@@ -29,6 +31,8 @@ public static class DefaultKeymap
         [DetailView] = ListsView,
         [SidebarView] = ListsView,
         [DiffView] = ListsView,
+        [WorkingUnstagedView] = ListsView,
+        [WorkingStagedView] = ListsView,
         [ListsView] = KeyBindingTable.GlobalView,
         [PickerView] = KeyBindingTable.GlobalView,
         [PaletteView] = KeyBindingTable.GlobalView,
@@ -44,6 +48,7 @@ public static class DefaultKeymap
         AddGlobal(bindings);
         AddLists(bindings);
         AddViews(bindings);
+        AddWorkingTreeLists(bindings);
         AddPicker(bindings);
         AddPalette(bindings);
         AddModals(bindings);
@@ -86,6 +91,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>z", ActionIds.PaneZoom);
         Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
         Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);
+        Add(bindings, NormalOnly, global, "<space>s", ActionIds.WorkingTreeToggle);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -115,6 +121,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
         Add(bindings, NormalOnly, GraphView, "r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, GraphView, "gs", ActionIds.WorkingTreeOpen);
         Add(bindings, NormalOnly, GraphView, "D", ActionIds.ToolDifftool);
         Add(bindings, NormalOnly, GraphView, "M", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "E", ActionIds.ToolCommitEditor);
@@ -152,6 +159,18 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
         Add(bindings, NormalOnly, DiffView, "y", ActionIds.DiffCopyLine);
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
+    }
+
+    // The two file lists of the working-tree view share their keys; the side-specific ones (stage, unstage, discard) come with their issues.
+    private static void AddWorkingTreeLists(List<KeyBinding> bindings)
+    {
+        foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView])
+        {
+            Add(bindings, NormalOnly, view, "r", ActionIds.RepositoryRefresh);
+            Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
+            Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
+        }
     }
 
     // The graph feeds the bottom pane with its selection, so the tabs switch from there too.

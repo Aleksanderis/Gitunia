@@ -49,6 +49,22 @@ public sealed class FrameGrid
         return grid;
     }
 
+    /// <summary>The grid of a screen made of free boxes (the working-tree view), which share the edge between neighbours.</summary>
+    /// <param name="width">Terminal columns.</param>
+    /// <param name="height">Terminal rows.</param>
+    /// <param name="boxes">The panes.</param>
+    /// <param name="glyphs">The character set.</param>
+    public static FrameGrid Build(int width, int height, IReadOnlyList<FrameBox> boxes, GraphGlyphSet glyphs)
+    {
+        var grid = new FrameGrid(width, height, glyphs);
+        foreach (var box in boxes)
+        {
+            grid.AddBox(box.Content, box.IsFocused, box.Title);
+        }
+
+        return grid;
+    }
+
     /// <summary>The cell at a position: a line character, a title character, or a space where the grid has nothing.</summary>
     public StyledSegment Cell(int column, int row)
     {

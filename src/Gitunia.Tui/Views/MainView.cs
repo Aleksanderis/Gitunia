@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
@@ -9,6 +10,7 @@ using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views.Lists;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Drawing;
@@ -29,6 +31,13 @@ public sealed class MainView : IDisposable
     private readonly LineView _detailTitle;
     private readonly LineView _diffTitle;
     private readonly FrameStripView _bottomDividerView;
+    private readonly FrameStripView _workingDivider;
+    private readonly FrameStripView _workingLeftEdge;
+    private readonly FrameStripView _workingRightEdge;
+    private bool _isWorkingMode;
+    private WorkingGridKey? _workingGridKey;
+    private FrameGrid? _workingGrid;
+
     /// <summary>The view name reported for the wheel over an overlay; the application maps it to the open overlay's own view.</summary>
     public const string OverlayGestureView = "Overlay";
 
@@ -142,6 +151,28 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             Source = diffSource,
         };
+        UnstagedSource = new WorkingTreeListSource(WorkingTreeSection.Unstaged, glyphs);
+        StagedSource = new WorkingTreeListSource(WorkingTreeSection.Staged, glyphs);
+        WorkingUnstaged = CreateWorkingList(UnstagedSource, () => WorkingRects().Unstaged);
+        WorkingStaged = CreateWorkingList(StagedSource, () => WorkingRects().Staged);
+        _workingDivider = new FrameStripView(CurrentGrid)
+        {
+            X = Pos.Func(_ => WorkingDividerRect().X),
+            Y = ScreenLayout.GraphTop,
+            Width = Dim.Func(_ => WorkingDividerRect().Width),
+            Height = Dim.Func(_ => WorkingDividerRect().Height),
+            Visible = false,
+        };
+        _workingLeftEdge = CreateWorkingEdge(
+            () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
+        _workingRightEdge = CreateWorkingEdge(
+            () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+        WorkingDiff = CreateWorkingPlaceholder(
+            WorkingTreePaneRenderer.DiffPlaceholderText,
+            () => WorkingRects().Diff);
+        WorkingMessage = CreateWorkingPlaceholder(
+            WorkingTreePaneRenderer.MessagePlaceholderText,
+            () => WorkingRects().Message);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -168,6 +199,10 @@ public sealed class MainView : IDisposable
         Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
         Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
         Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
+        WorkingUnstaged.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
+        WorkingStaged.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
@@ -176,7 +211,32 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
-        Window.Add(_tabs, _edges[0], _edges[1], _edges[2], _edges[3], Sidebar, _sidebarFilter, _divider, Graph, _detailTitle, Detail, _bottomDividerView, _diffTitle, Diff, _picker, _status, Overlay);
+        Window.Add(
+            _tabs,
+            _edges[0],
+            _edges[1],
+            _edges[2],
+            _edges[3],
+            Sidebar,
+            _sidebarFilter,
+            _divider,
+            Graph,
+            _detailTitle,
+            Detail,
+            _bottomDividerView,
+            _diffTitle,
+            Diff,
+            _workingDivider,
+            _workingLeftEdge,
+            _workingRightEdge,
+            WorkingUnstaged,
+            WorkingStaged,
+            WorkingDiff,
+            WorkingMessage,
+            _picker,
+            _status,
+            Overlay);
+        ApplyVisibility();
     }
 
     /// <summary>
@@ -197,6 +257,30 @@ public sealed class MainView : IDisposable
         add => _picker.RowClicked += value;
         remove => _picker.RowClicked -= value;
     }
+
+    /// <summary>True while panes are shown or hidden: the toolkit moves the focus on its own then, which is not the user's choice.</summary>
+    public bool IsChangingVisibility { get; private set; }
+
+    /// <summary>The pane that has focus in the working-tree view, from the tab's state; the layout of a narrow screen follows it.</summary>
+    public Func<PaneKind> WorkingFocus { get; set; } = () => PaneKind.WorkingUnstaged;
+
+    /// <summary>The rows of the Unstaged list of the working-tree view.</summary>
+    public WorkingTreeListSource UnstagedSource { get; }
+
+    /// <summary>The rows of the Staged list of the working-tree view.</summary>
+    public WorkingTreeListSource StagedSource { get; }
+
+    /// <summary>The Unstaged file list of the working-tree view.</summary>
+    public PaneListView WorkingUnstaged { get; }
+
+    /// <summary>The Staged file list of the working-tree view.</summary>
+    public PaneListView WorkingStaged { get; }
+
+    /// <summary>The diff box of the working-tree view (a note until the diff pane exists).</summary>
+    public PaneListView WorkingDiff { get; }
+
+    /// <summary>The message box of the working-tree view (a note until the editor exists).</summary>
+    public PaneListView WorkingMessage { get; }
 
     public Window Window { get; }
 
@@ -224,6 +308,8 @@ public sealed class MainView : IDisposable
         Sidebar.IsSuppressed = isSuppressed;
         Detail.IsSuppressed = isSuppressed;
         Diff.IsSuppressed = isSuppressed;
+        WorkingUnstaged.IsSuppressed = isSuppressed;
+        WorkingStaged.IsSuppressed = isSuppressed;
         _picker.IsSuppressed = isSuppressed;
     }
 
@@ -236,14 +322,30 @@ public sealed class MainView : IDisposable
         }
 
         _picker.Visible = isOpen;
-        Graph.Visible = !isOpen;
+        ApplyVisibility();
         if (!isOpen)
         {
-            Graph.SetFocus();
+            (_isWorkingMode ? FocusedWorkingList() : Graph).SetFocus();
         }
 
         _picker.SetNeedsDraw();
         Graph.SetNeedsDraw();
+    }
+
+    /// <summary>Shows the working-tree view in place of the sidebar, graph and detail panes, or those again.</summary>
+    public void ShowWorkingTree(bool isShown)
+    {
+        if (_isWorkingMode == isShown)
+        {
+            return;
+        }
+
+        _isWorkingMode = isShown;
+        ApplyVisibility();
+        _workingGrid = null;
+        _grid = null;
+        Window.SetNeedsLayout();
+        Window.SetNeedsDraw();
     }
 
     private int ScreenWidth => Window.Viewport.Width;
@@ -265,9 +367,101 @@ public sealed class MainView : IDisposable
         _detailTitle.SetNeedsDraw();
         _diffTitle.SetNeedsDraw();
         _bottomDividerView.SetNeedsDraw();
+        if (_isWorkingMode)
+        {
+            _workingDivider.SetNeedsDraw();
+            _workingLeftEdge.SetNeedsDraw();
+            _workingRightEdge.SetNeedsDraw();
+            WorkingUnstaged.SetNeedsDraw();
+            WorkingStaged.SetNeedsDraw();
+        }
     }
 
     public void Dispose() => Window.Dispose();
+
+    private PaneListView FocusedWorkingList() => WorkingFocus() == PaneKind.WorkingStaged ? WorkingStaged : WorkingUnstaged;
+
+    // The history panes and the working-tree panes never show together; the picker covers either one. The panes that appear are
+    // shown before the others are hidden, so the toolkit never hands the focus of a hiding pane to a pane that is about to hide too.
+    private void ApplyVisibility()
+    {
+        IsChangingVisibility = true;
+        try
+        {
+            SetVisibility();
+        }
+        finally
+        {
+            IsChangingVisibility = false;
+        }
+    }
+
+    private void SetVisibility()
+    {
+        var isPicker = _picker.Visible;
+        var history = !_isWorkingMode;
+        var working = _isWorkingMode;
+        _workingDivider.Visible = working;
+        _workingLeftEdge.Visible = working;
+        _workingRightEdge.Visible = working;
+        WorkingUnstaged.Visible = working && !isPicker;
+        WorkingStaged.Visible = working && !isPicker;
+        WorkingDiff.Visible = working && !isPicker;
+        WorkingMessage.Visible = working && !isPicker;
+        Sidebar.Visible = history;
+        _sidebarFilter.Visible = history;
+        _divider.Visible = history;
+        _detailTitle.Visible = history;
+        Detail.Visible = history;
+        _bottomDividerView.Visible = history;
+        _diffTitle.Visible = history;
+        Diff.Visible = history;
+        Graph.Visible = history && !isPicker;
+    }
+
+    private static PaneListView CreateWorkingList(WorkingTreeListSource source, Func<PaneRect> rect) => new()
+    {
+        X = Pos.Func(_ => rect().X),
+        Y = Pos.Func(_ => rect().Y),
+        Width = Dim.Func(_ => rect().Width),
+        Height = Dim.Func(_ => rect().Height),
+        CanFocus = true,
+        Source = source,
+        Visible = false,
+    };
+
+    private PaneListView CreateWorkingPlaceholder(string text, Func<PaneRect> rect) => new()
+    {
+        X = Pos.Func(_ => rect().X),
+        Y = Pos.Func(_ => rect().Y),
+        Width = Dim.Func(_ => rect().Width),
+        Height = Dim.Func(_ => rect().Height),
+        CanFocus = false,
+        Source = new PlaceholderListSource(text, _glyphs),
+        Visible = false,
+    };
+
+    private FrameStripView CreateWorkingEdge(Func<PaneRect> rect) => new(CurrentGrid)
+    {
+        X = Pos.Func(_ => rect().X),
+        Y = Pos.Func(_ => rect().Y),
+        Width = Dim.Func(_ => rect().Width),
+        Height = Dim.Func(_ => rect().Height),
+        Visible = false,
+    };
+
+    private WorkingTreeRects WorkingRects() => WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight(), WorkingFocus());
+
+    // The line between the lists and the diff, on the screen's rows of content.
+    private PaneRect WorkingDividerRect()
+    {
+        var diff = WorkingRects().Diff;
+        return diff.IsEmpty ? Empty : new PaneRect(diff.X - 1, ScreenLayout.GraphTop, 1, ScreenLayout.GraphHeight(ScreenHeight()));
+    }
+
+    // The row where two stacked boxes meet (the lower box's top edge, which carries its title): from the screen's left edge or the divider.
+    private static PaneRect WorkingEdgeRect(PaneRect upper, PaneRect lower, bool isLeft) =>
+        upper.IsEmpty || lower.IsEmpty ? Empty : new PaneRect(isLeft ? 1 : lower.X, lower.Y - 1, lower.Width, 1);
 
     private int ScreenHeight() => Window.Viewport.Height;
 
@@ -310,7 +504,35 @@ public sealed class MainView : IDisposable
         }
     }
 
-    private FrameGrid CurrentGrid()
+    private FrameGrid CurrentGrid() => _isWorkingMode && !_picker.Visible ? CurrentWorkingGrid() : CurrentHistoryGrid();
+
+    private FrameGrid CurrentWorkingGrid()
+    {
+        var focus = WorkingFocus();
+        var rects = WorkingRects();
+        var unstagedTitle = WorkingTreePaneRenderer.ListTitle(UnstagedSource.Tree, WorkingTreeSection.Unstaged);
+        var stagedTitle = WorkingTreePaneRenderer.ListTitle(StagedSource.Tree, WorkingTreeSection.Staged);
+        var key = new WorkingGridKey(ScreenWidth, ScreenHeight(), rects, focus, unstagedTitle, stagedTitle, _glyphs.IsAscii);
+        if (_workingGrid is null || _workingGridKey != key)
+        {
+            var isUnstagedFocused = focus != PaneKind.WorkingStaged;
+            _workingGrid = FrameGrid.Build(
+                ScreenWidth,
+                ScreenHeight(),
+                [
+                    new FrameBox(rects.Unstaged, isUnstagedFocused, unstagedTitle),
+                    new FrameBox(rects.Staged, !isUnstagedFocused, stagedTitle),
+                    new FrameBox(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
+                    new FrameBox(rects.Message, false, WorkingTreePaneRenderer.MessageTitle),
+                ],
+                _glyphs);
+            _workingGridKey = key;
+        }
+
+        return _workingGrid;
+    }
+
+    private FrameGrid CurrentHistoryGrid()
     {
         var isPicker = _picker.Visible;
         var rects = isPicker
@@ -327,6 +549,15 @@ public sealed class MainView : IDisposable
 
         return _grid;
     }
+
+    private readonly record struct WorkingGridKey(
+        int Width,
+        int Height,
+        WorkingTreeRects Rects,
+        PaneKind Focus,
+        string UnstagedTitle,
+        string StagedTitle,
+        bool IsAscii);
 
     private PaneRects Rects()
     {

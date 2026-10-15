@@ -6,6 +6,7 @@ namespace Gitunia.Core.Tests.Workspaces.Panes;
 public class PaneNavigatorTests
 {
     private static readonly PaneKind[] SidebarAndGraph = [PaneKind.Sidebar, PaneKind.Graph];
+    private static readonly PaneKind[] WorkingLists = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
     private static readonly PaneKind[] AllPanes = [PaneKind.Sidebar, PaneKind.Graph, PaneKind.Detail, PaneKind.Diff];
 
     [Theory]
@@ -45,6 +46,22 @@ public class PaneNavigatorTests
     [InlineData(PaneKind.Detail, true, PaneKind.Detail)]
     public void GivenAllPanes_WhenSteppingVertically_ThenFocusMovesBetweenTheTopAndBottomRows(PaneKind current, bool down, PaneKind expected) =>
         Assert.Equal(expected, PaneNavigator.StepVertically(current, down, AllPanes));
+
+    [Theory]
+    [InlineData(PaneKind.WorkingUnstaged, true, PaneKind.WorkingStaged)]
+    [InlineData(PaneKind.WorkingStaged, false, PaneKind.WorkingUnstaged)]
+    [InlineData(PaneKind.WorkingUnstaged, false, PaneKind.WorkingUnstaged)]
+    [InlineData(PaneKind.WorkingStaged, true, PaneKind.WorkingStaged)]
+    public void GivenTheWorkingTreeLists_WhenSteppingVertically_ThenUnstagedIsAboveStaged(PaneKind current, bool down, PaneKind expected) =>
+        Assert.Equal(expected, PaneNavigator.StepVertically(current, down, WorkingLists));
+
+    [Fact]
+    public void GivenTheWorkingTreeLists_WhenCycling_ThenTheTwoListsAlternate()
+    {
+        Assert.Equal(PaneKind.WorkingStaged, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, true, WorkingLists));
+        Assert.Equal(PaneKind.WorkingUnstaged, PaneNavigator.Cycle(PaneKind.WorkingStaged, true, WorkingLists));
+        Assert.Equal(PaneKind.WorkingStaged, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, false, WorkingLists));
+    }
 
     [Fact]
     public void GivenOnlyTheDiffBelow_WhenSteppingDown_ThenTheDiffIsFocused() =>
