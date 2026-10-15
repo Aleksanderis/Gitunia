@@ -7,6 +7,8 @@
 #   scripts/owner-feedback.sh sweep       label every issue/PR `owner` (owner-created or owner commented) or `agent-created`,
 #                                         then list owner comments that have no agent reply after them
 #   scripts/owner-feedback.sh unanswered  only the list, no label changes
+# An owner comment counts as answered once an agent-marked comment follows it. The label `feedback-handled` (set by an agent after
+# it replied, or by the owner to dismiss an item) hides an item from the list; remove it to bring the item back.
 # Filters on GitHub: label:owner (everything the owner wrote or commented on), -label:agent-created (owner-created only).
 set -euo pipefail
 
@@ -25,6 +27,7 @@ agent_label="agent-created"
 
 if [ "$mode" = "sweep" ]; then
   gh label create "$owner_label" --color "D93F0B" --description "Created or commented by the owner" 2>/dev/null || true
+  gh label create "feedback-handled" --color "0E8A16" --description "Owner comments reviewed and settled; skipped by owner-feedback.sh" 2>/dev/null || true
   gh label create "$agent_label" --color "BFD4F2" --description "Created by an agent" 2>/dev/null || true
 fi
 
@@ -71,4 +74,4 @@ if [ "$mode" = "sweep" ]; then
 fi
 
 echo "== Owner comments with no agent reply after them"
-jq -r '.[] | select(.unanswered > 0) | "#\(.number) [\(.state)] \(.unanswered) unanswered: \(.title)"' "$work_dir/items.json"
+jq -r '.[] | select(.unanswered > 0 and ((.labels | index("feedback-handled")) | not)) | "#\(.number) [\(.state)] \(.unanswered) unanswered: \(.title)"' "$work_dir/items.json"
