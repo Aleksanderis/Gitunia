@@ -1,6 +1,5 @@
 using System.Globalization;
 using Gitunia.Core.Diff;
-using Gitunia.Git.Diff.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
@@ -9,6 +8,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -323,7 +323,14 @@ public sealed class DiffPaneController : IPromptHandler
             return new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused);
         }
 
-        return new DiffPaneModel(diff.Source.Document, CursorRow(diff), diff.Source.RowOf(_diffList.Viewport.Y), isFocused, diff.Search.Highlight, diff.Source.IsWrapped, DiffOptionsLabel.Of(diff.Store.Options));
+        return new DiffPaneModel(
+            diff.Source.Document,
+            CursorRow(diff),
+            diff.Source.RowOf(_diffList.Viewport.Y),
+            isFocused,
+            diff.Search.Highlight,
+            diff.Source.IsWrapped,
+            DiffOptionsLabel.Of(diff.Store.Options));
     }
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)

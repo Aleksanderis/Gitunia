@@ -3,7 +3,9 @@ using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Tui.Rendering.Diff;
 
-/// <summary>The short title marker for the diff options that differ from git's defaults, for example <c>[ctx 6] [-w]</c>.</summary>
+/// <summary>
+/// The short title marker for the diff options that differ from git's defaults, for example <c>[ctx 6] [-w]</c>.
+/// </summary>
 public static class DiffOptionsLabel
 {
     public static string Of(DiffOptions options)

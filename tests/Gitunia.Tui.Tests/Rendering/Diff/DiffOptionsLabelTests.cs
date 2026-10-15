@@ -23,6 +23,8 @@ public class DiffOptionsLabelTests
     public void GivenContextSteps_WhenMovingBelowZeroOrPastTheMaximum_ThenTheyStayInRange()
     {
         Assert.Equal(0, DiffOptions.Default.LessContext().LessContext().ContextLines);
-        Assert.Equal(DiffOptions.MaximumContextLines, new DiffOptions(DiffOptions.MaximumContextLines).MoreContext().ContextLines);
+        var atMaximum = new DiffOptions(DiffOptions.MaximumContextLines);
+
+        Assert.Equal(DiffOptions.MaximumContextLines, atMaximum.MoreContext().ContextLines);
     }
 }

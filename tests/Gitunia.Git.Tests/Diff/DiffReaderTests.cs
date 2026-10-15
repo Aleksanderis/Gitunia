@@ -281,7 +281,14 @@ public class DiffReaderTests
         var normal = await ReadCommitAsync(location, commit, parent, DiffOptions.Default);
         var wider = await ReadCommitAsync(location, commit, parent, DiffOptions.Default.MoreContext());
         var whole = await ReadCommitAsync(location, commit, parent, DiffOptions.Default with { WholeFile = true });
-        var withoutWhitespace = await ReadCommitAsync(location, commit, parent, DiffOptions.Default with { IgnoreWhitespace = true });
+        var withoutWhitespace = await ReadCommitAsync(
+            location,
+            commit,
+            parent,
+            DiffOptions.Default with { IgnoreWhitespace = true });
+        var noContext = await ReadCommitAsync(location, commit, parent, DiffOptions.Default.LessContext());
+
+        Assert.All(noContext.Hunks, hunk => Assert.DoesNotContain(hunk.Lines, line => line.Kind == DiffLineKind.Context));
 
         Assert.Equal(2, normal.Hunks.Count);
         Assert.Equal(40, whole.Hunks.Single().Lines.Count(line => line.Kind != DiffLineKind.Removed));
@@ -289,7 +296,11 @@ public class DiffReaderTests
         Assert.Single(withoutWhitespace.Hunks);
     }
 
-    private static async Task<DiffFile> ReadCommitAsync(RepositoryLocation location, ObjectId commit, ObjectId parent, DiffOptions options)
+    private static async Task<DiffFile> ReadCommitAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ObjectId parent,
+        DiffOptions options)
     {
         var files = new List<DiffFile>();
         await foreach (var file in Diff.ReadCommitAsync(location, commit, parent, options: options, cancellationToken: Token))

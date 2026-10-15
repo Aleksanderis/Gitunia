@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Tests.App;
@@ -201,6 +202,28 @@ public class DiffStoreTests
         Assert.Equal(2, store.CachedCount);
         store.Clear();
         Assert.Equal(0, store.CachedCount);
+    }
+
+    [Fact]
+    public async Task GivenCachedDiffs_WhenTheOptionsChange_ThenTheCacheIsDroppedAndTheCommitLoadsAgain()
+    {
+        var reader = new FakeDiffReader();
+        var first = reader.Add(null, FakeDiffReader.FileAdding("a.txt", ["one"]));
+        var second = reader.Add(first, FakeDiffReader.FileAdding("a.txt", ["two"]));
+        var pump = new UiPump(Token);
+        using var store = CreateStore(pump, reader, delay: (_, _) => Task.CompletedTask);
+        store.Load(second, first, [first]);
+        await pump.RunUntilAsync(() => store.CachedCount == 2);
+        var reads = reader.ReadCount;
+
+        var changed = store.SetOptions(DiffOptions.Default.MoreContext());
+        var unchanged = store.SetOptions(DiffOptions.Default.MoreContext());
+
+        Assert.True(changed);
+        Assert.False(unchanged);
+        Assert.Equal(DiffStatus.Loading, store.Status);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+        Assert.True(reader.ReadCount > reads);
     }
 
     [Fact]

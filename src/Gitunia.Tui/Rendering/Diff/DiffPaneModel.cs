@@ -10,4 +10,11 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <param name="Highlight">The diff search text to highlight, null for none.</param>
 /// <param name="IsWrapped">Word wrap is on (shown in the title).</param>
 /// <param name="OptionsLabel">The non-default diff options as a short title marker, empty for the defaults.</param>
-public sealed record DiffPaneModel(DiffDocument Document, int SelectedRow, int TopRow, bool IsFocused, string? Highlight = null, bool IsWrapped = false, string OptionsLabel = "");
+public sealed record DiffPaneModel(
+    DiffDocument Document,
+    int SelectedRow,
+    int TopRow,
+    bool IsFocused,
+    string? Highlight = null,
+    bool IsWrapped = false,
+    string OptionsLabel = "");

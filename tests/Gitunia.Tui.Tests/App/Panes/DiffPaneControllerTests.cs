@@ -618,6 +618,20 @@ public class DiffPaneControllerTests
         await harness.WaitForDiffAsync();
 
         Assert.Equal(new DiffOptions(DiffOptions.DefaultContextLines, false, true), store.Options);
+        Assert.Equal(0, harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenNoContextLeft_WhenShowingFewerLines_ThenANoticeSaysSo()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+
+        harness.Execute(ActionIds.DiffLessContext);
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DiffLessContext);
+
+        Assert.Equal("Context is already at its limit", harness.Controller.Notice);
     }
 
     [Fact]

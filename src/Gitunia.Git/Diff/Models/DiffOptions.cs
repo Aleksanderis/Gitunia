@@ -4,8 +4,14 @@ namespace Gitunia.Git.Diff.Models;
 /// <param name="ContextLines">Unchanged lines kept around each change (git's <c>-U</c>).</param>
 /// <param name="WholeFile">Show every file whole, whatever <paramref name="ContextLines"/> says.</param>
 /// <param name="IgnoreWhitespace">Leave out changes that only differ in whitespace (<c>-w</c>).</param>
-public sealed record DiffOptions(int ContextLines = DiffOptions.DefaultContextLines, bool WholeFile = false, bool IgnoreWhitespace = false)
+public sealed record DiffOptions(
+    int ContextLines = DiffOptions.DefaultContextLines,
+    bool WholeFile = false,
+    bool IgnoreWhitespace = false)
 {
+    private const string ContextArgumentPrefix = "-U";
+    private const string IgnoreWhitespaceArgument = "-w";
+
     /// <summary>Git's own default.</summary>
     public const int DefaultContextLines = 3;
 
@@ -36,12 +42,12 @@ public sealed record DiffOptions(int ContextLines = DiffOptions.DefaultContextLi
         var context = WholeFile ? WholeFileContextLines : ContextLines;
         if (context != DefaultContextLines)
         {
-            arguments.Add($"-U{context}");
+            arguments.Add($"{ContextArgumentPrefix}{context}");
         }
 
         if (IgnoreWhitespace)
         {
-            arguments.Add("-w");
+            arguments.Add(IgnoreWhitespaceArgument);
         }
 
         return arguments;
