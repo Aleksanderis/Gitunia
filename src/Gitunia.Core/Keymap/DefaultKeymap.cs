@@ -61,7 +61,7 @@ public static class DefaultKeymap
         Add(bindings, Navigation, global, "?", ActionIds.HelpShow);
         Add(bindings, NormalOnly, global, ":", ActionIds.PaletteOpen);
         Add(bindings, TextEntry, global, "Ctrl-p", ActionIds.PaletteOpen);
-        Add(bindings, Navigation, global, "q", ActionIds.NavigateBack);
+        Add(bindings, Navigation, global, "q", ActionIds.AppQuit);
         Add(bindings, NormalOnly, global, "Tab", ActionIds.PaneNext);
         Add(bindings, NormalOnly, global, "Shift-Tab", ActionIds.PanePrevious);
         Add(bindings, NormalOnly, global, "gt", ActionIds.TabNext);
@@ -145,7 +145,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "[c", ActionIds.DiffPreviousHunk);
         Add(bindings, NormalOnly, DiffView, "]f", ActionIds.DiffNextFile);
         Add(bindings, NormalOnly, DiffView, "[f", ActionIds.DiffPreviousFile);
-        Add(bindings, NormalOnly, DiffView, "q", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "w", ActionIds.DiffToggleWrap);

@@ -169,15 +169,16 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         {
             FocusPane(PaneKind.Detail, detailList);
         }
+        else if (action == ActionIds.AppQuit)
+        {
+            quit();
+        }
         else if (action == ActionIds.NavigateBack)
         {
+            // Only the Detail pane steps back here; the graph is the root, and quitting is app.quit (q).
             if (FocusedPane == PaneKind.Detail)
             {
                 FocusPane(PaneKind.Graph, graphList);
-            }
-            else
-            {
-                quit();
             }
         }
         else if (!_statusActions.TryHandleFallback(action))

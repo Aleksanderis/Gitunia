@@ -110,7 +110,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ 1/84  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/85  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);

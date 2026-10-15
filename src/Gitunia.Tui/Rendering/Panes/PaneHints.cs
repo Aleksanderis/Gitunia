@@ -11,7 +11,7 @@ public static class PaneHints
     [
         new("?", "help", [ActionIds.HelpShow]),
         new(":", "commands", [ActionIds.PaletteOpen]),
-        new("q", "back", [ActionIds.NavigateBack]),
+        new("q", "quit", [ActionIds.AppQuit]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Graph =

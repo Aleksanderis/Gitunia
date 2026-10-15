@@ -47,7 +47,7 @@ public class ScreenComposerTests
                 "│ ├─●  side work                       │",
                 "│ ●  root                              │",
                 "╰──────────────────────────────────────╯",
-                " NORMAL  1/4  ? help  : commands  q back"),
+                " NORMAL  1/4  ? help  : commands  q quit"),
             frame);
     }
 
@@ -66,7 +66,7 @@ public class ScreenComposerTests
                 "| |-*  side work                       |",
                 "| *  root                              |",
                 "+--------------------------------------+",
-                " NORMAL  1/4  ? help  : commands  q back"),
+                " NORMAL  1/4  ? help  : commands  q quit"),
             frame);
     }
 
@@ -97,7 +97,7 @@ public class ScreenComposerTests
     {
         var frame = Frame(Model(12, 3200, isLoading: true, pending: "5g"), Diamond(), 0, 0, 60, 4);
 
-        Assert.EndsWith(" NORMAL  5g 12/3200+ loading...  ? help  : commands  q back…", frame, StringComparison.Ordinal);
+        Assert.EndsWith(" NORMAL  5g 12/3200+ loading...  ? help  : commands  q quit…", frame, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class ScreenComposerTests
         var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
 
         var status = lines[^1];
-        Assert.Equal(" NORMAL  1/4  Could not read the stashes: boom  ? help  : commands  q back  j/k…", status.Text.TrimEnd());
+        Assert.Equal(" NORMAL  1/4  Could not read the stashes: boom  ? help  : commands  q quit  j/k…", status.Text.TrimEnd());
         Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.StatusError && segment.Text.Contains("stashes", StringComparison.Ordinal));
     }
 
