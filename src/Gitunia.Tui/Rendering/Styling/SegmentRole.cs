@@ -18,6 +18,9 @@ public enum SegmentRole
     ActiveTab,
     InactiveTab,
 
+    /// <summary>The selected tab of the bottom pane while the pane has no focus: a chip like the other tabs, told apart by bold text (bold and underlined where there are no colours).</summary>
+    SelectedTab,
+
     /// <summary>A tab that is not the selected one, in the tab row or the bottom pane's title row: a button, a tinted chip on the bar (underlined where there are no colours, #240).</summary>
     RepositoryTab,
     StatusMode,

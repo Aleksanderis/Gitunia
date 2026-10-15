@@ -203,7 +203,7 @@ public class PaletteTests
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
 
-        var selected = Palette.For(new StyledSegment(" Files ", SegmentRole.InactiveTab), false, false, colors);
+        var selected = Palette.For(new StyledSegment(" Files ", SegmentRole.SelectedTab), false, false, colors);
         var other = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
 
         Assert.NotEqual(selected, other);
@@ -309,7 +309,7 @@ public class PaletteTests
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
 
-        foreach (var role in new[] { SegmentRole.SearchMatch, SegmentRole.ActiveTab, SegmentRole.InactiveTab, SegmentRole.FocusedBorder, SegmentRole.CurrentBranch, SegmentRole.StatusMode })
+        foreach (var role in new[] { SegmentRole.SearchMatch, SegmentRole.ActiveTab, SegmentRole.InactiveTab, SegmentRole.SelectedTab, SegmentRole.FocusedBorder, SegmentRole.CurrentBranch, SegmentRole.StatusMode })
         {
             Assert.NotEqual(plain, Palette.For(new StyledSegment("x", role), false, false, colors));
         }

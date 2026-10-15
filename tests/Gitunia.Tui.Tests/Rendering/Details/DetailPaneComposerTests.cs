@@ -141,6 +141,31 @@ public class DetailPaneComposerTests
         Assert.DoesNotContain(title.Segments, segment => segment.Role == SegmentRole.Plain);
     }
 
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(24, false)]
+    [InlineData(28, true)]
+    [InlineData(29, false)]
+    [InlineData(29, true)]
+    [InlineData(50, true)]
+    public void GivenAnyWidthAndGlyphSet_WhenRenderingTheTitle_ThenEachDrawnTabLabelIsFoundByItsHitZone(int width, bool isAscii)
+    {
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var content = LoadedContent(TwoCommits(), BottomTab.Files);
+
+        var title = DetailPaneRenderer.RenderTitle(content, false, width, glyphs).Text;
+        var strip = DetailTabStrip.Layout(width, BottomTab.Files);
+
+        Assert.Contains(strip, button => DetailTabStrip.TabOf(button) == BottomTab.Files);
+        foreach (var button in strip)
+        {
+            Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Substring(button.Start, button.Width));
+            Assert.Equal(button.View, TitleButton.ViewAt(strip, button.Start));
+            Assert.Equal(button.View, TitleButton.ViewAt(strip, button.Start + button.Width - 1));
+            Assert.Null(TitleButton.ViewAt(strip, button.Start - 1));
+        }
+    }
+
     [Fact]
     public void GivenDetailsThatHaveNotArrived_WhenRenderingTheTitle_ThenTheFileCountIsAPlaceholderInsteadOfZero()
     {
@@ -259,7 +284,7 @@ public class DetailPaneComposerTests
         var unfocused = Compose(new DetailPaneModel(LoadedContent(graph), 0, 0, false), 50, 20)[^8];
 
         Assert.Contains(focused.Segments, segment => segment.Role == SegmentRole.ActiveTab && segment.Text == " Details ");
-        Assert.Contains(unfocused.Segments, segment => segment.Role == SegmentRole.InactiveTab && segment.Text == " Details ");
+        Assert.Contains(unfocused.Segments, segment => segment.Role == SegmentRole.SelectedTab && segment.Text == " Details ");
         Assert.Equal(SegmentRole.FocusedBorder, focused.Segments[0].Role);
     }
 
