@@ -131,7 +131,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.RefreshChrome,
             clipboard);
         _router.Diff = _diffPane;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, () => PaneView(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph).Viewport.Height, clipboard);
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard);
         _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
@@ -272,7 +272,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         // The sidebar and the working-tree lists have no ranges yet; dragging there only moves the selection.
-        if (gesture == MouseGesture.DragStart && viewName is DefaultKeymap.SidebarView or DefaultKeymap.WorkingUnstagedView or DefaultKeymap.WorkingStagedView)
+        if (gesture == MouseGesture.DragStart
+            && viewName is DefaultKeymap.SidebarView or DefaultKeymap.WorkingUnstagedView or DefaultKeymap.WorkingStagedView)
         {
             return;
         }
@@ -371,6 +372,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
     }
 
+    private int FocusedPageHeight() =>
+        PaneView(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph).Viewport.Height;
+
     private PaneListView PaneView(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => _view.Sidebar,
@@ -384,10 +388,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A click gave a view the focus: record it in the state so the keymap uses the right view.
     private void OnPaneFocused(View pane, PaneKind kind)
     {
-        // While the toolkit moves the focus between the history and the working-tree view, the panes of the hidden one are not the user's choice.
+        // While panes are shown or hidden the toolkit moves the focus on its own; that is not the user's choice.
         var isWorkingPane = kind is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged;
         var isWorkingView = _host.Workspace.ActiveTab?.View.Mode == TabViewMode.WorkingTree;
-        if (isWorkingPane == isWorkingView && pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId && _host.Workspace.ActiveTab?.View.FocusedPane != kind)
+        var isUserChoice = isWorkingPane == isWorkingView && !_view.IsChangingVisibility;
+        if (isUserChoice && pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId
+            && _host.Workspace.ActiveTab?.View.FocusedPane != kind)
         {
             _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
         }

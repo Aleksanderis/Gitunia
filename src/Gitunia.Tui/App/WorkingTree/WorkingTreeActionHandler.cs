@@ -21,6 +21,14 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
 {
     private static readonly PaneKind[] ListPanes = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
 
+    private static readonly HashSet<ActionId> LeftToOthers =
+    [
+        ActionIds.TabRename,
+        ActionIds.InputAccept,
+        ActionIds.Cancel,
+        ActionIds.RepositoryRefresh,
+    ];
+
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
@@ -58,8 +66,7 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
     }
 
     // Prompts (tab rename) and the cancel and accept of an open input still work in this view.
-    private static bool IsLeftToOthers(ActionId action) =>
-        action == ActionIds.TabRename || action == ActionIds.InputAccept || action == ActionIds.Cancel || action == ActionIds.RepositoryRefresh;
+    private static bool IsLeftToOthers(ActionId action) => LeftToOthers.Contains(action);
 
     private void Switch(RepositoryState tab, bool leave)
     {

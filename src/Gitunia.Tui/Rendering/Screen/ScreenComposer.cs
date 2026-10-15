@@ -84,7 +84,12 @@ public static class ScreenComposer
     /// <param name="width">Terminal columns.</param>
     /// <param name="height">Terminal rows.</param>
     /// <param name="glyphs">The character set.</param>
-    public static IReadOnlyList<StyledLine> ComposeWorkingTree(ScreenModel model, WorkingTreeModel working, int width, int height, GraphGlyphSet glyphs)
+    public static IReadOnlyList<StyledLine> ComposeWorkingTree(
+        ScreenModel model,
+        WorkingTreeModel working,
+        int width,
+        int height,
+        GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>(height);
         if (height > ScreenLayout.TabRow)
@@ -105,10 +110,18 @@ public static class ScreenComposer
         var grid = FrameGrid.Build(width, height, boxes, glyphs);
         var padding = PanePadding.ColumnsFor(width);
         var overlays = new List<PaneLines>();
-        AddWorkingList(overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
-        AddWorkingList(overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, !isUnstagedFocused, padding, glyphs);
-        AddPlaceholder(overlays, rects.Diff, WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
-        AddPlaceholder(overlays, rects.Message, WorkingTreePaneRenderer.MessagePlaceholderLines(rects.Message, padding, glyphs));
+        AddWorkingList(
+            overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
+        AddWorkingList(
+            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, !isUnstagedFocused, padding, glyphs);
+        AddPlaceholder(
+            overlays,
+            rects.Diff,
+            WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
+        AddPlaceholder(
+            overlays,
+            rects.Message,
+            WorkingTreePaneRenderer.MessagePlaceholderLines(rects.Message, padding, glyphs));
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
             lines.Add(BuildRow(grid, row, width, overlays));

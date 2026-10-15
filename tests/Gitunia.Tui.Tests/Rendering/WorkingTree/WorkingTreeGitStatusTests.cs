@@ -12,6 +12,7 @@ public class WorkingTreeGitStatusTests
 {
     private const int ListWidth = 80;
     private const string UntrackedCode = "??";
+    private const string RenameArrow = " -> ";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -21,6 +22,7 @@ public class WorkingTreeGitStatusTests
         using var repository = TestRepository.Create()
             .Commit("root", new TestFile("keep.txt", "keep\n"), new TestFile("old.txt", "one\ntwo\nthree\nfour\n"), new TestFile("gone.txt", "bye\n"), new TestFile("both.txt", "a\n"));
         repository.Git("mv", "old.txt", "new.txt");
+        repository.WriteFile("new.txt", "one\ntwo\nthree\nfour\nfive\n");
         repository.WriteFile("keep.txt", "keep\nmore\n");
         repository.Delete("gone.txt");
         repository.WriteFile("fresh.txt", "fresh\n");
@@ -109,7 +111,9 @@ public class WorkingTreeGitStatusTests
 
                 if (code[1] != ' ')
                 {
-                    unstaged.Add($"{code[1]} {path}");
+                    // Porcelain v1 prints "old -> new" for a rename; the unstaged change is of the new path only.
+                    var arrow = path.IndexOf(RenameArrow, StringComparison.Ordinal);
+                    unstaged.Add($"{code[1]} {(arrow >= 0 ? path[(arrow + RenameArrow.Length)..] : path)}");
                 }
             }
         }

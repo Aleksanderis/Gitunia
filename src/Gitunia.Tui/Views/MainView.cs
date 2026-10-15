@@ -163,10 +163,16 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => WorkingDividerRect().Height),
             Visible = false,
         };
-        _workingLeftEdge = CreateWorkingEdge(() => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
-        _workingRightEdge = CreateWorkingEdge(() => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
-        WorkingDiff = CreateWorkingPlaceholder(WorkingTreePaneRenderer.DiffPlaceholderText, () => WorkingRects().Diff);
-        WorkingMessage = CreateWorkingPlaceholder(WorkingTreePaneRenderer.MessagePlaceholderText, () => WorkingRects().Message);
+        _workingLeftEdge = CreateWorkingEdge(
+            () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
+        _workingRightEdge = CreateWorkingEdge(
+            () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+        WorkingDiff = CreateWorkingPlaceholder(
+            WorkingTreePaneRenderer.DiffPlaceholderText,
+            () => WorkingRects().Diff);
+        WorkingMessage = CreateWorkingPlaceholder(
+            WorkingTreePaneRenderer.MessagePlaceholderText,
+            () => WorkingRects().Message);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -193,8 +199,10 @@ public sealed class MainView : IDisposable
         Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
         Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
         Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
-        WorkingUnstaged.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
-        WorkingStaged.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
+        WorkingUnstaged.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
+        WorkingStaged.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
@@ -203,7 +211,31 @@ public sealed class MainView : IDisposable
         _diffTitle.Clicked += OnDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
-        Window.Add(_tabs, _edges[0], _edges[1], _edges[2], _edges[3], Sidebar, _sidebarFilter, _divider, Graph, _detailTitle, Detail, _bottomDividerView, _diffTitle, Diff, _workingDivider, _workingLeftEdge, _workingRightEdge, WorkingUnstaged, WorkingStaged, WorkingDiff, WorkingMessage, _picker, _status, Overlay);
+        Window.Add(
+            _tabs,
+            _edges[0],
+            _edges[1],
+            _edges[2],
+            _edges[3],
+            Sidebar,
+            _sidebarFilter,
+            _divider,
+            Graph,
+            _detailTitle,
+            Detail,
+            _bottomDividerView,
+            _diffTitle,
+            Diff,
+            _workingDivider,
+            _workingLeftEdge,
+            _workingRightEdge,
+            WorkingUnstaged,
+            WorkingStaged,
+            WorkingDiff,
+            WorkingMessage,
+            _picker,
+            _status,
+            Overlay);
         ApplyVisibility();
     }
 
@@ -225,6 +257,9 @@ public sealed class MainView : IDisposable
         add => _picker.RowClicked += value;
         remove => _picker.RowClicked -= value;
     }
+
+    /// <summary>True while panes are shown or hidden: the toolkit moves the focus on its own then, which is not the user's choice.</summary>
+    public bool IsChangingVisibility { get; private set; }
 
     /// <summary>The pane that has focus in the working-tree view, from the tab's state; the layout of a narrow screen follows it.</summary>
     public Func<PaneKind> WorkingFocus { get; set; } = () => PaneKind.WorkingUnstaged;
@@ -349,6 +384,19 @@ public sealed class MainView : IDisposable
     // The history panes and the working-tree panes never show together; the picker covers either one. The panes that appear are
     // shown before the others are hidden, so the toolkit never hands the focus of a hiding pane to a pane that is about to hide too.
     private void ApplyVisibility()
+    {
+        IsChangingVisibility = true;
+        try
+        {
+            SetVisibility();
+        }
+        finally
+        {
+            IsChangingVisibility = false;
+        }
+    }
+
+    private void SetVisibility()
     {
         var isPicker = _picker.Visible;
         var history = !_isWorkingMode;

@@ -13,6 +13,11 @@ public static class WorkingTreeRowRenderer
     private const string UntrackedMark = "?";
     private const string AddedMark = "A";
     private const string DeletedMark = "D";
+    private const string RenamedMark = "R";
+    private const string CopiedMark = "C";
+    private const string TypeChangedMark = "T";
+    private const string UnmergedMark = "U";
+    private const string ModifiedMark = "M";
     private const string RenameArrow = " -> ";
 
     /// <summary>The line of an entry, exactly <paramref name="width"/> columns wide.</summary>
@@ -25,8 +30,8 @@ public static class WorkingTreeRowRenderer
     {
         var mark = MarkOf(entry, section);
         var builder = new LineBuilder(width, glyphs.Ellipsis);
-        builder.Append(mark, RoleOf(mark), 0).Append(" ", SegmentRole.Plain);
-        builder.Append(PathText(entry), SegmentRole.Plain);
+        builder.Append(mark, RoleOf(mark)).Append(" ", SegmentRole.Plain);
+        builder.Append(PathText(entry, section), SegmentRole.Plain);
         if (entry.Kind == StatusEntryKind.Unmerged)
         {
             builder.Append($"  {ConflictText(entry.Conflict)}", SegmentRole.Faint);
@@ -51,9 +56,15 @@ public static class WorkingTreeRowRenderer
         return Letter(section == WorkingTreeSection.Staged ? entry.IndexChange : entry.WorktreeChange);
     }
 
-    /// <summary>The text of the path: <c>old -&gt; new</c> for a rename or copy. Lone surrogates (bytes that are not UTF-8) show as replacement characters.</summary>
-    public static string PathText(StatusEntry entry) =>
-        entry.OriginalPath is { } original ? $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}" : Printable(entry.Path);
+    /// <summary>
+    /// The text of the path: <c>old -&gt; new</c> for a rename or copy in the Staged list (the rename is a change of the index; an edit
+    /// of the renamed file in the working tree is listed under its new path only). Lone surrogates (bytes that are not UTF-8) show as
+    /// replacement characters.
+    /// </summary>
+    public static string PathText(StatusEntry entry, WorkingTreeSection section) =>
+        section == WorkingTreeSection.Staged && entry.OriginalPath is { } original
+            ? $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}"
+            : Printable(entry.Path);
 
     /// <summary>The text with every lone surrogate replaced by the replacement character, so a terminal never gets a broken string.</summary>
     public static string Printable(string text)
@@ -92,11 +103,11 @@ public static class WorkingTreeRowRenderer
     {
         FileChangeKind.Added => AddedMark,
         FileChangeKind.Deleted => DeletedMark,
-        FileChangeKind.Renamed => "R",
-        FileChangeKind.Copied => "C",
-        FileChangeKind.TypeChanged => "T",
-        FileChangeKind.UpdatedButUnmerged => "U",
-        _ => "M",
+        FileChangeKind.Renamed => RenamedMark,
+        FileChangeKind.Copied => CopiedMark,
+        FileChangeKind.TypeChanged => TypeChangedMark,
+        FileChangeKind.UpdatedButUnmerged => UnmergedMark,
+        _ => ModifiedMark,
     };
 
     private static string ConflictText(ConflictKind conflict) => conflict switch

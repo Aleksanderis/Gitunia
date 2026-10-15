@@ -46,6 +46,19 @@ public class WorkingTreeRowRendererTests
         Assert.StartsWith("R old.txt -> new.txt", line.Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenAStagedRenameEditedInTheWorkingTree_WhenRenderingEachList_ThenOnlyTheStagedRowShowsTheOldPath()
+    {
+        var entry = StagedRename("old.txt", "new.txt") with { WorktreeChange = FileChangeKind.Modified };
+
+        var unstaged = WorkingTreeRowRenderer.Render(entry, WorkingTreeSection.Unstaged, 30, false, GraphGlyphSet.Unicode);
+        var staged = WorkingTreeRowRenderer.Render(entry, WorkingTreeSection.Staged, 30, false, GraphGlyphSet.Unicode);
+
+        Assert.StartsWith("M new.txt", unstaged.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("old.txt", unstaged.Text, StringComparison.Ordinal);
+        Assert.StartsWith("R old.txt -> new.txt", staged.Text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(ConflictKind.BothModified, "both modified")]
     [InlineData(ConflictKind.BothAdded, "both added")]
