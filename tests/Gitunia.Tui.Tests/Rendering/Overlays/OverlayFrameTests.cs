@@ -103,14 +103,14 @@ public class OverlayFrameTests
                 "│ Focus the commit details                                       Enter │",
                 "│ Copy the commit hash                                               y │",
                 "│ Refresh the repository                                             r │",
+                "│ Open the working tree                                             gs │",
                 "│ Open the commit in the difftool                                    D │",
                 "│ Resolve conflicts in the mergetool                                 M │",
                 "│ Commit the staged changes in $EDITOR                               E │",
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ Show the Changes tab                                              gc │",
-                "│ 1/81  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/84  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -232,6 +232,7 @@ public class OverlayFrameTests
                 "│  Enter                │ Focus the commit details             │",
                 "│  y                    │ Copy the commit hash                 │",
                 "│  r                    │ Refresh the repository               │",
+                "│  gs                   │ Open the working tree                │",
                 "│  D                    │ Open the commit in the difftool      │",
                 "│  M                    │ Resolve conflicts in the mergetool   │",
                 "│  E                    │ Commit the staged changes in $EDITOR │",
@@ -244,8 +245,7 @@ public class OverlayFrameTests
                 "│ Lists                                                        │",
                 "│  j / Down             │ Move down                            │",
                 "│  k / Up               │ Move up                              │",
-                "│  gg                   │ Go to the top                        │",
-                "│ 1-19/62  list keys scroll  Esc close                         │",
+                "│ 1-19/64  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -258,7 +258,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("<space>m", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("<space>s", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 
@@ -276,6 +276,7 @@ public class OverlayFrameTests
                 '\n',
                 " g-                          ",
                 "│ r  Jump to a ref or hash  │",
+                "│ s  Open the working tree  │",
                 "│ d  Show the Details tab   │",
                 "│ c  Show the Changes tab   │",
                 "│ f  Show the Files tab     │",

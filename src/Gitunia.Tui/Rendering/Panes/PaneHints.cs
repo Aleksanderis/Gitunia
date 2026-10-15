@@ -59,6 +59,16 @@ public static class PaneHints
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> WorkingTree =
+    [
+        .. Pinned,
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
+        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
+        new("r", "refresh", [ActionIds.RepositoryRefresh]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Picker =
     [
         new("Enter", "open", [ActionIds.PickerAccept]),
@@ -73,6 +83,7 @@ public static class PaneHints
         PaneKind.Sidebar => Sidebar,
         PaneKind.Detail => Detail,
         PaneKind.Diff => Diff,
+        PaneKind.WorkingUnstaged or PaneKind.WorkingStaged => WorkingTree,
         _ => Graph,
     };
 

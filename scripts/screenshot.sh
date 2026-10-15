@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,working,working-narrow] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -13,7 +13,8 @@
 # so the code repository never carries them. It is private: links are github.com/<screenshots repo>/raw/<commit>/... (render for
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
-# Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background).
+# Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background),
+# working and working-narrow (gs: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -93,6 +94,33 @@ make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with
   )
 }
 
+make_dirty_repo() { # make_dirty_repo SOURCE DIR: a copy of the throwaway repository with a merge conflict and every kind of change
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  export GIT_AUTHOR_DATE="2026-04-01T12:00:00Z" GIT_COMMITTER_DATE="2026-04-01T12:00:00Z"
+  git -C "$dir" switch -q -c side fix/overflow
+  printf 'int Add(long left, long right) => left + right;\n' >"$dir/src/math.txt"
+  git -C "$dir" commit -q -am "Widen Add"
+  git -C "$dir" switch -q main
+  printf 'int Add(int left, int right) => checked(left + right);\n' >"$dir/src/math.txt"
+  git -C "$dir" commit -q -am "Check Add for overflow"
+  git -C "$dir" merge -q side >/dev/null 2>&1 || true
+  git -C "$dir" mv src/multiply.md src/multiply-notes.md
+  printf 'Division truncates toward zero.\n' >>"$dir/README.md"
+  git -C "$dir" add README.md
+  printf 'int Power(int value, int exponent) => 1;\n' >"$dir/src/power.txt"
+  git -C "$dir" add src/power.txt
+  printf 'Edited again.\n' >>"$dir/README.md"
+  rm "$dir/src/multiply.txt"
+  mkdir -p "$dir/notes"
+  printf 'todo\n' >"$dir/notes/todo.txt"
+  printf 'x\n' >"$dir/Ünïcode name.txt"
+  )
+}
+
 build_converter() { # prints the converter dll path
   local dll="$cache_dir/AnsiToSvg/AnsiToSvg.dll"
   if [ ! -f "$dll" ] || [ "$repo_root/tools/AnsiToSvg/Program.cs" -nt "$dll" ]; then
@@ -139,10 +167,17 @@ render() {
       split) columns=170 keys="Enter Enter S" ;;
       narrow) columns=64 rows=30 ;;
       light) theme=light ;;
+      working) keys="g s" ;;
+      working-narrow) columns=64 rows=30 keys="g s" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
+    local scenario_repo="$repo"
+    if [[ "$scenario" == working* && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-dirty"
+      [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
+    fi
     tmux_cmd kill-session -t shot 2>/dev/null || true
-    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$repo")"
+    tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$scenario_repo")"
     wait_stable "$socket"
     if [ -n "$keys" ]; then
       # shellcheck disable=SC2086

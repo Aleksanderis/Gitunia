@@ -34,8 +34,7 @@ public static class SessionDocumentMapper
                 SelectedCommit = tab.View.SelectedCommit?.ToString(),
                 ScrollOffset = tab.View.ScrollOffset,
                 FilterText = tab.View.FilterText,
-                // The diff pane is not open after a restart, so a tab that had it focused comes back on the file list.
-                FocusedPane = (tab.View.FocusedPane == PaneKind.Diff ? PaneKind.Detail : tab.View.FocusedPane).ToString(),
+                FocusedPane = SavedPane(tab.View.FocusedPane).ToString(),
                 SidebarWidth = tab.View.SidebarWidth,
                 BottomHeight = tab.View.BottomHeight,
                 DetailWidth = tab.View.DetailWidth,
@@ -121,13 +120,22 @@ public static class SessionDocumentMapper
     {
         ObjectId? selected = ObjectId.TryParse(tab.SelectedCommit ?? string.Empty, out var objectId) ? objectId : null;
         var pane = Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
-            ? parsed
+            ? SavedPane(parsed)
             : PaneKind.Graph;
         var bottomTab = Enum.TryParse<BottomTab>(tab.BottomTab, ignoreCase: false, out var parsedTab) && Enum.IsDefined(parsedTab)
             ? parsedTab
             : RepositoryViewState.Initial.BottomTab;
         return new RepositoryViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
     }
+
+    // Neither the diff pane nor the working-tree view is open after a restart: a tab that had the diff focused comes back on the
+    // file list, and one that was in the working-tree view comes back on the graph.
+    private static PaneKind SavedPane(PaneKind pane) => pane switch
+    {
+        PaneKind.Diff => PaneKind.Detail,
+        PaneKind.WorkingUnstaged or PaneKind.WorkingStaged => PaneKind.Graph,
+        _ => pane,
+    };
 
     // The layout clamps to what fits; here only negative values falls back to automatic.
     private static int? PositiveOrNull(int? value) => value is >= 0 ? value : null;

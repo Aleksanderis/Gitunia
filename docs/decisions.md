@@ -192,6 +192,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
 
+**UI:** Working-tree view (#29): the view mode is tab state (`RepositoryViewState.Mode`) and is not saved with the session, so a restart opens the history; Unstaged shows conflicted files first, applied in `WorkingTreeState` so selection indexes stay row indexes. Diff and message box are placeholder boxes until the working-tree diff and #314 exist.
+
 **UI:** External tools (#51): `git commit` (git picks the editor), `git difftool` and `git mergetool` run with the real terminal; the TUI suspends by disposing the Terminal.Gui application and creating a fresh one afterwards (see `docs/architecture.md`, "External tools"). Interim keys in the graph: `D` difftool of the commit, `M` mergetool, `E` commit with the editor; the working-tree view (#28) adds `ce` on the same hand-off.
 
 **UI:** Commit message editor (#314): an own `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete, its replacement is a separate package to vet for AOT); testable without a terminal.

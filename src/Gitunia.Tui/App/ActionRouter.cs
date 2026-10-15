@@ -12,6 +12,7 @@ using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Lists;
@@ -51,6 +52,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
     public VisualRangeController? Visual { get; set; }
 
+    /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
+    public WorkingTreeActionHandler? WorkingTree { get; set; }
+
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
 
@@ -65,6 +69,8 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     {
         PaneKind.Sidebar => DefaultKeymap.SidebarView,
         PaneKind.Diff => DefaultKeymap.DiffView,
+        PaneKind.WorkingUnstaged => DefaultKeymap.WorkingUnstagedView,
+        PaneKind.WorkingStaged => DefaultKeymap.WorkingStagedView,
         _ => FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView,
     };
 
@@ -80,6 +86,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.RepositoryRefresh)
         {
             Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
+            return;
+        }
+
+        if (WorkingTree?.TryExecute(action, count) == true)
+        {
+            Message = WorkingTree.Message;
             return;
         }
 

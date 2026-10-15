@@ -114,6 +114,9 @@ public static class ActionCatalog
         ["tool.mergetool"] = "Resolve conflicts in the mergetool",
         ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
+        ["working-tree.copy-path"] = "Copy the file path",
+        ["working-tree.open"] = "Open the working tree",
+        ["working-tree.toggle"] = "Open or leave the working tree",
     };
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>

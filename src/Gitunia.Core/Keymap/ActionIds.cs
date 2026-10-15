@@ -175,6 +175,12 @@ public static class ActionIds
 
     public static ActionId VisualToggle { get; } = new("visual.toggle");
 
+    public static ActionId WorkingTreeCopyPath { get; } = new("working-tree.copy-path");
+
+    public static ActionId WorkingTreeOpen { get; } = new("working-tree.open");
+
+    public static ActionId WorkingTreeToggle { get; } = new("working-tree.toggle");
+
     /// <summary>Jump to tab <paramref name="number"/> (1-based).</summary>
     public static ActionId TabGoTo(int number) => new($"tab.go-to.{number}");
 }
