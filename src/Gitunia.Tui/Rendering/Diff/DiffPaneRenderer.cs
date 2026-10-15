@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <summary>Draws the diff pane's title row and rows (a frame without a terminal, for tests and the text frame).</summary>
 public static class DiffPaneRenderer
 {
-    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <paramref name="topRow"/>; the rows are padded (<see cref="PanePadding"/>).</summary>
+    /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <see cref="DiffPaneModel.TopRow"/>; the rows are padded (<see cref="PanePadding"/>).</summary>
     public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs) };

@@ -10,7 +10,7 @@ public sealed class WhichKeyTimer(TimeSpan delay, Action<Action> postToUi) : IDi
     private Timer? _timer;
     private int _generation;
 
-    /// <summary>Waits <see cref="delay"/> (restarting any earlier wait), then runs <paramref name="elapsed"/> on the UI thread.</summary>
+    /// <summary>Waits the configured delay (restarting any earlier wait), then runs <paramref name="elapsed"/> on the UI thread.</summary>
     public void Start(Action elapsed)
     {
         int current;
