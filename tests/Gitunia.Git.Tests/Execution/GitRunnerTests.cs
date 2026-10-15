@@ -66,7 +66,7 @@ public class GitRunnerTests
             () => RunnerFor(fake).RunAsync(
                 AnyDirectory,
                 ["fetch"],
-                new GitRunOptions(Timeout: KillTimeout),
+                new GitRunOptions(Timeout: OperatingSystem.IsWindows() ? CancelDelayWithoutProcessId : KillTimeout),
                 TestContext.Current.CancellationToken));
 
         await AssertNeverMarkedAsync(marker);

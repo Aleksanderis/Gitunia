@@ -15,6 +15,7 @@ public sealed class ProcessIdSignal : IDisposable
         _watcher = new FileSystemWatcher(Path.GetDirectoryName(markerPath)!, $"*{ProcessIdSuffix}");
         _watcher.Created += (_, _) => Check();
         _watcher.Renamed += (_, _) => Check();
+        _watcher.Error += (_, _) => Check();
         _watcher.EnableRaisingEvents = true;
         Check();
     }
