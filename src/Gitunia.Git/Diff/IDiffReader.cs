@@ -1,5 +1,6 @@
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Git.Diff;
 
@@ -27,6 +28,28 @@ public interface IDiffReader
         RepositoryLocation location,
         ObjectId commit,
         ObjectId? firstParent,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Streams the diff of one file of the working-tree view: <c>git diff</c> for a file in the Unstaged list (an untracked file as
+    /// additions, a conflicted file as git's combined diff), <c>git diff --cached</c> for one in the Staged list. The file is
+    /// found by its literal path (and, for a rename, the old path too). Throws <see cref="NotSupportedException"/> for a path
+    /// that is not valid UTF-8: <c>git diff</c> reads no pathspec file.
+    /// </summary>
+    /// <param name="location">The repository.</param>
+    /// <param name="side">The list the file is in.</param>
+    /// <param name="entry">The status entry of the file.</param>
+    /// <param name="warnings">Receives the parser's warnings once the stream ends.</param>
+    /// <param name="maximumLinesPerFile">Hunk lines kept per file; the rest are dropped.</param>
+    /// <param name="options">Context, whole file and whitespace; the defaults when null.</param>
+    /// <param name="cancellationToken">Cancels the stream and kills git.</param>
+    IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
+        RepositoryLocation location,
+        WorkingDiffSide side,
+        StatusEntry entry,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
         DiffOptions? options = null,
