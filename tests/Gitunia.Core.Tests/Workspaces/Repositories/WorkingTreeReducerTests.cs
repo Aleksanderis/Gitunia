@@ -61,14 +61,14 @@ public class WorkingTreeReducerTests
     }
 
     [Fact]
-    public void GivenSelectedEntryStaged_WhenRefreshed_ThenSelectionFollowsItToTheStagedList()
+    public void GivenSelectedEntryStaged_WhenRefreshed_ThenCursorStaysAtTheSameIndexInTheList()
     {
         var state = Load(Snapshot(Unstaged("a.txt"), Unstaged("b.txt")));
         state = RepositoryReducer.Reduce(state, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 1));
 
         state = RepositoryReducer.Reduce(state, new WorkingTreeLoadedCommand(Snapshot(Unstaged("a.txt"), Staged("b.txt"))));
 
-        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Staged, "b.txt", 0), state.WorkingTree!.Selection);
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "a.txt", 0), state.WorkingTree!.Selection);
     }
 
     [Fact]
@@ -137,13 +137,37 @@ public class WorkingTreeReducerTests
     }
 
     [Fact]
-    public void GivenTwoTabs_WhenOneLoads_ThenTheOtherIsUntouched()
+    public void GivenSameEntriesButNewDivergence_WhenLoaded_ThenSnapshotAndSummaryUpdate()
     {
-        var other = NewTab();
+        var state = Load(Snapshot(Unstaged("a.txt")));
+        var branch = state.WorkingTree!.Snapshot.Branch with { Ahead = 2, Behind = 1 };
+        var diverged = Snapshot(Unstaged("a.txt")) with { Branch = branch };
 
-        _ = Load(Snapshot(Unstaged("a.txt")));
+        state = RepositoryReducer.Reduce(state, new WorkingTreeLoadedCommand(diverged));
 
-        Assert.Null(other.WorkingTree);
+        Assert.Same(diverged, state.WorkingTree!.Snapshot);
+        Assert.Equal(new RepositoryStatusSummary(true, 2, 1), state.Status);
+    }
+
+    [Fact]
+    public void GivenUnmergedEntry_WhenListed_ThenInUnstaged()
+    {
+        var conflict = Unstaged("c.txt") with { Kind = StatusEntryKind.Unmerged };
+
+        var state = Load(Snapshot(conflict));
+
+        Assert.Equal(["c.txt"], state.WorkingTree!.Unstaged.Select(entry => entry.Path));
+    }
+
+    [Fact]
+    public void GivenPathChangedInIndexAndWorktree_WhenListed_ThenInBothLists()
+    {
+        var both = Unstaged("m.txt") with { IndexChange = FileChangeKind.Modified };
+
+        var state = Load(Snapshot(both));
+
+        Assert.Single(state.WorkingTree!.Unstaged);
+        Assert.Single(state.WorkingTree.Staged);
     }
 
     private static RepositoryState NewTab()

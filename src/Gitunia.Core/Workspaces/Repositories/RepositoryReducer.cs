@@ -32,7 +32,8 @@ public static class RepositoryReducer
     {
         if (state.WorkingTree is { } current && WorkingTreeState.SameContent(current.Snapshot, loaded.Snapshot))
         {
-            return state;
+            var summary = RepositoryStatusSummary.From(loaded.Snapshot);
+            return state.Status == summary ? state : state with { Status = summary };
         }
 
         return state with

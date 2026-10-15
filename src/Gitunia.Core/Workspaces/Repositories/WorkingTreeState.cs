@@ -7,16 +7,20 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="Selection">The selected file, null when the lists are empty.</param>
 public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelection? Selection)
 {
+    private IReadOnlyList<StatusEntry>? _unstaged;
+    private IReadOnlyList<StatusEntry>? _staged;
+
     /// <summary>Entries of the Unstaged list, in git's order: worktree changes, untracked and conflicted paths.</summary>
-    public IReadOnlyList<StatusEntry> Unstaged => Snapshot.Entries.Where(IsUnstagedRow).ToList();
+    public IReadOnlyList<StatusEntry> Unstaged => _unstaged ??= Snapshot.Entries.Where(IsUnstagedRow).ToList();
 
     /// <summary>Entries of the Staged list, in git's order.</summary>
-    public IReadOnlyList<StatusEntry> Staged => Snapshot.Entries.Where(entry => entry.IsStaged).ToList();
+    public IReadOnlyList<StatusEntry> Staged => _staged ??= Snapshot.Entries.Where(entry => entry.IsStaged).ToList();
 
     /// <summary>Builds the state for a new snapshot, keeping the selection when its file is still listed.</summary>
     /// <remarks>
-    /// Order of preference: the same path in the same list; the same path in the other list (it was staged or unstaged);
-    /// the row now at the old index (clamped); the first row of the other list. Without a previous selection the first row is chosen.
+    /// Order of preference: the same path in the same list; the row now at the old index (clamped), which is also what happens when
+    /// the file moved to the other list by stage or unstage, so the cursor stays put and the action can be repeated (ux.md, workflow 2);
+    /// the first row of the other list. Without a previous selection the first row is chosen.
     /// Never selects when both lists are empty.
     /// </remarks>
     public static WorkingTreeState Reconcile(WorkingTreeState? previous, StatusSnapshot snapshot)
@@ -36,10 +40,6 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
             if (at >= 0)
             {
                 selection = new WorkingTreeSelection(old.Section, old.Path, at);
-            }
-            else if ((at = IndexOf(other, old.Path)) >= 0)
-            {
-                selection = new WorkingTreeSelection(otherSection, old.Path, at);
             }
             else if (same.Count > 0)
             {
