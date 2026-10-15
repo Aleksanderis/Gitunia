@@ -82,13 +82,15 @@ Each later workflow (3-7 at the end of this section) needs a written step-by-ste
 
 ### 2. Working-tree view: stage, commit, amend, discard (design for #29-#33, #51, #314)
 
-Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys below are planned: they are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingFiles`, `WorkingDiff` and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
+Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys below are planned: they are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingUnstaged`, `WorkingStaged`, the two diffs and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
 
 **Layout.** Left column: `Unstaged` list on top (conflicted files first, in their own group, then modified, deleted, renamed and untracked files, each with its status letter and path) and `Staged` list below it, each titled with its count. Right: the diff of the file under the cursor (the working-tree diff for Unstaged, the index diff for Staged; untracked files show their content as additions) and, below the diff, the message box with an option row `[ ] SignOff  [ ] No-Verify  [ ] Amend` and a `Commit` button. The sidebar is hidden in this view (it gets the whole width); the tab bar stays. Terminals under 80 columns show one pane at a time, as the diff does in 1c. Lists and diff follow the pane, selection, zoom (`<space>z`) and diff option rules of workflows 1 and 1c; the diff is the same widget (hunk navigation, wrap, context, split).
 
 **Open and leave.** `<space>s` (global) toggles the view for the active tab; `gs` in the graph opens it, and so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `q`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc`/`q` in the diff and the message box step back to the lists first (the 1c rule). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
 
-**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message; `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `l`/`Enter` on a file moves into its diff, `h`/`Esc` back.
+**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message; `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between Unstaged and Staged (stacked), `Ctrl-w l` from either goes to the diff; `l`/`Enter` on a file moves into its diff, `h`/`Esc` back; `y` copies the file's path. `v` (Visual) is extended to the file lists and the working-tree diff by the implementing issues, with the Mouse drag; in a file list a Visual range works with `s`, `u` and `x` (the Confirm names the count), in the diff `s`, `u`, `x` act on the selected lines (rows marked `(Visual)` when they join the Keymap table).
+
+**Side-specific keys.** Each list and each diff side is its own view for the keymap (`WorkingUnstaged`, `WorkingStaged`, `WorkingUnstagedDiff`, `WorkingStagedDiff`), so help and hints show only what applies: `s`, `a`, `x` exist only on the Unstaged side, `u`, `U` only on the Staged side; the other key there is unbound, not a no-op.
 
 **Stage and unstage.**
 1. `s` in Unstaged stages the file under the cursor (`git add -- <path>`; a deletion or rename as git reports it), `u` in Staged unstages it (`git restore --staged`, or `git rm --cached` on an unborn branch). The cursor stays at the same index so the next file is under it and `s` can be repeated. `v` then `s`/`u` applies to a range of files. `a` stages all (Unstaged), `U` unstages all (Staged); both report the count in the status bar and need no confirm (nothing is lost).
@@ -101,8 +103,8 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 **Message and commit.**
 1. `c` (from a list or the diff) focuses the message box and enters Insert mode (the built-in editor of #314: first line is the subject, a blank line then the body; the subject length is shown with a soft hint at 72 columns, never enforced). `Esc` leaves Insert mode but stays in the box (its Normal mode: `i`/`Enter` back to Insert, `h`/`q`/`Esc` back to the lists). The draft is kept per tab until a commit succeeds.
 2. Options toggle with `Alt-s` (SignOff, `-s`), `Alt-n` (No-Verify, `--no-verify`) and `Alt-a` (Amend), from anywhere in the view including Insert mode, or by clicking the checkboxes. All start off; hooks run unless No-Verify is on.
-3. Commit: `Alt-Enter` in Insert mode, `cc` in the box's Normal mode, or the `Commit` button. `Alt-Enter` arrives as Esc followed by Enter in some terminals; #314 verifies it and, if it is unreliable, `Ctrl-g` is the fallback binding. `ce` in Normal mode commits through `$EDITOR` instead (#51: the TUI suspends and git's own `commit` runs on the staged index). The commit runs `git commit` off the UI thread, cancellable, with a timeout long enough for hooks; the box is read-only while it runs.
-4. Refusals, without running git: an empty message (status message, the box keeps focus) and nothing staged with Amend off ("Nothing staged"; an amend with nothing staged is allowed and rewrites only the message). A failing hook (non-zero exit) keeps the draft and the staged state and shows git's output in a scrollable overlay (like the status history, `Esc` closes); files a hook rewrites show as new unstaged changes after the refresh.
+3. Commit: `Alt-Enter` in Insert mode, `cc` in the box's Normal mode, or the `Commit` button. The `Alt-` chords (`Alt-Enter`, `Alt-s`, `Alt-n`, `Alt-a`) arrive as Esc followed by the key in some terminals (and under tmux); #314 verifies all four and names a fallback for each (`Ctrl-g` for commit, `Ctrl-` or button/palette for the options). `ce` in Normal mode commits through `$EDITOR` instead (#51: the TUI suspends and git's own `commit` runs on the staged index). The commit runs `git commit` off the UI thread, cancellable, with a timeout long enough for hooks; the box is read-only while it runs.
+4. Refusals, without running git: an empty message (status message, the box keeps focus) and nothing staged with Amend off ("Nothing staged"; an amend with nothing staged is allowed and rewrites only the message). While a merge, cherry-pick or revert is in progress (`MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) the nothing-staged check is skipped, because finishing such an operation with an empty tree is valid; the operations themselves are M3. A failing hook (non-zero exit) keeps the draft and the staged state and shows git's output in a scrollable overlay (like the status history, `Esc` closes); files a hook rewrites show as new unstaged changes after the refresh.
 5. Amend: toggling it on fills the box with HEAD's message when the draft is empty (the draft is kept aside and restored when Amend is toggled off), shows `Amending <short hash> <subject>` in the box title and runs `git commit --amend`; staged changes are added to the amended commit. If HEAD is already on the upstream branch the status bar warns that a force push will be needed. Undo path: the status message after the commit names the old hash ("Amended; previous commit abc1234, `git reset --soft abc1234` restores it") and the reflog keeps it reachable. While a merge is in progress Amend is disabled and the box is prefilled from `MERGE_MSG`.
 6. After a successful commit the draft and Amend are cleared, SignOff and No-Verify keep their state, the lists refresh, the status bar says `Committed abc1234` and focus returns to the lists. The history view picks up the commit through the normal refresh.
 
@@ -112,19 +114,21 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 |---|---|---|
 | Global | `<space>s` | Open / leave the working-tree view of the tab |
 | Graph | `gs` | Open the working-tree view |
-| WorkingFiles | `s` | Stage the file (Unstaged); on a conflicted file mark it resolved |
-| WorkingFiles | `u` | Unstage the file (Staged) |
-| WorkingFiles | `a` / `U` | Stage all / unstage all |
-| WorkingFiles | `x` | Discard the file's changes (Confirm; Unstaged only) |
-| WorkingFiles | `Enter` `l` | Go to the diff of the file |
-| WorkingFiles | `c` | Write the commit message (focus the box, Insert mode) |
-| WorkingFiles | `r` | Refresh the status |
-| WorkingFiles | `q` / `Esc` / `h` | Leave the view |
-| WorkingDiff | `s` / `u` | Stage / unstage the hunk, or the Visual-selected lines |
-| WorkingDiff | `x` | Discard the hunk or selected lines (Confirm; Unstaged diff only) |
-| WorkingDiff | `c` | Write the commit message |
-| WorkingDiff | `]c` `[c` `]f` `[f` `w` `+` `-` `F` `W` `S` `y` `/` `n` `N` | As the history diff (1c) |
-| WorkingDiff | `q` / `Esc` / `h` | Back to the file list |
+| WorkingUnstaged | `s` | Stage the file; on a conflicted file mark it resolved |
+| WorkingStaged | `u` | Unstage the file |
+| WorkingUnstaged | `a` | Stage all |
+| WorkingStaged | `U` | Unstage all |
+| WorkingUnstaged | `x` | Discard the file's changes (Confirm) |
+| WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
+| WorkingUnstaged / WorkingStaged | `c` | Write the commit message (focus the box, Insert mode) |
+| WorkingUnstaged / WorkingStaged | `r` | Refresh the status |
+| WorkingUnstaged / WorkingStaged | `q` / `Esc` / `h` | Leave the view |
+| WorkingUnstagedDiff | `s` | Stage the hunk, or the Visual-selected lines |
+| WorkingStagedDiff | `u` | Unstage the hunk, or the Visual-selected lines |
+| WorkingUnstagedDiff | `x` | Discard the hunk or selected lines (Confirm) |
+| WorkingUnstagedDiff / WorkingStagedDiff | `c` | Write the commit message |
+| WorkingUnstagedDiff / WorkingStagedDiff | `]c` `[c` `]f` `[f` `w` `+` `-` `F` `W` `S` `y` `/` `n` `N` | As the history diff (1c) |
+| WorkingUnstagedDiff / WorkingStagedDiff | `q` / `Esc` / `h` | Back to the file list |
 | WorkingMessage | `i` / `Enter` | Edit the message (Insert mode) |
 | WorkingMessage | `cc` | Commit |
 | WorkingMessage | `ce` | Commit with `$EDITOR` |
@@ -134,7 +138,7 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 
 Conflict check: `s`, `u`, `a`, `c`, `x`, `U` are unbound in Graph, Detail, Diff and Sidebar; `S`, `W`, `F` keep their display meaning in the working-tree diff; `Alt-p` and `Alt-d` are Picker-only and `Alt-1`..`Alt-9` jump tabs, so `Alt-s`, `Alt-n`, `Alt-a` are free (they act only in this view). `c` in the message box is a chord prefix (`cc`, `ce`), which is why it is a different view from the lists where `c` is a single key.
 
-**Mouse** (same action path as keys): a click on a file row selects it and a double-click stages or unstages it (Unstaged / Staged); the diff's title row gets `stage` / `unstage` and `discard` buttons next to `‹ hunk` `hunk ›`; the list titles get `stage all` / `unstage all`; clicking the `SignOff`, `No-Verify` and `Amend` checkboxes toggles them and `Commit` commits; a drag over diff rows starts a Visual range as in 1c. The implementing issues add these rows to the Mouse table.
+**Mouse** (same action path as keys): a click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection); the diff's title row gets `stage` / `unstage` and `discard` buttons next to `‹ hunk` `hunk ›`; the list titles get `stage all` / `unstage all`; clicking the `SignOff`, `No-Verify` and `Amend` checkboxes toggles them and `Commit` commits; a drag over diff rows starts a Visual range as in 1c. The implementing issues add these rows to the Mouse table.
 
 Still to design before their milestones:
 

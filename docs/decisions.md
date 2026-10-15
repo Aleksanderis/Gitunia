@@ -188,4 +188,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
 
-**UI:** Working-tree view keys (#28): `<space>s` / `gs` open it, `s` `u` stage and unstage, `a` `U` all, `x` discard (Confirm), `c` writes the message, `Alt-Enter` commits, `Alt-s` `Alt-n` `Alt-a` toggle SignOff, No-Verify, Amend. Planned keys live in workflow 2 of `docs/ux.md` until implemented, because the keymap test requires every Keymap row to be bound.
+**UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
