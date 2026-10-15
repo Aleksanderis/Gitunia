@@ -37,11 +37,11 @@ public static class DiffPaneRenderer
             return RenderTitleText(pane, width, glyphs);
         }
 
-        var segments = new List<StyledSegment>(RenderTitleText(pane, buttons[0].Start - 1, glyphs).Segments) { new(" ", SegmentRole.Plain) };
+        var segments = new List<StyledSegment>(RenderTitleText(pane, buttons[0].Start - 1, glyphs).Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
         for (var index = 0; index < buttons.Count; index++)
         {
-            segments.Add(new StyledSegment(buttons[index].Label, SegmentRole.Button));
-            segments.Add(new StyledSegment(" ", SegmentRole.Plain));
+            segments.Add(new StyledSegment(ButtonLabel.For(buttons[index].Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
+            segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         }
 
         segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));

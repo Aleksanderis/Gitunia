@@ -127,7 +127,6 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "]c")]
     [InlineData(DefaultMouseMap.DiffWrapButton, "w")]
     [InlineData(DefaultMouseMap.DiffZoomButton, "<space>z")]
-    [InlineData(DefaultMouseMap.DiffCloseButton, "q")]
     public void GivenADiffButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);

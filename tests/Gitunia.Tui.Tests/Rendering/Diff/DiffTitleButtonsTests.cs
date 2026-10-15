@@ -12,19 +12,19 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenAWideTitleRow_WhenLayingOut_ThenEveryButtonIsShownInKeyOrderAtTheRightEdge()
     {
-        var buttons = DiffTitleButtons.Layout(80);
+        var buttons = DiffTitleButtons.Layout(100);
 
-        Assert.Equal(["[<f]", "[f>]", "[<h]", "[h>]", "[w]", "[z]", "[x]"], buttons.Select(button => button.Label));
-        Assert.Equal(78, buttons[^1].Start + buttons[^1].Width);
+        Assert.Equal([" ‹ file ", " file › ", " ‹ hunk ", " hunk › ", " wrap ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal(98, buttons[^1].Start + buttons[^1].Width);
         Assert.Equal(1, buttons[1].Start - (buttons[0].Start + buttons[0].Width));
     }
 
     [Fact]
     public void GivenANarrowTitleRow_WhenLayingOut_ThenOnlyTheMostUsefulButtonsRemainAndTheTitleKeepsItsWidth()
     {
-        var buttons = DiffTitleButtons.Layout(44);
+        var buttons = DiffTitleButtons.Layout(50);
 
-        Assert.Equal(["[w]", "[z]", "[x]"], buttons.Select(button => button.Label));
+        Assert.Equal([" wrap ", " zoom "], buttons.Select(button => button.Label));
         Assert.True(buttons[0].Start >= DiffTitleButtons.MinimumTitleWidth);
     }
 
@@ -37,7 +37,7 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenAColumn_WhenLookingUpTheButton_ThenOnlyColumnsOnALabelHitIt()
     {
-        var buttons = DiffTitleButtons.Layout(80);
+        var buttons = DiffTitleButtons.Layout(100);
         var wrap = buttons.Single(button => button.View == DefaultMouseMap.DiffWrapButton);
 
         Assert.Equal(DefaultMouseMap.DiffWrapButton, TitleButton.ViewAt(buttons, wrap.Start));
@@ -46,17 +46,85 @@ public class DiffTitleButtonsTests
         Assert.Null(TitleButton.ViewAt(buttons, 0));
     }
 
+    [Theory]
+    [InlineData(30, false)]
+    [InlineData(45, false)]
+    [InlineData(60, false)]
+    [InlineData(80, false)]
+    [InlineData(120, false)]
+    [InlineData(30, true)]
+    [InlineData(60, true)]
+    [InlineData(80, true)]
+    [InlineData(120, true)]
+    public void GivenAnyWidthAndTier_WhenLayingOut_ThenHitZonesAreDisjointInsideTheRowAndMatchWhatIsDrawn(int width, bool isAscii)
+    {
+        var buttons = DiffTitleButtons.Layout(width);
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true), width, glyphs);
+
+        Assert.Equal(width, TextWidth.Of(title.Text));
+        if (isAscii)
+        {
+            Assert.All(title.Text, character => Assert.True(character < 128));
+        }
+
+        for (var index = 0; index < buttons.Count; index++)
+        {
+            var button = buttons[index];
+            Assert.True(button.Start + button.Width <= width - 1);
+            Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Text.Substring(button.Start, button.Width));
+            if (index > 0)
+            {
+                Assert.True(button.Start > buttons[index - 1].Start + buttons[index - 1].Width);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(DefaultMouseMap.DiffPreviousFileButton, 0)]
+    [InlineData(DefaultMouseMap.DiffNextFileButton, 1)]
+    [InlineData(DefaultMouseMap.DiffPreviousHunkButton, 2)]
+    [InlineData(DefaultMouseMap.DiffNextHunkButton, 3)]
+    [InlineData(DefaultMouseMap.DiffWrapButton, 4)]
+    [InlineData(DefaultMouseMap.DiffZoomButton, 5)]
+    public void GivenAButton_WhenClickingAnyOfItsColumns_ThenTheLookupFindsItAndTheNeighbourColumnsMiss(string view, int index)
+    {
+        var buttons = DiffTitleButtons.Layout(100);
+        var button = buttons[index];
+
+        Assert.Equal(view, button.View);
+        for (var column = button.Start; column < button.Start + button.Width; column++)
+        {
+            Assert.Equal(view, TitleButton.ViewAt(buttons, column));
+        }
+
+        Assert.Null(TitleButton.ViewAt(buttons, button.Start - 1));
+        Assert.Null(TitleButton.ViewAt(buttons, button.Start + button.Width));
+    }
+
+    [Fact]
+    public void GivenTheAsciiTier_WhenRenderingTheTitle_ThenTheButtonsUseBracketsAndPlainArrowsOfTheSameWidth()
+    {
+        var pane = new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true);
+
+        var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Ascii);
+
+        Assert.Equal(100, TextWidth.Of(title.Text));
+        Assert.Contains("[< file]-[file >]-[< hunk]-[hunk >]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
+        Assert.EndsWith("[zoom]--", title.Text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GivenADiffPane_WhenRenderingTheTitle_ThenTheButtonsEndTheRowAndTheRowKeepsItsWidth()
     {
         var pane = new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true);
 
-        var title = DiffPaneRenderer.RenderTitle(pane, 80, GraphGlyphSet.Unicode);
+        var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
-        Assert.Equal(80, TextWidth.Of(title.Text));
-        Assert.EndsWith("[<f] [f>] [<h] [h>] [w] [z] [x] ─", title.Text, StringComparison.Ordinal);
+        Assert.Equal(100, TextWidth.Of(title.Text));
+        Assert.EndsWith(" ‹ file ─ file › ─ ‹ hunk ─ hunk › ─ wrap ─ zoom ──", title.Text, StringComparison.Ordinal);
         Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
-        Assert.Equal(7, title.Segments.Count(segment => segment.Role == SegmentRole.Button));
+        Assert.Equal(6, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
     }
 
     [Fact]
@@ -70,11 +138,11 @@ public class DiffTitleButtonsTests
             1);
         var pane = new DiffPaneModel(document, "abc1234", 0, 0, true, IsWrapped: true);
 
-        var title = DiffPaneRenderer.RenderTitle(pane, 80, GraphGlyphSet.Unicode);
+        var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
         Assert.Contains("[wrap]", title.Text, StringComparison.Ordinal);
         Assert.Contains(GraphGlyphSet.Unicode.Ellipsis, title.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("file.txt", title.Text, StringComparison.Ordinal);
-        Assert.Equal(80, TextWidth.Of(title.Text));
+        Assert.Equal(100, TextWidth.Of(title.Text));
     }
 }
