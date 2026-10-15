@@ -29,7 +29,6 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Folders group by domain first (`Commits/`, `Refs/`, `Status/`), technical kind second (`Models/` for records and enums); namespaces follow folders; a test file sits in the same relative folder as the type it tests. Don't leave dozens of files in one folder.
 - Pure parsers and formatters are static. Classes with I/O, a clock or a cache are instances that get their dependencies in the constructor (hand-wired in the composition root, no DI container: AOT and startup); add an interface only where another layer consumes them and tests need a fake.
 - `docs/decisions.md` is a short dated log: entries are appended under the date heading, start with a bold topic tag (**Git layer**, **UI**, ...), take 1-3 lines (decision and why) and a blank line separates entries. Implementation detail belongs in the area doc or the issue, not there.
-- The rules above (type names, `_field`, token last, tuples, interpolation, qualified names, constants, folders, static vs instance) apply to new and touched code. Existing code is migrated by #246-#252; don't mix migration into unrelated PRs.
 - Locals are declared with `var` (built-in types, apparent and non-apparent types alike); enforced as a warning (error in the build) by `.editorconfig`. Explicit types stay in signatures, fields and members.
 - Member order: private methods come after all public/protected methods (fields, constructors and properties stay on top). Applies to test classes too: test methods first, private helpers last.
 - One type per file, named after the type. Models (records, enums, plain data) and classes with logic live in separate files; unrelated models get separate files too, unless they are closely related or inherited from each other.
@@ -66,7 +65,7 @@ Read the doc before working in its area; don't rely on memory of it.
 
 Follow the `work-task` skill (`.claude/skills/work-task/`) for the procedure. To work a whole milestone or the backlog, follow the `work-orchestrator` skill (`.claude/skills/work-orchestrator/`): it delegates issues to subagents in bounded batches of 3 and ends with a hand-over, so no single session carries a whole milestone. Before starting a milestone, the `work-readiness` skill prevalidates it (blockers, open decisions, issue quality) and posts a report the orchestrator checks. Rules that must hold regardless:
 
-- Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide). Don't start M1+ until the M0 decision issue is closed.
+- Take the lowest-numbered unblocked open issue in the earliest open milestone (`Blocked by:` lines decide).
 - `spike`, `destructive` (can lose user data) and `needs-review` issues are never merged by an agent: spikes stay on unmerged `spike/` branches and close with findings; the others stop at an open PR for the owner. Keep working on other unblocked issues meanwhile.
 - Every PR gets the reviewer's findings posted as a PR comment (and a follow-up comment on what was fixed); the review must be visible on GitHub, not only in the session.
 - Independent unblocked issues run in parallel as subagents in separate worktrees (see the skill).

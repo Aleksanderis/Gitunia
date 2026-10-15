@@ -11,7 +11,7 @@ effort: medium
 
 - If given an issue number, use it. Otherwise take the lowest-numbered open issue in the earliest open milestone that is unblocked: `gh issue list --state open --json number,title,milestone,body`.
 - Unblocked means every issue in the body's `Blocked by:` line is closed (`gh issue view <n> --json state`). That line is the single source of truth for order. If it is missing or forms a cycle, fix the issue body and say so in the PR.
-- Issues awaiting the owner's merge don't block you: continue with any other unblocked issue (M1+ still waits for the M0 decision). Stop and summarize only when nothing is unblocked.
+- Issues awaiting the owner's merge don't block you: continue with any other unblocked issue. Stop and summarize only when nothing is unblocked.
 - Read the issue, then the docs in `CLAUDE.md`'s routing table for the area it touches. If a doc contradicts the issue's Acceptance line, the issue wins; fix the doc in the same PR.
 
 ## 2. Unblock without asking
