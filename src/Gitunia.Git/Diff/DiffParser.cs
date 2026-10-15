@@ -86,11 +86,13 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
 
     private void AddLine(ReadOnlySpan<byte> bytes, ICollection<DiffFile> output)
     {
-        var line = Decode(bytes);
+        var invalid = !Utf8.IsValid(bytes);
+        var line = Decode(bytes, invalid);
         var startsFile = line.StartsWith(FileHeaderPrefix, StringComparison.Ordinal);
         var startsCombined = line.StartsWith("diff --cc ", StringComparison.Ordinal) || line.StartsWith("diff --combined ", StringComparison.Ordinal);
         if (_current is not null && _current.IsInHunkBody)
         {
+            MarkInvalid(_current, invalid);
             _current.Add(line);
             return;
         }
@@ -106,6 +108,7 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
             else
             {
                 _current = new DiffFileBuilder(line, _warnings, maximumLinesPerFile);
+                MarkInvalid(_current, invalid);
             }
 
             return;
@@ -113,7 +116,11 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
 
         if (!_skippingCombined)
         {
-            _current?.Add(line);
+            if (_current is not null)
+            {
+                MarkInvalid(_current, invalid);
+                _current.Add(line);
+            }
         }
     }
 
@@ -126,10 +133,18 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
         }
     }
 
-    /// <summary>Decodes UTF-8; invalid bytes become U+FFFD (once per parser a warning says the text is not an exact copy).</summary>
-    private string Decode(ReadOnlySpan<byte> bytes)
+    private static void MarkInvalid(DiffFileBuilder builder, bool invalid)
     {
-        if (!_reportedInvalidText && !Utf8.IsValid(bytes))
+        if (invalid)
+        {
+            builder.MarkInvalidText();
+        }
+    }
+
+    /// <summary>Decodes UTF-8; invalid bytes become U+FFFD (once per parser a warning says the text is not an exact copy).</summary>
+    private string Decode(ReadOnlySpan<byte> bytes, bool invalid)
+    {
+        if (!_reportedInvalidText && invalid)
         {
             _reportedInvalidText = true;
             _warnings.Add("The diff contains bytes that are not valid UTF-8; they were replaced and the text is not an exact copy");

@@ -17,4 +17,10 @@ public static class GitOptions
 
     /// <summary>Put in front of a revision to leave it and its ancestors out of a revision walk.</summary>
     public const string ExcludeRevisionPrefix = "^";
+
+    /// <summary>Read the paths from stdin (with <see cref="PathspecFileNul"/> NUL-separated, so any byte sequence survives).</summary>
+    public const string PathspecFromStandardInput = "--pathspec-from-file=-";
+
+    /// <summary>Paths in the pathspec file are separated by NUL and not quoted.</summary>
+    public const string PathspecFileNul = "--pathspec-file-nul";
 }

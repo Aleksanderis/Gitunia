@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Tests.Fixtures;
@@ -81,6 +82,59 @@ public class DiffPatchWriterTests
 
         Assert.Equal($"{Header}@@ -20 +21 @@\n-single\n+single changed\n", patch);
         Assert.Equal("@@ -20 +21 @@\n-single\n+single changed\n", DiffPatchWriter.WriteHunk(TwoHunkFile.Hunks[1]));
+    }
+
+    [Fact]
+    public void GivenFileWithInvalidUtf8Content_WhenWritingAnyPatch_ThenRefused()
+    {
+        var file = ParseWithInvalidByte(inPath: false);
+
+        Assert.True(file.HasInvalidText);
+        Assert.Throws<InexactPatchException>(() => DiffPatchWriter.WriteSelection(file, Selection(new HunkLineSelection(0, [0])), PatchDirection.Forward));
+        Assert.Throws<InexactPatchException>(() => DiffPatchWriter.WriteSelection(file, Selection(new HunkLineSelection(0, [0])), PatchDirection.Reverse));
+        Assert.Throws<InexactPatchException>(() => DiffPatchWriter.WriteHunks(file, [0]));
+        Assert.Throws<InexactPatchException>(() => DiffPatchWriter.WriteFile(file));
+    }
+
+    [Fact]
+    public void GivenFileWithInvalidUtf8Path_WhenWritingSelection_ThenRefused()
+    {
+        var file = ParseWithInvalidByte(inPath: true);
+
+        Assert.True(file.HasInvalidText);
+        Assert.Throws<InexactPatchException>(() => DiffPatchWriter.WriteSelection(file, Selection(new HunkLineSelection(0, [0])), PatchDirection.Forward));
+    }
+
+    [Fact]
+    public void GivenInvalidUtf8InOneFile_WhenParsingTwoFiles_ThenOnlyThatFileIsMarked()
+    {
+        var patch = Encoding.UTF8.GetBytes(DiffFixtures.TwoHunks + "\n").Concat(InvalidFileBytes(inPath: false)).ToArray();
+        var parser = new DiffParser();
+        var files = new List<DiffFile>();
+
+        parser.Feed(patch, files);
+        parser.Complete(files);
+
+        Assert.Equal([false, true], files.Select(file => file.HasInvalidText));
+        Assert.NotEmpty(DiffPatchWriter.WriteFile(files[0]));
+    }
+
+    private static DiffFile ParseWithInvalidByte(bool inPath)
+    {
+        var parser = new DiffParser();
+        var files = new List<DiffFile>();
+        parser.Feed(InvalidFileBytes(inPath), files);
+        parser.Complete(files);
+        return files.Single();
+    }
+
+    private static byte[] InvalidFileBytes(bool inPath)
+    {
+        var name = inPath ? "b\u00ff.txt" : "b.txt";
+        var text = $"diff --git a/{name} b/{name}\nindex 1111111..2222222 100644\n--- a/{name}\n+++ b/{name}\n@@ -1 +1 @@\n-old\n+new @@\n";
+        var bytes = Encoding.Latin1.GetBytes(text);
+        // Latin-1 encodes U+00FF as the single byte 0xFF, which is not valid UTF-8; the content case plants it in the added line.
+        return inPath ? bytes : Encoding.Latin1.GetBytes(text.Replace("new @@", "new \u00ff"));
     }
 
     private static Dictionary<int, IReadOnlyCollection<int>> Selection(params HunkLineSelection[] entries) =>
