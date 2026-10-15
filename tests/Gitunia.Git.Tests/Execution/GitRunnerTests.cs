@@ -11,6 +11,14 @@ public class GitRunnerTests
 {
     private static readonly string AnyDirectory = Path.GetTempPath();
 
+    // The runner's timer also covers process start-up, which can exceed a few hundred ms under CPU load; the fake must have recorded its id before the kill.
+    private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(2);
+
+    private static readonly TimeSpan CancelDelayWithoutProcessId = TimeSpan.FromMilliseconds(300);
+
+    // Only bounds a hang.
+    private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
+
     [Fact]
     public async Task GivenRealGit_WhenAskingVersion_ThenOutputIsCaptured()
     {
@@ -58,7 +66,7 @@ public class GitRunnerTests
             () => RunnerFor(fake).RunAsync(
                 AnyDirectory,
                 ["fetch"],
-                new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(300)),
+                new GitRunOptions(Timeout: KillTimeout),
                 TestContext.Current.CancellationToken));
 
         await AssertNeverMarkedAsync(marker);
@@ -69,10 +77,22 @@ public class GitRunnerTests
     {
         var marker = MarkerPath();
         using var fake = FakeGitExecutable.SleepingThenMarking(marker);
-        using var source = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+        using var recorded = ProcessIdSignal.Watch(marker);
+        using var source = new CancellationTokenSource();
+        var run = RunnerFor(fake).RunAsync(AnyDirectory, ["fetch"], cancellationToken: source.Token);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => RunnerFor(fake).RunAsync(AnyDirectory, ["fetch"], cancellationToken: source.Token));
+        if (OperatingSystem.IsWindows())
+        {
+            // The cmd script cannot record its process id, so the cancellation is timed instead.
+            source.CancelAfter(CancelDelayWithoutProcessId);
+        }
+        else
+        {
+            await recorded.Recorded.WaitAsync(SignalGuardTimeout, TestContext.Current.CancellationToken);
+            await source.CancelAsync();
+        }
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run);
 
         await AssertNeverMarkedAsync(marker);
     }

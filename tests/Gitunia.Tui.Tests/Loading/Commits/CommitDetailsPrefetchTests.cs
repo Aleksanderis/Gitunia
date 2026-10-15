@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
@@ -13,14 +14,14 @@ public class CommitDetailsPrefetchTests
     public async Task GivenNeighbours_WhenSelectingACommit_ThenTheyAreReadInTheBackgroundAndSelectingThemIsInstant()
     {
         var reader = FakeCommitDetailsReader.Chain(4);
-        var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         var head = reader.Commits[0];
         var parent = reader.Commits[1];
         var grandparent = reader.Commits[2];
 
         store.Select(head, [parent, grandparent]);
-        await WaitForPostsAsync(posted, 3);
+        await pump.RunPostsAsync(3);
 
         Assert.Equal(3, store.CachedCount);
         store.Select(parent);
@@ -32,17 +33,17 @@ public class CommitDetailsPrefetchTests
     public async Task GivenCachedCommit_WhenSelectingItWithNeighbours_ThenTheNeighboursAreReadAfterTheDebounce()
     {
         var reader = FakeCommitDetailsReader.Chain(3);
-        var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         var head = reader.Commits[0];
         var parent = reader.Commits[1];
         store.Select(head);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
 
         store.Select(parent);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
         store.Select(head, [parent, reader.Commits[2]]);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
 
         Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
         Assert.Equal(3, store.CachedCount);
@@ -55,13 +56,13 @@ public class CommitDetailsPrefetchTests
         var head = reader.Commits[0];
         var parent = reader.Commits[1];
         var grandparent = reader.Commits[2];
-        var posted = new SemaphoreSlim(0);
+        var pump = new UiPump(Token);
         var blocking = false;
         var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            action => { action(); posted.Release(); },
+            pump.Post,
             TimeSpan.FromMilliseconds(200),
             async (_, token) =>
             {
@@ -81,9 +82,9 @@ public class CommitDetailsPrefetchTests
                 }
             });
         store.Select(head);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
         store.Select(parent);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
         Volatile.Write(ref blocking, true);
 
         store.Select(head, [grandparent]);
@@ -98,11 +99,11 @@ public class CommitDetailsPrefetchTests
     public async Task GivenSmallCache_WhenPrefetchingMoreThanItHolds_ThenTheCacheStaysWithinItsBound()
     {
         var reader = FakeCommitDetailsReader.Chain(5);
-        var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1), cache: new CommitDetailsCache(capacity: 2));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1), cache: new CommitDetailsCache(capacity: 2));
 
         store.Select(reader.Commits[0], [reader.Commits[1], reader.Commits[2], reader.Commits[3]]);
-        await WaitForPostsAsync(posted, 4);
+        await pump.RunPostsAsync(4);
 
         Assert.Equal(2, store.CachedCount);
     }
@@ -111,12 +112,12 @@ public class CommitDetailsPrefetchTests
     public async Task GivenUnreadableNeighbour_WhenPrefetching_ThenTheSelectionStaysLoadedAndTheOtherNeighboursAreRead()
     {
         var reader = FakeCommitDetailsReader.Chain(2);
-        var posted = new SemaphoreSlim(0);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => { action(); posted.Release(); }, TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(reader.Commits[0], [missing, reader.Commits[1]]);
-        await WaitForPostsAsync(posted, 2);
+        await pump.RunPostsAsync(2);
 
         Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
         Assert.Equal(2, store.CachedCount);
@@ -128,11 +129,11 @@ public class CommitDetailsPrefetchTests
         var reader = FakeCommitDetailsReader.Chain(3);
         var debounce = TimeSpan.FromMilliseconds(100);
         var waits = new List<TimeSpan>();
-        var posted = new SemaphoreSlim(0);
+        var pump = new UiPump(Token);
         var clock = new ManualTimeProvider();
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            action => { action(); posted.Release(); },
+            pump.Post,
             debounce,
             (wait, _) =>
             {
@@ -146,13 +147,13 @@ public class CommitDetailsPrefetchTests
             timeProvider: clock);
 
         store.Select(reader.Commits[0]);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
         clock.Advance(TimeSpan.FromMilliseconds(10));
         store.Select(reader.Commits[1]);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
         clock.Advance(TimeSpan.FromMilliseconds(500));
         store.Select(reader.Commits[2]);
-        await WaitForPostsAsync(posted, 1);
+        await pump.RunPostsAsync(1);
 
         lock (waits)
         {
@@ -166,10 +167,10 @@ public class CommitDetailsPrefetchTests
         var reader = FakeCommitDetailsReader.Chain(3);
         var debounce = TimeSpan.FromMilliseconds(100);
         var waits = new List<TimeSpan>();
-        var posted = new SemaphoreSlim(0);
+        var pump = new UiPump(Token);
         using var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            action => { action(); posted.Release(); },
+            pump.Post,
             debounce,
             (wait, _) =>
             {
@@ -182,7 +183,7 @@ public class CommitDetailsPrefetchTests
             });
 
         store.Select(reader.Commits[0], [reader.Commits[1]]);
-        await WaitForPostsAsync(posted, 2);
+        await pump.RunPostsAsync(2);
 
         lock (waits)
         {
@@ -238,7 +239,7 @@ public class CommitDetailsPrefetchTests
         Assert.Equal(2, store.CachedCount);
     }
 
-    /// <summary>Waits for results posted to the UI (the test posts them inline from the loader thread and counts them).</summary>
+    /// <summary>Waits until the loader thread has posted the given number of results, which the test then holds in a queue instead of running.</summary>
     private static async Task WaitForPostsAsync(SemaphoreSlim posted, int count)
     {
         for (var index = 0; index < count; index++)
