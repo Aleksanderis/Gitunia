@@ -15,6 +15,8 @@ namespace Gitunia.Tui.Views.Lists;
 public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private DiffWrapMap? _map;
+    private DiffSplit? _split;
+    private DiffSplitMap? _splitMap;
     private int _paneWidth;
     private int _gutterDigits = DiffRowRenderer.GutterDigits(0);
 
@@ -31,7 +33,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         get => _paneWidth;
         set
         {
-            if (_paneWidth != value && IsWrapped)
+            if (_paneWidth != value && (IsWrapped || IsSideBySide))
             {
                 RangeInvalidated?.Invoke();
             }
@@ -43,8 +45,14 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
 
-    /// <summary>Screen lines: one per row, or more when wrapped.</summary>
-    public int Count => Map()?.Count ?? Document.Rows.Count;
+    /// <summary>The side-by-side view is switched on (it shows only while the pane is wide enough, see <see cref="ShowsSideBySide"/>).</summary>
+    public bool IsSideBySide { get; private set; }
+
+    /// <summary>Rows are drawn as old and new side by side: switched on and the pane has the <see cref="DiffSplitRenderer.MinimumWidth"/> columns it needs.</summary>
+    public bool ShowsSideBySide => IsSideBySide && Width >= DiffSplitRenderer.MinimumWidth;
+
+    /// <summary>Screen lines: one per row, or fewer or more when side by side or wrapped.</summary>
+    public int Count => ShowsSideBySide ? SplitMap().Count : Map()?.Count ?? Document.Rows.Count;
 
     public int MaxItemLength => 0;
 
@@ -60,6 +68,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         Document = document;
         RangeInvalidated?.Invoke();
         _map = null;
+        _split = null;
+        _splitMap = null;
         _gutterDigits = DiffRowRenderer.GutterDigits(document.MaximumLineNumber);
         Notify();
     }
@@ -70,14 +80,28 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         IsWrapped = isWrapped;
         RangeInvalidated?.Invoke();
         _map = null;
+        _splitMap = null;
+        Notify();
+    }
+
+    /// <summary>Turns the side-by-side view on or off and tells the list.</summary>
+    public void SetSideBySide(bool isSideBySide)
+    {
+        IsSideBySide = isSideBySide;
+        RangeInvalidated?.Invoke();
+        _splitMap = null;
         Notify();
     }
 
     /// <summary>The diff row shown on screen line <paramref name="line"/>.</summary>
-    public int RowOf(int line) => Map() is { } current ? current.RowOf(line) : line;
+    /// <remarks>Side by side, the first row of the line: the old side's when it has one.</remarks>
+    public int RowOf(int line) => ShowsSideBySide ? SplitMap().RowOf(line) : Map() is { } current ? current.RowOf(line) : line;
+
+    /// <summary>The last diff row shown on screen line <paramref name="line"/>: the new side's row of a side-by-side line, else the same as <see cref="RowOf"/>.</summary>
+    public int LastRowOf(int line) => ShowsSideBySide ? SplitMap().LastRowOf(line) : RowOf(line);
 
     /// <summary>The first screen line of diff row <paramref name="row"/>.</summary>
-    public int LineOf(int row) => Map() is { } current ? current.StartOf(row) : row;
+    public int LineOf(int row) => ShowsSideBySide ? SplitMap().StartOf(row) : Map() is { } current ? current.StartOf(row) : row;
 
     public bool IsMarked(int item) => false;
 
@@ -93,7 +117,9 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var current = Map();
         width = PanePadding.TextWidth(width, columns);
         selected |= Range?.Contains(item) == true;
-        var line = current is not null && item >= 0 && item < current.Count
+        var line = ShowsSideBySide
+            ? SplitLine(item, width, selected)
+            : current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected)
             : current is null && item >= 0 && item < Document.Rows.Count
                 ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs)
@@ -123,6 +149,42 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         }
 
         return _map;
+    }
+
+    private DiffSplitMap SplitMap()
+    {
+        _split ??= DiffSplitLayout.Build(Document);
+        if (_splitMap is null || _splitMap.IsWrapped != IsWrapped)
+        {
+            _splitMap = DiffSplitMap.Build(Document, _split, Width, IsWrapped);
+        }
+        else if (_splitMap.Width != Width)
+        {
+            _splitMap = _splitMap.Resize(Width);
+        }
+
+        return _splitMap;
+    }
+
+    private StyledLine SplitLine(int item, int width, bool isSelected)
+    {
+        var current = SplitMap();
+        if (item < 0 || item >= current.Count)
+        {
+            return new LineBuilder(width, glyphs.Ellipsis).Build();
+        }
+
+        var index = current.SplitLineOf(item);
+        return DiffSplitRenderer.Render(
+            Document,
+            current.Split.Lines[index],
+            item - current.StartOfSplitLine(index),
+            width,
+            _gutterDigits,
+            Highlight,
+            isSelected,
+            IsWrapped,
+            glyphs);
     }
 
     private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected)

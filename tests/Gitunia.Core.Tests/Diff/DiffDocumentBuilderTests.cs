@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Core.Diff;
 using Gitunia.Git.Diff;
 using Xunit;
@@ -99,6 +100,69 @@ public class DiffDocumentBuilderTests
     public void GivenAnUnknownPath_WhenLookingForTheFile_ThenTheIndexIsMinusOne()
     {
         Assert.Equal(-1, Build(TwoFiles).FileIndexOf("missing.txt"));
+    }
+
+    [Fact]
+    public void GivenAWholeFileWithTwoDistantChanges_WhenBuilding_ThenEachChangeGroupIsAnAnchorWhereItsContextStarts()
+    {
+        var document = BuildWholeFile(WholeFilePatch(changedLines: [5, 25], lineCount: 30), 3);
+
+        Assert.Equal(2, document.HunkRows.Count);
+        var first = document.HunkRows[0];
+        var second = document.HunkRows[1];
+        Assert.Equal("line 2", document.Rows[first].Text);
+        Assert.Equal("line 22", document.Rows[second].Text);
+        Assert.DoesNotContain(document.Rows.Index().Where(item => item.Item.Kind == DiffRowKind.HunkHeader), item => document.HunkRows.Contains(item.Index));
+    }
+
+    [Fact]
+    public void GivenAWholeFileWithChangesWithinTwiceTheContext_WhenBuilding_ThenTheyAreOneGroup()
+    {
+        var near = BuildWholeFile(WholeFilePatch(changedLines: [5, 12], lineCount: 30), 3);
+        var apart = BuildWholeFile(WholeFilePatch(changedLines: [5, 13], lineCount: 30), 3);
+
+        Assert.Single(near.HunkRows);
+        Assert.Equal(2, apart.HunkRows.Count);
+    }
+
+    [Fact]
+    public void GivenAWholeFileAndNoContext_WhenBuilding_ThenAnchorsAreTheChangedRowsThemselves()
+    {
+        var document = BuildWholeFile(WholeFilePatch(changedLines: [1, 2, 9], lineCount: 12), 0);
+
+        Assert.Equal(2, document.HunkRows.Count);
+        Assert.All(document.HunkRows, row => Assert.Equal(DiffRowKind.Removed, document.Rows[row].Kind));
+    }
+
+    private static string WholeFilePatch(int[] changedLines, int lineCount)
+    {
+        var builder = new StringBuilder();
+        builder.Append("diff --git a/f.txt b/f.txt\nindex 111..222 100644\n--- a/f.txt\n+++ b/f.txt\n");
+        builder.Append($"@@ -1,{lineCount} +1,{lineCount} @@\n");
+        for (var number = 1; number <= lineCount; number++)
+        {
+            if (changedLines.Contains(number))
+            {
+                builder.Append($"-old {number}\n+line {number}\n");
+            }
+            else
+            {
+                builder.Append($" line {number}\n");
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static DiffDocument BuildWholeFile(string patch, int context)
+    {
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(patch).Items)
+        {
+            builder.Add(file, context);
+        }
+
+        return builder.Build([]);
     }
 
     private static DiffDocument Build(string patch, params string[] warnings)

@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,narrow,light] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -13,7 +13,7 @@
 # so the code repository never carries them. It is private: links are github.com/<screenshots repo>/raw/<commit>/... (render for
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
-# Scenarios: default (120x36), diff (diff pane open), narrow (64x30), light (light terminal background).
+# Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -136,6 +136,7 @@ render() {
     case "$scenario" in
       default) ;;
       diff) keys="Enter Enter" ;;
+      split) columns=170 keys="Enter Enter S" ;;
       narrow) columns=64 rows=30 ;;
       light) theme=light ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;

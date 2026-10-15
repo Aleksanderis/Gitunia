@@ -62,9 +62,12 @@ public static class DiffRowRenderer
     /// <summary>How many screen lines <paramref name="row"/> takes when its text wraps at <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffRow row, int width, int gutterDigits)
     {
-        var columns = width - PrefixWidth(row, gutterDigits);
-        return columns <= 0 || (row.Text.Length * 2 <= columns && !ContainsControl(row.Text)) ? 1 : Chunks(ExpandTabs(row.Text), columns).Count;
+        return TextSegmentCount(row.Text, width - PrefixWidth(row, gutterDigits));
     }
+
+    /// <summary>How many screen lines <paramref name="text"/> takes when it wraps at <paramref name="columns"/> columns.</summary>
+    public static int TextSegmentCount(string text, int columns) =>
+        columns <= 0 || (text.Length * 2 <= columns && !ContainsControl(text)) ? 1 : Chunks(ExpandTabs(text), columns).Count;
 
     /// <summary>Cuts <paramref name="shown"/> into pieces of at most <paramref name="columns"/> columns; a wide character is never split.</summary>
     public static List<string> Chunks(string shown, int columns)
@@ -209,7 +212,7 @@ public static class DiffRowRenderer
     /// least one column, so twice the width plus a margin for zero-width marks is enough), so a minified line of megabytes costs
     /// no more per draw than a short one. Still longer than the pane after expanding, so the ellipsis shows (not for pathological lines of mostly zero-width marks, which show cut without it).
     /// </summary>
-    private static string CutToWidth(string text, int width)
+    internal static string CutToWidth(string text, int width)
     {
         var limit = (Math.Max(width, 0) * 2) + CutMargin;
         if (text.Length <= limit)
@@ -220,7 +223,7 @@ public static class DiffRowRenderer
         return char.IsHighSurrogate(text[limit - 1]) ? text[..(limit - 1)] : text[..limit];
     }
 
-    private static void AppendHighlighted(LineBuilder builder, string shown, SegmentRole role, string? highlight)
+    internal static void AppendHighlighted(LineBuilder builder, string shown, SegmentRole role, string? highlight)
     {
         if (highlight is not { Length: > 0 })
         {
@@ -245,6 +248,6 @@ public static class DiffRowRenderer
         builder.Append(shown[position..], role);
     }
 
-    private static string Number(int? value, int digits) =>
+    internal static string Number(int? value, int digits) =>
         value is { } number ? number.ToString(CultureInfo.InvariantCulture).PadLeft(digits) : new string(' ', digits);
 }

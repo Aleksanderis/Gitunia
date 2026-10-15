@@ -330,7 +330,7 @@ public sealed class DiffPaneController : IPromptHandler
             isFocused,
             diff.Search.Highlight,
             diff.Source.IsWrapped,
-            DiffOptionsLabel.Of(diff.Store.Options));
+            DiffOptionsLabel.Of(diff.Store.Options, diff.Source.IsSideBySide, diff.Source.ShowsSideBySide));
     }
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
@@ -351,6 +351,10 @@ public sealed class DiffPaneController : IPromptHandler
             diff.Source.SetWrapped(!diff.Source.IsWrapped);
             Select(row, atTop: true);
             Notice = diff.Source.IsWrapped ? "Word wrap on" : "Word wrap off";
+        }
+        else if (action == ActionIds.DiffToggleSideBySide)
+        {
+            ToggleSideBySide(diff, row);
         }
         else if (action == ActionIds.DiffCopyLine || action == ActionIds.DiffCopyFile)
         {
@@ -478,6 +482,22 @@ public sealed class DiffPaneController : IPromptHandler
         else
         {
             _clipboard.Copy(DiffTextWriter.File(document, document.Rows[row].FileIndex), "file diff");
+        }
+    }
+
+    private void ToggleSideBySide(DiffSession diff, int row)
+    {
+        diff.Source.SetSideBySide(!diff.Source.IsSideBySide);
+        Select(row, atTop: true);
+        if (!diff.Source.IsSideBySide)
+        {
+            Notice = "Side by side off";
+        }
+        else
+        {
+            Notice = diff.Source.ShowsSideBySide
+                ? "Side by side on"
+                : $"Side by side on: needs {DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture)} columns (zoom with <space>z)";
         }
     }
 
@@ -682,7 +702,7 @@ public sealed class DiffPaneController : IPromptHandler
         _isSyncing = true;
         try
         {
-            if (!diff.Source.IsWrapped)
+            if (!diff.Source.IsWrapped && !diff.Source.IsSideBySide)
             {
                 diff.Source.Width = ListTextWidth();
                 return;

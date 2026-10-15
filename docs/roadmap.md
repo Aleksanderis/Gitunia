@@ -36,7 +36,7 @@ Done when: usable as a daily driver on Linux; macOS/Windows binaries build in CI
 
 ## Post-MVP candidates
 
-Interactive rebase editor, blame, conflict resolution view, side-by-side diff, submodules, PR/issue integration.
+Interactive rebase editor, blame, conflict resolution view, submodules, PR/issue integration.
 
 ## Open questions
 

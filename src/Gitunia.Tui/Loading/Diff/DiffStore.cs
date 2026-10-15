@@ -259,7 +259,7 @@ public sealed class DiffStore(
         var files = reader.ReadCommitAsync(location, commit, firstParent, warnings, lineLimit, Options, token);
         await foreach (var file in files.ConfigureAwait(false))
         {
-            builder.Add(file);
+            builder.Add(file, Options.WholeFile ? Options.ContextLines : null);
             fileCut |= file.IsTruncated;
             if (builder.RowCount >= rows)
             {

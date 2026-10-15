@@ -2,7 +2,7 @@ namespace Gitunia.Core.Diff;
 
 /// <summary>The rows of a whole commit diff plus the anchors hunk and file navigation jumps to.</summary>
 /// <param name="Rows">All rows, top to bottom.</param>
-/// <param name="HunkRows">Row index of every hunk header, ascending.</param>
+/// <param name="HunkRows">Row index of every hunk header, ascending; for a file read whole, the first row of every group of changes instead (see <see cref="DiffDocumentBuilder.Add"/>).</param>
 /// <param name="FileRows">Row index of every file header, ascending; file <c>n</c> starts at <c>FileRows[n]</c>.</param>
 /// <param name="FilePaths">Per file the paths it is known by (new path, then old path when different), for finding it from the file list.</param>
 /// <param name="MaximumLineNumber">The largest line number in any row, so the gutter can be as wide as it needs to be.</param>

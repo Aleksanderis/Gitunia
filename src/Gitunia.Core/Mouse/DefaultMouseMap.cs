@@ -25,6 +25,16 @@ public static class DefaultMouseMap
 
     public const string DiffZoomButton = "DiffButton.Zoom";
 
+    public const string DiffMoreContextButton = "DiffButton.MoreContext";
+
+    public const string DiffLessContextButton = "DiffButton.LessContext";
+
+    public const string DiffWholeFileButton = "DiffButton.WholeFile";
+
+    public const string DiffIgnoreWhitespaceButton = "DiffButton.IgnoreWhitespace";
+
+    public const string DiffSideBySideButton = "DiffButton.SideBySide";
+
     /// <summary>The tab labels in the detail pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
     public const string DetailDetailsTab = "DetailTab.Details";
 
@@ -82,6 +92,11 @@ public static class DefaultMouseMap
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),
         new(DiffZoomButton, MouseGesture.Click, ActionIds.PaneZoom),
+        new(DiffMoreContextButton, MouseGesture.Click, ActionIds.DiffMoreContext),
+        new(DiffLessContextButton, MouseGesture.Click, ActionIds.DiffLessContext),
+        new(DiffWholeFileButton, MouseGesture.Click, ActionIds.DiffToggleWholeFile),
+        new(DiffIgnoreWhitespaceButton, MouseGesture.Click, ActionIds.DiffToggleIgnoreWhitespace),
+        new(DiffSideBySideButton, MouseGesture.Click, ActionIds.DiffToggleSideBySide),
         new(DetailDetailsTab, MouseGesture.Click, ActionIds.DetailTabDetails),
         new(DetailChangesTab, MouseGesture.Click, ActionIds.DetailTabChanges),
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),

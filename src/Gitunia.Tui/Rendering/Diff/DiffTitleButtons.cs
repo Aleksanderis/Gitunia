@@ -4,9 +4,10 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// The buttons at the right end of the diff pane's title row: previous and next hunk, word wrap and zoom, drawn as
+/// The buttons at the right end of the diff pane's title row: previous and next hunk, fewer and more context, whole file,
+/// ignore whitespace, side by side, word wrap and zoom, drawn as
 /// padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see <see cref="ButtonLabel"/>). They are the
-/// mouse path of <c>[c</c> <c>]c</c> <c>w</c> and <c>&lt;space&gt;z</c>. Narrow panes show only the
+/// mouse path of <c>[c</c> <c>]c</c> <c>-</c> <c>+</c> <c>F</c> <c>W</c> <c>S</c> <c>w</c> and <c>&lt;space&gt;z</c>. Narrow panes show only the
 /// last ones (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box:
 /// a column of line follows each button.
 /// </summary>
@@ -20,6 +21,11 @@ public static class DiffTitleButtons
     [
         new(DefaultMouseMap.DiffZoomButton, " zoom "),
         new(DefaultMouseMap.DiffWrapButton, " wrap "),
+        new(DefaultMouseMap.DiffSideBySideButton, " split "),
+        new(DefaultMouseMap.DiffIgnoreWhitespaceButton, " -w "),
+        new(DefaultMouseMap.DiffWholeFileButton, " file "),
+        new(DefaultMouseMap.DiffMoreContextButton, " ctx+ "),
+        new(DefaultMouseMap.DiffLessContextButton, " ctx- "),
         new(DefaultMouseMap.DiffNextHunkButton, " hunk › "),
         new(DefaultMouseMap.DiffPreviousHunkButton, " ‹ hunk "),
     ];

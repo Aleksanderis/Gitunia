@@ -184,3 +184,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Commit messages (#32, owner): a built-in Insert-mode editor and `$EDITOR` hand-off (#51) both exist, as in most git clients. Supersedes "no built-in text editor". Working tree is its own view: unstaged and staged lists left, diff right, message box below with SignOff, No-Verify and Amend options (#28).
 
 **UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
+
+**UI:** Diff options follow-up (#312 reopened, #315): every diff option has a title button next to its key; whole-file mode keeps hunk navigation per group of changes (grouped like git hunks for the current context) instead of one hunk per file; side-by-side (`S`) is in, so the README "later" is done. It needs 80 text columns, otherwise the unified rows stay. The cursor is one line of the pair (its old-side row). Supersedes the split-off of side-by-side above.
