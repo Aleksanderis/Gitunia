@@ -6,6 +6,7 @@
 - Real `git` against real temporary repos for the Git layer. No mocking the process runner except for timeout/cancellation/error-path tests.
 - State and keymap logic is pure and tested without a terminal.
 - No test touches the user's repos, global git config or network. Isolation recipe, naming, waiting rules and fixture shapes are in the `testing` skill.
+- Tests run in parallel and git children inherit the process environment: never change process-wide environment variables in a test, except in the `AmbientEnvironmentGroup` collection (runs alone), or concurrent git runs flake (#299).
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Layers

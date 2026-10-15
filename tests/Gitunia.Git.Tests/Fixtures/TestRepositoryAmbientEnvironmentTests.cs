@@ -3,16 +3,10 @@ using Xunit;
 namespace Gitunia.Git.Tests.Fixtures;
 
 /// <summary>
-/// Mutates process-wide environment variables (GIT_CONFIG_GLOBAL, GIT_COMMITTER_NAME) that every git child process
-/// inherits, so it must not overlap with any other test: a concurrent git run reads the temporary config while it is
-/// deleted and fails with "unknown error occurred while reading the configuration files" (#299).
+/// Mutates GIT_CONFIG_GLOBAL and GIT_COMMITTER_NAME, which every git child process inherits; a concurrent git run would
+/// read the temporary config while it is deleted and fail with "unknown error occurred while reading the configuration
+/// files" (#299).
 /// </summary>
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class AmbientEnvironmentGroup
-{
-    public const string Name = "Ambient git environment";
-}
-
 [Collection(AmbientEnvironmentGroup.Name)]
 public class TestRepositoryAmbientEnvironmentTests
 {
