@@ -27,14 +27,14 @@ public static class RangeTextBuilder
 
     /// <summary>
     /// The diff rows the range touches, one per line with their <c>+</c>, <c>-</c> or space prefix and no gutter. The range is in screen lines;
-    /// with word wrap on, a row that wraps over several lines is copied once. Notes and warnings are left out.
+    /// with word wrap on, a row that wraps over several lines is copied once; side by side, the rows between the first row of the range's first line and the last row of its last line are copied in diff order. Notes and warnings are left out.
     /// </summary>
     public static string Diff(DiffListSource source, RowRange range)
     {
         var rows = source.Document.Rows;
         var builder = new StringBuilder();
         var first = source.RowOf(range.First);
-        var last = source.RowOf(range.Last);
+        var last = source.LastRowOf(range.Last);
         for (var row = Math.Max(first, 0); row <= last && row < rows.Count; row++)
         {
             if (rows[row].Kind is not (DiffRowKind.Note or DiffRowKind.Warning))

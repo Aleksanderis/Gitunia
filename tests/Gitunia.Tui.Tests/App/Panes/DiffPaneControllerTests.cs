@@ -622,6 +622,94 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenWholeFileMode_WhenJumpingBetweenHunks_ThenEachGroupOfChangesIsItsOwnHunk()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var unified = harness.Session.Diff!.Source.Document.HunkRows.Count;
+
+        harness.Execute(ActionIds.DiffToggleWholeFile);
+        await harness.WaitForDiffAsync();
+        var source = harness.Session.Diff.Source;
+        var hunks = source.Document.HunkRows;
+
+        Assert.Equal(unified, hunks.Count);
+        Assert.Equal(3, hunks.Count);
+        harness.Execute(ActionIds.DiffNextHunk);
+        Assert.Equal(hunks[0], source.RowOf(harness.DiffList.SelectedItem!.Value));
+        harness.Execute(ActionIds.DiffNextHunk);
+        Assert.Equal(hunks[1], source.RowOf(harness.DiffList.SelectedItem!.Value));
+        harness.Execute(ActionIds.DiffPreviousHunk);
+        Assert.Equal(hunks[0], source.RowOf(harness.DiffList.SelectedItem!.Value));
+    }
+
+    [Fact]
+    public async Task GivenAWidePane_WhenTogglingSideBySide_ThenRemovedAndAddedRowsShareALineAndTheCursorStaysOnItsRow()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.DiffList.Width = 100;
+        harness.DiffList.SetRelativeLayout(new Size(120, 24));
+        var source = harness.Session.Diff!.Source;
+        var rows = source.Document.Rows.Count;
+        var removed = source.Document.Rows.Index().First(item => item.Item.Kind == DiffRowKind.Removed).Index;
+        harness.DiffList.SelectedItem = source.LineOf(removed);
+
+        harness.Execute(ActionIds.DiffToggleSideBySide);
+
+        Assert.True(source.ShowsSideBySide);
+        Assert.True(source.Count < rows);
+        Assert.Equal(source.LineOf(removed), source.LineOf(removed + 1));
+        Assert.Equal(removed, source.RowOf(harness.DiffList.SelectedItem!.Value));
+        Assert.Equal("Side by side on", harness.Controller.Notice);
+        harness.Execute(ActionIds.DiffToggleSideBySide);
+        Assert.Equal(rows, source.Count);
+        Assert.Equal("Side by side off", harness.Controller.Notice);
+    }
+
+    [Fact]
+    public async Task GivenSideBySide_WhenSteppingThroughMatchesOnBothSidesOfAPair_ThenEveryMatchIsVisitedOnce()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.DiffList.Width = 100;
+        harness.DiffList.SetRelativeLayout(new Size(120, 24));
+        harness.Execute(ActionIds.DiffToggleSideBySide);
+        harness.Execute(ActionIds.DiffSearchOpen);
+        harness.Type("line 3");
+        harness.Execute(ActionIds.InputAccept);
+        var diff = harness.Session.Diff!;
+        var matches = diff.Search.Matches;
+
+        var visited = new List<int> { diff.SearchRow!.Value };
+        for (var step = 1; step < matches.Count; step++)
+        {
+            harness.Execute(ActionIds.DiffSearchNext);
+            visited.Add(diff.SearchRow!.Value);
+        }
+
+        Assert.True(matches.Count > 3);
+        Assert.Equal(matches.Count, visited.Distinct().Count());
+        Assert.Equal(matches.Order(), visited.Order());
+    }
+
+    [Fact]
+    public async Task GivenANarrowPane_WhenTogglingSideBySide_ThenTheUnifiedRowsStayAndANoticeNamesTheWidth()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var source = harness.Session.Diff!.Source;
+        var rows = source.Document.Rows.Count;
+
+        harness.Execute(ActionIds.DiffToggleSideBySide);
+
+        Assert.True(source.IsSideBySide);
+        Assert.False(source.ShowsSideBySide);
+        Assert.Equal(rows, source.Count);
+        Assert.Contains("80", harness.Controller.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenNoContextLeft_WhenShowingFewerLines_ThenANoticeSaysSo()
     {
         using var harness = await DiffHarness.LoadAsync();

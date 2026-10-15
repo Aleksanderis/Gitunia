@@ -54,6 +54,7 @@ public static class ActionCatalog
         ["diff.search-open"] = "Search in the diff",
         ["diff.search-previous"] = "Previous diff search match",
         ["diff.toggle-ignore-whitespace"] = "Toggle ignoring whitespace changes in the diff",
+        ["diff.toggle-side-by-side"] = "Toggle the side-by-side diff",
         ["diff.toggle-whole-file"] = "Toggle showing whole files in the diff",
         ["diff.toggle-wrap"] = "Toggle word wrap in the diff",
         ["graph.copy-hash"] = "Copy the commit hash",

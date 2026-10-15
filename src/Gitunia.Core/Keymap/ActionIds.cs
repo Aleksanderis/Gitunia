@@ -55,6 +55,8 @@ public static class ActionIds
 
     public static ActionId DiffToggleIgnoreWhitespace { get; } = new("diff.toggle-ignore-whitespace");
 
+    public static ActionId DiffToggleSideBySide { get; } = new("diff.toggle-side-by-side");
+
     public static ActionId DiffToggleWholeFile { get; } = new("diff.toggle-whole-file");
 
     public static ActionId DiffToggleWrap { get; } = new("diff.toggle-wrap");

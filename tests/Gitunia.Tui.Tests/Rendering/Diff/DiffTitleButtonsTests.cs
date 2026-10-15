@@ -14,7 +14,7 @@ public class DiffTitleButtonsTests
     {
         var buttons = DiffTitleButtons.Layout(100);
 
-        Assert.Equal([" ‹ hunk ", " hunk › ", " wrap ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal([" ‹ hunk ", " hunk › ", " ctx- ", " ctx+ ", " file ", " -w ", " split ", " wrap ", " zoom "], buttons.Select(button => button.Label));
         Assert.Equal(98, buttons[^1].Start + buttons[^1].Width);
         Assert.Equal(1, buttons[1].Start - (buttons[0].Start + buttons[0].Width));
     }
@@ -26,6 +26,14 @@ public class DiffTitleButtonsTests
 
         Assert.Equal([" wrap ", " zoom "], buttons.Select(button => button.Label));
         Assert.True(buttons[0].Start >= DiffTitleButtons.MinimumTitleWidth);
+    }
+
+    [Fact]
+    public void GivenATypicalPaneWidth_WhenLayingOut_ThenTheHunkButtonsStayAheadOfTheOptionButtons()
+    {
+        var buttons = DiffTitleButtons.Layout(80);
+
+        Assert.Equal([" ‹ hunk ", " hunk › ", " -w ", " split ", " wrap ", " zoom "], buttons.Select(button => button.Label));
     }
 
     [Fact]
@@ -83,8 +91,13 @@ public class DiffTitleButtonsTests
     [Theory]
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, 0)]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, 1)]
-    [InlineData(DefaultMouseMap.DiffWrapButton, 2)]
-    [InlineData(DefaultMouseMap.DiffZoomButton, 3)]
+    [InlineData(DefaultMouseMap.DiffLessContextButton, 2)]
+    [InlineData(DefaultMouseMap.DiffMoreContextButton, 3)]
+    [InlineData(DefaultMouseMap.DiffWholeFileButton, 4)]
+    [InlineData(DefaultMouseMap.DiffIgnoreWhitespaceButton, 5)]
+    [InlineData(DefaultMouseMap.DiffSideBySideButton, 6)]
+    [InlineData(DefaultMouseMap.DiffWrapButton, 7)]
+    [InlineData(DefaultMouseMap.DiffZoomButton, 8)]
     public void GivenAButton_WhenClickingAnyOfItsColumns_ThenTheLookupFindsItAndTheNeighbourColumnsMiss(string view, int index)
     {
         var buttons = DiffTitleButtons.Layout(100);
@@ -108,7 +121,7 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Ascii);
 
         Assert.Equal(100, TextWidth.Of(title.Text));
-        Assert.Contains("[< hunk]-[hunk >]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
+        Assert.Contains("[< hunk]-[hunk >]-[ctx-]-[ctx+]-[file]-[-w]-[split]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
         Assert.EndsWith("[zoom]--", title.Text, StringComparison.Ordinal);
     }
 
@@ -120,9 +133,9 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
         Assert.Equal(100, TextWidth.Of(title.Text));
-        Assert.EndsWith(" ‹ hunk ─ hunk › ─ wrap ─ zoom ──", title.Text, StringComparison.Ordinal);
+        Assert.EndsWith(" ‹ hunk ─ hunk › ─ ctx- ─ ctx+ ─ file ─ -w ─ split ─ wrap ─ zoom ──", title.Text, StringComparison.Ordinal);
         Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
-        Assert.Equal(4, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
+        Assert.Equal(9, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
     }
 
     [Fact]
@@ -136,11 +149,11 @@ public class DiffTitleButtonsTests
             1);
         var pane = new DiffPaneModel(document, 0, 0, true, IsWrapped: true);
 
-        var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
+        var title = DiffPaneRenderer.RenderTitle(pane, 120, GraphGlyphSet.Unicode);
 
         Assert.Contains("[wrap]", title.Text, StringComparison.Ordinal);
         Assert.Contains(GraphGlyphSet.Unicode.Ellipsis, title.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("file.txt", title.Text, StringComparison.Ordinal);
-        Assert.Equal(100, TextWidth.Of(title.Text));
+        Assert.Equal(120, TextWidth.Of(title.Text));
     }
 }

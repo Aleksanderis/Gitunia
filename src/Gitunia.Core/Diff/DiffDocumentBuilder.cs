@@ -31,7 +31,12 @@ public sealed class DiffDocumentBuilder
             : $"{mark} {file.Path}";
     }
 
-    public void Add(DiffFile file)
+    /// <param name="file">The file to add.</param>
+    /// <param name="wholeFileContext">
+    /// Set when the file was read whole (git then reports one hunk): the context lines the changes would have been grouped by,
+    /// so hunk navigation still visits each group of changes as git's own hunks would. Null for a normal diff.
+    /// </param>
+    public void Add(DiffFile file, int? wholeFileContext = null)
     {
         var fileIndex = _fileRows.Count;
         _fileRows.Add(_rows.Count);
@@ -40,7 +45,12 @@ public sealed class DiffDocumentBuilder
         AddNotes(file, fileIndex);
         foreach (var hunk in file.Hunks)
         {
-            _hunkRows.Add(_rows.Count);
+            var headerRow = _rows.Count;
+            if (wholeFileContext is null)
+            {
+                _hunkRows.Add(headerRow);
+            }
+
             _rows.Add(new DiffRow(DiffRowKind.HunkHeader, hunk.HeaderText, null, null, fileIndex));
             foreach (var line in hunk.Lines)
             {
@@ -56,6 +66,11 @@ public sealed class DiffDocumentBuilder
                 {
                     _rows.Add(new DiffRow(DiffRowKind.NoNewline, "No newline at end of file", null, null, fileIndex));
                 }
+            }
+
+            if (wholeFileContext is { } context)
+            {
+                AddChangeGroupAnchors(headerRow, context);
             }
         }
 
@@ -81,6 +96,28 @@ public sealed class DiffDocumentBuilder
             [.. _fileRows.Select(row => row + shift)],
             _filePaths,
             _maximumLineNumber);
+    }
+
+    // Changes closer than twice the context lines are one hunk in git's grouping; each group is an anchor, placed where its context starts.
+    private void AddChangeGroupAnchors(int headerRow, int context)
+    {
+        var lastChange = headerRow;
+        var hasChange = false;
+        for (var row = headerRow + 1; row < _rows.Count; row++)
+        {
+            if (_rows[row].Kind is not (DiffRowKind.Added or DiffRowKind.Removed))
+            {
+                continue;
+            }
+
+            if (!hasChange || row - lastChange - 1 > 2 * context)
+            {
+                _hunkRows.Add(Math.Max(lastChange + 1, row - context));
+            }
+
+            hasChange = true;
+            lastChange = row;
+        }
     }
 
     private void AddNotes(DiffFile file, int fileIndex)

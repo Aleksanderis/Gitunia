@@ -18,7 +18,7 @@ In:
 - Standalone, multi-repository workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repository picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
 - Commit graph (scrollable, searchable, handles 100k+ commits).
 - Working tree: status, stage/unstage files, hunks and lines, commit, amend.
-- Diff viewer (unified, side-by-side later).
+- Diff viewer (unified and side-by-side).
 - Branches: list local/remote, checkout, create, rename, delete, merge, rebase, upstream tracking, ahead/behind.
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
 - Stash: list, push, apply, pop, drop.
