@@ -23,7 +23,7 @@ In:
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
 - Stash: list, push, apply, pop, drop.
 - Fetch, pull, push with progress and cancellation.
-- Hand-off to the user's tools: `$EDITOR` for commit messages, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
+- Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
 Out until after MVP (ask before adding): interactive rebase editor, submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.

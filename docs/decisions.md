@@ -18,7 +18,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Architecture:** `Gitunia.Platform` holds config/state dirs and console capability detection, so Core stays free of OS code. SDK pinned to 10.0.400 (`rollForward: latestFeature`), test projects use xUnit v3, underscores allowed in test names.
 
-**UI:** External tools (`$EDITOR`, difftool, mergetool) get the terminal by suspending the TUI; clipboard via OSC 52; no built-in text editor (staging works on hunks and lines).
+**UI:** External tools (`$EDITOR`, difftool, mergetool) get the terminal by suspending the TUI; clipboard via OSC 52; commit messages use a built-in Insert-mode editor or `$EDITOR` (2026-10-15).
 
 **Process:** Other open-source Git clients are sources of ideas, never of copied code. Why: licence hygiene.
 
@@ -180,3 +180,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 
 **UI:** The diff title row has no `‹ file` / `file ›` buttons (#310): files are chosen in the file list, `[f`/`]f` stay. Buttons count every click of a quick burst (the toolkit reports the second and third as double and triple click); a triple click elsewhere stays ignored.
+
+**UI:** Commit messages (#32, owner): a built-in Insert-mode editor and `$EDITOR` hand-off (#51) both exist, as in most git clients. Supersedes "no built-in text editor". Working tree is its own view: unstaged and staged lists left, diff right, message box below with SignOff, No-Verify and Amend options (#28).
