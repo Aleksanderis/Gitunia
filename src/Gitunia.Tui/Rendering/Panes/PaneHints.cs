@@ -39,7 +39,7 @@ public static class PaneHints
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
         new("l", "open diff", [ActionIds.DetailOpenDiff]),
         new("h", "back", [ActionIds.NavigateBack]),
-        new("r", "retry", [ActionIds.DetailRetry]),
+        new("<space>r", "retry", [ActionIds.DetailRetry]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Diff =
@@ -66,7 +66,7 @@ public static class PaneHints
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Tab", "other list", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
-        new("r", "refresh", [ActionIds.RepositoryRefresh]),
+        new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Picker =

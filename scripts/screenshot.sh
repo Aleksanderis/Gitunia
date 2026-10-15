@@ -14,7 +14,7 @@
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
 # Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background),
-# working and working-narrow (gs: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
+# working and working-narrow (<space>s: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -167,8 +167,8 @@ render() {
       split) columns=170 keys="Enter Enter S" ;;
       narrow) columns=64 rows=30 ;;
       light) theme=light ;;
-      working) keys="g s" ;;
-      working-narrow) columns=64 rows=30 keys="g s" ;;
+      working) keys="Space s" ;;
+      working-narrow) columns=64 rows=30 keys="Space s" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
     local scenario_repo="$repo"
