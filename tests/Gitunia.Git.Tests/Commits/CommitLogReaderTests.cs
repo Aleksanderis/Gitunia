@@ -40,6 +40,38 @@ public class CommitLogReaderTests
     }
 
     [Fact]
+    public async Task GivenUnbornHead_WhenReadingCurrentBranchTip_ThenNull()
+    {
+        using var testRepository = TestRepository.Create();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        Assert.Null(await CommitLog.ReadCurrentBranchTipAsync(location, Token));
+    }
+
+    [Fact]
+    public async Task GivenDetachedHead_WhenReadingCurrentBranchTip_ThenNull()
+    {
+        using var testRepository = TestRepositories.Linear(3);
+        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        Assert.Null(await CommitLog.ReadCurrentBranchTipAsync(location, Token));
+    }
+
+    [Fact]
+    public async Task GivenAnotherBranchCheckedOutInALinkedWorktree_WhenReadingCurrentBranchTip_ThenItIsTheTipOfTheBranchOfThisWorktree()
+    {
+        using var testRepository = TestRepositories.Linear(3);
+        testRepository.AddWorktree("side", "side", createBranch: true);
+        testRepository.Git("-C", testRepository.AddWorktree("side-2", "side-2", createBranch: true), "commit", "-q", "--allow-empty", "-m", "elsewhere");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var tip = await CommitLog.ReadCurrentBranchTipAsync(location, Token);
+
+        Assert.Equal(testRepository.Head, tip?.ToString());
+    }
+
+    [Fact]
     public async Task GivenCommitWithWestOffset_WhenReadingLog_ThenAuthorOffsetAndLocalDateAreKept()
     {
         using var testRepository = TestRepositories.Linear(1);

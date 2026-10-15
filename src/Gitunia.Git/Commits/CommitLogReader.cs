@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
@@ -78,7 +79,17 @@ public sealed class CommitLogReader : ICommitLogReader
 
     public async Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
-        var decorations = await ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
+        Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorations;
+        try
+        {
+            decorations = await ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
+        }
+        catch (GitException)
+        {
+            // Only the lane of the current branch depends on this, so a failure must not stop the graph from loading.
+            return null;
+        }
+
         foreach (var (id, list) in decorations)
         {
             for (var index = 0; index < list.Count; index++)
