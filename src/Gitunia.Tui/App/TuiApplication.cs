@@ -18,6 +18,7 @@ using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
@@ -130,16 +131,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.RefreshChrome,
             clipboard);
         _router.Diff = _diffPane;
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, () => PaneView(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph).Viewport.Height, clipboard);
         _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            pane => pane switch
-            {
-                PaneKind.Detail => _view.Detail,
-                PaneKind.Diff => _view.Diff,
-                PaneKind.Sidebar => _view.Sidebar,
-                _ => _view.Graph,
-            },
+            PaneView,
             () => _keys.Mode,
             mode => _keys.SetMode(mode),
             new RangeCopier(clipboard, ActiveSession).Copy);
@@ -183,6 +179,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
         _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
 
+        // Same for the working-tree view; it must run before ApplyFocus, which needs the panes it shows.
+        _ = new WorkingTreePresenter(_host, _view);
+
         _statuses.Changed += _view.RefreshChrome;
         _host.Changed += _view.RefreshChrome;
         _host.Changed += _binder.Sync;
@@ -198,6 +197,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Sidebar.HasFocusChanged += (_, _) => OnPaneFocused(_view.Sidebar, PaneKind.Sidebar);
         _view.Detail.HasFocusChanged += (_, _) => OnPaneFocused(_view.Detail, PaneKind.Detail);
         _view.Diff.HasFocusChanged += (_, _) => OnPaneFocused(_view.Diff, PaneKind.Diff);
+        _view.WorkingUnstaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingUnstaged, PaneKind.WorkingUnstaged);
+        _view.WorkingStaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingStaged, PaneKind.WorkingStaged);
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
@@ -270,8 +271,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return;
         }
 
-        // The sidebar has no ranges; dragging there only moves its selection.
-        if (gesture == MouseGesture.DragStart && viewName == DefaultKeymap.SidebarView)
+        // The sidebar and the working-tree lists have no ranges yet; dragging there only moves the selection.
+        if (gesture == MouseGesture.DragStart && viewName is DefaultKeymap.SidebarView or DefaultKeymap.WorkingUnstagedView or DefaultKeymap.WorkingStagedView)
         {
             return;
         }
@@ -363,18 +364,22 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         _appliedFocus = wanted;
-        var pane = wanted switch
-        {
-            PaneKind.Sidebar => _view.Sidebar,
-            PaneKind.Detail => _view.Detail,
-            PaneKind.Diff => _view.Diff,
-            _ => _view.Graph,
-        };
+        var pane = PaneView(wanted);
         if (!pane.HasFocus)
         {
             pane.SetFocus();
         }
     }
+
+    private PaneListView PaneView(PaneKind pane) => pane switch
+    {
+        PaneKind.Sidebar => _view.Sidebar,
+        PaneKind.Detail => _view.Detail,
+        PaneKind.Diff => _view.Diff,
+        PaneKind.WorkingUnstaged => _view.WorkingUnstaged,
+        PaneKind.WorkingStaged => _view.WorkingStaged,
+        _ => _view.Graph,
+    };
 
     // A click gave a view the focus: record it in the state so the keymap uses the right view.
     private void OnPaneFocused(View pane, PaneKind kind)

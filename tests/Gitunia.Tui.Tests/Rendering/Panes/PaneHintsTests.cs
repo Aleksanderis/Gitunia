@@ -17,6 +17,8 @@ public class PaneHintsTests
     [InlineData(PaneKind.Sidebar, "/")]
     [InlineData(PaneKind.Detail, "l")]
     [InlineData(PaneKind.Diff, "w")]
+    [InlineData(PaneKind.WorkingUnstaged, "y")]
+    [InlineData(PaneKind.WorkingStaged, "y")]
     public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
     {
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == expectedKeys);
@@ -104,6 +106,8 @@ public class PaneHintsTests
         PaneKind.Sidebar => DefaultKeymap.SidebarView,
         PaneKind.Detail => DefaultKeymap.DetailView,
         PaneKind.Diff => DefaultKeymap.DiffView,
+        PaneKind.WorkingUnstaged => DefaultKeymap.WorkingUnstagedView,
+        PaneKind.WorkingStaged => DefaultKeymap.WorkingStagedView,
         _ => DefaultKeymap.GraphView,
     };
 

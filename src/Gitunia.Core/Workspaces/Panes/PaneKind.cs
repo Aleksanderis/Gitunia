@@ -7,4 +7,10 @@ public enum PaneKind
     Graph,
     Detail,
     Diff,
+
+    /// <summary>The Unstaged file list of the working-tree view (that view only).</summary>
+    WorkingUnstaged,
+
+    /// <summary>The Staged file list of the working-tree view (that view only).</summary>
+    WorkingStaged,
 }

@@ -10,8 +10,14 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     private IReadOnlyList<StatusEntry>? _unstaged;
     private IReadOnlyList<StatusEntry>? _staged;
 
-    /// <summary>Entries of the Unstaged list, in git's order: worktree changes, untracked and conflicted paths.</summary>
-    public IReadOnlyList<StatusEntry> Unstaged => _unstaged ??= Snapshot.Entries.Where(IsUnstagedRow).ToList();
+    /// <summary>
+    /// Entries of the Unstaged list in display order: conflicted paths first (their own group, ux.md workflow 2), then the worktree
+    /// changes and untracked paths, each group in git's order. The selection's row index refers to this order.
+    /// </summary>
+    public IReadOnlyList<StatusEntry> Unstaged => _unstaged ??= Snapshot.Entries
+        .Where(IsUnstagedRow)
+        .OrderBy(entry => entry.Kind == StatusEntryKind.Unmerged ? 0 : 1)
+        .ToList();
 
     /// <summary>Entries of the Staged list, in git's order.</summary>
     public IReadOnlyList<StatusEntry> Staged => _staged ??= Snapshot.Entries.Where(entry => entry.IsStaged).ToList();

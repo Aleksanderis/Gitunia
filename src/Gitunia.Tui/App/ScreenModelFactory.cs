@@ -5,6 +5,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Tabs;
+using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App;
 
@@ -35,6 +36,14 @@ public static class ScreenModelFactory
         var tabIndex = tab is null ? 0 : workspace.Tabs.IndexOf(tab);
         var loaded = session?.Graph.Count ?? 0;
         var position = selectedItem is { } item && loaded > 0 ? Math.Clamp(item - ScreenLayout.ReservedLeadingRows, 0, loaded - 1) + 1 : 0;
+        if (tab is { View.Mode: TabViewMode.WorkingTree })
+        {
+            // The working-tree view counts the files of the list the cursor is in.
+            var place = WorkingTreePosition.From(tab.WorkingTree);
+            position = place.Selected;
+            loaded = place.Count;
+        }
+
         return new ScreenModel(
             tab?.DisplayName ?? string.Empty,
             tab?.Head?.BranchName,

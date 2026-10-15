@@ -103,14 +103,14 @@ public class OverlayFrameTests
                 "│ Focus the commit details                                       Enter │",
                 "│ Copy the commit hash                                               y │",
                 "│ Refresh the repository                                             r │",
+                "│ Open the working tree                                             gs │",
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
                 "│ Show the Changes tab                                              gc │",
                 "│ Show the Files tab                                                gf │",
                 "│ Move down                                                   j / Down │",
-                "│ Move up                                                       k / Up │",
-                "│ 1/78  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/81  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -232,6 +232,7 @@ public class OverlayFrameTests
                 "│  Enter                │ Focus the commit details             │",
                 "│  y                    │ Copy the commit hash                 │",
                 "│  r                    │ Refresh the repository               │",
+                "│  gs                   │ Open the working tree                │",
                 "│  ]                    │ Next bottom pane tab                 │",
                 "│  [                    │ Previous bottom pane tab             │",
                 "│  gd                   │ Show the Details tab                 │",
@@ -244,8 +245,7 @@ public class OverlayFrameTests
                 "│  gg                   │ Go to the top                        │",
                 "│  G                    │ Go to the bottom                     │",
                 "│  /                    │ Search                               │",
-                "│  n                    │ Next search match                    │",
-                "│ 1-19/59  list keys scroll  Esc close                         │",
+                "│ 1-19/61  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -258,7 +258,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("<space>m", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("<space>s", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 
@@ -276,6 +276,7 @@ public class OverlayFrameTests
                 '\n',
                 " g-                          ",
                 "│ r  Jump to a ref or hash  │",
+                "│ s  Open the working tree  │",
                 "│ d  Show the Details tab   │",
                 "│ c  Show the Changes tab   │",
                 "│ f  Show the Files tab     │",
