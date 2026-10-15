@@ -24,7 +24,7 @@ Look for a readiness report from the `work-readiness` skill for this milestone (
 
 ## 1. Rebuild state from GitHub (never from memory)
 
-Run `scripts/orchestrator-state.sh "<milestone>"` and nothing else: it prints one line per open issue (labels, blockers with OPEN/closed), the open PRs, the worktrees and the issues where the owner answered last. Never read issue bodies, comment threads or `gh issue list --json body` output in the session; if you must read one issue (to act on an owner answer, or to write a prompt), read only that issue's latest comment.
+Run `scripts/owner-feedback.sh sweep` (labels the owner's issues and PRs `owner`, agent-written ones `agent-created`, and lists owner comments without an agent reply), then `scripts/orchestrator-state.sh "<milestone>"` and nothing else: it prints one line per open issue (labels, blockers with OPEN/closed), the open PRs, the worktrees and the issues where the owner answered last. Never read issue bodies, comment threads or `gh issue list --json body` output in the session; if you must read one issue (to act on an owner answer, or to write a prompt), read only that issue's latest comment.
 
 - The `Blocked by:` line is the order; an issue with an OPEN blocker is not startable.
 - Issues listed as "owner answered last": act on the answer (see "Labels for the owner" in `work-task`: implement, log, or close) and reply with an agent-marked comment. Do not remove the label; do not list an answered issue as "waiting for the owner" in the status comment.
@@ -59,7 +59,7 @@ Stop when any of these holds: nothing is unblocked (every remaining issue is don
 
 Before ending:
 
-1. Run `scripts/orchestrator-state.sh` once more: nothing of a merged PR may remain (worktrees, local or remote branches), and unmerged work is listed. Every loose end named in a report must have its issue number.
+1. Run `scripts/owner-feedback.sh sweep` and `scripts/orchestrator-state.sh` once more. Owner comments on items touched this session must have an agent reply stating the fate (fixed, registered, or the argument for not doing it); reply or delegate that before ending. Then: nothing of a merged PR may remain (worktrees, local or remote branches), and unmerged work is listed. Every loose end named in a report must have its issue number.
 2. Post a status comment on the milestone's tracking issue (create it as `work-readiness` describes if missing), in the same shape as the readiness report (a short plain-language summary on top, orchestrator details in a collapsed `<details>` block) and give the same summary as the final message: issues merged this session with PR links, issues in flight with branch names, issues waiting on the owner (spike, destructive, needs-review), what is unblocked next.
 3. Tell the owner: "start a new session with `work-orchestrator` to continue" and nothing else is needed, since GitHub holds the state.
 
