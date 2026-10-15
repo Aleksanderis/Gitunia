@@ -167,3 +167,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Code structure:** `RepositoryOperationDetector` (behind `IRepositoryOperationDetector`, injected into `RepositoryRefresher`) and `FramePrinter` (takes `GitServices`) are instances, not static (#269). Why: classes with I/O are instances so the operation section can be faked; static was only there to satisfy CA1822. Every reader interface has a fake (the detector is faked inline in the refresher test).
 
 **Code structure:** Unused usings (IDE0005) fail the build; Roslyn needs `GenerateDocumentationFile` for it, so doc warnings CS1573/1574/1591/1734 are silenced (cref cleanup: #295). Small `Models/` folders (Refs, Watching, Execution) stay for consistency (#258).
+
+**UI:** Status bar hints (#287, owner): wording stays short and is not derived from `ActionCatalog` titles; each hint names an `ActionId` per key and a test checks the default keymap binds the key to it.

@@ -114,7 +114,7 @@ public class PaneHintsTests
             {
                 var sequence = KeySequenceParser.Parse(alternatives[index]);
                 var binding = bindings.FirstOrDefault(candidate => candidate.Sequence.Equals(sequence));
-                Assert.True(binding is not null, $"The hint '{hint.Keys} {hint.Description}' shows '{alternatives[index]}', which is not bound in the {view} view ({mode} mode).");
+                Assert.NotNull(binding);
                 Assert.True(binding.Action == hint.Actions[index], $"The hint '{hint.Keys} {hint.Description}' shows '{alternatives[index]}' for {hint.Actions[index]}, but the {view} view binds it to {binding.Action}.");
             }
         }
