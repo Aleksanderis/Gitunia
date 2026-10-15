@@ -80,7 +80,7 @@ public sealed class DiffPaneController : IPromptHandler
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(CursorRow(diff)) : string.Empty;
+    public string StatusLine => _activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
 
     /// <summary>The panes' arrangement for the active tab; a zoom that does not match the focused pane is not part of it. Has no side effects (see <see cref="ReleaseStaleZoom"/>).</summary>
     public PaneArrangement Arrangement()
@@ -384,7 +384,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
         else if (action == ActionIds.DiffSearchNext || action == ActionIds.DiffSearchPrevious)
         {
-            var update = DiffSearch.Step(diff.Search, action == ActionIds.DiffSearchNext, count ?? 1, row);
+            var update = DiffSearch.Step(diff.Search, action == ActionIds.DiffSearchNext, count ?? 1, SearchRow(diff));
             ApplySearch(diff, update);
             Notice = update.State.Notice;
         }
@@ -411,7 +411,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (action == ActionIds.InputAccept)
         {
-            var update = DiffSearch.Accept(diff.Search, diff.Source.Document, CursorRow(diff));
+            var update = DiffSearch.Accept(diff.Search, diff.Source.Document, SearchRow(diff));
             ApplySearch(diff, update);
             Notice = update.State.Notice;
         }
@@ -495,9 +495,10 @@ public sealed class DiffPaneController : IPromptHandler
         }
         else
         {
+            var needed = DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture);
             Notice = diff.Source.ShowsSideBySide
                 ? "Side by side on"
-                : $"Side by side on: needs {DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture)} columns (zoom with <space>z)";
+                : $"Side by side on: needs {needed} columns (zoom with <space>z)";
         }
     }
 
@@ -647,9 +648,11 @@ public sealed class DiffPaneController : IPromptHandler
     {
         diff.Search = update.State;
         diff.Source.Highlight = update.State.Highlight;
+        diff.SearchRow = null;
         if (update.RevealRow is { } row)
         {
             Select(row, atTop: false);
+            diff.SearchRow = row;
         }
 
         _diffList.SetNeedsDraw();
@@ -727,6 +730,10 @@ public sealed class DiffPaneController : IPromptHandler
             _isSyncing = false;
         }
     }
+
+    // Side by side, the cursor row is the first row of a line, but a match may sit on the line's other row: stepping starts from the matched row while the cursor is still on its line.
+    private int SearchRow(DiffSession diff) =>
+        diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0) ? matched : CursorRow(diff);
 
     private int CursorRow(DiffSession diff) => diff.Source.RowOf(_diffList.SelectedItem ?? 0);
 

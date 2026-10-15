@@ -29,6 +29,14 @@ public class DiffTitleButtonsTests
     }
 
     [Fact]
+    public void GivenATypicalPaneWidth_WhenLayingOut_ThenTheHunkButtonsStayAheadOfTheOptionButtons()
+    {
+        var buttons = DiffTitleButtons.Layout(80);
+
+        Assert.Equal([" ‹ hunk ", " hunk › ", " -w ", " split ", " wrap ", " zoom "], buttons.Select(button => button.Label));
+    }
+
+    [Fact]
     public void GivenAVeryNarrowTitleRow_WhenLayingOut_ThenThereAreNoButtons()
     {
         Assert.Empty(DiffTitleButtons.Layout(DiffTitleButtons.MinimumTitleWidth));

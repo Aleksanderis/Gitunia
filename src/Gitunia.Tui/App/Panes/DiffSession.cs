@@ -28,6 +28,9 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs) : IDispos
     /// <summary>The first visible row, remembered with <see cref="SelectedRow"/>.</summary>
     public int TopRow { get; set; }
 
+    /// <summary>The row the last search step revealed, so the next step continues from it (a side-by-side line holds two rows); null after any other cursor move.</summary>
+    public int? SearchRow { get; set; }
+
     /// <summary>The file to put the cursor on once the diff has loaded, null for none.</summary>
     public string? PendingFilePath { get; set; }
 

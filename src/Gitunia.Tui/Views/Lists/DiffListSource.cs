@@ -95,13 +95,29 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     /// <summary>The diff row shown on screen line <paramref name="line"/>.</summary>
     /// <remarks>Side by side, the first row of the line: the old side's when it has one.</remarks>
-    public int RowOf(int line) => ShowsSideBySide ? SplitMap().RowOf(line) : Map() is { } current ? current.RowOf(line) : line;
+    public int RowOf(int line)
+    {
+        if (ShowsSideBySide)
+        {
+            return SplitMap().RowOf(line);
+        }
+
+        return Map() is { } current ? current.RowOf(line) : line;
+    }
 
     /// <summary>The last diff row shown on screen line <paramref name="line"/>: the new side's row of a side-by-side line, else the same as <see cref="RowOf"/>.</summary>
     public int LastRowOf(int line) => ShowsSideBySide ? SplitMap().LastRowOf(line) : RowOf(line);
 
     /// <summary>The first screen line of diff row <paramref name="row"/>.</summary>
-    public int LineOf(int row) => ShowsSideBySide ? SplitMap().StartOf(row) : Map() is { } current ? current.StartOf(row) : row;
+    public int LineOf(int row)
+    {
+        if (ShowsSideBySide)
+        {
+            return SplitMap().StartOf(row);
+        }
+
+        return Map() is { } current ? current.StartOf(row) : row;
+    }
 
     public bool IsMarked(int item) => false;
 

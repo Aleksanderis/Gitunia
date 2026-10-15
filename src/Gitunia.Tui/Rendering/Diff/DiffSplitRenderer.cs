@@ -63,8 +63,10 @@ public static class DiffSplitRenderer
                 : DiffRowRenderer.Render(row, width, gutterDigits, highlight, isSelected, glyphs);
         }
 
-        var left = RenderSide(document, line.LeftRow, true, segment, LeftWidth(width), gutterDigits, highlight, isWrapped, glyphs);
-        var right = RenderSide(document, line.RightRow, false, segment, RightWidth(width), gutterDigits, highlight, isWrapped, glyphs);
+        var leftWidth = LeftWidth(width);
+        var rightWidth = RightWidth(width);
+        var left = RenderSide(document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs);
+        var right = RenderSide(document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs);
         var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
         return new LineBuilder(width, glyphs.Ellipsis)
             .Append(left)
@@ -124,11 +126,13 @@ public static class DiffSplitRenderer
         if (isWrapped)
         {
             var chunks = DiffRowRenderer.Chunks(DiffRowRenderer.ExpandTabs(row.Text), columns);
-            DiffRowRenderer.AppendHighlighted(builder, segment < chunks.Count ? chunks[segment] : string.Empty, role, highlight);
+            var chunk = segment < chunks.Count ? chunks[segment] : string.Empty;
+            DiffRowRenderer.AppendHighlighted(builder, chunk, role, highlight);
         }
         else
         {
-            DiffRowRenderer.AppendHighlighted(builder, DiffRowRenderer.ExpandTabs(DiffRowRenderer.CutToWidth(row.Text, columns)), role, highlight);
+            var shown = DiffRowRenderer.ExpandTabs(DiffRowRenderer.CutToWidth(row.Text, columns));
+            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight);
         }
 
         return builder.Build();

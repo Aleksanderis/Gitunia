@@ -8,12 +8,10 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// </summary>
 public static class DiffOptionsLabel
 {
-    public static string Of(DiffOptions options) => Of(options, false, false);
-
     /// <param name="options">The diff options.</param>
     /// <param name="isSideBySide">The side-by-side view is switched on.</param>
     /// <param name="isShown">The pane is wide enough to show it; otherwise the marker names the width it needs.</param>
-    public static string Of(DiffOptions options, bool isSideBySide, bool isShown)
+    public static string Of(DiffOptions options, bool isSideBySide = false, bool isShown = false)
     {
         var parts = new List<string>(4);
         if (options.WholeFile)
@@ -32,7 +30,8 @@ public static class DiffOptionsLabel
 
         if (isSideBySide)
         {
-            parts.Add(isShown ? "[split]" : $"[split {DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture)}+]");
+            var needed = DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture);
+            parts.Add(isShown ? "[split]" : $"[split {needed}+]");
         }
 
         return string.Join(' ', parts);

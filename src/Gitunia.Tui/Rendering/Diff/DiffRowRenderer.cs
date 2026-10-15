@@ -66,8 +66,11 @@ public static class DiffRowRenderer
     }
 
     /// <summary>How many screen lines <paramref name="text"/> takes when it wraps at <paramref name="columns"/> columns.</summary>
-    public static int TextSegmentCount(string text, int columns) =>
-        columns <= 0 || (text.Length * 2 <= columns && !ContainsControl(text)) ? 1 : Chunks(ExpandTabs(text), columns).Count;
+    public static int TextSegmentCount(string text, int columns)
+    {
+        var fitsOneLine = text.Length * 2 <= columns && !ContainsControl(text);
+        return columns <= 0 || fitsOneLine ? 1 : Chunks(ExpandTabs(text), columns).Count;
+    }
 
     /// <summary>Cuts <paramref name="shown"/> into pieces of at most <paramref name="columns"/> columns; a wide character is never split.</summary>
     public static List<string> Chunks(string shown, int columns)

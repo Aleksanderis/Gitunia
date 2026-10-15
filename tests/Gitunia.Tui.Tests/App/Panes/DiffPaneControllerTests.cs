@@ -668,6 +668,32 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenSideBySide_WhenSteppingThroughMatchesOnBothSidesOfAPair_ThenEveryMatchIsVisitedOnce()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        harness.DiffList.Width = 100;
+        harness.DiffList.SetRelativeLayout(new Size(120, 24));
+        harness.Execute(ActionIds.DiffToggleSideBySide);
+        harness.Execute(ActionIds.DiffSearchOpen);
+        harness.Type("line 3");
+        harness.Execute(ActionIds.InputAccept);
+        var diff = harness.Session.Diff!;
+        var matches = diff.Search.Matches;
+
+        var visited = new List<int> { diff.SearchRow!.Value };
+        for (var step = 1; step < matches.Count; step++)
+        {
+            harness.Execute(ActionIds.DiffSearchNext);
+            visited.Add(diff.SearchRow!.Value);
+        }
+
+        Assert.True(matches.Count > 3);
+        Assert.Equal(matches.Count, visited.Distinct().Count());
+        Assert.Equal(matches.Order(), visited.Order());
+    }
+
+    [Fact]
     public async Task GivenANarrowPane_WhenTogglingSideBySide_ThenTheUnifiedRowsStayAndANoticeNamesTheWidth()
     {
         using var harness = await DiffHarness.LoadAsync();
