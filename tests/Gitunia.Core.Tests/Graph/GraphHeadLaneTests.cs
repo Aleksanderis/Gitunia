@@ -23,6 +23,30 @@ public class GraphHeadLaneTests
     }
 
     [Fact]
+    public void GivenBranchAheadOfHead_WhenLayingOut_ThenTheAheadTipAndHeadShareStraightLaneZero()
+    {
+        // 1 (origin/main) is one commit ahead of HEAD 2; 3 is a merged feature branch tip; all meet at 4 (issue #307).
+        var commits = new[] { Commit(1, 2), Commit(2, 4, 3), Commit(3, 4), Commit(4, 5), Commit(5) };
+
+        var rows = GraphLayout.Compute(commits, Id(2));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([0, 0, 1, 0, 0], rows.Select(row => row.Lane));
+        Assert.All(rows[0].Edges, edge => Assert.Equal(0, edge.ToLane));
+    }
+
+    [Fact]
+    public void GivenTwoBranchesAheadOfHead_WhenLayingOut_ThenTheFirstTakesLaneZeroAndTheOtherBendsInFromTheRight()
+    {
+        var commits = new[] { Commit(1, 3), Commit(2, 3), Commit(3, 4), Commit(4) };
+
+        var rows = GraphLayout.Compute(commits, Id(3));
+
+        Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
+        Assert.Equal([0, 1, 0, 0], rows.Select(row => row.Lane));
+    }
+
+    [Fact]
     public void GivenSameHistoryWithDetachedHead_WhenLayingOut_ThenTheOldLeftmostFreeLaneLayoutIsKept()
     {
         var commits = new[] { Commit(1, 4), Commit(2, 4), Commit(3, 4), Commit(4, 5), Commit(5) };
@@ -90,7 +114,8 @@ public class GraphHeadLaneTests
 
         for (var index = 0; index < lastChainIndex; index++)
         {
-            if (!chain.Contains(rows[index].Id))
+            // Only a tip above HEAD whose first-parent chain leads to it may share lane 0 (a branch ahead of HEAD).
+            if (!chain.Contains(rows[index].Id) && !FirstParentChain(commits, rows[index].Id).Contains(head))
             {
                 Assert.NotEqual(0, rows[index].Lane);
             }
