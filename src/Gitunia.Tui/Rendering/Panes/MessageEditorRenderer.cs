@@ -5,17 +5,21 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Panes;
 
 /// <summary>
-/// Draws a <see cref="MessageEditor"/> into styled lines of an exact width: the cursor is a <see cref="SegmentRole.Cursor"/>
-/// cell, the part of the subject past <see cref="MessageEditor.SubjectSoftLimit"/> columns is an <see cref="SegmentRole.Error"/>
-/// hint (never enforced). Long lines are cut at the right edge; the cursor's own line scrolls sideways to keep it visible.
+/// Draws a <see cref="MessageEditor"/> into styled lines of an exact width: the cursor is a
+/// <see cref="SegmentRole.Cursor"/> cell, the part of the subject past <see cref="MessageEditor.SubjectSoftLimit"/>
+/// columns is an <see cref="SegmentRole.Error"/> hint (never enforced). Long lines are cut at the right edge; the
+/// cursor's own line scrolls sideways to keep it visible. Vertical scrolling is stateless: the cursor row is the last
+/// visible row once the text is taller than the box.
 /// </summary>
 public static class MessageEditorRenderer
 {
     private const string Blank = " ";
 
-    /// <summary>The visible rows of the editor for a box of <paramref name="width"/> by <paramref name="height"/> cells.</summary>
+    /// <summary>The visible rows for a box of <paramref name="width"/> by <paramref name="height"/> cells.</summary>
     public static IReadOnlyList<StyledLine> Render(MessageEditor editor, int width, int height, bool showCursor)
     {
+        height = Math.Max(0, height);
+        width = Math.Max(0, width);
         var lines = new List<StyledLine>(height);
         var top = Math.Max(0, editor.CursorRow - height + 1);
         for (var row = top; row < top + height; row++)
@@ -124,7 +128,8 @@ public static class MessageEditorRenderer
     }
 
     // Control characters (a tab) are shown as a space.
-    private static string Displayable(string element) => element.Length == 1 && char.IsControl(element[0]) ? Blank : element;
+    private static string Displayable(string element) =>
+        element.Length == 1 && char.IsControl(element[0]) ? Blank : element;
 
     private static void Append(List<StyledSegment> segments, string text, SegmentRole role)
     {

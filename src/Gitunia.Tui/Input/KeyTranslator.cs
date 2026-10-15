@@ -45,7 +45,7 @@ public static class KeyTranslator
 
         if (key.IsCtrl && key.IsAlt && bare.KeyCode == KeyCode.M)
         {
-            // Alt-Enter is sent as Esc followed by CR (0x0D); Terminal.Gui reports that as Ctrl+Alt+M (verified in tmux, #314).
+            // Alt-Enter is sent as Esc followed by CR (0x0D); Terminal.Gui reports that as Ctrl+Alt+M (tmux, #314).
             keyEvent = new KeyEvent(KeyNames.Enter, KeyModifiers.Alt);
             return true;
         }

@@ -135,6 +135,40 @@ public class MessageEditorTests
     }
 
     [Fact]
+    public void GivenEdgesOfTheText_WhenDeletingOrInsertingNothing_ThenNothingChanges()
+    {
+        var editor = Editor("ab");
+        editor.Apply(new KeyEvent("a", KeyModifiers.Ctrl));
+        editor.Apply(new KeyEvent(KeyNames.Backspace));
+        editor.Apply(new KeyEvent("w", KeyModifiers.Ctrl));
+        editor.Insert(string.Empty);
+        editor.Apply(new KeyEvent("e", KeyModifiers.Ctrl));
+        editor.Apply(new KeyEvent(KeyNames.Delete));
+
+        Assert.Equal("ab", editor.Text);
+    }
+
+    [Fact]
+    public void GivenCtrlWAtLineStart_WhenApplying_ThenLinesJoin()
+    {
+        var editor = Editor("ab\ncd");
+        editor.Apply(new KeyEvent(KeyNames.Home));
+
+        editor.Apply(new KeyEvent("w", KeyModifiers.Ctrl));
+
+        Assert.Equal("abcd", editor.Text);
+    }
+
+    [Fact]
+    public void GivenShiftedEnter_WhenApplying_ThenItIsANewLine()
+    {
+        var editor = Editor("a");
+
+        Assert.True(editor.Apply(new KeyEvent(KeyNames.Enter, KeyModifiers.Shift)));
+        Assert.Equal("a\n", editor.Text);
+    }
+
+    [Fact]
     public void GivenOnlyWhitespace_WhenCheckingBlank_ThenItIsBlank()
     {
         Assert.True(Editor(" \n\t").IsBlank);

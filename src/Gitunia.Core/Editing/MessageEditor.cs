@@ -6,7 +6,8 @@ using Gitunia.Core.Keymap.Models;
 namespace Gitunia.Core.Editing;
 
 /// <summary>
-/// The multi-line commit message editor (Insert mode of the working-tree message box): lines, a cursor and the editing keys.
+/// The multi-line commit message editor (Insert mode of the working-tree message box): lines, a cursor and the editing
+/// keys. Up and Down keep the column as a count of text elements, not of display columns (Core has no width table).
 /// Renderer-agnostic and pure: it never sees the terminal. The cursor always sits between whole text elements, so a wide
 /// character, an emoji sequence or a letter with combining marks is never split. Keys that do not edit
 /// (<c>Esc</c>, <c>Alt-Enter</c>, <c>Ctrl-g</c>, the <c>Alt-</c> option toggles) are left to the caller.
@@ -52,7 +53,7 @@ public sealed class MessageEditor
     /// <summary>Empties the editor.</summary>
     public void Clear() => SetText(string.Empty);
 
-    /// <summary>Inserts text at the cursor (typing or a paste): line endings become new lines, other control characters are dropped.</summary>
+    /// <summary>Inserts text at the cursor (typing or a paste): line endings become new lines, other controls are dropped.</summary>
     public void Insert(string text)
     {
         var normalized = text.Replace(WindowsLineEnding, NewLine.ToString()).Replace(CarriageReturn, NewLine);
@@ -92,13 +93,14 @@ public sealed class MessageEditor
 
         return key.Modifiers switch
         {
-            KeyModifiers.None => ApplyPlain(key.Name),
+            KeyModifiers.None or KeyModifiers.Shift => ApplyPlain(key.Name),
             KeyModifiers.Ctrl => ApplyControl(key.Name),
             _ => false,
         };
     }
 
-    private static int NextBoundary(string line, int column) => column + StringInfo.GetNextTextElementLength(line.AsSpan(column));
+    private static int NextBoundary(string line, int column) =>
+        column + StringInfo.GetNextTextElementLength(line.AsSpan(column));
 
     private static int PreviousBoundary(string line, int column)
     {

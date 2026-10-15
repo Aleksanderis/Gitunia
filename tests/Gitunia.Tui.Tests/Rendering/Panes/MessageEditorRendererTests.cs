@@ -56,6 +56,22 @@ public class MessageEditorRendererTests
         Assert.Equal("bc", hint.Text);
     }
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0, 3)]
+    [InlineData(1, 1)]
+    [InlineData(-2, -2)]
+    public void GivenTinyBox_WhenRendering_ThenItNeverThrows(int width, int height)
+    {
+        var editor = new MessageEditor();
+        editor.SetText("中文\nx");
+
+        var lines = MessageEditorRenderer.Render(editor, width, height, true);
+
+        Assert.Equal(Math.Max(0, height), lines.Count);
+        Assert.All(lines, line => Assert.True(TextWidth.Of(line.Text) <= Math.Max(1, width)));
+    }
+
     [Fact]
     public void GivenMoreLinesThanHeight_WhenRendering_ThenTheCursorRowStaysVisible()
     {
