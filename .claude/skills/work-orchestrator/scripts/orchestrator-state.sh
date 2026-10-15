@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compact state of a milestone for the orchestrator: one line per item, no issue bodies.
-# Usage: scripts/orchestrator-state.sh "<milestone title>"
+# Usage: .claude/skills/work-orchestrator/scripts/orchestrator-state.sh "<milestone title>"
 # Prints open issues (labels, blockers with OPEN/closed), open PRs, worktrees, and issues where the owner answered last.
 set -euo pipefail
 
@@ -10,7 +10,7 @@ if [ $# -ne 1 ]; then
 fi
 milestone="$1"
 
-cd "$(cd "$(dirname "$0")/.." && pwd)"
+cd "$(dirname "$0")" && cd "$(git rev-parse --show-toplevel)"
 
 open_numbers="$(gh issue list --state open --limit 500 --json number --jq '[.[].number]|join(" ")')"
 

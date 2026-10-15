@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cleans up after one finished orchestrator subagent whose PR is merged; prints one line.
-# Usage: scripts/orchestrator-cleanup.sh <pr-number> <agent-id>
+# Usage: .claude/skills/work-orchestrator/scripts/orchestrator-cleanup.sh <pr-number> <agent-id>
 #   <agent-id> is the id the subagent was launched with (the worktree is .claude/worktrees/agent-<agent-id>).
 # Removes the worktree, deletes the local branches it held (the feature branch and worktree-agent-<agent-id>) only when merged
 # into main, then fetches with prune and fast-forwards main. Never touches anything when the PR is not merged.
@@ -13,7 +13,7 @@ fi
 pull_request="$1"
 agent_identifier="$2"
 
-repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+repo_root="$(cd "$(dirname "$0")" && git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 state="$(gh pr view "$pull_request" --json state --jq .state)"
