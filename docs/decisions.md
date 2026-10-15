@@ -187,3 +187,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
 
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
+
+**UI:** Working-tree view keys (#28): `<space>s` / `gs` open it, `s` `u` stage and unstage, `a` `U` all, `x` discard (Confirm), `c` writes the message, `Alt-Enter` commits, `Alt-s` `Alt-n` `Alt-a` toggle SignOff, No-Verify, Amend. Planned keys live in workflow 2 of `docs/ux.md` until implemented, because the keymap test requires every Keymap row to be bound.
