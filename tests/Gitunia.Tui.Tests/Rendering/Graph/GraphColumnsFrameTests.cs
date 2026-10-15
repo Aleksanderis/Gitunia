@@ -11,9 +11,9 @@ public class GraphColumnsFrameTests
     {
         Assert.Equal(
             [
-                "●  Add the graph columns                     Ada Lovelace     2026-10-13 0000003",
-                "├  修正バグ in the parser                    山田太郎         2026-10-12 0000002",
-                "●  A message that is much too long for the … Alexander the G… 2026-10-11 0000001",
+                "●  Add the graph columns               Ada Lovelace     2026-10-13 09:00 0000003",
+                "├  修正バグ in the parser              山田太郎         2026-10-12 23:30 0000002",
+                "●  A message that is much too long fo… Alexander the G… 2026-10-11 00:00 0000001",
             ],
             Trimmed(80));
     }
@@ -23,9 +23,9 @@ public class GraphColumnsFrameTests
     {
         Assert.Equal(
             [
-                $"●  Add the graph columns{new string(' ', 55)}Ada Lovelace{new string(' ', 7)}2026-10-13   0000003",
-                $"├  修正バグ in the parser{new string(' ', 54)}山田太郎{new string(' ', 11)}2026-10-12   0000002",
-                "●  A message that is much too long for the column we have for it, so it is …   Alexander the G…   2026-10-11   0000001",
+                $"●  Add the graph columns{new string(' ', 49)}Ada Lovelace{new string(' ', 7)}2026-10-13 09:00   0000003",
+                $"├  修正バグ in the parser{new string(' ', 48)}山田太郎{new string(' ', 11)}2026-10-12 23:30   0000002",
+                "●  A message that is much too long for the column we have for it, so …   Alexander the G…   2026-10-11 00:00   0000001",
             ],
             Trimmed(120));
     }
@@ -35,9 +35,9 @@ public class GraphColumnsFrameTests
     {
         Assert.Equal(
             [
-                $"●  Add the graph columns{new string(' ', 131)}Ada Lovelace{new string(' ', 11)}2026-10-13   0000003",
-                $"├  修正バグ in the parser{new string(' ', 130)}山田太郎{new string(' ', 15)}2026-10-12   0000002",
-                $"●  A message that is much too long for the column we have for it, so it is cut with an ellipsis{new string(' ', 60)}Alexander the Great…   2026-10-11   0000001",
+                $"●  Add the graph columns{new string(' ', 125)}Ada Lovelace{new string(' ', 11)}2026-10-13 09:00   0000003",
+                $"├  修正バグ in the parser{new string(' ', 124)}山田太郎{new string(' ', 15)}2026-10-12 23:30   0000002",
+                $"●  A message that is much too long for the column we have for it, so it is cut with an ellipsis{new string(' ', 54)}Alexander the Great…   2026-10-11 00:00   0000001",
             ],
             Trimmed(200));
     }
@@ -52,11 +52,12 @@ public class GraphColumnsFrameTests
     }
 
     [Fact]
-    public void GivenNarrowingTerminal_WhenRendering_ThenHashGoesFirstThenDateThenAuthor()
+    public void GivenNarrowingTerminal_WhenRendering_ThenHashGoesFirstThenTheTimeThenTheDateThenAuthor()
     {
-        Assert.Equal("●  A message that is much too lon… Alexander the G… 2026-10-11 0000001", Trimmed(70)[2]);
+        Assert.Equal("●  A message that is much too lo… Alexander the G… 2026-10-11 00:00 0000001", Trimmed(75)[2]);
+        Assert.Equal("●  A message that is much too long … Alexander the G… 2026-10-11 00:00", Trimmed(70)[2]);
+        Assert.Equal("●  A message that is much too long f… Alexander the G… 2026-10-11", Trimmed(65)[2]);
         Assert.Equal("●  A message that is much too long for the… Alexander the G…", Trimmed(60)[2]);
-        Assert.Equal("●  A message that is much too long fo… Alexander the G…", Trimmed(55)[2]);
         Assert.Equal("●  A message that is much too long for the c…", Trimmed(45)[2]);
     }
 
@@ -65,9 +66,10 @@ public class GraphColumnsFrameTests
     {
         Assert.DoesNotContain("2026-10-11", Trimmed(60)[2], StringComparison.Ordinal);
         Assert.Contains("2026-10-11", Trimmed(65)[2], StringComparison.Ordinal);
-        Assert.DoesNotContain("0000001", Trimmed(65)[2], StringComparison.Ordinal);
-        Assert.Contains("0000001", Trimmed(70)[2], StringComparison.Ordinal);
-        Assert.DoesNotContain("2026-10-11", Trimmed(60)[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("00:00", Trimmed(65)[2], StringComparison.Ordinal);
+        Assert.Contains("2026-10-11 00:00", Trimmed(70)[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("0000001", Trimmed(70)[2], StringComparison.Ordinal);
+        Assert.Contains("0000001", Trimmed(75)[2], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -77,7 +79,7 @@ public class GraphColumnsFrameTests
             CommitFactory.CommitBy(1, "late", [], "Ada", new DateTimeOffset(2026, 10, 13, 23, 30, 0, TimeSpan.FromHours(-5))));
         var options = new GraphRowOptions(100, 1, GraphGlyphSet.Unicode);
 
-        Assert.Contains("2026-10-13", GraphRowRenderer.Render(graph[0], options, false).Text, StringComparison.Ordinal);
+        Assert.Contains("2026-10-13 23:30", GraphRowRenderer.Render(graph[0], options, false).Text, StringComparison.Ordinal);
     }
 
     [Fact]
