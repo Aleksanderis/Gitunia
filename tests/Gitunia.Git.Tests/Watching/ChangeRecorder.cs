@@ -1,3 +1,4 @@
+using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 
 namespace Gitunia.Git.Tests.Watching;

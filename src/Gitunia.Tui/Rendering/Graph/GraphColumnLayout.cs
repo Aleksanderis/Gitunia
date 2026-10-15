@@ -1,3 +1,5 @@
+using Gitunia.Tui.Rendering.Panes;
+
 namespace Gitunia.Tui.Rendering.Graph;
 
 /// <summary>
