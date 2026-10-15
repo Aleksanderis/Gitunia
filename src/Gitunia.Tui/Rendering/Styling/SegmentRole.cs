@@ -80,4 +80,7 @@ public enum SegmentRole
 
     /// <summary>A clickable button in a pane title or on a picker row.</summary>
     Button,
+
+    /// <summary>The text cursor of the message editor: a chip like the mode label, so it shows without colour too.</summary>
+    Cursor,
 }

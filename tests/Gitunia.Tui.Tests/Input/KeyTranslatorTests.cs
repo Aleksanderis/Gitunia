@@ -39,6 +39,23 @@ public class KeyTranslatorTests
     }
 
     [Fact]
+    public void GivenAltChordsOfTheMessageBox_WhenTranslating_ThenAltModifierAndLowercaseName()
+    {
+        Assert.Equal(new KeyEvent("s", KeyModifiers.Alt), Translate(Key.S.WithAlt));
+        Assert.Equal(new KeyEvent("n", KeyModifiers.Alt), Translate(Key.N.WithAlt));
+        Assert.Equal(new KeyEvent("a", KeyModifiers.Alt), Translate(Key.A.WithAlt));
+        Assert.Equal(new KeyEvent(KeyNames.Enter, KeyModifiers.Alt), Translate(Key.Enter.WithAlt));
+        Assert.Equal(new KeyEvent("g", KeyModifiers.Ctrl), Translate(Key.G.WithCtrl).Normalize());
+    }
+
+    [Fact]
+    public void GivenEscThenCarriageReturn_WhenTranslating_ThenItIsAltEnter()
+    {
+        // Terminals (and tmux) send Alt-Enter as Esc CR; Terminal.Gui reports Ctrl+Alt+M for it.
+        Assert.Equal(new KeyEvent(KeyNames.Enter, KeyModifiers.Alt), Translate(Key.M.WithCtrl.WithAlt));
+    }
+
+    [Fact]
     public void GivenSpaceAndSymbols_WhenTranslating_ThenTypedText()
     {
         Assert.Equal(new KeyEvent(" "), Translate(Key.Space));

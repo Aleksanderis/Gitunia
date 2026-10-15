@@ -189,3 +189,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
 
 **UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
+
+**UI:** Commit message editor (#314): an own pure `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete in 2.5.0, its replacement is a separate package and would add a dependency to vet for AOT); same approach as the prompt editors, fully testable without a terminal. `Alt-Enter` arrives from terminals as `Ctrl-Alt-m`, translated in `KeyTranslator`; `Ctrl-g` is the commit fallback.
