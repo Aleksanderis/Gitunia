@@ -93,7 +93,7 @@ public sealed class OverlayController
             return OpenFor(action);
         }
 
-        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
+        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
         {
             Close();
         }

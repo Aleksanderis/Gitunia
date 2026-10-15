@@ -82,6 +82,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     [InlineData("visual.toggle")]
     [InlineData("cancel")]
     [InlineData("navigate.back")]
+    [InlineData("app.quit")]
     public void GivenAnActiveRange_WhenToggledCancelledOrGoingBack_ThenTheRangeEndsAndNormalModeReturns(string action)
     {
         _list.SelectedItem = 4;

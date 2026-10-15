@@ -64,6 +64,26 @@ public class ActionRouterTests
         Assert.Equal(string.Empty, harness.Router.Message);
     }
 
+    [Fact]
+    public void GivenTheGraphPane_WhenAppQuitRuns_ThenTheApplicationQuits()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+
+        harness.Router.Execute(ActionIds.AppQuit, null);
+
+        Assert.Equal(1, harness.QuitCount);
+    }
+
+    [Fact]
+    public void GivenTheGraphPane_WhenNavigateBackRuns_ThenTheApplicationDoesNotQuit()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+
+        harness.Router.Execute(ActionIds.NavigateBack, null);
+
+        Assert.Equal(0, harness.QuitCount);
+    }
+
     private sealed class RouterHarness : IDisposable
     {
         private readonly TabSession _session;
@@ -86,8 +106,10 @@ public class ActionRouterTests
             var host = new WorkspaceHost(Workspace.Empty);
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), statuses);
             var sidebar = new SidebarActionHandler(host, new SidebarListSource(GraphGlyphSet.Unicode), () => _session, () => 10, () => false, () => false, _ => { }, _ => { }, copier);
-            Router = new ActionRouter(host, GraphList, detailList, () => _session, () => { }, sidebar, statuses, copier);
+            Router = new ActionRouter(host, GraphList, detailList, () => _session, () => QuitCount++, sidebar, statuses, copier);
         }
+
+        public int QuitCount { get; private set; }
 
         public TabSession Session => _session;
 

@@ -194,6 +194,16 @@ public class KeymapEngineTests
         Assert.Equal(ActionIds.NavigateBack, detail.Feed(new KeyEvent(KeyNames.Escape)).Action);
     }
 
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.DetailView)]
+    [InlineData(DefaultKeymap.SidebarView)]
+    [InlineData(DefaultKeymap.DiffView)]
+    public void GivenAnyPane_WhenQIsPressed_ThenItQuitsInsteadOfGoingBack(string view)
+    {
+        Assert.Equal(ActionIds.AppQuit, CreateFeeder(view).Feed(new KeyEvent("q")).Action);
+    }
+
     [Fact]
     public void GivenInsertMode_WhenTypingPrintableKeys_ThenTheyAreTextAndNeverBindings()
     {
