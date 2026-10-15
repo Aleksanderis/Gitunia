@@ -43,7 +43,7 @@ public sealed class DragTracker
             return _hasMoved ? DragPhase.End : DragPhase.None;
         }
 
-        if ((flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked)) && _swallowNextClick)
+        if (MouseFlagTranslator.IsLeftClick(flags) && _swallowNextClick)
         {
             _swallowNextClick = false;
             return DragPhase.SwallowClick;

@@ -37,7 +37,7 @@ public sealed class EdgeDragHandler
                 return true;
         }
 
-        if (mouse.Flags.HasFlag(MouseFlags.LeftButtonClicked) && mouse.Position is { } position)
+        if (MouseFlagTranslator.IsLeftClick(mouse.Flags) && mouse.Position is { } position)
         {
             Clicked?.Invoke(position.X);
             return true;

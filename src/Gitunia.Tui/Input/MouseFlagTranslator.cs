@@ -6,6 +6,13 @@ namespace Gitunia.Tui.Input;
 /// <summary>Turns Terminal.Gui mouse flags into the renderer-agnostic <see cref="MouseGesture"/> the mouse map takes.</summary>
 public static class MouseFlagTranslator
 {
+    /// <summary>
+    /// True for any left click report, including the double and triple click the toolkit sends for quick repeated clicks
+    /// (#310): a button must count every one of them, not only the first of a burst.
+    /// </summary>
+    public static bool IsLeftClick(MouseFlags flags) =>
+        flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked) || flags.HasFlag(MouseFlags.LeftButtonTripleClicked);
+
     /// <summary>Returns false for events the mouse map has no use for (moves, presses, releases, other buttons, a sideways wheel).</summary>
     public static bool TryTranslate(MouseFlags flags, out MouseGesture gesture)
     {

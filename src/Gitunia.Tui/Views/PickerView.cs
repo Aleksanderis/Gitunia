@@ -71,7 +71,7 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             var index = PickerComposer.TopRow(picker.Highlight, listHeight) + listRow;
             if (index < picker.Rows.Length)
             {
-                if (gesture == MouseGesture.Click && index == picker.Highlight && ButtonAt(picker.Rows[index], position.X) is { } buttonView)
+                if (gesture is MouseGesture.Click or MouseGesture.DoubleClick && index == picker.Highlight && ButtonAt(picker.Rows[index], position.X) is { } buttonView)
                 {
                     ButtonClicked?.Invoke(buttonView);
                     return true;
