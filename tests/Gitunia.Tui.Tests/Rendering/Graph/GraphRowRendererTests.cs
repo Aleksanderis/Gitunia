@@ -32,7 +32,7 @@ public class GraphRowRendererTests
         Assert.Equal(
             [
                 "○─╮  merge side",
-                "│ │  main work",
+                "├ │  main work",
                 "├─●  side work",
                 "●  root",
             ],
@@ -115,7 +115,7 @@ public class GraphRowRendererTests
             CommitFactory.Commit(2, "plain", [1]),
             CommitFactory.Commit(1, "root", []));
 
-        Assert.StartsWith("│", rows[1]);
+        Assert.StartsWith("├", rows[1]);
     }
 
     [Fact]
@@ -132,7 +132,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  (◆ main ↔, topic, tag: v1) release", row);
+        Assert.StartsWith("●  (⎇ main , topic, tag: v1) release", row);
     }
 
     [Fact]

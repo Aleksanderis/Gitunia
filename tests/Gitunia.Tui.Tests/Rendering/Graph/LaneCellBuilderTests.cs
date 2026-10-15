@@ -76,7 +76,7 @@ public class LaneCellBuilderTests
             new GraphEdge(GraphEdgeKind.Outgoing, 0, 0),
         };
 
-        Assert.Equal("│ ", Draw(GraphGlyphSet.Unicode, 1, 0, edges));
+        Assert.Equal("├ ", Draw(GraphGlyphSet.Unicode, 1, 0, edges));
         Assert.Equal("| ", Draw(GraphGlyphSet.Ascii, 1, 0, edges));
     }
 
