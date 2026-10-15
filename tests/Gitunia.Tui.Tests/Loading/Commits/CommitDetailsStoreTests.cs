@@ -1,5 +1,6 @@
 using Gitunia.Git;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
@@ -9,36 +10,19 @@ public class CommitDetailsStoreTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    /// <summary>Waits until the store reports the commit as loaded or failed; the results are posted inline from the loader thread.</summary>
-    private static async Task<CommitDetailsState> WaitForSettledAsync(CommitDetailsStore store, ObjectId commit)
-    {
-        var settled = new TaskCompletionSource<CommitDetailsState>(TaskCreationOptions.RunContinuationsAsynchronously);
-        void OnChanged()
-        {
-            var current = store.Current;
-            if (current.Commit == commit && current.Status is CommitDetailsStatus.Loaded or CommitDetailsStatus.Failed)
-            {
-                settled.TrySetResult(current);
-            }
-        }
-
-        store.Changed += OnChanged;
-        OnChanged();
-        return await settled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
-    }
-
     [Fact]
     public async Task GivenSelection_WhenSelecting_ThenLoadingShowsAtOnceAndDetailsArriveLater()
     {
         var reader = new FakeCommitDetailsReader();
         var head = reader.Add("second", reader.Add("root"));
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
 
         store.Select(head);
 
         Assert.Equal(CommitDetailsStatus.Loading, store.Current.Status);
         Assert.Equal(head, store.Current.Commit);
-        var settled = await WaitForSettledAsync(store, head);
+        var settled = await WaitForSettledAsync(pump, store, head);
         Assert.Equal(CommitDetailsStatus.Loaded, settled.Status);
         Assert.Equal("second", settled.Details!.Subject);
     }
@@ -50,14 +34,15 @@ public class CommitDetailsStoreTests
         var first = reader.Add("one");
         var second = reader.Add("two", first);
         var last = reader.Add("three", second);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(300));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(300));
         var seen = new List<CommitDetailsState>();
         store.Changed += () => seen.Add(store.Current);
 
         store.Select(first);
         store.Select(second);
         store.Select(last);
-        var settled = await WaitForSettledAsync(store, last);
+        var settled = await WaitForSettledAsync(pump, store, last);
 
         Assert.Equal("three", settled.Details!.Subject);
         Assert.DoesNotContain(seen, entry => entry.Status == CommitDetailsStatus.Loaded && entry.Commit != last);
@@ -70,11 +55,12 @@ public class CommitDetailsStoreTests
         var reader = new FakeCommitDetailsReader();
         var first = reader.Add("one");
         var second = reader.Add("two", first);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         store.Select(first);
-        await WaitForSettledAsync(store, first);
+        await WaitForSettledAsync(pump, store, first);
         store.Select(second);
-        await WaitForSettledAsync(store, second);
+        await WaitForSettledAsync(pump, store, second);
 
         store.Select(first);
 
@@ -86,11 +72,12 @@ public class CommitDetailsStoreTests
     public async Task GivenUnknownCommit_WhenSelecting_ThenStateFailsWithAMessage()
     {
         var reader = new FakeCommitDetailsReader();
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
 
         store.Select(missing);
-        var settled = await WaitForSettledAsync(store, missing);
+        var settled = await WaitForSettledAsync(pump, store, missing);
 
         Assert.Equal(CommitDetailsStatus.Failed, settled.Status);
         Assert.NotEmpty(settled.Error);
@@ -100,16 +87,17 @@ public class CommitDetailsStoreTests
     public async Task GivenFailedLoad_WhenRetrying_ThenItLoadsAgainAndSettles()
     {
         var reader = new FakeCommitDetailsReader();
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         var missing = FakeCommitDetailsReader.MissingId();
         store.Select(missing);
-        await WaitForSettledAsync(store, missing);
+        await WaitForSettledAsync(pump, store, missing);
 
         var started = store.Retry();
 
         Assert.True(started);
         Assert.Equal(CommitDetailsStatus.Loading, store.Current.Status);
-        Assert.Equal(CommitDetailsStatus.Failed, (await WaitForSettledAsync(store, missing)).Status);
+        Assert.Equal(CommitDetailsStatus.Failed, (await WaitForSettledAsync(pump, store, missing)).Status);
     }
 
     [Fact]
@@ -117,9 +105,10 @@ public class CommitDetailsStoreTests
     {
         var reader = new FakeCommitDetailsReader();
         var head = reader.Add("one");
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, action => action(), TimeSpan.FromMilliseconds(1));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
         store.Select(head);
-        await WaitForSettledAsync(store, head);
+        await WaitForSettledAsync(pump, store, head);
 
         Assert.False(store.Retry());
         Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
@@ -156,5 +145,11 @@ public class CommitDetailsStoreTests
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
         Assert.Equal(0, Volatile.Read(ref posted));
+    }
+
+    private static async Task<CommitDetailsState> WaitForSettledAsync(UiPump pump, CommitDetailsStore store, ObjectId commit)
+    {
+        await pump.RunUntilAsync(() => store.Current.Commit == commit && store.Current.Status is CommitDetailsStatus.Loaded or CommitDetailsStatus.Failed);
+        return store.Current;
     }
 }

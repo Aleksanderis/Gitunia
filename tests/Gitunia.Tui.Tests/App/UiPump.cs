@@ -15,7 +15,16 @@ public sealed class UiPump(CancellationToken cancellationToken)
     public void Post(Action action) => _queue.Writer.TryWrite(action);
 
     /// <summary>Runs posted callbacks on the calling thread until the condition holds; the guard timeout only bounds a hang.</summary>
-    public async Task RunUntilAsync(Func<bool> condition)
+    public Task RunUntilAsync(Func<bool> condition) => RunUntilAsync(condition, () => { });
+
+    /// <summary>Runs exactly <paramref name="count"/> posted callbacks on the calling thread, for tests that count the results instead of reading a state.</summary>
+    public async Task RunPostsAsync(int count)
+    {
+        var remaining = count;
+        await RunUntilAsync(() => remaining == 0, () => remaining--);
+    }
+
+    private async Task RunUntilAsync(Func<bool> condition, Action afterEach)
     {
         using var guard = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         guard.CancelAfter(GuardTimeout);
@@ -23,6 +32,7 @@ public sealed class UiPump(CancellationToken cancellationToken)
         {
             var action = await _queue.Reader.ReadAsync(guard.Token);
             action();
+            afterEach();
         }
     }
 }

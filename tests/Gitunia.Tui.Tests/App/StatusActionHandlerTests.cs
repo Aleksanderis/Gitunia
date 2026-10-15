@@ -87,7 +87,8 @@ public class StatusActionHandlerTests
     public async Task GivenIdleDetails_WhenRetrying_ThenNothingToRetry()
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        using var session = await CreateSessionAsync(testRepository);
+        var pump = new UiPump(Token);
+        using var session = await CreateSessionAsync(pump, testRepository);
         var handler = new StatusActionHandler(new StatusChannel(), () => session);
 
         handler.TryHandle(ActionIds.DetailRetry);
@@ -99,18 +100,11 @@ public class StatusActionHandlerTests
     public async Task GivenFailedDetails_WhenRetrying_ThenTheLoadStartsAgain()
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
-        using var session = await CreateSessionAsync(testRepository);
+        var pump = new UiPump(Token);
+        using var session = await CreateSessionAsync(pump, testRepository);
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
-        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        session.Details.Changed += () =>
-        {
-            if (session.Details.Current.Status == CommitDetailsStatus.Failed)
-            {
-                settled.TrySetResult();
-            }
-        };
         session.Details.Select(missing);
-        await settled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        await pump.RunUntilAsync(() => session.Details.Current.Status == CommitDetailsStatus.Failed);
         var handler = new StatusActionHandler(new StatusChannel(), () => session);
 
         handler.TryHandle(ActionIds.DetailRetry);
@@ -119,9 +113,9 @@ public class StatusActionHandlerTests
         Assert.Equal(CommitDetailsStatus.Loading, session.Details.Current.Status);
     }
 
-    private static async Task<TabSession> CreateSessionAsync(TestRepository testRepository)
+    private static async Task<TabSession> CreateSessionAsync(UiPump pump, TestRepository testRepository)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.FromMilliseconds(1)));
+        return new TabSession(new TabId(1), GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.FromMilliseconds(1)));
     }
 }

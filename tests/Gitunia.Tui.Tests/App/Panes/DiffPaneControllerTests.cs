@@ -707,10 +707,12 @@ public class DiffPaneControllerTests
     private sealed class DiffHarness : IDisposable
     {
         private readonly TestRepository? _ownedRepository;
+        private readonly UiPump _pump;
         private readonly KeyHolder _keys = new();
 
-        private DiffHarness(WorkspaceHost host, TabSession session, TestRepository? ownedRepository, int screenHeight, int screenWidth)
+        private DiffHarness(WorkspaceHost host, TabSession session, UiPump pump, TestRepository? ownedRepository, int screenHeight, int screenWidth)
         {
+            _pump = pump;
             Host = host;
             Session = session;
             _ownedRepository = ownedRepository;
@@ -751,13 +753,14 @@ public class DiffPaneControllerTests
             var host = new WorkspaceHost(Workspace.Empty);
             host.Dispatch(new OpenRepositoryCommand(location));
             var tabId = host.Workspace.ActiveTabId!.Value;
+            var pump = new UiPump(Token);
             var session = new TabSession(
                 tabId,
                 GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero),
-                new DiffStore(TestGit.Services.Diff, location, action => action(), rowLimit));
+                new CommitDetailsStore(TestGit.Services.CommitDetails, location, pump.Post, TimeSpan.Zero),
+                new DiffStore(TestGit.Services.Diff, location, pump.Post, rowLimit));
             await TestGit.Services.RepositoryLoader.RunAsync(location, session, host, new StatusChannel(), InlineUi.Post, session.Cancellation.Token);
-            var harness = new DiffHarness(host, session, owned, screenHeight, screenWidth);
+            var harness = new DiffHarness(host, session, pump, owned, screenHeight, screenWidth);
             await harness.ShowDetailsOfAsync(session.Graph[0].Id);
             return harness;
         }
@@ -836,13 +839,13 @@ public class DiffPaneControllerTests
 
         public async Task WaitForDiffAsync()
         {
-            await WaitForAsync(handler => Session.Diff!.Store.Changed += handler, handler => Session.Diff!.Store.Changed -= handler, () => Session.Diff!.Store.Status == DiffStatus.Loaded, "the diff did not load");
+            await _pump.RunUntilAsync(() => Session.Diff!.Store.Status == DiffStatus.Loaded);
         }
 
         public async Task SelectCommitAsync(ObjectId commit)
         {
             Session.Details.Select(commit);
-            await WaitForAsync(handler => Session.Details.Changed += handler, handler => Session.Details.Changed -= handler, () => Session.Details.Current.Status == CommitDetailsStatus.Loaded && Session.Details.Current.Commit == commit, "the details did not load");
+            await _pump.RunUntilAsync(() => Session.Details.Current.Status == CommitDetailsStatus.Loaded && Session.Details.Current.Commit == commit);
         }
 
         public void Dispose()
@@ -858,37 +861,10 @@ public class DiffPaneControllerTests
                 new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
                 new TestFile("b.txt", "b changed\n"));
 
-        private static async Task WaitForAsync(Action<Action> subscribe, Action<Action> unsubscribe, Func<bool> condition, string message)
-        {
-            var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            void OnChanged()
-            {
-                if (condition())
-                {
-                    signal.TrySetResult();
-                }
-            }
-
-            subscribe(OnChanged);
-            try
-            {
-                OnChanged();
-                await signal.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-            }
-            catch (TimeoutException)
-            {
-                Assert.Fail(message);
-            }
-            finally
-            {
-                unsubscribe(OnChanged);
-            }
-        }
-
         private async Task ShowDetailsOfAsync(ObjectId commit)
         {
             Session.Details.Select(commit);
-            await WaitForAsync(handler => Session.Details.Changed += handler, handler => Session.Details.Changed -= handler, () => Session.Details.Current.Status == CommitDetailsStatus.Loaded, "the details did not load");
+            await _pump.RunUntilAsync(() => Session.Details.Current.Status == CommitDetailsStatus.Loaded);
 
             var entry = Session.Graph[0];
             Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current, BottomTab.Changes));
