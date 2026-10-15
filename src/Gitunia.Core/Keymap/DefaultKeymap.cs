@@ -120,16 +120,15 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "gr", ActionIds.GraphJumpToRef);
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
-        Add(bindings, NormalOnly, GraphView, "r", ActionIds.RepositoryRefresh);
-        Add(bindings, NormalOnly, GraphView, "gs", ActionIds.WorkingTreeOpen);
-        Add(bindings, NormalOnly, GraphView, "D", ActionIds.ToolDifftool);
-        Add(bindings, NormalOnly, GraphView, "M", ActionIds.ToolMergetool);
-        Add(bindings, NormalOnly, GraphView, "E", ActionIds.ToolCommitEditor);
+        Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
+        Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
+        Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
         AddBottomTabKeys(bindings, GraphView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
-        Add(bindings, NormalOnly, DetailView, "r", ActionIds.DetailRetry);
+        Add(bindings, NormalOnly, DetailView, "<space>r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
@@ -167,7 +166,7 @@ public static class DefaultKeymap
     {
         foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView])
         {
-            Add(bindings, NormalOnly, view, "r", ActionIds.RepositoryRefresh);
+            Add(bindings, NormalOnly, view, "<space>r", ActionIds.RepositoryRefresh);
             Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);

@@ -197,3 +197,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** External tools (#51): `git commit` (git picks the editor), `git difftool` and `git mergetool` run with the real terminal; the TUI suspends by disposing the Terminal.Gui application and creating a fresh one afterwards (see `docs/architecture.md`, "External tools"). Interim keys in the graph: `D` difftool of the commit, `M` mergetool, `E` commit with the editor; the working-tree view (#28) adds `ce` on the same hand-off.
 
 **UI:** Commit message editor (#314): an own `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete, its replacement is a separate package to vet for AOT); testable without a terminal.
+
+**UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the planned `s` `u` `a` `x` `c` `cc` `ce`, `gs`, `r` and the interim `D` `M` `E` (now `<space>a` `u` `A` `U` `d` `c`, `<space>te`, `<space>s`, `<space>r`, `<space>td` `tm` `te`); `<space>j` is reserved for the quick jump (#334).
