@@ -35,8 +35,8 @@ gh pr list --state open --json number,title,headRefName,isDraft --jq '.[]|"#\(.n
 echo "== Worktrees"
 git worktree list
 
-echo "== Owner answered last (no agent marker in the latest comment), labels needs-owner or question"
-for label in needs-owner question; do
+echo "== Owner answered last (no agent marker in the latest comment), label needs-owner"
+for label in needs-owner; do
   gh issue list --state open --label "$label" --limit 100 --json number,title,comments |
     jq -r '.[] | select((.comments|length) > 0 and ((.comments|last|.body) | contains("<!-- agent:") | not)) | "#\(.number) \(.title)"'
 done | sort -u
