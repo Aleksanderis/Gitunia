@@ -191,9 +191,7 @@ public sealed class TabRefresher : IDisposable
 
             if (changed.HasFlag(RepositorySections.Status))
             {
-                var status = result.Snapshot.Status;
-                var summary = RepositoryStatusSummary.From(status);
-                _host.Dispatch(new TabCommand(tabId, new StatusLoadedCommand(summary)));
+                _host.Dispatch(new TabCommand(tabId, new WorkingTreeLoadedCommand(result.Snapshot.Status)));
             }
 
             if (stashes is not null && _host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))
