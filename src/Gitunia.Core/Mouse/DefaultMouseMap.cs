@@ -29,8 +29,6 @@ public static class DefaultMouseMap
 
     public const string DiffZoomButton = "DiffButton.Zoom";
 
-    public const string DiffCloseButton = "DiffButton.Close";
-
     /// <summary>The tab labels in the detail pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
     public const string DetailDetailsTab = "DetailTab.Details";
 
@@ -90,7 +88,6 @@ public static class DefaultMouseMap
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),
         new(DiffZoomButton, MouseGesture.Click, ActionIds.PaneZoom),
-        new(DiffCloseButton, MouseGesture.Click, ActionIds.NavigateBack),
         new(DetailDetailsTab, MouseGesture.Click, ActionIds.DetailTabDetails),
         new(DetailChangesTab, MouseGesture.Click, ActionIds.DetailTabChanges),
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),

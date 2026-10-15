@@ -4,8 +4,9 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// The buttons at the right end of the diff pane's title row: previous and next file and hunk, word wrap, zoom and close. They
-/// are the mouse path of <c>[f</c> <c>]f</c> <c>[c</c> <c>]c</c> <c>w</c> <c>&lt;space&gt;z</c> and <c>q</c>. Narrow panes show only the
+/// The buttons at the right end of the diff pane's title row: previous and next file and hunk, word wrap and zoom, drawn as padded
+/// chips like the tabs (<c>‹ file</c>, <c>file ›</c>, <c>‹ hunk</c>, <c>hunk ›</c>, <c>wrap</c>, <c>zoom</c>; the ASCII tier uses <c>&lt;</c>, <c>&gt;</c> and brackets). They
+/// are the mouse path of <c>[f</c> <c>]f</c> <c>[c</c> <c>]c</c> <c>w</c> and <c>&lt;space&gt;z</c>. Narrow panes show only the
 /// last ones (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box: a space and a stretch of line follow the last button.
 /// </summary>
 public static class DiffTitleButtons
@@ -16,16 +17,15 @@ public static class DiffTitleButtons
     // Right to left, in the order they are added: the most useful stay when the row is narrow.
     private static readonly ButtonSpecification[] Candidates =
     [
-        new(DefaultMouseMap.DiffCloseButton, "[x]"),
-        new(DefaultMouseMap.DiffZoomButton, "[z]"),
-        new(DefaultMouseMap.DiffWrapButton, "[w]"),
-        new(DefaultMouseMap.DiffNextHunkButton, "[h>]"),
-        new(DefaultMouseMap.DiffPreviousHunkButton, "[<h]"),
-        new(DefaultMouseMap.DiffNextFileButton, "[f>]"),
-        new(DefaultMouseMap.DiffPreviousFileButton, "[<f]"),
+        new(DefaultMouseMap.DiffZoomButton, " zoom "),
+        new(DefaultMouseMap.DiffWrapButton, " wrap "),
+        new(DefaultMouseMap.DiffNextHunkButton, " hunk › "),
+        new(DefaultMouseMap.DiffPreviousHunkButton, " ‹ hunk "),
+        new(DefaultMouseMap.DiffNextFileButton, " file › "),
+        new(DefaultMouseMap.DiffPreviousFileButton, " ‹ file "),
     ];
 
-    /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one space between them.</summary>
+    /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one column of line between them.</summary>
     public static IReadOnlyList<TitleButton> Layout(int width)
     {
         var chosen = new List<ButtonSpecification>();

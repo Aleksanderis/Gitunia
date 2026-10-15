@@ -158,7 +158,6 @@ public class MouseControllerTests
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "diff.next-hunk")]
     [InlineData(DefaultMouseMap.DiffWrapButton, "diff.toggle-wrap")]
     [InlineData(DefaultMouseMap.DiffZoomButton, "pane.zoom")]
-    [InlineData(DefaultMouseMap.DiffCloseButton, "navigate.back")]
     [InlineData(DefaultMouseMap.PickerPinButton, "picker.pin")]
     [InlineData(DefaultMouseMap.PickerRemoveButton, "picker.remove-recent")]
     public void GivenAButtonClick_WhenHandled_ThenItRunsTheActionOfItsKey(string buttonView, string action)
