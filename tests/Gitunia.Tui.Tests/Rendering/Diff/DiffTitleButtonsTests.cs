@@ -14,7 +14,7 @@ public class DiffTitleButtonsTests
     {
         var buttons = DiffTitleButtons.Layout(100);
 
-        Assert.Equal([" ‹ file ", " file › ", " ‹ hunk ", " hunk › ", " wrap ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal([" ‹ hunk ", " hunk › ", " wrap ", " zoom "], buttons.Select(button => button.Label));
         Assert.Equal(98, buttons[^1].Start + buttons[^1].Width);
         Assert.Equal(1, buttons[1].Start - (buttons[0].Start + buttons[0].Width));
     }
@@ -81,12 +81,10 @@ public class DiffTitleButtonsTests
     }
 
     [Theory]
-    [InlineData(DefaultMouseMap.DiffPreviousFileButton, 0)]
-    [InlineData(DefaultMouseMap.DiffNextFileButton, 1)]
-    [InlineData(DefaultMouseMap.DiffPreviousHunkButton, 2)]
-    [InlineData(DefaultMouseMap.DiffNextHunkButton, 3)]
-    [InlineData(DefaultMouseMap.DiffWrapButton, 4)]
-    [InlineData(DefaultMouseMap.DiffZoomButton, 5)]
+    [InlineData(DefaultMouseMap.DiffPreviousHunkButton, 0)]
+    [InlineData(DefaultMouseMap.DiffNextHunkButton, 1)]
+    [InlineData(DefaultMouseMap.DiffWrapButton, 2)]
+    [InlineData(DefaultMouseMap.DiffZoomButton, 3)]
     public void GivenAButton_WhenClickingAnyOfItsColumns_ThenTheLookupFindsItAndTheNeighbourColumnsMiss(string view, int index)
     {
         var buttons = DiffTitleButtons.Layout(100);
@@ -110,7 +108,7 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Ascii);
 
         Assert.Equal(100, TextWidth.Of(title.Text));
-        Assert.Contains("[< file]-[file >]-[< hunk]-[hunk >]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
+        Assert.Contains("[< hunk]-[hunk >]-[wrap]-[zoom]", title.Text, StringComparison.Ordinal);
         Assert.EndsWith("[zoom]--", title.Text, StringComparison.Ordinal);
     }
 
@@ -122,9 +120,9 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
         Assert.Equal(100, TextWidth.Of(title.Text));
-        Assert.EndsWith(" ‹ file ─ file › ─ ‹ hunk ─ hunk › ─ wrap ─ zoom ──", title.Text, StringComparison.Ordinal);
+        Assert.EndsWith(" ‹ hunk ─ hunk › ─ wrap ─ zoom ──", title.Text, StringComparison.Ordinal);
         Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
-        Assert.Equal(6, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
+        Assert.Equal(4, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
     }
 
     [Fact]

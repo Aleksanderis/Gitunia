@@ -121,8 +121,6 @@ public class MouseMapTests
     }
 
     [Theory]
-    [InlineData(DefaultMouseMap.DiffPreviousFileButton, "[f")]
-    [InlineData(DefaultMouseMap.DiffNextFileButton, "]f")]
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, "[c")]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "]c")]
     [InlineData(DefaultMouseMap.DiffWrapButton, "w")]

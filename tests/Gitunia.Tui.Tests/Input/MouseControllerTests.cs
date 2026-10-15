@@ -152,8 +152,6 @@ public class MouseControllerTests
     }
 
     [Theory]
-    [InlineData(DefaultMouseMap.DiffPreviousFileButton, "diff.previous-file")]
-    [InlineData(DefaultMouseMap.DiffNextFileButton, "diff.next-file")]
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, "diff.previous-hunk")]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "diff.next-hunk")]
     [InlineData(DefaultMouseMap.DiffWrapButton, "diff.toggle-wrap")]

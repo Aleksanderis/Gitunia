@@ -36,4 +36,15 @@ public class MouseFlagTranslatorTests
     {
         Assert.False(MouseFlagTranslator.TryTranslate(MouseFlags.WheeledDown | modifier, out _));
     }
+
+    [Theory]
+    [InlineData(MouseFlags.LeftButtonClicked, true)]
+    [InlineData(MouseFlags.LeftButtonDoubleClicked, true)]
+    [InlineData(MouseFlags.LeftButtonTripleClicked, true)]
+    [InlineData(MouseFlags.LeftButtonPressed, false)]
+    [InlineData(MouseFlags.WheeledUp, false)]
+    public void GivenAFlag_WhenAskingIfItIsALeftClick_ThenEveryClickOfABurstCounts(MouseFlags flags, bool expected)
+    {
+        Assert.Equal(expected, MouseFlagTranslator.IsLeftClick(flags));
+    }
 }

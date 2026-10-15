@@ -18,7 +18,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Architecture:** `Gitunia.Platform` holds config/state dirs and console capability detection, so Core stays free of OS code. SDK pinned to 10.0.400 (`rollForward: latestFeature`), test projects use xUnit v3, underscores allowed in test names.
 
-**UI:** External tools (`$EDITOR`, difftool, mergetool) get the terminal by suspending the TUI; clipboard via OSC 52; no built-in text editor (staging works on hunks and lines).
+**UI:** External tools (`$EDITOR`, difftool, mergetool) get the terminal by suspending the TUI; clipboard via OSC 52; commit messages use a built-in Insert-mode editor or `$EDITOR` (2026-10-15).
 
 **Process:** Other open-source Git clients are sources of ideas, never of copied code. Why: licence hygiene.
 
@@ -104,7 +104,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The bottom pane has three tabs (#169: Details, Changes, Files), a fresh tab opens on Changes, and the Files tab is a placeholder until its own issue.
 
-**UI:** Graph rows are a table (#168): lanes, message, author, date, short hash; narrowing the terminal drops hash, then date, then author. Why: fixed widths keep columns still while commits stream in.
+**UI:** Graph rows are a table (#168): lanes, message, author, date, short hash; narrowing the terminal drops hash, then date, then author (#318: the date column shows `yyyy-MM-dd HH:mm`; the time goes before the date). Why: fixed widths keep columns still while commits stream in.
 
 **UI:** Look and feel (#171): background tint for the selected row, GitHub-like palette in 24-bit colour with a 16-colour tier and `NO_COLOR` fallback, dark unless `COLORFGBG` says light. Contrast is a test (4.5, dividers 3.0).
 
@@ -179,3 +179,9 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Pane padding (#244, owner): two blank columns inside the frame for the History list and the bottom detail and diff panes from 100 columns of screen width, one below (the sidebar keeps one). The graph's own two-column right margin stays, so History has four blank columns at its right end on wide screens (kept on purpose, #301 owns the lane layout). The diff title has no hash (the detail title shows it).
 
 **UI:** Graph lane 0 and ahead branches (#308, owner follow-up to #307): commits above HEAD whose first-parent chain reaches it continue the lane 0 shaft upwards, so a branch ahead by any number of commits (for example `origin/main`) is straight too; this supersedes "deeper ahead branches still bend in". Why: the topmost branch should run straight and leftmost; the layout gets the set from one extra git run (cost in `docs/performance.md`).
+
+**UI:** The diff title row has no `‹ file` / `file ›` buttons (#310): files are chosen in the file list, `[f`/`]f` stay. Buttons count every click of a quick burst (the toolkit reports the second and third as double and triple click); a triple click elsewhere stays ignored.
+
+**UI:** Commit messages (#32, owner): a built-in Insert-mode editor and `$EDITOR` hand-off (#51) both exist, as in most git clients. Supersedes "no built-in text editor". Working tree is its own view: unstaged and staged lists left, diff right, message box below with SignOff, No-Verify and Amend options (#28).
+
+**UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.

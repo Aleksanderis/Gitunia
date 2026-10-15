@@ -64,6 +64,7 @@ public sealed class FakeDiffReader : IDiffReader
         ObjectId? firstParent,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.Yield();
