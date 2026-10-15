@@ -146,6 +146,21 @@ public class IndexWriterTests
     }
 
     [Fact]
+    public async Task GivenUnbornBranchAndFurtherEdits_WhenUnstaging_ThenTheFileLeavesTheIndexAndKeepsItsContent()
+    {
+        using var repository = TestRepository.Create();
+        repository.WriteFile("f.txt", "a\n");
+        repository.Git("add", "f.txt");
+        repository.WriteFile("f.txt", "a\nb\n");
+        var location = await LocateAsync(repository);
+
+        await Writer.UnstageAsync(location, ["f.txt"], true, Token);
+
+        Assert.Equal(StatusEntryKind.Untracked, Entry(await ReadAsync(location), "f.txt").Kind);
+        Assert.Equal("a\nb\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+    }
+
+    [Fact]
     public async Task GivenMissingPath_WhenStaging_ThenGitFailureIsRaised()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));

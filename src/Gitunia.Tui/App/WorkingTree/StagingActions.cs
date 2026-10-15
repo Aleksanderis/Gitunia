@@ -4,6 +4,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
@@ -47,7 +48,13 @@ public sealed class StagingActions(
     {
         var isStage = action == ActionIds.WorkingTreeStage || action == ActionIds.WorkingTreeStageAll;
         var section = isStage ? WorkingTreeSection.Unstaged : WorkingTreeSection.Staged;
-        var focused = tab.View.FocusedPane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
+        var focus = tab.View.FocusedPane;
+        if (focus != PaneKind.WorkingUnstaged && focus != PaneKind.WorkingStaged)
+        {
+            return "Focus a file list first";
+        }
+
+        var focused = focus == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
         if (focused != section)
         {
             return isStage ? "Stage works in the Unstaged list" : "Unstage works in the Staged list";
@@ -141,8 +148,16 @@ public sealed class StagingActions(
         catch (Exception exception)
         {
             var verb = isStage ? "stage" : "unstage";
-            postToUi(() => Finish(tab.Id, $"Could not {verb}: {exception.Message.Trim()}", true));
+            postToUi(() => Finish(tab.Id, $"Could not {verb}: {Reason(exception)}", true));
         }
+    }
+
+    // Git's own first line of stderr; the exception message also repeats the whole command line.
+    private static string Reason(Exception exception)
+    {
+        var text = exception is GitCommandFailedException failed ? failed.StandardError : exception.Message;
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return lines.Length > 0 ? lines[0] : "unknown error";
     }
 
     private void Finish(TabId tabId, string message, bool isError)

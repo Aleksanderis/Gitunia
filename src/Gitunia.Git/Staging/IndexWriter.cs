@@ -17,7 +17,7 @@ public sealed class IndexWriter(GitRunner runner) : IIndexWriter
         RunAsync(location, paths, ["add"], cancellationToken);
 
     public Task UnstageAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn, CancellationToken cancellationToken) =>
-        RunAsync(location, paths, isHeadUnborn ? ["rm", "--cached", "--quiet", "-r"] : ["restore", "--staged"], cancellationToken);
+        RunAsync(location, paths, isHeadUnborn ? ["rm", "--cached", "--force", "--quiet", "-r"] : ["restore", "--staged"], cancellationToken);
 
     private async Task RunAsync(RepositoryLocation location, IReadOnlyList<string> paths, string[] command, CancellationToken cancellationToken)
     {
