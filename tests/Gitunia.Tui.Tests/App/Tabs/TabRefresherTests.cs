@@ -1,3 +1,4 @@
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -196,7 +197,7 @@ public class TabRefresherTests
     {
         private readonly Func<int> _runCount;
 
-        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, StatusChannel statuses, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
+        private Harness(WorkspaceHost host, TabId tabId, TabSession session, TabRefresher refresher, UiPump pump, List<GraphReload> reloads, Func<int> runCount, Func<Task> finishLoad)
         {
             _runCount = runCount;
             FinishLoadAsync = finishLoad;
@@ -206,7 +207,6 @@ public class TabRefresherTests
             TabId = tabId;
             Session = session;
             Refresher = refresher;
-            Statuses = statuses;
         }
 
         public UiPump Pump { get; }
@@ -226,8 +226,6 @@ public class TabRefresherTests
 
         public TabRefresher Refresher { get; }
 
-        public StatusChannel Statuses { get; }
-
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
         public static Task<Harness> LoadAsync(TestRepository repository, bool start = true) => CreateAsync(repository, start, loadFirst: true);
@@ -241,6 +239,9 @@ public class TabRefresherTests
             Session.Dispose();
         }
 
+        private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses) =>
+            TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
         private static async Task<Harness> CreateAsync(TestRepository repository, bool start, bool loadFirst)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
@@ -250,10 +251,10 @@ public class TabRefresherTests
             var statuses = new StatusChannel();
             var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
             session.MarkStarted();
-            Task LoadAsync() => TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
+
             if (loadFirst)
             {
-                await LoadAsync();
+                await RunInitialLoadAsync(location, session, host, statuses);
             }
 
             var pump = new UiPump(TestContext.Current.CancellationToken);
@@ -272,7 +273,7 @@ public class TabRefresherTests
                 refresher.Start();
             }
 
-            return new Harness(host, tabId, session, refresher, statuses, pump, reloads, () => Volatile.Read(ref ran), LoadAsync);
+            return new Harness(host, tabId, session, refresher, pump, reloads, () => Volatile.Read(ref ran), () => RunInitialLoadAsync(location, session, host, statuses));
         }
     }
 

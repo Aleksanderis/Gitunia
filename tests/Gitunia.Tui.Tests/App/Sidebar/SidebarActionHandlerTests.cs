@@ -302,6 +302,7 @@ public class SidebarActionHandlerTests
         harness.FocusRow("Branches");
         harness.Handler.TryHandle(ActionIds.SidebarFilter, null);
         foreach (var letter in "old") { harness.Handler.OnKey(new KeyEvent(letter.ToString())); }
+
         harness.Handler.TryHandle(ActionIds.InputAccept, null);
 
         harness.Handler.TryHandle(ActionIds.Cancel, null);

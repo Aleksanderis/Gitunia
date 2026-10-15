@@ -16,6 +16,8 @@ public sealed class VisualRangeControllerTests : IDisposable
 {
     private readonly RangeSource _source = new(20);
     private readonly ListView _list;
+    private readonly RangeSource _emptySource = new(0);
+    private readonly ListView _emptyList;
     private readonly ListView _sidebarList = new();
     private readonly VisualRangeController _controller;
     private PaneKind _focused = PaneKind.Graph;
@@ -26,6 +28,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     public VisualRangeControllerTests()
     {
         _list = new ListView { Source = _source };
+        _emptyList = new ListView { Source = _emptySource };
         _controller = new VisualRangeController(
             () => _focused,
             pane => pane == PaneKind.Sidebar ? _sidebarList : _list,
@@ -43,6 +46,8 @@ public sealed class VisualRangeControllerTests : IDisposable
         _list.Dispose();
         _sidebarList.Dispose();
         _source.Dispose();
+        _emptyList.Dispose();
+        _emptySource.Dispose();
     }
 
     [Fact]
@@ -164,9 +169,11 @@ public sealed class VisualRangeControllerTests : IDisposable
     [Fact]
     public void GivenAnEmptyList_WhenTogglingVisual_ThenNothingStarts()
     {
-        using var emptySource = new RangeSource(0);
-        using var empty = new ListView { Source = emptySource };
-        var emptyController = new VisualRangeController(() => PaneKind.Graph, _ => empty, () => _mode, newMode => _mode = newMode);
+        var emptyController = new VisualRangeController(
+            () => PaneKind.Graph,
+            _ => _emptyList,
+            () => _mode,
+            newMode => _mode = newMode);
 
         emptyController.TryExecute(ActionIds.VisualToggle, null);
 

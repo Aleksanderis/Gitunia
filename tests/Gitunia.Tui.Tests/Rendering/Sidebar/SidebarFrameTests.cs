@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
 using Gitunia.Tui.Rendering.Graph;
@@ -152,7 +151,7 @@ public class SidebarFrameTests
     [Fact]
     public void GivenEmptySidebar_WhenComposing_ThenColumnIsBlank()
     {
-        var model = new SidebarModel(ImmutableArray<SidebarRow>.Empty, 0, 0, string.Empty, false, false);
+        var model = new SidebarModel([], 0, 0, string.Empty, false, false);
 
         var frame = Frame(model, 80, 6);
 

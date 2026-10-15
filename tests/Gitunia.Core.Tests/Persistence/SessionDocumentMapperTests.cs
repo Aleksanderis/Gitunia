@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -24,7 +23,7 @@ public class SessionDocumentMapperTests
         workspace = workspace with
         {
             ActiveTabId = betaId,
-            Tabs = workspace.Tabs.Select(tab => tab.Id == betaId ? tab with { View = view } : tab).ToImmutableArray(),
+            Tabs = [.. workspace.Tabs.Select(tab => tab.Id == betaId ? tab with { View = view } : tab)],
         };
 
         var restored = SessionDocumentMapper.ToWorkspace(SessionDocumentMapper.ToDocument(workspace), _ => true);

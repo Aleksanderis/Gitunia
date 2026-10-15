@@ -117,7 +117,7 @@ public class GitRunnerTests
             collected.AddRange(chunk);
         }
 
-        Assert.Equal("hello", Encoding.UTF8.GetString(collected.ToArray()));
+        Assert.Equal("hello", Encoding.UTF8.GetString([.. collected]));
     }
 
     [Fact]

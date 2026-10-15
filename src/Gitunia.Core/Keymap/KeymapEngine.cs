@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Keymap;
@@ -90,7 +89,7 @@ public sealed class KeymapEngine(KeyBindingTable table)
 
     private static bool AcceptsCounts(KeyMode mode) => mode is KeyMode.Normal or KeyMode.Visual;
 
-    private static KeymapState Cleared(KeymapState state) => state with { Pending = ImmutableArray<KeyEvent>.Empty, Count = null };
+    private static KeymapState Cleared(KeymapState state) => state with { Pending = [], Count = null };
 
     private static bool TryExtendCount(KeymapState state, KeyEvent key, out KeymapState counted)
     {

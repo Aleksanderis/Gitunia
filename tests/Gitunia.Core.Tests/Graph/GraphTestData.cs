@@ -54,7 +54,7 @@ public static class GraphTestData
                 }
             }
 
-            commits.Add(Commit(number, parents.ToArray()));
+            commits.Add(Commit(number, [.. parents]));
         }
 
         return commits;

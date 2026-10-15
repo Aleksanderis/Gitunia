@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Tests.App;
@@ -57,7 +58,7 @@ public class CommitDetailsPrefetchTests
         var parent = reader.Commits[1];
         var grandparent = reader.Commits[2];
         var pump = new UiPump(Token);
-        var blocking = false;
+        var blocking = new StrongBox<bool>();
         var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var store = new CommitDetailsStore(
@@ -66,7 +67,7 @@ public class CommitDetailsPrefetchTests
             TimeSpan.FromMilliseconds(200),
             async (_, token) =>
             {
-                if (!Volatile.Read(ref blocking))
+                if (!Volatile.Read(ref blocking.Value))
                 {
                     return;
                 }
@@ -85,7 +86,7 @@ public class CommitDetailsPrefetchTests
         await pump.RunPostsAsync(1);
         store.Select(parent);
         await pump.RunPostsAsync(1);
-        Volatile.Write(ref blocking, true);
+        Volatile.Write(ref blocking.Value, true);
 
         store.Select(head, [grandparent]);
         await waiting.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);

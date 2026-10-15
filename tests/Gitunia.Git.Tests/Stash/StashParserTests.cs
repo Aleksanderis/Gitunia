@@ -7,7 +7,7 @@ public class StashParserTests
 {
     private const string Hash = "1111111111111111111111111111111111111111";
 
-    private static string Record(string selector, string subject) => $"{selector}\0{Hash}\0{subject}\x1e\n";
+    private static string Record(string selector, string subject) => $"{selector}\0{Hash}\0{subject}\u001e\n";
 
     [Fact]
     public void GivenTwoStashes_WhenParsing_ThenIndexNameAndMessageAreRead()
@@ -42,9 +42,9 @@ public class StashParserTests
     }
 
     [Theory]
-    [InlineData("garbage\x1e")]
-    [InlineData("stash@{x}\0abc\0msg\x1e")]
-    [InlineData("stash@{0}\0abc\x1e")]
+    [InlineData("garbage\u001e")]
+    [InlineData("stash@{x}\0abc\0msg\u001e")]
+    [InlineData("stash@{0}\0abc\u001e")]
     public void GivenMalformedRecord_WhenParsing_ThenItIsSkippedWithAWarning(string output)
     {
         var result = StashParser.Parse(output);

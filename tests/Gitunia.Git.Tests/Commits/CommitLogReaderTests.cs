@@ -119,7 +119,7 @@ public class CommitLogReaderTests
     {
         var bigRepository = Environment.GetEnvironmentVariable("GITUNIA_BIG_REPO");
         Assert.SkipUnless(bigRepository is not null && Directory.Exists(bigRepository), "set GITUNIA_BIG_REPO to a repo from scripts/gen-big-repo.sh to run this");
-        var location = await Discovery.DiscoverAsync(bigRepository!, Token);
+        var location = await Discovery.DiscoverAsync(bigRepository, Token);
         var expected = long.Parse((await Runner.RunAsync(location.CommandPath, ["rev-list", "--all", "--count"], cancellationToken: Token)).StandardOutputText.Trim());
 
         var count = 0L;
@@ -163,7 +163,7 @@ public class CommitLogReaderTests
     [Fact]
     public async Task GivenCancellation_WhenReadingLog_ThenOperationCancelled()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         using var source = new CancellationTokenSource();
         await source.CancelAsync();

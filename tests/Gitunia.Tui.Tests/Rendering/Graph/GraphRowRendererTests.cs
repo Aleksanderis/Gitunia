@@ -13,7 +13,7 @@ public class GraphRowRendererTests
     {
         var graph = CommitFactory.Graph(commits);
         var options = new GraphRowOptions(width, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width), glyphs);
-        return Enumerable.Range(0, graph.Count).Select(index => GraphRowRenderer.Render(graph[index], options, false).Text.TrimEnd()).ToArray();
+        return [.. Enumerable.Range(0, graph.Count).Select(index => GraphRowRenderer.Render(graph[index], options, false).Text.TrimEnd())];
     }
 
     private static CommitInfo[] Diamond() =>
@@ -209,7 +209,7 @@ public class GraphRowRendererTests
             commits.Add(CommitFactory.Commit(100 + lane, $"branch {lane}", [lane]));
         }
 
-        var graph = CommitFactory.Graph(commits.ToArray());
+        var graph = CommitFactory.Graph([.. commits]);
         var options = new GraphRowOptions(30, 2, GraphGlyphSet.Unicode);
 
         for (var index = 0; index < graph.Count; index++)

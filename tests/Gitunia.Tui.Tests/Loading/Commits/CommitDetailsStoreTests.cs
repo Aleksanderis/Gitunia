@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Gitunia.Git;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Tests.App;
@@ -36,8 +37,7 @@ public class CommitDetailsStoreTests
         var last = reader.Add("three", second);
         var pump = new UiPump(Token);
         using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(300));
-        var seen = new List<CommitDetailsState>();
-        store.Changed += () => seen.Add(store.Current);
+        var recorder = new ChangeRecorder(store);
 
         store.Select(first);
         store.Select(second);
@@ -45,7 +45,7 @@ public class CommitDetailsStoreTests
         var settled = await WaitForSettledAsync(pump, store, last);
 
         Assert.Equal("three", settled.Details!.Subject);
-        Assert.DoesNotContain(seen, entry => entry.Status == CommitDetailsStatus.Loaded && entry.Commit != last);
+        Assert.DoesNotContain(recorder.Seen, entry => entry.Status == CommitDetailsStatus.Loaded && entry.Commit != last);
         Assert.Equal(last, store.Current.Commit);
     }
 
@@ -119,12 +119,12 @@ public class CommitDetailsStoreTests
     {
         var reader = new FakeCommitDetailsReader();
         var head = reader.Add("one");
-        var posted = 0;
+        var posted = new StrongBox<int>();
         var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var store = new CommitDetailsStore(
             reader, FakeCommitDetailsReader.Location,
-            action => { Interlocked.Increment(ref posted); action(); },
+            action => { Interlocked.Increment(ref posted.Value); action(); },
             TimeSpan.FromMilliseconds(200),
             async (_, token) =>
             {
@@ -144,12 +144,27 @@ public class CommitDetailsStoreTests
         store.Dispose();
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
-        Assert.Equal(0, Volatile.Read(ref posted));
+        Assert.Equal(0, Volatile.Read(ref posted.Value));
     }
 
     private static async Task<CommitDetailsState> WaitForSettledAsync(UiPump pump, CommitDetailsStore store, ObjectId commit)
     {
         await pump.RunUntilAsync(() => store.Current.Commit == commit && store.Current.Status is CommitDetailsStatus.Loaded or CommitDetailsStatus.Failed);
         return store.Current;
+    }
+
+    private sealed class ChangeRecorder
+    {
+        private readonly CommitDetailsStore _store;
+
+        public ChangeRecorder(CommitDetailsStore store)
+        {
+            _store = store;
+            store.Changed += OnChanged;
+        }
+
+        public List<CommitDetailsState> Seen { get; } = [];
+
+        private void OnChanged() => Seen.Add(_store.Current);
     }
 }

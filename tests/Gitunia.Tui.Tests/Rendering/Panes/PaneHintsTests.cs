@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Tests.Rendering.Panes;
 
 public class PaneHintsTests
 {
-    public static TheoryData<PaneKind> Panes() => new(Enum.GetValues<PaneKind>());
+    public static TheoryData<PaneKind> Panes() => [.. Enum.GetValues<PaneKind>()];
 
     [Theory]
     [InlineData(PaneKind.Graph, "gg/G")]
@@ -27,17 +27,21 @@ public class PaneHintsTests
     public void GivenAPane_WhenAskingForHints_ThenEveryHintHasKeysAndADescription(PaneKind pane)
     {
         Assert.NotEmpty(PaneHints.For(pane));
-        Assert.All(PaneHints.For(pane), hint =>
+
+        foreach (var hint in PaneHints.For(pane))
         {
             Assert.False(string.IsNullOrWhiteSpace(hint.Keys), "A hint has no keys.");
             Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description.");
-        });
+        }
     }
 
     [Fact]
     public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
     {
-        Assert.All(PaneHints.ForPicker(), hint => Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description."));
+        foreach (var hint in PaneHints.ForPicker())
+        {
+            Assert.False(string.IsNullOrWhiteSpace(hint.Description), $"The hint {hint.Keys} has no description.");
+        }
     }
 
     [Theory]

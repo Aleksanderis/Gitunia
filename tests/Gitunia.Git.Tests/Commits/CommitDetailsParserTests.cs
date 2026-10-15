@@ -11,7 +11,7 @@ public class CommitDetailsParserTests
     private static readonly string Parent = new('b', 40);
 
     private static string Record(string parents, string message) =>
-        $"{string.Join('\x1f', Hash, parents, "Ann", "ann@x.org", "2026-01-02T03:04:05+02:00", "Bob", "bob@x.org", "2026-01-03T00:00:00Z", message)}\0";
+        $"{string.Join('\u001f', Hash, parents, "Ann", "ann@x.org", "2026-01-02T03:04:05+02:00", "Bob", "bob@x.org", "2026-01-03T00:00:00Z", message)}\0";
 
     private static CommitDetails? Parse(string text, List<string> warnings) => CommitDetailsParser.Parse(Encoding.UTF8.GetBytes(text), warnings);
 
@@ -45,14 +45,14 @@ public class CommitDetailsParserTests
     [Fact]
     public void GivenMessageWithSeparatorLikeText_WhenParsing_ThenMessageIsKeptWhole()
     {
-        var details = Parse(Record(Parent, "a\x1f b"), []);
+        var details = Parse(Record(Parent, "a\u001f b"), []);
 
-        Assert.Equal("a\x1f b", details!.Message);
+        Assert.Equal("a\u001f b", details!.Message);
     }
 
     [Theory]
     [InlineData("")]
-    [InlineData("only\x1fthree\x1ffields\0")]
+    [InlineData("only\u001fthree\u001ffields\0")]
     public void GivenTruncatedOrEmptyOutput_WhenParsing_ThenNullWithWarning(string text)
     {
         var warnings = new List<string>();
@@ -65,7 +65,7 @@ public class CommitDetailsParserTests
     public void GivenInvalidTime_WhenParsing_ThenWarnsAndFallsBackToEpoch()
     {
         var warnings = new List<string>();
-        var text = $"{string.Join('\x1f', Hash, string.Empty, "A", "a@b", "nonsense", "A", "a@b", "nonsense", "m")}\0";
+        var text = $"{string.Join('\u001f', Hash, string.Empty, "A", "a@b", "nonsense", "A", "a@b", "nonsense", "m")}\0";
 
         var details = Parse(text, warnings);
 

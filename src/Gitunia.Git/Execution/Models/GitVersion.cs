@@ -15,15 +15,15 @@ public readonly record struct GitVersion(int Major, int Minor, int Patch)
     public static bool TryParse(string text, out GitVersion version)
     {
         version = default;
-        const string Prefix = "git version ";
+        const string prefix = "git version ";
         var trimmed = text.Trim();
-        var start = trimmed.IndexOf(Prefix, StringComparison.Ordinal);
+        var start = trimmed.IndexOf(prefix, StringComparison.Ordinal);
         if (start < 0)
         {
             return false;
         }
 
-        var parts = trimmed[(start + Prefix.Length)..].Split(' ')[0].Split('.');
+        var parts = trimmed[(start + prefix.Length)..].Split(' ')[0].Split('.');
         if (parts.Length < 2
             || !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var major)
             || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minor))

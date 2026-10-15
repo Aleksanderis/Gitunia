@@ -796,7 +796,7 @@ public class DiffPaneControllerTests
         {
             foreach (var character in text)
             {
-                Controller.HandleTextKey(new KeyEvent(character.ToString(), KeyModifiers.None));
+                Controller.HandleTextKey(new KeyEvent(character.ToString()));
             }
         }
 

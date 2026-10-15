@@ -13,7 +13,7 @@ public readonly record struct GraphRow(string Hash, string Subject, int Lane, ul
 /// <summary>Incremental lane assignment, fed in log (date) order.</summary>
 public sealed class LaneBuilder
 {
-    private readonly List<string?> _lanes = new();
+    private readonly List<string?> _lanes = [];
 
     public GraphRow Add(string hash, string[] parents, string subject)
     {
@@ -87,7 +87,7 @@ public sealed class GraphSource : IListDataSource
 
     private (int Top, int Height, int Count, int Width) _laneCache = (-1, -1, -1, 1);
 
-    public List<GraphRow> Rows { get; } = new();
+    public List<GraphRow> Rows { get; } = [];
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 

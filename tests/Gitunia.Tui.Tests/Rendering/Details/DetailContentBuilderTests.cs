@@ -31,7 +31,7 @@ public class DetailContentBuilderTests
         files);
 
     private static string[] Lines(DetailContent content) =>
-        content.Rows.Select(row => string.Concat(row.Segments.Select(segment => segment.Text))).ToArray();
+        [.. content.Rows.Select(row => string.Concat(row.Segments.Select(segment => segment.Text)))];
 
     [Fact]
     public void GivenNoSelection_WhenBuilding_ThenContentIsEmpty()

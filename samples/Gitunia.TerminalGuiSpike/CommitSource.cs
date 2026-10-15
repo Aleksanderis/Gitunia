@@ -12,7 +12,7 @@ public readonly record struct SidebarItem(string Text, bool Header);
 /// <summary>Append-only sidebar data source (avoids ListWrapper's per-add O(n) scan); headers are bold and blue.</summary>
 public sealed class CommitSource : IListDataSource
 {
-    public List<SidebarItem> Items { get; } = new();
+    public List<SidebarItem> Items { get; } = [];
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 

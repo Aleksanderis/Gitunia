@@ -152,7 +152,7 @@ public class OverlayFrameTests
                 "│ 2/22  Up/Down choose  Enter run  Esc close             │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal([false, true, false], frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected).ToArray());
+        Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
     }
 
     [Fact]

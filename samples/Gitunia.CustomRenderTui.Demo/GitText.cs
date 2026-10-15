@@ -6,7 +6,8 @@ namespace Gitunia.CustomRenderTui.Demo;
 /// <summary>Runs a short `git -C repo ...` command and returns its stdout as text (async, cancellable, killed on cancel).</summary>
 public static class GitText
 {
-    public static async Task<string> RunAsync(string repositoryPath, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public static async Task<string> RunAsync(string repositoryPath, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
     {
         var startInfo = new ProcessStartInfo("git")
         {
@@ -25,18 +26,11 @@ public static class GitText
 
         using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("git did not start");
         process.StandardInput.Close();
-        using var registration = cancellationToken.Register(() =>
-        {
-            try
-            {
-                process.Kill();
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        });
+        await using var registration = cancellationToken.Register(ProcessKiller.KillQuietly, process);
+
         var text = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
         await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
         return text;
     }
 }

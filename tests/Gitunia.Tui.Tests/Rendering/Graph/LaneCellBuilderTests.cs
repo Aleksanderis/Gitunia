@@ -14,7 +14,7 @@ public class LaneCellBuilderTests
     private static string DrawWith(GraphGlyphSet glyphs, int laneColumns, int nodeLane, bool isDecorated, params GraphEdge[] edges)
     {
         var row = new GraphRow(CommitFactory.Id(1), nodeLane, laneColumns, edges);
-        return new string(LaneCellBuilder.Build(row, laneColumns, glyphs, isDecorated).Select(cell => cell.Glyph).ToArray());
+        return new string([.. LaneCellBuilder.Build(row, laneColumns, glyphs, isDecorated).Select(cell => cell.Glyph)]);
     }
 
     [Fact]

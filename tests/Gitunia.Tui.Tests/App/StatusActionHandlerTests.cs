@@ -11,8 +11,10 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
-public class StatusActionHandlerTests
+public class StatusActionHandlerTests : IDisposable
 {
+    private TabSession? _session;
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -88,8 +90,8 @@ public class StatusActionHandlerTests
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
-        using var session = await CreateSessionAsync(pump, testRepository);
-        var handler = new StatusActionHandler(new StatusChannel(), () => session);
+        _session = await CreateSessionAsync(pump, testRepository);
+        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
 
         handler.TryHandle(ActionIds.DetailRetry);
 
@@ -101,16 +103,22 @@ public class StatusActionHandlerTests
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "1"));
         var pump = new UiPump(Token);
-        using var session = await CreateSessionAsync(pump, testRepository);
+        _session = await CreateSessionAsync(pump, testRepository);
         Assert.True(ObjectId.TryParse(new string('1', 40), out var missing));
-        session.Details.Select(missing);
-        await pump.RunUntilAsync(() => session.Details.Current.Status == CommitDetailsStatus.Failed);
-        var handler = new StatusActionHandler(new StatusChannel(), () => session);
+        _session.Details.Select(missing);
+        await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Failed);
+        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
 
         handler.TryHandle(ActionIds.DetailRetry);
 
         Assert.Equal("retrying...", handler.Message);
-        Assert.Equal(CommitDetailsStatus.Loading, session.Details.Current.Status);
+        Assert.Equal(CommitDetailsStatus.Loading, _session.Details.Current.Status);
+    }
+
+    public void Dispose()
+    {
+        _session?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private static async Task<TabSession> CreateSessionAsync(UiPump pump, TestRepository testRepository)

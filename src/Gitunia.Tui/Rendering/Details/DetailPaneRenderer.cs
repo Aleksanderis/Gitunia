@@ -65,7 +65,7 @@ public static class DetailPaneRenderer
 
     /// <summary>A row past the last one: blank.</summary>
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
-        new LineBuilder(width, glyphs.Ellipsis).Build(SegmentRole.Plain);
+        new LineBuilder(width, glyphs.Ellipsis).Build();
 
     /// <summary>The line marked as part of the panel background; the one place both the text frame and the live list view use.</summary>
     public static StyledLine OnPanel(StyledLine line) =>

@@ -100,7 +100,7 @@ public class RefParserTests
     [Fact]
     public void GivenMalformedAndForeignRefs_WhenParsing_ThenSkippedWithWarnings()
     {
-        var output = $"refs/heads/broken\0onlytwo\x1e\n{Line("refs/stash", HashOne)}{Line("refs/heads/ok", HashOne)}{Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd")}";
+        var output = $"refs/heads/broken\0onlytwo\u001e\n{Line("refs/stash", HashOne)}{Line("refs/heads/ok", HashOne)}{Line("refs/heads/odd", HashOne, track: "sideways 3", upstream: "refs/remotes/o/odd")}";
 
         var result = RefParser.Parse(output);
 
@@ -129,5 +129,5 @@ public class RefParserTests
     }
 
     private static string Line(string fullName, string objectHash, string peeled = "", string upstream = "", string track = "", string head = " ", string worktree = "", string symref = "") =>
-        $"{string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref)}\x1e\n";
+        $"{string.Join('\0', fullName, objectHash, peeled, upstream, track, head, worktree, symref)}\u001e\n";
 }

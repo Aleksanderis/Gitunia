@@ -104,6 +104,6 @@ public static class CommitDetailsParser
             field = space < 0 ? [] : field[(space + 1)..];
         }
 
-        return parents.ToArray();
+        return [.. parents];
     }
 }

@@ -43,7 +43,7 @@ public class DiffParserLimitTests
         var parser = new DiffParser(maximumLinesPerFile: 3);
         var files = new List<DiffFile>();
 
-        parser.Feed(Encoding.UTF8.GetBytes(BuildPatch(5, "a.txt") + BuildPatch(2, "b.txt")), files);
+        parser.Feed(Encoding.UTF8.GetBytes(BuildPatch(5) + BuildPatch(2, "b.txt")), files);
         parser.Complete(files);
 
         Assert.Equal([true, false], files.Select(file => file.IsTruncated));

@@ -246,7 +246,7 @@ public sealed class MainView : IDisposable
         Graph.SetNeedsDraw();
     }
 
-    private int ScreenWidth => Window?.Viewport.Width ?? 0;
+    private int ScreenWidth => Window.Viewport.Width;
 
     /// <summary>Redraws the tab row, frame and status bar after the model changed.</summary>
     public void RefreshChrome()
@@ -269,7 +269,7 @@ public sealed class MainView : IDisposable
 
     public void Dispose() => Window.Dispose();
 
-    private int ScreenHeight() => Window?.Viewport.Height ?? 0;
+    private int ScreenHeight() => Window.Viewport.Height;
 
     // A click on a pane's title row focuses the pane, like a click in its list.
     private void FocusFromTitle(PaneListView pane)

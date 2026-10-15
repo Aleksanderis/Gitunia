@@ -144,7 +144,7 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenTypedPath_WhenListing_ThenScanningShowsUntilTheCandidatesArrive()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
@@ -164,7 +164,7 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenSlowListing_WhenTypingAgain_ThenTheOlderListingIsDiscarded()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             if (directory.EndsWith("slow", StringComparison.Ordinal))
@@ -199,12 +199,13 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenSlowListing_WhenItTakesLongerThanTheDelay_ThenScanningIsShownAndOldRowsStayWhileTyping()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
             return [Path.Combine(directory, "alpha")];
         }, scanningDelay: TimeSpan.Zero);
+
         picker.Open();
         picker.Apply(new TypeTextCommand("~/"));
         Assert.False(picker.State!.IsScanningShown);
@@ -239,7 +240,7 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenListingThatNeverFinishes_WhenTheTimeoutPasses_ThenAMessageReplacesScanning()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), TimeSpan.FromMilliseconds(100), directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);
@@ -271,7 +272,7 @@ public class PickerControllerTests
     [Fact]
     public async Task GivenTabDuringListing_WhenTheListingCompletes_ThenThePathIsCompleted()
     {
-        using var release = new ManualResetEventSlim();
+        var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
             release.Wait(TestContext.Current.CancellationToken);

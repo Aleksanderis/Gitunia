@@ -266,7 +266,7 @@ public sealed class CommitLogParser
             field = space < 0 ? [] : field[(space + 1)..];
         }
 
-        return parents.ToArray();
+        return [.. parents];
     }
 
     /// <summary>Author names and emails repeat across thousands of commits; share one string per distinct value.</summary>

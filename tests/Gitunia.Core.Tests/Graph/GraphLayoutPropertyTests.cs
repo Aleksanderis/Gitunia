@@ -54,13 +54,13 @@ public class GraphLayoutPropertyTests
     [MemberData(nameof(Seeds))]
     public void GivenParentsWithinAWindow_WhenLayingOut_ThenLaneCountStaysWithinTheWindow(int seed)
     {
-        const int Window = 8;
-        var commits = RandomHistory(seed, count: 500, window: Window);
+        const int window = 8;
+        var commits = RandomHistory(seed, count: 500, window: window);
 
         var rows = GraphLayout.Compute(commits);
 
         // Open lanes wait for distinct, still-unseen commits within the window; one row adds at most three more parents.
-        Assert.All(rows, row => Assert.InRange(row.LaneCount, 1, Window + 3));
+        Assert.All(rows, row => Assert.InRange(row.LaneCount, 1, window + 3));
     }
 
     [Fact]

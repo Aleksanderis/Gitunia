@@ -200,7 +200,7 @@ public class KeymapEngineTests
         var feeder = CreateFeeder(DefaultKeymap.PickerView);
         feeder.State = feeder.State.WithMode(KeyMode.Insert);
 
-        var typed = TypedKeys.Select(keys => feeder.Feed(keys)).ToList();
+        var typed = TypedKeys.Select(feeder.Feed).ToList();
 
         Assert.All(typed, result => Assert.Equal(KeyOutcome.TextInput, result.Outcome));
         Assert.Equal("jg q5?G", string.Concat(typed.Select(result => result.Text)));

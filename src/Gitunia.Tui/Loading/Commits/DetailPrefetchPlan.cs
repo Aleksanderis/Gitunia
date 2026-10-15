@@ -23,9 +23,10 @@ public static class DetailPrefetchPlan
         }
 
         var commits = new List<ObjectId>(RowsAhead + RowsBehind);
-        for (var distance = 1; distance <= Math.Max(RowsAhead, RowsBehind); distance++)
+        // Ahead is the longer reach, so it bounds the loop.
+        for (var distance = 1; distance <= RowsAhead; distance++)
         {
-            if (distance <= RowsAhead && index + distance < graph.Count)
+            if (index + distance < graph.Count)
             {
                 commits.Add(graph[index + distance].Id);
             }

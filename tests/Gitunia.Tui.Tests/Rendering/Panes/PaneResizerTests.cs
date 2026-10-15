@@ -156,7 +156,7 @@ public class PaneResizerTests
     [Fact]
     public void GivenChangedSizes_WhenResetting_ThenTheyAreAutomaticAgain()
     {
-        var changed = new PaneSizes(20, 9, null);
+        var changed = new PaneSizes(20, 9);
 
         Assert.Equal(PaneSizes.Automatic, PaneResizer.Apply(changed, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));
         Assert.Null(PaneResizer.Apply(PaneSizes.Automatic, ActionIds.PaneResetSizes, null, PaneKind.Graph, Width, Height, false));

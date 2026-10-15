@@ -150,6 +150,7 @@ public sealed class SidebarActionHandler(
         {
             panes.Add(PaneKind.Graph);
         }
+
         if (isSidebarVisible())
         {
             panes.Insert(0, PaneKind.Sidebar);

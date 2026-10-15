@@ -120,7 +120,7 @@ public sealed class CommitDetailsStore : IDisposable
             return [];
         }
 
-        return prefetch.Where(candidate => candidate != commit && !_cache.Contains(candidate)).Distinct().ToArray();
+        return [.. prefetch.Where(candidate => candidate != commit && !_cache.Contains(candidate)).Distinct()];
     }
 
     private void StartPrefetch(ObjectId[] wanted)

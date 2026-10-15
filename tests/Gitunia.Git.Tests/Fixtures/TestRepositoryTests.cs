@@ -19,7 +19,7 @@ public class TestRepositoryTests
     [Fact]
     public void GivenLinearRecipe_WhenBuilt_ThenHeadHashIsTheKnownConstant()
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
 
         Assert.Equal("9581c98303acec73532d8e10d5eb6ee6dff69d50", repository.Head);
     }

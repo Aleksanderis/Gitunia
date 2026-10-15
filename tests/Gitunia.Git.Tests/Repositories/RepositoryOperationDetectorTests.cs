@@ -70,7 +70,7 @@ public class RepositoryOperationDetectorTests
     [Fact]
     public async Task GivenBisectInProgress_WhenDetectingOperation_ThenBisect()
     {
-        using var testRepository = TestRepositories.Linear(3);
+        using var testRepository = TestRepositories.Linear();
         testRepository.Git("bisect", "start");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
 

@@ -25,7 +25,7 @@ public class GraphLoaderTests
 
         Assert.Equal("Merge topic", entries[0].Subject);
         Assert.Equal("root", entries[3].Subject);
-        Assert.Equal(["on main", "on topic"], entries.Skip(1).Take(2).Select(entry => entry.Subject).Order().ToArray());
+        Assert.Equal(["on main", "on topic"], [.. entries.Skip(1).Take(2).Select(entry => entry.Subject).Order()]);
         Assert.Equal(entries.Select(entry => entry.Id.ToString()).ToArray(), entries.Select(entry => entry.Row.Id.ToString()).ToArray());
         Assert.Equal(2, entries[0].Row.Edges.Count(edge => edge.Kind == GraphEdgeKind.Outgoing));
         Assert.Contains(entries[0].Decorations, decoration => decoration.Name == "main" && decoration.IsCurrent);
@@ -48,7 +48,7 @@ public class GraphLoaderTests
     {
         var entries = (await LoadAsync(FakeCommitLogReader.Chain(3), maximumCommits: 2)).SelectMany(batch => batch).ToList();
 
-        Assert.Equal(["commit 3", "commit 2"], entries.Select(entry => entry.Subject).ToArray());
+        Assert.Equal(["commit 3", "commit 2"], [.. entries.Select(entry => entry.Subject)]);
     }
 
     [Fact]

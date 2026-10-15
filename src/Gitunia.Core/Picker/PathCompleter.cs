@@ -58,11 +58,11 @@ public static class PathCompleter
 
         SplitTyped(text, out var directoryText, out var namePrefix);
         directoryText = RealCaseDirectoryText(directoryText, candidates[0].Path);
-        var common = CommonPrefix(candidates.Select(candidate => candidate.Name).ToList(), StringComparison.OrdinalIgnoreCase);
+        var common = CommonPrefix([.. candidates.Select(candidate => candidate.Name)], StringComparison.OrdinalIgnoreCase);
         if (common.Length > namePrefix.Length && !candidates.All(candidate => candidate.Name.StartsWith(common, StringComparison.Ordinal)))
         {
             // Names that differ in case only (Docs, docs2): keep to the part they share exactly, so the text stays a real name.
-            common = CommonPrefix(candidates.Select(candidate => candidate.Name).ToList(), StringComparison.Ordinal);
+            common = CommonPrefix([.. candidates.Select(candidate => candidate.Name)], StringComparison.Ordinal);
         }
 
         if (common.Length > namePrefix.Length)

@@ -17,6 +17,7 @@ namespace Gitunia.Tui.Tests.App.Clipboard;
 public class RangeCopierTests : IDisposable
 {
     private readonly StringWriter _terminal = new();
+    private TabSession? _session;
 
     [Fact]
     public void GivenNoSession_WhenCopying_ThenANoticeSaysNothingWasCopied()
@@ -55,9 +56,10 @@ public class RangeCopierTests : IDisposable
     public async Task GivenAClipboardThatRefusesTheText_WhenCopying_ThenTheResultSaysNotCopied()
     {
         using var testRepository = TestRepository.Create().Commit("one", new TestFile("a.txt", "a\n"));
-        using var session = await CreateSessionAsync(testRepository);
+        _session = await CreateSessionAsync(testRepository);
         var statuses = new StatusChannel();
-        var copier = new RangeCopier(new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 10)), statuses), () => session);
+        var writer = new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 10));
+        var copier = new RangeCopier(new ClipboardCopier(writer, statuses), () => _session);
 
         var result = copier.Copy(PaneKind.Graph, new RowRange(0, 1));
 
@@ -68,6 +70,7 @@ public class RangeCopierTests : IDisposable
 
     public void Dispose()
     {
+        _session?.Dispose();
         _terminal.Dispose();
         GC.SuppressFinalize(this);
     }

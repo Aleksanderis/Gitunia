@@ -30,7 +30,7 @@ public class MouseMapTests
         var map = DefaultMouseMap.Create();
 
         var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.DoubleClick);
-        var enter = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.GraphView).Feed("Enter");
+        var enter = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create())).Feed("Enter");
 
         Assert.Equal(enter.Action, binding?.Action);
     }

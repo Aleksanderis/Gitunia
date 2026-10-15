@@ -19,7 +19,7 @@ public class PaletteTests
     private const double DecorationRatio = 3.0;
     private const double MinimumTabTint = 1.15;
 
-    public static TheoryData<bool> Variants => new() { false, true };
+    public static TheoryData<bool> Variants => [false, true];
 
     [Theory]
     [MemberData(nameof(Variants))]
@@ -343,7 +343,7 @@ public class PaletteTests
     public void GivenMoreLanesThanColours_WhenColouring_ThenTheColoursCycle()
     {
         var colors = PaletteTable.For(PaletteSettings.Default);
-        var first = Palette.For(new StyledSegment("x", SegmentRole.Lane, 0), false, false, colors);
+        var first = Palette.For(new StyledSegment("x", SegmentRole.Lane), false, false, colors);
 
         var wrapped = Palette.For(new StyledSegment("x", SegmentRole.Lane, colors.Lanes.Length), false, false, colors);
 

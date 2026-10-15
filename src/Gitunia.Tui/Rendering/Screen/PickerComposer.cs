@@ -86,7 +86,7 @@ public static class PickerComposer
                 .Append($" {name}{new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)))}  ", SegmentRole.Plain)
                 .Append(Tags(row).PadRight(TagColumns), SegmentRole.Tag)
                 .Append(Abbreviate(row.Path, homeDirectory), SegmentRole.Faint);
-            lines.Add(WithButtons(builder.Build(SegmentRole.Plain, isSelected: isHighlighted), buttons));
+            lines.Add(WithButtons(builder.Build(isSelected: isHighlighted), buttons));
         }
 
         return lines;

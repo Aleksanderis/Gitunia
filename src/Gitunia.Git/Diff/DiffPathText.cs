@@ -59,7 +59,7 @@ public static class DiffPathText
             });
         }
 
-        return Encoding.UTF8.GetString(bytes.ToArray());
+        return Encoding.UTF8.GetString([.. bytes]);
     }
 
     /// <summary>Removes the <c>a/</c> or <c>b/</c> prefix; <c>/dev/null</c> becomes null.</summary>

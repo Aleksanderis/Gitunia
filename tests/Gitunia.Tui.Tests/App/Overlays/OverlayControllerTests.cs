@@ -26,15 +26,22 @@ public sealed class OverlayControllerTests : IDisposable
     public OverlayControllerTests()
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());
-        OverlayController? controller = null;
-        _keys = new KeyController(engine, (action, count) => RouteAction(controller!, action, count));
+        _keys = new KeyController(engine, RouteAction);
         _timer = new WhichKeyTimer(TimeSpan.FromMilliseconds(1), action =>
         {
             _posted.Enqueue(action);
             _postedSignal.Release();
         });
-        controller = new OverlayController(engine, _keys, _timer, (action, count) => RouteAction(controller!, action, count), () => new ScreenSize(80, 24), GraphGlyphSet.Unicode, () => DefaultKeymap.GraphView, _statuses);
-        _overlays = controller;
+
+        _overlays = new OverlayController(
+            engine,
+            _keys,
+            _timer,
+            RouteAction,
+            () => new ScreenSize(80, 24),
+            GraphGlyphSet.Unicode,
+            () => DefaultKeymap.GraphView,
+            _statuses);
         _overlays.Changed += () => _changes++;
     }
 
@@ -52,9 +59,9 @@ public sealed class OverlayControllerTests : IDisposable
         }
     }
 
-    private void RouteAction(OverlayController controller, ActionId action, int? count)
+    private void RouteAction(ActionId action, int? count)
     {
-        if (!controller.Handle(action, count))
+        if (!_overlays.Handle(action, count))
         {
             _routed.Add(action);
         }

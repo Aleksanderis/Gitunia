@@ -201,7 +201,7 @@ public class DetailPaneComposerTests
     [Fact]
     public void GivenALoadedPane_WhenRendering_ThenEveryContentCellIsOnThePanelButTheTitleIsNot()
     {
-        var content = LoadedContent(TwoCommits(), BottomTab.Details);
+        var content = LoadedContent(TwoCommits());
 
         var lines = DetailPaneRenderer.RenderPane(new DetailPaneModel(content, 0, 0, false), 40, 4, GraphGlyphSet.Unicode);
 

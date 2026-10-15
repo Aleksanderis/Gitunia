@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -285,7 +284,7 @@ public class WorkspaceReducerTests
         var head = new HeadState(HeadKind.Branch, "main", "abc");
 
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new HeadLoadedCommand(head))).Workspace;
-        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new RefsLoadedCommand(ImmutableArray<GitRef>.Empty))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new RefsLoadedCommand([]))).Workspace;
         workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetMissingCommand(true))).Workspace;
 
         var tab = workspace.FindTab(id)!;

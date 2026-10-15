@@ -60,7 +60,7 @@ public static class ScreenComposer
         }
         else
         {
-            AddPanes(overlays, model, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects, height);
+            AddPanes(overlays, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects);
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
@@ -78,7 +78,6 @@ public static class ScreenComposer
 
     private static void AddPanes(
         List<PaneLines> overlays,
-        ScreenModel model,
         CommitGraph graph,
         int selectedItem,
         int topItem,
@@ -87,8 +86,7 @@ public static class ScreenComposer
         SidebarModel? sidebar,
         SearchQuery? highlight,
         DiffPaneModel? diff,
-        PaneRects rects,
-        int height)
+        PaneRects rects)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;

@@ -82,7 +82,7 @@ public class FramePrinterTests
         repository.Commit("root commit message", new TestFile("a.txt", "one\n"));
 
         var details = await PrintAsync(repository, 100, 30, null, BottomTab.Details);
-        var changes = await PrintAsync(repository, 100, 30, null, BottomTab.Changes);
+        var changes = await PrintAsync(repository, 100, 30, null);
         var files = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
 
         Assert.Contains(details, line => line.StartsWith("│ author ", StringComparison.Ordinal));

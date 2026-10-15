@@ -46,6 +46,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
+    private IApplication _application = null!;
     private WorkspaceHost _host = null!;
     private EffectRunner _effects = null!;
     private BackgroundStatusPoller? _statusPoller;
@@ -77,21 +78,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
         using var app = Application.Create();
+        _application = app;
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         app.Init();
-        var driver = app.Driver;
-        var palette = PaletteSettings.Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false });
-        if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
-        {
-            driver.Force16Colors = true;
-        }
-
-        Palette.Configure(palette);
+        ConfigurePalette();
 
         _host = new WorkspaceHost(Workspace.Empty);
-        _effects = new EffectRunner(services, _host, action => app.Invoke(action), glyphs, _statuses);
-        var clipboardWriter = capabilities.IsInteractive ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable)) : null;
-        var clipboard = new ClipboardCopier(clipboardWriter, _statuses);
+        _effects = new EffectRunner(services, _host, InvokeOnUi, glyphs, _statuses);
+
+        var clipboard = CreateClipboard();
         var sidebarSource = new SidebarListSource(glyphs);
         _sidebar = new SidebarActionHandler(
             _host,
@@ -114,8 +109,26 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _diffPane.Arrangement(),
             width => _diffPane.TitleLine(width, glyphs),
             new DiffListSource(glyphs));
-        _router = new ActionRouter(_host, _view.Graph, _view.Detail, ActiveSession, app.RequestStop, _sidebar, _statuses, clipboard);
-        _diffPane = new DiffPaneController(_host, ActiveSession, _view.Detail, _view.Diff, mode => _keys.SetMode(mode), () => _view.ScreenSize, Relayout, _view.RefreshChrome, clipboard);
+
+        _router = new ActionRouter(
+            _host,
+            _view.Graph,
+            _view.Detail,
+            ActiveSession,
+            RequestStop,
+            _sidebar,
+            _statuses,
+            clipboard);
+        _diffPane = new DiffPaneController(
+            _host,
+            ActiveSession,
+            _view.Detail,
+            _view.Diff,
+            mode => _keys.SetMode(mode),
+            () => _view.ScreenSize,
+            Relayout,
+            _view.RefreshChrome,
+            clipboard);
         _router.Diff = _diffPane;
         _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
@@ -137,20 +150,38 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
-        _picker = new PickerController(services.Discovery, _host, _homeDirectory, action => app.Invoke(action));
-        _workspaceActions = new WorkspaceActions(_host, _picker, app.RequestStop);
-        _binder = new GraphTabBinder(_host, _effects, _view.Graph, new GraphListSource(new CommitGraph(), glyphs), _view.RefreshChrome);
+
+        _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi);
+        _workspaceActions = new WorkspaceActions(_host, _picker, RequestStop);
+
+        _binder = new GraphTabBinder(
+            _host,
+            _effects,
+            _view.Graph,
+            new GraphListSource(new CommitGraph(), glyphs),
+            _view.RefreshChrome);
         _binder.Switched += OnTabSwitched;
         _binder.GraphChanged += OnGraphChanged;
+
         var engine = new KeymapEngine(DefaultKeymap.Create());
-        _keys = new KeyController(engine, (action, count) => RouteAction(action, count));
-        _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, action => app.Invoke(action));
-        _overlays = new OverlayController(engine, _keys, _whichKeyTimer, RouteAction, () => _view.ScreenSize, glyphs, () => _router.ViewName, _statuses);
+        _keys = new KeyController(engine, RouteAction);
+        _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
+        _overlays = new OverlayController(
+            engine,
+            _keys,
+            _whichKeyTimer,
+            RouteAction,
+            () => _view.ScreenSize,
+            glyphs,
+            () => _router.ViewName,
+            _statuses);
         _overlays.Changed += RefreshOverlay;
-        _prompts = [_diffPane, .. CreatePrompts(app)];
+        _prompts = [_diffPane, .. CreatePrompts()];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
-        var presenter = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
+
+        // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
+        _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
 
         _statuses.Changed += _view.RefreshChrome;
         _host.Changed += _view.RefreshChrome;
@@ -170,11 +201,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
-        _view.Window.ViewportChanged += (_, _) => app.AddTimeout(TimeSpan.Zero, () =>
-        {
-            _diffPane.OnScreenResized();
-            return false;
-        });
+        _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -182,7 +209,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
         _view.Diff.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
-        app.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
         if (restored.Detail is { Length: > 0 } restoreNotice)
         {
@@ -190,7 +217,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         _host.Restore(restored.Update);
-        _statusPoller = new BackgroundStatusPoller(services.Status, _host, action => app.Invoke(action));
+        _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi);
         _statusPoller.Start();
         if (location is not null)
         {
@@ -203,12 +230,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _picker.Open();
         }
 
-        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, action => app.Invoke(action));
+        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi);
         persistence.Start();
         _view.Graph.SetFocus();
         try
         {
-            app.Run(_view.Window);
+            _application.Run(_view.Window);
         }
         finally
         {
@@ -221,10 +248,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     public void Dispose()
     {
-        _whichKeyTimer?.Dispose();
+        _whichKeyTimer.Dispose();
         _statusPoller?.Dispose();
-        _effects?.Dispose();
-        _view?.Dispose();
+        _effects.Dispose();
+        _view.Dispose();
     }
 
     private void RouteAction(ActionId action, int? count)
@@ -387,8 +414,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
-    // The app.Invoke call runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
-    private static Action<Action> DeferToNextIteration(IApplication app) => work => app.AddTimeout(
+    private void InvokeOnUi(Action action) => _application.Invoke(action);
+
+    private void RequestStop() => _application.RequestStop();
+
+    // Invoke runs at once when called on the UI thread; a zero timeout runs the work in a later loop iteration so keys are handled in between.
+    private void DeferToNextIteration(Action work) => _application.AddTimeout(
         TimeSpan.Zero,
         () =>
         {
@@ -396,7 +427,28 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return false;
         });
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts(IApplication app)
+    private void ConfigurePalette()
+    {
+        var driver = _application.Driver;
+        var palette = PaletteSettings.Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false });
+        if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
+        {
+            driver.Force16Colors = true;
+        }
+
+        Palette.Configure(palette);
+    }
+
+    private ClipboardCopier CreateClipboard()
+    {
+        var clipboardWriter = capabilities.IsInteractive
+            ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable))
+            : null;
+
+        return new ClipboardCopier(clipboardWriter, _statuses);
+    }
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts()
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -415,9 +467,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         return
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
-            new TabRenameController(_host, _keys.SetMode, () => _view.RefreshChrome()),
+            new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
-            new SearchController(handle, DeferToNextIteration(app)),
+            new SearchController(handle, DeferToNextIteration),
         ];
     }
 

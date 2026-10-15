@@ -15,11 +15,12 @@ public class GraphLayoutShapeTests
     {
         var rows = GraphLayout.Compute([Commit(1, 2), Commit(2, 3), Commit(3, 4), Commit(4)]);
 
-        Assert.All(rows, row =>
+        foreach (var row in rows)
         {
             Assert.Equal(0, row.Lane);
             Assert.Equal(1, row.LaneCount);
-        });
+        }
+
         Assert.Equal([new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)], rows[0].Edges);
         Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0), new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)], rows[1].Edges);
         Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], rows[3].Edges);

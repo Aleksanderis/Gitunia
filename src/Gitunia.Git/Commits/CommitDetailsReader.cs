@@ -16,7 +16,7 @@ public sealed class CommitDetailsReader : ICommitDetailsReader
 
     public async Task<CommitDetails?> ReadAsync(RepositoryLocation location, ObjectId id, ICollection<string>? warnings = null, CancellationToken cancellationToken = default)
     {
-        var collected = warnings ?? new List<string>();
+        var collected = warnings ?? [];
         var metadata = await _runner.RunAsync(location.CommandPath, CommitDetailsFormat.MetadataArguments(id), GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
         var details = CommitDetailsParser.Parse(metadata.StandardOutput, collected);
         if (details is null)

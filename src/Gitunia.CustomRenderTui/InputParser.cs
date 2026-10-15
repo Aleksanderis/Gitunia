@@ -134,7 +134,7 @@ public sealed class InputParser
                     return 0;
                 }
 
-                var args = Encoding.ASCII.GetString(_pending.GetRange(start + 2, end - start - 2).ToArray());
+                var args = Encoding.ASCII.GetString([.. _pending.GetRange(start + 2, end - start - 2)]);
                 Csi(args, (char)_pending[end], output);
                 return end - start + 1;
             }
@@ -179,7 +179,7 @@ public sealed class InputParser
             return 0;
         }
 
-        var text = Encoding.UTF8.GetString(_pending.GetRange(start, length).ToArray());
+        var text = Encoding.UTF8.GetString([.. _pending.GetRange(start, length)]);
         if (text.Length > 0)
         {
             output.Add(new KeyEvent(KeyKind.Text, text[0]));

@@ -5,7 +5,7 @@ paths:
 
 # C# style and structure
 
-Applies to every new and touched C# file, tests included. The build enforces `_field` naming, `var` for locals, formatting and unused usings (`.editorconfig`, warnings are errors); the rest is checked by the reviewer.
+Applies to every new and touched C# file, tests included. The build enforces `_field` naming, camelCase local constants, `var` for locals (and `var (a, b) =` deconstruction), collection expressions, method groups instead of forwarding lambdas, blank line after a block, unused usings, locals and needless `!`, and passing the `CancellationToken` on (`.editorconfig`, warnings are errors); the rest is checked by the reviewer.
 
 ## Naming
 
@@ -22,6 +22,20 @@ Applies to every new and touched C# file, tests included. The build enforces `_f
 - Build text with string interpolation, not `+`.
 - No fully qualified names: use `using` imports (rename a member if it hides a type).
 - No magic numbers, letters or strings from git output or formats: named constants, defined once next to the format they describe (shared ones in one place, e.g. ref prefixes). Fixed argument lists and option objects are `static readonly`, not rebuilt per call.
+
+## Readability
+
+- No local functions (named or lambda-valued, least of all with function parameters): make them private methods, with the shared state in fields or parameters.
+- Lines stay within 120 columns (`max_line_length`): wrap long signatures, calls, initializers and conditions, one argument per line once they don't fit. Touched code is wrapped; don't mass-rewrap untouched files.
+- Blank lines separate steps: before `while`/`foreach`/`if` after a setup block, before `return`, and between groups of wiring statements. Long wiring methods (`Run`, composition) are split into private methods named for the step instead of one wall of inlined lambdas.
+- Prefer `while (await ReadLineAsync() is { } line)` over declaring the variable and assigning in the condition.
+
+## Disposal and lambdas
+
+- A lambda or method group never captures a variable that a `using` disposes in the enclosing scope (Rider: "captured variable is disposed in the outer scope"). Pass it as state (`token.Register(KillQuietly, process)`) or keep the object in a field and call through a private method.
+- `CancellationTokenRegistration` is `await using` in async methods. Pass the token to every async call that takes one (`WaitToReadAsync(token)`).
+- Fields assigned in `Run` and disposed in `Dispose` are not null-conditional (`_view.Dispose()`) unless they can really be null.
+- An object that wires itself up in its constructor is created with `_ = new X(...)` and a comment saying so, not stored in an unused local.
 
 ## Files and folders
 

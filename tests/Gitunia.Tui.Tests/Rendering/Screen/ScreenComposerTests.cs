@@ -79,7 +79,7 @@ public class ScreenComposerTests
 
         Assert.StartsWith("│ ├ │  ", lines[2].Text, StringComparison.Ordinal);
         Assert.StartsWith("│ ├─●  ", lines[3].Text, StringComparison.Ordinal);
-        Assert.Equal([false, true, false], lines.Skip(2).Take(3).Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)).ToArray());
+        Assert.Equal([false, true, false], [.. lines.Skip(2).Take(3).Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused))]);
     }
 
     [Fact]

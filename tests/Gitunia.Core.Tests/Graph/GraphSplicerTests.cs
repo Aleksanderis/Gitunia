@@ -157,7 +157,7 @@ public class GraphSplicerTests
     private static void AssertEqualToFullLayout(IReadOnlyList<CommitInfo> commits, IReadOnlyList<GraphEntry> result)
     {
         var expected = GraphLayout.Compute(commits);
-        Assert.Equal(commits.Select(commit => commit.Id).ToArray(), result.Select(entry => entry.Id).ToArray());
+        Assert.Equal([.. commits.Select(commit => commit.Id)], [.. result.Select(entry => entry.Id)]);
         Assert.True(GraphRowComparer.AreEqual(expected, [.. result.Select(entry => entry.Row)]));
     }
 }

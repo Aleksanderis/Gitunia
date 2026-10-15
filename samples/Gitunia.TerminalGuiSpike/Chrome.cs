@@ -21,7 +21,7 @@ public static class Look
         return new Color(levels[offset / 36], levels[offset / 6 % 6], levels[offset % 6]);
     }
 
-    public static readonly Color[] Lanes = new[] { 75, 114, 215, 177, 203, 80, 222, 141, 150, 209, 117, 183 }.Select(Xterm).ToArray();
+    public static readonly Color[] Lanes = [.. new[] { 75, 114, 215, 177, 203, 80, 222, 141, 150, 209, 117, 183 }.Select(Xterm)];
 
     public static readonly Color HashGrey = Xterm(244);
 
@@ -43,7 +43,7 @@ public sealed class SegmentView : View
         var width = Viewport.Width;
         Move(0, 0);
         var used = 0;
-        foreach (var (text, appearance) in Build?.Invoke() ?? Enumerable.Empty<(string, Attribute)>())
+        foreach (var (text, appearance) in Build?.Invoke() ?? [])
         {
             if (used >= width)
             {

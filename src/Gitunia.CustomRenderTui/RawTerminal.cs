@@ -130,8 +130,8 @@ public sealed unsafe partial class RawTerminal : IDisposable
         {
             _ = SetConsoleMode(GetStdHandle(StdInputHandle), _savedInputMode);
             _ = SetConsoleMode(GetStdHandle(StdOutputHandle), _savedOutputMode);
-            _ = SetConsoleCP(_savedInputCodePage);
-            _ = SetConsoleOutputCP(_savedOutputCodePage);
+            _ = SetConsoleCp(_savedInputCodePage);
+            _ = SetConsoleOutputCp(_savedOutputCodePage);
         }
         else
         {
@@ -169,15 +169,15 @@ public sealed unsafe partial class RawTerminal : IDisposable
     private static partial uint GetConsoleCP();
 
     [LibraryImport("kernel32", EntryPoint = "GetConsoleOutputCP")]
-    private static partial uint GetConsoleOutputCP();
+    private static partial uint GetConsoleOutputCp();
 
     [LibraryImport("kernel32", EntryPoint = "SetConsoleCP")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetConsoleCP(uint codePage);
+    private static partial bool SetConsoleCp(uint codePage);
 
-    [LibraryImport("kernel32", EntryPoint = "SetConsoleOutputCP")]
+    [LibraryImport("kernel32", EntryPoint = "SetConsoleOutputCp")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool SetConsoleOutputCP(uint codePage);
+    private static partial bool SetConsoleOutputCp(uint codePage);
 
     [LibraryImport("kernel32", EntryPoint = "GetConsoleScreenBufferInfo")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -242,7 +242,7 @@ public sealed unsafe partial class RawTerminal : IDisposable
         }
 
         _savedInputCodePage = GetConsoleCP();
-        _savedOutputCodePage = GetConsoleOutputCP();
+        _savedOutputCodePage = GetConsoleOutputCp();
 
         // Input: no line buffering, echo, Ctrl-C processing or quick-edit selection; VT sequences + resize events on.
         var inMode = (_savedInputMode & ~(EnableLineInput | EnableEchoInput | EnableProcessedInput | EnableQuickEdit))
@@ -259,8 +259,8 @@ public sealed unsafe partial class RawTerminal : IDisposable
             throw new InvalidOperationException("Could not enable virtual terminal processing (console too old?)");
         }
 
-        _ = SetConsoleCP(Utf8CodePage);
-        _ = SetConsoleOutputCP(Utf8CodePage);
+        _ = SetConsoleCp(Utf8CodePage);
+        _ = SetConsoleOutputCp(Utf8CodePage);
     }
 
     private int ReadWindows(byte[] buffer)

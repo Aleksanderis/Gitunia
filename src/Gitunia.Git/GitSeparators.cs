@@ -7,7 +7,7 @@ public static class GitSeparators
     public const byte UnitSeparator = 0x1f;
 
     /// <summary>Record separator (0x1e) that ends a record where the fields are NUL-separated.</summary>
-    public const char RecordSeparator = '\x1e';
+    public const char RecordSeparator = '\u001e';
 
     /// <summary>NUL ends a record under <c>-z</c>.</summary>
     public const byte RecordTerminator = 0;

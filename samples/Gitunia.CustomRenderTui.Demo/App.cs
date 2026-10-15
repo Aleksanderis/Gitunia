@@ -50,7 +50,7 @@ public sealed partial class App : IDisposable
         using var cancellationTokenSource = new CancellationTokenSource();
         terminal.Resized += () => _events.Writer.TryWrite(new Resize());
 
-        (var width, var height) = RawTerminal.GetSize();
+        var (width, height) = RawTerminal.GetSize();
         _buffer.Resize(width, height);
         _ = GitLogRunner.RunAsync(
             _repositoryPath,
@@ -58,14 +58,15 @@ public sealed partial class App : IDisposable
             () => _events.Writer.TryWrite("done"),
             cancellationTokenSource.Token);
         _ = LoadRefsAsync(cancellationTokenSource.Token);
-        var reader = new Thread(() => ReadInput(terminal)) { IsBackground = true };
-        reader.Start();
+
+        var reader = new Thread(ReadInput) { IsBackground = true };
+        reader.Start(terminal);
 
         var reading = _events.Reader;
         while (!_quit)
         {
             var dirty = false;
-            if (!reading.WaitToReadAsync().AsTask().GetAwaiter().GetResult())
+            if (!reading.WaitToReadAsync(cancellationTokenSource.Token).AsTask().GetAwaiter().GetResult())
             {
                 break;
             }
@@ -87,8 +88,9 @@ public sealed partial class App : IDisposable
     }
 
     /// <summary>Blocking read loop on its own thread: bytes in, parsed key events posted to the UI thread.</summary>
-    private void ReadInput(RawTerminal terminal)
+    private void ReadInput(object? state)
     {
+        var terminal = (RawTerminal)state!;
         var buffer = new byte[1024];
         var keys = new List<KeyEvent>();
         int bytesRead;
@@ -128,7 +130,7 @@ public sealed partial class App : IDisposable
                 _detailCursor.ToStart();
                 return true;
             case Resize:
-                (var width, var height) = RawTerminal.GetSize();
+                var (width, height) = RawTerminal.GetSize();
                 _buffer.Resize(width, height);
                 return true;
             case KeyEvent key:

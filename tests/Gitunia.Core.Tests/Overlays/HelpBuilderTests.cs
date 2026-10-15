@@ -41,7 +41,7 @@ public class HelpBuilderTests
     public void GivenDifferentViews_WhenBuilding_ThenEachShowsItsOwnKeys()
     {
         var graph = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows).Select(row => row.Description);
-        var diff = HelpBuilder.Build(Table, DefaultKeymap.DiffView).SelectMany(section => section.Rows).Select(row => row.Description);
+        var diff = HelpBuilder.Build(Table, DefaultKeymap.DiffView).SelectMany(section => section.Rows).Select(row => row.Description).ToList();
 
         Assert.Contains("Jump to HEAD", graph);
         Assert.DoesNotContain("Jump to HEAD", diff);
