@@ -160,7 +160,7 @@ public class PaletteTests
 
         var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
-        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
 
         Assert.NotEqual(plain.Background, panel.Background);
         Assert.NotEqual(plain.Background, button.Background);
@@ -204,7 +204,7 @@ public class PaletteTests
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
 
         var selected = Palette.For(new StyledSegment(" Files ", SegmentRole.InactiveTab), false, false, colors);
-        var other = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+        var other = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
 
         Assert.NotEqual(selected, other);
     }
@@ -216,7 +216,7 @@ public class PaletteTests
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, false));
 
-        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.TabButton), false, false, colors);
+        var button = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
         var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
 
         Assert.True(button.Style.HasFlag(TextStyle.Underline));

@@ -121,7 +121,24 @@ public class DetailPaneComposerTests
         var roles = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Changes" or "Files").Select(segment => segment.Role).ToArray();
         Assert.Equal(3, roles.Length);
         Assert.Equal(SegmentRole.ActiveTab, roles[expectedIndex]);
-        Assert.Equal(2, roles.Count(role => role == SegmentRole.TabButton));
+        Assert.Equal(2, roles.Count(role => role == SegmentRole.RepositoryTab));
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(24)]
+    [InlineData(28)]
+    [InlineData(29)]
+    [InlineData(50)]
+    public void GivenAnyWidth_WhenRenderingTheTitle_ThenTheUnselectedTabsAreChipsLikeTheRepositoryTabs(int width)
+    {
+        var content = LoadedContent(TwoCommits(), BottomTab.Changes);
+
+        var title = DetailPaneRenderer.RenderTitle(content, true, width, GraphGlyphSet.Unicode);
+
+        var others = title.Segments.Where(segment => segment.Text.Trim() is "Details" or "Files").ToArray();
+        Assert.All(others, segment => Assert.Equal(SegmentRole.RepositoryTab, segment.Role));
+        Assert.DoesNotContain(title.Segments, segment => segment.Role == SegmentRole.Plain);
     }
 
     [Fact]

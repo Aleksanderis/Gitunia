@@ -37,7 +37,7 @@ public static class DetailPaneRenderer
         {
             builder.Append(new string(glyphs.Horizontal, button.Start - column), SegmentRole.Rule);
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
-            builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.TabButton);
+            builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), isSelected ? (isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab) : SegmentRole.RepositoryTab);
             column = button.Start + button.Width;
         }
 
