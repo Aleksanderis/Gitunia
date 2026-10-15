@@ -46,14 +46,14 @@ public sealed class EffectRunner : IDisposable
     public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
 
     /// <summary>Manual refresh of a tab: reads everything again and reloads its graph. False when the tab has no watcher yet (not loaded).</summary>
-    public bool Refresh(TabId tabId)
+    public bool Refresh(TabId tabId, bool announce = true)
     {
         if (!_refreshers.TryGetValue(tabId, out var refresher))
         {
             return false;
         }
 
-        refresher.RefreshNow();
+        refresher.RefreshNow(announce);
         return true;
     }
 

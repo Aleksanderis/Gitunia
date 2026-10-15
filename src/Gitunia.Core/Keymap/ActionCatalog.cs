@@ -109,6 +109,9 @@ public static class ActionCatalog
         ["tab.next"] = "Next tab",
         ["tab.previous"] = "Previous tab",
         ["tab.rename"] = "Rename the tab",
+        ["tool.commit-editor"] = "Commit the staged changes in $EDITOR",
+        ["tool.difftool"] = "Open the commit in the difftool",
+        ["tool.mergetool"] = "Resolve conflicts in the mergetool",
         ["visual.copy"] = "Copy the selected range",
         ["visual.toggle"] = "Start or end range selection",
     };
