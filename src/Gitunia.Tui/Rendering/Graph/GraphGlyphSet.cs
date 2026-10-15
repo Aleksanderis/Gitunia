@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Rendering.Graph;
 public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, string Lines, string Ellipsis, string CurrentBranch, string Remote)
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '│', " │││─╯╮┤─╰╭├─┴┬┼", "…", "◆ ", " ↔");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", " ↔");
 
     public static GraphGlyphSet Ascii { get; } = new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)");
 
