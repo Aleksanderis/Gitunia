@@ -198,4 +198,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Commit message editor (#314): an own `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete, its replacement is a separate package to vet for AOT); testable without a terminal.
 
-**UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the planned `s` `u` `a` `x` `c` `cc` `ce`, `gs`, `r` and the interim `D` `M` `E` (now `<space>a` `u` `A` `U` `d` `c`, `<space>te`, `<space>s`, `<space>r`, `<space>td` `tm` `te`); `<space>j` is reserved for the quick jump (#334).
+**UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the bare keys of the earlier working-tree and external-tool entries; mapping in `docs/ux.md` ("Key rule"); `<space>j` is reserved for the quick jump (#334).
