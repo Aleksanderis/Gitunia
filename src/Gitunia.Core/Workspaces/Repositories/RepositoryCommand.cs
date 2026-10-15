@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Git;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Core.Workspaces.Repositories;
 
@@ -50,3 +51,15 @@ public sealed record SetMissingCommand(bool IsMissing) : RepositoryCommand;
 /// <summary>The working tree status was (re)loaded.</summary>
 /// <param name="Summary">What the tab bar shows.</param>
 public sealed record StatusLoadedCommand(RepositoryStatusSummary Summary) : RepositoryCommand;
+
+/// <summary>
+/// The full working tree status was (re)loaded: replaces the tab's snapshot, updates the tab bar summary and keeps the selection.
+/// A snapshot with the same content changes nothing, so a refresh that finds nothing new never repaints or loops.
+/// </summary>
+/// <param name="Snapshot">The status read.</param>
+public sealed record WorkingTreeLoadedCommand(StatusSnapshot Snapshot) : RepositoryCommand;
+
+/// <summary>Select a file in the working-tree view.</summary>
+/// <param name="Section">The list.</param>
+/// <param name="Index">Row index; clamped to the list, ignored when the list is empty.</param>
+public sealed record SelectWorkingTreeFileCommand(WorkingTreeSection Section, int Index) : RepositoryCommand;
