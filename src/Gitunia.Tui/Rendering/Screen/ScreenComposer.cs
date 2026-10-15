@@ -134,7 +134,9 @@ public static class ScreenComposer
     {
         if (!rect.IsEmpty)
         {
-            var rows = WorkingTreePaneRenderer.ListLines(tree, section, rect, top, true, padding, glyphs);
+            var cursor = tree?.Selection is { } selection && selection.Section == section ? selection.Index : -1;
+            var shownTop = WorkingTreePaneRenderer.TopFor(cursor, top, rect.Height);
+            var rows = WorkingTreePaneRenderer.ListLines(tree, section, rect, shownTop, true, padding, glyphs);
             overlays.Add(new PaneLines(rect.X, rect.Y, rows, isFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
         }
     }

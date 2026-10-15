@@ -44,7 +44,7 @@ public static class WorkingTreePaneRenderer
         ? 0
         : (section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged).Count;
 
-    /// <summary>The row <paramref name="item"/> of a list: a file, the list's empty-state text in the first row of an empty list, or a blank row.</summary>
+    /// <summary>The row <paramref name="item"/> of a list: a file, a row of the list's empty-state text (wrapped) when the list is empty, or a blank row.</summary>
     /// <param name="tree">The working tree, null while it is not loaded.</param>
     /// <param name="section">The list.</param>
     /// <param name="item">Row index in the list.</param>
@@ -61,9 +61,13 @@ public static class WorkingTreePaneRenderer
         }
 
         var builder = new LineBuilder(width, glyphs.Ellipsis);
-        if (item == 0 && count == 0)
+        if (count == 0 && item >= 0)
         {
-            builder.Append(EmptyText(tree, section), SegmentRole.Faint);
+            var sentence = WrapWords(EmptyText(tree, section), width);
+            if (item < sentence.Count)
+            {
+                builder.Append(sentence[item], SegmentRole.Faint);
+            }
         }
 
         return builder.Build();
@@ -136,6 +140,33 @@ public static class WorkingTreePaneRenderer
         }
 
         return cursor >= top + height ? cursor - height + 1 : top;
+    }
+
+    // Greedy word wrap, so a long empty-state sentence stays whole in a narrow list.
+    private static List<string> WrapWords(string text, int width)
+    {
+        var rows = new List<string>();
+        var current = string.Empty;
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var candidate = current.Length == 0 ? word : $"{current} {word}";
+            if (current.Length > 0 && TextWidth.Of(candidate) > width)
+            {
+                rows.Add(current);
+                current = word;
+            }
+            else
+            {
+                current = candidate;
+            }
+        }
+
+        if (current.Length > 0)
+        {
+            rows.Add(current);
+        }
+
+        return rows;
     }
 
     private static List<StyledLine> PlaceholderLines(string text, PaneRect rect, int padding, GraphGlyphSet glyphs)

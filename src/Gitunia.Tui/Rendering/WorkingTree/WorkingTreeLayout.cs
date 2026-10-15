@@ -7,11 +7,14 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <summary>
 /// Lays out the working-tree view inside the frame (docs/ux.md, workflow 2): the Unstaged and Staged lists stacked on the left, the
 /// diff on top of the message box on the right; the sidebar is hidden, so the view gets the whole width. Screens narrower than
-/// <see cref="PaneLayout.MinimumWidthForSideBySide"/> columns show one pane at a time: the focused list. Boxes share their edges
+/// <see cref="MinimumWidthForSideBySide"/> columns show one pane at a time: the focused list. Boxes share their edges
 /// (one line between two panes), as in <see cref="PaneLayout"/>.
 /// </summary>
 public static class WorkingTreeLayout
 {
+    /// <summary>Narrowest screen that shows the lists beside the diff (docs/ux.md, workflow 2); narrower ones show one pane at a time.</summary>
+    public const int MinimumWidthForSideBySide = 80;
+
     /// <summary>Rows of the message box's content: the draft and the option row.</summary>
     public const int MessageHeight = 5;
 
@@ -19,7 +22,7 @@ public static class WorkingTreeLayout
     public const int MinimumStackedHeight = 7;
 
     /// <summary>Fewest rows of content area at which the message box is shown below the diff.</summary>
-    public const int MinimumHeightWithMessage = 13;
+    public const int MinimumHeightWithMessage = 12;
 
     private const int MinimumListWidth = 24;
     private const int MaximumListWidth = 50;
@@ -42,7 +45,7 @@ public static class WorkingTreeLayout
 
         var whole = new PaneRect(1, top, inner, area);
         var onlyStaged = focused == PaneKind.WorkingStaged;
-        if (screenWidth < PaneLayout.MinimumWidthForSideBySide)
+        if (screenWidth < MinimumWidthForSideBySide)
         {
             return new WorkingTreeRects(onlyStaged ? none : whole, onlyStaged ? whole : none, none, none);
         }

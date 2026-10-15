@@ -346,27 +346,29 @@ public sealed class MainView : IDisposable
 
     private PaneListView FocusedWorkingList() => WorkingFocus() == PaneKind.WorkingStaged ? WorkingStaged : WorkingUnstaged;
 
-    // The history panes and the working-tree panes never show together; the picker covers either one.
+    // The history panes and the working-tree panes never show together; the picker covers either one. The panes that appear are
+    // shown before the others are hidden, so the toolkit never hands the focus of a hiding pane to a pane that is about to hide too.
     private void ApplyVisibility()
     {
         var isPicker = _picker.Visible;
         var history = !_isWorkingMode;
+        var working = _isWorkingMode;
+        _workingDivider.Visible = working;
+        _workingLeftEdge.Visible = working;
+        _workingRightEdge.Visible = working;
+        WorkingUnstaged.Visible = working && !isPicker;
+        WorkingStaged.Visible = working && !isPicker;
+        WorkingDiff.Visible = working && !isPicker;
+        WorkingMessage.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
-        Graph.Visible = history && !isPicker;
         _detailTitle.Visible = history;
         Detail.Visible = history;
         _bottomDividerView.Visible = history;
         _diffTitle.Visible = history;
         Diff.Visible = history;
-        _workingDivider.Visible = _isWorkingMode;
-        _workingLeftEdge.Visible = _isWorkingMode;
-        _workingRightEdge.Visible = _isWorkingMode;
-        WorkingUnstaged.Visible = _isWorkingMode && !isPicker;
-        WorkingStaged.Visible = _isWorkingMode && !isPicker;
-        WorkingDiff.Visible = _isWorkingMode && !isPicker;
-        WorkingMessage.Visible = _isWorkingMode && !isPicker;
+        Graph.Visible = history && !isPicker;
     }
 
     private static PaneListView CreateWorkingList(WorkingTreeListSource source, Func<PaneRect> rect) => new()

@@ -67,7 +67,6 @@ public static class PaneHints
         new("Tab", "other list", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("r", "refresh", [ActionIds.RepositoryRefresh]),
-        new("h", "back", [ActionIds.NavigateBack]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Picker =

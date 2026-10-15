@@ -384,7 +384,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A click gave a view the focus: record it in the state so the keymap uses the right view.
     private void OnPaneFocused(View pane, PaneKind kind)
     {
-        if (pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId && _host.Workspace.ActiveTab?.View.FocusedPane != kind)
+        // While the toolkit moves the focus between the history and the working-tree view, the panes of the hidden one are not the user's choice.
+        var isWorkingPane = kind is PaneKind.WorkingUnstaged or PaneKind.WorkingStaged;
+        var isWorkingView = _host.Workspace.ActiveTab?.View.Mode == TabViewMode.WorkingTree;
+        if (isWorkingPane == isWorkingView && pane.HasFocus && _host.Workspace.ActiveTabId is { } tabId && _host.Workspace.ActiveTab?.View.FocusedPane != kind)
         {
             _host.Dispatch(new TabCommand(tabId, new FocusPaneCommand(kind)));
         }
