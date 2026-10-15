@@ -1,6 +1,7 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git;
 using Gitunia.Git.Diff;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading.Diff;
@@ -87,6 +88,32 @@ public sealed class DiffStore(
         }
 
         Start(commit, firstParent);
+        return true;
+    }
+
+    /// <summary>How diffs are read (context, whole files, whitespace); changed with <see cref="SetOptions"/>.</summary>
+    public DiffOptions Options { get; private set; } = DiffOptions.Default;
+
+    /// <summary>
+    /// Reads diffs with other options from now on: the cache is dropped (it holds diffs read the old way) and the shown
+    /// commit loads again.
+    /// </summary>
+    /// <returns>False when the options did not change.</returns>
+    public bool SetOptions(DiffOptions options)
+    {
+        if (options == Options)
+        {
+            return false;
+        }
+
+        Options = options;
+        CancelPrefetch();
+        _cache.Clear();
+        if (Commit is { } commit)
+        {
+            Start(commit, _firstParent);
+        }
+
         return true;
     }
 
@@ -229,7 +256,8 @@ public sealed class DiffStore(
         var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
-        await foreach (var file in reader.ReadCommitAsync(location, commit, firstParent, warnings, lineLimit, token).ConfigureAwait(false))
+        var files = reader.ReadCommitAsync(location, commit, firstParent, warnings, lineLimit, Options, token);
+        await foreach (var file in files.ConfigureAwait(false))
         {
             builder.Add(file);
             fileCut |= file.IsTruncated;

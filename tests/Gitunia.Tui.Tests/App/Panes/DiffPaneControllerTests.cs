@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
@@ -591,6 +592,46 @@ public class DiffPaneControllerTests
         Assert.False(harness.Session.Diff.Store.IsCut);
         Assert.True(harness.Session.Diff.Source.Document.Rows.Count > cutRows);
         Assert.Equal(0, harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAnOpenDiff_WhenChangingContextAndTogglingOptions_ThenTheDiffLoadsAgainWithThem()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var store = harness.Session.Diff!.Store;
+
+        harness.Execute(ActionIds.DiffMoreContext);
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DiffToggleIgnoreWhitespace);
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DiffToggleWholeFile);
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(new DiffOptions(DiffOptions.DefaultContextLines + DiffOptions.ContextStep, true, true), store.Options);
+        Assert.Equal(DiffStatus.Loaded, store.Status);
+        Assert.Equal("Diff: whole files, whitespace ignored", harness.Controller.Notice);
+
+        harness.Execute(ActionIds.DiffToggleWholeFile);
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DiffLessContext);
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(new DiffOptions(DiffOptions.DefaultContextLines, false, true), store.Options);
+        Assert.Equal(0, harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenNoContextLeft_WhenShowingFewerLines_ThenANoticeSaysSo()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+
+        harness.Execute(ActionIds.DiffLessContext);
+        await harness.WaitForDiffAsync();
+        harness.Execute(ActionIds.DiffLessContext);
+
+        Assert.Equal("Context is already at its limit", harness.Controller.Notice);
     }
 
     [Fact]

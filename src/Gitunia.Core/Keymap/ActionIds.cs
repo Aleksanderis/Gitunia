@@ -35,6 +35,10 @@ public static class ActionIds
 
     public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
 
+    public static ActionId DiffLessContext { get; } = new("diff.less-context");
+
+    public static ActionId DiffMoreContext { get; } = new("diff.more-context");
+
     public static ActionId DiffNextFile { get; } = new("diff.next-file");
 
     public static ActionId DiffNextHunk { get; } = new("diff.next-hunk");
@@ -48,6 +52,10 @@ public static class ActionIds
     public static ActionId DiffSearchOpen { get; } = new("diff.search-open");
 
     public static ActionId DiffSearchPrevious { get; } = new("diff.search-previous");
+
+    public static ActionId DiffToggleIgnoreWhitespace { get; } = new("diff.toggle-ignore-whitespace");
+
+    public static ActionId DiffToggleWholeFile { get; } = new("diff.toggle-whole-file");
 
     public static ActionId DiffToggleWrap { get; } = new("diff.toggle-wrap");
 

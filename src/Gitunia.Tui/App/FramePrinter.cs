@@ -105,7 +105,14 @@ public sealed class FramePrinter
         var firstParent = details is { Parents.Count: > 0 } ? details.Parents[0] : (ObjectId?)null;
         var builder = new DiffDocumentBuilder();
         var warnings = new List<string>();
-        await foreach (var file in _services.Diff.ReadCommitAsync(location, selected.Id, firstParent, warnings, DiffStore.DefaultFileLineLimit, cancellationToken))
+        var files = _services.Diff.ReadCommitAsync(
+            location,
+            selected.Id,
+            firstParent,
+            warnings,
+            DiffStore.DefaultFileLineLimit,
+            cancellationToken: cancellationToken);
+        await foreach (var file in files)
         {
             builder.Add(file);
         }

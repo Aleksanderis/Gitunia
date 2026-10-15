@@ -140,6 +140,10 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "w", ActionIds.DiffToggleWrap);
         Add(bindings, NormalOnly, DiffView, "L", ActionIds.DiffLoadAnyway);
+        Add(bindings, NormalOnly, DiffView, "+", ActionIds.DiffMoreContext);
+        Add(bindings, NormalOnly, DiffView, "-", ActionIds.DiffLessContext);
+        Add(bindings, NormalOnly, DiffView, "F", ActionIds.DiffToggleWholeFile);
+        Add(bindings, NormalOnly, DiffView, "W", ActionIds.DiffToggleIgnoreWhitespace);
         Add(bindings, NormalOnly, DiffView, "/", ActionIds.DiffSearchOpen);
         Add(bindings, NormalOnly, DiffView, "n", ActionIds.DiffSearchNext);
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);

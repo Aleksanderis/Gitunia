@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -7,6 +8,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -321,7 +323,14 @@ public sealed class DiffPaneController : IPromptHandler
             return new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused);
         }
 
-        return new DiffPaneModel(diff.Source.Document, CursorRow(diff), diff.Source.RowOf(_diffList.Viewport.Y), isFocused, diff.Search.Highlight, diff.Source.IsWrapped);
+        return new DiffPaneModel(
+            diff.Source.Document,
+            CursorRow(diff),
+            diff.Source.RowOf(_diffList.Viewport.Y),
+            isFocused,
+            diff.Search.Highlight,
+            diff.Source.IsWrapped,
+            DiffOptionsLabel.Of(diff.Store.Options));
     }
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
@@ -350,6 +359,10 @@ public sealed class DiffPaneController : IPromptHandler
         else if (action == ActionIds.DiffLoadAnyway)
         {
             LoadAnyway(diff);
+        }
+        else if (TryChangeOptions(diff, action))
+        {
+            // The diff loads again with the new options; the cursor returns to the same file.
         }
         else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
         {
@@ -466,6 +479,51 @@ public sealed class DiffPaneController : IPromptHandler
         {
             _clipboard.Copy(DiffTextWriter.File(document, document.Rows[row].FileIndex), "file diff");
         }
+    }
+
+    private bool TryChangeOptions(DiffSession diff, ActionId action)
+    {
+        var options = diff.Store.Options;
+        DiffOptions changed;
+        if (action == ActionIds.DiffMoreContext)
+        {
+            changed = options.MoreContext();
+        }
+        else if (action == ActionIds.DiffLessContext)
+        {
+            changed = options.LessContext();
+        }
+        else if (action == ActionIds.DiffToggleWholeFile)
+        {
+            changed = options with { WholeFile = !options.WholeFile };
+        }
+        else if (action == ActionIds.DiffToggleIgnoreWhitespace)
+        {
+            changed = options with { IgnoreWhitespace = !options.IgnoreWhitespace };
+        }
+        else
+        {
+            return false;
+        }
+
+        var path = CurrentFilePath(diff);
+        if (!diff.Store.SetOptions(changed))
+        {
+            Notice = "Context is already at its limit";
+            return true;
+        }
+
+        diff.PendingFilePath = path;
+        Notice = DescribeOptions(changed);
+        return true;
+    }
+
+    private static string DescribeOptions(DiffOptions options)
+    {
+        var context = options.WholeFile
+            ? "whole files"
+            : $"{options.ContextLines.ToString(CultureInfo.InvariantCulture)} context lines";
+        return options.IgnoreWhitespace ? $"Diff: {context}, whitespace ignored" : $"Diff: {context}";
     }
 
     private void LoadAnyway(DiffSession diff)

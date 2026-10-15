@@ -91,11 +91,13 @@ public sealed class DiffReader : IDiffReader
         ObjectId? firstParent,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        var extra = (options ?? DiffOptions.Default).ToArguments();
         IReadOnlyList<string> command = firstParent is { } parent
-            ? ["diff", parent.ToString(), commit.ToString()]
-            : ["show", "--format=", commit.ToString()];
+            ? ["diff", .. extra, parent.ToString(), commit.ToString()]
+            : ["show", "--format=", .. extra, commit.ToString()];
         return ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken);
     }
 

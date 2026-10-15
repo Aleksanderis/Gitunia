@@ -29,6 +29,7 @@ public interface IDiffReader
         ObjectId? firstParent,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>The first parent of <paramref name="commit"/>, or null for a root commit.</summary>

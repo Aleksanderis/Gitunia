@@ -51,6 +51,9 @@ public static class PaneHints
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
         new("w", "wrap", [ActionIds.DiffToggleWrap]),
+        new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
+        new("F", "whole file", [ActionIds.DiffToggleWholeFile]),
+        new("W", "ignore space", [ActionIds.DiffToggleIgnoreWhitespace]),
         new("L", "load all", [ActionIds.DiffLoadAnyway]),
         new("h", "back", [ActionIds.NavigateBack]),
     ];
