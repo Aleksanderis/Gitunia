@@ -228,6 +228,9 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `Enter` | Focus commit details |
 | Graph | `y` | Copy commit hash |
 | Graph | `r` | Refresh repository |
+| Graph | `D` | Open the selected commit (against its first parent) in the configured difftool |
+| Graph | `M` | Resolve conflicts in the configured mergetool |
+| Graph | `E` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `ce` does the same) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |

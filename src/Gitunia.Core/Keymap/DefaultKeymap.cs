@@ -115,6 +115,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
         Add(bindings, NormalOnly, GraphView, "r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, GraphView, "D", ActionIds.ToolDifftool);
+        Add(bindings, NormalOnly, GraphView, "M", ActionIds.ToolMergetool);
+        Add(bindings, NormalOnly, GraphView, "E", ActionIds.ToolCommitEditor);
         AddBottomTabKeys(bindings, GraphView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);

@@ -48,6 +48,10 @@ Folder rule: domain first, technical kind second (`Models/` for records and enum
 
 Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
 
+## External tools
+
+`$EDITOR` (via `git commit`), `git difftool` and `git mergetool` need the real terminal, so they never go through `GitRunner` (which redirects every stream). `ExternalToolCommands` (Git) builds the git arguments, `IExternalToolLauncher` (`Gitunia.Platform/ExternalTools`) spawns the program without a shell and without redirection (`UseShellExecute=false`, inherited console on Windows, controlling terminal on Linux/macOS; an OS outside the three gets an explicit "not supported" result) and `ExternalToolRunner` (Tui) orchestrates. Suspending is `ITerminalSuspender`, implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (which leaves the alternate screen, restores the terminal and console modes and ends its input thread, so the tool is the only reader of stdin), runs the tool, then creates a fresh `IApplication` (a disposed instance cannot be disposed and re-initialised twice in 2.5.0), re-applies the palette and key handler, and runs the same window again. The new driver reads the terminal size on start, so a resize while suspended is picked up. The tool blocks the UI thread by design (the terminal is given away); background git work continues. Afterwards the tab is refreshed quietly and the exit code reported in the status bar. The credential-prompt issue reuses `ITerminalSuspender`.
+
 ## Native AOT
 
 Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. CI and every dependency addition run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64.

@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
@@ -40,6 +41,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
     public Func<bool>? Refresh { get; set; }
+
+    /// <summary>The external tool hand-offs (difftool, mergetool, editor).</summary>
+    public ExternalToolActions? ExternalTools { get; set; }
 
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
@@ -76,6 +80,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.RepositoryRefresh)
         {
             Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
+            return;
+        }
+
+        if (ExternalTools?.TryExecute(action) == true)
+        {
+            Message = ExternalTools.Notice;
             return;
         }
 
