@@ -8,14 +8,20 @@ public static class ExternalToolCommands
 {
     private const string RepositoryDirectoryOption = "-C";
     private const string NoPromptOption = "--no-prompt";
+    private const string DifftoolCommand = "difftool";
+    private const string MergetoolCommand = "mergetool";
+    private const string CommitCommand = "commit";
+    private const string FirstParentSuffix = "^1";
 
-    /// <summary>Arguments for <paramref name="kind"/>; <paramref name="commit"/> is required for the difftool.</summary>
+    /// <summary>
+    /// Arguments for <paramref name="kind"/>; <paramref name="commit"/> is required for the difftool.
+    /// </summary>
     public static IReadOnlyList<string> Build(ExternalToolKind kind, string repositoryPath, string? commit = null) =>
         kind switch
         {
-            ExternalToolKind.Difftool => [RepositoryDirectoryOption, repositoryPath, "difftool", NoPromptOption, $"{Require(commit)}^1", Require(commit)],
-            ExternalToolKind.Mergetool => [RepositoryDirectoryOption, repositoryPath, "mergetool"],
-            ExternalToolKind.CommitWithEditor => [RepositoryDirectoryOption, repositoryPath, "commit"],
+            ExternalToolKind.Difftool => BuildDifftool(repositoryPath, commit),
+            ExternalToolKind.Mergetool => [RepositoryDirectoryOption, repositoryPath, MergetoolCommand],
+            ExternalToolKind.CommitWithEditor => [RepositoryDirectoryOption, repositoryPath, CommitCommand],
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
@@ -23,11 +29,26 @@ public static class ExternalToolCommands
     public static string NameOf(ExternalToolKind kind) =>
         kind switch
         {
-            ExternalToolKind.Difftool => "difftool",
-            ExternalToolKind.Mergetool => "mergetool",
+            ExternalToolKind.Difftool => DifftoolCommand,
+            ExternalToolKind.Mergetool => MergetoolCommand,
             _ => "editor",
         };
 
-    private static string Require(string? commit) =>
-        commit ?? throw new ArgumentException("The difftool needs a commit.", nameof(commit));
+    private static string[] BuildDifftool(string repositoryPath, string? commit)
+    {
+        if (commit is null)
+        {
+            throw new ArgumentException("The difftool needs a commit.", nameof(commit));
+        }
+
+        return
+        [
+            RepositoryDirectoryOption,
+            repositoryPath,
+            DifftoolCommand,
+            NoPromptOption,
+            $"{commit}{FirstParentSuffix}",
+            commit,
+        ];
+    }
 }

@@ -30,6 +30,7 @@ public class ExternalToolRunnerTests
         var notice = runner.Launch(ExternalToolKind.Difftool, Location, "abc");
 
         Assert.Empty(notice);
+        Assert.DoesNotContain("pause", _events);
         Assert.Equal(["suspend", "run git -C /r difftool --no-prompt abc^1 abc in /r", "resume", "refresh"], _events);
         Assert.Equal("difftool finished", _statuses.Log.Latest?.Text);
     }
@@ -41,6 +42,7 @@ public class ExternalToolRunnerTests
 
         CreateRunner().Launch(ExternalToolKind.Mergetool, Location);
 
+        Assert.Contains("pause", _events);
         Assert.Equal("mergetool exited with code 3", _statuses.Log.Latest?.Text);
         Assert.Equal(StatusSeverity.Error, _statuses.Log.Latest?.Severity);
     }
@@ -70,7 +72,7 @@ public class ExternalToolRunnerTests
     }
 
     private ExternalToolRunner CreateRunner() =>
-        new(_launcher, _terminal, _statuses, _ => _events.Add("refresh"));
+        new(_launcher, _terminal, _statuses, _ => _events.Add("refresh"), () => _events.Add("pause"));
 
     private sealed class FakeLauncher(List<string> events) : IExternalToolLauncher
     {

@@ -10,15 +10,13 @@ namespace Gitunia.Platform.ExternalTools;
 /// </summary>
 public sealed class ExternalToolLauncher : IExternalToolLauncher
 {
-    private const int NotStartedExitCode = -1;
-
     public bool IsSupported => OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows();
 
     public ExternalToolResult Run(ExternalToolRequest request)
     {
         if (!IsSupported)
         {
-            return new ExternalToolResult(NotStartedExitCode, "external tools are not supported on this operating system");
+            return NotStarted("external tools are not supported on this operating system");
         }
 
         var startInfo = new ProcessStartInfo(request.FileName)
@@ -36,20 +34,19 @@ public sealed class ExternalToolLauncher : IExternalToolLauncher
             using var process = Process.Start(startInfo);
             if (process is null)
             {
-                return new ExternalToolResult(NotStartedExitCode, $"could not start {request.FileName}");
+                return NotStarted($"could not start {request.FileName}");
             }
 
             process.WaitForExit();
 
             return new ExternalToolResult(process.ExitCode);
         }
-        catch (Win32Exception exception)
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
         {
-            return new ExternalToolResult(NotStartedExitCode, $"could not start {request.FileName} ({exception.Message})");
-        }
-        catch (InvalidOperationException exception)
-        {
-            return new ExternalToolResult(NotStartedExitCode, $"could not start {request.FileName} ({exception.Message})");
+            return NotStarted($"could not start {request.FileName} ({exception.Message})");
         }
     }
+
+    private static ExternalToolResult NotStarted(string reason) =>
+        new(ExternalToolResult.NotStartedExitCode, reason);
 }

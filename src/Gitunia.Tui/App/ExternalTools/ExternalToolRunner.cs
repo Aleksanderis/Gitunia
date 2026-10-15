@@ -14,10 +14,11 @@ public sealed class ExternalToolRunner(
     ITerminalSuspender terminal,
     StatusChannel statuses,
     Action<RepositoryLocation> refresh,
+    Action pauseForUser,
     string gitExecutable = "git")
 {
     private bool _running;
-    private ExternalToolResult _result = new(-1, "did not run");
+    private ExternalToolResult _result = new(ExternalToolResult.NotStartedExitCode, "did not run");
 
     /// <summary>Starts the hand-off; a notice for the status bar when it cannot start, empty otherwise.</summary>
     public string Launch(ExternalToolKind kind, RepositoryLocation location, string? commit = null)
@@ -37,12 +38,33 @@ public sealed class ExternalToolRunner(
             ExternalToolCommands.Build(kind, location.CommandPath, commit),
             location.CommandPath);
         _running = true;
-        terminal.Suspend(() => Run(request), () => Resumed(kind, location));
+        try
+        {
+            terminal.Suspend(() => Run(request), () => Resumed(kind, location));
+        }
+        catch
+        {
+            _running = false;
+            throw;
+        }
 
         return string.Empty;
     }
 
-    private void Run(ExternalToolRequest request) => _result = launcher.Run(request);
+    private void Run(ExternalToolRequest request)
+    {
+        _result = launcher.Run(request);
+        if (!_result.Succeeded)
+        {
+            // The tool's own message (nothing to commit, no files need merging, ...) is still on the terminal.
+            if (_result.Error is { } error)
+            {
+                Console.Error.WriteLine(error);
+            }
+
+            pauseForUser();
+        }
+    }
 
     private void Resumed(ExternalToolKind kind, RepositoryLocation location)
     {

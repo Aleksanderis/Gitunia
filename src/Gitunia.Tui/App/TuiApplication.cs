@@ -69,6 +69,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
+    private SuspendableUiInvoker _uiInvoker = null!;
     private Action? _suspendedWork;
     private Action? _resumed;
 
@@ -81,10 +82,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-        _application = Application.Create();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
-        _application.Init();
-        ConfigurePalette();
+        CreateApplication();
+        _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new WorkspaceHost(Workspace.Empty);
         _effects = new EffectRunner(services, _host, InvokeOnUi, glyphs, _statuses);
@@ -153,7 +153,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.ExternalTools = new ExternalToolActions(
-            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool),
+            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool, PauseForEnter),
             () => _host.Workspace.ActiveTab?.Location,
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
@@ -267,6 +267,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     {
         _suspendedWork = work;
         _resumed = resumed;
+        _uiInvoker.Suspend();
         _application.RequestStop();
     }
 
@@ -451,15 +452,31 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
         finally
         {
-            _application = Application.Create();
-            _application.Init();
-            ConfigurePalette();
+            CreateApplication();
             _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+            _uiInvoker.Resume(_application.Invoke);
             if (resumed is not null)
             {
                 _application.Invoke(resumed);
             }
         }
+    }
+
+    // The same setup for the first start and for every restart after a hand-off to an external tool.
+    private void CreateApplication()
+    {
+        _application = Application.Create();
+        _application.Init();
+        ConfigurePalette();
+    }
+
+    // The tool's own output (git's reason for failing) is on the screen; keep it there until a key is pressed.
+    private static void PauseForEnter()
+    {
+        Console.Out.WriteLine();
+        Console.Out.Write("Press Enter to return to gitunia...");
+        Console.Out.Flush();
+        Console.In.ReadLine();
     }
 
     private void RefreshAfterTool(RepositoryLocation location)
@@ -478,7 +495,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
     }
 
-    private void InvokeOnUi(Action action) => _application.Invoke(action);
+    private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
 
     private void RequestStop() => _application.RequestStop();
 

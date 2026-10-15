@@ -9,6 +9,8 @@ public enum ExternalToolKind
     /// <summary><c>git mergetool</c> for the conflicted files.</summary>
     Mergetool,
 
-    /// <summary><c>git commit</c> on the staged index, with git's own editor ($GIT_EDITOR, core.editor, $EDITOR).</summary>
+    /// <summary>
+    /// <c>git commit</c> on the staged index, with git's own editor ($GIT_EDITOR, core.editor, $EDITOR).
+    /// </summary>
     CommitWithEditor,
 }

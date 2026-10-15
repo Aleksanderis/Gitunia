@@ -50,7 +50,14 @@ Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build confi
 
 ## External tools
 
-`$EDITOR` (via `git commit`), `git difftool` and `git mergetool` need the real terminal, so they never go through `GitRunner` (which redirects every stream). `ExternalToolCommands` (Git) builds the git arguments, `IExternalToolLauncher` (`Gitunia.Platform/ExternalTools`) spawns the program without a shell and without redirection (`UseShellExecute=false`, inherited console on Windows, controlling terminal on Linux/macOS; an OS outside the three gets an explicit "not supported" result) and `ExternalToolRunner` (Tui) orchestrates. Suspending is `ITerminalSuspender`, implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (which leaves the alternate screen, restores the terminal and console modes and ends its input thread, so the tool is the only reader of stdin), runs the tool, then creates a fresh `IApplication` (a disposed instance cannot be disposed and re-initialised twice in 2.5.0), re-applies the palette and key handler, and runs the same window again. The new driver reads the terminal size on start, so a resize while suspended is picked up. The tool blocks the UI thread by design (the terminal is given away); background git work continues. Afterwards the tab is refreshed quietly and the exit code reported in the status bar. The credential-prompt issue reuses `ITerminalSuspender`.
+`$EDITOR` (via `git commit`), `git difftool` and `git mergetool` need the real terminal, so they never go through `GitRunner` (which redirects every stream).
+
+- `ExternalToolCommands` (Git) builds the git arguments; no env vars are set, the user's config decides editor and tools.
+- `IExternalToolLauncher` (`Gitunia.Platform/ExternalTools`) spawns the program without a shell and without redirection (inherited console on Windows, controlling terminal on Linux/macOS; any other OS gets an explicit "not supported" result).
+- `ExternalToolRunner` (Tui) orchestrates: suspend, run, pause for Enter on a non-zero exit (git's own message stays readable), resume, report the exit code in the status bar, refresh the tab quietly.
+- `ITerminalSuspender` is implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (leaves the alternate screen, restores terminal and console modes, ends the input thread so the tool is the only stdin reader), runs the tool, then creates a fresh `IApplication` (2.5.0 cannot dispose and re-initialise the same instance twice), re-applies the palette and key handler and runs the same window again. The new driver reads the terminal size, so a resize while suspended is handled.
+- Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
+- The credential-prompt issue reuses `ITerminalSuspender`.
 
 ## Native AOT
 
