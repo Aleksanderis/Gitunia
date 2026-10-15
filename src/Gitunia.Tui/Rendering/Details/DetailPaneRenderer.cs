@@ -9,16 +9,18 @@ namespace Gitunia.Tui.Rendering.Details;
 public static class DetailPaneRenderer
 {
     /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at the pane's top row; the rows are padded (<see cref="PanePadding"/>).</summary>
-    public static IReadOnlyList<StyledLine> RenderPane(DetailPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs)
+    public static IReadOnlyList<StyledLine> RenderPane(DetailPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane.Content, pane.IsFocused, width, glyphs) };
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
-            var textWidth = PanePadding.TextWidth(width);
-            lines.Add(OnPanel(PanePadding.Wrap(row >= 0 && row < pane.Content.Rows.Count
-                ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, textWidth, glyphs)
-                : RenderEmpty(textWidth, glyphs))));
+            var textWidth = PanePadding.TextWidth(width, paddingColumns);
+            lines.Add(OnPanel(PanePadding.Wrap(
+                row >= 0 && row < pane.Content.Rows.Count
+                    ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, textWidth, glyphs)
+                    : RenderEmpty(textWidth, glyphs),
+                paddingColumns)));
         }
 
         return lines;

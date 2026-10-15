@@ -1,3 +1,5 @@
+using Gitunia.Core.Diff;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -152,6 +154,36 @@ public class FrameGridTests
         Assert.All(lines, line => Assert.Equal(width, TextWidth.Of(line.Text)));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GivenAnOpenDiff_WhenBuilding_ThenTheDiffBoxUsesTheSameFrameRolesAsTheOtherPanes(bool diffFocused)
+    {
+        var rects = PaneLayout.Compute(Width, Height, true, null);
+        var grid = Build(diffFocused ? PaneKind.Diff : PaneKind.Graph);
+        var expected = diffFocused ? SegmentRole.FocusedBorder : SegmentRole.Border;
+
+        Assert.Equal(expected, grid.Cell(Width - 1, rects.DiffTitle.Y + 2).Role);
+        Assert.Equal(expected, grid.Cell(rects.DiffTitle.X + 3, ScreenLayout.FrameBottom(Height)).Role);
+        Assert.Equal(diffFocused ? SegmentRole.FocusedBorder : SegmentRole.Border, grid.Cell(rects.BottomDivider.X, rects.DetailTitle.Y + 2).Role);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GivenTheDiffTitle_WhenResolvingRules_ThenItsFrameCellsHaveTheRolesOfTheDetailTitle(bool diffFocused)
+    {
+        var rects = PaneLayout.Compute(Width, Height, true, null);
+        var grid = Build(diffFocused ? PaneKind.Diff : PaneKind.Detail);
+        var model = new DiffPaneModel(DiffDocument.Empty, 0, 0, diffFocused);
+
+        var title = grid.ResolveRules(DiffPaneRenderer.RenderTitle(model, rects.DiffTitle.Width, GraphGlyphSet.Unicode), rects.DiffTitle.Y, rects.DiffTitle.X);
+
+        var frameRoles = title.Segments.Select(segment => segment.Role).Where(role => role is SegmentRole.Border or SegmentRole.FocusedBorder).Distinct().ToList();
+        Assert.Equal([diffFocused ? SegmentRole.FocusedBorder : SegmentRole.Border], frameRoles);
+        Assert.Equal(grid.Cell(Width - 1, rects.DiffTitle.Y).Role, grid.Cell(rects.DiffTitle.X + 1, rects.DiffTitle.Y).Role);
+    }
+
     [Fact]
     public void GivenAPaneWidth_WhenPadding_ThenTheTextWidthLosesBothSidesAndTheSelectionStaysOnTheLine()
     {
@@ -163,5 +195,17 @@ public class FrameGridTests
         Assert.True(padded.IsSelected);
         Assert.Equal(8, PanePadding.TextWidth(10));
         Assert.Equal(0, PanePadding.TextWidth(1));
+    }
+
+    [Theory]
+    [InlineData(80, 1)]
+    [InlineData(99, 1)]
+    [InlineData(100, 2)]
+    [InlineData(160, 2)]
+    public void GivenAScreenWidth_WhenAskingForPadding_ThenWideScreensGetTwoColumns(int screenWidth, int expected)
+    {
+        Assert.Equal(expected, PanePadding.ColumnsFor(screenWidth));
+        Assert.Equal(3 + 2 * expected, PanePadding.Wrap(new StyledLine([new StyledSegment("abc", SegmentRole.Plain)]), expected).Text.Length);
+        Assert.Equal(10 - 2 * expected, PanePadding.TextWidth(10, expected));
     }
 }

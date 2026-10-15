@@ -60,7 +60,7 @@ public class DiffTitleButtonsTests
     {
         var buttons = DiffTitleButtons.Layout(width);
         var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
-        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true), width, glyphs);
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, 0, 0, true), width, glyphs);
 
         Assert.Equal(width, TextWidth.Of(title.Text));
         if (isAscii)
@@ -105,7 +105,7 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenTheAsciiTier_WhenRenderingTheTitle_ThenTheButtonsUseBracketsAndPlainArrowsOfTheSameWidth()
     {
-        var pane = new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true);
+        var pane = new DiffPaneModel(DiffDocument.Empty, 0, 0, true);
 
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Ascii);
 
@@ -117,7 +117,7 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenADiffPane_WhenRenderingTheTitle_ThenTheButtonsEndTheRowAndTheRowKeepsItsWidth()
     {
-        var pane = new DiffPaneModel(DiffDocument.Empty, "abc1234", 0, 0, true);
+        var pane = new DiffPaneModel(DiffDocument.Empty, 0, 0, true);
 
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
@@ -136,7 +136,7 @@ public class DiffTitleButtonsTests
             [0],
             [["a-very-long-directory-name/another-long-directory/file.txt"]],
             1);
-        var pane = new DiffPaneModel(document, "abc1234", 0, 0, true, IsWrapped: true);
+        var pane = new DiffPaneModel(document, 0, 0, true, IsWrapped: true);
 
         var title = DiffPaneRenderer.RenderTitle(pane, 100, GraphGlyphSet.Unicode);
 
