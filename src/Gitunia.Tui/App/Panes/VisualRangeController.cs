@@ -66,7 +66,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
             return true;
         }
 
-        if (IsActive && (action == ActionIds.Cancel || action == ActionIds.NavigateBack))
+        if (IsActive && (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit))
         {
             End();
             return true;

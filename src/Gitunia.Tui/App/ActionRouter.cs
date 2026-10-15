@@ -157,6 +157,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         {
             FocusPane(PaneKind.Detail, detailList);
         }
+        else if (action == ActionIds.AppQuit)
+        {
+            quit();
+        }
         else if (action == ActionIds.NavigateBack)
         {
             if (FocusedPane == PaneKind.Detail)

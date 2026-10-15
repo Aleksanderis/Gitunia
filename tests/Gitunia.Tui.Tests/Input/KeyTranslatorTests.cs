@@ -86,7 +86,7 @@ public class KeyTranslatorTests
     [InlineData("gg", "list.top", null)]
     [InlineData("G", "list.bottom", null)]
     [InlineData("@", "graph.jump-to-head", null)]
-    [InlineData("q", "navigate.back", null)]
+    [InlineData("q", "app.quit", null)]
     public void GivenTerminalGuiKeys_WhenFedThroughTheKeymap_ThenGraphActionsFire(string typed, string expectedAction, int? expectedCount)
     {
         var engine = new KeymapEngine(DefaultKeymap.Create());

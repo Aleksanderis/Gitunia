@@ -85,6 +85,8 @@ public static class ActionIds
 
     public static ActionId ListUp { get; } = new("list.up");
 
+    public static ActionId AppQuit { get; } = new("app.quit");
+
     public static ActionId NavigateBack { get; } = new("navigate.back");
 
     public static ActionId PaletteNext { get; } = new("palette.next");
