@@ -1,6 +1,8 @@
 using System.Drawing;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Mouse;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
@@ -102,21 +104,89 @@ public class DiffListSourceTests
         Assert.Equal(Enumerable.Range(source.LineOf(0), source.LineOf(2) - source.LineOf(0)), marked);
     }
 
+    [Fact]
+    public void GivenTheUnstagedSide_WhenClickingTheStageChipOnTheFirstLineOfTheGroup_ThenItIsTheStageButton()
+    {
+        var source = NewSource(WorkingTreeButtons.Unstaged);
+        var list = Sized(source, 80);
+        list.SelectedItem = 1;
+        var buttons = ChangeGroupButtons.Layout(78, 1, WorkingTreeButtons.Unstaged);
+
+        Assert.Equal(DefaultMouseMap.DiffStageButton, source.ButtonAt(list, buttons[0].Start + 1, source.LineOf(0)));
+        Assert.Equal(DefaultMouseMap.DiffDiscardButton, source.ButtonAt(list, buttons[1].Start + 1, source.LineOf(0)));
+    }
+
+    [Fact]
+    public void GivenTheStagedSide_WhenClickingTheChip_ThenItIsTheUnstageButton()
+    {
+        var source = NewSource(WorkingTreeButtons.Staged);
+        var list = Sized(source, 80);
+        list.SelectedItem = 1;
+        var buttons = ChangeGroupButtons.Layout(78, 1, WorkingTreeButtons.Staged);
+
+        Assert.Equal(DefaultMouseMap.DiffUnstageButton, source.ButtonAt(list, buttons[0].Start, source.LineOf(0)));
+    }
+
+    [Fact]
+    public void GivenTheChipColumns_WhenClickingOtherLinesOrOtherColumns_ThenThereIsNoButton()
+    {
+        var source = NewSource(WorkingTreeButtons.Unstaged);
+        var list = Sized(source, 80);
+        list.SelectedItem = 1;
+        var buttons = ChangeGroupButtons.Layout(78, 1, WorkingTreeButtons.Unstaged);
+        var column = buttons[0].Start + 1;
+
+        Assert.Null(source.ButtonAt(list, column, source.LineOf(1)));
+        Assert.Null(source.ButtonAt(list, column, source.LineOf(4)));
+        Assert.Null(source.ButtonAt(list, 5, source.LineOf(0)));
+        Assert.Null(source.ButtonAt(list, buttons[0].Start - 1, source.LineOf(0)));
+    }
+
+    [Fact]
+    public void GivenANarrowPane_WhenClickingWhereTheChipsWouldBe_ThenThereIsNoButton()
+    {
+        var source = NewSource(WorkingTreeButtons.Unstaged);
+        var list = Sized(source, 36);
+        list.SelectedItem = 1;
+
+        for (var column = 0; column < 36; column++)
+        {
+            Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
+        }
+    }
+
+    [Fact]
+    public void GivenAVisualRangeOrNoSide_WhenClickingTheChipColumns_ThenThereIsNoButton()
+    {
+        var source = NewSource(WorkingTreeButtons.Unstaged);
+        var list = Sized(source, 80);
+        list.SelectedItem = 1;
+        var column = ChangeGroupButtons.Layout(78, 1, WorkingTreeButtons.Unstaged)[0].Start + 1;
+        source.Range = new RowRange(0, 1);
+
+        Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
+
+        source.Range = null;
+        source.GroupButtons = () => WorkingTreeButtons.None;
+
+        Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
+    }
+
     private static List<int> Marked(DiffListSource source, ListView list) =>
         [.. Enumerable.Range(0, source.Count).Where(item => source.IsInCursorGroup(list, item))];
 
-    private static DiffListSource NewSource()
+    private static DiffListSource NewSource(WorkingTreeButtons buttons = WorkingTreeButtons.None)
     {
-        var source = new DiffListSource(GraphGlyphSet.Unicode) { HighlightsGroup = true };
+        var source = new DiffListSource(GraphGlyphSet.Unicode) { HighlightsGroup = true, GroupButtons = () => buttons };
         source.Update(new DiffDocument(Rows, [0, 4], [], [["f"]], 5));
 
         return source;
     }
 
-    private static ListView Sized(DiffListSource source)
+    private static ListView Sized(DiffListSource source, int width = 30)
     {
-        var list = new ListView { X = 0, Y = 0, Width = 30, Height = 10, Source = source };
-        list.SetRelativeLayout(new Size(40, 20));
+        var list = new ListView { X = 0, Y = 0, Width = width, Height = 10, Source = source };
+        list.SetRelativeLayout(new Size(width + 10, 20));
 
         return list;
     }

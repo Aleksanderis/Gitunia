@@ -241,3 +241,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Working-tree pane jumps (#361): `<space>1` Unstaged, `<space>2` Staged, `<space>3` Diff, `<space>4` Message, bound in every working-tree pane in Normal mode. Why: leader chords keep vim keys intact, `Alt-1`..`Alt-9` already jump tabs, and the digits match the pane order on screen. Insert mode has no jump (space is text).
 
 **UI:** Current change group of the working-tree diff (#393): a bar in the left margin plus a quiet tint (`GroupBackground`); the 16-colour and NO_COLOR tiers get the bar alone. Why: selection must never rely on colour. Stage/discard buttons stay in the title row; buttons beside the group are #405.
+
+**UI:** Group buttons (#405): the change group under the cursor carries the title row's `stage`/`discard`/`unstage` chips on its first line, same views and actions (discard still confirms); dropped below 30 columns of text. Why: the action sits where the eye is.
