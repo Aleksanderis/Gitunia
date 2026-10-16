@@ -77,6 +77,7 @@ public static class PaneHints
         new("<space>vs", "side by side", [ActionIds.DiffToggleSideBySide]),
         new("<space>vl", "load all", [ActionIds.DiffLoadAnyway]),
         new("y", "copy line", [ActionIds.DiffCopyLine]),
+        new("<space>1/2/3/4", "panes", [ActionIds.WorkingTreeFocusUnstaged, ActionIds.WorkingTreeFocusStaged, ActionIds.WorkingTreeFocusDiff, ActionIds.WorkingTreeFocusMessage]),
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
@@ -109,7 +110,7 @@ public static class PaneHints
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
-        new("Tab", "next pane", [ActionIds.PaneNext]),
+        new("<space>1/2/3/4", "panes", [ActionIds.WorkingTreeFocusUnstaged, ActionIds.WorkingTreeFocusStaged, ActionIds.WorkingTreeFocusDiff, ActionIds.WorkingTreeFocusMessage]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
@@ -123,7 +124,7 @@ public static class PaneHints
         new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
-        new("Tab", "next pane", [ActionIds.PaneNext]),
+        new("<space>1/2/3/4", "panes", [ActionIds.WorkingTreeFocusUnstaged, ActionIds.WorkingTreeFocusStaged, ActionIds.WorkingTreeFocusDiff, ActionIds.WorkingTreeFocusMessage]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
@@ -132,6 +133,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("i", "write", [ActionIds.WorkingTreeEditMessage]),
+        new("<space>1/2/3/4", "panes", [ActionIds.WorkingTreeFocusUnstaged, ActionIds.WorkingTreeFocusStaged, ActionIds.WorkingTreeFocusDiff, ActionIds.WorkingTreeFocusMessage]),
         new("<space>c", "commit", [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
         new("<space>te", "$EDITOR", [ActionIds.ToolCommitEditor]),

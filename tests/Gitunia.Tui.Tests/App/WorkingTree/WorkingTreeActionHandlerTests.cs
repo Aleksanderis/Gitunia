@@ -156,6 +156,28 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
+    public void GivenAnyPane_WhenJumpingDirectly_ThenEachPaneIsOneActionAway()
+    {
+        var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusMessage, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusStaged, null);
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusDiff, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusUnstaged, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusMessage, null);
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusDiff, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
     public void GivenTheDiff_WhenMovingDownAndUp_ThenTheMessageBoxIsBelowIt()
     {
         var harness = Harness.Open(Modified("a.txt"));

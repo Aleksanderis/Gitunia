@@ -201,6 +201,14 @@ public static class ActionIds
 
     public static ActionId WorkingTreeEditMessage { get; } = new("working-tree.edit-message");
 
+    public static ActionId WorkingTreeFocusUnstaged { get; } = new("working-tree.focus-unstaged");
+
+    public static ActionId WorkingTreeFocusStaged { get; } = new("working-tree.focus-staged");
+
+    public static ActionId WorkingTreeFocusDiff { get; } = new("working-tree.focus-diff");
+
+    public static ActionId WorkingTreeFocusMessage { get; } = new("working-tree.focus-message");
+
     public static ActionId WorkingTreeMessageNewLine { get; } = new("working-tree.message-new-line");
 
     public static ActionId WorkingTreeCommit { get; } = new("working-tree.commit");

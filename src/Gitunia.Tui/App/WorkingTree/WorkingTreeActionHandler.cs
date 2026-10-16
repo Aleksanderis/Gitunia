@@ -152,6 +152,34 @@ public sealed class WorkingTreeActionHandler(
         {
             target = WorkingPanes.IsList(focused) ? focused : WorkingPanes.ListOf(selection?.Section ?? WorkingPanes.SectionOf(focused));
         }
+        else if (action == ActionIds.WorkingTreeFocusUnstaged)
+        {
+            target = PaneKind.WorkingUnstaged;
+        }
+        else if (action == ActionIds.WorkingTreeFocusStaged)
+        {
+            target = PaneKind.WorkingStaged;
+        }
+        else if (action == ActionIds.WorkingTreeFocusMessage)
+        {
+            target = PaneKind.WorkingMessage;
+        }
+        else if (action == ActionIds.WorkingTreeFocusDiff)
+        {
+            // The diff of the file under the cursor (or the one already shown); without a file there is nothing to show.
+            if (WorkingPanes.IsDiff(focused))
+            {
+                return true;
+            }
+
+            if (selection is null)
+            {
+                Message = "Select a file to see its diff";
+                return true;
+            }
+
+            target = WorkingPanes.DiffOf(selection.Section);
+        }
         else
         {
             return false;
