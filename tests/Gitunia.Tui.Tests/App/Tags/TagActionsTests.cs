@@ -44,6 +44,11 @@ public class TagActionsTests
     public async Task GivenAMessage_WhenCreating_ThenAnAnnotatedTagCarriesIt()
     {
         using var repository = TestRepositories.Linear();
+
+        // The app runs git with the real config, so an annotated tag needs an identity in the repository itself.
+        repository.Git("config", "user.name", "Test");
+        repository.Git("config", "user.email", "test@example.com");
+
         using var harness = await Harness.LoadAsync(repository);
         harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "main", repository.Head));
 
