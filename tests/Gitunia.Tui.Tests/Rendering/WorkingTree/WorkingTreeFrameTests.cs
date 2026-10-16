@@ -45,13 +45,13 @@ public class WorkingTreeFrameTests
                 "│                             │                                                          │",
                 "│                             │                                                          │",
                 "├─ Staged 2 ──────────────────┼─ Commit message ─────────────────────────────────────────┤",
-                "│ M README.md                 │ The commit message box is not implemented yet            │",
+                "│ M README.md                 │ Press i or Enter to write the message, <space>c in the … │",
                 "│ R old name.txt -> new name… │                                                          │",
                 "│                             │                                                          │",
                 "│                             │                                                          │",
-                "│                             │                                                          │",
+                "│                             │ [ ] SignOff  [ ] No-Verify  [ ] Amend            Commit  │",
                 "╰─────────────────────────────┴──────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  T…"),
+                " NORMAL  1/1  ? help  : commands  q back  j/k move  <space>a stage  <space>A stage all  <…"),
             frame);
     }
 
@@ -74,7 +74,7 @@ public class WorkingTreeFrameTests
                 "│                                                              │",
                 "│                                                              │",
                 "╰──────────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>u un…"),
+                " NORMAL  1/1  ? help  : commands  q back  j/k move  <space>u un…"),
             frame);
     }
 

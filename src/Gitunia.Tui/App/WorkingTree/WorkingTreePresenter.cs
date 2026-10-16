@@ -27,9 +27,13 @@ public sealed class WorkingTreePresenter
         view.WorkingFocus = FocusedList;
     }
 
-    /// <summary>The list of the active tab that has focus in the working-tree view.</summary>
-    public PaneKind FocusedList() =>
-        _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingStaged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
+    /// <summary>The pane of the active tab that has focus in the working-tree view: a list or the message box.</summary>
+    public PaneKind FocusedList() => _host.Workspace.ActiveTab?.View.FocusedPane switch
+    {
+        PaneKind.WorkingStaged => PaneKind.WorkingStaged,
+        PaneKind.WorkingMessage => PaneKind.WorkingMessage,
+        _ => PaneKind.WorkingUnstaged,
+    };
 
     private void Sync()
     {

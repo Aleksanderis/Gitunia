@@ -7,4 +7,7 @@ public enum OverlayKind
     Help,
     Palette,
     Messages,
+
+    /// <summary>The output of a failed command (a failing commit hook), scrollable like the message history.</summary>
+    Output,
 }

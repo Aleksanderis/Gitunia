@@ -30,6 +30,10 @@ public sealed record OverlayState(
     public static OverlayState OpenMessages(KeyMode returnMode) =>
         new(OverlayKind.Messages, string.Empty, 0, null, returnMode, false);
 
+    /// <summary>Opens the output overlay; <paramref name="title"/> is kept in <see cref="HelpView"/>, which the output overlay does not otherwise use.</summary>
+    public static OverlayState OpenOutput(string title, KeyMode returnMode) =>
+        new(OverlayKind.Output, title, 0, null, returnMode, false);
+
     public static OverlayState OpenPalette(PaletteState palette, KeyMode returnMode) =>
         new(OverlayKind.Palette, string.Empty, 0, palette, returnMode, false);
 

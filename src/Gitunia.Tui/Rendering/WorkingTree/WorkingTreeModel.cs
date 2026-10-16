@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 
@@ -5,7 +6,15 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 
 /// <summary>What the working-tree view shows. Plain data, so a frame renders without a terminal.</summary>
 /// <param name="Tree">The status and the selection, null while the tab has not read its status.</param>
-/// <param name="Focused">The focused pane: <see cref="PaneKind.WorkingUnstaged"/> or <see cref="PaneKind.WorkingStaged"/>.</param>
+/// <param name="Focused">The focused pane: one of the two lists or the message box.</param>
 /// <param name="UnstagedTop">Index of the first visible Unstaged row.</param>
 /// <param name="StagedTop">Index of the first visible Staged row.</param>
-public sealed record WorkingTreeModel(WorkingTreeState? Tree, PaneKind Focused, int UnstagedTop = 0, int StagedTop = 0);
+/// <param name="Draft">The tab's commit draft, null when it has none (nothing typed, no option set).</param>
+/// <param name="IsEditing">The message box is in Insert mode, so it shows the cursor.</param>
+public sealed record WorkingTreeModel(
+    WorkingTreeState? Tree,
+    PaneKind Focused,
+    int UnstagedTop = 0,
+    int StagedTop = 0,
+    CommitDraft? Draft = null,
+    bool IsEditing = false);

@@ -112,6 +112,8 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 5. Amend: toggling it on fills the box with HEAD's message when the draft is empty (the draft is kept aside and restored when Amend is toggled off), shows `Amending <short hash> <subject>` in the box title and runs `git commit --amend`; staged changes are added to the amended commit. If HEAD is already on the upstream branch the status bar warns that a force push will be needed. Undo path: the status message after the commit names the old hash ("Amended; previous commit abc1234, `git reset --soft abc1234` restores it") and the reflog keeps it reachable. While a merge is in progress Amend is disabled and the box is prefilled from `MERGE_MSG`.
 6. After a successful commit the draft and Amend are cleared, SignOff and No-Verify keep their state, the lists refresh, the status bar says `Committed abc1234` and focus returns to the lists. The history view picks up the commit through the normal refresh.
 
+**Built in #32** (`CommitActions`, `CommitDraft`, `CommitWriter`; closes #327): the message box, the option row with clickable checkboxes and a `Commit` button, the draft per tab, `<space>c` / `<space>te` / `Alt-s` `Alt-n` `Alt-a` as in the Keymap table, `Alt-Enter` and `Ctrl-g` (both only in Insert mode) to commit, and `q` in the lists and the box to go back. The message goes to `git commit -F -` on stdin (comment lines are kept, unlike a commit through `$EDITOR`); hooks, signing and the author come from the user's git config. The commit runs off the UI thread with a 10 minute timeout; `Esc` while it runs cancels it (git is killed, the draft stays). Refusals as above (`Empty commit message`, `Nothing staged`, Amend with no commit yet or during a merge) say why in the status bar. A failed commit keeps the draft and shows git's and the hooks' output in a scrollable overlay (title `Commit failed`, `Esc` closes it, the status bar carries the first line); under the output a hint says that no keyboard input reaches git and its hooks (stdin is closed), so a hook that prompts or a signing program that needs a passphrase fails here, and that `<space>te` runs `git commit` in the real terminal where it can prompt. After a successful commit the status bar says `Committed abc1234`, or after an amend `Amended to abc1234; previous commit 9f8e7d6, `git reset --soft 9f8e7d6` restores it` plus a force-push warning when HEAD was already on the upstream branch. Finishing a merge: the box starts with git's `MERGE_MSG` (comment lines dropped) and Amend is refused. The box scrolls vertically with the cursor line (the first visible line is kept while the cursor stays inside the window); `Up`/`Down` still count characters, not display columns. On screens under 80 columns or 12 rows the box shows only while it has focus, in place of the diff area. Quitting (`q` from the history) with an unsent message in any tab does not quit at once: the status bar names the tab(s) and a second `q` right after quits and loses the message. Not built yet: guarding `Ctrl-w c` (closing a tab drops its draft) and saving drafts with the session (#345).
+
 **Key rule (owner decision 2026-10-15, #335).** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...); a Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key, the family already used by `<space>o` `<space>s` `<space>z`) or a `Ctrl-`/`Alt-` combination. Leader keys in use: `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global), `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh), `<space>t` + `d` `m` `e` (external tools). Reserved: `<space>j` is the quick jump (label jump, #334). The older rows that still use bare keys with a non-vim meaning (`@` `gr` `gd` `gc` `gf` `w` `F` `W` `S` `L` `Y`) are audited in #338.
 
 **Planned keys** (not in the Keymap table until implemented; the open/leave, refresh, copy-path and list-motion keys of #29 are already there):
@@ -121,20 +123,12 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 | WorkingUnstaged | `<space>a` | On a conflicted file: mark it resolved after a Confirm (#341; until then it is refused) |
 | WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
 | WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
-| WorkingUnstaged / WorkingStaged | `<space>c` | Write the commit message (focus the box, Insert mode) |
-| WorkingUnstaged / WorkingStaged | `<space>te` | Commit with `$EDITOR` |
 | WorkingUnstagedDiff | `<space>a` | Stage the hunk, or the Visual-selected lines |
 | WorkingStagedDiff | `<space>u` | Unstage the hunk, or the Visual-selected lines |
 | WorkingUnstagedDiff | `<space>d` | Discard the hunk or selected lines (Confirm) |
 | WorkingUnstagedDiff / WorkingStagedDiff | `<space>c` | Write the commit message |
 | WorkingUnstagedDiff / WorkingStagedDiff | `]c` `[c` `]f` `[f` `w` `+` `-` `F` `W` `S` `y` `/` `n` `N` | As the history diff (1c) |
 | WorkingUnstagedDiff / WorkingStagedDiff | `q` / `Esc` / `h` | Back to the file list |
-| WorkingMessage | `i` / `Enter` | Edit the message (Insert mode) |
-| WorkingMessage | `<space>c` | Commit |
-| WorkingMessage | `<space>te` | Commit with `$EDITOR` |
-| WorkingMessage | `q` / `Esc` / `h` | Back to the lists |
-| WorkingMessage (Insert) | `Alt-Enter` | Commit |
-| Working-tree view (also Insert) | `Alt-s` `Alt-n` `Alt-a` | Toggle SignOff, No-Verify, Amend |
 
 Conflict check: `<space>` is a Normal-mode prefix used only by Gitunia, so none of these shadows a vim command; `<space>a` `A` `u` `U` `d` `c` `r` `t` are unused by the global leader rows (`<space>o` `p` `x` `m` `s` `z` `<Tab>`); `S`, `W`, `F` keep their display meaning in the working-tree diff; `Alt-p` and `Alt-d` are Picker-only and `Alt-1`..`Alt-9` jump tabs, so `Alt-s`, `Alt-n`, `Alt-a` are free (they act only in this view). `<space>c` is a single key in the lists and the diff (write) and in the box (commit): each is its own view.
 
@@ -244,12 +238,24 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
 | WorkingUnstaged | `<space>a` | Stage the file under the cursor (the cursor keeps its index; a conflicted file is refused until #341) |
 | WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
-| WorkingUnstaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
+| WorkingUnstaged | `h` / `Esc` / `q` | Leave the working-tree view (back to the history) |
+| WorkingUnstaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
+| WorkingUnstaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
+| WorkingUnstaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | WorkingStaged | `<space>r` | Refresh the status |
 | WorkingStaged | `y` | Copy the path of the file under the cursor |
 | WorkingStaged | `<space>u` | Unstage the file under the cursor (a rename unstages both paths) |
 | WorkingStaged | `<space>U` | Unstage all files |
-| WorkingStaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
+| WorkingStaged | `h` / `Esc` / `q` | Leave the working-tree view (back to the history) |
+| WorkingStaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
+| WorkingStaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
+| WorkingStaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingMessage | `i` / `Enter` | Edit the message (Insert mode) |
+| WorkingMessage | `<space>c` | Commit the staged changes with the message and options |
+| WorkingMessage | `<space>te` | Commit with `$EDITOR` (the draft is kept: git uses its own template) |
+| WorkingMessage | `<space>r` | Refresh the status |
+| WorkingMessage | `h` / `Esc` / `q` | Back to the file lists |
+| WorkingMessage | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |
@@ -316,6 +322,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |
 | WorkingUnstaged | Double-click | `working-tree.stage` | Stage the file (same as `<space>a`) |
 | WorkingStaged | Double-click | `working-tree.unstage` | Unstage the file (same as `<space>u`) |
+| WorkingMessage | Click | `working-tree.edit-message` | Focus the message box and start writing (Insert mode), same as `i` |
+| MessageButton.SignOff | Click | `working-tree.toggle-sign-off` | The `[ ] SignOff` checkbox of the message box, same as `Alt-s` |
+| MessageButton.NoVerify | Click | `working-tree.toggle-no-verify` | The `[ ] No-Verify` checkbox, same as `Alt-n` |
+| MessageButton.Amend | Click | `working-tree.toggle-amend` | The `[ ] Amend` checkbox, same as `Alt-a` |
+| MessageButton.Commit | Click | `working-tree.commit` | The `Commit` button, same as `Alt-Enter` |
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |

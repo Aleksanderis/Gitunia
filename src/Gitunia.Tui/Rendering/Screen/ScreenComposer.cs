@@ -98,14 +98,16 @@ public static class ScreenComposer
         }
 
         var rects = WorkingTreeLayout.Compute(width, height, working.Focused);
-        var isUnstagedFocused = working.Focused != PaneKind.WorkingStaged;
+        var isUnstagedFocused = working.Focused == PaneKind.WorkingUnstaged;
+        var isStagedFocused = working.Focused == PaneKind.WorkingStaged;
+        var isMessageFocused = working.Focused == PaneKind.WorkingMessage;
         var tree = working.Tree;
         var boxes = new List<FrameBox>
         {
             new(rects.Unstaged, isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Unstaged)),
-            new(rects.Staged, !isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
+            new(rects.Staged, isStagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
             new(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
-            new(rects.Message, false, WorkingTreePaneRenderer.MessageTitle),
+            new(rects.Message, isMessageFocused, working.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle),
         };
         var grid = FrameGrid.Build(width, height, boxes, glyphs);
         var padding = PanePadding.ColumnsFor(width);
@@ -113,15 +115,21 @@ public static class ScreenComposer
         AddWorkingList(
             overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
         AddWorkingList(
-            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, !isUnstagedFocused, padding, glyphs);
+            overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, isStagedFocused, padding, glyphs);
         AddPlaceholder(
             overlays,
             rects.Diff,
             WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
-        AddPlaceholder(
-            overlays,
-            rects.Message,
-            WorkingTreePaneRenderer.MessagePlaceholderLines(rects.Message, padding, glyphs));
+        if (!rects.Message.IsEmpty)
+        {
+            var editor = MessageBoxRenderer.EditorLines(working.Draft, rects.MessageEditor, padding, working.IsEditing, glyphs);
+            AddPlaceholder(overlays, rects.MessageEditor, editor);
+            AddPlaceholder(
+                overlays,
+                rects.MessageOptions,
+                [MessageBoxRenderer.OptionsLine(working.Draft, rects.MessageOptions.Width, padding, glyphs)]);
+        }
+
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
             lines.Add(BuildRow(grid, row, width, overlays));

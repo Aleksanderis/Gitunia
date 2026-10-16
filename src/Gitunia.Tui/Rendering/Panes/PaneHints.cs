@@ -14,6 +14,14 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
+    // In the working-tree view q goes back to the history instead of quitting.
+    private static readonly ImmutableArray<KeyHint> PinnedWorking =
+    [
+        new("?", "help", [ActionIds.HelpShow]),
+        new(":", "commands", [ActionIds.PaletteOpen]),
+        new("q", "back", [ActionIds.NavigateBack]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Graph =
     [
         .. Pinned,
@@ -61,24 +69,35 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
     [
-        .. Pinned,
+        .. PinnedWorking,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
-        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
+        new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
-        .. Pinned,
+        .. PinnedWorking,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
-        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
+        new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingMessage =
+    [
+        .. PinnedWorking,
+        new("i", "write", [ActionIds.WorkingTreeEditMessage]),
+        new("<space>c", "commit", [ActionIds.WorkingTreeCommit]),
+        new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
+        new("<space>te", "$EDITOR", [ActionIds.ToolCommitEditor]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Picker =
@@ -97,6 +116,7 @@ public static class PaneHints
         PaneKind.Diff => Diff,
         PaneKind.WorkingUnstaged => WorkingUnstaged,
         PaneKind.WorkingStaged => WorkingStaged,
+        PaneKind.WorkingMessage => WorkingMessage,
         _ => Graph,
     };
 

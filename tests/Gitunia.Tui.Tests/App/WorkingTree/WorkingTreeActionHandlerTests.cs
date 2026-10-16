@@ -1,5 +1,6 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -119,15 +120,18 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
-    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenOnlyUpAndDownMoveBetweenTheLists()
+    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenUpAndDownMoveBetweenTheListsAndRightAndLeftToTheMessageBox()
     {
         var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
 
-        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
-        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
-
         harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
@@ -218,7 +222,20 @@ public class WorkingTreeActionHandlerTests
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusChannel();
             var staging = new StagingActions(_host, new FakeIndexWriter(), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
-            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging);
+            var commits = new CommitActions(
+                _host,
+                new FakeCommitWriter(),
+                new FakeOperationDetector(),
+                Statuses,
+                action => action(),
+                (_, done) => { done(); return true; },
+                _ => CancellationToken.None,
+                (_, _, _) => { },
+                () => KeyMode.Normal,
+                _ => { },
+                (_, _) => { },
+                () => { });
+            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging, commits);
         }
 
         public WorkingTreeActionHandler Handler { get; }

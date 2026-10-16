@@ -191,6 +191,20 @@ public static class ActionIds
 
     public static ActionId WorkingTreeUnstageAll { get; } = new("working-tree.unstage-all");
 
+    public static ActionId WorkingTreeWriteMessage { get; } = new("working-tree.write-message");
+
+    public static ActionId WorkingTreeEditMessage { get; } = new("working-tree.edit-message");
+
+    public static ActionId WorkingTreeMessageNewLine { get; } = new("working-tree.message-new-line");
+
+    public static ActionId WorkingTreeCommit { get; } = new("working-tree.commit");
+
+    public static ActionId WorkingTreeToggleSignOff { get; } = new("working-tree.toggle-sign-off");
+
+    public static ActionId WorkingTreeToggleNoVerify { get; } = new("working-tree.toggle-no-verify");
+
+    public static ActionId WorkingTreeToggleAmend { get; } = new("working-tree.toggle-amend");
+
     /// <summary>Jump to tab <paramref name="number"/> (1-based).</summary>
     public static ActionId TabGoTo(int number) => new($"tab.go-to.{number}");
 }

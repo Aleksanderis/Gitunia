@@ -13,4 +13,7 @@ public enum PaneKind
 
     /// <summary>The Staged file list of the working-tree view (that view only).</summary>
     WorkingStaged,
+
+    /// <summary>The commit message box of the working-tree view (that view only).</summary>
+    WorkingMessage,
 }

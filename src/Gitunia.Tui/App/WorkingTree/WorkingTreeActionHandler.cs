@@ -18,9 +18,15 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
 /// <param name="clipboard">Copies the path of a file.</param>
 /// <param name="staging">Stages and unstages files.</param>
-public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageHeight, ClipboardCopier clipboard, StagingActions staging)
+/// <param name="commits">The message box and the commit.</param>
+public sealed class WorkingTreeActionHandler(
+    WorkspaceHost host,
+    Func<int> pageHeight,
+    ClipboardCopier clipboard,
+    StagingActions staging,
+    CommitActions commits)
 {
-    private static readonly PaneKind[] ListPanes = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged];
+    private static readonly PaneKind[] Panes = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged, PaneKind.WorkingMessage];
 
     private static readonly HashSet<ActionId> LeftToOthers =
     [
@@ -28,6 +34,7 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         ActionIds.InputAccept,
         ActionIds.Cancel,
         ActionIds.RepositoryRefresh,
+        ActionIds.ToolCommitEditor,
     ];
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
@@ -46,6 +53,12 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         if (action == ActionIds.WorkingTreeToggle || (action == ActionIds.WorkingTreeOpen && !isShown))
         {
             Switch(tab, isShown && action == ActionIds.WorkingTreeToggle);
+            return true;
+        }
+
+        if (isShown && commits.TryExecute(tab, action))
+        {
+            Message = commits.Notice;
             return true;
         }
 
@@ -91,16 +104,18 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         PaneKind target;
         if (action == ActionIds.PaneNext || action == ActionIds.PanePrevious)
         {
-            target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, ListPanes);
+            target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, Panes);
         }
         else if (action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown)
         {
-            target = PaneNavigator.StepVertically(focused, action == ActionIds.PaneFocusDown, ListPanes);
+            target = focused == PaneKind.WorkingMessage
+                ? (action == ActionIds.PaneFocusUp ? ListPaneOf(tab) : focused)
+                : PaneNavigator.StepVertically(focused, action == ActionIds.PaneFocusDown, Panes);
         }
         else if (action == ActionIds.PaneFocusLeft || action == ActionIds.PaneFocusRight)
         {
-            // The lists are the left column and nothing else can take focus yet.
-            target = focused;
+            // The lists are the left column; the message box (the diff will sit above it) is the right one.
+            target = action == ActionIds.PaneFocusRight ? PaneKind.WorkingMessage : focused == PaneKind.WorkingMessage ? ListPaneOf(tab) : focused;
         }
         else
         {
@@ -165,6 +180,9 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         Message = staging.Execute(tab, action);
         return true;
     }
+
+    private static PaneKind ListPaneOf(RepositoryState tab) =>
+        tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>
         (tab.View.FocusedPane == PaneKind.WorkingStaged) == (selection.Section == WorkingTreeSection.Staged);

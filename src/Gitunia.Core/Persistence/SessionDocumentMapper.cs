@@ -133,7 +133,7 @@ public static class SessionDocumentMapper
     private static PaneKind SavedPane(PaneKind pane) => pane switch
     {
         PaneKind.Diff => PaneKind.Detail,
-        PaneKind.WorkingUnstaged or PaneKind.WorkingStaged => PaneKind.Graph,
+        PaneKind.WorkingUnstaged or PaneKind.WorkingStaged or PaneKind.WorkingMessage => PaneKind.Graph,
         _ => pane,
     };
 

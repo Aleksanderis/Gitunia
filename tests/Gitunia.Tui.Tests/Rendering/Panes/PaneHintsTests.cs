@@ -108,6 +108,7 @@ public class PaneHintsTests
         PaneKind.Diff => DefaultKeymap.DiffView,
         PaneKind.WorkingUnstaged => DefaultKeymap.WorkingUnstagedView,
         PaneKind.WorkingStaged => DefaultKeymap.WorkingStagedView,
+        PaneKind.WorkingMessage => DefaultKeymap.WorkingMessageView,
         _ => DefaultKeymap.GraphView,
     };
 
