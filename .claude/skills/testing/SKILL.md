@@ -76,6 +76,8 @@ Tips (all implemented in `scripts/measure.sh`, copy from there):
 - **odd-paths**: unicode names, spaces, renames, copies, binary files, mode changes.
 - **big**: N commits generated with `git fast-import` (100k for performance checks); generated on demand, never committed.
 
+Ready in `tests/Gitunia.Git.Tests/Fixtures/TestRepositories.cs`: `Linear`, `WithMergedFeatureBranch`, `WithWorktree`, `WithManyWorktrees` (locked, prunable, dirty), `Conflicted` (merge), `RebaseConflicted`, `CherryPickConflicted`, `RevertConflicted`, `WithOrigin` (local bare origin, tracking main), `WithTrackingBranch(ahead, behind)`, `WithoutUpstreamBranch`, `WithStash` (tracked + untracked), `OddPaths`. `TestRepository.GitIn(dir, ...)` runs isolated git in another worktree or clone.
+
 In C# tests use the fluent fixture builder in `tests/` (create it on first need, keep it small) rather than shell scripts. Parser fixtures are captured real output stored as files next to the tests.
 
 ## Running

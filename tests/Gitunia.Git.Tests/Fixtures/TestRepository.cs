@@ -114,6 +114,74 @@ public sealed class TestRepository : IDisposable
         return path;
     }
 
+    /// <summary>Directory of the local bare repository created by <see cref="AddOrigin"/>.</summary>
+    public string OriginPath => Path.Combine(_rootDirectory, "origin.git");
+
+    /// <summary>Creates a local bare <c>origin</c> and pushes <c>main</c> with upstream tracking.</summary>
+    public TestRepository AddOrigin()
+    {
+        Directory.CreateDirectory(OriginPath);
+        GitIn(OriginPath, ["init", "-q", "--bare", "-b", "main"]);
+        Git("remote", "add", "origin", OriginPath);
+        Git("push", "-q", "-u", "origin", "main");
+        return this;
+    }
+
+    /// <summary>Pushes <paramref name="branch"/> to origin and sets it as upstream.</summary>
+    public TestRepository PushWithUpstream(string branch)
+    {
+        Git("push", "-q", "-u", "origin", branch);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a commit to <paramref name="branch"/> on origin only (through a throwaway clone), then fetches it here.
+    /// </summary>
+    public TestRepository CommitOnOrigin(string branch, string message, TestFile file)
+    {
+        // The counter advances with every git call, so each clone directory is unique.
+        var clone = Path.Combine(_rootDirectory, $"clone-{_commitCounter}");
+        GitIn(_rootDirectory, ["clone", "-q", "--branch", branch, OriginPath, clone]);
+        File.WriteAllText(Path.Combine(clone, file.RelativePath), file.Content);
+        GitIn(clone, ["add", "-A"]);
+        GitIn(clone, ["commit", "-q", "-m", message]);
+        GitIn(clone, ["push", "-q", "origin", branch]);
+        Git("fetch", "-q", "origin");
+        return this;
+    }
+
+    /// <summary>
+    /// Stashes a change to the existing tracked <c>file.txt</c> (as in Linear) and an untracked <c>untracked.txt</c>.
+    /// </summary>
+    public TestRepository StashWithUntracked(string message = "wip")
+    {
+        WriteFile("file.txt", "stashed change\n");
+        WriteFile("untracked.txt", "untracked\n");
+        Git("stash", "push", "-q", "--include-untracked", "-m", message);
+        return this;
+    }
+
+    /// <summary>Cherry-picks <paramref name="commit"/> expecting a conflict; leaves the pick in progress.</summary>
+    public TestRepository CherryPickExpectingConflict(string commit)
+    {
+        Git(["cherry-pick", commit], acceptedExitCodes: [1]);
+        return this;
+    }
+
+    /// <summary>Reverts <paramref name="commit"/> expecting a conflict; leaves the revert in progress.</summary>
+    public TestRepository RevertExpectingConflict(string commit)
+    {
+        Git(["revert", "--no-edit", commit], acceptedExitCodes: [1]);
+        return this;
+    }
+
+    /// <summary>Rebases onto <paramref name="onto"/> expecting a conflict; leaves the rebase stopped.</summary>
+    public TestRepository RebaseExpectingConflict(string onto)
+    {
+        Git(["rebase", onto], acceptedExitCodes: [1]);
+        return this;
+    }
+
     /// <summary>Full hash of HEAD in the main repository.</summary>
     public string Head => Git("rev-parse", "HEAD").Trim();
 
@@ -121,12 +189,16 @@ public sealed class TestRepository : IDisposable
     public string Git(params string[] arguments) => Git(arguments, acceptedExitCodes: null);
 
     /// <summary>Same as <see cref="Git(string[])"/> but tolerates the given non-zero exit codes.</summary>
-    public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes)
+    public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes) =>
+        GitIn(WorkingTreePath, arguments, acceptedExitCodes);
+
+    /// <summary>Runs isolated git in <paramref name="directory"/> (a worktree, clone or bare repository).</summary>
+    public string GitIn(string directory, string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes = null)
     {
         // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.
         var runner = CreateRunner(Epoch.AddMinutes(_commitCounter++));
         var result = runner
-            .RunAsync(WorkingTreePath, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
+            .RunAsync(directory, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
             .GetAwaiter()
             .GetResult();
         return result.StandardOutputText;

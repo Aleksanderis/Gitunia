@@ -56,6 +56,100 @@ public class TestRepositoryTests
     }
 
     [Fact]
+    public void GivenOriginRepository_WhenReadingTracking_ThenMainTracksBareOriginInSync()
+    {
+        using var repository = TestRepositories.WithOrigin();
+
+        Assert.Equal("origin/main", repository.Git("rev-parse", "--abbrev-ref", "main@{upstream}").Trim());
+        Assert.Equal("0\t0", repository.Git("rev-list", "--left-right", "--count", "main...origin/main").Trim());
+        Assert.Equal("true", repository.GitIn(repository.OriginPath, ["rev-parse", "--is-bare-repository"]).Trim());
+    }
+
+    [Fact]
+    public void GivenDivergedTrackingBranch_WhenCounting_ThenAheadAndBehindMatch()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(ahead: 2, behind: 3);
+
+        Assert.Equal("2\t3", repository.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
+    }
+
+    [Fact]
+    public void GivenAheadOnlyAndBehindOnly_WhenCounting_ThenOtherSideIsZero()
+    {
+        using var ahead = TestRepositories.WithTrackingBranch(ahead: 1, behind: 0);
+        using var behind = TestRepositories.WithTrackingBranch(ahead: 0, behind: 2);
+
+        Assert.Equal("1\t0", ahead.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
+        Assert.Equal("0\t2", behind.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
+    }
+
+    [Fact]
+    public void GivenBranchWithoutUpstream_WhenReadingUpstream_ThenNoneIsConfigured()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+
+        Assert.Empty(repository.Git("for-each-ref", "--format=%(upstream)", "refs/heads/lonely").Trim());
+        Assert.Equal("origin/main", repository.Git("rev-parse", "--abbrev-ref", "main@{upstream}").Trim());
+    }
+
+    [Fact]
+    public void GivenManyWorktrees_WhenListing_ThenLockedPrunableAndDirtyAreVisible()
+    {
+        using var repository = TestRepositories.WithManyWorktrees(out _, out _, out var dirtyPath);
+
+        var listing = repository.Git("worktree", "list", "--porcelain");
+        var blocks = listing.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(4, blocks.Length);
+        Assert.Contains(blocks, block => block.Contains("wt-locked") && block.Contains("locked test lock"));
+        Assert.Contains(
+            blocks,
+            block => block.Contains("wt-prunable") && block.Split('\n').Any(line => line.StartsWith("prunable")));
+        Assert.Contains(" M file.txt", repository.GitIn(dirtyPath, ["status", "--porcelain"]));
+    }
+
+    [Fact]
+    public void GivenRebaseConflicted_WhenInspecting_ThenRebaseIsStoppedWithUnmergedFile()
+    {
+        using var repository = TestRepositories.RebaseConflicted();
+
+        var rebaseDirectory = Path.Combine(repository.WorkingTreePath, ".git", "rebase-merge");
+
+        Assert.True(Directory.Exists(rebaseDirectory));
+        Assert.Equal("refs/heads/other", File.ReadAllText(Path.Combine(rebaseDirectory, "head-name")).Trim());
+        Assert.StartsWith("UU conflict.txt", repository.Git("status", "--porcelain"));
+    }
+
+    [Fact]
+    public void GivenCherryPickConflicted_WhenInspecting_ThenPickIsInProgress()
+    {
+        using var repository = TestRepositories.CherryPickConflicted();
+
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, ".git", "CHERRY_PICK_HEAD")));
+        Assert.StartsWith("UU conflict.txt", repository.Git("status", "--porcelain"));
+    }
+
+    [Fact]
+    public void GivenRevertConflicted_WhenInspecting_ThenRevertIsInProgress()
+    {
+        using var repository = TestRepositories.RevertConflicted();
+
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, ".git", "REVERT_HEAD")));
+        Assert.StartsWith("UU conflict.txt", repository.Git("status", "--porcelain"));
+    }
+
+    [Fact]
+    public void GivenStashFixture_WhenListingStashAndStatus_ThenOneStashAndCleanTree()
+    {
+        using var repository = TestRepositories.WithStash();
+
+        Assert.Single(repository.Git("stash", "list").Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Empty(repository.Git("status", "--porcelain"));
+        Assert.Contains("untracked.txt", repository.Git("show", "--name-only", "--format=", "stash@{0}^3"));
+        Assert.Contains("file.txt", repository.Git("show", "--name-only", "--format=", "stash@{0}"));
+    }
+
+    [Fact]
     public void GivenOddPaths_WhenListingFiles_ThenAllArePresent()
     {
         using var repository = TestRepositories.OddPaths();
