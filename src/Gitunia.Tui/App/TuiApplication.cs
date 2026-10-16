@@ -160,7 +160,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new RangeCopier(clipboard, ActiveSession).Copy);
         _router.Visual = _visual;
         var operationGate = new TabOperationGate();
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging(operationGate), _commits)
+        var staging = CreateStaging(operationGate);
+        _commits.StageAllThen = staging.StageAllThen;
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, staging, _commits)
         {
             Diff = _workingDiff,
             Visual = _visual,
@@ -450,7 +452,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         () => _keys.Mode,
         SetMode,
         RouteAction,
-        _view.RefreshChrome);
+        _view.RefreshChrome,
+        ShowConfirm);
 
     // The overlay controller and the key controller are created after the commit actions, so they are reached through these methods.
     private void ShowOutput(string title, string heading, IReadOnlyList<string> lines) =>

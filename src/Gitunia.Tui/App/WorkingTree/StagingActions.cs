@@ -85,7 +85,36 @@ public sealed class StagingActions(
         _gate.Begin(tab.Id);
         var isUnborn = tree.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab, plan, isStage, isUnborn, token), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab, plan, isStage, isUnborn, null, token), CancellationToken.None);
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Stages every unstaged file of <paramref name="tab"/> whatever the focus (as <c>&lt;space&gt;A</c>: untracked
+    /// included, conflicted skipped) and calls <paramref name="afterStaged"/> on the UI thread once the status shows the
+    /// result. Returns a notice when nothing was started, empty otherwise; it does not run after a failure.
+    /// </summary>
+    public string StageAllThen(RepositoryState tab, Action afterStaged)
+    {
+        if (tab.WorkingTree is not { } tree)
+        {
+            return "The status is not loaded yet";
+        }
+
+        if (_gate.IsBusy(tab.Id))
+        {
+            return "Busy: the last stage or unstage is still running";
+        }
+
+        var plan = PlanAll(tree, WorkingTreeSection.Unstaged);
+        if (plan.Notice.Length > 0)
+        {
+            return plan.Notice;
+        }
+
+        _gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => RunAsync(tab, plan, true, false, afterStaged, token), CancellationToken.None);
         return string.Empty;
     }
 
@@ -146,7 +175,13 @@ public sealed class StagingActions(
     private static IReadOnlyList<string> PathsOf(StatusEntry entry, WorkingTreeSection section) =>
         StagingPaths.Of(entry, section == WorkingTreeSection.Staged ? WorkingDiffSide.Staged : WorkingDiffSide.Unstaged);
 
-    private async Task RunAsync(RepositoryState tab, StagingPlan plan, bool isStage, bool isUnborn, CancellationToken token)
+    private async Task RunAsync(
+        RepositoryState tab,
+        StagingPlan plan,
+        bool isStage,
+        bool isUnborn,
+        Action? afterStaged,
+        CancellationToken token)
     {
         try
         {
@@ -159,7 +194,7 @@ public sealed class StagingActions(
                 await writer.UnstageAsync(tab.Location, plan.Paths, isUnborn, token).ConfigureAwait(false);
             }
 
-            postToUi(() => Finish(tab.Id, Report(plan, isStage), StatusSeverity.Info));
+            postToUi(() => Finish(tab.Id, Report(plan, isStage), StatusSeverity.Info, afterStaged));
         }
         catch (OperationCanceledException)
         {
@@ -239,15 +274,21 @@ public sealed class StagingActions(
             ? StatusSeverity.Warning
             : StatusSeverity.Info;
 
-    private void Finish(TabId tabId, string message, StatusSeverity severity)
+    private void Finish(TabId tabId, string message, StatusSeverity severity, Action? afterStaged = null)
     {
         statuses.Post(message, severity);
 
         // The state decides what the lists show, so the next action waits for it (an error may have left the index half changed).
-        if (host.Workspace.FindTab(tabId) is null || !refreshStatus(tabId, () => Release(tabId)))
+        if (host.Workspace.FindTab(tabId) is null || !refreshStatus(tabId, () => Done(tabId, afterStaged)))
         {
-            Release(tabId);
+            Done(tabId, afterStaged);
         }
+    }
+
+    private void Done(TabId tabId, Action? afterStaged)
+    {
+        Release(tabId);
+        afterStaged?.Invoke();
     }
 
     private void Release(TabId tabId) => _gate.End(tabId);
