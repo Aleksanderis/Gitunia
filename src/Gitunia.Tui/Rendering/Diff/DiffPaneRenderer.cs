@@ -51,10 +51,31 @@ public static class DiffPaneRenderer
             return RenderTitleText(pane, width, glyphs);
         }
 
-        var segments = new List<StyledSegment>(RenderTitleText(pane, buttons[0].Start - 1, glyphs).Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
-        for (var index = 0; index < buttons.Count; index++)
+        return WithButtons(RenderTitleText(pane, buttons[0].Start - 1, glyphs), buttons, glyphs);
+    }
+
+    /// <summary>
+    /// The title row of the working-tree diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
+    /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons)"/>) when the row is wide enough.
+    /// </summary>
+    public static StyledLine RenderWorkingTitle(string title, bool isFocused, WorkingTreeButtons staging, int width, GraphGlyphSet glyphs)
+    {
+        var buttons = DiffTitleButtons.Layout(width, staging);
+        var textWidth = buttons.Count > 0 ? buttons[0].Start - 1 : width;
+        var text = new LineBuilder(textWidth, glyphs.Ellipsis)
+            .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
+            .Append($" {title} ", isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab)
+            .BuildRule(glyphs.Horizontal);
+
+        return buttons.Count == 0 ? text : WithButtons(text, buttons, glyphs);
+    }
+
+    private static StyledLine WithButtons(StyledLine text, IReadOnlyList<TitleButton> buttons, GraphGlyphSet glyphs)
+    {
+        var segments = new List<StyledSegment>(text.Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
+        foreach (var button in buttons)
         {
-            segments.Add(new StyledSegment(ButtonLabel.For(buttons[index].Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
+            segments.Add(new StyledSegment(ButtonLabel.For(button.Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
             segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         }
 

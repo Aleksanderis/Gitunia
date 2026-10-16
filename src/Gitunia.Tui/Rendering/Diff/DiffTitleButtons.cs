@@ -16,6 +16,12 @@ public static class DiffTitleButtons
     /// <summary>Columns of the title text that are never given to buttons.</summary>
     public const int MinimumTitleWidth = 30;
 
+    private static readonly ButtonSpecification Stage = new(DefaultMouseMap.DiffStageButton, " stage ");
+
+    private static readonly ButtonSpecification Unstage = new(DefaultMouseMap.DiffUnstageButton, " unstage ");
+
+    private static readonly ButtonSpecification Discard = new(DefaultMouseMap.DiffDiscardButton, " discard ");
+
     // Most useful first: when the row is narrow the later ones are dropped.
     private static readonly ButtonSpecification[] Candidates =
     [
@@ -33,6 +39,9 @@ public static class DiffTitleButtons
     // Left to right on the row.
     private static readonly string[] DisplayOrder =
     [
+        DefaultMouseMap.DiffStageButton,
+        DefaultMouseMap.DiffUnstageButton,
+        DefaultMouseMap.DiffDiscardButton,
         DefaultMouseMap.DiffPreviousHunkButton,
         DefaultMouseMap.DiffNextHunkButton,
         DefaultMouseMap.DiffLessContextButton,
@@ -45,11 +54,19 @@ public static class DiffTitleButtons
     ];
 
     /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one column of line between them.</summary>
-    public static IReadOnlyList<TitleButton> Layout(int width)
+    public static IReadOnlyList<TitleButton> Layout(int width) => Layout(width, WorkingTreeButtons.None);
+
+    /// <summary>
+    /// The buttons of the working-tree diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
+    /// and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side), so a narrow row keeps what the pane is for.
+    /// </summary>
+    /// <param name="width">Columns of the title row.</param>
+    /// <param name="staging">Which side of the working tree the diff shows.</param>
+    public static IReadOnlyList<TitleButton> Layout(int width, WorkingTreeButtons staging)
     {
         var chosen = new List<ButtonSpecification>();
         var used = 0;
-        foreach (var candidate in Candidates)
+        foreach (var candidate in Prioritized(staging))
         {
             var needed = TextWidth.Of(candidate.Label) + (chosen.Count > 0 ? 1 : 0);
             if (width - 2 - used - needed < MinimumTitleWidth)
@@ -70,5 +87,26 @@ public static class DiffTitleButtons
         }
 
         return buttons;
+    }
+
+    private static IEnumerable<ButtonSpecification> Prioritized(WorkingTreeButtons staging)
+    {
+        if (staging == WorkingTreeButtons.Unstaged)
+        {
+            yield return Stage;
+        }
+        else if (staging == WorkingTreeButtons.Staged)
+        {
+            yield return Unstage;
+        }
+
+        foreach (var candidate in Candidates)
+        {
+            yield return candidate;
+            if (staging == WorkingTreeButtons.Unstaged && candidate.View == DefaultMouseMap.DiffPreviousHunkButton)
+            {
+                yield return Discard;
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <param name="Diff">The diff of the selected file, null when there is none (blank diff box).</param>
 /// <param name="Draft">The tab's commit draft, null when it has none (nothing typed, no option set).</param>
 /// <param name="IsEditing">The message box is in Insert mode, so it shows the cursor.</param>
+/// <param name="IsDiffZoomed">The diff has focus and fills the whole view.</param>
 public sealed record WorkingTreeModel(
     WorkingTreeState? Tree,
     PaneKind Focused,
@@ -20,4 +21,5 @@ public sealed record WorkingTreeModel(
     int StagedTop = 0,
     DiffPaneModel? Diff = null,
     CommitDraft? Draft = null,
-    bool IsEditing = false);
+    bool IsEditing = false,
+    bool IsDiffZoomed = false);

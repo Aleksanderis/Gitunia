@@ -31,6 +31,7 @@ public sealed class WorkingDiffController : IPromptHandler
     private readonly Func<TabSession?> _activeSession;
     private readonly ListView _diffList;
     private readonly Action _refreshChrome;
+    private readonly Action _relayout;
     private readonly DiffListActions _actions;
     private TabSession? _hooked;
     private int? _hunkAfterReload;
@@ -41,18 +42,21 @@ public sealed class WorkingDiffController : IPromptHandler
     /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="refreshChrome">Redraws the frame titles and the status bar after the diff changed on its own (it finished loading).</param>
     /// <param name="clipboard">Copies diff text.</param>
+    /// <param name="relayout">Lays the panes out again after the zoom changed; null in tests without a screen.</param>
     public WorkingDiffController(
         WorkspaceHost host,
         Func<TabSession?> activeSession,
         ListView diffList,
         Action<KeyMode> setMode,
         Action refreshChrome,
-        ClipboardCopier clipboard)
+        ClipboardCopier clipboard,
+        Action? relayout = null)
     {
         _host = host;
         _activeSession = activeSession;
         _diffList = diffList;
         _refreshChrome = refreshChrome;
+        _relayout = relayout ?? (() => { });
         _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty);
         host.Changed += OnWorkspaceChanged;
     }
@@ -62,6 +66,11 @@ public sealed class WorkingDiffController : IPromptHandler
         get => _actions.Notice;
         private set => _actions.Notice = value;
     }
+
+    /// <summary>True while the diff of the shown tab fills the whole working-tree view (the diff has focus and was zoomed).</summary>
+    public bool IsZoomed =>
+        _activeSession()?.WorkingDiff is { IsZoomed: true }
+        && WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph);
 
     public string StatusLine => _actions.StatusLine(_activeSession()?.WorkingDiff);
 
@@ -237,11 +246,23 @@ public sealed class WorkingDiffController : IPromptHandler
     private void OnWorkspaceChanged()
     {
         Sync();
+        ReleaseStaleZoom();
         if (_activeSession()?.WorkingDiff is { Search.Phase: DiffSearchPhase.Editing } diff
             && !WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
         {
             // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
             _actions.AbandonTypedSearch(diff);
+        }
+    }
+
+    // Focus left the diff (Esc, a click on a list): the zoom ends, so returning to the diff does not zoom it again.
+    private void ReleaseStaleZoom()
+    {
+        if (_activeSession()?.WorkingDiff is { IsZoomed: true } diff
+            && !WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
+        {
+            diff.IsZoomed = false;
+            _relayout();
         }
     }
 
@@ -255,7 +276,12 @@ public sealed class WorkingDiffController : IPromptHandler
             return true;
         }
 
-        if (action == ActionIds.DiffLoadAnyway)
+        if (action == ActionIds.PaneZoom)
+        {
+            diff.IsZoomed = !diff.IsZoomed;
+            _relayout();
+        }
+        else if (action == ActionIds.DiffLoadAnyway)
         {
             Notice = diff.Store.LoadAnyway() ? "Loading the whole diff..." : "Nothing was cut short";
         }

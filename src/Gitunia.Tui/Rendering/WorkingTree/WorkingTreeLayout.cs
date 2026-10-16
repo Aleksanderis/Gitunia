@@ -33,9 +33,15 @@ public static class WorkingTreeLayout
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="focused">The focused pane; on narrow screens it decides which list shows.</param>
-    public static WorkingTreeRects Compute(int screenWidth, int screenHeight, PaneKind focused)
+    /// <param name="isDiffZoomed">The diff has focus and takes the whole view (<c>&lt;space&gt;z</c>, #343); ignored when another pane has focus.</param>
+    public static WorkingTreeRects Compute(int screenWidth, int screenHeight, PaneKind focused, bool isDiffZoomed = false)
     {
         var rects = ComputeBoxes(screenWidth, screenHeight, focused);
+        if (isDiffZoomed && WorkingPanes.IsDiff(focused) && !rects.Diff.IsEmpty)
+        {
+            return ZoomedDiff(screenWidth, screenHeight);
+        }
+
         if (focused != PaneKind.WorkingMessage || !rects.Message.IsEmpty)
         {
             return rects;
@@ -53,6 +59,14 @@ public static class WorkingTreeLayout
                 screenWidth < MinimumWidthForSideBySide ? none : rects.Staged,
                 none,
                 place);
+    }
+
+    private static WorkingTreeRects ZoomedDiff(int screenWidth, int screenHeight)
+    {
+        var none = new PaneRect(0, 0, 0, 0);
+        var whole = new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(screenWidth), ScreenLayout.GraphHeight(screenHeight));
+
+        return new WorkingTreeRects(none, none, whole, none);
     }
 
     private static WorkingTreeRects ComputeBoxes(int screenWidth, int screenHeight, PaneKind focused)

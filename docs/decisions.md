@@ -227,3 +227,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.
 
 **Git layer:** The working-tree diff of a name that is not valid UTF-8 (#344) streams the unfiltered diff and picks the file by its lossy path; an untracked one is read in-process through a small `open(2)` P/Invoke in `Gitunia.Platform` (bounded read, Linux/macOS only). Why: `git diff` has no pathspec file and the runtime cannot spell such a path.
+
+**UI:** Working-tree diff chrome (#343): zoom is a flag of the tab's working-diff session and ends when focus leaves the diff; the title row has its own line view with the history diff's buttons plus `stage`/`discard` (Unstaged) or `unstage` (Staged), `stage` first and `discard` after the hunk buttons in the drop order. Click from a list to its diff on narrow screens is deferred to #376.
