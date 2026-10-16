@@ -39,6 +39,7 @@ public static class ActionCatalog
         ["branch.switch"] = "Switch to a branch (check out)",
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",
+        ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",
         ["detail.copy-path"] = "Copy the file path",

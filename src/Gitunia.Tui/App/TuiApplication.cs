@@ -19,6 +19,7 @@ using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
@@ -85,6 +86,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
+    private ResetActions _reset = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -183,6 +185,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _reset = CreateReset(operationGate);
+        _router.Reset = _reset;
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
@@ -508,6 +512,21 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         BranchSelectionNow);
 
+    private ResetActions CreateReset(TabOperationGate gate) => new(
+        _host,
+        services.Reset,
+        services.Status,
+        new RepositoryOperationDetector(),
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow,
+        gate);
+
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
@@ -774,6 +793,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
+            _reset,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),

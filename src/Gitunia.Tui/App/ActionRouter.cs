@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
@@ -59,6 +60,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
     public BranchActions? Branches { get; set; }
+
+    /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
+    public ResetActions? Reset { get; set; }
 
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
@@ -115,6 +119,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Branches?.TryExecute(action, count) == true)
         {
             Message = Branches.Notice;
+            return;
+        }
+
+        if (Reset?.TryExecute(action, count) == true)
+        {
+            Message = Reset.Notice;
             return;
         }
 

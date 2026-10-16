@@ -139,6 +139,8 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
+        AddResetKeys(bindings, GraphView);
+        AddResetKeys(bindings, SidebarView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
@@ -197,6 +199,10 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
     }
+
+    // Reset moves the current branch to the selected commit, branch or tag.
+    private static void AddResetKeys(List<KeyBinding> bindings, string view) =>
+        Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
     private static void AddWorkingTreeLists(List<KeyBinding> bindings)

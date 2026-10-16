@@ -259,3 +259,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Upstream (#36): `<space>bu` picks a remote branch (type-to-filter) and `<space>bU` unsets, no Confirm; the status line prints the restoring `--set-upstream-to` command. Why: both are config-only and reversible.
 
 **UI:** Worktree switch (#42) re-points the tab at the other worktree in place: same tab id and view state, new location, session and watcher (a new load). `wt` opens a tab instead. The sidebar overview runs `git status` in each other worktree (on change and every 30 s) because their changes raise no event for this tab. Details in ux.md workflow 6.
+
+**UI:** Reset (#392) is a one-key prompt (`s`/`m`/`h`) after `<space>gx`; soft and a mixed reset with nothing staged run at once, the rest opens a Confirm with the files lost and the old hash. Why: ux.md reset flow; the undo for commits is the printed old hash (ORIG_HEAD, reflog).
