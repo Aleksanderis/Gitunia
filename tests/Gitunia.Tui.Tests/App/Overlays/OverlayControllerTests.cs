@@ -266,7 +266,7 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
-    public void GivenAnOpenPalette_WhenPressingCtrlHOrCtrlL_ThenTheHighlightStays()
+    public void GivenAnOpenPalette_WhenPressingCtrlH_ThenTheHighlightStays()
     {
         Press(new Key(':'));
         Press(Key.J.WithCtrl);
@@ -426,6 +426,18 @@ public sealed class OverlayControllerTests : IDisposable
         Press(Key.Enter);
 
         Assert.Equal(PaletteEntryBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView)[1].Action, _routed.Single());
+    }
+
+    [Fact]
+    public void GivenPalette_WhenMovingWithCtrlJAndPressingCtrlL_ThenTheHighlightedActionRunsLikeEnter()
+    {
+        Press(new Key(':'));
+
+        Press(Key.J.WithCtrl);
+        Press(Key.L.WithCtrl);
+
+        Assert.Equal(PaletteEntryBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView)[1].Action, _routed.Single());
+        Assert.False(_overlays.State.IsOpen);
     }
 
     [Fact]
