@@ -18,6 +18,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("@", "HEAD", [ActionIds.GraphJumpToHead]),
@@ -28,6 +29,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("l/Enter", "expand", [ActionIds.SidebarExpand, ActionIds.SidebarActivate]),
         new("h", "collapse", [ActionIds.SidebarCollapse]),
         new("/", "filter", [ActionIds.SidebarFilter]),
@@ -37,6 +39,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
         new("l", "open diff", [ActionIds.DetailOpenDiff]),
         new("h", "back", [ActionIds.NavigateBack]),
