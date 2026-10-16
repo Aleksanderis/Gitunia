@@ -367,6 +367,9 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | DiffButton.WholeFile | Click | `diff.toggle-whole-file` | Button `file`, same as `F` |
 | DiffButton.IgnoreWhitespace | Click | `diff.toggle-ignore-whitespace` | Button `-w`, same as `W` |
 | DiffButton.SideBySide | Click | `diff.toggle-side-by-side` | Button `split`, same as `S` |
+| DiffButton.Stage | Click | `working-tree.stage` | Working-tree diff, Unstaged side: button `stage`, same as `<space>a` (the hunk under the cursor, or the Visual range) |
+| DiffButton.Unstage | Click | `working-tree.unstage` | Working-tree diff, Staged side: button `unstage`, same as `<space>u` |
+| DiffButton.Discard | Click | `working-tree.discard` | Working-tree diff, Unstaged side: button `discard`, same as `<space>d`; opens the Confirm dialog, nothing is discarded before `y` |
 | DetailTab.Details | Click | `detail.tab-details` | The `Details` label in the detail pane's title row, same as `gd` (also focuses the pane) |
 | DetailTab.Changes | Click | `detail.tab-changes` | The `Changes` label, same as `gc` |
 | DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |

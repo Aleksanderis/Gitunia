@@ -97,7 +97,7 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
-        var rects = WorkingTreeLayout.Compute(width, height, working.Focused);
+        var rects = WorkingTreeLayout.Compute(width, height, working.Focused, working.IsDiffZoomed);
         var isUnstagedFocused = working.Focused == PaneKind.WorkingUnstaged;
         var isStagedFocused = working.Focused == PaneKind.WorkingStaged;
         var isMessageFocused = working.Focused == PaneKind.WorkingMessage;
@@ -106,7 +106,7 @@ public static class ScreenComposer
         {
             new(rects.Unstaged, isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Unstaged)),
             new(rects.Staged, isStagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
-            new(rects.Diff, WorkingPanes.IsDiff(working.Focused), WorkingTreePaneRenderer.DiffTitle(tree, working.Diff)),
+            new(rects.Diff, WorkingPanes.IsDiff(working.Focused), string.Empty),
             new(rects.Message, isMessageFocused, working.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle),
         };
         var grid = FrameGrid.Build(width, height, boxes, glyphs);
@@ -120,6 +120,13 @@ public static class ScreenComposer
         {
             var diffRows = WorkingTreePaneRenderer.DiffLines(working.Diff, rects.Diff, padding, glyphs);
             overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y, diffRows, SegmentSelection.Focused));
+            var titleLine = DiffPaneRenderer.RenderWorkingTitle(
+                WorkingTreePaneRenderer.DiffTitle(tree, working.Diff),
+                WorkingPanes.IsDiff(working.Focused),
+                WorkingTreePaneRenderer.StagingButtons(tree),
+                rects.Diff.Width,
+                glyphs);
+            overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y - 1, [titleLine], SegmentSelection.None));
         }
 
         if (!rects.Message.IsEmpty)

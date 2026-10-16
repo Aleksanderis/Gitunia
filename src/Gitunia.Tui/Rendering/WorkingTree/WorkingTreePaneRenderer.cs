@@ -157,6 +157,14 @@ public static class WorkingTreePaneRenderer
         return string.Join("  ", parts);
     }
 
+    /// <summary>The staging buttons of the diff's title row: those of the side the selected file is on, none without a selection.</summary>
+    public static WorkingTreeButtons StagingButtons(WorkingTreeState? tree) => tree?.Selection?.Section switch
+    {
+        WorkingTreeSection.Staged => WorkingTreeButtons.Staged,
+        WorkingTreeSection.Unstaged => WorkingTreeButtons.Unstaged,
+        _ => WorkingTreeButtons.None,
+    };
+
     /// <summary>The rows of the diff box, starting at the model's top row; blank rows when the tab has no diff.</summary>
     public static IReadOnlyList<StyledLine> DiffLines(DiffPaneModel? diff, PaneRect rect, int padding, GraphGlyphSet glyphs) =>
         diff is null
