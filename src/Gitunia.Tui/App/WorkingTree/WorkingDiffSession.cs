@@ -13,7 +13,7 @@ public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet gly
     public WorkingDiffStore Store { get; } = store;
 
     /// <summary>The list source of the diff pane.</summary>
-    public DiffListSource Source { get; } = new(glyphs);
+    public DiffListSource Source { get; } = new(glyphs) { HighlightsGroup = true };
 
     public DiffSearchState Search { get; set; } = DiffSearchState.Idle;
 

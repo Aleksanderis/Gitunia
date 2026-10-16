@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Lists;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Xunit;
@@ -140,6 +141,35 @@ public class DiffSelectionTests
         var lines = DiffSelection.OfHunk(document, header);
 
         Assert.Equal(["added one", "added two"], lines.Select(line => line.Text));
+    }
+
+    [Fact]
+    public void GivenOneHunkOfTwoChangeGroups_WhenAskingForTheGroupRows_ThenTheRowsOfTheGroupUnderTheCursorAreReturned()
+    {
+        const string merged =
+            "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,5 +1,5 @@\n"
+            + "-a\n+A\n b\n c\n-d\n+D\n e\n";
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(merged).Items)
+        {
+            builder.Add(file, groupChanges: true);
+        }
+
+        var document = builder.Build([]);
+        var first = document.HunkRows[0];
+        var second = document.HunkRows[1];
+
+        Assert.Equal(new RowRange(first, first + 1), DiffSelection.GroupRowsAt(document, first + 1));
+        Assert.Equal(new RowRange(first, first + 1), DiffSelection.GroupRowsAt(document, first + 3));
+        Assert.Equal(new RowRange(second, second + 1), DiffSelection.GroupRowsAt(document, document.Rows.Count - 1));
+    }
+
+    [Fact]
+    public void GivenADiffWithoutGroups_WhenAskingForTheGroupRows_ThenThereAreNone()
+    {
+        var document = Build("diff --git a/img.png b/img.png\nindex 111..222 100644\nBinary files a/img.png and b/img.png differ\n");
+
+        Assert.Null(DiffSelection.GroupRowsAt(document, 1));
     }
 
     private static DiffDocument Build(string patch)
