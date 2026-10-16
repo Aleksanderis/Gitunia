@@ -156,7 +156,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             PaneView,
             () => _keys.Mode,
             mode => _keys.SetMode(mode),
-            new RangeCopier(clipboard, ActiveSession).Copy);
+            new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy);
         _router.Visual = _visual;
         var operationGate = new TabOperationGate();
         var staging = CreateStaging(operationGate);
@@ -247,6 +247,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
         _view.Diff.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.WorkingDiff.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.WorkingUnstaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.WorkingStaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
         _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
@@ -329,12 +331,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return;
         }
 
-        // The sidebar and the working-tree lists have no ranges yet; dragging there only moves the selection.
+        // The sidebar and the message box have no ranges; dragging there only moves the selection.
         if (gesture == MouseGesture.DragStart
-            && viewName is DefaultKeymap.SidebarView
-                or DefaultKeymap.WorkingUnstagedView
-                or DefaultKeymap.WorkingStagedView
-                or DefaultKeymap.WorkingMessageView)
+            && viewName is DefaultKeymap.SidebarView or DefaultKeymap.WorkingMessageView)
         {
             return;
         }
@@ -374,6 +373,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         viewName is DefaultKeymap.GraphView
             or DefaultKeymap.DetailView
             or DefaultKeymap.DiffView
+            or DefaultKeymap.WorkingUnstagedView
+            or DefaultKeymap.WorkingStagedView
             or DefaultKeymap.WorkingUnstagedDiffView
             or DefaultKeymap.WorkingStagedDiffView;
 

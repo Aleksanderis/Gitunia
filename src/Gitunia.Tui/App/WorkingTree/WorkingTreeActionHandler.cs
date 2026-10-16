@@ -247,10 +247,10 @@ public sealed class WorkingTreeActionHandler(
         return true;
     }
 
-    // Range selection works in the diff (the lists have no ranges yet): v and the mouse drag start it, y copies it, q ends it.
+    // Range selection works in the diff (lines) and in the file lists (files): v and the mouse drag start it, y copies it, q ends it.
     private bool TryVisual(RepositoryState tab, ActionId action, int? count)
     {
-        if (Visual is null || !WorkingPanes.IsDiff(tab.View.FocusedPane))
+        if (Visual is null || !(WorkingPanes.IsDiff(tab.View.FocusedPane) || WorkingPanes.IsList(tab.View.FocusedPane)))
         {
             return false;
         }
@@ -266,9 +266,27 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        Message = WorkingPanes.IsDiff(tab.View.FocusedPane) ? StageFromDiff(tab, action) : staging.Execute(tab, action);
+        if (WorkingPanes.IsDiff(tab.View.FocusedPane))
+        {
+            Message = StageFromDiff(tab, action);
+            return true;
+        }
+
+        // A Visual range of files: stage and unstage act on all of them and the range ends once the operation started.
+        var range = ListRange(tab);
+        var isRangeAction = action == ActionIds.WorkingTreeStage || action == ActionIds.WorkingTreeUnstage;
+        Message = staging.Execute(tab, action, isRangeAction ? range : null);
+        if (Message.Length == 0 && isRangeAction)
+        {
+            Visual?.End();
+        }
+
         return true;
     }
+
+    // The Visual range of the focused file list, null when there is none.
+    private RowRange? ListRange(RepositoryState tab) =>
+        Visual is { IsActive: true, Range: { } range } && WorkingPanes.IsList(tab.View.FocusedPane) ? range : null;
 
     // In the diff the same keys act on the hunk under the cursor, or on the Visual lines.
     private string StageFromDiff(RepositoryState tab, ActionId action)
@@ -316,9 +334,13 @@ public sealed class WorkingTreeActionHandler(
 
         Message = Discard is null
             ? "Discard is not available"
-            : WorkingPanes.IsDiff(tab.View.FocusedPane) ? DiscardFromDiff(tab, Discard) : Discard.Execute(tab);
+            : WorkingPanes.IsDiff(tab.View.FocusedPane) ? DiscardFromDiff(tab, Discard) : DiscardFromList(tab, Discard);
         return true;
     }
+
+    // In the list the key acts on the file under the cursor, or on the files of the Visual range (one dialog counts them); the range ends once the user confirmed.
+    private string DiscardFromList(RepositoryState tab, DiscardActions discard) =>
+        ListRange(tab) is { } range ? discard.ExecuteRange(tab, range, () => Visual?.End()) : discard.Execute(tab);
 
     // In the diff the key acts on the hunk under the cursor, or on the Visual lines; the range ends once the user confirmed.
     private string DiscardFromDiff(RepositoryState tab, DiscardActions discard)

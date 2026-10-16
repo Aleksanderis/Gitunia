@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -49,7 +50,10 @@ public sealed class StagingActions(
         || action == ActionIds.WorkingTreeUnstageAll;
 
     /// <summary>Starts the action for the focused list of <paramref name="tab"/>; returns a notice when nothing was started, empty otherwise.</summary>
-    public string Execute(RepositoryState tab, ActionId action)
+    /// <param name="tab">The tab.</param>
+    /// <param name="action">Stage, unstage, stage all or unstage all.</param>
+    /// <param name="range">The Visual range of rows of the focused list: stage and unstage then apply to those files instead of the one under the cursor.</param>
+    public string Execute(RepositoryState tab, ActionId action, RowRange? range = null)
     {
         var isStage = action == ActionIds.WorkingTreeStage || action == ActionIds.WorkingTreeStageAll;
         var section = isStage ? WorkingTreeSection.Unstaged : WorkingTreeSection.Staged;
@@ -76,7 +80,7 @@ public sealed class StagingActions(
         }
 
         var isAll = action == ActionIds.WorkingTreeStageAll || action == ActionIds.WorkingTreeUnstageAll;
-        var plan = isAll ? PlanAll(tree, section) : PlanOne(tree, section);
+        var plan = isAll ? PlanAll(tree, section) : range is { } rows ? PlanRange(tree, section, rows) : PlanOne(tree, section);
         if (plan.Notice.Length > 0)
         {
             return plan.Notice;
@@ -157,6 +161,29 @@ public sealed class StagingActions(
         }
 
         return StagingPlan.For(PathsOf(entry, section), name, 1, 0);
+    }
+
+    // The files of the Visual range, in list order; conflicted ones are skipped like in stage all.
+    private static StagingPlan PlanRange(WorkingTreeState tree, WorkingTreeSection section, RowRange range)
+    {
+        var entries = section == WorkingTreeSection.Staged ? tree.Staged : tree.Unstaged;
+        if (entries.Count == 0)
+        {
+            return StagingPlan.Refused("Select a file first");
+        }
+
+        var first = Math.Clamp(range.First, 0, entries.Count - 1);
+        var last = Math.Clamp(range.Last, first, entries.Count - 1);
+        var picked = entries.Skip(first).Take(last - first + 1).ToList();
+        var usable = picked.Where(entry => entry.Kind != StatusEntryKind.Unmerged).ToList();
+        var skipped = picked.Count - usable.Count;
+        if (usable.Count == 0)
+        {
+            return StagingPlan.Refused($"Only conflicted files are selected ({skipped} skipped; resolving is not built yet)");
+        }
+
+        var name = usable.Count == 1 ? WorkingTreeRowRenderer.Printable(usable[0].Path) : string.Empty;
+        return StagingPlan.For([.. usable.SelectMany(entry => PathsOf(entry, section))], name, usable.Count, skipped);
     }
 
     private static StagingPlan PlanAll(WorkingTreeState tree, WorkingTreeSection section)
