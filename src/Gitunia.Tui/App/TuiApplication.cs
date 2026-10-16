@@ -18,6 +18,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
+using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
@@ -82,6 +83,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
+    private BranchActions _branches = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -129,6 +131,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
+        _branches = CreateBranches();
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.IsEditing;
         _router = new ActionRouter(
@@ -178,6 +181,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Visual = _visual,
             Discard = CreateDiscard(operationGate),
         };
+        _router.Branches = _branches;
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.DetailTabs = new DetailTabController(_host);
@@ -487,6 +491,30 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private bool ShowConfirm(ConfirmPrompt prompt, Action onConfirmed) => _overlays.ShowConfirm(prompt, onConfirmed);
 
+    private BranchActions CreateBranches() => new(
+        _host,
+        services.Branches,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow);
+
+    // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
+    private BranchSelection BranchSelectionNow()
+    {
+        var inSidebar = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar;
+        if (inSidebar && _sidebar.CursorRow is { IsSection: false } row)
+        {
+            return new BranchSelection(row.Kind, row.Label, row.CommitHash);
+        }
+
+        return new BranchSelection(null, null, SelectedCommitHash());
+    }
+
     private DiscardActions CreateDiscard(TabOperationGate gate) => new(
         _host,
         new PatchDiscarder(services.Diff, services.Discarder),
@@ -731,6 +759,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
+            _branches,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),

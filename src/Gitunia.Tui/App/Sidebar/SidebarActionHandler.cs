@@ -45,6 +45,11 @@ public sealed class SidebarActionHandler(
     /// <summary>The filter is being typed (the keymap is in Insert mode).</summary>
     public bool IsEditingFilter => _isEditingFilter;
 
+    /// <summary>The row under the sidebar cursor, null when the list is empty or no tab is active.</summary>
+    public SidebarRow? CursorRow => host.Workspace.ActiveTab is { } tab && !source.Rows.IsEmpty
+        ? source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)]
+        : null;
+
     /// <summary>The sidebar state the surrounding views draw: the filter line and the focus highlight.</summary>
     public SidebarChrome Chrome => host.Workspace.ActiveTab is { } tab
         ? new SidebarChrome(tab.Sidebar.FilterText, _isEditingFilter, tab.View.FocusedPane == PaneKind.Sidebar)

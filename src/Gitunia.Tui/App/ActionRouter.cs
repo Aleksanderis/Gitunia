@@ -7,6 +7,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
+using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
@@ -56,6 +57,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
     public VisualRangeController? Visual { get; set; }
 
+    /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
+    public BranchActions? Branches { get; set; }
+
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
 
@@ -102,6 +106,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (action == ActionIds.RepositoryRefresh)
         {
             Message = Refresh?.Invoke() == true ? "refreshing..." : "not loaded yet";
+            return;
+        }
+
+        if (Branches?.TryExecute(action, count) == true)
+        {
+            Message = Branches.Notice;
             return;
         }
 
