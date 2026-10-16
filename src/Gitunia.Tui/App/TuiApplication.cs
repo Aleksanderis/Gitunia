@@ -500,7 +500,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
-        if (_host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar && _sidebar.CursorRow is { IsSection: false } row)
+        var inSidebar = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar;
+        if (inSidebar && _sidebar.CursorRow is { IsSection: false } row)
         {
             return new BranchSelection(row.Kind, row.Label, row.CommitHash);
         }

@@ -120,7 +120,10 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
         CancellationToken cancellationToken) =>
         RunWriteAsync(location, [Branch, force ? ForceDeleteOption : DeleteOption, name], cancellationToken);
 
-    private async Task RunWriteAsync(RepositoryLocation location, string[] arguments, CancellationToken cancellationToken)
+    private async Task RunWriteAsync(
+        RepositoryLocation location,
+        string[] arguments,
+        CancellationToken cancellationToken)
     {
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();

@@ -80,7 +80,9 @@ public class SwitchCandidatesTests
     [InlineData("origin/topic", "topic")]
     [InlineData("origin/feature/x", "feature/x")]
     [InlineData("plain", "plain")]
-    public void GivenARemoteBranch_WhenNamingItsLocalTwin_ThenTheRemotePrefixIsDropped(string remote, string expected) =>
+    public void GivenARemoteBranch_WhenNamingItsLocalTwin_ThenTheRemotePrefixIsDropped(
+        string remote,
+        string expected) =>
         Assert.Equal(expected, SwitchCandidates.LocalNameOf(remote));
 
     private static GitRef Branch(string name, RefKind kind, bool isCurrent = false, string? checkedOutIn = null) =>

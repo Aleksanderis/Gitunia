@@ -16,18 +16,18 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
-/// Create, switch, rename and delete branches (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt, a switch
-/// target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one when the branch holds
-/// commits that nothing else reaches). Refusals that need no git (the current branch, a branch held by another worktree, a name
-/// in use) are decided from the tab's refs and run nothing; everything else runs off the UI thread, one operation per tab, and
-/// the tab is refreshed afterwards. What the action acts on is fixed when the prompt opens.
+/// Create, switch, rename and delete branches (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt,
+/// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one when
+/// the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch held by
+/// another worktree, a name in use) are decided from the tab's refs and run nothing; everything else runs off the UI
+/// thread, one operation per tab, and the tab is refreshed afterwards. What the action acts on is fixed when the prompt opens.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Runs the git commands.</param>
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot be shown.</param>
+/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status); false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
@@ -254,10 +254,14 @@ public sealed class BranchActions(
     private string SwitchLine()
     {
         var line = $"switch to {_text}_  ";
-        return _index < _candidates.Count
-            ? $"{line}{_candidates[_index].Label} " +
-              $"({(_index + 1).ToString(CultureInfo.InvariantCulture)}/{_candidates.Count.ToString(CultureInfo.InvariantCulture)})"
-            : $"{line}no matching branch";
+        if (_index >= _candidates.Count)
+        {
+            return $"{line}no matching branch";
+        }
+
+        var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
+        var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
+        return $"{line}{_candidates[_index].Label} ({position}/{total})";
     }
 
     // Finds the local branch a rename or a delete acts on, or returns why there is none.
@@ -464,7 +468,8 @@ public sealed class BranchActions(
         }
         catch (Exception exception)
         {
-            postToUi(() => Finish(tab.Id, $"Could not delete: {OperationText.Reason(exception)}", StatusSeverity.Error));
+            var failure = $"Could not delete: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
 
@@ -511,7 +516,8 @@ public sealed class BranchActions(
         }
         catch (Exception exception)
         {
-            postToUi(() => Finish(tab.Id, $"Could not delete: {OperationText.Reason(exception)}", StatusSeverity.Error));
+            var failure = $"Could not delete: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
 

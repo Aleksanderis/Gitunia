@@ -12,7 +12,8 @@ public class BranchWriterTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     private static async Task<RepositoryLocation> LocateAsync(TestRepository repository) =>
-        await new RepositoryDiscovery(repository.CreateIsolatedRunner()).DiscoverAsync(repository.WorkingTreePath, Token);
+        await new RepositoryDiscovery(repository.CreateIsolatedRunner())
+            .DiscoverAsync(repository.WorkingTreePath, Token);
 
     private static BranchWriter WriterFor(TestRepository repository) => new(repository.CreateIsolatedRunner());
 
@@ -119,7 +120,8 @@ public class BranchWriterTests
         repository.WriteFile("shared.txt", "local edit\n");
         var location = await LocateAsync(repository);
 
-        await Assert.ThrowsAsync<GitCommandFailedException>(() => WriterFor(repository).SwitchAsync(location, "topic", Token));
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).SwitchAsync(location, "topic", Token));
 
         Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
         Assert.Equal("local edit\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "shared.txt")));
@@ -133,7 +135,8 @@ public class BranchWriterTests
         repository.AddWorktree("wt-topic", "topic");
         var location = await LocateAsync(repository);
 
-        await Assert.ThrowsAsync<GitCommandFailedException>(() => WriterFor(repository).SwitchAsync(location, "topic", Token));
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).SwitchAsync(location, "topic", Token));
 
         Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
     }

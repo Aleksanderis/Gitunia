@@ -4,8 +4,8 @@ using Gitunia.Git.Refs.Models;
 namespace Gitunia.Core.Branches;
 
 /// <summary>
-/// Builds the candidate list of the switch picker (<c>&lt;space&gt;bs</c>): local branches, remote branches without a local twin
-/// and, from the graph, the selected commit detached.
+/// Builds the candidate list of the switch picker (<c>&lt;space&gt;bs</c>): local branches, remote branches without a
+/// local twin and, from the graph, the selected commit detached.
 /// </summary>
 public static class SwitchCandidates
 {
@@ -13,7 +13,7 @@ public static class SwitchCandidates
     private const char RemoteSeparator = '/';
 
     /// <param name="refs">The tab's refs.</param>
-    /// <param name="commitHash">The commit selected in the graph, null when none (or the sidebar has the focus).</param>
+    /// <param name="commitHash">The graph's selected commit, null when none (or the sidebar has the focus).</param>
     /// <param name="query">What was typed; matched fuzzily against the labels.</param>
     public static IReadOnlyList<SwitchCandidate> Build(IEnumerable<GitRef> refs, string? commitHash, string query)
     {
@@ -61,7 +61,10 @@ public static class SwitchCandidates
             .ToList();
     }
 
-    /// <summary>The local name git gives a tracking branch made from <paramref name="remoteBranch"/>: <c>origin/topic</c> becomes <c>topic</c>.</summary>
+    /// <summary>
+    /// The local name git gives a tracking branch made from <paramref name="remoteBranch"/>: <c>origin/topic</c> becomes
+    /// <c>topic</c>.
+    /// </summary>
     public static string LocalNameOf(string remoteBranch)
     {
         var slash = remoteBranch.IndexOf(RemoteSeparator, StringComparison.Ordinal);
