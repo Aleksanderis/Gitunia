@@ -166,7 +166,7 @@ public sealed class WorkingTreeActionHandler(
         }
         else if (action == ActionIds.WorkingTreeFocusDiff)
         {
-            // The diff of the file under the cursor (or the one already shown); without a file there is nothing to show.
+            // The diff of the file under the cursor, or the one already shown; without a file there is nothing to show.
             if (WorkingPanes.IsDiff(focused))
             {
                 return true;

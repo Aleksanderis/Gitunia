@@ -186,7 +186,8 @@ public class PaneHintsTests
             {
                 yield return $"{ctrlPrefix}{alternative}";
             }
-            else if (index > 0 && alternative.Length == 1 && alternatives[0].StartsWith(leaderPrefix, StringComparison.Ordinal))
+            else if (index > 0 && alternative.Length == 1
+                && alternatives[0].StartsWith(leaderPrefix, StringComparison.Ordinal))
             {
                 yield return $"{leaderPrefix}{alternative}";
             }

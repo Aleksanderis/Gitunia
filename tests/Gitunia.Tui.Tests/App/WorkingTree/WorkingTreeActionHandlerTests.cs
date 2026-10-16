@@ -178,6 +178,28 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
+    public void GivenACleanTree_WhenJumpingToTheDiff_ThenFocusStaysAndANoticeSaysWhy()
+    {
+        var harness = Harness.Open();
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusDiff, null);
+
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+        Assert.Equal("Select a file to see its diff", harness.Handler.Message);
+    }
+
+    [Fact]
+    public void GivenTheDiffIsFocused_WhenJumpingToTheDiff_ThenNothingChanges()
+    {
+        var harness = Harness.Open(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusDiff, null);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeFocusDiff, null);
+
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
     public void GivenTheDiff_WhenMovingDownAndUp_ThenTheMessageBoxIsBelowIt()
     {
         var harness = Harness.Open(Modified("a.txt"));
