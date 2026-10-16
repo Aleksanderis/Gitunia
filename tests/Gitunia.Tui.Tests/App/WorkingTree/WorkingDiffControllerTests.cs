@@ -18,6 +18,7 @@ using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -316,7 +317,8 @@ public class WorkingDiffControllerTests
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), Statuses);
             Controller = new WorkingDiffController(host, () => Session, DiffList, mode => _mode = mode, () => { }, copier);
             Controller.OnTabSwitched(null, session);
-            Handler = new WorkingTreeActionHandler(host, () => 10, copier) { Diff = Controller };
+            var staging = new StagingActions(host, new FakeIndexWriter(), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
+            Handler = new WorkingTreeActionHandler(host, () => 10, copier, staging) { Diff = Controller };
         }
 
         public WorkspaceHost Host { get; }

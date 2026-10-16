@@ -88,7 +88,10 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 
 **Built in #29** (lists and layout only; the click on a tab's dirty marker is #331 and the palette entries are `Open the working tree` and `Open or leave the working tree`): the view opens and closes as described below, shows the Unstaged and Staged lists with their counts and status letters (`M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted with the kind of conflict; a rename or copy as `old -> new` in the Staged list, an edit of the renamed file under its new path in Unstaged; a path that is not valid UTF-8 shows its stray bytes as replacement characters), keeps one cursor per tab (state: `WorkingTreeState.Selection`, the conflicted group first in the Unstaged display order) and moves it with the list motions, the wheel and clicks. The message box is a box with a note until #314. On a screen under 80 columns only the focused list shows (`Tab` switches); under 7 rows of content the two lists do not stack and the focused one takes the left column. The view mode is not saved with the session (a restart opens on the history).
 
-**Built in #330** (the diff): the right box shows the diff of the file under the cursor of the focused list, read off the UI thread with the history diff's limits: the working-tree diff for Unstaged (`git diff -- <path>`), the index diff for Staged (`git diff --cached`, both paths of a rename), an untracked file as additions (`git diff --no-index -- /dev/null <path>`), a binary file as a note and a conflicted file as the combined diff (one file; each line is added, removed or context as in the result, with the result's line numbers; the per-parent columns are not shown). It uses the same widget as the history diff (hunk jumps, `w`, `+`/`-`, `F`, `W`, `S`, `/` `n` `N`, `y` `Y`, `L`); the title reads `Diff  unstaged|staged  hunk n/m  <path>`. It follows the cursor and reloads after every status read, also when the file's status letters did not change (a second edit), keeping the cursor row. `Enter`/`l` on a file (or a double-click) and `Ctrl-w l` focus the diff of its side, `Tab` reaches it after the lists, `h`/`Esc` go back to the list (`q` still quits, #333); on a screen under 80 columns the focused diff replaces the list. Limits: a path that is not valid UTF-8 shows a note instead (the diff command reads no pathspec file, so stdin cannot carry it), and zoom, Visual ranges, the title buttons and the per-side staging keys are not in the diff yet.
+**Built in #330** (the diff): the right box shows the diff of the file under the cursor of the focused list, read off the UI thread with the history diff's limits: the working-tree diff for Unstaged (`git diff -- <path>`), the index diff for Staged (`git diff --cached`, both paths of a rename), an untracked file as additions (`git diff --no-index -- /dev/null <path>`), a binary file as a note and a conflicted file as the combined diff (one file; each line is added, removed or context as in the result, with the result's line numbers; the per-parent columns are not shown). It uses the same widget as the history diff (hunk jumps, `w`, `+`/`-`, `F`, `W`, `S`, `/` `n` `N`, `y` `Y`, `L`); the title reads `Diff  unstaged|staged  hunk n/m  <path>`. It follows the cursor and reloads after every status read, also when the file's status letters did not change (a second edit), keeping the cursor row. `Enter`/`l` on a file and `Ctrl-w l` focus the diff of its side, `Tab` reaches it after the lists, `h`/`Esc` go back to the list (`q` still quits, #333); on a screen under 80 columns the focused diff replaces the list. Limits: a path that is not valid UTF-8 shows a note instead (the diff command reads no pathspec file, so stdin cannot carry it), and zoom, Visual ranges, the title buttons and the per-side staging keys are not in the diff yet.
+
+**Built in #30** (whole files; `IndexWriter` in the git layer): `<space>a` `<space>u` `<space>A` `<space>U` and the double-click run `add`, `restore --staged` (`rm --cached` on an unborn branch) with the paths on stdin and `--literal-pathspecs`, off the UI thread, one operation per tab at a time (a key pressed meanwhile says "busy"). When the operation is done the tab re-reads its status and the cursor lands on the same index, so the keys repeat. Stage all skips conflicted files and says how many; unstaging a rename passes both paths. Failures show git's message in the status bar. Not built yet: Visual ranges of files and the `stage all` / `unstage all` title buttons (#340), marking a conflicted file resolved (#341), hunks and lines (#31).
+
 
 **Open and leave.** `<space>s` (global) toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `q`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc` in the diff and the message box steps back to the lists first (the 1c rule; `q` quits, #333). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
 
@@ -118,10 +121,7 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 
 | View | Key | Action |
 |---|---|---|
-| WorkingUnstaged | `<space>a` | Stage the file; on a conflicted file mark it resolved |
-| WorkingStaged | `<space>u` | Unstage the file |
-| WorkingUnstaged | `<space>A` | Stage all |
-| WorkingStaged | `<space>U` | Unstage all |
+| WorkingUnstaged | `<space>a` | On a conflicted file: mark it resolved after a Confirm (#341; until then it is refused) |
 | WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
 | WorkingUnstaged / WorkingStaged | `<space>c` | Write the commit message (focus the box, Insert mode) |
 | WorkingUnstaged / WorkingStaged | `<space>te` | Commit with `$EDITOR` |
@@ -242,9 +242,13 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Detail | `h` / `Esc` | Back to graph |
 | WorkingUnstaged | `<space>r` | Refresh the status |
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
+| WorkingUnstaged | `<space>a` | Stage the file under the cursor (the cursor keeps its index; a conflicted file is refused until #341) |
+| WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
 | WorkingUnstaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
 | WorkingStaged | `<space>r` | Refresh the status |
 | WorkingStaged | `y` | Copy the path of the file under the cursor |
+| WorkingStaged | `<space>u` | Unstage the file under the cursor (a rename unstages both paths) |
+| WorkingStaged | `<space>U` | Unstage all files |
 | WorkingStaged | `h` / `Esc` | Leave the working-tree view (back to the history; `q` does the same) |
 | WorkingUnstaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
 | WorkingStaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
@@ -314,8 +318,6 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `graph.open-details` | Same as `Enter`: focus the commit details |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff |
-| WorkingUnstaged | Double-click | `working-tree.open-diff` | Same as `Enter`: go to the diff of the file |
-| WorkingStaged | Double-click | `working-tree.open-diff` | Same as `Enter`: go to the diff of the file |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab (#232): open the repository picker for a new tab, same as `Ctrl-t` |
@@ -340,6 +342,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | DetailTab.Details | Click | `detail.tab-details` | The `Details` label in the detail pane's title row, same as `gd` (also focuses the pane) |
 | DetailTab.Changes | Click | `detail.tab-changes` | The `Changes` label, same as `gc` |
 | DetailTab.Files | Click | `detail.tab-files` | The `Files` label, same as `gf` |
+| WorkingUnstaged | Double-click | `working-tree.stage` | Stage the file (same as `<space>a`) |
+| WorkingStaged | Double-click | `working-tree.unstage` | Unstage the file (same as `<space>u`) |
 | Picker | Double-click | `picker.accept` | Open the repository of the row |
 | Picker | Wheel up | `picker.previous` | Move the highlight up one row |
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |

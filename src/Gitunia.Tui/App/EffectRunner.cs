@@ -57,6 +57,18 @@ public sealed class EffectRunner : IDisposable
         return true;
     }
 
+    /// <summary>Re-reads the status of a tab after the index changed and runs <paramref name="applied"/> once the new state is in. False when the tab has no watcher yet.</summary>
+    public bool RefreshStatus(TabId tabId, Action applied)
+    {
+        if (!_refreshers.TryGetValue(tabId, out var refresher))
+        {
+            return false;
+        }
+
+        refresher.RefreshStatus(applied);
+        return true;
+    }
+
     public void Dispose()
     {
         foreach (var refresher in _refreshers.Values)

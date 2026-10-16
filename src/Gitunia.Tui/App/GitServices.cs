@@ -3,6 +3,7 @@ using Gitunia.Git.Diff;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
@@ -20,6 +21,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
+/// <param name="IndexWriter">Stages and unstages files.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
@@ -32,6 +34,7 @@ public sealed record GitServices(
     IDiffReader Diff,
     IRefReader Refs,
     IStatusReader Status,
+    IIndexWriter IndexWriter,
     IStashReader Stashes,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
@@ -53,6 +56,7 @@ public sealed record GitServices(
             new DiffReader(runner),
             refs,
             status,
+            new IndexWriter(runner),
             stashes,
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,

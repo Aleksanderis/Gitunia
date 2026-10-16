@@ -51,7 +51,7 @@ public class WorkingTreeFrameTests
                 "│                             │                                                          │",
                 "│                             │                                                          │",
                 "╰─────────────────────────────┴──────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k move  gg/G top/end  l/Enter diff  Tab other…"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  l…"),
             frame);
     }
 
@@ -74,7 +74,7 @@ public class WorkingTreeFrameTests
                 "│                                                              │",
                 "│                                                              │",
                 "╰──────────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k move  gg/G top/end"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>u un…"),
             frame);
     }
 

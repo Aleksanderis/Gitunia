@@ -9,6 +9,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
@@ -268,7 +269,8 @@ public class WorkingTreeActionHandlerTests
 
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusChannel();
-            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses));
+            var staging = new StagingActions(_host, new FakeIndexWriter(), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
+            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging);
         }
 
         public WorkingTreeActionHandler Handler { get; }

@@ -107,6 +107,34 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenStatusRefreshRequest_WhenTheReadIsApplied_ThenTheCallbackRunsOnceWithoutReloadingTheGraph()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+        var applied = 0;
+
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1 && !harness.Refresher.IsRefreshing);
+
+        Assert.Equal(0, replaced);
+        Assert.Equal(1, applied);
+    }
+
+    [Fact]
+    public async Task GivenStatusRefreshRequest_WhenTheReadFails_ThenTheCallbackStillRuns()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Failure = new GitException("boom");
+        var applied = 0;
+
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1);
+
+        Assert.Equal(1, applied);
+    }
+
+    [Fact]
     public async Task GivenBackgroundTab_WhenTheRepositoryChanges_ThenItRefreshesOnActivation()
     {
         using var repository = TestRepository.Create();
