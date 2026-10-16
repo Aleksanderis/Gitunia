@@ -1,7 +1,7 @@
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
-using Gitunia.Git.Repositories.Models;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
@@ -51,6 +51,29 @@ public class PickerControllerTests
         Assert.Equal(Path.GetFullPath(repository.WorkingTreePath), host.Workspace.FindTab(to)!.Location.RootPath);
         Assert.Equal(expectedTabs, host.Workspace.Tabs.Length);
         Assert.Equal(moved, host.Workspace.FindTab(missing) is null);
+    }
+
+    [Fact]
+    public async Task GivenMissingTabLocatedAtItsOwnPath_WhenOpening_ThenTheTabStaysWithoutMovingItsDraft()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var moves = 0;
+        var (picker, host, pump) = Create(Path.GetTempPath(), moveDraft: (_, _) =>
+        {
+            moves++;
+            return true;
+        });
+        var root = Path.GetFullPath(repository.WorkingTreePath);
+        host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, root, root, false, false)));
+        var tab = host.Workspace.ActiveTabId!.Value;
+        picker.Open(tab);
+
+        picker.OpenPath(repository.WorkingTreePath, tab);
+        await pump.RunUntilAsync(() => !picker.IsOpen);
+
+        Assert.Equal(tab, Assert.Single(host.Workspace.Tabs).Id);
+        Assert.Equal(0, moves);
     }
 
     [Fact]

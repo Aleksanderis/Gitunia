@@ -79,7 +79,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
     private SessionPersistence? _persistence;
-    private bool _quitWarned;
+    private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
     private Action? _suspendedWork;
     private Action? _resumed;
@@ -286,6 +286,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi, _commits.SnapshotForSession);
         _persistence = persistence;
+        _quitGuard = new QuitGuard(_commits.HasAnyUnsentMessage, persistence.FlushSucceeded);
+        _commits.DraftChanged += _quitGuard.Reset;
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
@@ -447,9 +449,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // Only when the session could not be saved does a quit guard remain: the first quit warns, the next one leaves (#369).
     private void RequestQuit()
     {
-        if (!_quitWarned && _persistence is { } persistence && _commits.HasAnyUnsentMessage() && !persistence.FlushSucceeded())
+        if (_persistence is not null && !_quitGuard.ShouldQuit())
         {
-            _quitWarned = true;
             _statuses.Warning("Unsent commit message and the session could not be saved: quit again to leave and lose it");
             return;
         }

@@ -486,6 +486,23 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public void GivenAmendDraft_WhenMovedToAnotherTab_ThenAmendAndItsMessageStayBehind()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.SetAmend(true);
+        harness.Draft.Editor.SetText("HEAD message");
+        harness.Draft.SignOff = true;
+        var to = new TabId(harness.Tab.Id.Value + 100);
+
+        Assert.True(harness.Commits.MoveDraft(harness.Tab.Id, to));
+
+        var moved = harness.Commits.DraftOf(to)!;
+        Assert.False(moved.Amend);
+        Assert.True(moved.SignOff);
+        Assert.False(moved.HasUnsentText);
+    }
+
+    [Fact]
     public void GivenTargetHasItsOwnMessage_WhenMovingADraft_ThenNothingMoves()
     {
         using var harness = new Harness(StagedModified("a.txt"));

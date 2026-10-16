@@ -145,23 +145,38 @@ public sealed class CommitActions(
     }
 
     /// <summary>
-    /// Moves the draft of a tab that is about to be replaced (a located missing tab) to its replacement.
+    /// Moves the draft of a tab that is about to be replaced (a located missing tab) to its replacement: what a restart would
+    /// keep (message, SignOff, No-Verify), never Amend, which belongs to the old repository's HEAD.
     /// False when the replacement has an unsent message of its own, so the caller keeps both tabs.
     /// </summary>
     public bool MoveDraft(TabId from, TabId to)
     {
-        if (!_drafts.TryGetValue(from, out var draft) || !draft.HasUnsentText)
+        if (!_drafts.TryGetValue(from, out var draft))
         {
             return true;
         }
 
-        if (HasUnsentMessage(to))
+        var text = draft.HasUnsentText && !draft.Amend ? draft.Editor.Text : string.Empty;
+        var saved = new SessionDraft(text, draft.SignOff, draft.NoVerify);
+        if (saved.IsEmpty)
+        {
+            return true;
+        }
+
+        if (text.Length > 0 && HasUnsentMessage(to))
         {
             return false;
         }
 
+        var target = DraftFor(to);
+        if (text.Length > 0)
+        {
+            target.Editor.SetText(text);
+        }
+
+        target.SignOff |= saved.SignOff;
+        target.NoVerify |= saved.NoVerify;
         _drafts.Remove(from);
-        _drafts[to] = draft;
         DraftChanged?.Invoke();
         return true;
     }

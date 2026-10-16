@@ -197,7 +197,11 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
             // The commit draft of the missing tab moves to the replacing tab; when that tab already has its own message, the
             // missing tab stays so nothing is dropped (#369).
             var target = host.Workspace.FindTabByRootPath(location.RootPath);
-            if (target is null || target.Id == missing || moveDraft is null || moveDraft(missing, target.Id))
+            if (target?.Id == missing)
+            {
+                // The repository is back at the same path: the tab is its own replacement and keeps its draft.
+            }
+            else if (target is null || moveDraft is null || moveDraft(missing, target.Id))
             {
                 host.Dispatch(new CloseTabCommand(missing));
             }
