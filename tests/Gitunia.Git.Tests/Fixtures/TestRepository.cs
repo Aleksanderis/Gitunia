@@ -139,6 +139,7 @@ public sealed class TestRepository : IDisposable
     /// </summary>
     public TestRepository CommitOnOrigin(string branch, string message, TestFile file)
     {
+        // The counter advances with every git call, so each clone directory is unique.
         var clone = Path.Combine(_rootDirectory, $"clone-{_commitCounter}");
         GitIn(_rootDirectory, ["clone", "-q", "--branch", branch, OriginPath, clone]);
         File.WriteAllText(Path.Combine(clone, file.RelativePath), file.Content);
@@ -149,7 +150,7 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
-    /// <summary>Stashes a tracked change (<c>file.txt</c>) and an untracked file (<c>untracked.txt</c>).</summary>
+    /// <summary>Stashes a change to the existing tracked <c>file.txt</c> (as in Linear) and an untracked file (<c>untracked.txt</c>).</summary>
     public TestRepository StashWithUntracked(string message = "wip")
     {
         WriteFile("file.txt", "stashed change\n");

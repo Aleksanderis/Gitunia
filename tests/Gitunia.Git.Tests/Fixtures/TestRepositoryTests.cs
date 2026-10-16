@@ -102,7 +102,9 @@ public class TestRepositoryTests
 
         Assert.Equal(4, blocks.Length);
         Assert.Contains(blocks, block => block.Contains("wt-locked") && block.Contains("locked test lock"));
-        Assert.Contains(blocks, block => block.Contains("wt-prunable") && block.Contains("prunable"));
+        Assert.Contains(
+            blocks,
+            block => block.Contains("wt-prunable") && block.Split('\n').Any(line => line.StartsWith("prunable")));
         Assert.Contains(" M file.txt", repository.GitIn(dirtyPath, ["status", "--porcelain"]));
     }
 
@@ -111,7 +113,10 @@ public class TestRepositoryTests
     {
         using var repository = TestRepositories.RebaseConflicted();
 
-        Assert.True(Directory.Exists(Path.Combine(repository.WorkingTreePath, ".git", "rebase-merge")));
+        var rebaseDirectory = Path.Combine(repository.WorkingTreePath, ".git", "rebase-merge");
+
+        Assert.True(Directory.Exists(rebaseDirectory));
+        Assert.Equal("refs/heads/other", File.ReadAllText(Path.Combine(rebaseDirectory, "head-name")).Trim());
         Assert.StartsWith("UU conflict.txt", repository.Git("status", "--porcelain"));
     }
 

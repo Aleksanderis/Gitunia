@@ -15,7 +15,7 @@ public static class TestRepositories
         return repository;
     }
 
-    /// <summary>Main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, locked/prunable/dirty worktrees, renames and binary files are added by the parser issues that need them.</summary>
+    /// <summary>Main and feature diverge and are merged; branch <c>topic</c> points at the first parent of the merge and tag <c>v1</c> at the merge commit. Deliberately minimal: octopus merges, annotated tags, detached HEAD, renames and binary files are added by the parser issues that need them.</summary>
     public static TestRepository WithMergedFeatureBranch()
     {
         var repository = TestRepository.Create()
