@@ -21,6 +21,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="Status">Dirty and ahead/behind facts for the tab bar, null until loaded.</param>
 /// <param name="WorkingTree">The full status and its selection, null until the tab has loaded one (background tabs keep only <paramref name="Status"/>).</param>
 /// <param name="CustomName">The name the user gave the tab (#219), null to show the repository name.</param>
+/// <param name="WorktreeStatuses">The last status read of the other worktrees by path (sidebar overview), null until
+/// read.</param>
 public sealed record RepositoryState(
     TabId Id,
     RepositoryLocation Location,
@@ -33,7 +35,8 @@ public sealed record RepositoryState(
     bool IsMissing,
     RepositoryStatusSummary? Status = null,
     string? CustomName = null,
-    WorkingTreeState? WorkingTree = null)
+    WorkingTreeState? WorkingTree = null,
+    ImmutableDictionary<string, WorktreeStatus>? WorktreeStatuses = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;

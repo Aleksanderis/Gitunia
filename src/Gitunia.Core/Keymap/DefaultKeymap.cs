@@ -161,6 +161,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "<space>wd", ActionIds.WorktreeRemove);
         Add(bindings, NormalOnly, SidebarView, "<space>wl", ActionIds.WorktreeLock);
         Add(bindings, NormalOnly, SidebarView, "<space>wu", ActionIds.WorktreeUnlock);
+        Add(bindings, NormalOnly, SidebarView, "<space>ws", ActionIds.WorktreeSwitch);
+        Add(bindings, NormalOnly, SidebarView, "<space>wt", ActionIds.WorktreeOpen);
         Add(bindings, NormalOnly, SidebarView, "<space>wp", ActionIds.WorktreePrune);
 
         Add(bindings, NormalOnly, DiffView, "]c", ActionIds.DiffNextHunk);

@@ -62,6 +62,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private WorkspaceHost _host = null!;
     private EffectRunner _effects = null!;
     private BackgroundStatusPoller? _statusPoller;
+    private WorktreeOverviewPoller? _worktreePoller;
     private MainView _view = null!;
     private ActionRouter _router = null!;
     private KeyController _keys = null!;
@@ -184,6 +185,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Branches = _branches;
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
+        _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -283,6 +285,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _commits.Restore(restored.Drafts);
         _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi);
         _statusPoller.Start();
+        _worktreePoller = new WorktreeOverviewPoller(services.Status, _host, InvokeOnUi);
+        _worktreePoller.Start();
         if (location is not null)
         {
             _host.Dispatch(new OpenRepositoryCommand(location));
@@ -313,6 +317,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         finally
         {
             _statusPoller.Dispose();
+            _worktreePoller.Dispose();
             persistence.Flush();
             _application.Dispose();
         }
@@ -538,6 +543,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         SelectedCommitHash,
         SetMode,
         _view.RefreshChrome);
+
+    private WorktreeSwitchActions CreateWorktreeSwitch(TabOperationGate gate, SidebarListSource sidebarSource) => new(
+        _host,
+        services.Discovery,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        gate,
+        () => SelectedSidebarRow(sidebarSource));
 
     private SidebarRow? SelectedSidebarRow(SidebarListSource sidebarSource)
     {

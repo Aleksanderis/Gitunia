@@ -1,4 +1,5 @@
 using Gitunia.Core.Workspaces;
+using Gitunia.Git;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -365,6 +366,72 @@ public class WorkspaceReducerTests
 
         Assert.Equal(BottomTab.Files, update.Tabs.Single(tab => tab.Id == alpha).View.BottomTab);
         Assert.Equal(BottomTab.Changes, update.Tabs.Single(tab => tab.Id != alpha).View.BottomTab);
+    }
+
+    [Fact]
+    public void GivenTabWithViewState_WhenSwitchingWorktree_ThenLocationChangesViewStaysAndOldStatusGoes()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+        var id = workspace.Tabs[0].Id;
+        Assert.True(ObjectId.TryParse(new string('a', 40), out var commit));
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SelectCommitCommand(commit))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new ScrollToCommand(7))).Workspace;
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new SetFilterCommand("fix"))).Workspace;
+        var summary = new RepositoryStatusSummary(true, 1, 0);
+        workspace = WorkspaceReducer.Reduce(workspace, new TabCommand(id, new StatusLoadedCommand(summary))).Workspace;
+
+        var update = WorkspaceReducer.Reduce(workspace, new SwitchWorktreeCommand(id, Location("alpha-wt")));
+
+        var tab = Assert.Single(update.Workspace.Tabs);
+        Assert.Equal(Location("alpha-wt").RootPath, tab.Location.RootPath);
+        Assert.Equal(commit, tab.View.SelectedCommit);
+        Assert.Equal(7, tab.View.ScrollOffset);
+        Assert.Equal("fix", tab.View.FilterText);
+        Assert.Null(tab.Status);
+        Assert.Null(tab.Head);
+        Assert.Null(tab.WorkingTree);
+        Assert.Equal(id, update.Workspace.ActiveTabId);
+        var effect = Assert.IsType<LoadRepositoryEffect>(Assert.Single(update.Effects));
+        Assert.Equal(id, effect.TabId);
+        Assert.Equal(Location("alpha-wt").CommandPath, effect.RepositoryPath);
+        Assert.Equal(Location("alpha-wt").RootPath, update.Workspace.Recents[0]);
+    }
+
+    [Fact]
+    public void GivenAnotherTabOnTheWorktree_WhenSwitchingToIt_ThenNothingChanges()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "alpha-wt");
+
+        var command = new SwitchWorktreeCommand(IdOf(workspace, "alpha"), Location("alpha-wt"));
+
+        var update = WorkspaceReducer.Reduce(workspace, command);
+
+        Assert.Same(workspace, update.Workspace);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenTabOnTheWorktree_WhenSwitchingToTheSamePath_ThenNothingChanges()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+
+        var command = new SwitchWorktreeCommand(IdOf(workspace, "alpha"), Location("alpha"));
+
+        var update = WorkspaceReducer.Reduce(workspace, command);
+
+        Assert.Same(workspace, update.Workspace);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenClosedTab_WhenSwitching_ThenNothingChanges()
+    {
+        var workspace = Open(Workspace.Empty, "alpha");
+
+        var update = WorkspaceReducer.Reduce(workspace, new SwitchWorktreeCommand(new TabId(99), Location("alpha-wt")));
+
+        Assert.Same(workspace, update.Workspace);
+        Assert.Empty(update.Effects);
     }
 
     private static RepositoryLocation Location(string name)

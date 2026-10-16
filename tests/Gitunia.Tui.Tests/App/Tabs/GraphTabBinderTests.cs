@@ -83,6 +83,27 @@ public class GraphTabBinderTests
         Assert.Equal(rowBefore, harness.Graph.SelectedItem - harness.Graph.Viewport.Y);
     }
 
+    [Fact]
+    public async Task GivenSelectedCommit_WhenTheTabSwitchesWorktree_ThenTheNewSessionIsShownAndTheCommitStaysSelected()
+    {
+        using var repository = TestRepositories.WithWorktree(out var worktreePath);
+        using var harness = await Harness.LoadAsync(repository);
+        var before = harness.Session;
+        var selected = before.Graph[1].Id;
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(selected)));
+        harness.Graph.SelectedItem = 1;
+        var location = await TestGit.Services.Discovery.DiscoverAsync(worktreePath, CancellationToken.None);
+
+        harness.Host.Dispatch(new SwitchWorktreeCommand(harness.TabId, location));
+        await harness.Pump.RunUntilAsync(() => !harness.Session.IsLoading);
+
+        Assert.NotSame(before, harness.Session);
+        Assert.Same(harness.Session.Source, harness.Graph.Source);
+        Assert.Equal(selected, harness.Session.Graph[harness.Graph.SelectedItem!.Value].Id);
+        Assert.Equal(selected, harness.Host.Workspace.FindTab(harness.TabId)!.View.SelectedCommit);
+        Assert.Equal(worktreePath, harness.Host.Workspace.FindTab(harness.TabId)!.Location.RootPath);
+    }
+
     private sealed class Harness : IDisposable
     {
         private Harness(WorkspaceHost host, EffectRunner effects, TabId tabId, ListView graph, UiPump pump)

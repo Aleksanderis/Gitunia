@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -10,6 +11,10 @@ public static class SidebarRowRenderer
 {
     private const int MinimumLabelWidth = 8;
     private const string WorktreeMarker = "wt:";
+    private const char StagedLetter = 'S';
+    private const char ChangedLetter = 'M';
+    private const char ConflictedLetter = 'U';
+    private const int ChangeLetterCount = 3;
 
     public static StyledLine Render(SidebarRow row, int width, bool isSelected, GraphGlyphSet glyphs)
     {
@@ -65,6 +70,28 @@ public static class SidebarRowRenderer
         _ => SegmentRole.Plain,
     };
 
+    // Staged, changed (unstaged and untracked) and conflicted path counts, each shown only when above zero.
+    private static string ChangesText(WorktreeStatus changes)
+    {
+        var parts = new List<string>(ChangeLetterCount);
+        if (changes.Staged > 0)
+        {
+            parts.Add($"{StagedLetter}{changes.Staged.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (changes.Changed > 0)
+        {
+            parts.Add($"{ChangedLetter}{changes.Changed.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (changes.Conflicted > 0)
+        {
+            parts.Add($"{ConflictedLetter}{changes.Conflicted.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        return string.Join(' ', parts);
+    }
+
     private static List<SidebarExtra> ExtrasOf(SidebarRow row, SidebarGlyphs sidebarGlyphs)
     {
         var extras = new List<SidebarExtra>();
@@ -73,6 +100,11 @@ public static class SidebarRowRenderer
         if (tracking.Length > 0)
         {
             extras.Add(new SidebarExtra(tracking, SegmentRole.Punctuation));
+        }
+
+        if (row.Changes is { IsDirty: true } changes)
+        {
+            extras.Add(new SidebarExtra(ChangesText(changes), SegmentRole.FileChanged));
         }
 
         if (row.Annotation.Length > 0)

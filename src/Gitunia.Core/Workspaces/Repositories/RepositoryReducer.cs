@@ -24,6 +24,7 @@ public static class RepositoryReducer
         WorkingTreeLoadedCommand loaded => ReduceWorkingTree(state, loaded),
         SelectWorkingTreeFileCommand pick => SelectFile(state, pick),
         WorktreesLoadedCommand worktrees => state with { Worktrees = worktrees.Worktrees },
+        WorktreeStatusesLoadedCommand statuses => state with { WorktreeStatuses = statuses.Statuses },
         StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
         SetTabNameCommand rename => state with { CustomName = RepositoryState.NormalizeName(rename.Name) },

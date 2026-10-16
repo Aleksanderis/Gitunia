@@ -88,7 +88,33 @@ public static class SidebarBuilder
             + (worktree.IsLocked ? " locked" : string.Empty)
             + (worktree.IsPrunable ? " prunable" : string.Empty);
         var isCurrent = RepositoryPathComparer.Instance.Equals(worktree.Path, tab.CommandPath);
-        return new SidebarRow(SidebarRowKind.Worktree, SidebarSection.Worktrees, DirectoryName(worktree.Path), annotation, worktree.HeadHash, isCurrent, false, 0, null, null, worktree.Path);
+        var changes = WorktreeChanges(tab, worktree, isCurrent);
+        return new SidebarRow(
+            SidebarRowKind.Worktree,
+            SidebarSection.Worktrees,
+            DirectoryName(worktree.Path),
+            annotation,
+            worktree.HeadHash,
+            isCurrent,
+            false,
+            0,
+            changes?.Ahead,
+            changes?.Behind,
+            worktree.Path,
+            changes);
+    }
+
+    // The tab's own worktree is counted from the status the tab keeps current; the others from the last overview read.
+    private static WorktreeStatus? WorktreeChanges(RepositoryState tab, WorktreeInfo worktree, bool isCurrent)
+    {
+        if (isCurrent)
+        {
+            return tab.WorkingTree is { } tree ? WorktreeStatus.From(tree.Snapshot) : null;
+        }
+
+        return tab.WorktreeStatuses is { } statuses && statuses.TryGetValue(worktree.Path, out var status)
+            ? status
+            : null;
     }
 
     private static SidebarRow StashRow(StashEntry stash) =>

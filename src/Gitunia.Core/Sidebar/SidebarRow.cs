@@ -1,3 +1,5 @@
+using Gitunia.Core.Workspaces.Repositories;
+
 namespace Gitunia.Core.Sidebar;
 
 /// <summary>One row of the sidebar list, ready to draw. Plain data so the renderer and the tests need no repository.</summary>
@@ -15,6 +17,7 @@ namespace Gitunia.Core.Sidebar;
 /// <param name="Ahead">Commits ahead of the upstream, null when unknown or without upstream.</param>
 /// <param name="Behind">Commits behind the upstream, null when unknown or without upstream.</param>
 /// <param name="Path">For a worktree, its absolute path; null for every other row.</param>
+/// <param name="Changes">For a worktree, the status read there (changes, ahead, behind); null until read.</param>
 public sealed record SidebarRow(
     SidebarRowKind Kind,
     SidebarSection Section,
@@ -26,7 +29,8 @@ public sealed record SidebarRow(
     int Count,
     int? Ahead,
     int? Behind,
-    string? Path = null)
+    string? Path = null,
+    WorktreeStatus? Changes = null)
 {
     /// <summary>The row is a section header.</summary>
     public bool IsSection => Kind == SidebarRowKind.Section;

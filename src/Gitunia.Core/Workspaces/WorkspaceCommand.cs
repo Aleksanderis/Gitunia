@@ -16,6 +16,15 @@ public abstract record WorkspaceCommand
 /// <param name="Location">The resolved repository location.</param>
 public sealed record OpenRepositoryCommand(RepositoryLocation Location) : WorkspaceCommand;
 
+/// <summary>
+/// Point a tab at another worktree of its repository, in place: the view state (selection, scroll, panes, filters)
+/// stays, HEAD, status and graph are read again for the new worktree. Does nothing when another tab already shows that
+/// worktree.
+/// </summary>
+/// <param name="TabId">The tab to move.</param>
+/// <param name="Location">The resolved location of the worktree.</param>
+public sealed record SwitchWorktreeCommand(TabId TabId, RepositoryLocation Location) : WorkspaceCommand;
+
 /// <summary>Close a tab; the neighbour becomes active.</summary>
 /// <param name="TabId">The tab to close.</param>
 public sealed record CloseTabCommand(TabId TabId) : WorkspaceCommand;

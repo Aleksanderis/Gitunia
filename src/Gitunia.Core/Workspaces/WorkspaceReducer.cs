@@ -11,6 +11,7 @@ public static class WorkspaceReducer
     public static WorkspaceUpdate Reduce(Workspace workspace, WorkspaceCommand command) => command switch
     {
         OpenRepositoryCommand open => Open(workspace, open),
+        SwitchWorktreeCommand switchTo => SwitchWorktree(workspace, switchTo),
         CloseTabCommand close => Close(workspace, close.TabId),
         ActivateTabCommand activate => Unchanged(Activate(workspace, activate.TabId)),
         NextTabCommand => Unchanged(Step(workspace, 1)),
@@ -50,6 +51,45 @@ public static class WorkspaceReducer
         };
         return new WorkspaceUpdate(Activate(opened, id), [new LoadRepositoryEffect(id, tab.CommandPath)]);
     }
+
+    private static WorkspaceUpdate SwitchWorktree(Workspace workspace, SwitchWorktreeCommand command)
+    {
+        var index = IndexOf(workspace, command.TabId);
+        var rootPath = command.Location.RootPath;
+        if (index < 0 || IsShownByAnotherTab(workspace, command.TabId, rootPath))
+        {
+            return Unchanged(workspace);
+        }
+
+        var tab = workspace.Tabs[index];
+        if (RepositoryPathComparer.Instance.Equals(tab.Location.RootPath, rootPath))
+        {
+            return Unchanged(workspace);
+        }
+
+        // What belongs to the old working directory goes; the view, refs and sidebar are the repository's own.
+        var moved = tab with
+        {
+            Location = command.Location,
+            Head = null,
+            Status = null,
+            WorkingTree = null,
+            WorktreeStatuses = null,
+            IsMissing = false,
+        };
+        var recents = Remove(workspace.Recents, rootPath).Insert(0, rootPath);
+        if (recents.Length > Workspace.MaximumRecents)
+        {
+            recents = recents.RemoveRange(Workspace.MaximumRecents, recents.Length - Workspace.MaximumRecents);
+        }
+
+        var switched = workspace with { Tabs = workspace.Tabs.SetItem(index, moved), Recents = recents };
+        return new WorkspaceUpdate(switched, [new LoadRepositoryEffect(command.TabId, moved.CommandPath)]);
+    }
+
+    private static bool IsShownByAnotherTab(Workspace workspace, TabId tabId, string rootPath) =>
+        workspace.Tabs.Any(
+            other => other.Id != tabId && RepositoryPathComparer.Instance.Equals(other.Location.RootPath, rootPath));
 
     private static WorkspaceUpdate Close(Workspace workspace, TabId id)
     {
