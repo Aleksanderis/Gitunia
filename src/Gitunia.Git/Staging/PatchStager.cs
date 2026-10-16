@@ -1,7 +1,8 @@
-using Gitunia.Git.Diff;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Status.Models;
@@ -47,7 +48,7 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         }
 
         var file = chosen.Count > 0
-            ? await _pickable.ReadAsync(location, side, entry, cancellationToken).ConfigureAwait(false)
+            ? await _pickable.ReadAsync(location, side, entry, false, cancellationToken).ConfigureAwait(false)
             : null;
         return await StageFromAsync(location, side, entry, file, chosen, allowWholeFile, isHeadUnborn, cancellationToken).ConfigureAwait(false);
     }
@@ -63,12 +64,12 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         CancellationToken cancellationToken)
     {
         var paths = StagingPaths.Of(entry, WorkingDiffSide.Unstaged);
-        await writer.IntentToAddAsync(location, paths, cancellationToken).ConfigureAwait(false);
         var keep = false;
         try
         {
+            await writer.IntentToAddAsync(location, paths, cancellationToken).ConfigureAwait(false);
             var asTracked = entry with { Kind = StatusEntryKind.Ordinary, WorktreeChange = FileChangeKind.Added };
-            var file = await _pickable.ReadAsync(location, WorkingDiffSide.Unstaged, asTracked, cancellationToken, allowAdded: true)
+            var file = await _pickable.ReadAsync(location, WorkingDiffSide.Unstaged, asTracked, true, cancellationToken)
                 .ConfigureAwait(false);
             var result = await StageFromAsync(location, WorkingDiffSide.Unstaged, entry, file, chosen, allowWholeFile, isHeadUnborn, cancellationToken)
                 .ConfigureAwait(false);
@@ -81,10 +82,23 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         {
             if (!keep)
             {
-                // Not tied to the caller's token: a cancelled or failed operation must still leave the index as it found it.
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                await writer.UnstageAsync(location, paths, isHeadUnborn, timeout.Token).ConfigureAwait(false);
+                await RemoveIntentToAddAsync(location, paths, isHeadUnborn).ConfigureAwait(false);
             }
+        }
+    }
+
+    // Not tied to the caller's token: a cancelled or failed operation must still leave the index as it found it. Best effort: it
+    // runs when the add may not have happened at all (restore then fails) and must not hide the outcome or exception it follows.
+    private async Task RemoveIntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn)
+    {
+        using var timeout = new CancellationTokenSource(GitRunnerOptions.FallbackTimeout);
+        try
+        {
+            await writer.UnstageAsync(location, paths, isHeadUnborn, timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is GitException or OperationCanceledException)
+        {
+            // Nothing more can be done here; the next status read shows the file as an addition if the entry stayed.
         }
     }
 

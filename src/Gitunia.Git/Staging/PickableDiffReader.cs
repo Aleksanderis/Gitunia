@@ -27,17 +27,17 @@ public sealed class PickableDiffReader(IDiffReader reader)
     /// <param name="location">The repository or worktree.</param>
     /// <param name="side">Which diff to read.</param>
     /// <param name="entry">The status entry of the file.</param>
-    /// <param name="cancellationToken">Cancels the git call.</param>
     /// <param name="allowAdded">
     /// Accept a new file (only meaningful for an intent-to-add entry: its lines are staged through a patch that adds some of them).
     /// Off for discarding, where lines of a new file cannot be cut back.
     /// </param>
+    /// <param name="cancellationToken">Cancels the git call.</param>
     public async Task<DiffFile?> ReadAsync(
         RepositoryLocation location,
         WorkingDiffSide side,
         StatusEntry entry,
-        CancellationToken cancellationToken,
-        bool allowAdded = false)
+        bool allowAdded,
+        CancellationToken cancellationToken)
     {
         if (entry.Kind is not (StatusEntryKind.Ordinary or StatusEntryKind.Renamed)
             || GitPathText.HasEscapedBytes(entry.Path)

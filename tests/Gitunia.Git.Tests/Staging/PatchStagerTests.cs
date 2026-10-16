@@ -403,6 +403,26 @@ public class PatchStagerTests
         Assert.Equal(Lines(30, Edit(2, "TWO"), Edit(28, "TWENTY-EIGHT")), repository.Git("show", ":f.txt"));
     }
 
+    [Fact]
+    public async Task GivenAnUntrackedFileOnAnUnbornBranch_WhenTheTokenIsAlreadyCancelledOrThePatchFails_ThenNoEntryIsLeftBehindAndTheOriginalErrorSurfaces()
+    {
+        using var repository = TestRepository.Create();
+        repository.WriteFile("fresh.txt", "1\n2\n");
+        var (location, entry) = await LocateAsync(repository, "fresh.txt");
+        var line = new[] { new ChangedLine(DiffLineKind.Added, 1, "1") };
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, true, cancelled.Token));
+        AssertNothingStaged(repository);
+
+        var failing = new PatchStager(Diff, new FailingApplyWriter(Writer, new InvalidOperationException("git refused the patch")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            failing.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, true, Token));
+        AssertNothingStaged(repository);
+    }
+
     private static void AssertNothingStaged(TestRepository repository)
     {
         // An intent-to-add entry would show up here as an empty blob of that path.
