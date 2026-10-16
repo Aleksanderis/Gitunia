@@ -14,4 +14,7 @@ public interface ICommitWriter
 
     /// <summary>Reads the full message of HEAD (for an amend); null when there is no commit yet.</summary>
     Task<string?> ReadHeadMessageAsync(RepositoryLocation location, CancellationToken cancellationToken);
+
+    /// <summary>Reads the message git prepared for finishing a merge (<c>MERGE_MSG</c>, comment lines dropped); null when there is none.</summary>
+    Task<string?> ReadMergeMessageAsync(RepositoryLocation location, CancellationToken cancellationToken);
 }

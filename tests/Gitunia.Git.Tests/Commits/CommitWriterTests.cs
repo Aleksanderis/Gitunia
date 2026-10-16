@@ -148,6 +148,36 @@ public class CommitWriterTests
         Assert.Contains("hook wanted input", failure.StandardError, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GivenAMergeWithConflicts_WhenReadingTheMergeMessage_ThenCommentLinesAreDropped()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("root", new TestFile("a.txt", "a\n"))
+            .CheckoutNewBranch("other")
+            .Commit("other", new TestFile("a.txt", "other\n"))
+            .Checkout("main")
+            .Commit("main", new TestFile("a.txt", "main\n"));
+        repository.MergeExpectingConflict("other");
+        var location = await LocateAsync(repository);
+        var writer = new CommitWriter(repository.CreateIsolatedRunner());
+
+        var message = await writer.ReadMergeMessageAsync(location, Token);
+
+        Assert.NotNull(message);
+        Assert.StartsWith("Merge", message, StringComparison.Ordinal);
+        Assert.DoesNotContain('#', message);
+    }
+
+    [Fact]
+    public async Task GivenNoMerge_WhenReadingTheMergeMessage_ThenItIsNull()
+    {
+        using var repository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n"));
+        var location = await LocateAsync(repository);
+        var writer = new CommitWriter(repository.CreateIsolatedRunner());
+
+        Assert.Null(await writer.ReadMergeMessageAsync(location, Token));
+    }
+
     private static void WriteHook(TestRepository repository, string name, string script)
     {
         var path = Path.Combine(repository.WorkingTreePath, ".git", "hooks", name);

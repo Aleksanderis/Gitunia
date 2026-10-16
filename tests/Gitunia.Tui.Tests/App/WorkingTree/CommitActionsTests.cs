@@ -51,7 +51,7 @@ public class CommitActionsTests
     {
         using var harness = new Harness(StagedModified("a.txt"));
 
-        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x", KeyModifiers.None)));
+        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x")));
     }
 
     [Fact]
@@ -130,6 +130,7 @@ public class CommitActionsTests
         Assert.Equal("Commit failed: lint failed: a.txt", harness.Statuses.Log.Latest.Text);
         var output = Assert.Single(harness.Outputs);
         Assert.Equal(CommitFailureReport.Title, output.Title);
+        Assert.Equal(CommitFailureReport.Heading, output.Heading);
         Assert.Contains("lint failed: a.txt", output.Lines, StringComparer.Ordinal);
         Assert.Contains("fix it", output.Lines, StringComparer.Ordinal);
         Assert.Contains("<space>te", output.Lines[^1], StringComparison.Ordinal);
@@ -151,21 +152,54 @@ public class CommitActionsTests
         Assert.Contains("passphrase", output.Lines[^1], StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task GivenARunningCommit_WhenEscapeIsPressed_ThenItIsCancelledAndTheDraftStays()
+    [Theory]
+    [InlineData("cancel")]
+    [InlineData("navigate.back")]
+    public async Task GivenARunningCommit_WhenEscapeIsPressed_ThenItIsCancelledAndTheDraftStays(string escapeAction)
     {
+        // Esc is Cancel in Insert mode and NavigateBack in the box's Normal mode: both stop the commit.
         using var harness = new Harness(StagedModified("a.txt"));
         harness.Writer.IsHeld = true;
         harness.Draft.Editor.SetText("Message");
         harness.Run(ActionIds.WorkingTreeCommit);
 
         Assert.Equal("A commit is running: Esc cancels it", harness.Run(ActionIds.WorkingTreeCommit));
-        harness.Run(ActionIds.Cancel);
+        harness.Run(new ActionId(escapeAction));
         await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
 
         Assert.Equal("Message", harness.Draft.Editor.Text);
-        Assert.Equal("Commit cancelled", harness.Statuses.Log.Latest!.Text);
+        Assert.StartsWith("Commit cancelled", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Empty(harness.Outputs);
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenARunningCommit_WhenTheTabIsClosed_ThenTheCommitIsCancelledAndNothingThrows()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.IsHeld = true;
+        harness.Draft.Editor.SetText("Message");
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        harness.CloseTab();
+        harness.Commits.ForgetClosedTabs();
+        await harness.Pump.RunPostsAsync(1);
+
+        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+    }
+
+    [Fact]
+    public void GivenARunningCommit_WhenEnterIsPressedInTheBox_ThenTheMessageIsNotEdited()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Message");
+        harness.Writer.IsHeld = true;
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        harness.Run(ActionIds.WorkingTreeMessageNewLine);
+
+        Assert.Equal("Message", harness.Draft.Editor.Text);
     }
 
     [Fact]
@@ -203,7 +237,7 @@ public class CommitActionsTests
         harness.Commits.LeaveInsertWhenFocusMoved();
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x", KeyModifiers.None)));
+        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x")));
     }
 
     [Fact]
@@ -286,15 +320,21 @@ public class CommitActionsTests
     }
 
     [Fact]
-    public void GivenAMergeInProgress_WhenWritingTheMessage_ThenTheBoxStartsWithGitsMergeMessage()
+    public async Task GivenAMergeInProgress_WhenWritingTheMessage_ThenTheBoxStartsWithGitsMergeMessageAndUntouchedItIsNotUnsent()
     {
         using var harness = new Harness(StagedModified("a.txt"));
-        File.WriteAllText(Path.Combine(harness.GitDirectory, "MERGE_MSG"), "Merge branch 'other'\n\n# Conflicts:\n#\ta.txt\n");
+        harness.Writer.MergeMessage = "Merge branch 'other'";
         harness.Operations.Operation = RepositoryOperation.Merge;
 
         harness.Run(ActionIds.WorkingTreeWriteMessage);
+        await harness.Pump.RunPostsAsync(1);
 
         Assert.Equal("Merge branch 'other'", harness.Draft.Editor.Text);
+        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+
+        harness.Type(" edited");
+
+        Assert.Single(harness.Commits.TabsWithUnsentMessage());
     }
 
     [Fact]
@@ -377,7 +417,7 @@ public class CommitActionsTests
         {
             foreach (var character in text)
             {
-                Assert.True(Commits.HandleTextKey(new KeyEvent(character.ToString(), KeyModifiers.None)));
+                Assert.True(Commits.HandleTextKey(new KeyEvent(character.ToString())));
             }
         }
 

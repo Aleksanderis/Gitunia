@@ -50,9 +50,11 @@ public static partial class UxKeymapReader
 
             var view = cells[0];
             const string visualSuffix = " (Visual)";
+            const string insertSuffix = " (Insert)";
             var isVisual = view.EndsWith(visualSuffix, StringComparison.Ordinal);
-            view = isVisual ? view[..^visualSuffix.Length] : view;
-            var mode = isVisual ? KeyMode.Visual : view switch
+            var isInsert = view.EndsWith(insertSuffix, StringComparison.Ordinal);
+            view = isVisual ? view[..^visualSuffix.Length] : isInsert ? view[..^insertSuffix.Length] : view;
+            var mode = isVisual ? KeyMode.Visual : isInsert ? KeyMode.Insert : view switch
             {
                 DefaultKeymap.PickerView => KeyMode.Insert,
                 DefaultKeymap.PaletteView => KeyMode.Command,

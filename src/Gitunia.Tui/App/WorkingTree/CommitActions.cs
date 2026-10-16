@@ -48,8 +48,7 @@ public sealed class CommitActions(
     Action redraw)
 {
     private const int ShortHashLength = 7;
-    private const string MergeMessageFile = "MERGE_MSG";
-    private const char CommentMark = '#';
+    private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
 
     private readonly Dictionary<TabId, CommitDraft> _drafts = [];
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
@@ -85,11 +84,17 @@ public sealed class CommitActions(
 
     /// <summary>True while the message box of the active tab takes typed keys.</summary>
     public bool IsEditing =>
-        _ownsInsert && keyMode() == KeyMode.Insert && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingMessage;
+        _ownsInsert
+        && keyMode() == KeyMode.Insert
+        && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingMessage;
 
     /// <summary>The names of the tabs that hold a message that was not committed.</summary>
     public IReadOnlyList<string> TabsWithUnsentMessage() =>
-        [.. host.Workspace.Tabs.Where(tab => _drafts.TryGetValue(tab.Id, out var draft) && draft.HasUnsentText).Select(tab => tab.Title)];
+        [
+            .. host.Workspace.Tabs
+                .Where(tab => _drafts.TryGetValue(tab.Id, out var draft) && draft.HasUnsentText)
+                .Select(tab => tab.Title),
+        ];
 
     /// <summary>Forgets the drafts of tabs that are gone; call when the workspace changed.</summary>
     public void ForgetClosedTabs()
@@ -97,13 +102,39 @@ public sealed class CommitActions(
         foreach (var tabId in _drafts.Keys.Where(id => host.Workspace.FindTab(id) is null).ToList())
         {
             _drafts.Remove(tabId);
-            if (_running.Remove(tabId, out var source))
+
+            // The running commit's callback disposes the source.
+            if (_running.TryGetValue(tabId, out var source))
             {
                 source.Cancel();
             }
         }
 
         LeaveInsertWhenFocusMoved();
+    }
+
+    /// <summary>Ends Insert mode when the box that owned it lost focus (a click, <c>Tab</c> or a tab switch).</summary>
+    public void LeaveInsertWhenFocusMoved()
+    {
+        if (!_ownsInsert)
+        {
+            return;
+        }
+
+        var active = host.Workspace.ActiveTab;
+        var isInBox = active is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } };
+        if (!isInBox)
+        {
+            _ownsInsert = false;
+            if (keyMode() == KeyMode.Insert)
+            {
+                setMode(KeyMode.Normal);
+            }
+        }
+        else if (keyMode() != KeyMode.Insert)
+        {
+            _ownsInsert = false;
+        }
     }
 
     /// <summary>Runs the action when it concerns the message box; false lets the other handlers have it.</summary>
@@ -113,9 +144,14 @@ public sealed class CommitActions(
     {
         Notice = string.Empty;
         var isInBox = tab.View.FocusedPane == PaneKind.WorkingMessage;
+        if ((action == ActionIds.Cancel || action == ActionIds.NavigateBack) && TryCancelRunning(tab))
+        {
+            return true;
+        }
+
         if (action == ActionIds.Cancel)
         {
-            return TryCancel(tab, isInBox);
+            return TryStopEditing(isInBox);
         }
 
         if (action == ActionIds.NavigateBack && isInBox)
@@ -138,7 +174,9 @@ public sealed class CommitActions(
     /// <param name="key">The key.</param>
     public bool HandleTextKey(KeyEvent key)
     {
-        if (!IsEditing || host.Workspace.ActiveTab is not { } tab || DraftOf(tab.Id) is not { IsCommitting: false } draft)
+        if (!IsEditing
+            || host.Workspace.ActiveTab is not { } tab
+            || DraftOf(tab.Id) is not { IsCommitting: false } draft)
         {
             return false;
         }
@@ -193,30 +231,45 @@ public sealed class CommitActions(
             Send(tab, new FocusPaneCommand(PaneKind.WorkingMessage));
         }
 
-        PrefillFromMergeMessage(tab, draft);
+        StartMergeMessageRead(tab, draft);
         _ownsInsert = true;
         setMode(KeyMode.Insert);
         return string.Empty;
     }
 
-    // Finishing a merge: the box starts with git's prepared message (comment lines dropped), which the user may edit.
-    private void PrefillFromMergeMessage(RepositoryState tab, CommitDraft draft)
+    // Finishing a merge: the box starts with git's prepared message, which the user may edit.
+    private void StartMergeMessageRead(RepositoryState tab, CommitDraft draft)
     {
         if (!draft.Editor.IsBlank || operations.Detect(tab.Location) != RepositoryOperation.Merge)
         {
             return;
         }
 
+        var location = tab.Location;
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => ReadMergeMessageAsync(location, draft, token), CancellationToken.None);
+    }
+
+    private async Task ReadMergeMessageAsync(RepositoryLocation location, CommitDraft draft, CancellationToken token)
+    {
         try
         {
-            var path = Path.Combine(tab.Location.GitDirectory, MergeMessageFile);
-            var lines = File.ReadAllLines(path).Where(line => !line.StartsWith(CommentMark));
-            draft.Editor.SetText(string.Join('\n', lines).TrimEnd());
+            var message = await writer.ReadMergeMessageAsync(location, token).ConfigureAwait(false);
+            if (message is not null)
+            {
+                postToUi(() => PrefillMessage(draft, message));
+            }
         }
-        catch (IOException)
+        catch (OperationCanceledException)
         {
-            // The merge finished while we looked: an empty box is right.
+            // The tab was closed.
         }
+    }
+
+    private void PrefillMessage(CommitDraft draft, string message)
+    {
+        draft.Prefill(message);
+        redraw();
     }
 
     private string NewLine(CommitDraft draft)
@@ -225,10 +278,12 @@ public sealed class CommitActions(
         {
             // Enter in another prompt's Insert mode (the tab rename) is that prompt's accept.
             route(ActionIds.InputAccept, null);
-            return string.Empty;
+        }
+        else if (!draft.IsCommitting)
+        {
+            draft.Editor.Apply(new KeyEvent(KeyNames.Enter));
         }
 
-        draft.Editor.Apply(new KeyEvent(KeyNames.Enter));
         return string.Empty;
     }
 
@@ -253,7 +308,11 @@ public sealed class CommitActions(
         return "Amend on: the staged changes join the last commit";
     }
 
-    private async Task ReadHeadMessageAsync(RepositoryLocation location, string? hash, CommitDraft draft, CancellationToken token)
+    private async Task ReadHeadMessageAsync(
+        RepositoryLocation location,
+        string? hash,
+        CommitDraft draft,
+        CancellationToken token)
     {
         try
         {
@@ -265,7 +324,8 @@ public sealed class CommitActions(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            postToUi(() => statuses.Error($"Could not read the last commit's message: {CommitFailureReport.Notice(exception.Message)}"));
+            var notice = $"Could not read the last commit's message: {CommitFailureReport.Notice(exception.Message)}";
+            postToUi(() => statuses.Error(notice));
         }
     }
 
@@ -291,13 +351,14 @@ public sealed class CommitActions(
 
         var request = new CommitRequest(draft.Editor.Text, draft.SignOff, draft.NoVerify, draft.Amend);
         var needsForcePush = draft.Amend && CommitCheck.NeedsForcePush(tab.WorkingTree);
-        var upstream = tab.WorkingTree?.Snapshot.Branch.UpstreamName ?? string.Empty;
+        var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
         _running[tab.Id] = source;
         draft.IsCommitting = true;
         var location = tab.Location;
         var tabId = tab.Id;
-        _ = Task.Run(() => RunCommitAsync(tabId, location, draft, request, needsForcePush ? upstream : null, source), CancellationToken.None);
+        var token = source.Token;
+        _ = Task.Run(() => RunCommitAsync(tabId, location, draft, request, upstream, token), CancellationToken.None);
         return string.Empty;
     }
 
@@ -307,34 +368,37 @@ public sealed class CommitActions(
         CommitDraft draft,
         CommitRequest request,
         string? forcePushUpstream,
-        CancellationTokenSource source)
+        CancellationToken token)
     {
         try
         {
-            var result = await writer.CommitAsync(location, request, source.Token).ConfigureAwait(false);
+            var result = await writer.CommitAsync(location, request, token).ConfigureAwait(false);
             postToUi(() => Succeeded(tabId, draft, request, result, forcePushUpstream));
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => Failed(tabId, draft, "Commit cancelled", null));
+            postToUi(() => Failed(tabId, draft, CancelledNotice, null));
         }
         catch (GitCommandFailedException exception)
         {
-            postToUi(() => Failed(tabId, draft, $"Commit failed: {CommitFailureReport.Notice(exception.StandardError)}", exception.StandardError));
+            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.StandardError)}";
+            postToUi(() => Failed(tabId, draft, notice, exception.StandardError));
         }
         catch (Exception exception)
         {
-            postToUi(() => Failed(tabId, draft, $"Commit failed: {CommitFailureReport.Notice(exception.Message)}", null));
-        }
-        finally
-        {
-            source.Dispose();
+            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.Message)}";
+            postToUi(() => Failed(tabId, draft, notice, null));
         }
     }
 
-    private void Succeeded(TabId tabId, CommitDraft draft, CommitRequest request, CommitResult result, string? forcePushUpstream)
+    private void Succeeded(
+        TabId tabId,
+        CommitDraft draft,
+        CommitRequest request,
+        CommitResult result,
+        string? forcePushUpstream)
     {
-        _running.Remove(tabId);
+        ReleaseSource(tabId);
         draft.IsCommitting = false;
         draft.Sent();
         statuses.Post(SuccessMessage(request, result, forcePushUpstream));
@@ -350,7 +414,7 @@ public sealed class CommitActions(
 
     private void Failed(TabId tabId, CommitDraft draft, string message, string? output)
     {
-        _running.Remove(tabId);
+        ReleaseSource(tabId);
         draft.IsCommitting = false;
         statuses.Error(message);
         if (output is not null && host.Workspace.ActiveTabId == tabId)
@@ -374,29 +438,46 @@ public sealed class CommitActions(
         }
 
         var old = Short(previous);
-        var warning = forcePushUpstream is null ? string.Empty : $"; it was on {forcePushUpstream}: pushing needs a force push";
+        var warning = forcePushUpstream is null
+            ? string.Empty
+            : $"; it was on {forcePushUpstream}: pushing needs a force push";
         return $"Amended to {hash}; previous commit {old}, `git reset --soft {old}` restores it{warning}";
     }
 
-    private bool TryCancel(RepositoryState tab, bool isInBox)
+    // Esc (Cancel, or NavigateBack in Normal mode) stops a running commit wherever the focus is.
+    private bool TryCancelRunning(RepositoryState tab)
     {
-        if (_running.TryGetValue(tab.Id, out var source))
+        if (!_running.TryGetValue(tab.Id, out var source))
         {
-            source.Cancel();
-            Notice = "Cancelling the commit...";
-            redraw();
-            return true;
+            return false;
         }
 
-        if (isInBox && IsEditing)
+        source.Cancel();
+        Notice = "Cancelling the commit...";
+        redraw();
+        return true;
+    }
+
+    private bool TryStopEditing(bool isInBox)
+    {
+        if (!isInBox || !IsEditing)
         {
-            _ownsInsert = false;
-            setMode(KeyMode.Normal);
-            redraw();
-            return true;
+            return false;
         }
 
-        return false;
+        _ownsInsert = false;
+        setMode(KeyMode.Normal);
+        redraw();
+        return true;
+    }
+
+    // The source is disposed here, on the UI thread, once nothing can cancel it any more.
+    private void ReleaseSource(TabId tabId)
+    {
+        if (_running.Remove(tabId, out var source))
+        {
+            source.Dispose();
+        }
     }
 
     // After a commit, focus goes back to a list and Insert mode ends.
@@ -410,32 +491,10 @@ public sealed class CommitActions(
         LeaveInsertWhenFocusMoved();
     }
 
-    /// <summary>Ends Insert mode when the box that owned it lost focus (a click, <c>Tab</c> or a tab switch).</summary>
-    public void LeaveInsertWhenFocusMoved()
-    {
-        if (!_ownsInsert)
-        {
-            return;
-        }
-
-        var active = host.Workspace.ActiveTab;
-        var isInBox = active is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } };
-        if (!isInBox)
-        {
-            _ownsInsert = false;
-            if (keyMode() == KeyMode.Insert)
-            {
-                setMode(KeyMode.Normal);
-            }
-        }
-        else if (keyMode() != KeyMode.Insert)
-        {
-            _ownsInsert = false;
-        }
-    }
-
     private static PaneKind ListPaneOf(RepositoryState tab) =>
-        tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
+        tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged
+            ? PaneKind.WorkingStaged
+            : PaneKind.WorkingUnstaged;
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
 

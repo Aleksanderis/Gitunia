@@ -6,6 +6,8 @@ namespace Gitunia.Core.Editing;
 /// </summary>
 public sealed class CommitDraft
 {
+    private const string DefaultTitle = "Commit message";
+
     private string _savedText = string.Empty;
     private string? _prefilled;
 
@@ -30,11 +32,28 @@ public sealed class CommitDraft
     /// <summary>Index of the first visible message line; the view keeps the cursor line visible.</summary>
     public int Top { get; set; }
 
-    /// <summary>Text that would be lost when the tab closes or the program quits.</summary>
-    public bool HasUnsentText => !Editor.IsBlank;
+    /// <summary>
+    /// Text the user typed or edited, which would be lost when the tab closes or the program quits (an untouched prefilled
+    /// message does not count).
+    /// </summary>
+    public bool HasUnsentText => !Editor.IsBlank && (_prefilled is null || Editor.Text != _prefilled);
 
     /// <summary>The title of the message box.</summary>
-    public string Title => Amend && AmendTarget.Length > 0 ? $"Amending {AmendTarget}" : Amend ? "Amending" : "Commit message";
+    public string Title => !Amend ? DefaultTitle : AmendTarget.Length > 0 ? $"Amending {AmendTarget}" : "Amending";
+
+    /// <summary>Starts an empty box with a prepared message (git's merge message); ignored when something is typed.</summary>
+    /// <param name="message">The message to start with.</param>
+    public void Prefill(string message)
+    {
+        if (!Editor.IsBlank || message.Trim().Length == 0)
+        {
+            return;
+        }
+
+        _savedText = string.Empty;
+        _prefilled = message;
+        Editor.SetText(message);
+    }
 
     /// <summary>Turns Amend on or off. Off restores the draft that was set aside when HEAD's message filled an empty box.</summary>
     public void SetAmend(bool isOn)

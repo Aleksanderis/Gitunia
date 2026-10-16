@@ -87,6 +87,25 @@ public class CommitDraftTests
     }
 
     [Fact]
+    public void GivenAPrefilledMessage_WhenAskingForUnsentText_ThenItCountsOnlyOnceItIsEdited()
+    {
+        var draft = new CommitDraft();
+        draft.SetAmend(true);
+        draft.ApplyHeadMessage("abc1234", "Old subject");
+        Assert.False(draft.HasUnsentText);
+
+        draft.Editor.Insert("!");
+
+        Assert.True(draft.HasUnsentText);
+
+        var merge = new CommitDraft();
+        merge.Prefill("Merge branch 'x'");
+        Assert.False(merge.HasUnsentText);
+        merge.Prefill("ignored: not empty");
+        Assert.Equal("Merge branch 'x'", merge.Editor.Text);
+    }
+
+    [Fact]
     public void GivenOnlyWhitespace_WhenAskingForUnsentText_ThenThereIsNone()
     {
         var draft = new CommitDraft();

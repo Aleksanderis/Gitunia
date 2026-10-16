@@ -14,6 +14,9 @@ public sealed class FakeCommitWriter : ICommitWriter
     /// <summary>The message <see cref="ReadHeadMessageAsync"/> returns; null means no commit yet.</summary>
     public string? HeadMessage { get; set; } = "Previous subject\n\nPrevious body";
 
+    /// <summary>The message <see cref="ReadMergeMessageAsync"/> returns; null means no merge message.</summary>
+    public string? MergeMessage { get; set; }
+
     /// <summary>Thrown by the next commits when set.</summary>
     public Exception? Failure { get; set; }
 
@@ -40,4 +43,7 @@ public sealed class FakeCommitWriter : ICommitWriter
 
     public Task<string?> ReadHeadMessageAsync(RepositoryLocation location, CancellationToken cancellationToken) =>
         Task.FromResult(HeadMessage);
+
+    public Task<string?> ReadMergeMessageAsync(RepositoryLocation location, CancellationToken cancellationToken) =>
+        Task.FromResult(MergeMessage);
 }

@@ -204,7 +204,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Stage and unstage (#30): stage all takes everything in Unstaged except conflicted files (skipped and counted), untracked files included; one index operation per tab, and the next action waits for the status re-read so the cursor keeps its index. Paths are always literal (--literal-pathspecs). Open: Visual ranges #340, resolve a conflicted file #341.
 
-**UI:** Commit (#32): the message goes to `git commit -F -` on stdin, so comment lines are kept (a commit through `$EDITOR` strips them); stdin is closed for hooks and signing, so one that prompts fails with its output and a hint to use `<space>te`, which runs in the real terminal. Quitting with an unsent message needs a second `q` (guard), because Confirm mode is for destructive actions and a draft is not yet saved with the session.
+**UI:** Commit (#32): comment lines of the typed message are kept (a commit through `$EDITOR` strips them); a hook or signing program that prompts fails with its output and a hint to use `<space>te`; quitting with an unsent message needs a second `q` (guard) instead of Confirm mode, which is for destructive actions.
 
 **UI:** `q` quits from the working-tree view too (#333 rule applied to #29/#30, which left `q` unbound there): `h`/`Esc` leave it.
 

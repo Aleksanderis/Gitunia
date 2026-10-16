@@ -24,12 +24,16 @@ public sealed class CommitWriter(GitRunner runner) : ICommitWriter
     private const string QuietOption = "--quiet";
     private const string HeadMessageFormat = "--format=%B";
     private const string SingleCommit = "-1";
+    private const string Log = "log";
+    private const string MergeMessageFile = "MERGE_MSG";
+    private const char CommentMark = '#';
 
     // Hooks (tests, linters, signing) can take minutes.
     private static readonly TimeSpan CommitTimeout = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(30);
     private static readonly string[] ReadHeadArguments = [RevParse, VerifyOption, QuietOption, GitOptions.HeadRevision];
-    private static readonly string[] ReadHeadMessageArguments = ["log", SingleCommit, HeadMessageFormat, GitOptions.HeadRevision];
+    private static readonly string[] ReadHeadMessageArguments =
+        [Log, SingleCommit, HeadMessageFormat, GitOptions.HeadRevision];
 
     public async Task<CommitResult> CommitAsync(
         RepositoryLocation location,
@@ -38,9 +42,27 @@ public sealed class CommitWriter(GitRunner runner) : ICommitWriter
     {
         var previous = request.Amend ? await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false) : null;
         var options = new GitRunOptions(Timeout: CommitTimeout, StandardInput: Encoding.UTF8.GetBytes(request.Message));
-        await runner.RunAsync(location.CommandPath, ArgumentsOf(request), options, cancellationToken).ConfigureAwait(false);
-        var head = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
+        await runner
+            .RunAsync(location.CommandPath, ArgumentsOf(request), options, cancellationToken)
+            .ConfigureAwait(false);
+        // The commit exists now: reading its hash is not cancellable, so a late cancel never reports a commit in the history as cancelled.
+        var head = await ReadHeadAsync(location, CancellationToken.None).ConfigureAwait(false);
         return new CommitResult(head ?? string.Empty, previous);
+    }
+
+    public async Task<string?> ReadMergeMessageAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = Path.Combine(location.GitDirectory, MergeMessageFile);
+            var lines = await File.ReadAllLinesAsync(path, cancellationToken).ConfigureAwait(false);
+            return string.Join('\n', lines.Where(line => !line.StartsWith(CommentMark))).TrimEnd();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The merge finished while we looked, or the file is not readable: there is no prepared message.
+            return null;
+        }
     }
 
     public async Task<string?> ReadHeadMessageAsync(RepositoryLocation location, CancellationToken cancellationToken)

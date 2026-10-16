@@ -22,6 +22,8 @@ public static class MessageBoxRenderer
     private const string Gap = "  ";
     private const string RunningText = "committing...";
 
+    private sealed record OptionSpecification(string View, string Name);
+
     private static readonly OptionSpecification[] Options =
     [
         new(DefaultMouseMap.MessageSignOffButton, SignOffLabel),
@@ -29,10 +31,17 @@ public static class MessageBoxRenderer
         new(DefaultMouseMap.MessageAmendButton, AmendLabel),
     ];
 
+    // The option row up to the Commit button: the Commit button needs the columns after it.
+    private static readonly string AllOptionsText =
+        $"{string.Join(Gap, Options.Select(option => $"{Unchecked} {option.Name}"))}{Gap}";
+
     /// <summary>Shown in the editor rows of an empty box that is not being edited.</summary>
     public const string HintText = "Press i or Enter to write the message, <space>c in the file lists";
 
-    /// <summary>Where the checkboxes and the Commit button sit in an option row whose text has <paramref name="textWidth"/> columns (the row has <paramref name="padding"/> blank columns on each side).</summary>
+    /// <summary>
+    /// Where the checkboxes and the Commit button sit in an option row whose text has <paramref name="textWidth"/> columns
+    /// (the row has <paramref name="padding"/> blank columns on each side).
+    /// </summary>
     public static IReadOnlyList<TitleButton> Buttons(int textWidth, int padding)
     {
         var buttons = new List<TitleButton>();
@@ -105,14 +114,10 @@ public static class MessageBoxRenderer
 
         var top = MessageEditorRenderer.ScrollTop(draft.Editor.CursorRow, draft.Top, rect.Height);
         draft.Top = top;
-        var lines = MessageEditorRenderer.Render(draft.Editor, textWidth, rect.Height, showCursor && !draft.IsCommitting, top);
+        var isCursorShown = showCursor && !draft.IsCommitting;
+        var lines = MessageEditorRenderer.Render(draft.Editor, textWidth, rect.Height, isCursorShown, top);
         return [.. lines.Select(line => PanePadding.Wrap(line, padding))];
     }
-
-    private static string AllOptionsText => $"{string.Join(Gap, Options.Select(option => $"{Unchecked} {option.Name}"))}{Gap}";
-
-
-    private sealed record OptionSpecification(string View, string Name);
 
     private static List<StyledLine> HintLines(PaneRect rect, int textWidth, int padding, GraphGlyphSet glyphs)
     {
