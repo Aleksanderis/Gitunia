@@ -72,6 +72,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private PickerController _picker = null!;
     private DiffPaneController _diffPane = null!;
     private WorkingDiffController _workingDiff = null!;
+    private QuickJumpController _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
@@ -208,7 +209,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _router.ViewName,
             _statuses);
         _overlays.Changed += RefreshOverlay;
-        _prompts = [_diffPane, _workingDiff, .. CreatePrompts()];
+        _quickJump = CreateQuickJump();
+        _router.QuickJump = _quickJump;
+        // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
+        _prompts = [_diffPane, _workingDiff, _quickJump, .. CreatePrompts()];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -225,6 +229,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _host.Changed += _commits.ForgetClosedTabs;
         _host.Changed += OnBottomTabMaybeChanged;
         _host.Changed += _visual.EndIfFocusMoved;
+        _host.Changed += _quickJump.CloseIfStale;
         _keys.PendingChanged += _view.RefreshChrome;
         _keys.TextKeyPressed += OnTextKey;
         _keys.TextKeyPressed += _sidebar.OnKey;
@@ -666,8 +671,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
                 _view.Graph.EnsureSelectedItemVisible();
             },
-            () => Math.Max(0, GraphListSource.CommitIndexOf(_view.Graph.Viewport.Y)),
-            () => _view.Graph.Viewport.Height,
             _keys.SetMode,
             () =>
             {
@@ -678,12 +681,65 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
-            new QuickJumpController(handle),
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),
         ];
     }
+
+    private QuickJumpController CreateQuickJump() => new(new QuickJumpHost(
+        ActiveSession,
+        () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+        OpenJumpTarget,
+        _keys.SetMode,
+        _view.RefreshChrome));
+
+    // The target of the focused list, null for a pane without a quick jump (the detail pane, the sidebar, the message box).
+    private IJumpTarget? OpenJumpTarget()
+    {
+        if (ActiveSession() is not { } session)
+        {
+            return null;
+        }
+
+        return (_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph) switch
+        {
+            PaneKind.Graph => GraphJumpTarget(session),
+            PaneKind.Diff => _diffPane.JumpTarget(),
+            PaneKind.WorkingUnstaged => FileListJumpTarget(PaneKind.WorkingUnstaged, _view.UnstagedSource, _view.WorkingUnstaged),
+            PaneKind.WorkingStaged => FileListJumpTarget(PaneKind.WorkingStaged, _view.StagedSource, _view.WorkingStaged),
+            PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => _workingDiff.JumpTarget(),
+            _ => null,
+        };
+    }
+
+    private ListJumpTarget GraphJumpTarget(TabSession session) => new(
+        PaneKind.Graph,
+        text => session.Source.JumpLabels(_view.Graph, text),
+        text =>
+        {
+            session.Source.JumpText = text;
+            _view.Graph.SetNeedsDraw();
+        },
+        row =>
+        {
+            _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
+            _view.Graph.EnsureSelectedItemVisible();
+        });
+
+    private static ListJumpTarget FileListJumpTarget(PaneKind pane, WorkingTreeListSource source, PaneListView list) => new(
+        pane,
+        text => source.JumpLabels(list, text),
+        text =>
+        {
+            source.JumpText = text;
+            list.SetNeedsDraw();
+        },
+        row =>
+        {
+            list.SelectedItem = row;
+            list.EnsureSelectedItemVisible();
+        });
 
     private StyledLine DetailTitle(int width, GraphGlyphSet glyphs)
     {

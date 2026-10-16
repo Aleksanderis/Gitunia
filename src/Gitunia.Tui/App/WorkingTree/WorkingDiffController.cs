@@ -14,6 +14,7 @@ using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.WorkingTree;
+using Gitunia.Tui.Search;
 using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -88,6 +89,12 @@ public sealed class WorkingDiffController : IPromptHandler
     public DiffPaneModel? Model() =>
         _activeSession()?.WorkingDiff is { } diff
             ? ModelOf(diff, WorkingPanes.IsDiff(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph))
+            : null;
+
+    /// <summary>The quick-jump target of the diff box of the shown tab, null while it has none.</summary>
+    public IJumpTarget? JumpTarget() =>
+        _activeSession()?.WorkingDiff is { } diff && _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsDiff(pane)
+            ? _actions.JumpTarget(pane, diff)
             : null;
 
     public bool TryExecute(ActionId action, int? count)

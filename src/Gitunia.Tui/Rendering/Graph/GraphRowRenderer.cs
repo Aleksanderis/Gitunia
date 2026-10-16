@@ -28,19 +28,16 @@ public static class GraphRowRenderer
         var ellipsis = options.Glyphs.Ellipsis;
         var isMatch = options.Highlight is { } query && GraphSearchMatcher.IsMatch(query, entry);
         var builder = new LineBuilder(options.Width, ellipsis);
-        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0);
-        var usedLaneWidth = UsedLaneWidth(cells);
-        var areaWidth = columns.LaneWidth + 1;
-        var gap = Math.Min(MinimumLaneGap, areaWidth - usedLaneWidth);
-        AppendLanes(builder, cells[..usedLaneWidth]);
-        builder.Append(new string(' ', gap), SegmentRole.Plain);
+        var layout = MessageLayoutOf(entry, options);
+        AppendLanes(builder, layout.Cells[..layout.UsedLaneWidth]);
+        builder.Append(new string(' ', layout.Gap), SegmentRole.Plain);
 
         // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
-        var message = new LineBuilder(columns.MessageWidth + areaWidth - usedLaneWidth - gap, ellipsis);
+        var message = new LineBuilder(layout.MessageWidth, ellipsis);
         AppendDecorations(message, entry.Decorations, options.Glyphs);
         if (jump is { } target)
         {
-            AppendJumpSubject(message, entry.Subject, target);
+            JumpOverlay.Append(message, entry.Subject, SegmentRole.Plain, target);
         }
         else
         {
@@ -71,9 +68,30 @@ public static class GraphRowRenderer
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
+    /// <summary>Columns the subject of a row can use: the message column less the ref labels in front of it (what a quick jump label must fit in).</summary>
+    /// <param name="entry">The commit.</param>
+    /// <param name="options">The layout of the graph rows.</param>
+    public static int SubjectColumns(GraphEntry entry, GraphRowOptions options)
+    {
+        var message = new LineBuilder(MessageLayoutOf(entry, options).MessageWidth, options.Glyphs.Ellipsis);
+        AppendDecorations(message, entry.Decorations, options.Glyphs);
+
+        return message.Remaining;
+    }
+
     /// <summary>A row without a commit: the slot reserved for the working-tree pseudo-row, and rows past the loaded end.</summary>
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
         new LineBuilder(options.Width, options.Glyphs.Ellipsis).Build(SegmentRole.Plain, isSelected);
+
+    private static GraphMessageLayout MessageLayoutOf(GraphEntry entry, GraphRowOptions options)
+    {
+        var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0);
+        var usedLaneWidth = UsedLaneWidth(cells);
+        var areaWidth = options.Columns.LaneWidth + 1;
+        var gap = Math.Min(MinimumLaneGap, areaWidth - usedLaneWidth);
+
+        return new GraphMessageLayout(cells, usedLaneWidth, gap, options.Columns.MessageWidth + areaWidth - usedLaneWidth - gap);
+    }
 
     // Columns from the left up to the last one that has a line; at least one, for the node.
     private static int UsedLaneWidth(GraphCell[] cells)
@@ -107,23 +125,6 @@ public static class GraphRowRenderer
         builder.Append(subject[..start], SegmentRole.Plain);
         builder.Append(subject.Substring(start, length), SegmentRole.SearchMatch);
         builder.Append(subject[(start + length)..], SegmentRole.Plain);
-    }
-
-    // The match, then the label over the character after it (appended when the match ends the subject).
-    private static void AppendJumpSubject(LineBuilder builder, string subject, JumpLabel jump)
-    {
-        var end = Math.Min(subject.Length, jump.MatchStart + jump.MatchLength);
-        builder.Append(subject[..jump.MatchStart], SegmentRole.Plain);
-        builder.Append(subject[jump.MatchStart..end], SegmentRole.SearchMatch);
-        if (!jump.HasLetter)
-        {
-            builder.Append(subject[end..], SegmentRole.Plain);
-            return;
-        }
-
-        builder.Append(jump.Letter.ToString(), SegmentRole.JumpLabel);
-        var skipped = end < subject.Length && char.IsHighSurrogate(subject[end]) && end + 1 < subject.Length ? 2 : 1;
-        builder.Append(subject[Math.Min(subject.Length, end + skipped)..], SegmentRole.Plain);
     }
 
     private static void AppendLanes(LineBuilder builder, GraphCell[] cells)

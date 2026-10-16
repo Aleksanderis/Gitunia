@@ -14,6 +14,7 @@ using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 
@@ -132,6 +133,9 @@ public sealed class DiffPaneController : IPromptHandler
 
         return focused == PaneKind.Diff && ExecuteInDiff(tab, diff, action, count);
     }
+
+    /// <summary>The quick-jump target of the active tab's diff, null while it has none.</summary>
+    public IJumpTarget? JumpTarget() => _activeSession()?.Diff is { } diff ? _actions.JumpTarget(PaneKind.Diff, diff) : null;
 
     public bool HandleTextKey(KeyEvent key)
     {

@@ -1,6 +1,8 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Input;
 using Xunit;
@@ -37,7 +39,7 @@ public class QuickJumpControllerTests
         harness.Press(new Key(' '));
         harness.Press(new Key('j'));
         harness.Type("fix");
-        var labels = QuickJumpLabeler.Compute("fix", harness.Session.Graph, 0, 50, 3);
+        var labels = QuickJumpLabeler.Compute("fix", new GraphJumpRows(harness.Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)), new JumpWindow(0, 50, 3));
 
         harness.Type(labels.Single(label => label.Row == 0).Letter.ToString());
 

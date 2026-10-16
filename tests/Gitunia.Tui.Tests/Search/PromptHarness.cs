@@ -1,6 +1,9 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Jump;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
@@ -38,11 +41,21 @@ public sealed class PromptHarness : IDisposable
             () => ActiveSession ?? Session,
             () => SelectedRow,
             row => SelectedRow = row,
-            () => FirstVisibleRow,
-            () => VisibleRowCount,
             mode => _keys!.SetMode(mode),
             () => Redraws++);
-        _prompts.Add(new QuickJumpController(handle));
+        _prompts.Add(new QuickJumpController(new QuickJumpHost(
+            () => ActiveSession ?? Session,
+            () => PaneKind.Graph,
+            () => new ListJumpTarget(
+                PaneKind.Graph,
+                text => QuickJumpLabeler.Compute(
+                    text,
+                    new GraphJumpRows(Session.Graph, new GraphRowOptions(80, 2, GraphGlyphSet.Unicode)),
+                    new JumpWindow(FirstVisibleRow, VisibleRowCount, SelectedRow)),
+                text => Session.Source.JumpText = text,
+                row => SelectedRow = row),
+            mode => _keys!.SetMode(mode),
+            () => Redraws++)));
         _prompts.Add(new RefJumpController(handle, () => references));
         _prompts.Add(new SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
         Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());

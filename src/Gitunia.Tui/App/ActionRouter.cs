@@ -49,6 +49,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Modal prompts (search box, jump-to-ref) that get the first try at every action.</summary>
     public IReadOnlyList<IPromptHandler> Prompts { get; set; } = [];
 
+    /// <summary>The quick jump prompt, which sees every action first: it works in every pane that has it and owns Esc and Enter while open.</summary>
+    public IPromptHandler? QuickJump { get; set; }
+
     /// <summary>Visual mode (range selection), which sees the actions before every pane handler.</summary>
     public VisualRangeController? Visual { get; set; }
 
@@ -80,6 +83,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (QuickJump?.TryExecute(action, count) == true)
+        {
+            Message = QuickJump.Notice;
+            return;
+        }
+
         if (_statusActions.TryHandle(action))
         {
             Message = _statusActions.Message;

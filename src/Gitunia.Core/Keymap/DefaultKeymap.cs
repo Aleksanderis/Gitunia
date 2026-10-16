@@ -127,7 +127,7 @@ public static class DefaultKeymap
     {
         Add(bindings, NormalOnly, GraphView, "@", ActionIds.GraphJumpToHead);
         Add(bindings, NormalOnly, GraphView, "gr", ActionIds.GraphJumpToRef);
-        Add(bindings, NormalOnly, GraphView, "<space>j", ActionIds.GraphQuickJump);
+        Add(bindings, NormalOnly, GraphView, "<space>j", ActionIds.QuickJump);
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
         Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);
@@ -168,6 +168,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
         Add(bindings, NormalOnly, DiffView, "y", ActionIds.DiffCopyLine);
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
+        Add(bindings, NormalOnly, DiffView, "<space>j", ActionIds.QuickJump);
     }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
@@ -183,6 +184,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
+            Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
         }
 
         // Stage, unstage and discard also act on a Visual range of files.
@@ -217,6 +219,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "N", ActionIds.DiffSearchPrevious);
             Add(bindings, NormalOnly, view, "y", ActionIds.DiffCopyLine);
             Add(bindings, NormalOnly, view, "Y", ActionIds.DiffCopyFile);
+            Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
         }

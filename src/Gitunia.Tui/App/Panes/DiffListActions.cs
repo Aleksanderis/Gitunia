@@ -3,11 +3,13 @@ using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Search;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 
@@ -20,6 +22,9 @@ namespace Gitunia.Tui.App.Panes;
 /// </summary>
 public sealed class DiffListActions
 {
+    /// <summary>Why the quick jump is not offered in the side-by-side diff.</summary>
+    public const string SideBySideJumpReason = "Quick jump needs the unified diff: turn side by side off (S)";
+
     private readonly ListView _diffList;
     private readonly Action<KeyMode> _setMode;
     private readonly ClipboardCopier _clipboard;
@@ -81,6 +86,16 @@ public sealed class DiffListActions
 
         return true;
     }
+
+    /// <summary>The quick-jump target of a diff shown in this list: the rows in view are labelled, a label moves the cursor to its row.</summary>
+    /// <param name="pane">The pane the diff is.</param>
+    /// <param name="diff">The diff to jump in.</param>
+    public IJumpTarget JumpTarget(PaneKind pane, IDiffViewState diff) => new ListJumpTarget(
+        pane,
+        text => diff.Source.JumpLabels(_diffList, text),
+        text => ShowJumpLabels(diff, text),
+        row => Select(diff, row, atTop: false),
+        () => diff.Source.ShowsSideBySide ? SideBySideJumpReason : null);
 
     public string StatusLine(IDiffViewState? diff) =>
         diff is { Search.IsOpen: true } ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
@@ -332,6 +347,12 @@ public sealed class DiffListActions
             diff.SelectedRow = CursorRow(diff);
             diff.TopRow = diff.Source.RowOf(_diffList.Viewport.Y);
         }
+    }
+
+    private void ShowJumpLabels(IDiffViewState diff, string? text)
+    {
+        diff.Source.JumpText = text;
+        _diffList.SetNeedsDraw();
     }
 
     private void SelectLine(int line)

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
@@ -13,6 +14,7 @@ namespace Gitunia.Tui.Views.Lists;
 /// <summary>List source over one file list (Unstaged or Staged) of the working-tree view of the active tab; it can show a Visual range of files.</summary>
 public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
+    private readonly JumpLabelCache _jump = new();
     private WorkingTreeState? _tree;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
@@ -30,6 +32,13 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
+    /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
+    public string? JumpText
+    {
+        get => _jump.Text;
+        set => _jump.Text = value;
+    }
+
     public RowRange? Range { get; set; }
 
     public event Action? RangeInvalidated;
@@ -44,6 +53,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         }
 
         _tree = tree;
+        _jump.Invalidate();
         RangeInvalidated?.Invoke();
         if (!SuspendCollectionChangedEvent)
         {
@@ -51,6 +61,17 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         }
 
         return true;
+    }
+
+    /// <summary>The quick-jump targets of <paramref name="text"/> among the files in view of <paramref name="listView"/>, nearest the cursor first.</summary>
+    /// <param name="listView">The list this source is shown in.</param>
+    /// <param name="text">The typed text.</param>
+    public IReadOnlyList<JumpLabel> JumpLabels(ListView listView, string text)
+    {
+        var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
+        var window = new JumpWindow(listView.Viewport.Y, listView.Viewport.Height, listView.SelectedItem ?? 0);
+
+        return _jump.Labels(text, window, width, () => new WorkingTreeJumpRows(_tree, section, width, glyphs.Ellipsis));
     }
 
     public bool IsMarked(int item) => false;
@@ -65,11 +86,24 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     {
         var padding = ScreenPadding.Columns(listView);
         var textWidth = PanePadding.TextWidth(width, padding);
-        var line = WorkingTreePaneRenderer.RenderRow(_tree, section, item, textWidth, selected || Range?.Contains(item) == true, glyphs);
+        var line = WorkingTreePaneRenderer.RenderRow(_tree, section, item, textWidth, selected || Range?.Contains(item) == true, glyphs, JumpLabelOf(listView, item));
         LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus);
     }
 
     public void Dispose()
     {
+    }
+
+    // The labels are worked out once per frame (the first row asks), not once per row.
+    private JumpLabel? JumpLabelOf(ListView listView, int item)
+    {
+        if (string.IsNullOrEmpty(JumpText) || item < 0 || item >= Count)
+        {
+            return null;
+        }
+
+        JumpLabels(listView, JumpText);
+
+        return _jump.LabelOf(item);
     }
 }

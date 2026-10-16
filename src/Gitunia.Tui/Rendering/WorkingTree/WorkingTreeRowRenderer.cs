@@ -1,3 +1,4 @@
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Status.Models;
@@ -9,6 +10,9 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <summary>Draws one file of the Unstaged or Staged list: its status letter and path (a rename as <c>old -&gt; new</c>).</summary>
 public static class WorkingTreeRowRenderer
 {
+    /// <summary>Columns the status letter and the blank after it take before the path.</summary>
+    public const int MarkColumns = 2;
+
     private const string ConflictMark = "!";
     private const string UntrackedMark = "?";
     private const string AddedMark = "A";
@@ -26,12 +30,21 @@ public static class WorkingTreeRowRenderer
     /// <param name="width">Columns for the row's text.</param>
     /// <param name="isSelected">The row is the cursor of its list.</param>
     /// <param name="glyphs">The character set.</param>
-    public static StyledLine Render(StatusEntry entry, WorkingTreeSection section, int width, bool isSelected, GraphGlyphSet glyphs)
+    /// <param name="jump">The quick-jump label of the row, null for none.</param>
+    public static StyledLine Render(StatusEntry entry, WorkingTreeSection section, int width, bool isSelected, GraphGlyphSet glyphs, JumpLabel? jump = null)
     {
         var mark = MarkOf(entry, section);
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         builder.Append(mark, RoleOf(mark)).Append(" ", SegmentRole.Plain);
-        builder.Append(PathText(entry, section), SegmentRole.Plain);
+        if (jump is { } target)
+        {
+            JumpOverlay.Append(builder, PathText(entry, section), SegmentRole.Plain, target);
+        }
+        else
+        {
+            builder.Append(PathText(entry, section), SegmentRole.Plain);
+        }
+
         if (entry.Kind == StatusEntryKind.Unmerged)
         {
             builder.Append($"  {ConflictText(entry.Conflict)}", SegmentRole.Faint);
