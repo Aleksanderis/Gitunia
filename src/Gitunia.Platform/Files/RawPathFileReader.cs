@@ -10,7 +10,10 @@ namespace Gitunia.Platform.Files;
 /// </summary>
 public static partial class RawPathFileReader
 {
-    private const int ReadOnlyFlag = 0;
+    // Open flags: read-only, and no blocking on a FIFO (a regular file is unaffected). The value differs per OS.
+    private const int ReadOnlyLinux = 0x800;
+    private const int ReadOnlyMac = 0x4;
+    private const int MaximumBytes = 4 * 1024 * 1024;
     private const int InvalidDescriptor = -1;
 
     /// <summary>The whole file, or null when it cannot be read (missing, a directory, no access, or an OS without such names).</summary>
@@ -24,7 +27,7 @@ public static partial class RawPathFileReader
 
         var terminated = new byte[path.Length + 1];
         path.CopyTo(terminated);
-        var descriptor = Open(terminated, ReadOnlyFlag);
+        var descriptor = Open(terminated, OperatingSystem.IsLinux() ? ReadOnlyLinux : ReadOnlyMac);
         if (descriptor == InvalidDescriptor)
         {
             return null;
@@ -34,10 +37,20 @@ public static partial class RawPathFileReader
         {
             using var handle = new SafeFileHandle(descriptor, ownsHandle: true);
             using var stream = new FileStream(handle, FileAccess.Read, 1, false);
-            using var memory = new MemoryStream();
-            stream.CopyTo(memory);
+            var buffer = new byte[MaximumBytes];
+            var length = 0;
+            while (length < buffer.Length)
+            {
+                var read = stream.Read(buffer, length, buffer.Length - length);
+                if (read == 0)
+                {
+                    break;
+                }
 
-            return memory.ToArray();
+                length += read;
+            }
+
+            return buffer[..length];
         }
         catch (IOException)
         {
