@@ -157,6 +157,11 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "<space>Sa", ActionIds.StashApply);
         Add(bindings, NormalOnly, SidebarView, "<space>Sp", ActionIds.StashPop);
         Add(bindings, NormalOnly, SidebarView, "<space>Sd", ActionIds.StashDrop);
+        Add(bindings, NormalOnly, SidebarView, "<space>wa", ActionIds.WorktreeAdd);
+        Add(bindings, NormalOnly, SidebarView, "<space>wd", ActionIds.WorktreeRemove);
+        Add(bindings, NormalOnly, SidebarView, "<space>wl", ActionIds.WorktreeLock);
+        Add(bindings, NormalOnly, SidebarView, "<space>wu", ActionIds.WorktreeUnlock);
+        Add(bindings, NormalOnly, SidebarView, "<space>wp", ActionIds.WorktreePrune);
 
         Add(bindings, NormalOnly, DiffView, "]c", ActionIds.DiffNextHunk);
         Add(bindings, NormalOnly, DiffView, "[c", ActionIds.DiffPreviousHunk);

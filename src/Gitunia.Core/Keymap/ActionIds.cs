@@ -199,6 +199,16 @@ public static class ActionIds
 
     public static ActionId VisualToggle { get; } = new("visual.toggle");
 
+    public static ActionId WorktreeAdd { get; } = new("worktree.add");
+
+    public static ActionId WorktreeLock { get; } = new("worktree.lock");
+
+    public static ActionId WorktreePrune { get; } = new("worktree.prune");
+
+    public static ActionId WorktreeRemove { get; } = new("worktree.remove");
+
+    public static ActionId WorktreeUnlock { get; } = new("worktree.unlock");
+
     public static ActionId WorkingTreeCopyPath { get; } = new("working-tree.copy-path");
 
     public static ActionId WorkingTreeOpen { get; } = new("working-tree.open");

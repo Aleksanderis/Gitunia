@@ -8,6 +8,7 @@ using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
+using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Graph;
@@ -47,6 +48,7 @@ public sealed record GitServices(
     IBranchWriter Branches,
     IStashReader Stashes,
     IStashWriter StashWriter,
+    IWorktreeWriter Worktrees,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
@@ -73,6 +75,7 @@ public sealed record GitServices(
             new BranchWriter(runner),
             stashes,
             new StashWriter(runner),
+            new WorktreeWriter(runner),
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),

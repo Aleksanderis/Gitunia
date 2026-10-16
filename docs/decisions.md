@@ -253,3 +253,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Stash keys are `<space>S` chords (`Ss` `Su` push without/with untracked; sidebar `Sa` `Sp` `Sd`), not the bare `a` `p` `d` of the first draft, which clash with vim. Apply, pop and drop refuse outside a stash row instead of opening a picker; only drop asks.
 
 **UI:** Branch operations (#35): `<space>bc` `bC` `bs` `br` `bd` in the graph and the sidebar; no sidebar `d`/`r` shortcuts (vim-clash rule, supersedes workflow 3 item 5). Deleting an unmerged branch (not on HEAD or its upstream) asks a second Confirm. Why: chords keep vim keys intact and the unmerged case is the one that loses commits.
+
+**UI:** Worktree add (#41) prompts for the branch first, then the path (default: sibling directory named after the branch), instead of path first plus a picker. Why: the default path needs the branch. Details in ux.md workflow 6.

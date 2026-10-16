@@ -28,6 +28,7 @@ using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
@@ -69,6 +70,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private VisualRangeController _visual = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarActionHandler _sidebar = null!;
+    private WorktreeActions _worktrees = null!;
     private PaneKind _appliedFocus = PaneKind.Graph;
     private OverlayController _overlays = null!;
     private WhichKeyTimer _whichKeyTimer = null!;
@@ -180,6 +182,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _worktrees = CreateWorktrees(operationGate, sidebarSource);
+        _router.Worktrees = _worktrees;
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -220,7 +224,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
-        _prompts = [_diffPane, _workingDiff, _quickJump, .. CreatePrompts(operationGate, sidebarSource)];
+        _prompts = [_diffPane, _workingDiff, _quickJump, _worktrees, .. CreatePrompts(operationGate, sidebarSource)];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -520,6 +524,31 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         ShowConfirm,
         gate);
+
+    private WorktreeActions CreateWorktrees(TabOperationGate gate, SidebarListSource sidebarSource) => new(
+        _host,
+        services.Worktrees,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        tabId => _effects.Refresh(tabId, false),
+        ShowConfirm,
+        gate,
+        () => SelectedSidebarRow(sidebarSource),
+        SelectedCommitHash,
+        SetMode,
+        _view.RefreshChrome);
+
+    private SidebarRow? SelectedSidebarRow(SidebarListSource sidebarSource)
+    {
+        var rows = sidebarSource.Rows;
+        if (_host.Workspace.ActiveTab is not { } tab || rows.IsEmpty)
+        {
+            return null;
+        }
+
+        return rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
+    }
 
     private StagingActions CreateStaging(TabOperationGate gate) => new(
         _host,
