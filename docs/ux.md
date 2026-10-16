@@ -211,7 +211,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 1. `bc` create: prompt for the name, start point the selected commit (graph) or branch (sidebar); the new branch is checked out. `bC` creates without checking out. A name in use is refused before git runs; an invalid name is refused by `git check-ref-format` and shown as an error.
 2. `bs` switch (checkout): a type-to-filter prompt (`Up`/`Down`/`Tab` choose, `Enter` runs) listing local branches, remote branches that have no local twin (a tracking branch is created) and, from a graph commit, a detached checkout there. In the sidebar `Enter` still only selects, so `bs` is the explicit checkout. The current branch and one held by another worktree are refused (the message names the worktree path and points to `<space>ws`). A dirty tree that conflicts with the target fails with git's message; nothing is stashed behind the user's back.
 3. `br` rename the selected branch (prompt prefilled with its name). `bd` delete: Confirm naming the branch and its tip with the undo command; when the branch has commits that neither HEAD nor its upstream reach, a second, explicit Confirm says its commits become unreachable and prints `git branch <name> <hash>`. The current branch and one held by another worktree are refused. From the graph, `br` and `bd` act on the one local branch at the selected commit (several: pick one in the sidebar).
-4. `bu` set upstream (picker of remote branches), `bU` unset: not built yet. Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
+4. `bu` set the upstream of the selected local branch (type-to-filter picker of remote branches, nothing is fetched), `bU` unset it (the status line prints the `git branch --set-upstream-to=` command that restores it). Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
 5. No single-letter sidebar shortcuts (`d`, `r`): they are vim operator and replace keys (vim-clash rule), so the sidebar uses the same `<space>b` chords on the selected row. Every action is in the command palette.
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
@@ -350,6 +350,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch; the selected commit can be checked out detached) |
 | Graph | `<space>br` | Rename the local branch at the selected commit (prefilled prompt) |
 | Graph | `<space>bd` | Delete the local branch at the selected commit after a Confirm (a second one when it is unmerged) |
+| Graph | `<space>bu` | Set the upstream of the local branch at the selected commit (type-to-filter picker of remote branches) |
+| Graph | `<space>bU` | Unset the upstream of the local branch at the selected commit |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
@@ -446,6 +448,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch) |
 | Sidebar | `<space>br` | Rename the selected local branch (prefilled prompt) |
 | Sidebar | `<space>bd` | Delete the selected local branch after a Confirm (a second one when it is unmerged) |
+| Sidebar | `<space>bu` | Set the upstream of the selected local branch (type-to-filter picker of remote branches) |
+| Sidebar | `<space>bU` | Unset the upstream of the selected local branch |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
 | Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |

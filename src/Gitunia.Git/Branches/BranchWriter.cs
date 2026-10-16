@@ -20,6 +20,8 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
     private const string DeleteOption = "-d";
     private const string ForceDeleteOption = "-D";
     private const string FirstOnly = "-1";
+    private const string SetUpstreamOption = "--set-upstream-to=";
+    private const string UnsetUpstreamOption = "--unset-upstream";
     private const string LeadingDash = "-";
 
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
@@ -112,6 +114,16 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
             return false;
         }
     }
+
+    public Task SetUpstreamAsync(
+        RepositoryLocation location,
+        string name,
+        string upstream,
+        CancellationToken cancellationToken) =>
+        RunWriteAsync(location, [Branch, $"{SetUpstreamOption}{upstream}", name], cancellationToken);
+
+    public Task UnsetUpstreamAsync(RepositoryLocation location, string name, CancellationToken cancellationToken) =>
+        RunWriteAsync(location, [Branch, UnsetUpstreamOption, name], cancellationToken);
 
     public Task DeleteAsync(
         RepositoryLocation location,

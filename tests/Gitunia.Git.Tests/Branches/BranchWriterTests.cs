@@ -167,6 +167,48 @@ public class BranchWriterTests
     }
 
     [Fact]
+    public async Task GivenBranchWithoutUpstream_WhenSettingOne_ThenItTracksTheRemoteBranch()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var location = await LocateAsync(repository);
+
+        await WriterFor(repository).SetUpstreamAsync(location, "lonely", "origin/main", Token);
+
+        Assert.Equal("origin/main", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
+    }
+
+    [Fact]
+    public async Task GivenUnknownRemoteBranch_WhenSettingUpstream_ThenGitRefuses()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var location = await LocateAsync(repository);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).SetUpstreamAsync(location, "lonely", "origin/missing", Token));
+    }
+
+    [Fact]
+    public async Task GivenTrackingBranch_WhenUnsettingUpstream_ThenNoUpstreamRemains()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var location = await LocateAsync(repository);
+
+        await WriterFor(repository).UnsetUpstreamAsync(location, "topic", Token);
+
+        Assert.Equal(string.Empty, repository.Git("for-each-ref", "--format=%(upstream)", "refs/heads/topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenBranchWithoutUpstream_WhenUnsetting_ThenGitRefuses()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var location = await LocateAsync(repository);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).UnsetUpstreamAsync(location, "lonely", Token));
+    }
+
+    [Fact]
     public async Task GivenMergedBranch_WhenDeleting_ThenItIsGone()
     {
         using var repository = TestRepositories.Linear().Branch("topic");

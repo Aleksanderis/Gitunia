@@ -34,6 +34,8 @@ public static class ActionCatalog
         ["branch.create-only"] = "Create a branch without checking out",
         ["branch.delete"] = "Delete the branch (asks first)",
         ["branch.rename"] = "Rename the branch",
+        ["branch.set-upstream"] = "Set the branch upstream",
+        ["branch.unset-upstream"] = "Unset the branch upstream",
         ["branch.switch"] = "Switch to a branch (check out)",
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",

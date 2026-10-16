@@ -61,6 +61,19 @@ public static class SwitchCandidates
             .ToList();
     }
 
+    /// <summary>The remote branches (not <c>origin/HEAD</c>) matching <paramref name="query"/>, best first.</summary>
+    public static IReadOnlyList<SwitchCandidate> BuildRemote(IEnumerable<GitRef> refs, string query)
+    {
+        var pattern = query.Trim();
+        return refs
+            .Where(reference => reference.Kind == RefKind.RemoteBranch && reference.SymbolicTarget is null)
+            .Select(reference =>
+                new SwitchCandidate(SwitchTargetKind.RemoteBranch, reference.Name, reference.Name, null, false))
+            .Where(candidate => FuzzyMatcher.Score(pattern, candidate.Label) is not null)
+            .OrderByDescending(candidate => FuzzyMatcher.Score(pattern, candidate.Label))
+            .ToList();
+    }
+
     /// <summary>
     /// The local name git gives a tracking branch made from <paramref name="remoteBranch"/>:
     /// <c>origin/topic</c> becomes <c>topic</c>.

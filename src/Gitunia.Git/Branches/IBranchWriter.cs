@@ -49,6 +49,19 @@ public interface IBranchWriter
         string? upstreamFullName,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Makes <paramref name="upstream"/> (such as <c>origin/topic</c>) the upstream of the local branch; nothing is
+    /// fetched or pushed.
+    /// </summary>
+    Task SetUpstreamAsync(
+        RepositoryLocation location,
+        string name,
+        string upstream,
+        CancellationToken cancellationToken);
+
+    /// <summary>Removes the upstream configuration of a local branch; git refuses when it has none.</summary>
+    Task UnsetUpstreamAsync(RepositoryLocation location, string name, CancellationToken cancellationToken);
+
     /// <summary>Deletes a local branch; without <paramref name="force"/> git refuses when it is not merged.</summary>
     Task DeleteAsync(RepositoryLocation location, string name, bool force, CancellationToken cancellationToken);
 }

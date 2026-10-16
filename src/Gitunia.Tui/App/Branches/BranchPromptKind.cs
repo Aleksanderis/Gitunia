@@ -13,4 +13,7 @@ public enum BranchPromptKind
 
     /// <summary>Choosing the branch or commit to check out.</summary>
     Switch,
+
+    /// <summary>Choosing the remote branch that becomes the upstream.</summary>
+    Upstream,
 }

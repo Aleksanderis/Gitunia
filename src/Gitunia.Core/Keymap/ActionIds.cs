@@ -131,6 +131,10 @@ public static class ActionIds
 
     public static ActionId BranchRename { get; } = new("branch.rename");
 
+    public static ActionId BranchSetUpstream { get; } = new("branch.set-upstream");
+
+    public static ActionId BranchUnsetUpstream { get; } = new("branch.unset-upstream");
+
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
