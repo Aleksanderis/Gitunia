@@ -139,6 +139,45 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public async Task GivenGitPrintingOnStdout_WhenCommitting_ThenTheOverlayAndNoticeIncludeIt()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.Failure = new GitCommandFailedException(["commit"], 1, string.Empty, "nothing to commit, working tree clean\n");
+        harness.Draft.Editor.SetText("Message");
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        Assert.Equal("Commit failed: nothing to commit, working tree clean", harness.Statuses.Log.Latest!.Text);
+        var output = Assert.Single(harness.Outputs);
+        Assert.Equal("nothing to commit, working tree clean", output.Lines[0]);
+    }
+
+    [Fact]
+    public async Task GivenACommitThatFailsOnABackgroundTab_WhenTheTabIsShown_ThenItsOutputOpensOnce()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        var tabId = harness.Tab.Id;
+        harness.Writer.Failure = new GitCommandFailedException(["commit"], 1, "lint failed: a.txt\n");
+        harness.Draft.Editor.SetText("Message");
+        harness.Run(ActionIds.WorkingTreeCommit);
+        harness.OpenOtherTab();
+
+        await harness.Pump.RunUntilAsync(() => !harness.Commits.DraftFor(tabId).IsCommitting);
+        harness.Commits.ShowPendingFailure();
+
+        Assert.Empty(harness.Outputs);
+        Assert.Equal("Commit failed: lint failed: a.txt", harness.Statuses.Log.Latest!.Text);
+
+        harness.Activate(tabId);
+        harness.Commits.ShowPendingFailure();
+        harness.Commits.ShowPendingFailure();
+
+        var output = Assert.Single(harness.Outputs);
+        Assert.Contains("lint failed: a.txt", output.Lines, StringComparer.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenAHookThatWantsInput_WhenCommitting_ThenTheEmptyOutputStillGetsTheHint()
     {
         using var harness = new Harness(StagedModified("a.txt"));
@@ -523,6 +562,15 @@ public class CommitActionsTests
             var branch = snapshot.Branch with { UpstreamName = upstream, Ahead = ahead };
             Send(new WorkingTreeLoadedCommand(snapshot with { Branch = branch }));
         }
+
+        public void OpenOtherTab()
+        {
+            var other = Path.Combine(GitDirectory, "other");
+            Directory.CreateDirectory(other);
+            _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(other, other, other, false, false)));
+        }
+
+        public void Activate(TabId tabId) => _host.Dispatch(new ActivateTabCommand(tabId));
 
         public void CloseTab() => _host.Dispatch(new CloseTabCommand(_host.Workspace.ActiveTabId!.Value));
 

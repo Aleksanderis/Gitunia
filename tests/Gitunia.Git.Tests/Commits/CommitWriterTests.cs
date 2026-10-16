@@ -116,6 +116,19 @@ public class CommitWriterTests
     }
 
     [Fact]
+    public async Task GivenNothingStaged_WhenCommitting_ThenGitsStdoutIsInTheError()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        var location = await LocateAsync(repository);
+        var writer = new CommitWriter(repository.CreateIsolatedRunner());
+
+        var failure = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.CommitAsync(location, new CommitRequest("Empty", false, false, false), Token));
+
+        Assert.Contains("nothing to commit", failure.StandardOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenAFailingHookAndNoVerify_WhenCommitting_ThenTheHookIsSkipped()
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "The hook is a shell script.");

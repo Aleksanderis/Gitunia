@@ -14,6 +14,15 @@ public class CommitFailureReportTests
     }
 
     [Fact]
+    public void GivenStdoutAndStderr_WhenBuildingLines_ThenStderrComesFirst()
+    {
+        var lines = CommitFailureReport.Lines("hook: bad\n", "nothing to commit\n");
+
+        Assert.Equal(["hook: bad", "nothing to commit", string.Empty, CommitFailureReport.Hint], lines);
+        Assert.Equal("nothing to commit", CommitFailureReport.Notice(string.Empty, "nothing to commit\n"));
+    }
+
+    [Fact]
     public void GivenNoOutput_WhenBuildingTheLines_ThenAPlaceholderStandsInForIt()
     {
         var lines = CommitFailureReport.Lines(string.Empty);

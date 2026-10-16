@@ -149,7 +149,7 @@ public sealed class GitRunner
             await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
             if (!IsAccepted(process.ExitCode, runOptions))
             {
-                throw new GitCommandFailedException(arguments, process.ExitCode, error);
+                throw new GitCommandFailedException(arguments, process.ExitCode, error, Encoding.UTF8.GetString(output));
             }
 
             return new GitResult(process.ExitCode, output, error);
