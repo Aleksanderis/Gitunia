@@ -296,6 +296,33 @@ public sealed class WorktreeActionsTests
     }
 
     [Fact]
+    public async Task GivenStashRowSelected_WhenAddingNewBranch_ThenStartPointIgnoresTheStashCommit()
+    {
+        using var repository = TestRepositories.Linear(2);
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath, null, null, StashRow());
+        var expected = WorktreeTexts.DefaultPath(repository.WorkingTreePath, "from-head");
+
+        harness.Execute(ActionIds.WorktreeAdd);
+        harness.Type("from-head");
+        harness.Execute(ActionIds.InputAccept);
+        await harness.AcceptAsync();
+
+        Assert.Equal(repository.Head, repository.GitIn(expected, ["rev-parse", "HEAD"]).Trim());
+    }
+
+    private static SidebarRow StashRow() => new(
+        SidebarRowKind.Stash,
+        SidebarSection.Stashes,
+        "stash@{0}",
+        string.Empty,
+        "1111111111111111111111111111111111111111",
+        false,
+        false,
+        0,
+        null,
+        null);
+
+    [Fact]
     public void GivenBranchWithSlash_WhenDefaultingPath_ThenSiblingDirectoryHasNoSeparator()
     {
         var path = WorktreeTexts.DefaultPath(Path.Combine(Path.GetTempPath(), "parent", "repo"), "fix/12-a");
@@ -341,7 +368,11 @@ public sealed class WorktreeActionsTests
 
         public RepositoryState Tab => _host.Workspace.ActiveTab!;
 
-        public static async Task<Harness> LoadAsync(string tabPath, string? rowPath, string? selectedCommit = null)
+        public static async Task<Harness> LoadAsync(
+            string tabPath,
+            string? rowPath,
+            string? selectedCommit = null,
+            SidebarRow? selectedRow = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(tabPath, Token);
             var row = rowPath is null
@@ -358,7 +389,7 @@ public sealed class WorktreeActionsTests
                     null,
                     null,
                     rowPath);
-            var harness = new Harness(location, row, selectedCommit);
+            var harness = new Harness(location, selectedRow ?? row, selectedCommit);
             harness._host.Dispatch(new OpenRepositoryCommand(location));
             await harness.ReloadAsync();
             return harness;

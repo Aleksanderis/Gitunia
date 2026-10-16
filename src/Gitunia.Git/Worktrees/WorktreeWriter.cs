@@ -16,6 +16,7 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
     private const string ForceOption = "--force";
     private const string ReasonOption = "--reason";
     private const string VerboseOption = "--verbose";
+    private const string RemovingPrefix = "Removing ";
     private const char NulSeparator = '\0';
     private const char LineSeparator = '\n';
 
@@ -91,9 +92,9 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
         // Verbose prune reports "Removing worktrees/<name>: <reason>" on stderr.
         return
         [
-            .. result.StandardError.Split(
-                LineSeparator,
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            .. result.StandardError
+                .Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(line => line.StartsWith(RemovingPrefix, StringComparison.Ordinal)),
         ];
     }
 

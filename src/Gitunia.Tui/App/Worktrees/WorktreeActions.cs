@@ -60,6 +60,7 @@ public sealed class WorktreeActions(
     private string _text = string.Empty;
     private string _branch = string.Empty;
     private string? _startPoint;
+    private string? _selectedStart;
     private string _target = string.Empty;
 
     private enum PromptStage
@@ -204,6 +205,7 @@ public sealed class WorktreeActions(
             return;
         }
 
+        _selectedStart = StartPointOf();
         Open(PromptStage.Branch, tab, string.Empty);
     }
 
@@ -232,13 +234,14 @@ public sealed class WorktreeActions(
         }
 
         _branch = name;
-        _startPoint = existing is null ? StartPointOf() ?? tab.Head?.CommitHash ?? GitOptions.HeadRevision : null;
+        _startPoint = existing is null ? _selectedStart ?? tab.Head?.CommitHash ?? GitOptions.HeadRevision : null;
         Open(PromptStage.Path, tab, WorktreeTexts.DefaultPath(tab.Location.RootPath, name));
         redraw();
     }
 
     // A selected worktree or branch row wins over the graph selection; without either git starts at HEAD.
-    private string? StartPointOf() => selectedRow() is { CommitHash: { } hash } ? hash : selectedCommit();
+    private string? StartPointOf() =>
+        selectedRow() is { Kind: not SidebarRowKind.Stash, CommitHash: { } hash } ? hash : selectedCommit();
 
     private string StartText() => _startPoint is { } start ? $" (new, at {Shorten(start)})" : " (existing)";
 
