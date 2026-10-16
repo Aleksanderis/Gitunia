@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -35,6 +36,7 @@ namespace Gitunia.Tui.App.Reset;
 /// <param name="setMode">Switches the keymap mode (Insert while the mode prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
+/// <param name="gate">The one-operation-per-tab gate, shared with staging, discard and stash.</param>
 public sealed class ResetActions(
     WorkspaceHost host,
     IResetWriter writer,
@@ -47,7 +49,8 @@ public sealed class ResetActions(
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
     Action redraw,
-    Func<BranchSelection> selection) : IPromptHandler
+    Func<BranchSelection> selection,
+    TabOperationGate gate) : IPromptHandler
 {
     private const int ShortHashLength = 7;
     private const int ListedFiles = 6;
@@ -88,7 +91,10 @@ public sealed class ResetActions(
 
         if (host.Workspace.ActiveTab is { } tab)
         {
-            Notice = selection().CommitHash is { } hash ? Begin(tab.Id, hash) : SelectNotice;
+            var chosen = selection();
+            var isResettable = chosen.RowKind is null or SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch
+                or SidebarRowKind.Tag;
+            Notice = isResettable && chosen.CommitHash is { } hash ? Begin(tab.Id, hash) : SelectNotice;
         }
 
         redraw();
@@ -128,7 +134,7 @@ public sealed class ResetActions(
             return string.Empty;
         }
 
-        if (_busy.Contains(tabId))
+        if (_busy.Contains(tabId) || gate.IsBusy(tabId))
         {
             return BusyNotice;
         }
@@ -219,7 +225,7 @@ public sealed class ResetActions(
 
     private void Choose(ResetMode mode)
     {
-        if (host.Workspace.FindTab(_tabId) is not { } tab || !_busy.Add(tab.Id))
+        if (host.Workspace.FindTab(_tabId) is not { } tab || gate.IsBusy(tab.Id) || !_busy.Add(tab.Id))
         {
             Notice = BusyNotice;
             return;
@@ -312,7 +318,7 @@ public sealed class ResetActions(
             }
         }
 
-        lines.Add("Untracked files are not touched.");
+        lines.Add("Untracked files stay unless the target commit tracks a file at the same path.");
         return new ConfirmPrompt(
             "Hard reset",
             lines,
@@ -321,7 +327,10 @@ public sealed class ResetActions(
             "Reset hard");
     }
 
-    private static ConfirmPrompt MixedPrompt(RepositoryState tab, ResetTarget target, IReadOnlyList<StatusEntry> changes)
+    private static ConfirmPrompt MixedPrompt(
+        RepositoryState tab,
+        ResetTarget target,
+        IReadOnlyList<StatusEntry> changes)
     {
         var oldHash = tab.Head!.CommitHash!;
         var staged = changes.Count(entry => entry.IsStaged);
@@ -332,7 +341,7 @@ public sealed class ResetActions(
             [
                 $"Reset {target.BranchName} to {ShortHash(target.CommitHash)} with --mixed: the index is cleared; " +
                 "the files in the working tree stay.",
-                $"{OperationText.Plural(staged, "file")} lose{(staged == 1 ? "s" : string.Empty)} the staged state{detail}.",
+                $"{OperationText.Plural(staged, "file")} {(staged == 1 ? "loses" : "lose")} the staged state{detail}.",
             ],
             $"The staged state cannot be recovered from the reflog. Undo for the commits: " +
             $"{UndoCommand(ResetMode.Mixed, oldHash)} (or ORIG_HEAD, the reflog).",
@@ -349,11 +358,13 @@ public sealed class ResetActions(
 
     private void Start(RepositoryState tab, ResetTarget target)
     {
-        if (!_busy.Add(tab.Id))
+        if (gate.IsBusy(tab.Id) || !_busy.Add(tab.Id))
         {
             statuses.Warning($"{BusyNotice}; nothing was reset");
             return;
         }
+
+        gate.Begin(tab.Id);
 
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => ResetAsync(tab, target, token), CancellationToken.None);
@@ -372,7 +383,7 @@ public sealed class ResetActions(
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _busy.Remove(tab.Id));
+            postToUi(() => Finish(tab.Id, string.Empty, StatusSeverity.Info, false));
         }
         catch (Exception exception)
         {
@@ -384,6 +395,7 @@ public sealed class ResetActions(
     private void Finish(TabId tabId, string text, StatusSeverity severity, bool refreshTab)
     {
         _busy.Remove(tabId);
+        gate.End(tabId);
         statuses.Post(text, severity);
         if (refreshTab)
         {

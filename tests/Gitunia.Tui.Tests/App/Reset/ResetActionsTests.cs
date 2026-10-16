@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -10,6 +11,7 @@ using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
 using Xunit;
@@ -79,7 +81,10 @@ public class ResetActionsTests
 
         var prompt = Assert.Single(harness.Prompts);
         Assert.Equal("Mixed reset", prompt.Title);
-        Assert.Contains("1 file loses the staged state (1 partially staged)", string.Join(' ', prompt.Lines), StringComparison.Ordinal);
+        Assert.Contains(
+            "1 file loses the staged state (1 partially staged)",
+            string.Join(' ', prompt.Lines),
+            StringComparison.Ordinal);
         Assert.Contains("cannot be recovered from the reflog", prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains($"git reset --mixed {old}", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(old, repository.Head);
@@ -113,7 +118,7 @@ public class ResetActionsTests
         Assert.Contains("1 file with uncommitted changes will be overwritten", lines, StringComparison.Ordinal);
         Assert.Contains("  a.txt", lines, StringComparison.Ordinal);
         Assert.DoesNotContain("untracked.txt", lines, StringComparison.Ordinal);
-        Assert.Contains("Untracked files are not touched", lines, StringComparison.Ordinal);
+        Assert.Contains("Untracked files stay unless", lines, StringComparison.Ordinal);
         Assert.Contains($"git reset --hard {old}", prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains("ORIG_HEAD", prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains("cannot be restored", prompt.Consequence, StringComparison.Ordinal);
@@ -312,6 +317,62 @@ public class ResetActionsTests
         Assert.Equal(old, repository.Head);
     }
 
+    [Theory]
+    [InlineData(SidebarRowKind.Stash)]
+    [InlineData(SidebarRowKind.Worktree)]
+    [InlineData(SidebarRowKind.Section)]
+    public async Task GivenASidebarRowThatIsNotARef_WhenResetting_ThenNoPromptOpensAndNothingMoves(SidebarRowKind kind)
+    {
+        using var repository = TwoCommits();
+        var old = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectRow(kind, FirstCommit(repository));
+
+        harness.Run(ActionIds.ResetBranch);
+
+        Assert.Contains("Select a commit", harness.Reset.Notice, StringComparison.Ordinal);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(old, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenATagRow_WhenResettingSoft_ThenTheBranchMovesToTheTagCommit()
+    {
+        using var repository = TwoCommits();
+        var first = FirstCommit(repository);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectRow(SidebarRowKind.Tag, first);
+
+        harness.Run(ActionIds.ResetBranch);
+        harness.Press("s");
+        await harness.FinishAsync();
+
+        Assert.Equal(first, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenAnotherOperationOfTheTab_WhenResetting_ThenItIsRefusedAndTheGateIsReleasedAfterwards()
+    {
+        using var repository = TwoCommits();
+        var old = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(FirstCommit(repository));
+        harness.Gate.Begin(harness.TabId);
+
+        harness.Run(ActionIds.ResetBranch);
+
+        Assert.Contains("Busy", harness.Reset.Notice, StringComparison.Ordinal);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(old, repository.Head);
+
+        harness.Gate.End(harness.TabId);
+        harness.Run(ActionIds.ResetBranch);
+        harness.Press("s");
+        await harness.FinishAsync();
+
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
+    }
+
     private static TestRepository TwoCommits() =>
         TestRepository.Create()
             .Commit("one", new TestFile("a.txt", "1"))
@@ -325,7 +386,7 @@ public class ResetActionsTests
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<Action> _answers = [];
         private readonly List<TabSession> _sessions = [];
-        private string? _selectedHash;
+        private BranchSelection _selection = new(null, null, null);
 
         private Harness()
         {
@@ -346,7 +407,8 @@ public class ResetActionsTests
                 },
                 mode => Mode = mode,
                 () => { },
-                () => new BranchSelection(null, null, _selectedHash));
+                () => _selection,
+                Gate);
         }
 
         public ResetActions Reset { get; }
@@ -358,6 +420,8 @@ public class ResetActionsTests
         public int Refreshes { get; private set; }
 
         public KeyMode Mode { get; private set; } = KeyMode.Normal;
+
+        public TabOperationGate Gate { get; } = new();
 
         public bool CanShowDialog { get; set; } = true;
 
@@ -387,7 +451,10 @@ public class ResetActionsTests
             return harness;
         }
 
-        public void Select(string? commitHash) => _selectedHash = commitHash;
+        public void Select(string? commitHash) => _selection = new BranchSelection(null, null, commitHash);
+
+        public void SelectRow(SidebarRowKind kind, string commitHash) =>
+            _selection = new BranchSelection(kind, "row", commitHash);
 
         public void Run(ActionId action) => Assert.True(Reset.TryExecute(action, null), action.Value);
 

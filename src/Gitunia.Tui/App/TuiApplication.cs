@@ -135,7 +135,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _commits = CreateCommits();
         _branches = CreateBranches();
-        _reset = CreateReset();
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.IsEditing;
         _router = new ActionRouter(
@@ -186,6 +185,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -512,7 +512,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         BranchSelectionNow);
 
-    private ResetActions CreateReset() => new(
+    private ResetActions CreateReset(TabOperationGate gate) => new(
         _host,
         services.Reset,
         services.Status,
@@ -524,7 +524,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.Refresh(tabId, false),
         SetMode,
         _view.RefreshChrome,
-        BranchSelectionNow);
+        BranchSelectionNow,
+        gate);
 
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
