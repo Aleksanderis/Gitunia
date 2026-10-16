@@ -32,6 +32,12 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>The change group under the cursor is marked (the working-tree diff, where a group is the unit of staging).</summary>
     public bool HighlightsGroup { get; set; }
 
+    /// <summary>
+    /// Which staging buttons the first line of the highlighted change group carries (none by default); read on every
+    /// draw, as the side follows the selected file.
+    /// </summary>
+    public Func<WorkingTreeButtons> GroupButtons { get; set; } = () => WorkingTreeButtons.None;
+
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
 
@@ -197,6 +203,11 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
         {
+            if (GroupButtonsAt(item, columns, width) is { Count: > 0 } buttons)
+            {
+                padded = ChangeGroupButtons.Overlay(padded, buttons, columns, glyphs);
+            }
+
             padded = ChangeGroupMarker.Mark(padded, glyphs);
         }
 
@@ -205,6 +216,22 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
 
     public void Dispose()
     {
+    }
+
+    /// <summary>
+    /// The view of the group button under the pointer at <paramref name="column"/>, <paramref name="row"/> (inside
+    /// <paramref name="listView"/>), or null when there is none there: the buttons sit on the first line of the change
+    /// group under the cursor only.
+    /// </summary>
+    public string? ButtonAt(ListView listView, int column, int row)
+    {
+        var item = listView.Viewport.Y + row;
+        var columns = ScreenPadding.Columns(listView);
+        var width = PanePadding.TextWidth(listView.Viewport.Width, columns);
+
+        return IsInCursorGroup(listView, item) && GroupButtonsAt(item, columns, width) is { } buttons
+            ? TitleButton.ViewAt(buttons, column)
+            : null;
     }
 
     /// <summary>
@@ -227,6 +254,17 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         }
 
         return _group is { } group && RowOf(item) <= group.Last && LastRowOf(item) >= group.First;
+    }
+
+    // The buttons for screen line item, which must be in the cursor's group: only its first line has them.
+    private IReadOnlyList<TitleButton>? GroupButtonsAt(int item, int columns, int width)
+    {
+        if (_group is not { } group || item != LineOf(group.First))
+        {
+            return null;
+        }
+
+        return ChangeGroupButtons.Layout(width, columns, GroupButtons());
     }
 
     private DiffWrapMap? Map()

@@ -30,6 +30,18 @@ public sealed class PaneListView : ListView
     /// <summary>Raised for a click, before <see cref="GestureRaised"/>, with the pointer's column and row inside the pane.</summary>
     public event Action<int, int>? ClickPositioned;
 
+    /// <summary>
+    /// Tells which button, if any, is drawn at a column and row of the pane; a click on one is a button click,
+    /// not a click on the row.
+    /// </summary>
+    public Func<int, int, string?>? ButtonAt { get; set; }
+
+    /// <summary>
+    /// Raised instead of <see cref="GestureRaised"/> when a click or double-click hit a <see cref="ButtonAt"/> button;
+    /// the pane has the focus by then and the cursor has not moved.
+    /// </summary>
+    public event Action<string>? ButtonClicked;
+
     protected override bool OnMouseEvent(Mouse mouse)
     {
         if (IsSuppressed())
@@ -53,6 +65,15 @@ public sealed class PaneListView : ListView
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
+        }
+
+        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
+            && mouse.Position is { } at
+            && ButtonAt?.Invoke(at.X, at.Y) is { } buttonView)
+        {
+            FocusPane();
+            ButtonClicked?.Invoke(buttonView);
+            return true;
         }
 
         FocusPane();

@@ -244,6 +244,9 @@ public sealed class MainView : IDisposable
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
         WorkingDiff.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
+        WorkingDiff.ButtonAt = (column, row) =>
+            (WorkingDiff.Source as DiffListSource)?.ButtonAt(WorkingDiff, column, row);
+        WorkingDiff.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         WorkingMessage.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         WorkingMessage.ClickPositioned += OnMessageClicked;
