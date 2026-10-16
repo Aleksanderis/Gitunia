@@ -17,7 +17,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
-/// Create, switch, rename and delete branches (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt,
+/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt,
 /// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one
 /// when the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch
 /// held by another worktree, a name in use) are decided from the tab refs and run nothing; everything else runs off
@@ -71,6 +71,7 @@ public sealed class BranchActions(
             BranchPromptKind.Create =>
                 $"new branch at {_label}{(_checkout ? string.Empty : " (not checked out)")}: {_text}_",
             BranchPromptKind.Rename => $"rename {_label}: {_text}_",
+            BranchPromptKind.Upstream => UpstreamLine(),
             _ => SwitchLine(),
         };
 
@@ -109,6 +110,14 @@ public sealed class BranchActions(
         {
             Notice = BeginOperation(tab) ?? AskDelete(tab);
         }
+        else if (action == ActionIds.BranchSetUpstream)
+        {
+            Notice = BeginOperation(tab) ?? OpenUpstream(tab);
+        }
+        else if (action == ActionIds.BranchUnsetUpstream)
+        {
+            Notice = BeginOperation(tab) ?? UnsetUpstream(tab);
+        }
         else
         {
             return false;
@@ -126,14 +135,14 @@ public sealed class BranchActions(
         }
 
         var normalized = key.Normalize();
-        if (_kind == BranchPromptKind.Switch && IsMove(normalized, out var step))
+        if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && IsMove(normalized, out var step))
         {
             _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
         }
         else if (PromptTextEditor.Apply(_text, key) is { } edited && edited != _text)
         {
             _text = edited;
-            if (_kind == BranchPromptKind.Switch)
+            if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream)
             {
                 RefreshCandidates();
             }
@@ -249,10 +258,87 @@ public sealed class BranchActions(
         return string.Empty;
     }
 
+    private string OpenUpstream(RepositoryState tab)
+    {
+        if (ResolveLocalBranch(tab, out var branch) is { } refusal)
+        {
+            return refusal;
+        }
+
+        if (!tab.Refs.Any(reference => reference.Kind == RefKind.RemoteBranch && reference.SymbolicTarget is null))
+        {
+            return "There is no remote branch to track: add or fetch a remote first";
+        }
+
+        _label = branch!.Name;
+        _commitHash = null;
+        Open(BranchPromptKind.Upstream, tab, string.Empty);
+        RefreshCandidates();
+        return string.Empty;
+    }
+
+    private string UnsetUpstream(RepositoryState tab)
+    {
+        if (ResolveLocalBranch(tab, out var branch) is { } refusal)
+        {
+            return refusal;
+        }
+
+        if (branch!.UpstreamFullName is not { } upstream)
+        {
+            return $"{branch.Name} has no upstream";
+        }
+
+        var name = branch.Name;
+        var shown = upstream.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
+            ? upstream[GitRefPrefixes.Remotes.Length..]
+            : upstream.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
+                ? upstream[GitRefPrefixes.Heads.Length..]
+                : upstream;
+        Start(tab, "Could not unset the upstream", async token =>
+        {
+            await writer.UnsetUpstreamAsync(tab.Location, name, token).ConfigureAwait(false);
+            return $"{name} no longer tracks {shown} (restore: git branch --set-upstream-to={shown} {name})";
+        });
+        return string.Empty;
+    }
+
+    private string UpstreamLine()
+    {
+        var line = $"upstream of {_label}: {_text}_  ";
+        if (_index >= _candidates.Count)
+        {
+            return $"{line}no matching remote branch";
+        }
+
+        var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
+        var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
+        return $"{line}{_candidates[_index].Label} ({position}/{total})";
+    }
+
+    private string AcceptUpstream(RepositoryState tab)
+    {
+        if (_index >= _candidates.Count)
+        {
+            return "No matching remote branch";
+        }
+
+        var name = _label;
+        var upstream = _candidates[_index].Target;
+        Start(tab, "Could not set the upstream", async token =>
+        {
+            await writer.SetUpstreamAsync(tab.Location, name, $"{GitRefPrefixes.Remotes}{upstream}", token).ConfigureAwait(false);
+            return $"{name} now tracks {upstream}";
+        });
+        return string.Empty;
+    }
+
     private void RefreshCandidates()
     {
         var refs = host.Workspace.FindTab(_tabId)?.Refs ?? [];
-        _candidates = SwitchCandidates.Build(refs, _commitHash, _text);
+        _candidates = _kind == BranchPromptKind.Upstream
+            ? SwitchCandidates.BuildRemote(refs, _text)
+            : SwitchCandidates.Build(refs, _commitHash, _text);
         _index = 0;
     }
 
@@ -307,6 +393,7 @@ public sealed class BranchActions(
         {
             BranchPromptKind.Create => AcceptCreate(tab, text),
             BranchPromptKind.Rename => AcceptRename(tab, text),
+            BranchPromptKind.Upstream => AcceptUpstream(tab),
             _ => AcceptSwitch(tab),
         };
     }

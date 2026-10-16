@@ -404,6 +404,86 @@ public class BranchActionsTests
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 
+    [Fact]
+    public async Task GivenALocalBranchWithoutUpstream_WhenSettingOne_ThenThePickedRemoteBranchIsTracked()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "lonely", repository.Head));
+
+        harness.Run(ActionIds.BranchSetUpstream);
+        Assert.Contains("upstream of lonely", harness.Branches.StatusLine, StringComparison.Ordinal);
+        harness.Type("main");
+        Assert.Contains("origin/main (1/1)", harness.Branches.StatusLine, StringComparison.Ordinal);
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal("origin/main", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
+        Assert.Equal("lonely now tracks origin/main", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenNoMatchingRemoteBranch_WhenAcceptingTheUpstreamPrompt_ThenNothingChanges()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "lonely", repository.Head));
+
+        harness.Run(ActionIds.BranchSetUpstream);
+        harness.Type("zzz");
+        harness.Run(ActionIds.InputAccept);
+
+        Assert.Equal("No matching remote branch", harness.Branches.Notice);
+        Assert.Equal(0, harness.Refreshes);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenARepositoryWithoutRemoteBranches_WhenSettingUpstream_ThenNoPromptOpens()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchSetUpstream);
+
+        Assert.Contains("no remote branch", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenATrackingBranch_WhenUnsettingTheUpstream_ThenTheConfigIsGoneAndTheRestoreCommandIsShown()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchUnsetUpstream);
+        await harness.FinishAsync();
+
+        Assert.Equal(string.Empty, repository.Git("for-each-ref", "--format=%(upstream)", "refs/heads/topic").Trim());
+        Assert.Contains(
+            "git branch --set-upstream-to=origin/topic topic",
+            harness.Statuses.Log.Latest!.Text,
+            StringComparison.Ordinal);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenABranchWithoutUpstream_WhenUnsetting_ThenGitIsNotRun()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "lonely", repository.Head));
+
+        harness.Run(ActionIds.BranchUnsetUpstream);
+
+        Assert.Equal("lonely has no upstream", harness.Branches.Notice);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
