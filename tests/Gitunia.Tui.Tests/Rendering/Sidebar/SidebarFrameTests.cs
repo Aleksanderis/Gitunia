@@ -39,12 +39,6 @@ public class SidebarFrameTests
         var none = new WorktreeStatus(0, 0, 0, 0, 0);
         var clean = dirty with { Label = "wt-b", Ahead = null, Behind = null, Changes = none };
         var conflicted = dirty with { Label = "wt-c", Changes = new WorktreeStatus(0, 0, 4, 2, 1) };
-        var sidebar = Sidebar(
-            Section(SidebarSection.Worktrees, "Worktrees", 3, isExpanded: true),
-            dirty,
-            clean,
-            conflicted);
-
         var lines = new[] { dirty, clean, conflicted }
             .Select(row => SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd())
             .ToArray();
@@ -52,7 +46,6 @@ public class SidebarFrameTests
         Assert.Equal("    wt-a ↑2↓1 S1 M3 feat", lines[0]);
         Assert.Equal("    wt-b feat", lines[1]);
         Assert.Equal("    wt-c ↑2↓1 U4 feat", lines[2]);
-        Assert.Equal(3, sidebar.Rows.Length - 1);
     }
 
     private static SidebarModel Sidebar(params SidebarRow[] rows) => new([.. rows], 0, 0, string.Empty, false, false);

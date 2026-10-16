@@ -5,6 +5,7 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Stash;
+using Gitunia.Git.Status.Models;
 using Gitunia.Git.Worktrees;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -27,6 +28,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
     private ImmutableArray<SidebarSection> _lastCollapsed;
     private string? _lastFilter;
     private string? _lastPath;
+    private ImmutableDictionary<string, WorktreeStatus>? _lastOverview;
+    private StatusSnapshot? _lastOwnStatus;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -54,8 +57,25 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
             && _lastWorktrees == tab.Worktrees
             && _lastStashes == tab.Stashes
             && _lastCollapsed == state.CollapsedSections
-            && _lastFilter == state.FilterText;
-        return !unchanged && Set(tab.CommandPath, SidebarBuilder.Build(tab), tab.Refs, tab.Worktrees, tab.Stashes, state.CollapsedSections, state.FilterText);
+            && _lastFilter == state.FilterText
+            && ReferenceEquals(_lastOverview, tab.WorktreeStatuses)
+            && ReferenceEquals(_lastOwnStatus, tab.WorkingTree?.Snapshot);
+        if (unchanged)
+        {
+            return false;
+        }
+
+        // The worktree rows show counts from the overview and from the tab's own status, so those rebuild the rows too.
+        _lastOverview = tab.WorktreeStatuses;
+        _lastOwnStatus = tab.WorkingTree?.Snapshot;
+        return Set(
+            tab.CommandPath,
+            SidebarBuilder.Build(tab),
+            tab.Refs,
+            tab.Worktrees,
+            tab.Stashes,
+            state.CollapsedSections,
+            state.FilterText);
     }
 
     public bool IsMarked(int item) => false;

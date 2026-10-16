@@ -128,13 +128,26 @@ public sealed class WorktreeOverviewPoller : IDisposable
         {
             while (!token.IsCancellationRequested)
             {
-                await PollOnceAsync(token).ConfigureAwait(false);
+                await PollGuardedAsync(token).ConfigureAwait(false);
                 await _wake.WaitAsync(_interval, token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
         {
             // Disposed.
+        }
+    }
+
+    // A failing pass (for example a posted action that throws) must not end the loop and freeze the overview.
+    private async Task PollGuardedAsync(CancellationToken token)
+    {
+        try
+        {
+            await PollOnceAsync(token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // The next tick or change tries again.
         }
     }
 
