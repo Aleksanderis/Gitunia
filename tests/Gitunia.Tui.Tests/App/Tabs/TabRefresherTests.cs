@@ -43,6 +43,24 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenAModifiedFile_WhenItIsEditedAgain_ThenTheSessionHearsThatTheStatusWasReadWithoutAChange()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        repository.WriteFile("a.txt", "changed");
+        using var harness = await Harness.LoadAsync(repository, start: false);
+        harness.Refresher.Start();
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status!.IsDirty);
+        var heard = 0;
+        harness.Session.StatusRead += () => heard++;
+
+        repository.WriteFile("a.txt", "changed twice");
+
+        await harness.Pump.RunUntilAsync(() => heard > 0);
+        Assert.Equal(1, heard);
+    }
+
+    [Fact]
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
         using var harness = await FakeHarness.LoadAsync();
