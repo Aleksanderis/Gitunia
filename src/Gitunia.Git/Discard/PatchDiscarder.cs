@@ -73,8 +73,9 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
     }
 
     /// <summary>
-    /// Discards whole files in one batch: tracked ones are restored from the index with one <c>git restore</c>, untracked ones are
-    /// deleted with one <c>git clean</c> (two git calls however many files, none for an empty side). Nothing can be undone.
+    /// Discards whole files in one batch: tracked ones are restored from the index in one call, untracked ones are deleted in
+    /// one call (the discarder splits very long path lists itself). An empty side makes no call. The tracked files go first,
+    /// so a failure of the delete leaves them restored. Nothing can be undone.
     /// </summary>
     /// <param name="location">The repository or worktree.</param>
     /// <param name="entries">The status entries of the files.</param>
@@ -84,8 +85,14 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
         IReadOnlyList<StatusEntry> entries,
         CancellationToken cancellationToken)
     {
-        var tracked = entries.Where(entry => entry.Kind != StatusEntryKind.Untracked).Select(entry => entry.Path).ToArray();
-        var untracked = entries.Where(entry => entry.Kind == StatusEntryKind.Untracked).Select(entry => entry.Path).ToArray();
+        var tracked = entries
+            .Where(entry => entry.Kind != StatusEntryKind.Untracked)
+            .Select(entry => entry.Path)
+            .ToArray();
+        var untracked = entries
+            .Where(entry => entry.Kind == StatusEntryKind.Untracked)
+            .Select(entry => entry.Path)
+            .ToArray();
         if (tracked.Length > 0)
         {
             await discarder.RestoreAsync(location, tracked, cancellationToken).ConfigureAwait(false);

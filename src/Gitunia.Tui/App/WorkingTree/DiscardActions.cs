@@ -213,7 +213,8 @@ public sealed class DiscardActions(
             }
 
             var suffix = extra.Count > 0 ? $" ({string.Join(", ", extra)})" : string.Empty;
-            postToUi(() => Finish(tab.Id, $"Discarded {OperationText.Plural(files.Count, "file")}{suffix}", StatusSeverity.Info));
+            var done = $"Discarded {OperationText.Plural(files.Count, "file")}{suffix}";
+            postToUi(() => Finish(tab.Id, done, StatusSeverity.Info));
         }
         catch (OperationCanceledException)
         {
@@ -221,7 +222,8 @@ public sealed class DiscardActions(
         }
         catch (Exception exception)
         {
-            var failure = $"Could not discard: {OperationText.Reason(exception)} (nothing or only some of the {files.Count} files were discarded)";
+            var failure = $"Could not discard: {OperationText.Reason(exception)} " +
+                "(the tracked files may already be restored; the status is read again)";
             postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
