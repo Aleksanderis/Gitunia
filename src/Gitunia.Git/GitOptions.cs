@@ -23,4 +23,16 @@ public static class GitOptions
 
     /// <summary>Paths in the pathspec file are separated by NUL and not quoted.</summary>
     public const string PathspecFileNul = "--pathspec-file-nul";
+
+    /// <summary>Compare two paths outside the index (how an untracked file is shown as additions).</summary>
+    public const string NoIndex = "--no-index";
+
+    /// <summary>Compare the index with HEAD.</summary>
+    public const string Cached = "--cached";
+
+    /// <summary>The pathspec prefix that takes the rest as a plain path: no glob, no magic.</summary>
+    public const string LiteralPathspecPrefix = ":(literal)";
+
+    /// <summary>The empty side of an added file; git's own literal, understood on every platform.</summary>
+    public const string NullDevice = "/dev/null";
 }

@@ -63,6 +63,24 @@ public class PaneNavigatorTests
         Assert.Equal(PaneKind.WorkingStaged, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, false, WorkingLists));
     }
 
+    [Theory]
+    [InlineData(PaneKind.WorkingUnstagedDiff, true)]
+    [InlineData(PaneKind.WorkingUnstagedDiff, false)]
+    [InlineData(PaneKind.WorkingStagedDiff, true)]
+    [InlineData(PaneKind.WorkingStagedDiff, false)]
+    public void GivenAWorkingTreeDiff_WhenSteppingVertically_ThenFocusStays(PaneKind current, bool down) =>
+        Assert.Equal(current, PaneNavigator.StepVertically(current, down, WorkingLists));
+
+    [Fact]
+    public void GivenTheListsAndTheDiffOfTheSelectedSide_WhenCycling_ThenTheDiffComesAfterTheLists()
+    {
+        PaneKind[] cycle = [.. WorkingLists, PaneKind.WorkingStagedDiff];
+
+        Assert.Equal(PaneKind.WorkingStagedDiff, PaneNavigator.Cycle(PaneKind.WorkingStaged, true, cycle));
+        Assert.Equal(PaneKind.WorkingUnstaged, PaneNavigator.Cycle(PaneKind.WorkingStagedDiff, true, cycle));
+        Assert.Equal(PaneKind.WorkingStagedDiff, PaneNavigator.Cycle(PaneKind.WorkingUnstaged, false, cycle));
+    }
+
     [Fact]
     public void GivenOnlyTheDiffBelow_WhenSteppingDown_ThenTheDiffIsFocused() =>
         Assert.Equal(PaneKind.Diff, PaneNavigator.StepVertically(PaneKind.Graph, true, [PaneKind.Graph, PaneKind.Diff]));

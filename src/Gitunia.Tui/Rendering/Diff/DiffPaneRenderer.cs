@@ -12,20 +12,32 @@ public static class DiffPaneRenderer
     public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
         var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs) };
-        var digits = DiffRowRenderer.GutterDigits(pane.Document.MaximumLineNumber);
+        lines.AddRange(RenderRows(pane, width, contentHeight, glyphs, paddingColumns));
+        return lines;
+    }
+
+    /// <summary>The rows only, starting at <see cref="DiffPaneModel.TopRow"/>, padded (<see cref="PanePadding"/>); the working-tree view draws its own title on the frame.</summary>
+    public static IReadOnlyList<StyledLine> RenderRows(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
+    {
+        var lines = new List<StyledLine>(contentHeight);
+        var gutter = DiffRowRenderer.GutterDigits(pane.Document.MaximumLineNumber);
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
             lines.Add(PanePadding.Wrap(
                 row >= 0 && row < pane.Document.Rows.Count
-                    ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, digits, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
+                    ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, gutter, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
                     : new LineBuilder(textWidth, glyphs.Ellipsis).Build(),
                 paddingColumns));
         }
 
         return lines;
     }
+
+    /// <summary>The number of hunks that start at or above the cursor row (the <c>n</c> of <c>hunk n/m</c>).</summary>
+    public static int HunkPosition(DiffPaneModel pane) =>
+        pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count ? HunksUpTo(pane.Document.HunkRows, pane.SelectedRow) : 0;
 
     /// <summary>
     /// The title: the file under the cursor and its position among the files and the hunks, then the buttons

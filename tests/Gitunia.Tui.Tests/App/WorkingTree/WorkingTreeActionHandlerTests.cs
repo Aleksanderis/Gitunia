@@ -119,21 +119,73 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
-    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenOnlyUpAndDownMoveBetweenTheLists()
+    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenUpAndDownSwitchListsAndRightAndLeftGoToTheDiffAndBack()
     {
         var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
 
-        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
+        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
         Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
         Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Theory]
+    [InlineData(false, PaneKind.WorkingUnstagedDiff)]
+    [InlineData(true, PaneKind.WorkingStagedDiff)]
+    public void GivenAFileUnderTheCursor_WhenOpeningItsDiff_ThenTheDiffOfItsSideTakesFocus(bool isStaged, PaneKind expected)
+    {
+        var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+        if (isStaged)
+        {
+            harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        }
+
+        Assert.True(harness.Handler.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+
+        Assert.Equal(expected, harness.Tab.View.FocusedPane);
+        Assert.Equal(TabViewMode.WorkingTree, harness.Tab.View.Mode);
+    }
+
+    [Fact]
+    public void GivenNoFile_WhenOpeningTheDiff_ThenANoticeAsksForAFile()
+    {
+        var harness = new Harness();
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeOpenDiff, null);
+
+        Assert.Equal("Select a file to see its diff", harness.Handler.Message);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheWorkingTree_WhenCyclingPastTheLists_ThenTheDiffOfTheSelectedSideIsInTheCycle()
+    {
+        var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PanePrevious, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
     }
 
     [Fact]

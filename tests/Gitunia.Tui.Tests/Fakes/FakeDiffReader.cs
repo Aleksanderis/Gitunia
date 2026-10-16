@@ -5,6 +5,7 @@ using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
@@ -14,9 +15,16 @@ public sealed class FakeDiffReader : IDiffReader
     private const int HexDigitCount = 40;
 
     private readonly Dictionary<ObjectId, FakeCommit> _commits = [];
+    private readonly Dictionary<(WorkingDiffSide Side, string Path), DiffFile[]> _working = [];
 
     /// <summary>The number of commit diffs started so far.</summary>
     public int ReadCount { get; private set; }
+
+    /// <summary>The number of working-tree file diffs started so far.</summary>
+    public int WorkingReadCount { get; private set; }
+
+    /// <summary>The files a working-tree read of <paramref name="path"/> on <paramref name="side"/> returns from now on.</summary>
+    public void SetWorking(WorkingDiffSide side, string path, params DiffFile[] files) => _working[(side, path)] = files;
 
     /// <summary>A file with one hunk that adds these lines.</summary>
     public static DiffFile FileAdding(string path, IEnumerable<string> lines)
@@ -76,6 +84,29 @@ public sealed class FakeDiffReader : IDiffReader
         }
 
         foreach (var file in known.Files)
+        {
+            yield return file;
+        }
+    }
+
+    public async IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
+        RepositoryLocation location,
+        WorkingDiffSide side,
+        StatusEntry entry,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        cancellationToken.ThrowIfCancellationRequested();
+        WorkingReadCount++;
+        if (!_working.TryGetValue((side, entry.Path), out var files))
+        {
+            throw new GitException($"no diff for {entry.Path}");
+        }
+
+        foreach (var file in files)
         {
             yield return file;
         }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -24,12 +25,13 @@ public sealed class WorkingTreePresenter
         host.Changed += Sync;
         view.WorkingUnstaged.ValueChanged += (_, _) => OnSelected(view.WorkingUnstaged, WorkingTreeSection.Unstaged);
         view.WorkingStaged.ValueChanged += (_, _) => OnSelected(view.WorkingStaged, WorkingTreeSection.Staged);
-        view.WorkingFocus = FocusedList;
+        view.WorkingFocus = FocusedPane;
+        view.WorkingDiffView = DiffView;
     }
 
-    /// <summary>The list of the active tab that has focus in the working-tree view.</summary>
-    public PaneKind FocusedList() =>
-        _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingStaged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
+    /// <summary>The pane of the active tab that has focus in the working-tree view: a list or a diff, the Unstaged list when the focus is elsewhere.</summary>
+    public PaneKind FocusedPane() =>
+        _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsWorking(pane) ? pane : PaneKind.WorkingUnstaged;
 
     private void Sync()
     {
@@ -50,8 +52,8 @@ public sealed class WorkingTreePresenter
             _isSyncing = false;
         }
 
-        // A narrow screen shows only the focused list, so the layout depends on the focus.
-        var focus = FocusedList();
+        // A narrow screen shows only the focused list or the diff, so the layout depends on the focus.
+        var focus = FocusedPane();
         if (isShown && focus != _lastFocus)
         {
             _view.Window.SetNeedsLayout();
@@ -59,6 +61,12 @@ public sealed class WorkingTreePresenter
 
         _lastFocus = focus;
     }
+
+    // The side of the selected file names the diff's view for the mouse map.
+    private string DiffView() =>
+        _host.Workspace.ActiveTab?.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged
+            ? DefaultKeymap.WorkingStagedDiffView
+            : DefaultKeymap.WorkingUnstagedDiffView;
 
     private static void Select(ListView list, int? index)
     {

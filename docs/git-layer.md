@@ -17,7 +17,7 @@ Contract between Gitunia.Git and everything above it.
 
 - One parser per command, pure functions over `ReadOnlySpan<byte>`/string, with fixture-based tests (captured real output including odd cases: renames, copies, unicode paths, spaces, detached HEAD, unborn branch, merge in progress).
 - Parsers never throw on unknown fields; they ignore them and surface a warning.
-- Diffs: `DiffReader.ReadAsync(location, ["diff", ...])` streams `DiffFile` > `DiffHunk` > `DiffLine` (addressed by file, hunk and line index, with old/new line numbers). `DiffPatchWriter` writes files and hunks back verbatim, and `WriteSelection` builds a patch of chosen lines for `git apply --cached` (`-R` for `PatchDirection.Reverse`). Binary files carry no hunks, only header lines. Details and limits: `docs/history/git-layer.md` (#15).
+- Diffs: `DiffReader.ReadAsync(location, ["diff", ...])` streams `DiffFile` > `DiffHunk` > `DiffLine` (addressed by file, hunk and line index, with old/new line numbers). `IDiffReader.ReadWorkingFileAsync` reads one file of the working-tree view (unstaged, staged, untracked via `--no-index` with the `/dev/null` literal, conflicted via `DiffParser(readsCombined: true)`); paths go as `:(literal)` pathspecs after `--`, and a path with escaped (non-UTF-8) bytes is refused with `NotSupportedException` because the diff command has no `--pathspec-from-file`. `DiffPatchWriter` writes files and hunks back verbatim, and `WriteSelection` builds a patch of chosen lines for `git apply --cached` (`-R` for `PatchDirection.Reverse`). Binary files carry no hunks, only header lines. Details and limits: `docs/history/git-layer.md` (#15).
 
 ## Models
 

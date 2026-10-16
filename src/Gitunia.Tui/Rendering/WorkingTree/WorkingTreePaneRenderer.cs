@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -21,14 +22,16 @@ public static class WorkingTreePaneRenderer
     /// <summary>Shown in the Staged list when it is empty.</summary>
     public const string NothingStagedText = "Nothing staged";
 
-    /// <summary>Title of the diff box.</summary>
-    public const string DiffTitle = "Diff";
+    /// <summary>Shown in the diff box when the lists have no file to show.</summary>
+    public const string NoFileText = "No file selected";
+
+    /// <summary>The first word of the diff box's title.</summary>
+    public const string DiffTitleName = "Diff";
 
     /// <summary>Title of the message box.</summary>
     public const string MessageTitle = "Commit message";
 
-    /// <summary>The note in the diff box until the diff pane exists.</summary>
-    public const string DiffPlaceholderText = "The diff of the selected file is not implemented yet";
+
     /// <summary>The note in the message box until the editor exists.</summary>
     public const string MessagePlaceholderText = "The commit message box is not implemented yet";
 
@@ -118,9 +121,47 @@ public static class WorkingTreePaneRenderer
         return lines;
     }
 
-    /// <summary>The rows of the diff box until the diff pane exists.</summary>
-    public static IReadOnlyList<StyledLine> DiffPlaceholderLines(PaneRect rect, int padding, GraphGlyphSet glyphs) =>
-        PlaceholderLines(DiffPlaceholderText, rect, padding, glyphs);
+    /// <summary>
+    /// The title of the diff box: the side the file is on, the hunk the cursor is in, the markers of the diff options and the file
+    /// (last, since a long title is cut from the right).
+    /// </summary>
+    /// <param name="tree">The working tree, whose selection says which side is shown; null while the status is not loaded.</param>
+    /// <param name="diff">The diff box, null when there is none.</param>
+    public static string DiffTitle(WorkingTreeState? tree, DiffPaneModel? diff)
+    {
+        if (tree?.Selection is not { } selection || diff is null || diff.Document.FileRows.Count == 0)
+        {
+            return DiffTitleName;
+        }
+
+        var side = selection.Section == WorkingTreeSection.Staged ? "staged" : "unstaged";
+        var parts = new List<string> { DiffTitleName, side };
+        var hunks = diff.Document.HunkRows.Count;
+        if (hunks > 0)
+        {
+            var current = DiffPaneRenderer.HunkPosition(diff).ToString(CultureInfo.InvariantCulture);
+            parts.Add($"hunk {current}/{hunks.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        if (diff.IsWrapped)
+        {
+            parts.Add("[wrap]");
+        }
+
+        if (diff.OptionsLabel.Length > 0)
+        {
+            parts.Add(diff.OptionsLabel);
+        }
+
+        parts.Add(diff.Document.FilePaths[0][0]);
+        return string.Join("  ", parts);
+    }
+
+    /// <summary>The rows of the diff box, starting at the model's top row; blank rows when the tab has no diff.</summary>
+    public static IReadOnlyList<StyledLine> DiffLines(DiffPaneModel? diff, PaneRect rect, int padding, GraphGlyphSet glyphs) =>
+        diff is null
+            ? PlaceholderLines(string.Empty, rect, padding, glyphs)
+            : DiffPaneRenderer.RenderRows(diff, rect.Width, rect.Height, glyphs, padding);
 
     /// <summary>The rows of the message box until the editor exists.</summary>
     public static IReadOnlyList<StyledLine> MessagePlaceholderLines(PaneRect rect, int padding, GraphGlyphSet glyphs) =>

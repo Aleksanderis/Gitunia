@@ -181,6 +181,8 @@ public static class ActionIds
 
     public static ActionId WorkingTreeOpen { get; } = new("working-tree.open");
 
+    public static ActionId WorkingTreeOpenDiff { get; } = new("working-tree.open-diff");
+
     public static ActionId WorkingTreeToggle { get; } = new("working-tree.toggle");
 
     public static ActionId WorkingTreeStage { get; } = new("working-tree.stage");

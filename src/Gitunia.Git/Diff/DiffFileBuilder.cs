@@ -7,6 +7,7 @@ namespace Gitunia.Git.Diff;
 internal sealed class DiffFileBuilder
 {
     private const string NoNewlineMarker = "\\";
+    private const string CombinedHunkMarker = "@@@";
 
     private readonly List<string> _headerLines = [];
     private readonly List<DiffHunk> _hunks = [];
@@ -46,11 +47,24 @@ internal sealed class DiffFileBuilder
     private int _nextOldNumber;
     private int _nextNewNumber;
 
+    // Columns of line prefix in a combined diff (one per parent), 0 for an ordinary file.
+    private int _combinedParents;
+
     public DiffFileBuilder(string headerLine, List<string> warnings, int maximumLines = int.MaxValue)
+        : this(headerLine, warnings, maximumLines, isCombined: false)
+    {
+    }
+
+    private DiffFileBuilder(string headerLine, List<string> warnings, int maximumLines, bool isCombined)
     {
         _warnings = warnings;
         _maximumLines = maximumLines;
         _headerLines.Add(headerLine);
+        if (isCombined)
+        {
+            return;
+        }
+
         var paths = DiffPathText.SplitHeader(headerLine["diff --git ".Length..]);
         if (paths is null)
         {
@@ -66,11 +80,37 @@ internal sealed class DiffFileBuilder
     /// <summary>True while hunk lines are still expected, so a line that looks like a new file header is hunk content.</summary>
     public bool IsInHunkBody => _openHeaderText is not null && (_remainingOld > 0 || _remainingNew > 0);
 
+    /// <summary>
+    /// Starts a combined diff (<c>diff --cc path</c>, what <c>git diff</c> prints for a conflicted file). Its lines carry one prefix
+    /// column per parent; they are shown as one old/new pair: a line removed from any parent is removed, else one added to any
+    /// parent is added, else context. Line numbers are those of the result.
+    /// </summary>
+    public static DiffFileBuilder Combined(string headerLine, List<string> warnings, int maximumLines = int.MaxValue)
+    {
+        var builder = new DiffFileBuilder(headerLine, warnings, maximumLines, isCombined: true);
+        var path = DiffPathText.Unquote(headerLine[(headerLine.IndexOf(' ', "diff --".Length) + 1)..]);
+        builder._headerOldPath = path;
+        builder._headerNewPath = path;
+        builder._combinedParents = 1;
+        return builder;
+    }
+
+    /// <summary>Whether <paramref name="line"/> belongs to the open hunk, so the parser must not treat it as the start of the next file.</summary>
+    public bool TakesBodyLine(string line) => _combinedParents > 0
+        ? _openHeaderText is not null && !line.StartsWith("diff ", StringComparison.Ordinal)
+        : IsInHunkBody;
+
     /// <summary>A line of this file was not valid UTF-8, so the decoded text is not an exact copy.</summary>
     public void MarkInvalidText() => _hasInvalidText = true;
 
     public void Add(string line)
     {
+        if (_combinedParents > 0)
+        {
+            AddCombined(line);
+            return;
+        }
+
         if (IsInHunkBody)
         {
             AddHunkBodyLine(line);
@@ -130,6 +170,86 @@ internal sealed class DiffFileBuilder
         }
 
         return new DiffFile(oldPath, newPath, status, _oldMode, _newMode, _similarity, _isBinary, _headerLines, _hunks) { IsTruncated = _isTruncated, HasInvalidText = _hasInvalidText };
+    }
+
+    private void AddCombined(string line)
+    {
+        if (line.StartsWith(CombinedHunkMarker, StringComparison.Ordinal))
+        {
+            StartCombinedHunk(line);
+            return;
+        }
+
+        if (_openHeaderText is null)
+        {
+            _headerLines.Add(line);
+            ParseHeaderLine(line);
+            return;
+        }
+
+        if (line.StartsWith(NoNewlineMarker, StringComparison.Ordinal))
+        {
+            if (_openLines.Count > 0 && _lastLineStored)
+            {
+                _openLines[^1] = _openLines[^1] with { NoNewlineAtEnd = true };
+            }
+
+            return;
+        }
+
+        var prefixLength = Math.Min(_combinedParents, line.Length);
+        var prefix = line.AsSpan(0, prefixLength);
+        var text = line[prefixLength..];
+        if (prefix.Contains('-'))
+        {
+            Store(new DiffLine(DiffLineKind.Removed, text, null, null, false));
+        }
+        else if (prefix.Contains('+'))
+        {
+            Store(new DiffLine(DiffLineKind.Added, text, null, _nextNewNumber++, false));
+        }
+        else
+        {
+            Store(new DiffLine(DiffLineKind.Context, text, null, _nextNewNumber++, false));
+        }
+    }
+
+    private void StartCombinedHunk(string line)
+    {
+        CloseHunk();
+        var parents = 0;
+        while (parents < line.Length && line[parents] == '@')
+        {
+            parents++;
+        }
+
+        parents--;
+        var closing = line.IndexOf($" {new string('@', parents + 1)}", parents + 1, StringComparison.Ordinal);
+        var ranges = closing < 0 ? [] : line[(parents + 2)..closing].Split(' ');
+        if (ranges.Length != parents + 1
+            || ranges[0].Length < 2
+            || ranges[^1].Length < 2
+            || ranges[^1][0] != '+'
+            || !TryParseRange(ranges[0][1..], out var oldStart, out var oldCount)
+            || !TryParseRange(ranges[^1][1..], out var newStart, out var newCount))
+        {
+            // Keep the lines that follow as the body of an unnumbered hunk rather than as header lines.
+            _warnings.Add($"Could not read the hunk header '{line}'");
+            _combinedParents = Math.Max(1, parents);
+            _openHeaderText = line;
+            _nextNewNumber = 1;
+            return;
+        }
+
+        _combinedParents = parents;
+        _openHeaderText = line;
+        _openOldStart = oldStart;
+        _openOldCount = oldCount;
+        _openNewStart = newStart;
+        _openNewCount = newCount;
+        var rest = line[(closing + parents + 2)..];
+        _openSection = rest.StartsWith(' ') ? rest[1..] : rest;
+        _nextNewNumber = newStart;
     }
 
     private void ParseHeaderLine(string line)

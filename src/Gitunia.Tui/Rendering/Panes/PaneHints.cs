@@ -59,13 +59,31 @@ public static class PaneHints
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> WorkingDiff =
+    [
+        .. Pinned,
+        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
+        new("/", "search", [ActionIds.DiffSearchOpen]),
+        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
+        new("w", "wrap", [ActionIds.DiffToggleWrap]),
+        new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
+        new("F", "whole file", [ActionIds.DiffToggleWholeFile]),
+        new("W", "ignore space", [ActionIds.DiffToggleIgnoreWhitespace]),
+        new("S", "side by side", [ActionIds.DiffToggleSideBySide]),
+        new("L", "load all", [ActionIds.DiffLoadAnyway]),
+        new("y", "copy line", [ActionIds.DiffCopyLine]),
+        new("h", "back", [ActionIds.NavigateBack]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
     [
         .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
-        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("Tab", "other pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
@@ -76,7 +94,8 @@ public static class PaneHints
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
-        new("Tab", "other list", [ActionIds.PaneNext]),
+        new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("Tab", "other pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
         new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
@@ -97,6 +116,7 @@ public static class PaneHints
         PaneKind.Diff => Diff,
         PaneKind.WorkingUnstaged => WorkingUnstaged,
         PaneKind.WorkingStaged => WorkingStaged,
+        PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => WorkingDiff,
         _ => Graph,
     };
 

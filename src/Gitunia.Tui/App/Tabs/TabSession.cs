@@ -4,6 +4,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -17,11 +18,12 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabSession : IDisposable
 {
-    public TabSession(TabId tabId, GraphGlyphSet glyphs, CommitDetailsStore details, DiffStore? diffStore = null)
+    public TabSession(TabId tabId, GraphGlyphSet glyphs, CommitDetailsStore details, DiffStore? diffStore = null, WorkingDiffStore? workingDiffStore = null)
     {
         TabId = tabId;
         Details = details;
         Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs);
+        WorkingDiff = workingDiffStore is null ? null : new WorkingDiffSession(workingDiffStore, glyphs);
         DetailSource = new DetailListSource(glyphs);
         Graph = new CommitGraph();
         Source = new GraphListSource(Graph, glyphs);
@@ -38,6 +40,9 @@ public sealed class TabSession : IDisposable
 
     /// <summary>Raised when the initial load ended, successfully or not.</summary>
     public event Action? LoadFinished;
+
+    /// <summary>Raised when a refresh read the status again and found it unchanged, so a file the status lists may still have changed.</summary>
+    public event Action? StatusRead;
 
     public TabId TabId { get; }
 
@@ -60,6 +65,9 @@ public sealed class TabSession : IDisposable
     /// <summary>The tab's diff pane; null in sessions built without a diff store (tests).</summary>
     public DiffSession? Diff { get; }
 
+    /// <summary>The tab's working-tree diff; null in sessions built without a working diff store (tests).</summary>
+    public WorkingDiffSession? WorkingDiff { get; }
+
     /// <summary>The list source of the detail pane.</summary>
     public DetailListSource DetailSource { get; }
 
@@ -76,6 +84,13 @@ public sealed class TabSession : IDisposable
 
     /// <summary>Why loading stopped early, empty when it did not.</summary>
     public string LoadError { get; private set; } = string.Empty;
+
+    /// <summary>A refresh read the status and it did not change: the working-tree diff of the shown file is read again.</summary>
+    public void NotifyStatusRead()
+    {
+        WorkingDiff?.Invalidate();
+        StatusRead?.Invoke();
+    }
 
     public void MarkStarted()
     {
@@ -121,6 +136,7 @@ public sealed class TabSession : IDisposable
     {
         Details.Dispose();
         Diff?.Dispose();
+        WorkingDiff?.Dispose();
         Cancellation.Cancel();
         Cancellation.Dispose();
     }
