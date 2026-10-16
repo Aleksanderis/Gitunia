@@ -9,6 +9,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Branches;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
@@ -206,7 +207,10 @@ public sealed class BranchActions(
         var chosen = selection();
         if (chosen.RowKind is SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch && chosen.Name is { } name)
         {
-            _startPoint = name;
+            // The full ref name, so a tag called like the branch cannot be picked instead.
+            _startPoint = chosen.RowKind == SidebarRowKind.LocalBranch
+                ? $"{GitRefPrefixes.Heads}{name}"
+                : $"{GitRefPrefixes.Remotes}{name}";
             _label = name;
         }
         else if (chosen.CommitHash is { } hash)
