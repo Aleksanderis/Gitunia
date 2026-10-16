@@ -161,7 +161,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
    - Lines of an untracked text file are staged like any other lines (the file is recorded as intent-to-add first; the rest stays an unstaged addition). A mode change is never part of a partial patch.
    - Files that cannot be split (binary, staged-added, deleted, renamed without edits, untracked binary or symlink, a name that is not valid UTF-8) go whole when the key acts on the change group, and the status bar says so. Lines picked in a Visual range are never widened to the whole file: the status bar warns "cannot be split into lines" and nothing changes. A binary file has no hunks, so the key stages it whole.
    - The keys are refused while the diff is loading, for a conflicted file, and while the diff is cut short (`<space>vl` loads all of it first). Afterwards the status is read again and the cursor goes to the change group now at the same position (the next group when it was staged), or to the next file when the file is done. A renamed file with edits can be split: the rename header travels with the patch.
-4. **Conflicted files** show `!`. `<space>a` (or a double-click) on one opens a Confirm, "Mark X as resolved?", saying that conflict markers still in the file are not removed or checked and that `git checkout --merge <file>` re-creates the conflict (overwriting the file's current content). `y` runs `git add` on it (status: "Marked X resolved"). Stage all and a Visual range skip conflicted files and count them; a range of only conflicted files is refused. Resolving conflicts itself is M3.
+4. **Conflicted files** show `!`. `<space>a` (or a double-click) on one opens a Confirm, "Mark X as resolved?", saying that conflict markers still in the file are not removed or checked and that `git checkout --merge <file>` re-creates the conflict (overwriting the file's current content). `y` runs `git add` on it (status: "Marked X resolved"). Stage all and a Visual range skip conflicted files and count them; a range of only conflicted files is refused. The banner with continue, abort and skip and the mergetool key are M3 (workflow 4); a conflict editor stays post-MVP.
 5. Every action is also a palette entry. The lists refresh from the tab's status after each operation and on the file watcher; `<space>r` forces a refresh.
 
 **Discard.** Nothing discarded can be undone: git keeps no copy, so there is no reflog hint and no dangling stash; the Confirm dialog is the safety. `<space>d` on a file in Unstaged, or on a change group or Visual lines in the Unstaged diff, opens a Confirm that names what is lost; `y` runs it. There is no key for discarding staged changes (unstage first) and no "discard all".
@@ -182,7 +182,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
    - The message goes to `git commit -F -` on stdin, so comment lines (`#`) are kept, unlike a commit through `$EDITOR`. Hooks, signing and the author come from the user's git config. The commit runs off the UI thread with a 10 minute timeout so hooks can run; the box is read-only meanwhile, and `Esc` cancels it (git is killed, the draft stays; the notice says to check the history, because git may have finished first).
    - `<space>te` (also in the lists and the diff) commits through `$EDITOR` instead: the TUI suspends and git's own `commit` runs on the staged index. The draft is kept; git uses its own template.
    - **Nothing staged.** With nothing staged but unstaged or untracked changes present (Amend off, no merge, cherry-pick or revert in progress), the commit action opens a Confirm, `Nothing is staged. Stage all changes and commit?`. `y` stages everything as `<space>A` does (untracked included, conflicted skipped), waits for the status re-read and commits; `n`/`Esc` leaves the draft and the index untouched. The message and options are fixed when `y` is pressed.
-5. **Refusals,** without running git, with the reason in the status bar and focus kept in the box: an empty message, and nothing staged with Amend off and nothing to stage ("Nothing staged"). An amend with nothing staged is allowed and rewrites only the message. While a merge, cherry-pick or revert is in progress (`MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) the nothing-staged check is skipped, because finishing such an operation with an empty tree is valid; the operations themselves are M3. Amend is refused when there is no commit yet and during a merge.
+5. **Refusals,** without running git, with the reason in the status bar and focus kept in the box: an empty message, and nothing staged with Amend off and nothing to stage ("Nothing staged"). An amend with nothing staged is allowed and rewrites only the message. While a merge, cherry-pick or revert is in progress (`MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) the nothing-staged check is skipped, because finishing such an operation with an empty tree is valid; the operations themselves are M3 (workflows 3 and 4). Amend is refused when there is no commit yet and during a merge.
 6. **Amend.** Toggling it on fills the box with HEAD's message when the draft is empty (the draft is kept aside and restored when Amend is toggled off), shows `Amending <short hash> <subject>` in the box title and runs `git commit --amend`; staged changes are added to the amended commit. If HEAD is already on the upstream branch, the status bar warns that a force push will be needed. Undo path: the status message after the commit names the old hash ("Amended to abc1234; previous commit 9f8e7d6, `git reset --soft 9f8e7d6` restores it") and the reflog keeps it reachable.
 7. **Finishing a merge.** The box starts with git's `MERGE_MSG` (comment lines dropped); untouched, it does not count as an unsent message.
 8. **After a commit.** The draft and Amend are cleared, SignOff and No-Verify keep their state, the lists refresh, the status bar says `Committed abc1234` and focus returns to the lists. The history view picks up the commit through the normal refresh.
@@ -195,15 +195,68 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 
 **Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens keep `Enter`/`l`). The discard itself is reached from the palette, not a list button.
 
-### Still to design before their milestones
+### 3. Branches, tags, merge, reset and the reflog (M3, planned)
 
-3. Create/switch/rename/delete branch; set upstream; see ahead/behind.
-4. Worktrees: add (new branch or existing), switch the app's active worktree, remove, prune, lock; see dirty state across all worktrees at a glance.
-5. Merge, rebase onto, cherry-pick, revert from the graph.
-6. Stash push/apply/pop/drop.
-7. Fetch/pull/push with visible progress and cancel.
+Planned keys, written here and not yet in the keymap table: each implementing issue adds its table rows with its bindings (`KeymapDocumentationTests` fails on a documented binding that is not registered). `<space>t` is the tools prefix (`td` `tm` `te`), so these use other prefixes: `<space>b` branches, `<space>g` operations on the selected commit, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes. Every action is also a palette entry and has a mouse path (a button in the sidebar section header, or a click on the row and then the same key).
 
-Each needs a written step-by-step key flow here before it is implemented.
+**Common rules.**
+- **Target.** The graph acts on the selected commit, the sidebar on the selected row. The status bar names the target while a prompt is open.
+- **Prompts.** A name is typed in a one-line prompt in the status bar (Insert mode: `Enter` runs, `Esc` cancels), prefilled where a default exists. A choice of a branch or ref uses the fuzzy picker of `<space>f`.
+- **Confirm.** Every destructive step (delete, force, hard reset, drop, remove, discard) opens the Confirm dialog of the Modes section. It names the exact target, says what is lost and shows the undo hint (reflog hash, `git stash store <hash>`, the branch's old tip); `y` runs it, `n` or `Esc` drops it.
+- **Refusals** run no git and say why in the status bar: a branch checked out in another worktree (the message points to `<space>ws`), a dirty tree where git would refuse, a detached HEAD where a branch is needed.
+- **No editor, no prompts.** Every call that could open an editor passes `--no-edit` or `-c core.editor=true`; stdin is closed, so a hook that prompts fails with git's output shown in an overlay like a failed commit. Messages are edited in the commit box or with `<space>te`.
+- **Result.** Success posts a status message with the new state; a failure shows git's message. An operation that stops on conflicts is not a failure: it becomes an in-progress operation (workflow 4). All lists refresh from the tab's status afterwards and the cursor follows the new HEAD or the created ref.
+
+**Branches** (`<space>b` + key):
+1. `bc` create: prompt for the name, start point the selected commit (graph) or branch (sidebar); the new branch is checked out. `bC` creates without checking out. Name clashes and invalid names are refused before git runs.
+2. `bs` switch (checkout): picker of local branches, remote branches (creates a tracking branch) and, from a graph commit, a detached checkout. In the sidebar `Enter` still only selects, so `bs` is the explicit checkout. A dirty tree that conflicts with the target is refused with git's list of files; nothing is stashed behind the user's back.
+3. `br` rename the selected branch (prompt prefilled with its name). `bd` delete: Confirm; an unmerged branch needs a second, explicit Confirm that says its commits become unreachable and prints the tip hash for `git branch <name> <hash>`. The current branch and one held by another worktree are refused.
+4. `bu` set upstream (picker of remote branches), `bU` unset. Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
+5. Sidebar shortcuts on a branch row: `d` delete, `r` rename.
+
+**Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
+1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`). The message is git's default (`--no-edit`).
+2. `gr` rebase the current branch onto the selection. A Confirm warns when the branch is already on its upstream (history rewrite, force push needed).
+3. `gp` cherry-pick the selection (a Visual range in the graph picks every commit, oldest first). `gv` revert it the same way (`--no-edit`).
+4. A merge commit asked to cherry-pick or revert gets a mainline prompt (parent 1 or 2, parent subjects shown).
+5. A dirty tree is refused for rebase; for the others git decides and its message is shown.
+
+**Reset** (`<space>gx`, not a single letter, so it cannot clash with vim motions or `g` chords): the current branch moves to the selected commit. A small dialog offers `s` soft (keeps index and files), `m` mixed (keeps files, clears the index), `h` hard. Soft and mixed run at once and show the old tip in the status ("Reset to abc1234, was def5678"). Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files are untouched, and it says so) and the old tip for the undo. Refused during an in-progress operation and on a detached HEAD. The reflog view offers the same key on an entry.
+
+**Tags** (`<space>T` + key): `Tc` create at the selected commit (prompt for the name, then an optional message: empty makes a lightweight tag, text an annotated one, so no editor is needed). `Td` delete: Confirm with the tag's target hash. `Tp` push the selected tag to a remote: one ref, no progress, no prompts, git's error shown; the push of workflow 5 generalises it. Deleting a remote tag is out of scope for M3. Sidebar shortcut on a tag row: `d`.
+
+**Reflog** (`<space>l`, graph and sidebar): opens a list view of `HEAD`'s reflog (newest first: short hash, `HEAD@{n}`, action and message, relative time). `j`/`k`/`gg`/`G`/`/` as in any list; `Enter` selects the commit in the graph (a commit outside the loaded graph says so); `gx` resets the current branch to the entry (the reset rules above); `bc` creates a branch there and `bs` checks it out detached. `Esc` or `h` returns. The view is read from git on open and on `<space>r`.
+
+### 4. In-progress operations: banner, continue, abort, skip (M3, planned)
+
+One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase of M4 (#399) reuses it. `RepositoryOperationDetector` names the operation from the git directory.
+
+1. **Banner.** While an operation is in progress the tab shows a banner row under the tab bar: `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows its step count). It is read from the repository, so it survives a restart of the app, and the tab bar shows a marker.
+2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` opens the configured mergetool. Resolving inside Gitunia (a conflict editor) stays post-MVP.
+3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (git's prepared message). A rebase may stop again at the next commit: the banner updates.
+4. **Abort** (`<space>ga`): Confirm that says the work of the operation is undone and resolutions are lost, with the old tip. **Skip** (`<space>gk`; rebase, cherry-pick and revert only): Confirm naming the commit that is dropped.
+5. **Other actions are blocked.** While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
+6. **Completion.** A continue that finishes the operation posts "Merged feature/x into main (abc1234)" or the equivalent and removes the banner.
+
+### 5. Fetch, pull and push (M4, keys planned here)
+
+`<space>F` fetch (all remotes, no prune by default), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch. Chips in the tab bar and the sidebar header carry the same three actions. Each runs in the background with a progress line in the status bar (git's `--progress` output), `<space>x` cancels, and the tab stays usable. A push to a branch without an upstream prompts for the remote (default `origin`) and sets the upstream. A force push is only ever `--force-with-lease`, behind a Confirm that names the remote branch it will overwrite. Credential prompts and the generalised tag push are handled by #44.
+
+### 6. Worktrees (M3, planned)
+
+`<space>w` + key. The sidebar's Worktrees section shows each worktree with branch, dirty marker (changed, staged, conflicted), ahead/behind and `locked`/`prunable` flags, so dirty state across all worktrees is visible at a glance without switching.
+1. `wa` add: prompt for the path (default a sibling directory named after the branch), then a choice: new branch (name prompt, start point the selection) or an existing branch (picker; one held by another worktree is refused). The tab stays where it is.
+2. `ws` switch (on a worktree row): the tab's active worktree changes in place and keeps its view state (selection, scroll, pane layout); the tab bar and the sidebar `*` follow. `Ctrl-t` on the row opens it as its own tab instead. Switching never changes the process working directory.
+3. `wd` remove: Confirm naming the path; a dirty worktree needs a second Confirm that lists what is lost; a locked one is refused until unlocked; the main worktree and the one the tab is on are refused.
+4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
+
+### 7. Stashes (M3, planned)
+
+`<space>S` + key, or single keys on a stash row in the sidebar.
+1. `Ss` push: prompt for an optional message; untracked files are included only after a second choice, ignored ones never. Refused with nothing to stash.
+2. `Sa` apply, `Sp` pop (sidebar `a`, `p`): a conflict keeps the stash, starts no operation, marks the files `!` and says so in the status bar. A pop that succeeds drops the entry.
+3. `Sd` drop (sidebar `d`): Confirm with the stash subject; the hint is `git stash store -m "<subject>" <hash>`, and the hash is shown in the status message after the drop.
+4. `Enter` on a stash row shows its diff in the detail pane (a stash is not a graph node).
 
 ## Look and colours
 
