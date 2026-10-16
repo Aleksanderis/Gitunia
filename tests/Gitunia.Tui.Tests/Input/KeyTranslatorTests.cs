@@ -85,7 +85,7 @@ public class KeyTranslatorTests
     [InlineData("5j", "list.down", 5)]
     [InlineData("gg", "list.top", null)]
     [InlineData("G", "list.bottom", null)]
-    [InlineData("@", "graph.jump-to-head", null)]
+    [InlineData(" h", "graph.jump-to-head", null)]
     [InlineData("q", "app.quit", null)]
     public void GivenTerminalGuiKeys_WhenFedThroughTheKeymap_ThenGraphActionsFire(string typed, string expectedAction, int? expectedCount)
     {

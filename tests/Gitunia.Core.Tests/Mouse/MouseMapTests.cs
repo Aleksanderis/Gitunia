@@ -132,7 +132,7 @@ public class MouseMapTests
     [Theory]
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, "[c")]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "]c")]
-    [InlineData(DefaultMouseMap.DiffWrapButton, "w")]
+    [InlineData(DefaultMouseMap.DiffWrapButton, "<space>vw")]
     [InlineData(DefaultMouseMap.DiffZoomButton, "<space>z")]
     public void GivenADiffButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {

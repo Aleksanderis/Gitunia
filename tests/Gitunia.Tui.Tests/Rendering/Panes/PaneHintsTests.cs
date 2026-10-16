@@ -16,11 +16,11 @@ public class PaneHintsTests
     [InlineData(PaneKind.Graph, "gg/G")]
     [InlineData(PaneKind.Sidebar, "/")]
     [InlineData(PaneKind.Detail, "l")]
-    [InlineData(PaneKind.Diff, "w")]
+    [InlineData(PaneKind.Diff, "<space>vw")]
     [InlineData(PaneKind.WorkingUnstaged, "y")]
     [InlineData(PaneKind.WorkingStaged, "y")]
     [InlineData(PaneKind.WorkingUnstagedDiff, "]c/[c")]
-    [InlineData(PaneKind.WorkingStagedDiff, "w")]
+    [InlineData(PaneKind.WorkingStagedDiff, "<space>vw")]
     public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
     {
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == expectedKeys);

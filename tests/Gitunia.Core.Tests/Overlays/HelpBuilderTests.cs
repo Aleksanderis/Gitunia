@@ -79,7 +79,6 @@ public class HelpBuilderTests
         var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView));
 
         Assert.Contains(new WhichKeyRow("g", "Go to the top"), rows);
-        Assert.Contains(new WhichKeyRow("r", "Jump to a ref or hash"), rows);
         Assert.Contains(new WhichKeyRow("t", "Next tab"), rows);
     }
 

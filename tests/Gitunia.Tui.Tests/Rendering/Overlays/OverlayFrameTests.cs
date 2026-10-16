@@ -201,8 +201,8 @@ public class OverlayFrameTests
             string.Join(
                 '\n',
                 " : _                                                                    ",
-                "│ Jump to HEAD                                                       @ │",
-                "│ Jump to a ref or hash                                             gr │",
+                "│ Jump to HEAD                                                <space>h │",
+                "│ Jump to a ref or hash                                       <space>f │",
                 "│ Quick jump to a visible row                                 <space>j │",
                 "│ Focus the commit details                                       Enter │",
                 "│ Copy the commit hash                                               y │",
@@ -225,7 +225,7 @@ public class OverlayFrameTests
         var entries = new List<PaletteEntry>
         {
             new(ActionIds.ListDown, "Move down", "j"),
-            new(ActionIds.GraphJumpToHead, "Jump to HEAD", "@", false),
+            new(ActionIds.GraphJumpToHead, "Jump to HEAD", "<space>h", false),
         };
 
         var frame = PaletteFrameBuilder.Build(new PaletteState(entries), 80, 24, GraphGlyphSet.Unicode)!;
@@ -330,8 +330,8 @@ public class OverlayFrameTests
                 '\n',
                 " Keys: Graph                                                    ",
                 "│ Graph                                                        │",
-                "│  @                    │ Jump to HEAD                         │",
-                "│  gr                   │ Jump to a ref or hash                │",
+                "│  <space>h             │ Jump to HEAD                         │",
+                "│  <space>f             │ Jump to a ref or hash                │",
                 "│  <space>j             │ Quick jump to a visible row          │",
                 "│  Enter                │ Focus the commit details             │",
                 "│  y                    │ Copy the commit hash                 │",
@@ -377,15 +377,14 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " g-                          ",
-                "│ r  Jump to a ref or hash  │",
-                "│ d  Show the Details tab   │",
-                "│ c  Show the Changes tab   │",
-                "│ f  Show the Files tab     │",
-                "│ g  Go to the top          │",
-                "│ t  Next tab               │",
-                "│ T  Previous tab           │",
-                "╰───────────────────────────╯"),
+                " g-                         ",
+                "│ d  Show the Details tab  │",
+                "│ c  Show the Changes tab  │",
+                "│ f  Show the Files tab    │",
+                "│ g  Go to the top         │",
+                "│ t  Next tab              │",
+                "│ T  Previous tab          │",
+                "╰──────────────────────────╯"),
             Text(frame));
         Assert.Equal(60 - frame!.Width, frame.Column);
         Assert.Equal(11 - frame.Height, frame.Row);
