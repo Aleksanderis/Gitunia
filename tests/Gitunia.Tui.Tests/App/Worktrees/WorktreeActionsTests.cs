@@ -197,7 +197,8 @@ public sealed class WorktreeActionsTests
     [Fact]
     public async Task GivenPrunableWorktree_WhenPruningAndConfirming_ThenOnlyItsEntryGoes()
     {
-        using var repository = TestRepositories.WithManyWorktrees(out var lockedPath, out var prunablePath, out var dirtyPath);
+        using var repository =
+            TestRepositories.WithManyWorktrees(out var lockedPath, out var prunablePath, out var dirtyPath);
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath, null);
 
         var notice = harness.Execute(ActionIds.WorktreePrune);
@@ -384,7 +385,8 @@ public sealed class WorktreeActionsTests
             await WaitForRefreshAsync();
         }
 
-        /// <summary>Answers the latest dialog with <c>y</c> and waits for the refresh that follows, or for a further dialog.</summary>
+        /// <summary>Answers the latest dialog with <c>y</c> and waits for the refresh that follows, or for a further
+        /// dialog.</summary>
         public async Task AnswerAsync()
         {
             var shown = Prompts.Count;
@@ -417,7 +419,11 @@ public sealed class WorktreeActionsTests
         private async Task ReloadAsync()
         {
             var tabId = _host.Workspace.ActiveTabId!.Value;
-            var details = new CommitDetailsStore(TestGit.Services.CommitDetails, _location, action => action(), TimeSpan.Zero);
+            var details = new CommitDetailsStore(
+                TestGit.Services.CommitDetails,
+                _location,
+                action => action(),
+                TimeSpan.Zero);
             var session = new TabSession(tabId, GraphGlyphSet.Unicode, details);
             await TestGit.Services.RepositoryLoader
                 .RunAsync(_location, session, _host, new StatusChannel(), InlineUi.Post, Token);

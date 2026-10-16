@@ -16,10 +16,11 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Worktrees;
 
 /// <summary>
-/// The worktree operations of the sidebar (ux.md, workflow 6): add (a branch prompt, then a path prompt), remove (a Confirm, and a
-/// second one that lists the changes a dirty worktree would lose), lock (optional reason), unlock and prune (a Confirm listing the
-/// entries). Refusals run no git and say why. What is acted on is fixed when the dialog opens; git runs off the UI thread and the
-/// tab reads its repository again afterwards. One operation per tab at a time, shared with staging and discarding.
+/// The worktree operations of the sidebar (ux.md, workflow 6): add (a branch prompt, then a path prompt), remove (a
+/// Confirm, and a second one that lists the changes a dirty worktree would lose), lock (optional reason), unlock
+/// and prune (a Confirm listing the entries). Refusals run no git and say why. What is acted on is fixed when the
+/// dialog opens; git runs off the UI thread and the tab reads its repository again afterwards. One operation per
+/// tab at a time, shared with staging and discarding.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Runs the git calls.</param>
@@ -27,10 +28,12 @@ namespace Gitunia.Tui.App.Worktrees;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="refresh">Reads the repository of a tab again; false when it cannot.</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot be shown.</param>
+/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot
+/// be shown.</param>
 /// <param name="gate">The one-operation-per-tab gate.</param>
 /// <param name="selectedRow">The sidebar row under the cursor of the active tab.</param>
-/// <param name="selectedCommit">The commit selected in the graph (the start point of a new branch), null for none.</param>
+/// <param name="selectedCommit">The commit selected in the graph (the start point of a new branch), null for
+/// none.</param>
 /// <param name="setMode">Switches the input mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 public sealed class WorktreeActions(
@@ -220,7 +223,8 @@ public sealed class WorktreeActions(
             return;
         }
 
-        var existing = tab.Refs.FirstOrDefault(candidate => candidate.Kind == RefKind.LocalBranch && candidate.Name == name);
+        var existing = tab.Refs.FirstOrDefault(
+            candidate => candidate.Kind == RefKind.LocalBranch && candidate.Name == name);
         if (existing?.CheckedOutIn is { } holder)
         {
             Notice = $"{name} is already checked out in {holder}: a branch can be in one worktree only";
@@ -248,7 +252,8 @@ public sealed class WorktreeActions(
             return;
         }
 
-        var parent = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(tab.Location.RootPath)) ?? tab.Location.RootPath;
+        var root = tab.Location.RootPath;
+        var parent = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(root)) ?? root;
         var path = Path.GetFullPath(text, parent);
         var request = new WorktreeAddRequest(path, _branch, _startPoint);
         var done = $"Added worktree {path} on {_branch}";
@@ -273,7 +278,8 @@ public sealed class WorktreeActions(
             return refusal;
         }
 
-        return confirm(WorktreeTexts.RemovePrompt(worktree), () => StartRemove(tab, worktree)) ? string.Empty : TooSmallNotice;
+        var shown = confirm(WorktreeTexts.RemovePrompt(worktree), () => StartRemove(tab, worktree));
+        return shown ? string.Empty : TooSmallNotice;
     }
 
     private void StartRemove(RepositoryState tab, WorktreeInfo worktree)
@@ -307,11 +313,13 @@ public sealed class WorktreeActions(
         }
         catch (Exception exception)
         {
-            postToUi(() => Finish(tab.Id, $"Could not remove the worktree: {OperationText.Reason(exception)}", StatusSeverity.Error));
+            var failure = $"Could not remove the worktree: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
 
-    // The first answer was y, but the worktree turned out dirty: nothing is removed unless a second dialog that lists the loss gets y.
+    // The first answer was y, but the worktree turned out dirty: nothing is removed unless a second dialog that lists
+    // the loss gets y.
     private void AskAboutChanges(RepositoryState tab, WorktreeInfo worktree, IReadOnlyList<string> changes)
     {
         gate.End(tab.Id);
@@ -320,14 +328,18 @@ public sealed class WorktreeActions(
             () => StartForcedRemove(tab, worktree));
         if (!shown)
         {
-            statuses.Warning($"{worktree.Path} has uncommitted changes and the screen is too small to ask: nothing was removed");
+            statuses.Warning($"{worktree.Path} has changes and the screen is too small to ask: nothing was removed");
         }
     }
 
     private void StartForcedRemove(RepositoryState tab, WorktreeInfo worktree)
     {
         var forced = $"Removed worktree {worktree.Path} and its uncommitted changes";
-        Start(tab, token => writer.RemoveAsync(tab.Location, worktree.Path, force: true, token), forced, "remove the worktree");
+        Start(
+            tab,
+            token => writer.RemoveAsync(tab.Location, worktree.Path, force: true, token),
+            forced,
+            "remove the worktree");
     }
 
     private string BeginLock(RepositoryState tab)
@@ -381,7 +393,11 @@ public sealed class WorktreeActions(
             return $"{worktree.Path} is not locked";
         }
 
-        Start(tab, token => writer.UnlockAsync(tab.Location, worktree.Path, token), $"Unlocked worktree {worktree.Path}", "unlock the worktree");
+        Start(
+            tab,
+            token => writer.UnlockAsync(tab.Location, worktree.Path, token),
+            $"Unlocked worktree {worktree.Path}",
+            "unlock the worktree");
         return string.Empty;
     }
 
@@ -417,7 +433,7 @@ public sealed class WorktreeActions(
         try
         {
             var removed = await writer.PruneAsync(tab.Location, token).ConfigureAwait(false);
-            var message = $"Pruned {OperationText.Plural(removed.Count, "worktree entry").Replace("entrys", "entries", StringComparison.Ordinal)}";
+            var message = removed.Count == 1 ? "Pruned 1 worktree entry" : $"Pruned {removed.Count} worktree entries";
             postToUi(() => Finish(tab.Id, message, StatusSeverity.Info));
         }
         catch (OperationCanceledException)
@@ -441,7 +457,12 @@ public sealed class WorktreeActions(
         _ = Task.Run(() => RunAsync(tab.Id, work, success, verb, token), CancellationToken.None);
     }
 
-    private async Task RunAsync(TabId tabId, Func<CancellationToken, Task> work, string success, string verb, CancellationToken token)
+    private async Task RunAsync(
+        TabId tabId,
+        Func<CancellationToken, Task> work,
+        string success,
+        string verb,
+        CancellationToken token)
     {
         try
         {

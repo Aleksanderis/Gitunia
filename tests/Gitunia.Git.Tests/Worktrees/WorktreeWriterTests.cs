@@ -2,6 +2,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Worktrees.Models;
@@ -136,9 +137,9 @@ public class WorktreeWriterTests
         var location = await Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
 
         await Writer.LockAsync(location, path, "on a usb stick", Token);
-        var locked = (await Refs.ReadWorktreesAsync(location, Token)).Items.Single(item => item.BranchFullName == "refs/heads/lockable-branch");
+        var locked = await ReadLockableAsync(location);
         await Writer.UnlockAsync(location, path, Token);
-        var unlocked = (await Refs.ReadWorktreesAsync(location, Token)).Items.Single(item => item.BranchFullName == "refs/heads/lockable-branch");
+        var unlocked = await ReadLockableAsync(location);
 
         Assert.True(locked.IsLocked);
         Assert.Equal("on a usb stick", locked.LockReason);
@@ -154,7 +155,7 @@ public class WorktreeWriterTests
 
         await Writer.LockAsync(location, path, "  ", Token);
 
-        var locked = (await Refs.ReadWorktreesAsync(location, Token)).Items.Single(item => item.BranchFullName == "refs/heads/lockable-branch");
+        var locked = await ReadLockableAsync(location);
         Assert.True(locked.IsLocked);
         Assert.Null(locked.LockReason);
     }
@@ -162,7 +163,8 @@ public class WorktreeWriterTests
     [Fact]
     public async Task GivenPrunableAndLockedAndDirtyWorktrees_WhenPruning_ThenOnlyThePrunableEntryGoes()
     {
-        using var repository = TestRepositories.WithManyWorktrees(out var lockedPath, out var prunablePath, out var dirtyPath);
+        using var repository =
+            TestRepositories.WithManyWorktrees(out var lockedPath, out var prunablePath, out var dirtyPath);
         var location = await Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
 
         var removed = await Writer.PruneAsync(location, Token);
@@ -185,6 +187,12 @@ public class WorktreeWriterTests
         var removed = await Writer.PruneAsync(location, Token);
 
         Assert.Empty(removed);
+    }
+
+    private static async Task<WorktreeInfo> ReadLockableAsync(RepositoryLocation location)
+    {
+        var worktrees = await Refs.ReadWorktreesAsync(location, Token);
+        return worktrees.Items.Single(item => item.BranchFullName == "refs/heads/lockable-branch");
     }
 
     private static string NewPath(TestRepository repository, string name) =>

@@ -6,8 +6,8 @@ using Gitunia.Git.Worktrees.Models;
 namespace Gitunia.Git.Worktrees;
 
 /// <summary>
-/// Changes worktrees with the git CLI. Paths and names are arguments after <c>--</c> where git allows it, so a name that starts
-/// with a dash is never taken as an option; hooks (<c>post-checkout</c>) run in the user's environment.
+/// Changes worktrees with the git CLI. Paths and names are arguments after <c>--</c> where git allows it, so a name
+/// that starts with a dash is never taken as an option; hooks (<c>post-checkout</c>) run in the user's environment.
 /// </summary>
 public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
 {
@@ -28,7 +28,10 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
     private static readonly string[] ChangesArguments =
         ["status", "--porcelain", GitOptions.NulTerminated, "--no-renames", "--untracked-files=normal"];
 
-    public async Task AddAsync(RepositoryLocation location, WorktreeAddRequest request, CancellationToken cancellationToken)
+    public async Task AddAsync(
+        RepositoryLocation location,
+        WorktreeAddRequest request,
+        CancellationToken cancellationToken)
     {
         string[] arguments = request.NewBranchStartPoint is { } startPoint
             ? [Worktree, "add", NewBranchOption, request.Branch, GitOptions.EndOfOptions, request.Path, startPoint]
@@ -79,14 +82,18 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
         await RunAsync(location.CommandPath, arguments, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<string>> PruneAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> PruneAsync(
+        RepositoryLocation location,
+        CancellationToken cancellationToken)
     {
         var result = await RunAsync(location.CommandPath, PruneArguments, cancellationToken).ConfigureAwait(false);
 
         // Verbose prune reports "Removing worktrees/<name>: <reason>" on stderr.
         return
         [
-            .. result.StandardError.Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            .. result.StandardError.Split(
+                LineSeparator,
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         ];
     }
 

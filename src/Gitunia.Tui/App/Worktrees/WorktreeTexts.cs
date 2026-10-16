@@ -5,7 +5,8 @@ using Gitunia.Tui.App.WorkingTree;
 
 namespace Gitunia.Tui.App.Worktrees;
 
-/// <summary>The wording of the worktree dialogs and refusals (ux.md, workflow 6): pure, so the texts are testable without a terminal.</summary>
+/// <summary>The wording of the worktree dialogs and refusals (ux.md, workflow 6): pure, so the texts are testable
+/// without a terminal.</summary>
 public static class WorktreeTexts
 {
     private const int NamedChangeLimit = 5;
@@ -56,7 +57,8 @@ public static class WorktreeTexts
         return new ConfirmPrompt(
             "Remove worktree with changes",
             [
-                $"{worktree.Path} has {OperationText.Plural(changes.Count, "changed or untracked path")}: {string.Join(", ", names)}{more}",
+                $"{worktree.Path} has {OperationText.Plural(changes.Count, "changed or untracked path")}: " +
+                $"{string.Join(", ", names)}{more}",
                 "Remove it anyway?",
             ],
             DirtyConsequence,
@@ -77,7 +79,8 @@ public static class WorktreeTexts
             "Prune");
     }
 
-    /// <summary>The default path of a new worktree: a sibling of the tab's working tree named after the branch.</summary>
+    /// <summary>The default path of a new worktree: a sibling of the tab's working tree named after the
+    /// branch.</summary>
     public static string DefaultPath(string tabRoot, string branch)
     {
         var parent = Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(tabRoot)) ?? tabRoot;
@@ -86,13 +89,15 @@ public static class WorktreeTexts
     }
 
     public static string ShortName(string fullName) =>
-        fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Heads.Length..] : fullName;
+        fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
+            ? fullName[GitRefPrefixes.Heads.Length..]
+            : fullName;
 
     private static string RemoveUndoHint(WorktreeInfo worktree)
     {
         if (worktree.BranchFullName is { } branch)
         {
-            return $"Undo: git worktree add <path> {ShortName(branch)} checks the branch out again (a clean worktree has nothing else to lose).";
+            return $"Undo: git worktree add <path> {ShortName(branch)} checks the branch out again.";
         }
 
         var hash = worktree.HeadHash is { Length: >= ShortHashLength } head ? head[..ShortHashLength] : "<hash>";
