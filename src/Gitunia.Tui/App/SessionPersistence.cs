@@ -27,7 +27,13 @@ public sealed class SessionPersistence : IDisposable
     /// <param name="statuses">Told when a save fails.</param>
     /// <param name="postToUi">Runs an action on the UI thread; saves run on a timer thread.</param>
     /// <param name="captureDrafts">Reads the commit drafts of the tabs; called on the UI thread only (null keeps none).</param>
-    public SessionPersistence(SessionStore store, WorkspaceHost host, TimeSpan debounce, StatusChannel statuses, Action<Action> postToUi, Func<IReadOnlyDictionary<TabId, SessionDraft>>? captureDrafts = null)
+    public SessionPersistence(
+        SessionStore store,
+        WorkspaceHost host,
+        TimeSpan debounce,
+        StatusChannel statuses,
+        Action<Action> postToUi,
+        Func<IReadOnlyDictionary<TabId, SessionDraft>>? captureDrafts = null)
     {
         _captureDrafts = captureDrafts ?? (() => new Dictionary<TabId, SessionDraft>());
         _statuses = statuses;
@@ -54,14 +60,14 @@ public sealed class SessionPersistence : IDisposable
         Save();
     }
 
+    /// <summary>Tells that a commit draft changed (UI thread); the session is saved after the debounce.</summary>
+    public void NotifyDraftChanged() => OnChanged();
+
     public void Dispose()
     {
         _host.Changed -= OnChanged;
         _timer.Dispose();
     }
-
-    /// <summary>Tells that a commit draft changed (UI thread); the session is saved after the debounce.</summary>
-    public void NotifyDraftChanged() => OnChanged();
 
     private void OnChanged()
     {
@@ -72,11 +78,7 @@ public sealed class SessionPersistence : IDisposable
     // The drafts are mutable UI objects: copy them here, on the UI thread, and let the timer thread save the copy.
     private void CaptureDrafts()
     {
-        var captured = _captureDrafts();
-        lock (_saveLock)
-        {
-            _drafts = captured;
-        }
+        Volatile.Write(ref _drafts, _captureDrafts());
     }
 
     private static bool SameDrafts(IReadOnlyDictionary<TabId, SessionDraft> left, IReadOnlyDictionary<TabId, SessionDraft> right) =>
@@ -87,13 +89,13 @@ public sealed class SessionPersistence : IDisposable
         lock (_saveLock)
         {
             var snapshot = _host.Workspace;
-            var drafts = _drafts;
+            var drafts = Volatile.Read(ref _drafts);
             if (ReferenceEquals(snapshot, _lastSaved) && SameDrafts(drafts, _lastSavedDrafts))
             {
                 return;
             }
 
-            if (_store.SaveAsync(snapshot, CancellationToken.None, drafts).GetAwaiter().GetResult())
+            if (_store.SaveAsync(snapshot, drafts, CancellationToken.None).GetAwaiter().GetResult())
             {
                 _lastSaved = snapshot;
                 _lastSavedDrafts = drafts;

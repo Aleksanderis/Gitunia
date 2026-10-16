@@ -41,7 +41,7 @@ public class SessionStoreTests
         var workspace = SessionFixtures.Open(Workspace.Empty, "alpha");
         var drafts = new Dictionary<TabId, SessionDraft> { [workspace.Tabs[0].Id] = new("fix: keep it", true, true) };
 
-        await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, TestContext.Current.CancellationToken, drafts);
+        await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, drafts, TestContext.Current.CancellationToken);
         var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
 
         var draft = Assert.Single(result.Drafts);

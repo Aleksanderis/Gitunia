@@ -117,7 +117,10 @@ public sealed class CommitActions(
         var result = new Dictionary<TabId, SessionDraft>();
         foreach (var (tabId, draft) in _drafts)
         {
-            var saved = new SessionDraft(draft.HasUnsentText ? draft.Editor.Text : string.Empty, draft.SignOff, draft.NoVerify);
+            
+            // Amend is not saved, so an amend message (HEAD's, maybe edited) must not come back as a plain new draft.
+            var text = draft.HasUnsentText && !draft.Amend ? draft.Editor.Text : string.Empty;
+            var saved = new SessionDraft(text, draft.SignOff, draft.NoVerify);
             if (!saved.IsEmpty)
             {
                 result[tabId] = saved;

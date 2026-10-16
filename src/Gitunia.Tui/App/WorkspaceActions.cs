@@ -14,8 +14,14 @@ namespace Gitunia.Tui.App;
 /// <param name="host">The workspace.</param>
 /// <param name="picker">The repository picker.</param>
 /// <param name="quit">Stops the program.</param>
-/// <param name="hasUnsentMessage">Tells whether a tab holds a commit message that was not committed (closing it needs a second step); null for never.</param>
-public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker, Action quit, Func<TabId, bool>? hasUnsentMessage = null)
+/// <param name="hasUnsentMessage">
+/// Tells whether a tab holds a commit message that was not committed (closing it needs a second step); null for never.
+/// </param>
+public sealed class WorkspaceActions(
+    WorkspaceHost host,
+    PickerController picker,
+    Action quit,
+    Func<TabId, bool>? hasUnsentMessage = null)
 {
     private const string GoToPrefix = "tab.go-to.";
 
@@ -149,7 +155,8 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
         {
             // The first close only says so; the same action again right after (nothing else in between) closes and drops the draft.
             _closeArmedFor = activeId;
-            Message = $"Unsent commit message in {host.Workspace.ActiveTab?.Title}: close again to lose it, or commit it first";
+            Message = $"Unsent commit message in {host.Workspace.ActiveTab?.Title}: "
+                + "close again to lose it, or commit it first";
             return;
         }
 

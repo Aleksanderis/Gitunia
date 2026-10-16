@@ -1,7 +1,7 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Persistence;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -430,6 +430,19 @@ public class CommitActionsTests
         Assert.Equal("Subject", harness.Draft.Editor.Text);
         Assert.True(harness.Draft.SignOff);
         Assert.True(harness.Commits.HasUnsentMessage(harness.Tab.Id));
+    }
+
+    [Fact]
+    public void GivenAmendWithAnEditedMessage_WhenSnapshotting_ThenTheMessageIsNotSaved()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.SetAmend(true);
+        harness.Draft.Editor.SetText("Edited HEAD message");
+        harness.Draft.SignOff = true;
+
+        var saved = Assert.Single(harness.Commits.SnapshotForSession()).Value;
+
+        Assert.Equal(new SessionDraft(string.Empty, true, false), saved);
     }
 
     private sealed class Harness : IDisposable

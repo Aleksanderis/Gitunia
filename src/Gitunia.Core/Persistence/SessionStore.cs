@@ -79,11 +79,20 @@ public sealed class SessionStore
         return new SessionLoadResult(session.Update, SessionLoadStatus.Restored, null) { Drafts = session.Drafts };
     }
 
-    /// <summary>Writes the session atomically. Returns false when the file could not be written (read-only or full disk); the app keeps running.</summary>
+    /// <summary>Writes the session without drafts; see the overload with drafts.</summary>
     /// <param name="workspace">The workspace to save.</param>
     /// <param name="cancellationToken">Cancels the write.</param>
+    public Task<bool> SaveAsync(Workspace workspace, CancellationToken cancellationToken) =>
+        SaveAsync(workspace, null, cancellationToken);
+
+    /// <summary>Writes the session atomically. Returns false when the file could not be written (read-only or full disk); the app keeps running.</summary>
+    /// <param name="workspace">The workspace to save.</param>
     /// <param name="drafts">The commit drafts by tab id; null saves none.</param>
-    public async Task<bool> SaveAsync(Workspace workspace, CancellationToken cancellationToken, IReadOnlyDictionary<TabId, SessionDraft>? drafts = null)
+    /// <param name="cancellationToken">Cancels the write.</param>
+    public async Task<bool> SaveAsync(
+        Workspace workspace,
+        IReadOnlyDictionary<TabId, SessionDraft>? drafts,
+        CancellationToken cancellationToken)
     {
         var content = JsonSerializer.SerializeToUtf8Bytes(SessionDocumentMapper.ToDocument(workspace, drafts), SessionJsonContext.Default.SessionDocument);
         try

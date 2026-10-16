@@ -14,7 +14,9 @@ public static class SessionDocumentMapper
     /// <summary>Snapshots the workspace, including tabs whose repository is currently missing.</summary>
     /// <param name="workspace">The workspace to save.</param>
     /// <param name="drafts">The commit drafts by tab id; null saves none.</param>
-    public static SessionDocument ToDocument(Workspace workspace, IReadOnlyDictionary<TabId, SessionDraft>? drafts = null)
+    public static SessionDocument ToDocument(
+        Workspace workspace,
+        IReadOnlyDictionary<TabId, SessionDraft>? drafts = null)
     {
         var tabs = new List<SessionTabDocument>(workspace.Tabs.Length);
         int? activeIndex = null;
@@ -26,7 +28,9 @@ public static class SessionDocumentMapper
                 activeIndex = index;
             }
 
-            var draft = drafts is not null && drafts.TryGetValue(tab.Id, out var found) && !found.IsEmpty ? found : null;
+            var draft = drafts is not null && drafts.TryGetValue(tab.Id, out var found) && !found.IsEmpty
+                ? found
+                : null;
             tabs.Add(new SessionTabDocument
             {
                 DraftMessage = draft?.Message,
@@ -91,7 +95,8 @@ public static class SessionDocumentMapper
             var isMissing = !directoryExists(location.CommandPath);
             var tab = RepositoryState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = RepositoryState.NormalizeName(documentTabs[index].CustomName) };
             tabs.Add(tab);
-            var saved = new SessionDraft(documentTabs[index].DraftMessage ?? string.Empty, documentTabs[index].DraftSignOff, documentTabs[index].DraftNoVerify);
+            var source = documentTabs[index];
+            var saved = new SessionDraft(source.DraftMessage ?? string.Empty, source.DraftSignOff, source.DraftNoVerify);
             if (!saved.IsEmpty)
             {
                 drafts[id] = saved;
