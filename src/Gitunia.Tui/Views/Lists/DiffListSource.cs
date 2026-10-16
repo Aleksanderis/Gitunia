@@ -33,8 +33,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public bool HighlightsGroup { get; set; }
 
     /// <summary>
-    /// Which staging buttons the first line of the highlighted change group carries (none by default); read on every draw,
-    /// as the side follows the selected file.
+    /// Which staging buttons the first line of the highlighted change group carries (none by default); read on every
+    /// draw, as the side follows the selected file.
     /// </summary>
     public Func<WorkingTreeButtons> GroupButtons { get; set; } = () => WorkingTreeButtons.None;
 

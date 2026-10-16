@@ -8,8 +8,9 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <summary>
 /// The chips at the right edge of the first line of the change group under the cursor in the working-tree diff:
 /// <c>stage</c> and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side. They are the same buttons,
-/// views and actions as the ones in the title row (<see cref="DiffTitleButtons"/>), placed where the eye is. A row too narrow to keep
-/// <see cref="MinimumTextWidth"/> columns of diff text drops <c>discard</c>, then the rest.
+/// views and actions as the ones in the title row (<see cref="DiffTitleButtons"/>), placed where the eye is.
+/// A row too narrow to keep <see cref="MinimumTextWidth"/>
+/// columns of diff text drops <c>discard</c>, then the rest.
 /// </summary>
 public static class ChangeGroupButtons
 {
@@ -22,9 +23,9 @@ public static class ChangeGroupButtons
 
     private static readonly TitleButton Discard = new(DefaultMouseMap.DiffDiscardButton, " discard ", 0);
 
-    /// <summary>The buttons that fit, left to right, a column of space before each, ending at the right end of the text.</summary>
+    /// <summary>The buttons that fit, left to right, a space before each, ending at the text's right end.</summary>
     /// <param name="textWidth">Columns of the diff text between the paddings.</param>
-    /// <param name="padding">Padding columns on each side of the text; columns count from the start of the padded line.</param>
+    /// <param name="padding">Padding columns on each side of the text; columns count from the line's start.</param>
     /// <param name="side">Which side of the working tree the diff shows.</param>
     public static IReadOnlyList<TitleButton> Layout(int textWidth, int padding, WorkingTreeButtons side)
     {
@@ -60,7 +61,7 @@ public static class ChangeGroupButtons
         return placed;
     }
 
-    /// <summary>The line with <paramref name="buttons"/> drawn over its right end (the text under them is cut).</summary>
+    /// <summary>The line with <paramref name="buttons"/> drawn over its right end (the text under is cut).</summary>
     /// <param name="line">The padded line.</param>
     /// <param name="buttons">From <see cref="Layout"/>; none returns the line as it is.</param>
     /// <param name="padding">Padding columns on the right of the line.</param>
