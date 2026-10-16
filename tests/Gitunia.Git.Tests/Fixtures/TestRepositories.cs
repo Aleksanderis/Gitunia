@@ -111,7 +111,7 @@ public static class TestRepositories
     public static TestRepository CherryPickConflicted() => ConflictingBranches().CherryPickExpectingConflict("other");
 
     /// <summary>
-    /// A revert of the first change to <c>conflict.txt</c> stopped on a conflict (a later commit changed the same line).
+    /// A revert of the first change to <c>conflict.txt</c> stopped on a conflict (a later commit changed the line).
     /// </summary>
     public static TestRepository RevertConflicted()
     {
