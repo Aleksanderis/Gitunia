@@ -213,7 +213,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ 1/97 Ctrl-j/k move  Enter run  Esc close                             │",
+                "│ 1/101 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -313,7 +313,7 @@ public class OverlayFrameTests
         var lines = Text(frame).Split('\n');
 
         Assert.True(frame.Row + lines.Length <= screenHeight - 1, "The frame must end above the status row.");
-        Assert.Contains("97/97", lines[^2]);
+        Assert.Contains("101/101", lines[^2]);
         Assert.True(frame.Lines[^3].IsSelected, "The last entry must be the selected row, directly above the footer.");
     }
 

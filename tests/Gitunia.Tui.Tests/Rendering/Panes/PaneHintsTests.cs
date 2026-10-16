@@ -176,6 +176,7 @@ public class PaneHintsTests
     private static IEnumerable<string> ExpandAlternatives(string keys)
     {
         const string ctrlPrefix = "Ctrl-";
+        const string leaderPrefix = "<space>";
         const string slashKey = "/";
         var alternatives = keys == slashKey ? [keys] : keys.Split(slashKey[0]);
         for (var index = 0; index < alternatives.Length; index++)
@@ -184,6 +185,11 @@ public class PaneHintsTests
             if (index > 0 && alternative.Length == 1 && alternatives[0].StartsWith(ctrlPrefix, StringComparison.Ordinal))
             {
                 yield return $"{ctrlPrefix}{alternative}";
+            }
+            else if (index > 0 && alternative.Length == 1
+                && alternatives[0].StartsWith(leaderPrefix, StringComparison.Ordinal))
+            {
+                yield return $"{leaderPrefix}{alternative}";
             }
             else
             {

@@ -145,7 +145,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 - Leave with `h`/`Esc` from a list (back to the history with the same graph selection) or `<space>s` again. `Esc` in the diff and the message box steps back to the lists first (the 1c rule). `q` quits from every pane.
 - Opening focuses the first non-empty list (Unstaged, else Staged). A clean tree shows "Nothing to commit, working tree clean"; the message box stays usable for Amend.
 
-**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message. `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between the stacked lists, `Ctrl-w l` from either goes to the diff. `l`/`Enter` on a file moves into its diff, `h`/`Esc` back. `y` copies the file's path.
+**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message. `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between the stacked lists, `Ctrl-w l` from either goes to the diff. `l`/`Enter` on a file moves into its diff, `h`/`Esc` back. `y` copies the file's path. `<space>1`..`<space>4` jump straight to Unstaged, Staged, Diff (of the file under the cursor) and Message from any pane, including the message box in Normal mode; not in Insert mode, where space is text (`Esc` first).
 
 **Side-specific keys.** Each list and each diff side is its own view for the keymap, so help and hints show only what applies: `<space>a`, `<space>A`, `<space>d` exist only on the Unstaged side, `<space>u`, `<space>U` only on the Staged side; the other key there is unbound, not a no-op.
 
@@ -189,7 +189,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 9. **Failure.** A failing hook (non-zero exit), a prompt, or a signing program that needs a passphrase fails the commit, keeps the draft and the staged state, and shows git's and the hooks' output (stderr, then stdout such as `nothing to commit`) in a scrollable overlay (title `Commit failed`, `Esc` closes it; the status bar carries the first line). Under the output a hint says that no keyboard input reaches git and its hooks (stdin is closed) and that `<space>te` runs `git commit` in the real terminal where it can prompt. Files a hook rewrites show as new unstaged changes after the refresh. A commit that fails on a tab that is not active leaves the status bar notice and keeps its output; the overlay opens once that tab is shown.
 
 **Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...). A Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key) or a `Ctrl-`/`Alt-` combination. Check this before adding a binding.
-- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump).
+- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
 - **`Alt-`:** `Alt-p` and `Alt-d` are Picker-only, `Alt-1`..`Alt-9` jump tabs, `Alt-s` `Alt-n` `Alt-a` act only in the working-tree view.
 - **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
 
@@ -310,6 +310,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingUnstaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
 | WorkingUnstaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingUnstaged | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | WorkingStaged | `<space>j` | Quick jump: type text, labels appear on the files in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingStaged | `<space>r` | Refresh the status |
 | WorkingStaged | `y` | Copy the path of the file under the cursor |
@@ -320,12 +321,14 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingStaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingStaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
 | WorkingStaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingStaged | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | WorkingMessage | `i` / `Enter` | Edit the message (Insert mode) |
 | WorkingMessage | `<space>c` | Commit the staged changes with the message and options |
 | WorkingMessage | `<space>te` | Commit with `$EDITOR` (the draft is kept: git uses its own template) |
 | WorkingMessage | `<space>r` | Refresh the status |
 | WorkingMessage | `h` / `Esc` | Back to the file lists |
 | WorkingMessage | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingMessage | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | WorkingMessage (Insert) | `Enter` | Start a new line (the other editing keys are in workflow 2 and are not rebindable rows) |
 | WorkingMessage (Insert) | `Alt-Enter` `Ctrl-g` | Commit; `Ctrl-g` is the fallback for terminals that swallow `Alt-Enter` |
 | WorkingMessage (Insert) | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend |
@@ -352,6 +355,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstagedDiff | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingUnstagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
 | WorkingUnstagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingUnstagedDiff | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | WorkingStagedDiff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingStagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
 | WorkingStagedDiff | `]c` `[c` | Next / previous change group |
@@ -371,6 +375,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingStagedDiff | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingStagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
 | WorkingStagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingStagedDiff | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |

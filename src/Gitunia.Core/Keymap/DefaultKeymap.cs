@@ -250,6 +250,10 @@ public static class DefaultKeymap
             Add(bindings, TextEntry, view, "Alt-s", ActionIds.WorkingTreeToggleSignOff);
             Add(bindings, TextEntry, view, "Alt-n", ActionIds.WorkingTreeToggleNoVerify);
             Add(bindings, TextEntry, view, "Alt-a", ActionIds.WorkingTreeToggleAmend);
+            Add(bindings, NormalOnly, view, "<space>1", ActionIds.WorkingTreeFocusUnstaged);
+            Add(bindings, NormalOnly, view, "<space>2", ActionIds.WorkingTreeFocusStaged);
+            Add(bindings, NormalOnly, view, "<space>3", ActionIds.WorkingTreeFocusDiff);
+            Add(bindings, NormalOnly, view, "<space>4", ActionIds.WorkingTreeFocusMessage);
         }
     }
 
