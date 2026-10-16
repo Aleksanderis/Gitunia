@@ -1,17 +1,17 @@
 namespace Gitunia.Platform;
 
-public abstract class PlatformBase : IPlatform
+/// <summary>
+/// The one <see cref="IPlatform"/> for every OS. Gitunia is a terminal app, so it follows terminal-app convention instead of
+/// per-OS directories: <c>~/.config/gitunia</c> and <c>~/.local/state/gitunia</c> (or <c>XDG_CONFIG_HOME</c> / <c>XDG_STATE_HOME</c>
+/// when set) on Linux, macOS and Windows alike, so the config folder can be kept in a dotfiles repository.
+/// </summary>
+public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariable = null) : IPlatform
 {
-    private readonly Func<string, string?> _getEnvironmentVariable;
+    private readonly Func<string, string?> _getEnvironmentVariable = getEnvironmentVariable ?? Environment.GetEnvironmentVariable;
 
-    protected PlatformBase(Func<string, string?>? getEnvironmentVariable = null)
-    {
-        _getEnvironmentVariable = getEnvironmentVariable ?? Environment.GetEnvironmentVariable;
-    }
+    public string ConfigDirectory => Path.Combine(ReadEnvironment("XDG_CONFIG_HOME") ?? Path.Combine(Home, ".config"), PlatformInfo.AppDirectoryName);
 
-    public abstract string ConfigDirectory { get; }
-
-    public abstract string StateDirectory { get; }
+    public string StateDirectory => Path.Combine(ReadEnvironment("XDG_STATE_HOME") ?? Path.Combine(Home, ".local", "state"), PlatformInfo.AppDirectoryName);
 
     public ConsoleCapabilities DetectConsole()
     {
@@ -20,7 +20,7 @@ public abstract class PlatformBase : IPlatform
     }
 
     /// <summary>User home; falls back to the temp directory so paths never become cwd-relative.</summary>
-    protected static string Home
+    private static string Home
     {
         get
         {
@@ -29,7 +29,7 @@ public abstract class PlatformBase : IPlatform
         }
     }
 
-    protected string? ReadEnvironment(string name)
+    private string? ReadEnvironment(string name)
     {
         var value = _getEnvironmentVariable(name);
         return string.IsNullOrEmpty(value) ? null : value;

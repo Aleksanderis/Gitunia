@@ -16,34 +16,48 @@ State layer (pure: (State, Command) -> (State, Effects))
 Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 ```
 
-- standalone workspace model. `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos) and each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts without any repo (empty workspace shows the repo picker) and restores the previous session when there is one.
-- persistence (open tabs, recents, pins, per-tab view state, config) lives in the user config/state dir, written atomically; a corrupt or missing file must never prevent startup.
-- three layers, strictly one-way dependencies: Rendering -> State -> Git. Git knows nothing about state or UI; State knows nothing about the console.
-- State is pure and testable without a terminal. Effects (run a git command, open an editor, copy to clipboard) are returned as data and executed by a runner that feeds results back as commands.
-- all git calls are async, cancellable and time-bounded; the UI never blocks on them.
-- Terminal.Gui v2 is the UI toolkit; the rendering layer wraps it and the state layer never sees it. Custom drawing (commit graph, diff) goes in custom views; modal keys and chords are handled at the application level by our keymap engine. Settings and pitfalls (iteration rate, streaming list source, key handling) and the measured numbers are in `docs/history/architecture.md`. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`).
+## The four projects
+
+Each project is a layer. It is defined by what it may know about.
+
+| Project | Job | May depend on | Must not touch |
+|---|---|---|---|
+| `Gitunia.Platform` | OS and environment code only: config/state directory locations, console capability detection, launching external programs (`$EDITOR`, difftool), byte-exact file deletion. It knows nothing about git or the app. | the OS | git, state, UI |
+| `Gitunia.Git` | Runs the `git` CLI and turns its output into typed results: process runner, parsers, readers (commits, refs, status, diff, stash, worktrees), the graph model. | Platform | state, UI |
+| `Gitunia.Core` | The app's logic: `AppState`, commands, effects, keymap, mouse map, config, session persistence. Pure `(State, Command) -> (State, Effects)`; runs and tests without a terminal. | Git (its types) | the console, Terminal.Gui, spawning processes |
+| `Gitunia.Tui` | What you see and touch: Terminal.Gui views, rendering, key and mouse translation, the effect runner, and `Program.Main` (the AOT binary). | everything | nothing is above it |
+
+Dependencies run one way: **Tui -> Core -> Git -> Platform** (Tui also uses Platform directly). The compiler enforces it; for example Core cannot reference Terminal.Gui.
+
+Platform and Core are not the same thing: Platform is the bottom layer ("how do I do this on this OS?") and knows nothing about Gitunia; Core is the middle layer ("what happens when the user presses `j`?") and knows nothing about the OS.
+
+Example, Enter on a commit: Tui turns the key into a key event; Core's keymap makes it a command and the reducer returns a new state plus an effect ("load the diff for repo X, commit Y"); Tui's effect runner executes it through a Git reader; Git spawns `git show` and returns a parsed diff; the result goes back to Core as a command, the state updates and Tui redraws.
+
+## Principles
+
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
+- **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
+- **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
+- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`). Settings, pitfalls and measured numbers: `docs/history/architecture.md`.
 
 ## Solution layout
 
 ```
 src/
-  Gitunia.Platform/   the only OS-specific code: config/state dirs, console capability detection
-  Gitunia.Git/        process runner, parsers, readers (instance classes with an interface where the Tui consumes them), repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
-  Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap and Search with a `Models/` subfolder, Workspaces with Panes, Repositories and Tabs subfolders, ...)
-  Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views; subfolders Lists, Theme), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search, jump-to-ref and the quick-jump prompt with its IJumpTarget), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, CommandLine, Details, Overlays, Panes, Sidebar, Tabs)
-tests/
-  Gitunia.Git.Tests/  against real temp repos
-  Gitunia.Core.Tests/ pure state/keymap tests
-  Gitunia.Tui.Tests/  snapshot tests of rendered frames
-  Gitunia.Platform.Tests/
-tools/
-  AnsiToSvg/          turns a tmux capture of the live UI into SVG for PR screenshots (local only, never in CI)
+  Gitunia.Platform/   OS-specific code
+  Gitunia.Git/        git process runner, parsers, readers, models
+  Gitunia.Core/       state, commands, effects, keymap, config (no console, no process)
+  Gitunia.Tui/        renderer, input, views, app wiring, entry point (AOT publish target)
+tests/                one test project per src project, same names plus `.Tests`
+tools/AnsiToSvg/      tmux capture of the live UI to SVG for PR screenshots (local only, never in CI)
 scripts/              bash and PowerShell helpers: big-repo generator, measurement harness, inspectcode wrapper, screenshots
 ```
 
-Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`. Unused usings fail the build (IDE0005; it needs `GenerateDocumentationFile`, so the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`). Small `Models/` folders (Refs, Watching, Execution) stay for consistency.
-
-Dependencies: Tui -> Core -> Git -> Platform (Tui also -> Platform). Build config is in `Directory.Build.props` / `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`. Adjust here when the layout changes.
+- Folders are domain first, technical kind second (`Models/` for records and enums); namespaces follow folders. Look at the folders themselves for the current domain list.
+- Each test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`). Test types: Git tests run against real temp repos, Core tests are pure state/keymap tests, Tui tests are snapshot tests of rendered frames. Shared helpers sit in the folder of their domain or in `Fixtures/`.
+- Unused usings fail the build (IDE0005, which needs `GenerateDocumentationFile`; the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`).
+- Build config is in `Directory.Build.props` and `Directory.Packages.props` (central package management); `IL*` (AOT/trim) warnings fail the build through the global `TreatWarningsAsErrors`.
 
 ## External tools
 
@@ -68,7 +82,8 @@ Static versus instance rules: `.claude/rules/csharp-style.md`. `Program.Main` cr
 ## Cross-platform
 
 - Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first, and add Windows/macOS to CI in M4.
-- Platform-specific code lives behind a small abstraction in one place (config/state dirs: XDG / `%APPDATA%` / `~/Library`; console setup: raw mode and VT input/output; resize notification: SIGWINCH vs console events; process spawning and signals; file watching quirks). Every abstraction has an implementation or an explicit "unsupported" result for each OS.
+- Platform-specific code lives behind a small abstraction in one place (console setup: raw mode and VT input/output; resize notification: SIGWINCH vs console events; process spawning and signals; file watching quirks). Every abstraction has an implementation or an explicit "unsupported" result for each OS.
+- Config and state locations follow terminal-app convention on every OS, not the OS-native dirs: config in `$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, state in `$XDG_STATE_HOME/gitunia` or `~/.local/state/gitunia`. So the config folder can live in a dotfiles repository, and config stays apart from machine-local state.
 - Never hardcode path separators, `/tmp`, `/dev/null` or line endings; handle case-insensitive file systems, long Windows paths and CRLF in diffs.
 - Terminal features are capability-detected (truecolor/256/16, Unicode width, mouse, OSC 52), not assumed.
 

@@ -5,25 +5,5 @@ public static class PlatformInfo
 {
     public const string AppDirectoryName = "gitunia";
 
-    public static IPlatform Current { get; } = Create();
-
-    private static IPlatform Create()
-    {
-        if (OperatingSystem.IsLinux())
-        {
-            return new LinuxPlatform();
-        }
-
-        if (OperatingSystem.IsWindows())
-        {
-            return new WindowsPlatform();
-        }
-
-        if (OperatingSystem.IsMacOS())
-        {
-            return new MacPlatform();
-        }
-
-        return new UnsupportedPlatform();
-    }
+    public static IPlatform Current { get; } = new TerminalPlatform();
 }

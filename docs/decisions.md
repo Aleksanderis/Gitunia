@@ -231,3 +231,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Quick jump (#353) is one action on `<space>j` in the graph, diffs and working-tree lists; side-by-side diff (#381) and the detail pane (#382) follow.
 
 **UI:** Drafts and quit (#369): a missing tab's draft moves to the replacing tab; `q` quits at once unless the final session save fails with an unsent message. Supersedes the quit-guard removal of #347.
+
+## 2026-10-16
+
+**Platform:** Config and state dirs are the same on every OS: `$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, `$XDG_STATE_HOME/gitunia` or `~/.local/state/gitunia` (supersedes the per-OS dirs, e.g. `%APPDATA%`). Why: Gitunia is a terminal app, config is hand-edited and kept in dotfiles repositories, and config stays apart from machine-local state.

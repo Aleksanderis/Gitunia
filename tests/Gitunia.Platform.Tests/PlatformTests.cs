@@ -56,16 +56,25 @@ public class DetectionTests
     }
 
     [Fact]
-    public void GivenXdgVars_WhenReadingLinuxDirectories_ThenTheyAreUsed()
+    public void GivenXdgVars_WhenReadingDirectories_ThenTheyAreUsed()
     {
         var platform = With(new EnvironmentVariable("XDG_CONFIG_HOME", "/x/c"), new EnvironmentVariable("XDG_STATE_HOME", "/x/s"));
         Assert.Equal(Path.Combine("/x/c", "gitunia"), platform.ConfigDirectory);
         Assert.Equal(Path.Combine("/x/s", "gitunia"), platform.StateDirectory);
     }
 
-    private static LinuxPlatform With(params EnvironmentVariable[] environment)
+    [Fact]
+    public void GivenNoXdgVars_WhenReadingDirectories_ThenTheyAreUnderTheHomeDotDirectories()
+    {
+        var platform = With();
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        Assert.Equal(Path.Combine(home, ".config", "gitunia"), platform.ConfigDirectory);
+        Assert.Equal(Path.Combine(home, ".local", "state", "gitunia"), platform.StateDirectory);
+    }
+
+    private static TerminalPlatform With(params EnvironmentVariable[] environment)
     {
         var dictionary = environment.ToDictionary(entry => entry.Key, entry => entry.Value);
-        return new LinuxPlatform(key => dictionary.GetValueOrDefault(key));
+        return new TerminalPlatform(key => dictionary.GetValueOrDefault(key));
     }
 }
