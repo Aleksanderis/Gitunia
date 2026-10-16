@@ -37,6 +37,20 @@ public static class MessageEditorRenderer
         return cursorRow >= top + height ? cursorRow - height + 1 : Math.Max(0, top);
     }
 
+    /// <summary>
+    /// Display columns the cursor's line is scrolled sideways while it is drawn with the cursor in a box of
+    /// <paramref name="width"/> columns; the other lines are not scrolled. A click at cell <c>c</c> of that line is column
+    /// <c>c</c> plus this.
+    /// </summary>
+    /// <param name="editor">The message.</param>
+    /// <param name="width">Text columns of the box.</param>
+    public static int ScrollOffset(MessageEditor editor, int width)
+    {
+        var elements = SplitElements(editor.Lines[editor.CursorRow]);
+
+        return WidthOf(elements, FirstVisibleElement(elements, editor.CursorColumn, width));
+    }
+
     /// <summary>The visible rows for a box of <paramref name="width"/> by <paramref name="height"/> cells.</summary>
     /// <param name="editor">The message.</param>
     /// <param name="width">Columns.</param>

@@ -45,6 +45,21 @@ public class MessageEditorRendererTests
     }
 
     [Fact]
+    public void GivenAScrolledCursorLine_WhenAskingTheOffset_ThenItMatchesWhatIsDrawn()
+    {
+        var editor = new MessageEditor();
+        editor.SetText("abcdefghij");
+
+        var offset = MessageEditorRenderer.ScrollOffset(editor, 4);
+        var drawn = MessageEditorRenderer.Render(editor, 4, 1, true)[0].Text;
+
+        Assert.Equal(7, offset);
+        Assert.Equal("hij ", drawn);
+        editor.PlaceCursor(0, offset + 1);
+        Assert.Equal(8, editor.CursorColumn);
+    }
+
+    [Fact]
     public void GivenSubjectPastTheSoftLimit_WhenRendering_ThenOnlyTheOverflowIsHinted()
     {
         var editor = new MessageEditor();

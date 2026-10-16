@@ -2,14 +2,15 @@ using System.Globalization;
 using System.Text;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Editing;
 
 /// <summary>
 /// The multi-line commit message editor (Insert mode of the working-tree message box): lines, a cursor and the editing
-/// keys. Up and Down keep the column as a count of text elements, not of display columns (Core has no width table).
-/// Renderer-agnostic and pure: it never sees the terminal. The cursor always sits between whole text elements, so a wide
-/// character, an emoji sequence or a letter with combining marks is never split. Keys that do not edit
+/// keys. Up and Down keep the display column (wide characters take two), <c>Tab</c> inserts spaces up to the next
+/// multiple of four columns, and a click places the cursor at a display column. Renderer-agnostic and pure: it never sees
+/// the terminal. The cursor always sits between whole text elements, so a wide character, an emoji sequence or a letter with combining marks is never split. Keys that do not edit
 /// (<c>Esc</c>, <c>Alt-Enter</c>, <c>Ctrl-g</c>, the <c>Alt-</c> option toggles) are left to the caller.
 /// </summary>
 public sealed class MessageEditor
@@ -20,10 +21,11 @@ public sealed class MessageEditor
     private const char NewLine = '\n';
     private const char CarriageReturn = '\r';
     private const char Tab = '\t';
+    private const int TabWidth = 4;
     private const string WindowsLineEnding = "\r\n";
 
     private readonly List<string> _lines = [string.Empty];
-    private int _desiredElements;
+    private int _desiredWidth;
 
     /// <summary>The lines of the message; at least one (possibly empty).</summary>
     public IReadOnlyList<string> Lines => _lines;
@@ -33,6 +35,12 @@ public sealed class MessageEditor
 
     /// <summary>The cursor position in the line as a UTF-16 index, always at the start of a text element.</summary>
     public int CursorColumn { get; private set; }
+
+    /// <summary>The cursor's display column in its line (wide characters take two, combining marks none).</summary>
+    public int CursorDisplayColumn => DisplayWidth.Of(_lines[CursorRow][..CursorColumn]);
+
+    /// <summary>Display columns of the first line, the subject.</summary>
+    public int SubjectWidth => DisplayWidth.Of(_lines[0]);
 
     /// <summary>The message as git takes it: lines joined with <c>\n</c>.</summary>
     public string Text => string.Join(NewLine, _lines);
@@ -48,6 +56,18 @@ public sealed class MessageEditor
         CursorRow = 0;
         CursorColumn = 0;
         Insert(text);
+    }
+
+    /// <summary>
+    /// Puts the cursor where a click landed: the line is clamped to the text and the column is a display column in
+    /// that line; the cursor goes to the element boundary at or before it, or to the line end past the text.
+    /// </summary>
+    /// <param name="row">Zero-based line.</param>
+    /// <param name="displayColumn">Display column in the line.</param>
+    public void PlaceCursor(int row, int displayColumn)
+    {
+        var line = Math.Clamp(row, 0, _lines.Count - 1);
+        MoveTo(line, ColumnAtWidth(_lines[line], Math.Max(0, displayColumn)));
     }
 
     /// <summary>Empties the editor.</summary>
@@ -89,6 +109,11 @@ public sealed class MessageEditor
         {
             Insert(key.Name);
             return true;
+        }
+
+        if (key.Name == KeyNames.Tab && key.Modifiers != KeyModifiers.None)
+        {
+            return false;
         }
 
         return key.Modifiers switch
@@ -137,6 +162,9 @@ public sealed class MessageEditor
                 return true;
             case KeyNames.Down:
                 MoveVertically(1);
+                return true;
+            case KeyNames.Tab:
+                Insert(new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
                 return true;
             case KeyNames.Home:
                 MoveTo(CursorRow, 0);
@@ -275,15 +303,29 @@ public sealed class MessageEditor
             return;
         }
 
-        var line = _lines[row];
+        CursorRow = row;
+        CursorColumn = ColumnAtWidth(_lines[row], _desiredWidth);
+    }
+
+    // The last element boundary whose display column does not pass the wanted one (a wide character is never split).
+    private static int ColumnAtWidth(string line, int width)
+    {
         var column = 0;
-        for (var element = 0; element < _desiredElements && column < line.Length; element++)
+        var used = 0;
+        while (column < line.Length)
         {
-            column = NextBoundary(line, column);
+            var next = NextBoundary(line, column);
+            var elementWidth = DisplayWidth.Of(line[column..next]);
+            if (used + elementWidth > width)
+            {
+                break;
+            }
+
+            used += elementWidth;
+            column = next;
         }
 
-        CursorRow = row;
-        CursorColumn = column;
+        return column;
     }
 
     private void MoveTo(int row, int column)
@@ -293,15 +335,5 @@ public sealed class MessageEditor
         RememberColumn();
     }
 
-    private void RememberColumn()
-    {
-        var line = _lines[CursorRow];
-        var elements = 0;
-        for (var column = 0; column < CursorColumn; column = NextBoundary(line, column))
-        {
-            elements++;
-        }
-
-        _desiredElements = elements;
-    }
+    private void RememberColumn() => _desiredWidth = CursorDisplayColumn;
 }

@@ -352,6 +352,63 @@ public class CommitActionsTests
 
     private sealed record Output(string Title, string Heading, IReadOnlyList<string> Lines);
 
+    [Fact]
+    public void GivenAMessage_WhenClickingAnotherLine_ThenTheCursorLandsThereWithoutScrollOffset()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("first line\nsecond line");
+
+        harness.Commits.PlaceCursor(3, 0, 20);
+
+        Assert.Equal((0, 3), (harness.Draft.Editor.CursorRow, harness.Draft.Editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenAScrolledCursorLineWhileEditing_WhenClickingIt_ThenTheScrollOffsetIsAdded()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("abcdefghij");
+
+        harness.Commits.PlaceCursor(1, 0, 4);
+
+        Assert.Equal(8, harness.Draft.Editor.CursorColumn);
+    }
+
+    [Fact]
+    public void GivenTheBoxIsScrolledDown_WhenClicking_ThenTheRowIsRelativeToTheFirstVisibleLine()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("a\nb\nc\nd");
+        harness.Draft.Top = 2;
+
+        harness.Commits.PlaceCursor(0, 1, 20);
+
+        Assert.Equal(3, harness.Draft.Editor.CursorRow);
+    }
+
+    [Fact]
+    public void GivenABlankDraft_WhenClicking_ThenTheCursorStaysAtTheStart()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        harness.Commits.PlaceCursor(5, 3, 20);
+
+        Assert.Equal((0, 0), (harness.Draft.Editor.CursorRow, harness.Draft.Editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenACommitIsRunning_WhenClicking_ThenTheCursorDoesNotMove()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("abc\ndef");
+        harness.Draft.IsCommitting = true;
+
+        harness.Commits.PlaceCursor(0, 0, 20);
+
+        Assert.Equal((1, 3), (harness.Draft.Editor.CursorRow, harness.Draft.Editor.CursorColumn));
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);

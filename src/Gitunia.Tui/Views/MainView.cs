@@ -233,6 +233,7 @@ public sealed class MainView : IDisposable
             (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
         WorkingMessage.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
+        WorkingMessage.ClickPositioned += OnMessageClicked;
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
@@ -275,6 +276,12 @@ public sealed class MainView : IDisposable
     /// the gesture and, for the tab row, the one-based number of the clicked tab.
     /// </summary>
     public event Action<string, MouseGesture, int?>? Gestured;
+
+    /// <summary>
+    /// Raised before the click gesture on the message box, with the text column and row of the pointer (the box's padding
+    /// removed) and the text width of the box.
+    /// </summary>
+    public event Action<int, int, int>? MessageClicked;
 
     /// <summary>Raised while a divider or a pane title row is dragged: which edge and the pointer's screen column and row.</summary>
     public event Action<PaneEdge, int, int>? EdgeDragged;
@@ -504,6 +511,13 @@ public sealed class MainView : IDisposable
         Height = Dim.Func(_ => rect().Height),
         Visible = false,
     };
+
+    private void OnMessageClicked(int column, int row)
+    {
+        var padding = PanePadding.ColumnsFor(ScreenWidth);
+        var textWidth = PanePadding.TextWidth(WorkingRects().MessageEditor.Width, padding);
+        MessageClicked?.Invoke(column - padding, row, textWidth);
+    }
 
     private WorkingTreeRects WorkingRects() => WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight(), WorkingFocus());
 
