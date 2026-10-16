@@ -2,6 +2,7 @@ using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Xunit;
@@ -30,6 +31,35 @@ public class SessionPersistenceTests
             var loaded = await store.LoadAsync(CancellationToken.None);
             Assert.Equal(SessionLoadStatus.Restored, loaded.Status);
             Assert.Equal(Path.Combine(directory, "alpha"), Assert.Single(loaded.Update.Workspace.Tabs).Location.RootPath);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task GivenADraftChangedAfterStart_WhenFlushing_ThenTheSessionFileHoldsTheDraft()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
+        try
+        {
+            var store = new SessionStore(directory);
+            var host = new WorkspaceHost(Workspace.Empty);
+            host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
+            var drafts = new Dictionary<TabId, SessionDraft>();
+            using var persistence = new SessionPersistence(store, host, TimeSpan.FromHours(1), new StatusChannel(), action => action(), () => new Dictionary<TabId, SessionDraft>(drafts));
+            persistence.Start();
+            drafts[host.Workspace.Tabs[0].Id] = new SessionDraft("Unsent", true, false);
+            persistence.NotifyDraftChanged();
+
+            persistence.Flush();
+
+            var loaded = await store.LoadAsync(CancellationToken.None);
+            Assert.Equal(new SessionDraft("Unsent", true, false), Assert.Single(loaded.Drafts).Value);
         }
         finally
         {

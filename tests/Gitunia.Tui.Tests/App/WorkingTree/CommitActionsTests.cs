@@ -1,5 +1,6 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Persistence;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -43,7 +44,7 @@ public class CommitActionsTests
         harness.Type("Body ünï");
 
         Assert.Equal("Subject\n\nBody ünï", harness.Draft.Editor.Text);
-        Assert.Single(harness.Commits.TabsWithUnsentMessage());
+        Assert.Single(harness.Commits.SnapshotForSession());
     }
 
     [Fact]
@@ -185,7 +186,7 @@ public class CommitActionsTests
         harness.Commits.ForgetClosedTabs();
         await harness.Pump.RunPostsAsync(1);
 
-        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+        Assert.Empty(harness.Commits.SnapshotForSession());
     }
 
     [Fact]
@@ -330,11 +331,11 @@ public class CommitActionsTests
         await harness.Pump.RunPostsAsync(1);
 
         Assert.Equal("Merge branch 'other'", harness.Draft.Editor.Text);
-        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+        Assert.Empty(harness.Commits.SnapshotForSession());
 
         harness.Type(" edited");
 
-        Assert.Single(harness.Commits.TabsWithUnsentMessage());
+        Assert.Single(harness.Commits.SnapshotForSession());
     }
 
     [Fact]
@@ -407,6 +408,28 @@ public class CommitActionsTests
         harness.Commits.PlaceCursor(0, 0, 20);
 
         Assert.Equal((1, 3), (harness.Draft.Editor.CursorRow, harness.Draft.Editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenTypedMessageAndOptions_WhenSnapshottedAndRestored_ThenTheDraftComesBack()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        var raised = 0;
+        harness.Commits.DraftChanged += () => raised++;
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Subject");
+        harness.Run(ActionIds.WorkingTreeToggleSignOff);
+
+        var saved = harness.Commits.SnapshotForSession();
+        harness.Draft.Editor.Clear();
+        harness.Draft.SignOff = false;
+        harness.Commits.Restore(saved);
+
+        Assert.True(raised >= 2);
+        Assert.Equal(new SessionDraft("Subject", true, false), Assert.Single(saved).Value);
+        Assert.Equal("Subject", harness.Draft.Editor.Text);
+        Assert.True(harness.Draft.SignOff);
+        Assert.True(harness.Commits.HasUnsentMessage(harness.Tab.Id));
     }
 
     private sealed class Harness : IDisposable

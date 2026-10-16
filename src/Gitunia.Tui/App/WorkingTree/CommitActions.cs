@@ -2,6 +2,7 @@ using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Persistence;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -103,13 +104,41 @@ public sealed class CommitActions(
         && keyMode() == KeyMode.Insert
         && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingMessage;
 
-    /// <summary>The names of the tabs that hold a message that was not committed.</summary>
-    public IReadOnlyList<string> TabsWithUnsentMessage() =>
-        [
-            .. host.Workspace.Tabs
-                .Where(tab => _drafts.TryGetValue(tab.Id, out var draft) && draft.HasUnsentText)
-                .Select(tab => tab.Title),
-        ];
+    /// <summary>Raised on the UI thread after the message, an option or the draft's existence changed (the session saves it).</summary>
+    public event Action? DraftChanged;
+
+    /// <summary>True when the tab holds a message that was typed or edited and not committed.</summary>
+    /// <param name="tabId">The tab.</param>
+    public bool HasUnsentMessage(TabId tabId) => _drafts.TryGetValue(tabId, out var draft) && draft.HasUnsentText;
+
+    /// <summary>The drafts worth keeping across a restart (message, SignOff, No-Verify), by tab. Call on the UI thread.</summary>
+    public IReadOnlyDictionary<TabId, SessionDraft> SnapshotForSession()
+    {
+        var result = new Dictionary<TabId, SessionDraft>();
+        foreach (var (tabId, draft) in _drafts)
+        {
+            var saved = new SessionDraft(draft.HasUnsentText ? draft.Editor.Text : string.Empty, draft.SignOff, draft.NoVerify);
+            if (!saved.IsEmpty)
+            {
+                result[tabId] = saved;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Puts drafts read from the session file into their tabs (a restart; the tabs have no draft yet).</summary>
+    /// <param name="drafts">The saved drafts by tab.</param>
+    public void Restore(IReadOnlyDictionary<TabId, SessionDraft> drafts)
+    {
+        foreach (var (tabId, saved) in drafts)
+        {
+            var draft = DraftFor(tabId);
+            draft.Editor.SetText(saved.Message);
+            draft.SignOff = saved.SignOff;
+            draft.NoVerify = saved.NoVerify;
+        }
+    }
 
     /// <summary>Forgets the drafts of tabs that are gone; call when the workspace changed.</summary>
     public void ForgetClosedTabs()
@@ -181,6 +210,7 @@ public sealed class CommitActions(
         }
 
         Notice = Run(tab, action);
+        DraftChanged?.Invoke();
         redraw();
         return true;
     }
@@ -197,6 +227,7 @@ public sealed class CommitActions(
         }
 
         draft.Editor.Apply(key);
+        DraftChanged?.Invoke();
         redraw();
         return true;
     }
@@ -513,6 +544,7 @@ public sealed class CommitActions(
         ReleaseSource(tabId);
         draft.IsCommitting = false;
         draft.Sent();
+        DraftChanged?.Invoke();
         statuses.Post(SuccessMessage(request, result, forcePushUpstream));
         if (host.Workspace.FindTab(tabId) is { } tab)
         {

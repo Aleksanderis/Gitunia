@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
@@ -67,7 +68,44 @@ public class WorkspaceActionsTests
         Assert.Equal("abc", picker.State!.Query);
     }
 
-    private static WorkspaceActionsHarness Create(int tabCount)
+    [Fact]
+    public void GivenAnUnsentMessage_WhenClosingTheTab_ThenTheFirstCloseOnlyWarnsAndTheSecondCloses()
+    {
+        var (actions, host, _) = Create(2, hasUnsentMessage: _ => true);
+
+        actions.TryExecute(ActionIds.TabClose, null);
+
+        Assert.Equal(2, host.Workspace.Tabs.Length);
+        Assert.Contains("Unsent commit message", actions.Message, StringComparison.Ordinal);
+
+        actions.TryExecute(ActionIds.TabClose, null);
+
+        Assert.Single(host.Workspace.Tabs);
+    }
+
+    [Fact]
+    public void GivenAnUnsentMessage_WhenAnotherActionComesBetweenTheCloses_ThenTheGuardWarnsAgain()
+    {
+        var (actions, host, _) = Create(2, hasUnsentMessage: _ => true);
+        actions.TryExecute(ActionIds.TabClose, null);
+
+        actions.TryExecute(ActionIds.TabLastActive, null);
+        actions.TryExecute(ActionIds.TabClose, null);
+
+        Assert.Equal(2, host.Workspace.Tabs.Length);
+    }
+
+    [Fact]
+    public void GivenNoUnsentMessage_WhenClosingTheTab_ThenItClosesAtOnce()
+    {
+        var (actions, host, _) = Create(2, hasUnsentMessage: _ => false);
+
+        actions.TryExecute(ActionIds.TabClose, null);
+
+        Assert.Single(host.Workspace.Tabs);
+    }
+
+    private static WorkspaceActionsHarness Create(int tabCount, Func<TabId, bool>? hasUnsentMessage = null)
     {
         var host = new WorkspaceHost(Workspace.Empty);
         for (var index = 0; index < tabCount; index++)
@@ -79,6 +117,6 @@ public class WorkspaceActionsTests
         // Background results are queued and never run: these tests are synchronous and must not race a scan on another thread.
         var pump = new UiPump(TestContext.Current.CancellationToken);
         var picker = new PickerController(TestGit.Services.Discovery, host, Path.GetTempPath(), pump.Post);
-        return new WorkspaceActionsHarness(new WorkspaceActions(host, picker, () => { }), host, picker);
+        return new WorkspaceActionsHarness(new WorkspaceActions(host, picker, () => { }, hasUnsentMessage), host, picker);
     }
 }

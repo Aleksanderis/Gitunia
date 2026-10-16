@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Overlays;
 
 namespace Gitunia.Tui.App;
@@ -10,9 +11,15 @@ namespace Gitunia.Tui.App;
 /// Maps the workspace-level actions (tabs, pinning, the repository picker) to workspace and picker commands. Anything else is
 /// left to the <see cref="ActionRouter"/>: <see cref="TryExecute"/> returns false for actions it does not own.
 /// </summary>
-public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker, Action quit)
+/// <param name="host">The workspace.</param>
+/// <param name="picker">The repository picker.</param>
+/// <param name="quit">Stops the program.</param>
+/// <param name="hasUnsentMessage">Tells whether a tab holds a commit message that was not committed (closing it needs a second step); null for never.</param>
+public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker, Action quit, Func<TabId, bool>? hasUnsentMessage = null)
 {
     private const string GoToPrefix = "tab.go-to.";
+
+    private TabId? _closeArmedFor;
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -20,6 +27,11 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
     public bool TryExecute(ActionId action, int? count)
     {
         Message = string.Empty;
+        if (action != ActionIds.TabClose)
+        {
+            _closeArmedFor = null;
+        }
+
         if (picker.IsOpen && TryExecutePicker(action))
         {
             return true;
@@ -133,6 +145,15 @@ public sealed class WorkspaceActions(WorkspaceHost host, PickerController picker
             return;
         }
 
+        if (hasUnsentMessage?.Invoke(activeId) == true && _closeArmedFor != activeId)
+        {
+            // The first close only says so; the same action again right after (nothing else in between) closes and drops the draft.
+            _closeArmedFor = activeId;
+            Message = $"Unsent commit message in {host.Workspace.ActiveTab?.Title}: close again to lose it, or commit it first";
+            return;
+        }
+
+        _closeArmedFor = null;
         host.Dispatch(new CloseTabCommand(activeId));
         if (host.Workspace.Tabs.IsEmpty)
         {

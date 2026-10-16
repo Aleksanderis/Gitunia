@@ -12,7 +12,9 @@ namespace Gitunia.Core.Persistence;
 public static class SessionDocumentMapper
 {
     /// <summary>Snapshots the workspace, including tabs whose repository is currently missing.</summary>
-    public static SessionDocument ToDocument(Workspace workspace)
+    /// <param name="workspace">The workspace to save.</param>
+    /// <param name="drafts">The commit drafts by tab id; null saves none.</param>
+    public static SessionDocument ToDocument(Workspace workspace, IReadOnlyDictionary<TabId, SessionDraft>? drafts = null)
     {
         var tabs = new List<SessionTabDocument>(workspace.Tabs.Length);
         int? activeIndex = null;
@@ -24,8 +26,12 @@ public static class SessionDocumentMapper
                 activeIndex = index;
             }
 
+            var draft = drafts is not null && drafts.TryGetValue(tab.Id, out var found) && !found.IsEmpty ? found : null;
             tabs.Add(new SessionTabDocument
             {
+                DraftMessage = draft?.Message,
+                DraftSignOff = draft?.SignOff ?? false,
+                DraftNoVerify = draft?.NoVerify ?? false,
                 WorkingTreePath = tab.Location.WorkingTreePath,
                 GitDirectory = tab.Location.GitDirectory,
                 CommonDirectory = tab.Location.CommonDirectory,
@@ -59,8 +65,15 @@ public static class SessionDocumentMapper
     /// </summary>
     /// <param name="document">The parsed file.</param>
     /// <param name="directoryExists">Whether a directory exists; injected so the mapper stays pure.</param>
-    public static WorkspaceUpdate ToWorkspace(SessionDocument document, Func<string, bool> directoryExists)
+    public static WorkspaceUpdate ToWorkspace(SessionDocument document, Func<string, bool> directoryExists) =>
+        ToSession(document, directoryExists).Update;
+
+    /// <summary>Like <see cref="ToWorkspace"/>, and also returns the saved commit drafts under the new tab ids.</summary>
+    /// <param name="document">The parsed file.</param>
+    /// <param name="directoryExists">Whether a directory exists; injected so the mapper stays pure.</param>
+    public static RestoredSession ToSession(SessionDocument document, Func<string, bool> directoryExists)
     {
+        var drafts = ImmutableDictionary.CreateBuilder<TabId, SessionDraft>();
         var tabs = ImmutableArray.CreateBuilder<RepositoryState>();
         var effects = ImmutableArray.CreateBuilder<WorkspaceEffect>();
         TabId? activeId = null;
@@ -78,6 +91,12 @@ public static class SessionDocumentMapper
             var isMissing = !directoryExists(location.CommandPath);
             var tab = RepositoryState.Create(id, location) with { View = ReadView(documentTabs[index]), IsMissing = isMissing, CustomName = RepositoryState.NormalizeName(documentTabs[index].CustomName) };
             tabs.Add(tab);
+            var saved = new SessionDraft(documentTabs[index].DraftMessage ?? string.Empty, documentTabs[index].DraftSignOff, documentTabs[index].DraftNoVerify);
+            if (!saved.IsEmpty)
+            {
+                drafts[id] = saved;
+            }
+
             if (!isMissing)
             {
                 effects.Add(new LoadRepositoryEffect(id, tab.CommandPath));
@@ -97,7 +116,7 @@ public static class SessionDocumentMapper
             ReadPaths(document.Recents, Workspace.MaximumRecents),
             ReadPaths(document.Pins, int.MaxValue),
             nextNumber);
-        return new WorkspaceUpdate(workspace, effects.ToImmutable());
+        return new RestoredSession(new WorkspaceUpdate(workspace, effects.ToImmutable()), drafts.ToImmutable());
     }
 
     private static RepositoryLocation? ReadLocation(SessionTabDocument tab)
