@@ -14,9 +14,9 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
-/// The part of the diff pane that does not depend on where the diff comes from: cursor and viewport handling, scrolling, wrap,
-/// side by side, hunk jumps, search and copy. The history diff pane and the working-tree diff box both run on one instance each
-/// and keep to themselves what loads the diff and what leaving it means. UI thread only.
+/// The part of the diff pane that does not depend on where the diff comes from: cursor and viewport handling,
+/// scrolling, wrap, side by side, hunk jumps, search and copy. The history diff pane and the working-tree diff box
+/// both run on one instance each and keep to themselves what loads the diff and what leaving it means. UI thread only.
 /// </summary>
 public sealed class DiffListActions
 {
@@ -31,7 +31,7 @@ public sealed class DiffListActions
     /// <param name="setMode">Switches the input mode (Insert while the search box is open).</param>
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="active">The active tab's diff, null while it has none.</param>
-    /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow for it.</param>
+    /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow.</param>
     public DiffListActions(
         ListView diffList,
         Action<KeyMode> setMode,
@@ -94,12 +94,15 @@ public sealed class DiffListActions
         diff.Source.IsWrapped,
         DiffOptionsLabel.Of(options, diff.Source.IsSideBySide, diff.Source.ShowsSideBySide));
 
-    /// <summary>Runs the keys every diff shares: moving, wrap, side by side, copy, hunk jumps and opening or stepping a search.</summary>
+    /// <summary>
+    /// Runs the keys every diff shares: moving, wrap, side by side, copy, hunk jumps and opening or stepping a search.
+    /// </summary>
     public bool TryExecuteView(IDiffViewState diff, ActionId action, int? count)
     {
         var document = diff.Source.Document;
         var row = CursorRow(diff);
-        if (ListMotion.TryMove(action, count, _diffList.SelectedItem ?? 0, diff.Source.Count, _diffList.Viewport.Height, out var target))
+        var cursor = _diffList.SelectedItem ?? 0;
+        if (ListMotion.TryMove(action, count, cursor, diff.Source.Count, _diffList.Viewport.Height, out var target))
         {
             SelectLine(target);
         }
@@ -162,7 +165,9 @@ public sealed class DiffListActions
         return true;
     }
 
-    /// <summary>Edits the search text with a typed key; <paramref name="document"/> is what the search runs over.</summary>
+    /// <summary>
+    /// Edits the search text with a typed key; <paramref name="document"/> is what the search runs over.
+    /// </summary>
     public bool HandleTextKey(IDiffViewState? diff, DiffDocument document, KeyEvent key)
     {
         if (diff is not { Search.Phase: DiffSearchPhase.Editing })
@@ -192,7 +197,9 @@ public sealed class DiffListActions
         _diffList.SetNeedsDraw();
     }
 
-    /// <summary>Ends the search of a diff that was replaced by another one, which the old search no longer describes.</summary>
+    /// <summary>
+    /// Ends the search of a diff that was replaced by another one, which the old search no longer describes.
+    /// </summary>
     public void ForgetSearch(IDiffViewState diff)
     {
         if (diff.Search.Phase == DiffSearchPhase.Editing)
@@ -230,9 +237,12 @@ public sealed class DiffListActions
         }
     }
 
-    // Side by side, the cursor row is the first row of a line, but a match may sit on the line's other row: stepping starts from the matched row while the cursor is still on its line.
+    // Side by side, the cursor row is the first row of a line, but a match may sit on the line's other row:
+    // stepping starts from the matched row while the cursor is still on its line.
     public int SearchRow(IDiffViewState diff) =>
-        diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0) ? matched : CursorRow(diff);
+        diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0)
+            ? matched
+            : CursorRow(diff);
 
     public int CursorRow(IDiffViewState diff) => diff.Source.RowOf(_diffList.SelectedItem ?? 0);
 
@@ -250,7 +260,10 @@ public sealed class DiffListActions
         _diffList.SelectedItem = clamped;
         if (atTop)
         {
-            _diffList.Viewport = _diffList.Viewport with { Y = Math.Min(clamped, Math.Max(0, count - _diffList.Viewport.Height)) };
+            _diffList.Viewport = _diffList.Viewport with
+            {
+                Y = Math.Min(clamped, Math.Max(0, count - _diffList.Viewport.Height)),
+            };
         }
         else
         {
@@ -269,7 +282,10 @@ public sealed class DiffListActions
         }
     }
 
-    /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
+    /// <summary>
+    /// Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row
+    /// are kept.
+    /// </summary>
     public void SyncWidth()
     {
         if (_isSyncing || _active() is not { } diff || diff.Source.Width == ListTextWidth())
@@ -330,7 +346,9 @@ public sealed class DiffListActions
 
     private void Copy(DiffDocument document, int row, bool wholeFile)
     {
-        if (row < 0 || row >= document.Rows.Count || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
+        if (row < 0
+            || row >= document.Rows.Count
+            || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
         {
             Notice = "Nothing to copy";
         }
