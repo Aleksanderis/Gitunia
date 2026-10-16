@@ -124,10 +124,24 @@ public sealed class TestRepository : IDisposable
     public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes)
     {
         // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.
-        var moment = Epoch.AddMinutes(_commitCounter++);
+        var runner = CreateRunner(Epoch.AddMinutes(_commitCounter++));
+        var result = runner
+            .RunAsync(WorkingTreePath, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
+            .GetAwaiter()
+            .GetResult();
+        return result.StandardOutputText;
+    }
 
+    /// <summary>
+    /// A runner with the same isolated environment as <see cref="Git(string[])"/> (empty global and system config, fixed author and
+    /// committer, no signing), for code under test that spawns git itself. Its commits get the next minute of the fake clock.
+    /// </summary>
+    public GitRunner CreateIsolatedRunner() => CreateRunner(Epoch.AddMinutes(_commitCounter++));
+
+    private GitRunner CreateRunner(DateTimeOffset moment)
+    {
         var stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        var runner = new GitRunner(new GitRunnerOptions(
+        return new GitRunner(new GitRunnerOptions(
             EnvironmentOverrides: new Dictionary<string, string?>
             {
                 ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
@@ -150,11 +164,6 @@ public sealed class TestRepository : IDisposable
                 ["GIT_AUTHOR_DATE"] = stamp,
                 ["GIT_COMMITTER_DATE"] = stamp,
             }));
-        var result = runner
-            .RunAsync(WorkingTreePath, arguments, new GitRunOptions(AcceptedExitCodes: acceptedExitCodes))
-            .GetAwaiter()
-            .GetResult();
-        return result.StandardOutputText;
     }
 
     public void Dispose()
