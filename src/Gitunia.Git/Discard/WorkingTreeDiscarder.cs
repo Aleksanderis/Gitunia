@@ -54,7 +54,8 @@ public sealed class WorkingTreeDiscarder(GitRunner runner) : IWorkingTreeDiscard
     {
         if (paths.Any(GitPathText.HasEscapedBytes))
         {
-            throw new NotSupportedException("A name that is not valid UTF-8 cannot be deleted from here: delete it by hand.");
+            throw new NotSupportedException(
+                "A name that is not valid UTF-8 cannot be deleted from here: delete it by hand.");
         }
 
         var options = new GitRunOptions(Timeout: WriteTimeout);

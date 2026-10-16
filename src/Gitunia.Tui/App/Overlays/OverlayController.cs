@@ -150,6 +150,27 @@ public sealed class OverlayController
         return true;
     }
 
+    /// <summary>
+    /// Call when the terminal size changed. A confirm dialog that no longer fits is closed without answering (its callback is
+    /// dropped and a warning says nothing happened): a dialog nobody can read must not be answerable with a stray <c>y</c>.
+    /// </summary>
+    public void OnScreenResized()
+    {
+        if (State is not { Kind: OverlayKind.Confirm, Confirm: { } prompt })
+        {
+            return;
+        }
+
+        var size = _screenSize();
+        if (ConfirmFrameBuilder.Build(prompt, size.Width, size.Height, _glyphs) is not null)
+        {
+            return;
+        }
+
+        _statuses.Warning("The screen became too small for the question: nothing was done");
+        HandleConfirm(ActionIds.ConfirmNo);
+    }
+
     /// <summary>The answer drawn on a frame line of the open confirm dialog (a mouse click); null when the line is none or no dialog is open.</summary>
     public ConfirmAnswer? ConfirmAnswerAt(int frameLine) =>
         State.Kind == OverlayKind.Confirm && CurrentFrame() is { } frame

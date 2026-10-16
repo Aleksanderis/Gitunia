@@ -49,7 +49,10 @@ public static class ConfirmFrameBuilder
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }
 
-    /// <summary>Which answer the row <paramref name="frameLine"/> of a frame of <paramref name="frameHeight"/> rows holds, null for any other row.</summary>
+    /// <summary>
+    /// Which answer the row <paramref name="frameLine"/> of a frame of <paramref name="frameHeight"/> rows holds,
+    /// null for any other row.
+    /// </summary>
     public static ConfirmAnswer? AnswerAt(int frameLine, int frameHeight)
     {
         var yesLine = frameHeight - 1 - AnswerRows;
@@ -61,7 +64,12 @@ public static class ConfirmFrameBuilder
         return frameLine == yesLine + 1 ? ConfirmAnswer.No : null;
     }
 
-    private static IEnumerable<StyledLine> Wrapped(string text, int textWidth, int width, GraphGlyphSet glyphs, SegmentRole role) =>
+    private static IEnumerable<StyledLine> Wrapped(
+        string text,
+        int textWidth,
+        int width,
+        GraphGlyphSet glyphs,
+        SegmentRole role) =>
         HelpFrameBuilder.WrapText(text, textWidth).Select(line => OverlayBox.Text(line, width, glyphs, role));
 
     private static StyledLine Answer(string key, string label, int width, GraphGlyphSet glyphs)

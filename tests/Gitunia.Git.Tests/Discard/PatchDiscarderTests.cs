@@ -1,3 +1,4 @@
+using System.Text;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging.Models;
@@ -69,6 +70,22 @@ public class PatchDiscarderTests
 
         Assert.Equal(Lines(30, Edit(2, "TWO")), Read(repository, "f.txt"));
         Assert.Equal(Lines(30, Edit(2, "TWO")), repository.Git("show", ":f.txt"));
+    }
+
+    [Fact]
+    public async Task GivenALatin1FileWithTwoHunks_WhenDiscardingOneWithoutAllowingTheWholeFile_ThenNothingChanges()
+    {
+        var path = "legacy.txt";
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile(path, Lines(30)));
+        var latin1 = Encoding.Latin1.GetBytes(Lines(30, Edit(2, "café"), Edit(28, "TWENTY-EIGHT")));
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, path), latin1);
+        var located = await LocateAsync(repository, path);
+
+        var chosen = await ChangesAsync(located, hunk: 0);
+        var result = await Discarder.DiscardAsync(located.Location, located.Entry, chosen, false, Token);
+
+        Assert.Equal(PatchStagingOutcome.NotSplittable, result.Outcome);
+        Assert.Equal(latin1, File.ReadAllBytes(Path.Combine(repository.WorkingTreePath, path)));
     }
 
     [Fact]

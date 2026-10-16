@@ -43,7 +43,8 @@ public sealed class DiscardActions(
     private const string DirectorySuffix = "/";
     private const string TrackedConsequence =
         "The changes are removed from the file on disk. Git keeps no copy: this cannot be undone.";
-    private const string UntrackedConsequence = "It is removed from disk. Git has no copy of it: this cannot be undone.";
+    private const string UntrackedConsequence =
+        "It is removed from disk. Git has no copy of it: this cannot be undone.";
 
     /// <summary>
     /// Asks whether to discard the file under the cursor of the Unstaged list. Returns a notice when no dialog opened, empty
@@ -206,7 +207,7 @@ public sealed class DiscardActions(
                 "Discard lines");
         }
 
-        if (count == 0 || IsWholeFileOnly(entry))
+        if (NamesWholeFile(request))
         {
             var reason = entry.WorktreeChange == FileChangeKind.Deleted ? "is deleted" : "has no hunks to pick";
             return new ConfirmPrompt(
@@ -223,13 +224,14 @@ public sealed class DiscardActions(
             "Discard hunk");
     }
 
-    private string Ask(ConfirmPrompt prompt, Action onConfirmed) => confirm(prompt, onConfirmed) ? string.Empty : TooSmallNotice;
+    private string Ask(ConfirmPrompt prompt, Action onConfirmed) =>
+        confirm(prompt, onConfirmed) ? string.Empty : TooSmallNotice;
 
     private void StartFile(RepositoryState tab, StatusEntry entry)
     {
         if (gate.IsBusy(tab.Id))
         {
-            statuses.Warning(BusyNotice);
+            statuses.Warning($"{BusyNotice}; nothing was discarded");
             return;
         }
 
@@ -242,16 +244,26 @@ public sealed class DiscardActions(
     {
         if (gate.IsBusy(tab.Id))
         {
-            statuses.Warning(BusyNotice);
+            statuses.Warning($"{BusyNotice}; nothing was discarded");
             return;
         }
 
         gate.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
+        var entry = request.Target.Entry;
+
+        // The whole file goes only when the dialog said so; a hunk that cannot be cut is refused, never widened.
+        var allowWholeFile = !request.IsRange && NamesWholeFile(request);
         _ = Task.Run(
-            () => RunAsync(tab, request.Target.Entry, request.Lines, !request.IsRange, request, onDiscarded, token),
+            () => RunAsync(tab, entry, request.Lines, allowWholeFile, request, onDiscarded, token),
             CancellationToken.None);
     }
+
+    // True when SelectionPrompt worded the dialog as discarding or deleting the whole file.
+    private static bool NamesWholeFile(DiffStagingRequest request) =>
+        request.Target.Entry.Kind == StatusEntryKind.Untracked
+        || request.Lines.Count == 0
+        || IsWholeFileOnly(request.Target.Entry);
 
     private async Task RunAsync(
         RepositoryState tab,
@@ -275,11 +287,17 @@ public sealed class DiscardActions(
         }
         catch (Exception exception)
         {
-            postToUi(() => Finish(tab.Id, $"Could not discard: {OperationText.Reason(exception)}", StatusSeverity.Error));
+            var failure = $"Could not discard: {OperationText.Reason(exception)}";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
 
-    private void FinishLines(TabId tabId, StatusEntry entry, DiffStagingRequest? request, PatchStagingResult result, Action? onDiscarded)
+    private void FinishLines(
+        TabId tabId,
+        StatusEntry entry,
+        DiffStagingRequest? request,
+        PatchStagingResult result,
+        Action? onDiscarded)
     {
         if (result.Outcome is PatchStagingOutcome.Applied or PatchStagingOutcome.WholeFile)
         {
@@ -301,7 +319,8 @@ public sealed class DiscardActions(
                 $"Discarded all changes to {name}",
             PatchStagingOutcome.WholeFile => $"Discarded all changes to {name}: it has no hunks to pick",
             PatchStagingOutcome.NotSplittable =>
-                $"{name} cannot be split into lines (new, deleted or binary file): nothing was discarded",
+                $"{name} cannot be split into hunks or lines (binary, not valid UTF-8 or renamed): nothing was discarded; "
+                + "discard the whole file from the list",
             PatchStagingOutcome.FileChanged =>
                 $"{name} changed since the diff was read: nothing was discarded, the diff is read again",
             _ => "Nothing to discard in the selection",

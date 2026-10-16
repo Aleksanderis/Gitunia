@@ -37,7 +37,9 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
         CancellationToken cancellationToken)
     {
         var file = chosen.Count > 0
-            ? await _pickable.ReadAsync(location, WorkingDiffSide.Unstaged, entry, cancellationToken).ConfigureAwait(false)
+            ? await _pickable
+                .ReadAsync(location, WorkingDiffSide.Unstaged, entry, cancellationToken)
+                .ConfigureAwait(false)
             : null;
         if (file is null)
         {

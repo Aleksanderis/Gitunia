@@ -242,6 +242,22 @@ public class DiscardActionsTests
     }
 
     [Fact]
+    public async Task GivenAFileWithInvalidText_WhenConfirmingAHunk_ThenTheWholeFileIsNeverDiscardedBehindTheDialog()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt") with { HasInvalidText = true });
+        harness.ExecuteSelection([Changed(2, "TWO")], false);
+
+        Assert.Equal("Discard hunk", Assert.Single(harness.Prompts).Title);
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(0, harness.Discarder.CallCount);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("nothing was discarded", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenLinesPickedInAnUntrackedFile_WhenDiscarding_ThenItIsRefusedWithoutADialog()
     {
         using var harness = new Harness(Untracked("new.txt"));

@@ -151,6 +151,33 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenAConfirmDialog_WhenTheScreenShrinksBelowIt_ThenItClosesUnansweredAndAStrayYDoesNothing()
+    {
+        var calls = 0;
+        _overlays.ShowConfirm(Prompt(), () => calls++);
+        _screen = new ScreenSize(14, 24);
+
+        _overlays.OnScreenResized();
+        Press(new Key('y'));
+
+        Assert.Equal(0, calls);
+        Assert.Equal(OverlayKind.None, _overlays.State.Kind);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+        Assert.Contains("nothing was done", _statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAConfirmDialog_WhenTheScreenResizesAndStillFits_ThenItStaysOpen()
+    {
+        _overlays.ShowConfirm(Prompt(), () => { });
+        _screen = new ScreenSize(100, 30);
+
+        _overlays.OnScreenResized();
+
+        Assert.Equal(OverlayKind.Confirm, _overlays.State.Kind);
+    }
+
+    [Fact]
     public void GivenAConfirmDialog_WhenTheYesAndNoRowsAreClicked_ThenTheyAnswerLikeTheKeys()
     {
         _overlays.ShowConfirm(Prompt(), () => { });
