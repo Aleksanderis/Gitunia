@@ -140,7 +140,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public IReadOnlyList<JumpLabel> JumpLabels(ListView listView, string text)
     {
         var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
-        if (Count == 0 || ShowsSideBySide)
+        if (Count == 0)
         {
             return [];
         }
@@ -155,9 +155,45 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         }
 
         var cursor = RowOf(Math.Clamp(listView.SelectedItem ?? 0, 0, Count - 1));
+        if (ShowsSideBySide)
+        {
+            return SplitJumpLabels(text, firstLine, lastLine, cursor, width);
+        }
+
         var window = new JumpWindow(first, LastRowOf(lastLine) - first + 1, cursor);
 
         return _jump.Labels(text, window, width, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis));
+    }
+
+    // Side by side the rows of a line sit in two halves: the window spans the rows of the lines in view, and rows between that are on
+    // lines out of view get no text (DiffJumpRows), so no label is hidden off screen.
+    private IReadOnlyList<JumpLabel> SplitJumpLabels(string text, int firstLine, int lastLine, int cursor, int width)
+    {
+        var map = SplitMap();
+        var first = map.SplitLineOf(firstLine);
+        if (map.StartOfSplitLine(first) < firstLine)
+        {
+            first++;
+        }
+
+        var last = map.SplitLineOf(lastLine);
+        if (first > last)
+        {
+            return [];
+        }
+
+        var low = int.MaxValue;
+        var high = -1;
+        for (var index = first; index <= last; index++)
+        {
+            var line = map.Split.Lines[index];
+            low = Math.Min(low, line.FirstRow);
+            high = Math.Max(high, line.LastRow);
+        }
+
+        var window = new JumpWindow(low, high - low + 1, cursor);
+        var stamp = HashCode.Combine(width, first, last, IsWrapped);
+        return _jump.Labels(text, window, stamp, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis, map.Split, first, last));
     }
 
     public bool IsMarked(int item) => false;
@@ -176,7 +212,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         selected |= Range?.Contains(item) == true;
         var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
         var line = ShowsSideBySide
-            ? SplitLine(item, width, selected)
+            ? SplitLine(listView, item, width, selected)
             : current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected, jump)
             : current is null && item >= 0 && item < Document.Rows.Count
@@ -224,7 +260,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         return _splitMap;
     }
 
-    private StyledLine SplitLine(int item, int width, bool isSelected)
+    private StyledLine SplitLine(ListView listView, int item, int width, bool isSelected)
     {
         var current = SplitMap();
         if (item < 0 || item >= current.Count)
@@ -233,16 +269,29 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         }
 
         var index = current.SplitLineOf(item);
+        var segment = item - current.StartOfSplitLine(index);
+        var splitLine = current.Split.Lines[index];
+        JumpLabel? left = null;
+        JumpLabel? right = null;
+        if (segment == 0 && !string.IsNullOrEmpty(JumpText))
+        {
+            JumpLabels(listView, JumpText);
+            left = _jump.LabelOf(splitLine.LeftRow);
+            right = splitLine.IsFull || splitLine.LeftRow == splitLine.RightRow ? null : _jump.LabelOf(splitLine.RightRow);
+        }
+
         return DiffSplitRenderer.Render(
             Document,
             current.Split.Lines[index],
-            item - current.StartOfSplitLine(index),
+            segment,
             width,
             _gutterDigits,
             Highlight,
             isSelected,
             IsWrapped,
-            glyphs);
+            glyphs,
+            left,
+            right);
     }
 
     private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected, JumpLabel? jump)

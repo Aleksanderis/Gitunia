@@ -37,16 +37,54 @@ public class ListSourceJumpTests
     }
 
     [Fact]
-    public void GivenTheSideBySideDiff_WhenLabelling_ThenThereAreNoLabels()
+    public void GivenTheSideBySideDiff_WhenLabelling_ThenBothSidesOfAPairAreLabelledAndRenderedOverTheirText()
     {
         var source = new DiffListSource(GraphGlyphSet.Unicode);
-        source.Update(new DiffDocument([new DiffRow(DiffRowKind.Added, "needle", null, 1, 0)], [0], [0], [["f"]], 1));
+        source.Update(new DiffDocument(
+            [new DiffRow(DiffRowKind.Removed, "old needle", 1, null, 0), new DiffRow(DiffRowKind.Added, "new needle", null, 1, 0)],
+            [0],
+            [0],
+            [["f"]],
+            1));
         var list = Sized(source, 200, 5);
         source.Width = 200;
         source.SetSideBySide(true);
 
+        var labels = source.JumpLabels(list, "needle");
+
         Assert.True(source.ShowsSideBySide);
-        Assert.Empty(source.JumpLabels(list, "needle"));
+        Assert.Equal([0, 1], labels.Select(label => label.Row).Order());
+        Assert.All(labels, label => Assert.True(label.HasLetter));
+        Assert.Equal(0, source.LineOf(1));
+    }
+
+    [Fact]
+    public void GivenTheSideBySideDiff_WhenLabelling_ThenRowsOfLinesOutOfViewGetNoLabel()
+    {
+        var rows = new List<DiffRow>();
+        for (var index = 0; index < 4; index++)
+        {
+            rows.Add(new DiffRow(DiffRowKind.Removed, "needle old " + index, index + 1, null, 0));
+        }
+
+        for (var index = 0; index < 4; index++)
+        {
+            rows.Add(new DiffRow(DiffRowKind.Added, "needle new " + index, null, index + 1, 0));
+        }
+
+        var source = new DiffListSource(GraphGlyphSet.Unicode);
+        source.Update(new DiffDocument(rows, [0], [0], [["f"]], 4));
+        var list = Sized(source, 200, 2);
+        source.Width = 200;
+        source.SetSideBySide(true);
+        list.Viewport = list.Viewport with { Y = 2 };
+        list.SetContentSize(new Size(200, source.Count));
+        list.Viewport = list.Viewport with { Y = 2 };
+
+        var labels = source.JumpLabels(list, "needle");
+
+        // Lines 2 and 3 hold old rows 2, 3 and new rows 6, 7 (rows 4, 5 sit on lines 0 and 1).
+        Assert.Equal([2, 3, 6, 7], labels.Select(label => label.Row).Order());
     }
 
     [Fact]

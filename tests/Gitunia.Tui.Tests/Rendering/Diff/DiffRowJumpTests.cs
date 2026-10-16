@@ -65,4 +65,48 @@ public class DiffRowJumpTests
         Assert.Equal(38, jump.ColumnsOf(2));
         Assert.Equal(1, jump.EllipsisWidth);
     }
+
+    [Fact]
+    public void GivenASplitDocument_WhenAskingForJumpRows_ThenColumnsAreTheHalfAndRowsOutOfViewHaveNoText()
+    {
+        var rows = new DiffRow[]
+        {
+            new(DiffRowKind.Removed, "old", 1, null, 0),
+            new(DiffRowKind.Added, "new", null, 1, 0),
+            new(DiffRowKind.Context, "same", 2, 2, 0),
+            new(DiffRowKind.HunkHeader, "@@", null, null, 0),
+        };
+        var document = new DiffDocument(rows, [], [], [["f"]], 2);
+        var split = DiffSplitLayout.Build(document);
+        var jump = new DiffJumpRows(document, 81, 3, "…", split, 0, 1);
+
+        Assert.Equal(40 - 5, jump.ColumnsOf(0));
+        Assert.Equal(40 - 5, jump.ColumnsOf(1));
+        Assert.Equal(40 - 5, jump.ColumnsOf(2));
+        Assert.Equal(81, jump.ColumnsOf(3));
+        Assert.Equal("old", jump.TextOf(0));
+        Assert.Equal("new", jump.TextOf(1));
+        Assert.Equal("same", jump.TextOf(2));
+        Assert.Equal(string.Empty, jump.TextOf(3));
+    }
+
+    [Fact]
+    public void GivenSplitLabels_WhenRenderingAPairedLine_ThenEachSideShowsItsOwnLabelWithinItsHalf()
+    {
+        var document = new DiffDocument(
+            [new DiffRow(DiffRowKind.Removed, "old needle", 1, null, 0), new DiffRow(DiffRowKind.Added, "new needle", null, 1, 0)],
+            [],
+            [],
+            [["f"]],
+            1);
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var rendered = DiffSplitRenderer.Render(
+            document, line, 0, 81, 3, null, false, false, Glyphs, new JumpLabel(0, 4, 6, 'a'), new JumpLabel(1, 4, 6, 'b'));
+
+        Assert.Contains("old needlea", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("new needleb", rendered.Text, StringComparison.Ordinal);
+        Assert.Equal(2, rendered.Segments.Count(segment => segment.Role == SegmentRole.JumpLabel));
+        Assert.Equal(81, TextWidth.Of(rendered.Text));
+    }
 }
