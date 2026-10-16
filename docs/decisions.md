@@ -243,3 +243,9 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Current change group of the working-tree diff (#393): a bar in the left margin plus a quiet tint (`GroupBackground`); the 16-colour and NO_COLOR tiers get the bar alone. Why: selection must never rely on colour. Stage/discard buttons stay in the title row; buttons beside the group are #405.
 
 **UI:** Group buttons (#405): the change group under the cursor carries the title row's `stage`/`discard`/`unstage` chips on its first line, same views and actions (discard still confirms); dropped below 30 columns of text. Why: the action sits where the eye is.
+
+## 2026-10-17
+
+**UI:** M3 key flows (ux.md workflows 3-7): prefixes `<space>b` branches, `<space>g` commit operations and continue/abort/skip, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes; reset is `<space>gx` (no single letter, no vim clash); `<space>t` stays the tools prefix. Planned keys live in prose; table rows arrive with each implementing issue.
+
+**Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.

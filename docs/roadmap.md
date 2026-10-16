@@ -25,14 +25,14 @@ Done when: you can open several repositories in tabs from outside any repository
 
 ## M2 - Working tree
 
-Status: nearly done; remaining items are in the M2 tracking issue.
+Status: done.
 
 Status view, stage/unstage files, hunks, lines, commit, amend, discard with confirm.
 Done when: a full commit cycle works without leaving the app, including partial staging.
 
 ## M3 - Branches and worktrees (the reason this project exists)
 
-Status: not started.
+Status: in progress (key flows in `docs/ux.md`, workflows 3-7).
 
 Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash; tags (create/delete/push); reflog view.
 Done when: the owner can use Gitunia for all daily branch and worktree work.
