@@ -203,6 +203,7 @@ public class OverlayFrameTests
                 " : _                                                                    ",
                 "│ Jump to HEAD                                                       @ │",
                 "│ Jump to a ref or hash                                             gr │",
+                "│ Quick jump to a visible commit                              <space>j │",
                 "│ Focus the commit details                                       Enter │",
                 "│ Copy the commit hash                                               y │",
                 "│ Refresh the repository                                      <space>r │",
@@ -212,8 +213,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ Show the Changes tab                                              gc │",
-                "│ 1/96  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/97  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -252,7 +252,7 @@ public class OverlayFrameTests
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
                 "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
-                "│ 2/22  Up/Down choose  Enter run  Esc close             │",
+                "│ 2/23  Up/Down choose  Enter run  Esc close             │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
@@ -332,6 +332,7 @@ public class OverlayFrameTests
                 "│ Graph                                                        │",
                 "│  @                    │ Jump to HEAD                         │",
                 "│  gr                   │ Jump to a ref or hash                │",
+                "│  <space>j             │ Quick jump to a visible commit       │",
                 "│  Enter                │ Focus the commit details             │",
                 "│  y                    │ Copy the commit hash                 │",
                 "│  <space>r             │ Refresh the repository               │",
@@ -347,8 +348,7 @@ public class OverlayFrameTests
                 "│ Lists                                                        │",
                 "│  j / Down             │ Move down                            │",
                 "│  k / Up               │ Move up                              │",
-                "│  gg                   │ Go to the top                        │",
-                "│ 1-19/63  list keys scroll  Esc close                         │",
+                "│ 1-19/64  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

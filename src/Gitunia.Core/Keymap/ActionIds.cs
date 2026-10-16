@@ -67,6 +67,8 @@ public static class ActionIds
 
     public static ActionId GraphJumpToRef { get; } = new("graph.jump-to-ref");
 
+    public static ActionId GraphQuickJump { get; } = new("graph.quick-jump");
+
     public static ActionId GraphOpenDetails { get; } = new("graph.open-details");
 
     public static ActionId HelpShow { get; } = new("help.show");

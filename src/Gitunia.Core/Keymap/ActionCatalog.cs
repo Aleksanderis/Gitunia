@@ -62,6 +62,7 @@ public static class ActionCatalog
         ["graph.jump-to-head"] = "Jump to HEAD",
         ["graph.jump-to-ref"] = "Jump to a ref or hash",
         ["graph.open-details"] = "Focus the commit details",
+        ["graph.quick-jump"] = "Quick jump to a visible commit",
         ["help.show"] = "Show keys for this view",
         ["input.accept"] = "Accept the input",
         ["list.bottom"] = "Go to the bottom",
