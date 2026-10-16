@@ -361,6 +361,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _visual.End();
         }
 
+        // The dirty marker belongs to a tab chip: the click first switches to that tab, then opens its working tree (#331).
+        if (viewName == DefaultMouseMap.TabDirtyMarker && !_overlays.State.IsOpen)
+        {
+            _mouse.Handle(DefaultMouseMap.TabsView, gesture, target);
+        }
+
         _mouse.Handle(viewName, gesture, target);
 
         // A key redraws the chrome through the pending-keys event; a mouse action has no such path (titles, status bar, mode).

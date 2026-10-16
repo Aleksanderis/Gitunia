@@ -115,6 +115,36 @@ public class TabBarTests
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GivenADirtyTab_WhenHitTesting_ThenOnlyTheStarColumnIsTheDirtyMarker(bool unicode)
+    {
+        var glyphs = unicode ? GraphGlyphSet.Unicode : GraphGlyphSet.Ascii;
+        var labels = new[] { Label(1, "alpha", isActive: true, branch: null, dirty: true, ahead: 1), Label(2, "beta", branch: null), Label(3, "gamma", branch: null, dirty: true) };
+        var cells = TabBarLayout.Layout(labels, 80, glyphs);
+        var text = ChromeBuilder.Tabs(Model(labels), 80, glyphs).Text;
+
+        var stars = Enumerable.Range(0, text.Length).Where(column => TabBarLayout.DirtyMarkerAt(cells, column) is not null).ToList();
+
+        Assert.Equal(2, stars.Count);
+        Assert.All(stars, column => Assert.Equal('*', text[column]));
+        Assert.Equal(1, TabBarLayout.DirtyMarkerAt(cells, stars[0]));
+        Assert.Equal(3, TabBarLayout.DirtyMarkerAt(cells, stars[1]));
+        Assert.Equal(1, TabBarLayout.NumberAt(cells, stars[0]));
+    }
+
+    [Fact]
+    public void GivenACutOrCleanOrMissingTab_WhenHitTesting_ThenThereIsNoDirtyMarker()
+    {
+        var labels = new[] { Label(1, "alpha", isActive: true, branch: null), Label(2, "beta", branch: null, dirty: true, missing: true) };
+        var cells = TabBarLayout.Layout(labels, 80, GraphGlyphSet.Unicode);
+        var cut = TabBarLayout.Layout([Label(1, new string('x', 60), isActive: true, branch: null, dirty: true)], 44, GraphGlyphSet.Unicode);
+
+        Assert.All(Enumerable.Range(0, 80), column => Assert.Null(TabBarLayout.DirtyMarkerAt(cells, column)));
+        Assert.All(Enumerable.Range(0, 44), column => Assert.Null(TabBarLayout.DirtyMarkerAt(cut, column)));
+    }
+
+    [Theory]
     [InlineData(8)]
     [InlineData(20)]
     [InlineData(60)]

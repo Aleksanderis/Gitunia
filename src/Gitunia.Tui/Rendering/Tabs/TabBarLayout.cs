@@ -45,7 +45,8 @@ public static class TabBarLayout
     {
         // The new tab button follows the last tab, so its room is kept free.
         var available = (CommandsStart(width) ?? width) - GapColumns - NewTabLabel.Length - GapColumns;
-        var texts = labels.Select(label => Describe(label, glyphs)).ToList();
+        var described = labels.Select(label => Describe(label, glyphs)).ToList();
+        var texts = described.Select(item => item.Text).ToList();
         var activeIndex = Math.Max(0, labels.ToList().FindIndex(label => label.IsActive));
         var first = 0;
         while (first < activeIndex && LeftMargin + IndicatorWidth(first) + SpanWidth(texts, first, activeIndex) > available)
@@ -64,8 +65,9 @@ public static class TabBarLayout
             }
 
             // The active tab is cut with an ellipsis when it alone is wider than the row.
-            var text = column + TextWidth.Of(texts[index]) > available ? TextWidth.Fit(texts[index], Math.Max(0, available - column), glyphs.Ellipsis) : texts[index];
-            cells.Add(new TabCell(labels[index].Number, column, text, labels[index].IsActive));
+            var isCut = column + TextWidth.Of(texts[index]) > available;
+            var text = isCut ? TextWidth.Fit(texts[index], Math.Max(0, available - column), glyphs.Ellipsis) : texts[index];
+            cells.Add(new TabCell(labels[index].Number, column, text, labels[index].IsActive, isCut ? null : described[index].DirtyOffset));
             column += TextWidth.Of(text) + GapColumns;
         }
 
@@ -78,6 +80,20 @@ public static class TabBarLayout
         foreach (var cell in cells)
         {
             if (column >= cell.Start && column < cell.Start + cell.Width)
+            {
+                return cell.Number;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The tab number whose dirty marker (<c>*</c>) is at a column of the row, or null when the column is not on one (#331).</summary>
+    public static int? DirtyMarkerAt(IReadOnlyList<TabCell> cells, int column)
+    {
+        foreach (var cell in cells)
+        {
+            if (cell.DirtyOffset is { } offset && column == cell.Start + offset)
             {
                 return cell.Number;
             }
@@ -99,13 +115,13 @@ public static class TabBarLayout
         return width;
     }
 
-    private static string Describe(TabLabel label, GraphGlyphSet glyphs)
+    private static TabText Describe(TabLabel label, GraphGlyphSet glyphs)
     {
         var padding = new string(' ', Padding);
         var text = $"{padding}{label.Number.ToString(CultureInfo.InvariantCulture)} {(label.IsMissing ? "! " : string.Empty)}{label.Name}";
         if (label.IsMissing)
         {
-            return $"{text} (missing){padding}";
+            return new TabText($"{text} (missing){padding}", null);
         }
 
         if (label.Branch is { } branch)
@@ -118,6 +134,13 @@ public static class TabBarLayout
         markers += label.Ahead > 0 ? $"{(!glyphs.IsAscii ? "↑" : "+")}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
         markers += label.Behind > 0 ? $"{(!glyphs.IsAscii ? "↓" : "-")}{label.Behind.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
         markers += label.IsLoading ? glyphs.Ellipsis : string.Empty;
-        return markers.Length > 0 ? $"{text} {markers}{padding}" : $"{text}{padding}";
+        if (markers.Length == 0)
+        {
+            return new TabText($"{text}{padding}", null);
+        }
+
+        var dirtyOffset = label.IsDirty ? TextWidth.Of(text) + 1 : (int?)null;
+
+        return new TabText($"{text} {markers}{padding}", dirtyOffset);
     }
 }

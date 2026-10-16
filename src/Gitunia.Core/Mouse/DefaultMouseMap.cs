@@ -8,6 +8,9 @@ public static class DefaultMouseMap
     /// <summary>The view of the tab row.</summary>
     public const string TabsView = "Tabs";
 
+    /// <summary>The <c>*</c> of a dirty tab chip; a click activates that tab and opens its working-tree view (#331).</summary>
+    public const string TabDirtyMarker = "TabDirtyMarker";
+
     /// <summary>The commands button at the right end of the tab row; a click opens the command palette, the menu of every action.</summary>
     public const string CommandsButton = "CommandsButton";
     /// <summary>The "+" button after the last tab; a click opens the repository picker for a new tab, like <c>Ctrl-t</c>.</summary>
@@ -90,6 +93,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.DetailView, MouseGesture.DoubleClick, ActionIds.DetailOpenDiff),
         new(DefaultKeymap.SidebarView, MouseGesture.Click, ActionIds.SidebarActivate),
         new(TabsView, MouseGesture.Click, ActionIds.TabNext, UsesTarget: true),
+        new(TabDirtyMarker, MouseGesture.Click, ActionIds.WorkingTreeOpen),
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
         new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
         new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext),

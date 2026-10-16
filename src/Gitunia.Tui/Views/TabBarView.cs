@@ -14,6 +14,9 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised with the one-based tab number when a tab is clicked.</summary>
     public event Action<int>? TabClicked;
 
+    /// <summary>Raised with the one-based tab number when the dirty marker of a tab is clicked.</summary>
+    public event Action<int>? DirtyMarkerClicked;
+
     /// <summary>Raised when the commands button at the right end of the row is clicked.</summary>
     public event Action? CommandsClicked;
 
@@ -49,6 +52,12 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
         if (TabBarLayout.IsOnNewTab(cells, position.X))
         {
             NewTabClicked?.Invoke();
+            return true;
+        }
+
+        if (TabBarLayout.DirtyMarkerAt(cells, position.X) is { } dirtyNumber)
+        {
+            DirtyMarkerClicked?.Invoke(dirtyNumber);
             return true;
         }
 

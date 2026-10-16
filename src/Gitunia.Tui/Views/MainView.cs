@@ -216,6 +216,7 @@ public sealed class MainView : IDisposable
         Window = new Window { Title = string.Empty, BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
         _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
+        _tabs.DirtyMarkerClicked += number => Gestured?.Invoke(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click, number);
         _tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);
         _tabs.CommandsClicked += () => Gestured?.Invoke(DefaultMouseMap.CommandsButton, MouseGesture.Click, null);
         _picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
