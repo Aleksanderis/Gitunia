@@ -9,16 +9,17 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
-using Gitunia.Tui.Tests.Fakes;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -286,6 +287,142 @@ public class WorkingDiffControllerTests
         Assert.Contains("not valid UTF-8", harness.Document().Rows[0].Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GivenTwoHunks_WhenStagingInTheDiff_ThenTheHunkUnderTheCursorIsStagedAndTheCursorMovesToTheNext()
+    {
+        var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
+        repository.WriteFile("long.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal(original.Replace("line 2\n", "two\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
+        Assert.Equal("Staged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Single(harness.Document().HunkRows);
+        Assert.Equal(harness.Document().HunkRows[0], harness.CursorRow());
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAVisualRangeOverOneAddedLine_WhenStaging_ThenOnlyThatLineIsStagedAndTheRangeEnds()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.WriteFile("f.txt", "a\nB1\nB2\nc\n");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        var addedRow = harness.Document().Rows.ToList().FindIndex(row => row is { Kind: DiffRowKind.Added, Text: "B1" });
+        await harness.ExecuteAsync(ActionIds.ListDown, addedRow);
+        await harness.ExecuteAsync(ActionIds.VisualToggle);
+        Assert.Equal(KeyMode.Visual, harness.Mode);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("a\nb\nB1\nc\n", harness.Git("show", ":f.txt"));
+        Assert.Equal("Staged 1 line of f.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.False(harness.Visual.IsActive);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAVisualRangeOverContextOnly_WhenStaging_ThenItIsRefusedAndNothingChanges()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.WriteFile("f.txt", "a\nB\nc\n");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        var contextRow = harness.Document().Rows.ToList().FindIndex(row => row is { Kind: DiffRowKind.Context, Text: "a" });
+        await harness.ExecuteAsync(ActionIds.ListDown, contextRow);
+        await harness.ExecuteAsync(ActionIds.VisualToggle);
+
+        Handle(harness, ActionIds.WorkingTreeStage);
+
+        Assert.Equal("No added or removed line is selected", harness.Handler.Message);
+        Assert.Equal("a\nb\nc\n", harness.Git("show", ":f.txt"));
+        Assert.True(harness.Visual.IsActive);
+    }
+
+    [Fact]
+    public async Task GivenAStagedHunk_WhenUnstagingInTheStagedDiff_ThenItReturnsToTheWorkingTree()
+    {
+        var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        repository.WriteFile(
+            "long.txt",
+            original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal));
+        repository.Git("add", "long.txt");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeToggle);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeToggle);
+        await harness.ExecuteAsync(ActionIds.PaneNext);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        await harness.StageAsync(ActionIds.WorkingTreeUnstage);
+
+        Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
+        Assert.Equal("Unstaged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAModifiedBinaryFile_WhenStagingInTheDiff_ThenTheWholeFileIsStagedAndSaysSo()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "a\n"));
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "pic.bin"), [0, 1, 2, 0, 255]);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal("Staged pic.bin whole: new, deleted and binary files are not split into hunks", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("A  pic.bin\n", harness.Git("status", "--short"));
+    }
+
+    [Fact]
+    public async Task GivenTheUnstagedDiff_WhenUnstaging_ThenItIsRefusedWithAHint()
+    {
+        using var harness = await Harness.OpenAsync(DefaultRepository());
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        Handle(harness, ActionIds.WorkingTreeUnstage);
+
+        Assert.Equal("Unstage works in the Staged diff", harness.Handler.Message);
+    }
+
+    [Fact]
+    public async Task GivenAnActiveRange_WhenQuitting_ThenTheRangeEndsFirst()
+    {
+        using var harness = await Harness.OpenAsync(DefaultRepository());
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        await harness.ExecuteAsync(ActionIds.VisualToggle);
+
+        Assert.True(harness.Handler.TryExecute(ActionIds.AppQuit, null));
+
+        Assert.False(harness.Visual.IsActive);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAConflictedFile_WhenStagingInTheDiff_ThenItIsRefused()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\n"));
+        repository.CheckoutNewBranch("topic").WriteFile("f.txt", "a\ntopic\n");
+        repository.Git("commit", "-q", "-am", "topic");
+        repository.Checkout("main").WriteFile("f.txt", "a\nmain\n");
+        repository.Git("commit", "-q", "-am", "main");
+        repository.MergeExpectingConflict("topic");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        Handle(harness, ActionIds.WorkingTreeStage);
+
+        Assert.Contains("is conflicted", harness.Handler.Message, StringComparison.Ordinal);
+    }
+
+    private static void Handle(Harness harness, ActionId action) => harness.Handler.TryExecute(action, null);
+
     private static TestRepository DefaultRepository()
     {
         var repository = TestRepository.Create().Commit(
@@ -317,9 +454,26 @@ public class WorkingDiffControllerTests
             var copier = new ClipboardCopier(new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000)), Statuses);
             Controller = new WorkingDiffController(host, () => Session, DiffList, mode => _mode = mode, () => { }, copier);
             Controller.OnTabSwitched(null, session);
-            var staging = new StagingActions(host, new FakeIndexWriter(), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
-            Handler = new WorkingTreeActionHandler(host, () => 10, copier, staging) { Diff = Controller };
+            var indexWriter = TestGit.Services.IndexWriter;
+            Staging = new StagingActions(
+                host,
+                indexWriter,
+                new PatchStager(TestGit.Services.Diff, indexWriter),
+                Statuses,
+                pump.Post,
+                (_, done) =>
+                {
+                    pump.Post(done);
+                    return true;
+                },
+                _ => Token);
+            Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, () => _mode, mode => _mode = mode);
+            Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging) { Diff = Controller, Visual = Visual };
         }
+
+        public StagingActions Staging { get; }
+
+        public VisualRangeController Visual { get; }
 
         public WorkspaceHost Host { get; }
 
@@ -366,6 +520,16 @@ public class WorkingDiffControllerTests
             Handler.TryExecute(action, count);
             await WaitForLoadedAsync();
         }
+
+        /// <summary>Runs a stage or unstage action, waits for git, then re-reads the status like the tab refresher does.</summary>
+        public async Task StageAsync(ActionId action)
+        {
+            Handler.TryExecute(action, null);
+            await _pump.RunUntilAsync(() => !Staging.IsRunning);
+            await RefreshStatusAsync();
+        }
+
+        public string Git(params string[] arguments) => _repository.Git(arguments);
 
         public void Type(string text)
         {

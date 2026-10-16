@@ -1,3 +1,4 @@
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 
@@ -13,6 +14,8 @@ public sealed class FakeIndexWriter : IIndexWriter
     public List<IReadOnlyList<string>> Unstaged { get; } = [];
 
     public List<bool> UnbornFlags { get; } = [];
+
+    public List<AppliedPatch> Patches { get; } = [];
 
     /// <summary>Thrown by the next calls when set.</summary>
     public Exception? Failure { get; set; }
@@ -33,6 +36,16 @@ public sealed class FakeIndexWriter : IIndexWriter
         await WaitAsync().ConfigureAwait(false);
         Unstaged.Add(paths);
         UnbornFlags.Add(isHeadUnborn);
+    }
+
+    public async Task ApplyPatchAsync(
+        RepositoryLocation location,
+        string patch,
+        PatchDirection direction,
+        CancellationToken cancellationToken)
+    {
+        await WaitAsync().ConfigureAwait(false);
+        Patches.Add(new AppliedPatch(patch, direction));
     }
 
     private async Task WaitAsync()

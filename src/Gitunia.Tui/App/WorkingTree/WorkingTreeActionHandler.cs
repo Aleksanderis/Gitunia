@@ -5,6 +5,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.WorkingTree;
@@ -18,7 +19,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="host">The workspace.</param>
 /// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
 /// <param name="clipboard">Copies the path of a file.</param>
-/// <param name="staging">Stages and unstages files.</param>
+/// <param name="staging">Stages and unstages files, hunks and lines.</param>
 public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageHeight, ClipboardCopier clipboard, StagingActions staging)
 {
     private static readonly HashSet<ActionId> LeftToOthers =
@@ -31,6 +32,9 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
 
     /// <summary>The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</summary>
     public WorkingDiffController? Diff { get; set; }
+
+    /// <summary>Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</summary>
+    public VisualRangeController? Visual { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -56,7 +60,11 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
             return false;
         }
 
-        if (Diff?.TryExecute(action, count) == true)
+        if (TryVisual(tab, action, count))
+        {
+            Message = Visual!.Notice;
+        }
+        else if (Diff?.TryExecute(action, count) == true)
         {
             Message = Diff.Notice;
         }
@@ -194,6 +202,18 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         return true;
     }
 
+    // Range selection works in the diff (the lists have no ranges yet): v and the mouse drag start it, y copies it, q ends it.
+    private bool TryVisual(RepositoryState tab, ActionId action, int? count)
+    {
+        if (Visual is null || !WorkingPanes.IsDiff(tab.View.FocusedPane))
+        {
+            return false;
+        }
+
+        var isRangeAction = action == ActionIds.VisualToggle || action == ActionIds.VisualCopy;
+        return (isRangeAction || (Visual.IsActive && action == ActionIds.AppQuit)) && Visual.TryExecute(action, count);
+    }
+
     private bool TryStage(RepositoryState tab, ActionId action)
     {
         if (!StagingActions.Handles(action))
@@ -201,8 +221,45 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
             return false;
         }
 
-        Message = staging.Execute(tab, action);
+        Message = WorkingPanes.IsDiff(tab.View.FocusedPane) ? StageFromDiff(tab, action) : staging.Execute(tab, action);
         return true;
+    }
+
+    // In the diff the same keys act on the hunk under the cursor, or on the Visual lines.
+    private string StageFromDiff(RepositoryState tab, ActionId action)
+    {
+        var isStage = action == ActionIds.WorkingTreeStage;
+        var isUnstage = action == ActionIds.WorkingTreeUnstage;
+        if (!isStage && !isUnstage)
+        {
+            return "Focus a file list first";
+        }
+
+        var isUnstagedSide = tab.View.FocusedPane == PaneKind.WorkingUnstagedDiff;
+        if (isStage != isUnstagedSide)
+        {
+            return isStage ? "Stage works in the Unstaged diff" : "Unstage works in the Staged diff";
+        }
+
+        if (Diff is null)
+        {
+            return "The diff is not available";
+        }
+
+        var capture = Diff.CaptureStaging(Visual?.Range);
+        if (capture.Request is not { } request)
+        {
+            return capture.Notice;
+        }
+
+        var diff = Diff;
+        var notice = staging.ExecuteSelection(tab, request, () => diff.MoveToHunkAfterReload(capture.HunkIndex));
+        if (notice.Length == 0)
+        {
+            Visual?.End();
+        }
+
+        return notice;
     }
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>

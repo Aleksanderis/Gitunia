@@ -119,9 +119,9 @@ public static class ActionCatalog
         ["working-tree.open-diff"] = "Go to the diff of the file",
         ["working-tree.open"] = "Open the working tree",
         ["working-tree.toggle"] = "Open or leave the working tree",
-        ["working-tree.stage"] = "Stage the file",
+        ["working-tree.stage"] = "Stage the file, hunk or selected lines",
         ["working-tree.stage-all"] = "Stage all files",
-        ["working-tree.unstage"] = "Unstage the file",
+        ["working-tree.unstage"] = "Unstage the file, hunk or selected lines",
         ["working-tree.unstage-all"] = "Unstage all files",
     };
 

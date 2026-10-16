@@ -4,21 +4,24 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Staging;
+using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Rendering.WorkingTree;
 
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Stages and unstages whole files from the working-tree lists (ux.md, workflow 2, "Stage and unstage"). The git call runs off the UI
+/// Stages and unstages whole files from the working-tree lists, and hunks or lines from its diff (ux.md, workflow 2, "Stage and unstage"). The git call runs off the UI
 /// thread; when it is done the tab re-reads its status, and only then is the next action accepted, so the list the cursor sits in is
 /// current and the same key can be repeated (the state keeps the cursor at the same index). One operation per tab at a time.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Changes the index.</param>
+/// <param name="patchStager">Stages and unstages the hunk or lines picked in a diff.</param>
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
@@ -26,6 +29,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 public sealed class StagingActions(
     WorkspaceHost host,
     IIndexWriter writer,
+    PatchStager patchStager,
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
@@ -84,6 +88,24 @@ public sealed class StagingActions(
         return string.Empty;
     }
 
+    /// <summary>
+    /// Stages (the diff of an Unstaged file) or unstages (one of a Staged file) the hunk or the Visual lines of
+    /// <paramref name="request"/>; a file with no hunks goes whole. Returns a notice when nothing was started, empty otherwise.
+    /// </summary>
+    public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request, Action? onStaged = null)
+    {
+        if (_busy.Contains(tab.Id))
+        {
+            return "Busy: the last stage or unstage is still running";
+        }
+
+        _busy.Add(tab.Id);
+        var isUnborn = tab.WorkingTree?.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => RunSelectionAsync(tab, request, isUnborn, onStaged, token), CancellationToken.None);
+        return string.Empty;
+    }
+
     private static StagingPlan PlanOne(WorkingTreeState tree, WorkingTreeSection section)
     {
         var entries = section == WorkingTreeSection.Staged ? tree.Staged : tree.Unstaged;
@@ -120,11 +142,8 @@ public sealed class StagingActions(
         return StagingPlan.For([.. usable.SelectMany(entry => PathsOf(entry, section))], string.Empty, usable.Count, skipped);
     }
 
-    // Unstaging a rename must reset the old path too, or the deletion of it stays staged.
     private static IReadOnlyList<string> PathsOf(StatusEntry entry, WorkingTreeSection section) =>
-        section == WorkingTreeSection.Staged && entry.Kind == StatusEntryKind.Renamed && entry.OriginalPath is { } original
-            ? [entry.Path, original]
-            : [entry.Path];
+        StagingPaths.Of(entry, section == WorkingTreeSection.Staged ? WorkingDiffSide.Staged : WorkingDiffSide.Unstaged);
 
     private async Task RunAsync(RepositoryState tab, StagingPlan plan, bool isStage, bool isUnborn, CancellationToken token)
     {
@@ -139,7 +158,7 @@ public sealed class StagingActions(
                 await writer.UnstageAsync(tab.Location, plan.Paths, isUnborn, token).ConfigureAwait(false);
             }
 
-            postToUi(() => Finish(tab.Id, Report(plan, isStage), false));
+            postToUi(() => Finish(tab.Id, Report(plan, isStage), StatusSeverity.Info));
         }
         catch (OperationCanceledException)
         {
@@ -148,9 +167,73 @@ public sealed class StagingActions(
         catch (Exception exception)
         {
             var verb = isStage ? "stage" : "unstage";
-            postToUi(() => Finish(tab.Id, $"Could not {verb}: {Reason(exception)}", true));
+            postToUi(() => Finish(tab.Id, $"Could not {verb}: {Reason(exception)}", StatusSeverity.Error));
         }
     }
+
+    private async Task RunSelectionAsync(
+        RepositoryState tab,
+        DiffStagingRequest request,
+        bool isUnborn,
+        Action? onStaged,
+        CancellationToken token)
+    {
+        var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
+        try
+        {
+            // Lines picked one by one are never turned into a whole-file stage behind the user's back.
+            var result = await patchStager
+                .StageAsync(
+                    tab.Location,
+                    request.Target.Side,
+                    request.Target.Entry,
+                    request.Lines,
+                    !request.IsRange,
+                    isUnborn,
+                    token)
+                .ConfigureAwait(false);
+            postToUi(() => FinishSelection(tab.Id, request, result, onStaged));
+        }
+        catch (OperationCanceledException)
+        {
+            postToUi(() => Release(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var verb = isStage ? "stage" : "unstage";
+            postToUi(() => Finish(tab.Id, $"Could not {verb} the selection: {Reason(exception)}", StatusSeverity.Error));
+        }
+    }
+
+    private void FinishSelection(TabId tabId, DiffStagingRequest request, PatchStagingResult result, Action? onStaged)
+    {
+        if (result.Outcome is PatchStagingOutcome.Applied or PatchStagingOutcome.WholeFile)
+        {
+            onStaged?.Invoke();
+        }
+
+        Finish(tabId, Report(request, result), SeverityOf(result));
+    }
+
+    private static string Report(DiffStagingRequest request, PatchStagingResult result)
+    {
+        var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
+        var verb = isStage ? "stage" : "unstage";
+        var name = WorkingTreeRowRenderer.Printable(request.Target.Entry.Path);
+        var what = request.IsRange ? Plural(result.LineCount, "line") : $"hunk ({Plural(result.LineCount, "line")})";
+        return result.Outcome switch
+        {
+            PatchStagingOutcome.Applied => $"{(isStage ? "Staged" : "Unstaged")} {what} of {name}",
+            PatchStagingOutcome.WholeFile =>
+                $"{(isStage ? "Staged" : "Unstaged")} {name} whole: new, deleted and binary files are not split into hunks",
+            PatchStagingOutcome.NotSplittable =>
+                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its hunk or the whole file",
+            PatchStagingOutcome.FileChanged => $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
+            _ => $"Nothing to {verb} in the selection",
+        };
+    }
+
+    private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
     // Git's own first line of stderr; the exception message also repeats the whole command line.
     private static string Reason(Exception exception)
@@ -160,16 +243,14 @@ public sealed class StagingActions(
         return lines.Length > 0 ? lines[0] : "unknown error";
     }
 
-    private void Finish(TabId tabId, string message, bool isError)
+    private static StatusSeverity SeverityOf(PatchStagingResult result) =>
+        result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable
+            ? StatusSeverity.Warning
+            : StatusSeverity.Info;
+
+    private void Finish(TabId tabId, string message, StatusSeverity severity)
     {
-        if (isError)
-        {
-            statuses.Error(message);
-        }
-        else
-        {
-            statuses.Post(message);
-        }
+        statuses.Post(message, severity);
 
         // The state decides what the lists show, so the next action waits for it (an error may have left the index half changed).
         if (host.Workspace.FindTab(tabId) is null || !refreshStatus(tabId, () => Release(tabId)))

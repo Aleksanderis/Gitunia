@@ -35,4 +35,16 @@ public static class GitOptions
 
     /// <summary>The empty side of an added file; git's own literal, understood on every platform.</summary>
     public const string NullDevice = "/dev/null";
+
+    /// <summary><c>git apply</c>: change the index only, not the working tree.</summary>
+    public const string ApplyToIndex = "--cached";
+
+    /// <summary><c>git apply</c>: undo the patch (unstage a hunk).</summary>
+    public const string ApplyReverse = "-R";
+
+    /// <summary><c>git apply</c>: no whitespace warnings for the lines it applies (the patch is a copy of what git printed).</summary>
+    public const string ApplyNoWhitespaceWarning = "--whitespace=nowarn";
+
+    /// <summary>Read the patch from stdin.</summary>
+    public const string StandardInputPath = "-";
 }
