@@ -132,6 +132,21 @@ public class StashWriterTests
     }
 
     [Fact]
+    public async Task GivenMergeStoppedOnConflicts_WhenApplying_ThenGitsRefusalIsThrownNotAConflict()
+    {
+        using var repository = TestRepositories.WithStash();
+        var main = repository.Git("branch", "--show-current").Trim();
+        repository.CheckoutNewBranch("side").Commit("side", new TestFile("file.txt", "side\n"));
+        repository.Checkout(main).Commit("main", new TestFile("file.txt", "main\n"));
+        repository.MergeExpectingConflict("side");
+        Assert.NotEqual(string.Empty, repository.Git("ls-files", "--unmerged").Trim());
+        var location = await LocateAsync(repository);
+        var entry = await TopAsync(location);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => Writer.ApplyAsync(location, entry, Token));
+    }
+
+    [Fact]
     public async Task GivenTwoStashes_WhenDroppingAfterAnotherPush_ThenTheStashOfTheEntryGoesNotTheOneNowAtItsIndex()
     {
         using var repository = TestRepositories.WithStash();

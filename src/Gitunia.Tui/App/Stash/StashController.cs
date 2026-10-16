@@ -68,8 +68,7 @@ public sealed class StashController(
             return TryExecutePrompt(action);
         }
 
-        if (action != ActionIds.StashPush && action != ActionIds.StashPushUntracked && action != ActionIds.StashApply
-            && action != ActionIds.StashPop && action != ActionIds.StashDrop)
+        if (!Owns(action))
         {
             return false;
         }
@@ -102,6 +101,10 @@ public sealed class StashController(
     public void OnGraphChanged()
     {
     }
+
+    private static bool Owns(ActionId action) =>
+        action == ActionIds.StashPush || action == ActionIds.StashPushUntracked || action == ActionIds.StashApply
+        || action == ActionIds.StashPop || action == ActionIds.StashDrop;
 
     private bool TryExecutePrompt(ActionId action)
     {

@@ -96,6 +96,7 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         }
 
         string[] arguments = ["stash", command, "--quiet", name];
+        var unmergedBefore = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
         try
         {
             await runner
@@ -103,8 +104,16 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
                 .ConfigureAwait(false);
             return new StashResult(StashOutcome.Done, entry.CommitHash);
         }
-        catch (GitCommandFailedException) when (HasUnmergedFiles(location, cancellationToken))
+        catch (GitCommandFailedException)
         {
+            // Only a change of the unmerged set proves this call made the conflict; files that were already conflicted
+            // (a stopped merge) mean git refused, and its message is the answer.
+            var unmergedAfter = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
+            if (unmergedAfter.Length == 0 || unmergedAfter == unmergedBefore)
+            {
+                throw;
+            }
+
             // Conflict markers are in the tree and the stash is kept: git drops it only after a clean pop.
             return new StashResult(StashOutcome.Conflicted, entry.CommitHash);
         }
@@ -118,14 +127,12 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         return result.ExitCode == 0 ? result.StandardOutputText.Trim() : null;
     }
 
-    private bool HasUnmergedFiles(RepositoryLocation location, CancellationToken cancellationToken)
+    private async Task<string> ReadUnmergedAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
-        // An exception filter cannot await, so this one read blocks; it is a single quick ls-files on a worker thread.
-        var result = runner
+        var result = await runner
             .RunAsync(location.CommandPath, UnmergedArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
-            .GetAwaiter()
-            .GetResult();
-        return result.StandardOutput.Length > 0;
+            .ConfigureAwait(false);
+        return result.StandardOutputText;
     }
 
     private async Task<string?> FindCurrentNameAsync(

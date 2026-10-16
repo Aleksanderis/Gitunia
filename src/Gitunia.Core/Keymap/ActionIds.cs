@@ -159,6 +159,8 @@ public static class ActionIds
 
     public static ActionId SidebarExpand { get; } = new("sidebar.expand");
 
+    public static ActionId SidebarFilter { get; } = new("sidebar.filter");
+
     public static ActionId StashPush { get; } = new("stash.push");
 
     public static ActionId StashPushUntracked { get; } = new("stash.push-untracked");
@@ -168,8 +170,6 @@ public static class ActionIds
     public static ActionId StashPop { get; } = new("stash.pop");
 
     public static ActionId StashDrop { get; } = new("stash.drop");
-
-    public static ActionId SidebarFilter { get; } = new("sidebar.filter");
 
     public static ActionId StatusDismiss { get; } = new("status.dismiss");
 
