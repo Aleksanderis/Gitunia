@@ -307,6 +307,7 @@ public class PatchStagerTests
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("target.txt", "1\n2\n3\n");
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Creating symbolic links needs privileges on Windows");
         File.CreateSymbolicLink(Path.Combine(repository.WorkingTreePath, "link.txt"), "target.txt");
         var (location, entry) = await LocateAsync(repository, "link.txt");
         var line = new[] { new ChangedLine(DiffLineKind.Added, 2, "2") };
@@ -462,6 +463,7 @@ public class PatchStagerTests
         var staged = repository.Git("ls-files", "--stage");
         Assert.DoesNotContain("fresh.txt", staged, StringComparison.Ordinal);
         Assert.DoesNotContain("new.bin", staged, StringComparison.Ordinal);
+        Assert.DoesNotContain("link.txt", staged, StringComparison.Ordinal);
     }
 
     private sealed class FailingApplyWriter(IIndexWriter inner, Exception failure) : IIndexWriter
