@@ -205,6 +205,9 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "Y", ActionIds.DiffCopyFile);
         }
 
+        // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
+        Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
+        Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);

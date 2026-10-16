@@ -59,10 +59,8 @@ public static class PaneHints
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
-    private static readonly ImmutableArray<KeyHint> WorkingDiff =
+    private static readonly ImmutableArray<KeyHint> WorkingDiffCommon =
     [
-        .. Pinned,
-        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
@@ -74,6 +72,24 @@ public static class PaneHints
         new("L", "load all", [ActionIds.DiffLoadAnyway]),
         new("y", "copy line", [ActionIds.DiffCopyLine]),
         new("h", "back", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiff =
+    [
+        .. Pinned,
+        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>a", "stage hunk", [ActionIds.WorkingTreeStage]),
+        new("v", "select lines", [ActionIds.VisualToggle]),
+        .. WorkingDiffCommon,
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingStagedDiff =
+    [
+        .. Pinned,
+        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("<space>u", "unstage hunk", [ActionIds.WorkingTreeUnstage]),
+        new("v", "select lines", [ActionIds.VisualToggle]),
+        .. WorkingDiffCommon,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
@@ -116,7 +132,8 @@ public static class PaneHints
         PaneKind.Diff => Diff,
         PaneKind.WorkingUnstaged => WorkingUnstaged,
         PaneKind.WorkingStaged => WorkingStaged,
-        PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => WorkingDiff,
+        PaneKind.WorkingUnstagedDiff => WorkingUnstagedDiff,
+        PaneKind.WorkingStagedDiff => WorkingStagedDiff,
         _ => Graph,
     };
 

@@ -276,6 +276,24 @@ public class KeymapEngineTests
     }
 
     [Fact]
+    public void GivenTheWorkingTreeDiffs_WhenPressingTheStagingChords_ThenEachSideHasItsOwnInNormalAndVisualMode()
+    {
+        var engine = new KeymapEngine(DefaultKeymap.Create());
+        foreach (var mode in (KeyMode[])[KeyMode.Normal, KeyMode.Visual])
+        {
+            var unstaged = new KeyFeeder(engine, DefaultKeymap.WorkingUnstagedDiffView);
+            unstaged.State = unstaged.State.WithMode(mode);
+            var staged = new KeyFeeder(engine, DefaultKeymap.WorkingStagedDiffView);
+            staged.State = staged.State.WithMode(mode);
+
+            Assert.Equal(ActionIds.WorkingTreeStage, unstaged.Feed("<space>a").Action);
+            Assert.Null(unstaged.Feed("<space>u").Action);
+            Assert.Equal(ActionIds.WorkingTreeUnstage, staged.Feed("<space>u").Action);
+            Assert.Null(staged.Feed("<space>a").Action);
+        }
+    }
+
+    [Fact]
     public void GivenModeSwitch_WhenChordWasPending_ThenPendingIsDropped()
     {
         var feeder = CreateFeeder();

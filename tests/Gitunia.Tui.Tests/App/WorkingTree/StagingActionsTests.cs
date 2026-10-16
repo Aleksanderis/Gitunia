@@ -5,11 +5,14 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
@@ -137,6 +140,114 @@ public class StagingActionsTests
         Assert.Empty(harness.Writer.Unstaged);
     }
 
+    [Fact]
+    public async Task GivenChosenLines_WhenStagingTheSelection_ThenAForwardPatchOfJustThoseLinesIsApplied()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt"));
+
+        var notice = harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 2, "TWO")], true);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(string.Empty, notice);
+        var patch = Assert.Single(harness.Writer.Patches);
+        Assert.Equal(PatchDirection.Forward, patch.Direction);
+        Assert.Equal(
+            "diff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n@@ -1,3 +1,4 @@\n one\n two\n+TWO\n three\n",
+            patch.Text);
+        Assert.Equal("Staged 1 line of a.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAStagedFile_WhenUnstagingTheSelection_ThenAReversePatchIsApplied()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Staged, "a.txt", EditedFile("a.txt"));
+
+        harness.Select(WorkingDiffSide.Staged, [new ChangedLine(DiffLineKind.Added, 4, "four")], false);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(PatchDirection.Reverse, Assert.Single(harness.Writer.Patches).Direction);
+        Assert.Equal("Unstaged hunk (1 line) of a.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenALineThatIsNoLongerInTheFile_WhenStagingTheSelection_ThenNothingIsAppliedAndAWarningShows()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt"));
+
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 2, "something else")], true);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Empty(harness.Writer.Patches);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("changed since the diff was read", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenGitRefusesThePatch_WhenStagingTheSelection_ThenTheErrorIsShownAndTheStatusIsReRead()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt"));
+        harness.Writer.Failure = new InvalidOperationException("patch does not apply");
+        var refreshed = false;
+        harness.OnRefresh = () => refreshed = true;
+
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 2, "TWO")], true);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.True(refreshed);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("patch does not apply", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAFileWithoutHunks_WhenStagingTheSelection_ThenTheWholeFileIsStaged()
+    {
+        using var harness = new Harness(Untracked("new.txt"));
+
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], true, Untracked("new.txt"));
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(["new.txt"], Assert.Single(harness.Writer.Staged));
+        Assert.Empty(harness.Writer.Patches);
+        Assert.Equal("Staged new.txt whole: it has no hunks to pick from", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenASelectionInProgress_WhenAnotherArrives_ThenItIsRefusedAsBusy()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt"));
+        harness.Writer.IsHeld = true;
+        var lines = new[] { new ChangedLine(DiffLineKind.Added, 2, "TWO") };
+
+        Assert.Equal(string.Empty, harness.Select(WorkingDiffSide.Unstaged, lines, true));
+        var notice = harness.Select(WorkingDiffSide.Unstaged, lines, true);
+        harness.Writer.Release();
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Contains("Busy", notice, StringComparison.Ordinal);
+        Assert.Single(harness.Writer.Patches);
+    }
+
+    // One hunk: "two" becomes "TWO" and a line "four" is added at the end.
+    private static DiffFile EditedFile(string path)
+    {
+        DiffLine[] lines =
+        [
+            new(DiffLineKind.Context, "one", 1, 1, false),
+            new(DiffLineKind.Removed, "two", 2, null, false),
+            new(DiffLineKind.Added, "TWO", null, 2, false),
+            new(DiffLineKind.Context, "three", 3, 3, false),
+            new(DiffLineKind.Added, "four", null, 4, false),
+        ];
+        var hunk = new DiffHunk("@@ -1,3 +1,5 @@", 1, 3, 1, 5, string.Empty, lines);
+        string[] header = [$"diff --git a/{path} b/{path}", $"--- a/{path}", $"+++ b/{path}"];
+        return new DiffFile(path, path, DiffFileStatus.Modified, null, null, null, false, header, [hunk]);
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
@@ -149,12 +260,14 @@ public class StagingActionsTests
             Load(entries);
             Send(new OpenWorkingTreeCommand());
             Pump = new UiPump(TestContext.Current.CancellationToken);
-            Staging = new StagingActions(_host, Writer, Statuses, Pump.Post, RefreshStatus, _ => TestContext.Current.CancellationToken);
+            Staging = new StagingActions(_host, Writer, new PatchStager(Reader, Writer), Statuses, Pump.Post, RefreshStatus, _ => TestContext.Current.CancellationToken);
         }
 
         public UiPump Pump { get; }
 
         public FakeIndexWriter Writer { get; } = new();
+
+        public FakeDiffReader Reader { get; } = new();
 
         public StatusChannel Statuses { get; } = new();
 
@@ -168,6 +281,13 @@ public class StagingActionsTests
         public WorkingTreeSelection Selection => Tab.WorkingTree!.Selection!;
 
         public string Run(ActionId action) => Staging.Execute(Tab, action);
+
+        /// <summary>Stages or unstages chosen lines of the file under the cursor (or of <paramref name="entry"/>).</summary>
+        public string Select(WorkingDiffSide side, IReadOnlyList<ChangedLine> lines, bool isRange, StatusEntry? entry = null)
+        {
+            var shown = entry ?? (side == WorkingDiffSide.Staged ? Tab.WorkingTree!.Staged[0] : Tab.WorkingTree!.Unstaged[0]);
+            return Staging.ExecuteSelection(Tab, new DiffStagingRequest(new WorkingDiffRequest(side, shown), lines, isRange));
+        }
 
         public void Load(params StatusEntry[] entries) => Send(new WorkingTreeLoadedCommand(Snapshot(entries)));
 

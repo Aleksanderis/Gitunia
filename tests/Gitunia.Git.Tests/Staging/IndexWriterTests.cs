@@ -1,5 +1,7 @@
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
@@ -167,6 +169,34 @@ public class IndexWriterTests
         var location = await LocateAsync(repository);
 
         await Assert.ThrowsAnyAsync<Exception>(() => Writer.StageAsync(location, ["nope.txt"], Token));
+    }
+
+    [Fact]
+    public async Task GivenAPatchThatMatchesTheIndex_WhenApplyingForwardAndReverse_ThenOnlyTheIndexChanges()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "one\ntwo\n"));
+        repository.WriteFile("a.txt", "one\nTWO\n");
+        var location = await LocateAsync(repository);
+        const string patch = "diff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,2 @@\n one\n-two\n+TWO\n";
+
+        await Writer.ApplyPatchAsync(location, patch, PatchDirection.Forward, Token);
+        Assert.Equal("one\nTWO\n", repository.Git("show", ":a.txt"));
+
+        await Writer.ApplyPatchAsync(location, patch, PatchDirection.Reverse, Token);
+        Assert.Equal("one\ntwo\n", repository.Git("show", ":a.txt"));
+        Assert.Equal("one\nTWO\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAPatchThatDoesNotApply_WhenApplying_ThenGitFailsAndTheIndexIsUntouched()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "one\ntwo\n"));
+        var location = await LocateAsync(repository);
+        const string patch = "diff --git a/a.txt b/a.txt\n--- a/a.txt\n+++ b/a.txt\n@@ -1,2 +1,2 @@\n one\n-zzz\n+TWO\n";
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => Writer.ApplyPatchAsync(location, patch, PatchDirection.Forward, Token));
+
+        Assert.Equal("one\ntwo\n", repository.Git("show", ":a.txt"));
     }
 
     private static StatusEntry Entry(IReadOnlyList<StatusEntry> entries, string path) =>

@@ -11,6 +11,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Clipboard;
@@ -143,11 +144,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.RefreshChrome,
             clipboard);
         _view.WorkingDiffTitle = _workingDiff.TitleText;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging())
-        {
-            Diff = _workingDiff,
-        };
-        _router.DetailTabs = new DetailTabController(_host);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             PaneView,
@@ -155,6 +151,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             mode => _keys.SetMode(mode),
             new RangeCopier(clipboard, ActiveSession).Copy);
         _router.Visual = _visual;
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging())
+        {
+            Diff = _workingDiff,
+            Visual = _visual,
+        };
+        _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
@@ -229,6 +231,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Detail.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.Detail.ValueChanged += (_, _) => _diffPane.OnDetailCursorMoved();
         _view.Diff.ValueChanged += (_, _) => _visual.OnCursorMoved();
+        _view.WorkingDiff.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
         _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
 
@@ -313,9 +316,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         if (gesture == MouseGesture.DragStart
             && viewName is DefaultKeymap.SidebarView
                 or DefaultKeymap.WorkingUnstagedView
-                or DefaultKeymap.WorkingStagedView
-                or DefaultKeymap.WorkingUnstagedDiffView
-                or DefaultKeymap.WorkingStagedDiffView)
+                or DefaultKeymap.WorkingStagedView)
         {
             return;
         }
@@ -346,7 +347,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     }
 
     private static bool IsRangePane(string viewName) =>
-        viewName is DefaultKeymap.GraphView or DefaultKeymap.DetailView or DefaultKeymap.DiffView;
+        viewName is DefaultKeymap.GraphView
+            or DefaultKeymap.DetailView
+            or DefaultKeymap.DiffView
+            or DefaultKeymap.WorkingUnstagedDiffView
+            or DefaultKeymap.WorkingStagedDiffView;
 
     private void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
@@ -398,6 +403,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private StagingActions CreateStaging() => new(
         _host,
         services.IndexWriter,
+        new PatchStager(services.Diff, services.IndexWriter),
         _statuses,
         InvokeOnUi,
         _effects.RefreshStatus,

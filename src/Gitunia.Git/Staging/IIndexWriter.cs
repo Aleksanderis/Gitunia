@@ -1,3 +1,4 @@
+using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Staging;
@@ -13,4 +14,11 @@ public interface IIndexWriter
     /// (<c>git rm --cached</c>) when the branch is unborn and there is no HEAD to restore from.
     /// </summary>
     Task UnstageAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Applies a patch to the index only (<c>git apply --cached</c>, with <c>-R</c> for <see cref="PatchDirection.Reverse"/>), the way
+    /// hunks and lines are staged and unstaged. The patch goes on stdin as UTF-8; git refuses a patch that does not apply and leaves
+    /// the index as it was.
+    /// </summary>
+    Task ApplyPatchAsync(RepositoryLocation location, string patch, PatchDirection direction, CancellationToken cancellationToken);
 }

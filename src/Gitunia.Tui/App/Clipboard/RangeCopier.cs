@@ -37,6 +37,10 @@ public sealed class RangeCopier(ClipboardCopier clipboard, Func<TabSession?> act
                 text = RangeTextBuilder.Diff(diff.Source, range);
                 description = "diff rows";
                 break;
+            case PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff when session.WorkingDiff is { } workingDiff:
+                text = RangeTextBuilder.Diff(workingDiff.Source, range);
+                description = "diff rows";
+                break;
             default:
                 return NothingToCopy;
         }
