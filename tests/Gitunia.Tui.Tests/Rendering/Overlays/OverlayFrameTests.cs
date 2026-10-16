@@ -213,7 +213,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ 1/97  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/97 Ctrl-j/k move  Enter run  Esc close                             │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -252,7 +252,7 @@ public class OverlayFrameTests
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
                 "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
-                "│ 2/23  Up/Down choose  Enter run  Esc close             │",
+                "│ 2/23 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
@@ -297,6 +297,37 @@ public class OverlayFrameTests
         Assert.Contains(visible[index.Value].Title, frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(10)]
+    [InlineData(12)]
+    [InlineData(18)]
+    [InlineData(24)]
+    [InlineData(60)]
+    public void GivenAnyScreenHeight_WhenRenderingThePalette_ThenTheFooterIsDirectlyBelowTheLastEntryAndAboveTheStatusRow(int screenHeight)
+    {
+        var palette = Palette().Move(1000);
+
+        var frame = PaletteFrameBuilder.Build(palette, 80, screenHeight, GraphGlyphSet.Unicode)!;
+        var lines = Text(frame).Split('\n');
+
+        Assert.True(frame.Row + lines.Length <= screenHeight - 1, "The frame must end above the status row.");
+        Assert.Contains("97/97", lines[^2]);
+        Assert.True(frame.Lines[^3].IsSelected, "The last entry must be the selected row, directly above the footer.");
+    }
+
+    [Fact]
+    public void GivenAnOpenPalette_WhenRenderingTheFooter_ThenTheKeysAreBoldInTheStatusBarStyle()
+    {
+        var frame = PaletteFrameBuilder.Build(Palette(), 80, 24, GraphGlyphSet.Unicode)!;
+        var footer = frame.Lines[^2];
+
+        var keys = footer.Segments.Where(segment => segment.Role == SegmentRole.StatusKey).Select(segment => segment.Text);
+
+        Assert.Equal(["Ctrl-j/k", "Enter", "Esc"], keys);
+    }
+
     [Fact]
     public void GivenAFilterWithFewMatches_WhenAskingForALinePastTheEntries_ThenThereIsNoEntry()
     {
@@ -315,7 +346,7 @@ public class OverlayFrameTests
                 '\n',
                 " : zzzzqq_                            ",
                 "| no matching action                 |",
-                "| 0/0  Up/Down choose  Enter run  Es~|",
+                "| 0/0 Ctrl-j/k move  Enter run  Esc ~|",
                 "+------------------------------------+"),
             Text(frame));
     }

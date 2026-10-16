@@ -396,6 +396,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Picker | `Alt-p` | Pin the entry to the top of the list / unpin it |
 | Picker | `Alt-d` | Remove from recents |
 | Palette | `Up` `Down` | Move highlight (typing filters; `Enter` runs the action, `Esc` closes) |
+| Palette | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases, like the picker) |
+| Palette | `Ctrl-l` | Run the highlighted action (alias of `Enter`, like the picker); `Ctrl-h` is left unbound because some terminals send it for `Backspace` |
 
 Mouse paths are listed in the next section.
 

@@ -254,6 +254,29 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenAnOpenPalette_WhenPressingCtrlJAndCtrlK_ThenTheHighlightMovesDownAndUp()
+    {
+        Press(new Key(':'));
+
+        Press(Key.J.WithCtrl);
+        Press(Key.J.WithCtrl);
+        Press(Key.K.WithCtrl);
+
+        Assert.Equal(1, _overlays.State.Palette!.SelectedIndex);
+    }
+
+    [Fact]
+    public void GivenAnOpenPalette_WhenPressingCtrlHOrCtrlL_ThenTheHighlightStays()
+    {
+        Press(new Key(':'));
+        Press(Key.J.WithCtrl);
+
+        Press(Key.H.WithCtrl);
+
+        Assert.Equal(1, _overlays.State.Palette!.SelectedIndex);
+    }
+
+    [Fact]
     public void GivenOpenHelp_WhenPressingEscQuestionMarkOrQ_ThenItCloses()
     {
         foreach (var close in new[] { Key.Esc, new Key('?'), new Key('q') })
