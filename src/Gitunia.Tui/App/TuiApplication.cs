@@ -75,7 +75,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
-    private readonly QuitGuard _quitGuard = new();
     private CommitActions _commits = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
     private Action? _suspendedWork;
@@ -181,7 +180,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi);
-        _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit);
+        _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit, _commits.HasUnsentMessage);
 
         _binder = new GraphTabBinder(
             _host,
@@ -257,6 +256,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         _host.Restore(restored.Update);
+        _commits.Restore(restored.Drafts);
         _statusPoller = new BackgroundStatusPoller(services.Status, _host, InvokeOnUi);
         _statusPoller.Start();
         if (location is not null)
@@ -270,7 +270,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _picker.Open();
         }
 
-        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi);
+        using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi, _commits.SnapshotForSession);
+        _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
         try
@@ -314,11 +315,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RouteAction(ActionId action, int? count)
     {
-        if (action != ActionIds.AppQuit)
-        {
-            _quitGuard.Reset();
-        }
-
         if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
@@ -433,19 +429,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome();
     }
 
-    // Quitting with an unsent commit message says so first; a second quit right after goes through.
-    private void RequestQuit()
-    {
-        var unsent = _commits.TabsWithUnsentMessage();
-        if (_quitGuard.MayQuit(unsent))
-        {
-            RequestStop();
-        }
-        else
-        {
-            _statuses.Warning(QuitGuard.Warning(unsent));
-        }
-    }
+    // Unsent commit messages are saved with the session on exit and restored per tab, so a quit never loses one.
+    private void RequestQuit() => RequestStop();
 
     private CommitActions CreateCommits() => new(
         _host,

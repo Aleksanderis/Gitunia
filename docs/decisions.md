@@ -221,3 +221,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-16
 
 **Process:** CI cost (free plan ~1100 of 2000 min used mid-month): CI runs once per ready PR, weekly on main and by dispatch, not on push to main; AOT publish only on PRs touching project/dependency files; agents verify locally, open PRs ready and push once; screenshots only for visual changes, one capture per PR. Revisit at v1.0. Supersedes the draft-PR flow.
+
+**UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.

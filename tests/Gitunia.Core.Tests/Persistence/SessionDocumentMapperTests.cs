@@ -165,4 +165,35 @@ public class SessionDocumentMapperTests
         Assert.Null(restored.Workspace.ActiveTabId);
         Assert.Empty(restored.Effects);
     }
+
+    [Fact]
+    public void GivenCommitDrafts_WhenRoundTripped_ThenTheDraftsComeBackUnderTheNewTabIds()
+    {
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha", "beta", "gamma");
+        var betaId = workspace.FindTabByRootPath(SessionFixtures.AbsolutePath("beta"))!.Id;
+        var gammaId = workspace.FindTabByRootPath(SessionFixtures.AbsolutePath("gamma"))!.Id;
+        var drafts = new Dictionary<TabId, SessionDraft>
+        {
+            [betaId] = new("Subject\n\nBody", true, false),
+            [gammaId] = new(string.Empty, false, true),
+        };
+
+        var restored = SessionDocumentMapper.ToSession(SessionDocumentMapper.ToDocument(workspace, drafts), _ => true);
+
+        var beta = restored.Update.Workspace.FindTabByRootPath(SessionFixtures.AbsolutePath("beta"))!;
+        var gamma = restored.Update.Workspace.FindTabByRootPath(SessionFixtures.AbsolutePath("gamma"))!;
+        Assert.Equal(2, restored.Drafts.Count);
+        Assert.Equal(new SessionDraft("Subject\n\nBody", true, false), restored.Drafts[beta.Id]);
+        Assert.Equal(new SessionDraft(string.Empty, false, true), restored.Drafts[gamma.Id]);
+    }
+
+    [Fact]
+    public void GivenAnOldFileWithoutDrafts_WhenRestoring_ThenThereAreNoDrafts()
+    {
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha");
+
+        var restored = SessionDocumentMapper.ToSession(SessionDocumentMapper.ToDocument(workspace), _ => true);
+
+        Assert.Empty(restored.Drafts);
+    }
 }

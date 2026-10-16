@@ -1,5 +1,6 @@
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Persistence;
@@ -31,6 +32,21 @@ public class SessionStoreTests
         Assert.Equal(SessionLoadStatus.Restored, result.Status);
         Assert.Equal(["alpha", "beta"], result.Update.Workspace.Tabs.Select(tab => tab.DisplayName));
         Assert.Equal(2, result.Update.Effects.Length);
+    }
+
+    [Fact]
+    public async Task GivenSavedDraft_WhenLoadingInNewStore_ThenTheDraftIsRestored()
+    {
+        using var directory = new TemporaryDirectory();
+        var workspace = SessionFixtures.Open(Workspace.Empty, "alpha");
+        var drafts = new Dictionary<TabId, SessionDraft> { [workspace.Tabs[0].Id] = new("fix: keep it", true, true) };
+
+        await new SessionStore(directory.DirectoryPath).SaveAsync(workspace, drafts, TestContext.Current.CancellationToken);
+        var result = await new SessionStore(directory.DirectoryPath, _ => true).LoadAsync(TestContext.Current.CancellationToken);
+
+        var draft = Assert.Single(result.Drafts);
+        Assert.Equal(result.Update.Workspace.Tabs[0].Id, draft.Key);
+        Assert.Equal(new SessionDraft("fix: keep it", true, true), draft.Value);
     }
 
     [Theory]

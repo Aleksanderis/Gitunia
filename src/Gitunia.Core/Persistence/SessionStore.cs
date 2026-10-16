@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Core.Persistence;
 
@@ -74,14 +75,26 @@ public sealed class SessionStore
             return SetAside("the session file is from another version of gitunia", $".v{document.Version}.bak", SessionLoadStatus.UnsupportedVersion);
         }
 
-        var update = SessionDocumentMapper.ToWorkspace(document, _directoryExists);
-        return new SessionLoadResult(update, SessionLoadStatus.Restored, null);
+        var session = SessionDocumentMapper.ToSession(document, _directoryExists);
+        return new SessionLoadResult(session.Update, SessionLoadStatus.Restored, null) { Drafts = session.Drafts };
     }
 
+    /// <summary>Writes the session without drafts; see the overload with drafts.</summary>
+    /// <param name="workspace">The workspace to save.</param>
+    /// <param name="cancellationToken">Cancels the write.</param>
+    public Task<bool> SaveAsync(Workspace workspace, CancellationToken cancellationToken) =>
+        SaveAsync(workspace, null, cancellationToken);
+
     /// <summary>Writes the session atomically. Returns false when the file could not be written (read-only or full disk); the app keeps running.</summary>
-    public async Task<bool> SaveAsync(Workspace workspace, CancellationToken cancellationToken)
+    /// <param name="workspace">The workspace to save.</param>
+    /// <param name="drafts">The commit drafts by tab id; null saves none.</param>
+    /// <param name="cancellationToken">Cancels the write.</param>
+    public async Task<bool> SaveAsync(
+        Workspace workspace,
+        IReadOnlyDictionary<TabId, SessionDraft>? drafts,
+        CancellationToken cancellationToken)
     {
-        var content = JsonSerializer.SerializeToUtf8Bytes(SessionDocumentMapper.ToDocument(workspace), SessionJsonContext.Default.SessionDocument);
+        var content = JsonSerializer.SerializeToUtf8Bytes(SessionDocumentMapper.ToDocument(workspace, drafts), SessionJsonContext.Default.SessionDocument);
         try
         {
             await AtomicFileWriter.WriteAsync(FilePath, content, cancellationToken).ConfigureAwait(false);
