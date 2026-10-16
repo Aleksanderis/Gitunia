@@ -7,7 +7,8 @@ namespace Gitunia.Tui.Rendering.Tabs;
 /// <param name="Start">The first column of the cell.</param>
 /// <param name="Text">The text of the cell, not yet cut to the row width.</param>
 /// <param name="IsActive">Whether the tab is the active one.</param>
-public sealed record TabCell(int Number, int Start, string Text, bool IsActive)
+/// <param name="DirtyOffset">The column of the dirty marker relative to <paramref name="Start"/>, or null when the tab shows none.</param>
+public sealed record TabCell(int Number, int Start, string Text, bool IsActive, int? DirtyOffset = null)
 {
     public int Width => TextWidth.Of(Text);
 }

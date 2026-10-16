@@ -59,6 +59,12 @@ public sealed class WorkingTreeActionHandler(
         }
 
         var isShown = tab.View.Mode == TabViewMode.WorkingTree;
+        // Opening what is already open (a click on the dirty marker of the tab in its working tree, #331) is a silent no-op.
+        if (action == ActionIds.WorkingTreeOpen && isShown)
+        {
+            return true;
+        }
+
         if (action == ActionIds.WorkingTreeToggle || (action == ActionIds.WorkingTreeOpen && !isShown))
         {
             Switch(tab, isShown && action == ActionIds.WorkingTreeToggle);

@@ -45,6 +45,18 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
+    public void GivenTheWorkingTreeIsShown_WhenOpeningIt_ThenNothingChangesAndNoNoticeIsSet()
+    {
+        var harness = new Harness(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        Assert.True(harness.Handler.TryExecute(ActionIds.WorkingTreeOpen, null));
+
+        Assert.Equal(TabViewMode.WorkingTree, harness.Tab.View.Mode);
+        Assert.Equal(string.Empty, harness.Handler.Message);
+    }
+
+    [Fact]
     public void GivenAMissingRepository_WhenOpeningTheWorkingTree_ThenItStaysInTheHistoryWithANotice()
     {
         var harness = new Harness(Modified("a.txt"));

@@ -56,6 +56,14 @@ public class MouseMapTests
     }
 
     [Fact]
+    public void GivenTheDirtyMarker_WhenClicking_ThenTheWorkingTreeOpens()
+    {
+        var binding = DefaultMouseMap.Create().Resolve(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click);
+
+        Assert.Equal(ActionIds.WorkingTreeOpen, binding?.Action);
+    }
+
+    [Fact]
     public void GivenAGestureNobodyBinds_WhenResolving_ThenNothingIsReturned()
     {
         var map = DefaultMouseMap.Create();
@@ -110,7 +118,8 @@ public class MouseMapTests
     [Fact]
     public void GivenTheDefaultMap_WhenListingBindings_ThenEveryActionIsReachableByAKeyToo()
     {
-        var keyed = DefaultKeymap.CreateBindings().Select(binding => binding.Action).ToHashSet();
+        // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
+        var keyed = DefaultKeymap.CreateBindings().Select(binding => binding.Action).Append(ActionIds.WorkingTreeOpen).ToHashSet();
 
         var mouseOnly = DefaultMouseMap.CreateBindings()
             .Where(binding => !keyed.Contains(binding.Action))
