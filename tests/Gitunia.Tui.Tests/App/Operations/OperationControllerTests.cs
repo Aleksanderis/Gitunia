@@ -121,6 +121,17 @@ public class OperationControllerTests
     }
 
     [Fact]
+    public void GivenAMerge_WhenAborting_ThenTheDialogSaysTheBranchHasNotMoved()
+    {
+        using var harness = new Harness(Info(RepositoryOperation.Merge));
+
+        harness.Execute(ActionIds.OperationAbort);
+
+        var consequence = Assert.Single(harness.Prompts).Consequence;
+        Assert.Equal("The working tree and index go back to 0123456; the branch itself has not moved.", consequence);
+    }
+
+    [Fact]
     public async Task GivenTheAbortIsConfirmed_WhenItFinishes_ThenTheMessageSaysWhereTheBranchIs()
     {
         using var harness = new Harness(Info(RepositoryOperation.Merge));

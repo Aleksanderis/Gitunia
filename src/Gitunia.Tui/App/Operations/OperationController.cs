@@ -135,7 +135,9 @@ public sealed class OperationController(
             return;
         }
 
-        if (host.Workspace.FindTab(tabId)?.Operation?.Commit != info.Commit)
+        if (host.Workspace.FindTab(tabId)?.Operation is not { } current
+            || current.Kind != info.Kind
+            || current.Commit != info.Commit)
         {
             statuses.Warning("The operation moved on while asking: nothing was skipped");
             return;

@@ -4,6 +4,7 @@ using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
+using System.Runtime.Versioning;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Operations;
@@ -200,17 +201,34 @@ public class OperationWriterTests
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(abortLocation));
     }
 
-    [Fact]
-    public async Task GivenEditorThatWouldHang_WhenContinuing_ThenGitIsNotAskedToOpenIt()
+    [Theory]
+    [InlineData(RepositoryOperation.Merge)]
+    [InlineData(RepositoryOperation.Rebase)]
+    [InlineData(RepositoryOperation.CherryPick)]
+    [InlineData(RepositoryOperation.Revert)]
+    [UnsupportedOSPlatform("windows")]
+    public async Task GivenAnEditorInTheEnvironment_WhenContinuing_ThenItIsNeverStarted(RepositoryOperation operation)
     {
-        using var repository = TestRepositories.Conflicted();
-        var configured = new Dictionary<string, string?> { ["VISUAL"] = "false", ["EDITOR"] = "false" };
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The recording editor is a shell script");
+        using var repository = operation switch
+        {
+            RepositoryOperation.Merge => TestRepositories.Conflicted(),
+            RepositoryOperation.Rebase => TestRepositories.RebaseConflicted(),
+            RepositoryOperation.CherryPick => TestRepositories.CherryPickConflicted(),
+            _ => TestRepositories.RevertConflicted(),
+        };
+        var marker = Path.Combine(repository.WorkingTreePath, "..", $"editor-ran-{Guid.NewGuid():N}");
+        var script = Path.Combine(repository.WorkingTreePath, "..", $"editor-{Guid.NewGuid():N}.sh");
+        await File.WriteAllTextAsync(script, $"#!/bin/sh\ntouch \"{marker}\"\n", Token);
+        File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var configured = new Dictionary<string, string?> { ["VISUAL"] = script, ["EDITOR"] = script };
         var (writer, location) = await CreateAsync(repository, configured);
         Resolve(repository);
 
-        var result = await writer.ContinueAsync(location, RepositoryOperation.Merge, Token);
+        var result = await writer.ContinueAsync(location, operation, Token);
 
         Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.False(File.Exists(marker));
     }
 
     private static TestRepository TwoStepRebase()

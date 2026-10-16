@@ -30,9 +30,11 @@ public static class OperationTexts
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
         var where = branch is null ? string.Empty : $" on {branch}";
-        var back = oldTip is null
-            ? "Everything the operation changed is thrown away."
-            : $"{branch ?? "HEAD"} goes back to {ShortHash(oldTip)}; that commit stays in the reflog.";
+        var back = info.Kind == RepositoryOperation.Merge
+            ? $"The working tree and index go back to {ShortHash(oldTip)}; the branch itself has not moved."
+            : oldTip is null
+                ? "Everything the operation changed is thrown away."
+                : $"{branch ?? "HEAD"} goes back to {ShortHash(oldTip)}; that commit stays in the reflog.";
         return new ConfirmPrompt(
             $"Abort {name}",
             [
