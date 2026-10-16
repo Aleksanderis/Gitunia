@@ -106,6 +106,25 @@ public class DiffSelectionTests
         Assert.Equal(["last old", "last new"], inSecond.Select(line => line.Text));
     }
 
+    [Fact]
+    public void GivenOneHunkOfTwoChangeGroups_WhenSelectingFromTheSecondGroup_ThenOnlyItsLinesAreReturned()
+    {
+        const string merged =
+            "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,5 +1,5 @@\n"
+            + "-a\n+A\n b\n c\n-d\n+D\n e\n";
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(merged).Items)
+        {
+            builder.Add(file, groupChanges: true);
+        }
+
+        var document = builder.Build([]);
+
+        Assert.Equal(2, document.HunkRows.Count);
+        Assert.Equal(["a", "A"], DiffSelection.OfHunk(document, document.HunkRows[0] + 2).Select(line => line.Text));
+        Assert.Equal(["d", "D"], DiffSelection.OfHunk(document, document.Rows.Count - 1).Select(line => line.Text));
+    }
+
     private static DiffDocument Build(string patch)
     {
         var builder = new DiffDocumentBuilder();

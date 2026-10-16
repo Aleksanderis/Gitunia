@@ -58,7 +58,7 @@ public sealed class WorkingDiffController : IPromptHandler
         _diffList = diffList;
         _refreshChrome = refreshChrome;
         _relayout = relayout ?? (() => { });
-        _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty);
+        _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty, "change");
         host.Changed += OnWorkspaceChanged;
     }
 

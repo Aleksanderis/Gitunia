@@ -36,7 +36,12 @@ public sealed class DiffDocumentBuilder
     /// Set when the file was read whole (git then reports one hunk): the context lines the changes would have been grouped by,
     /// so hunk navigation still visits each group of changes as git's own hunks would. Null for a normal diff.
     /// </param>
-    public void Add(DiffFile file, int? wholeFileContext = null)
+    /// <param name="groupChanges">
+    /// Set for the working-tree diff: every group of consecutive added or removed lines is its own anchor (the row of its first
+    /// changed line), however close the hunk merged them, so staging and navigation act per group. Replaces the hunk header
+    /// anchors and <paramref name="wholeFileContext"/>.
+    /// </param>
+    public void Add(DiffFile file, int? wholeFileContext = null, bool groupChanges = false)
     {
         var fileIndex = _fileRows.Count;
         _fileRows.Add(_rows.Count);
@@ -46,7 +51,7 @@ public sealed class DiffDocumentBuilder
         foreach (var hunk in file.Hunks)
         {
             var headerRow = _rows.Count;
-            if (wholeFileContext is null)
+            if (wholeFileContext is null && !groupChanges)
             {
                 _hunkRows.Add(headerRow);
             }
@@ -68,7 +73,11 @@ public sealed class DiffDocumentBuilder
                 }
             }
 
-            if (wholeFileContext is { } context)
+            if (groupChanges)
+            {
+                AddChangeGroupStarts(headerRow);
+            }
+            else if (wholeFileContext is { } context)
             {
                 AddChangeGroupAnchors(headerRow, context);
             }
@@ -117,6 +126,29 @@ public sealed class DiffDocumentBuilder
 
             hasChange = true;
             lastChange = row;
+        }
+    }
+
+    // A group is a run of changed rows with no context between; the anchor is its first changed row.
+    private void AddChangeGroupStarts(int headerRow)
+    {
+        var isInGroup = false;
+        for (var row = headerRow + 1; row < _rows.Count; row++)
+        {
+            var kind = _rows[row].Kind;
+            if (kind is DiffRowKind.Added or DiffRowKind.Removed)
+            {
+                if (!isInGroup)
+                {
+                    _hunkRows.Add(row);
+                }
+
+                isInGroup = true;
+            }
+            else if (kind != DiffRowKind.NoNewline)
+            {
+                isInGroup = false;
+            }
         }
     }
 

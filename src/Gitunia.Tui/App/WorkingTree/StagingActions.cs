@@ -333,7 +333,7 @@ public sealed class StagingActions(
         var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
         var verb = isStage ? "stage" : "unstage";
         var name = WorkingTreeRowRenderer.Printable(request.Target.Entry.Path);
-        var what = request.IsRange ? OperationText.Plural(result.LineCount, "line") : $"hunk ({OperationText.Plural(result.LineCount, "line")})";
+        var what = request.IsRange ? OperationText.Plural(result.LineCount, "line") : $"change ({OperationText.Plural(result.LineCount, "line")})";
         return result.Outcome switch
         {
             PatchStagingOutcome.Applied => $"{(isStage ? "Staged" : "Unstaged")} {what} of {name}",

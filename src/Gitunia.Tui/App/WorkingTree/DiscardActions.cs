@@ -356,10 +356,10 @@ public sealed class DiscardActions(
         }
 
         return new ConfirmPrompt(
-            "Discard hunk",
-            [$"Discard this hunk ({OperationText.Plural(count, "line")}) of {name}?"],
+            "Discard change",
+            [$"Discard this change ({OperationText.Plural(count, "line")}) of {name}?"],
             TrackedConsequence,
-            "Discard hunk");
+            "Discard change");
     }
 
     private string Ask(ConfirmPrompt prompt, Action onConfirmed) =>
@@ -468,7 +468,7 @@ public sealed class DiscardActions(
     private static string Describe(DiffStagingRequest? request, PatchStagingResult result) =>
         request is { IsRange: true }
             ? OperationText.Plural(result.LineCount, "line")
-            : $"hunk ({OperationText.Plural(result.LineCount, "line")})";
+            : $"change ({OperationText.Plural(result.LineCount, "line")})";
 
     private static StatusSeverity SeverityOf(PatchStagingResult result) =>
         result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable

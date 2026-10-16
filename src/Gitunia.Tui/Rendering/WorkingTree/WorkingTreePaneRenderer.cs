@@ -142,7 +142,7 @@ public static class WorkingTreePaneRenderer
         if (hunks > 0)
         {
             var current = DiffPaneRenderer.HunkPosition(diff).ToString(CultureInfo.InvariantCulture);
-            parts.Add($"hunk {current}/{hunks.ToString(CultureInfo.InvariantCulture)}");
+            parts.Add($"change {current}/{hunks.ToString(CultureInfo.InvariantCulture)}");
         }
 
         if (diff.IsWrapped)

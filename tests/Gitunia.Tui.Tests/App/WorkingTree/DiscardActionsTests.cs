@@ -261,8 +261,8 @@ public class DiscardActionsTests
 
         Assert.Equal(string.Empty, notice);
         var prompt = Assert.Single(harness.Prompts);
-        Assert.Equal("Discard hunk", prompt.Title);
-        Assert.Equal(["Discard this hunk (2 lines) of a.txt?"], prompt.Lines);
+        Assert.Equal("Discard change", prompt.Title);
+        Assert.Equal(["Discard this change (2 lines) of a.txt?"], prompt.Lines);
         Assert.Equal(0, harness.Discarder.CallCount);
     }
 
@@ -307,7 +307,7 @@ public class DiscardActionsTests
         harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "a.txt", EditedFile("a.txt") with { HasInvalidText = true });
         harness.ExecuteSelection([Changed(2, "TWO")], false);
 
-        Assert.Equal("Discard hunk", Assert.Single(harness.Prompts).Title);
+        Assert.Equal("Discard change", Assert.Single(harness.Prompts).Title);
         harness.Answer();
         await harness.WaitAsync();
 

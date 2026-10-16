@@ -42,6 +42,28 @@ public class PatchStagerTests
     }
 
     [Fact]
+    public async Task GivenTwoChangeGroupsMergedIntoOneHunk_WhenStagingAndUnstagingOne_ThenTheOtherStaysAsItWas()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("f.txt", Lines(12)));
+        repository.WriteFile("f.txt", Lines(12, Edit(2, "TWO"), Edit(6, "SIX")));
+        var (location, entry) = await LocateAsync(repository, "f.txt");
+
+        var chosen = await ChangesAsync(location, WorkingDiffSide.Unstaged, entry, DiffOptions.Default, texts: ["SIX", "l6"]);
+        var staged = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, chosen, false, false, Token);
+
+        Assert.Equal(PatchStagingOutcome.Applied, staged.Outcome);
+        Assert.Equal(Lines(12, Edit(6, "SIX")), repository.Git("show", ":f.txt"));
+        Assert.Equal(Lines(12, Edit(2, "TWO"), Edit(6, "SIX")), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+
+        var (stagedLocation, stagedEntry) = await LocateAsync(repository, "f.txt");
+        var back = await ChangesAsync(stagedLocation, WorkingDiffSide.Staged, stagedEntry, DiffOptions.Default, texts: ["SIX", "l6"]);
+        var unstaged = await Stager.StageAsync(stagedLocation, WorkingDiffSide.Staged, stagedEntry, back, false, false, Token);
+
+        Assert.Equal(PatchStagingOutcome.Applied, unstaged.Outcome);
+        Assert.Equal(Lines(12), repository.Git("show", ":f.txt"));
+    }
+
+    [Fact]
     public async Task GivenOneHunkOfSeveralChanges_WhenStagingOneAddedLine_ThenOnlyThatLineChanges()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("f.txt", "a\nb\nc\n"));

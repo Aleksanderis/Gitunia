@@ -293,7 +293,7 @@ public class WorkingDiffControllerTests
         await harness.StageAsync(ActionIds.WorkingTreeStage);
 
         Assert.Equal(original.Replace("line 2\n", "two\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
-        Assert.Equal("Staged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Staged change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
         Assert.Single(harness.Document().HunkRows);
         Assert.Equal(harness.Document().HunkRows[0], harness.CursorRow());
         Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
@@ -356,7 +356,7 @@ public class WorkingDiffControllerTests
         await harness.StageAsync(ActionIds.WorkingTreeUnstage);
 
         Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
-        Assert.Equal("Unstaged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Unstaged change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class WorkingDiffControllerTests
         Handle(harness, ActionIds.WorkingTreeDiscard);
 
         var prompt = Assert.Single(harness.Prompts);
-        Assert.Equal(["Discard this hunk (2 lines) of long.txt?"], prompt.Lines);
+        Assert.Equal(["Discard this change (2 lines) of long.txt?"], prompt.Lines);
         harness.DropDialog();
         Assert.Equal(changed, File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
         Assert.Null(harness.Statuses.Log.Latest);
@@ -479,7 +479,7 @@ public class WorkingDiffControllerTests
 
         Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
         Assert.Equal(original, harness.Git("show", ":long.txt"));
-        Assert.Equal("Discarded hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Discarded change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
         Assert.Single(harness.Document().HunkRows);
     }
 

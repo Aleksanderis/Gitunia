@@ -134,6 +134,35 @@ public class DiffDocumentBuilderTests
         Assert.All(document.HunkRows, row => Assert.Equal(DiffRowKind.Removed, document.Rows[row].Kind));
     }
 
+    [Fact]
+    public void GivenOneHunkWithSeveralChangeGroups_WhenGroupingChanges_ThenEachGroupStartsAtItsFirstChangedRow()
+    {
+        var document = BuildGrouped(WholeFilePatch(changedLines: [2, 4, 6], lineCount: 8));
+
+        Assert.Equal(3, document.HunkRows.Count);
+        Assert.All(document.HunkRows, row => Assert.Equal(DiffRowKind.Removed, document.Rows[row].Kind));
+        Assert.Equal(["old 2", "old 4", "old 6"], document.HunkRows.Select(row => document.Rows[row].Text));
+    }
+
+    [Fact]
+    public void GivenARemovedAndAnAddedLineTogether_WhenGroupingChanges_ThenTheyAreOneGroup()
+    {
+        var document = BuildGrouped(WholeFilePatch(changedLines: [3], lineCount: 6));
+
+        Assert.Single(document.HunkRows);
+    }
+
+    private static DiffDocument BuildGrouped(string patch)
+    {
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(patch).Items)
+        {
+            builder.Add(file, groupChanges: true);
+        }
+
+        return builder.Build([]);
+    }
+
     private static string WholeFilePatch(int[] changedLines, int lineCount)
     {
         var builder = new StringBuilder();

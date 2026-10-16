@@ -168,7 +168,7 @@ public class StagingActionsTests
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Equal(PatchDirection.Reverse, Assert.Single(harness.Writer.Patches).Direction);
-        Assert.Equal("Unstaged hunk (1 line) of a.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Unstaged change (1 line) of a.txt", harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
