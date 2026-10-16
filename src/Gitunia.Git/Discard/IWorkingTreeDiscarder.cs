@@ -8,6 +8,9 @@ namespace Gitunia.Git.Discard;
 /// </summary>
 public interface IWorkingTreeDiscarder
 {
+    /// <summary>True where an untracked name that is not valid UTF-8 can be deleted (Linux).</summary>
+    bool CanDeleteInvalidNames { get; }
+
     /// <summary>
     /// Puts tracked files back as the index has them (<c>git restore --worktree</c>): edits are lost, a deleted file comes back and
     /// staged changes stay. Paths are relative to the repository root.
@@ -16,7 +19,8 @@ public interface IWorkingTreeDiscarder
 
     /// <summary>
     /// Deletes untracked files and directories (<c>git clean</c>); it never touches a tracked or an ignored path. A path that holds
-    /// bytes which are not UTF-8 cannot be given to git as an argument and throws <see cref="NotSupportedException"/>.
+    /// bytes which are not UTF-8 cannot be given to git as an argument: it is listed with <c>git ls-files -o -z</c> and deleted
+    /// by its exact bytes where <see cref="CanDeleteInvalidNames"/>, otherwise this throws <see cref="NotSupportedException"/>.
     /// </summary>
     Task DeleteUntrackedAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken);
 
