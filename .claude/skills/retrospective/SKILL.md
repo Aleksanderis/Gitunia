@@ -14,7 +14,7 @@ Improve the instructions from evidence. Never runs unattended; nothing changes u
 ## 1. Collect
 
 - Range: after the last entry in `docs/retrospectives.md`; the first run takes the last 40 merged PRs.
-- `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]` writes every PR's comments tagged OWNER, REVIEWER or IMPLEMENTER and prints counts. Read the file in parts, never raw `gh` output. Over ~30 PRs, read in a forked subagent and bring back grouped findings only.
+- `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]` writes every PR's comments tagged OWNER, REVIEWER or IMPLEMENTER (plus a [MISPOSTED] mark when the signature names another PR) and prints counts. Read the file in parts, never raw `gh` output. Over ~30 PRs, read in a forked subagent and bring back grouped findings only.
 - Weight: an OWNER comment outweighs a reviewer finding; a finding the implementer fixed is a real miss; a finding the implementer skipped ("Not done", "accepted as a nit") in 3+ PRs is reviewer noise, so propose dropping or demoting that check in `reviewer.md` instead of a new rule.
 
 ## 2. Find what repeats
