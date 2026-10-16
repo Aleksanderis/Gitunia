@@ -126,14 +126,26 @@ public class DiscardActionsTests
     }
 
     [Fact]
-    public void GivenAnUntrackedNameThatIsNotUtf8_WhenDiscarding_ThenItIsRefusedWithoutADialog()
+    public void GivenAnUntrackedNameThatIsNotUtf8OnAnOsThatCannotDeleteIt_WhenDiscarding_ThenItIsRefusedWithoutADialog()
     {
         using var harness = new Harness(Untracked($"bad{(char)0xDCE9}.txt"));
+        harness.Discarder.CanDeleteInvalidNames = false;
 
         var notice = harness.Execute();
 
         Assert.Contains("not valid UTF-8", notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
+    public void GivenAnUntrackedNameThatIsNotUtf8OnLinux_WhenDiscarding_ThenTheDialogOpens()
+    {
+        using var harness = new Harness(Untracked($"bad{(char)0xDCE9}.txt"));
+
+        var notice = harness.Execute();
+
+        Assert.Equal(string.Empty, notice);
+        Assert.Single(harness.Prompts);
     }
 
     [Fact]
