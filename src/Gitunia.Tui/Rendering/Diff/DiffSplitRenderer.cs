@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -22,6 +23,9 @@ public static class DiffSplitRenderer
     /// <summary>Columns of the new (right) side; one more than the left when the width is even.</summary>
     public static int RightWidth(int width) => width - SeparatorWidth - LeftWidth(width);
 
+    /// <summary>Columns of the line number and marker in front of the text of one side.</summary>
+    public static int SidePrefixWidth(int gutterDigits) => gutterDigits + SideMarkerAndSpaceWidth;
+
     /// <summary>How many screen lines <paramref name="line"/> takes when its text wraps in a pane of <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffDocument document, DiffSplitLine line, int width, int gutterDigits)
     {
@@ -44,6 +48,8 @@ public static class DiffSplitRenderer
     /// <param name="isSelected">The line is under the cursor.</param>
     /// <param name="isWrapped">Text wraps instead of being cut.</param>
     /// <param name="glyphs">Supplies the ellipsis and the rule.</param>
+    /// <param name="leftJump">The quick-jump label of the old side's row (the whole line's when it spans both).</param>
+    /// <param name="rightJump">The quick-jump label of the new side's row.</param>
     public static StyledLine Render(
         DiffDocument document,
         DiffSplitLine line,
@@ -53,20 +59,25 @@ public static class DiffSplitRenderer
         string? highlight,
         bool isSelected,
         bool isWrapped,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        JumpLabel? leftJump = null,
+        JumpLabel? rightJump = null)
     {
         if (line.IsFull)
         {
             var row = document.Rows[line.LeftRow];
             return isWrapped
-                ? DiffRowRenderer.RenderSegment(row, segment, width, gutterDigits, highlight, isSelected, glyphs)
-                : DiffRowRenderer.Render(row, width, gutterDigits, highlight, isSelected, glyphs);
+                ? DiffRowRenderer.RenderSegment(
+                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump)
+                : DiffRowRenderer.Render(row, width, gutterDigits, highlight, isSelected, glyphs, leftJump);
         }
 
         var leftWidth = LeftWidth(width);
         var rightWidth = RightWidth(width);
-        var left = RenderSide(document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs);
-        var right = RenderSide(document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs);
+        var left = RenderSide(
+            document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs, leftJump);
+        var right = RenderSide(
+            document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs, rightJump);
         var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
         return new LineBuilder(width, glyphs.Ellipsis)
             .Append(left)
@@ -78,8 +89,6 @@ public static class DiffSplitRenderer
     private static int SideSegmentCount(DiffDocument document, int row, int width, int gutterDigits) =>
         row < 0 ? 1 : DiffRowRenderer.TextSegmentCount(document.Rows[row].Text, width - SidePrefixWidth(gutterDigits));
 
-    private static int SidePrefixWidth(int gutterDigits) => gutterDigits + SideMarkerAndSpaceWidth;
-
     private static StyledLine RenderSide(
         DiffDocument document,
         int rowIndex,
@@ -89,7 +98,8 @@ public static class DiffSplitRenderer
         int gutterDigits,
         string? highlight,
         bool isWrapped,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        JumpLabel? jump)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (rowIndex < 0)
@@ -127,14 +137,31 @@ public static class DiffSplitRenderer
         {
             var chunks = DiffRowRenderer.Chunks(DiffRowRenderer.ExpandTabs(row.Text), columns);
             var chunk = segment < chunks.Count ? chunks[segment] : string.Empty;
-            DiffRowRenderer.AppendHighlighted(builder, chunk, role, highlight);
+            AppendText(builder, chunk, role, highlight, segment == 0 ? jump : null);
         }
         else
         {
             var shown = DiffRowRenderer.ExpandTabs(DiffRowRenderer.CutToWidth(row.Text, columns));
-            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight);
+            AppendText(builder, shown, role, highlight, jump);
         }
 
         return builder.Build();
+    }
+
+    private static void AppendText(
+        LineBuilder builder,
+        string shown,
+        SegmentRole role,
+        string? highlight,
+        JumpLabel? jump)
+    {
+        if (jump is { } target)
+        {
+            JumpOverlay.Append(builder, shown, role, target);
+        }
+        else
+        {
+            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight);
+        }
     }
 }

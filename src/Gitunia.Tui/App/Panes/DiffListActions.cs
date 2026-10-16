@@ -22,9 +22,6 @@ namespace Gitunia.Tui.App.Panes;
 /// </summary>
 public sealed class DiffListActions
 {
-    /// <summary>Why the quick jump is not offered in the side-by-side diff.</summary>
-    public const string SideBySideJumpReason = "Quick jump needs the unified diff: turn side by side off (S)";
-
     private readonly ListView _diffList;
     private readonly Action<KeyMode> _setMode;
     private readonly ClipboardCopier _clipboard;
@@ -98,8 +95,7 @@ public sealed class DiffListActions
         pane,
         text => diff.Source.JumpLabels(_diffList, text),
         text => ShowJumpLabels(diff, text),
-        row => Select(diff, row, atTop: false),
-        () => diff.Source.ShowsSideBySide ? SideBySideJumpReason : null);
+        row => Select(diff, row, atTop: false));
 
     public string StatusLine(IDiffViewState? diff) =>
         diff is { Search.IsOpen: true } ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
