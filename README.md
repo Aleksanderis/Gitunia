@@ -19,7 +19,7 @@ In:
 - Commit graph (scrollable, searchable, handles 100k+ commits).
 - Working tree: status, stage/unstage files, hunks and lines, commit, amend.
 - Diff viewer (unified and side-by-side).
-- Branches: list local/remote, checkout, create, rename, delete, merge, rebase, upstream tracking, ahead/behind.
+- Branches: list local/remote, checkout, create, rename, delete, reset (soft/mixed/hard), merge, rebase, upstream tracking, ahead/behind.
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
 - Stash: list, push, apply, pop, drop.
 - Fetch, pull, push with progress and cancellation.

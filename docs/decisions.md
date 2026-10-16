@@ -22,7 +22,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** Other open-source Git clients are sources of ideas, never of copied code. Why: licence hygiene.
 
-**Process:** Spikes live on unmerged `spike/` branches and close with findings; `destructive` and `needs-review` issues are merged by the owner while agents continue elsewhere.
+**Process:** Spikes live on unmerged `spike/` branches and close with findings; `needs-review` issues are merged by the owner while agents continue elsewhere.
 
 **Process:** PRs are merged with a merge commit (never squash or rebase) and the branch is deleted afterwards. Why: the owner wants the full branch history visible in the graph.
 

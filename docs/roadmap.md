@@ -34,7 +34,7 @@ Done when: a full commit cycle works without leaving the app, including partial 
 
 Status: not started.
 
-Branch create/rename/delete/checkout/upstream, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash.
+Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash.
 Done when: the owner can use Gitunia for all daily branch and worktree work.
 
 ## M4 - Remotes and polish

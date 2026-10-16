@@ -28,7 +28,7 @@ Run `.claude/skills/work-orchestrator/scripts/owner-feedback.sh sweep` (labels t
 
 - The `Blocked by:` line is the order; an issue with an OPEN blocker is not startable.
 - Issues listed as "owner answered last": act on the answer (see "Labels for the owner" in `work-task`: implement, log, or close) and reply with an agent-marked comment. Do not remove the label; do not list an answered issue as "waiting for the owner" in the status comment.
-- Skip `spike`, `destructive` and `needs-review` issues as `work-task` says, and never pick the `tracking` issue as work.
+- Skip `spike` and `needs-review` issues as `work-task` says, and never pick the `tracking` issue as work.
 
 If a worktree or feature branch exists for an issue with no merged PR, that issue is in flight: resume it (`work-task`'s rate-limit rules), do not start it over.
 
