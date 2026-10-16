@@ -22,7 +22,7 @@
 | AOT smoke | CI script | AOT publish succeeds with no `IL*` warnings; binary starts and renders a frame against a fixture repo |
 | Manual | checklist | Real terminals (kitty, alacritty, Windows Terminal, tmux), credential prompts, huge repos; mouse: the Terminal.Gui views (`PaneListView`, `PickerView`) have no headless test, so check click, double-click and wheel in tmux by sending SGR sequences (`tmux send-keys -l $'\e[<0;X;YM\e[<0;X;Ym'`, wheel is button 64/65; a drag is the press `0;X;Y` + `M`, one or more moves `32;X;Y` + `M`, then the release `0;X;Y` + `m`) or with a real mouse; the pure parts (`DragTracker`, `PaneResizer`, the button layouts, `VisualRangeController`) are unit-tested |
 
-CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run on linux-x64 for every ready (non-draft) PR and push to main; the OS matrix comes in M4. To save Actions minutes (2,000 a month on the free plan) it skips draft PRs (it runs when one is marked ready), PRs whose base branch is `review/**` (owner review-only PRs), and docs-only changes (`docs/**`, `*.md`, `.claude/**`). Agents open PRs as drafts and mark them ready once the reviewer has no blockers.
+CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run on linux-x64 once for every ready PR, weekly on main and on manual dispatch (not on pushes to main); the OS matrix comes in M4. To save Actions minutes (2,000 a month on the free plan) it skips draft PRs, PRs whose base branch is `review/**`, docs-only changes (`docs/**`, `*.md`, `.claude/**`), and the AOT publish and smoke runs on PRs that change no csproj, props, targets, `Directory.*`, `global.json`, `dotnet-tools.json` or workflow file. Agents verify locally first (`dotnet build`, `dotnet test`, AOT publish when dependencies or projects changed, `scripts/inspect.sh --changed`), open the PR ready, and push once.
 
 ## Performance checks
 
@@ -50,6 +50,6 @@ Metrics: `binary_bytes`, `cold_start_ms_{median,p95,max}`, `key_latency_ms_{medi
 
 ## Screenshots
 
-UI pull requests carry 2-3 real screenshots. Procedure, flags and limits: the `screenshots` skill.
+UI pull requests with a visual change carry one capture (2-3 images at most); none for key labels, hints only, docs or logic. Procedure, flags and limits: the `screenshots` skill.
 
 Design history (CI minutes, screenshot hosting, accepted timer waits): `docs/history/testing.md`.
