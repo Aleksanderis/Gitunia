@@ -133,7 +133,6 @@ public class WorkingTreeActionHandlerTests
         harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
         Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
 
-        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
         harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
         Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
 
@@ -141,6 +140,27 @@ public class WorkingTreeActionHandlerTests
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheDiff_WhenMovingDownAndUp_ThenTheMessageBoxIsBelowIt()
+    {
+        var harness = Harness.Open(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
         Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
     }
 
@@ -174,7 +194,7 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
-    public void GivenTheWorkingTree_WhenCyclingPastTheLists_ThenTheDiffOfTheSelectedSideIsInTheCycle()
+    public void GivenTheWorkingTree_WhenCyclingPastTheLists_ThenTheDiffOfTheSelectedSideAndTheMessageBoxAreInTheCycle()
     {
         var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
 
@@ -183,10 +203,13 @@ public class WorkingTreeActionHandlerTests
         Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
         Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PanePrevious, null);
-        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
     }
 
     [Fact]
@@ -252,7 +275,7 @@ public class WorkingTreeActionHandlerTests
     }
 
     public static TheoryData<string> LeftToOthers() =>
-        [ActionIds.TabRename.Value, ActionIds.InputAccept.Value, ActionIds.Cancel.Value];
+        [ActionIds.TabRename.Value, ActionIds.InputAccept.Value, ActionIds.Cancel.Value, ActionIds.AppQuit.Value, ActionIds.ToolCommitEditor.Value];
 
     private sealed class Harness
     {
@@ -272,7 +295,8 @@ public class WorkingTreeActionHandlerTests
             Statuses = new StatusChannel();
             var indexWriter = new FakeIndexWriter();
             var staging = new StagingActions(_host, indexWriter, new PatchStager(new FakeDiffReader(), indexWriter), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
-            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging);
+            var commits = TestCommitActions.Create(_host, Statuses);
+            Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging, commits);
         }
 
         public WorkingTreeActionHandler Handler { get; }

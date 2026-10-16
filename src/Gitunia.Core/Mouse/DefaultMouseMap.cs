@@ -47,6 +47,15 @@ public static class DefaultMouseMap
 
     public const string PickerRemoveButton = "PickerButton.Remove";
 
+    /// <summary>The checkboxes and the Commit button in the option row of the working-tree message box.</summary>
+    public const string MessageSignOffButton = "MessageButton.SignOff";
+
+    public const string MessageNoVerifyButton = "MessageButton.NoVerify";
+
+    public const string MessageAmendButton = "MessageButton.Amend";
+
+    public const string MessageCommitButton = "MessageButton.Commit";
+
     /// <summary>List rows moved per wheel notch.</summary>
     public const int WheelLines = 3;
 
@@ -81,6 +90,11 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext),
         new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
         new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
+        new(DefaultKeymap.WorkingMessageView, MouseGesture.Click, ActionIds.WorkingTreeEditMessage),
+        new(MessageSignOffButton, MouseGesture.Click, ActionIds.WorkingTreeToggleSignOff),
+        new(MessageNoVerifyButton, MouseGesture.Click, ActionIds.WorkingTreeToggleNoVerify),
+        new(MessageAmendButton, MouseGesture.Click, ActionIds.WorkingTreeToggleAmend),
+        new(MessageCommitButton, MouseGesture.Click, ActionIds.WorkingTreeCommit),
         new(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
         new(DefaultKeymap.WorkingStagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),

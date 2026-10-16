@@ -29,7 +29,7 @@ public sealed class WorkingTreePresenter
         view.WorkingDiffView = DiffView;
     }
 
-    /// <summary>The pane of the active tab that has focus in the working-tree view: a list or a diff, the Unstaged list when the focus is elsewhere.</summary>
+    /// <summary>The pane of the active tab that has focus in the working-tree view: a list, a diff or the message box, the Unstaged list when the focus is elsewhere.</summary>
     public PaneKind FocusedPane() =>
         _host.Workspace.ActiveTab?.View.FocusedPane is { } pane && WorkingPanes.IsWorking(pane) ? pane : PaneKind.WorkingUnstaged;
 

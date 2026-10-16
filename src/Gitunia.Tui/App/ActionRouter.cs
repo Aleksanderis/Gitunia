@@ -73,6 +73,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         PaneKind.WorkingStaged => DefaultKeymap.WorkingStagedView,
         PaneKind.WorkingUnstagedDiff => DefaultKeymap.WorkingUnstagedDiffView,
         PaneKind.WorkingStagedDiff => DefaultKeymap.WorkingStagedDiffView,
+        PaneKind.WorkingMessage => DefaultKeymap.WorkingMessageView,
         _ => FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView,
     };
 

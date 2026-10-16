@@ -136,7 +136,8 @@ public static class SessionDocumentMapper
         PaneKind.WorkingUnstaged
             or PaneKind.WorkingStaged
             or PaneKind.WorkingUnstagedDiff
-            or PaneKind.WorkingStagedDiff => PaneKind.Graph,
+            or PaneKind.WorkingStagedDiff
+            or PaneKind.WorkingMessage => PaneKind.Graph,
         _ => pane,
     };
 

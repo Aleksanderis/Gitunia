@@ -25,6 +25,7 @@ public static class ActionCatalog
         ActionIds.PickerPin,
         ActionIds.PickerPrevious,
         ActionIds.PickerRemoveRecent,
+        ActionIds.WorkingTreeMessageNewLine,
     ];
 
     private static readonly Dictionary<string, string> Titles = new()
@@ -123,6 +124,13 @@ public static class ActionCatalog
         ["working-tree.stage-all"] = "Stage all files",
         ["working-tree.unstage"] = "Unstage the file, hunk or selected lines",
         ["working-tree.unstage-all"] = "Unstage all files",
+        ["working-tree.write-message"] = "Write the commit message",
+        ["working-tree.edit-message"] = "Edit the commit message",
+        ["working-tree.message-new-line"] = "Start a new line in the commit message",
+        ["working-tree.commit"] = "Commit the staged changes",
+        ["working-tree.toggle-sign-off"] = "Commit option: SignOff (toggle)",
+        ["working-tree.toggle-no-verify"] = "Commit option: No-Verify (toggle)",
+        ["working-tree.toggle-amend"] = "Commit option: Amend (toggle)",
     };
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>

@@ -17,6 +17,7 @@ public static class DefaultKeymap
     public const string WorkingStagedView = "WorkingStaged";
     public const string WorkingUnstagedDiffView = "WorkingUnstagedDiff";
     public const string WorkingStagedDiffView = "WorkingStagedDiff";
+    public const string WorkingMessageView = "WorkingMessage";
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
     public const string HelpView = "Help";
@@ -54,6 +55,7 @@ public static class DefaultKeymap
         AddViews(bindings);
         AddWorkingTreeLists(bindings);
         AddWorkingTreeDiffs(bindings);
+        AddWorkingMessage(bindings);
         AddPicker(bindings);
         AddPalette(bindings);
         AddModals(bindings);
@@ -174,9 +176,16 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
+            Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
         }
+
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
+        Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
+        Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);
     }
 
     // The two sides of the working-tree diff share the keys of the history diff; the side-specific ones (stage, unstage, discard) come with their issues.
@@ -203,15 +212,36 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "N", ActionIds.DiffSearchPrevious);
             Add(bindings, NormalOnly, view, "y", ActionIds.DiffCopyLine);
             Add(bindings, NormalOnly, view, "Y", ActionIds.DiffCopyFile);
+            Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
+            Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
         }
 
         // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
-        Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
-        Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);
+    }
+
+    // The message box: Normal mode is its own view of the keymap, Insert mode types into the editor (its editing keys are not in
+    // the keymap, like the prompt editing keys). The option toggles work from every pane of the working-tree view, Insert included.
+    private static void AddWorkingMessage(List<KeyBinding> bindings)
+    {
+        const string message = WorkingMessageView;
+        Add(bindings, NormalOnly, message, "i", ActionIds.WorkingTreeEditMessage);
+        Add(bindings, NormalOnly, message, "Enter", ActionIds.WorkingTreeEditMessage);
+        Add(bindings, NormalOnly, message, "<space>c", ActionIds.WorkingTreeCommit);
+        Add(bindings, NormalOnly, message, "<space>te", ActionIds.ToolCommitEditor);
+        Add(bindings, NormalOnly, message, "<space>r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, message, "Esc", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, message, "h", ActionIds.NavigateBack);
+        Add(bindings, [KeyMode.Insert], message, "Enter", ActionIds.WorkingTreeMessageNewLine);
+        Add(bindings, [KeyMode.Insert], message, "Alt-Enter", ActionIds.WorkingTreeCommit);
+        Add(bindings, [KeyMode.Insert], message, "Ctrl-g", ActionIds.WorkingTreeCommit);
+        foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView, WorkingUnstagedDiffView, WorkingStagedDiffView, message])
+        {
+            Add(bindings, TextEntry, view, "Alt-s", ActionIds.WorkingTreeToggleSignOff);
+            Add(bindings, TextEntry, view, "Alt-n", ActionIds.WorkingTreeToggleNoVerify);
+            Add(bindings, TextEntry, view, "Alt-a", ActionIds.WorkingTreeToggleAmend);
+        }
     }
 
     // The graph feeds the bottom pane with its selection, so the tabs switch from there too.

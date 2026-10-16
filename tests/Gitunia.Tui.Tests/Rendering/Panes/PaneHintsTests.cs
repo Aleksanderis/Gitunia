@@ -98,6 +98,12 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheMessageEditingHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheMessageViewInInsertMode()
+    {
+        AssertKeysTriggerActions(PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
@@ -112,6 +118,7 @@ public class PaneHintsTests
         PaneKind.WorkingStaged => DefaultKeymap.WorkingStagedView,
         PaneKind.WorkingUnstagedDiff => DefaultKeymap.WorkingUnstagedDiffView,
         PaneKind.WorkingStagedDiff => DefaultKeymap.WorkingStagedDiffView,
+        PaneKind.WorkingMessage => DefaultKeymap.WorkingMessageView,
         _ => DefaultKeymap.GraphView,
     };
 

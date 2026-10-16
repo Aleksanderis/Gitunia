@@ -20,6 +20,7 @@ using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Terminal.Gui.Views;
 using Xunit;
 
@@ -468,7 +469,7 @@ public class WorkingDiffControllerTests
                 },
                 _ => Token);
             Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, () => _mode, mode => _mode = mode);
-            Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging) { Diff = Controller, Visual = Visual };
+            Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
         }
 
         public StagingActions Staging { get; }

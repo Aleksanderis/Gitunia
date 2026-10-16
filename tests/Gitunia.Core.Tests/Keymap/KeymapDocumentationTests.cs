@@ -60,6 +60,20 @@ public class KeymapDocumentationTests
     }
 
     [Fact]
+    public void GivenTheMessageBoxInsertModeDefaults_WhenLookingThemUp_ThenTheyAreDocumented()
+    {
+        var documented = UxKeymapReader.ReadBindings();
+
+        var undocumented = DefaultKeymap.CreateBindings()
+            .Where(registered => registered.Mode == KeyMode.Insert && registered.View == DefaultKeymap.WorkingMessageView)
+            .Where(registered => !documented.Any(row => row.Mode == KeyMode.Insert && row.View == registered.View && row.Sequence.Equals(registered.Sequence)))
+            .Select(registered => $"{registered.View}: {registered.Sequence}")
+            .ToList();
+
+        Assert.True(undocumented.Count == 0, $"Registered Insert bindings missing from docs/ux.md:{Environment.NewLine}{string.Join(Environment.NewLine, undocumented)}");
+    }
+
+    [Fact]
     public void GivenTwoBindingsOnTheSameKeyInOneView_WhenCheckingConflicts_ThenADuplicateIsReported()
     {
         var table = new KeyBindingTable(

@@ -1,3 +1,4 @@
+using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Panes;
@@ -34,6 +35,7 @@ public sealed class MainView : IDisposable
     private readonly FrameStripView _workingDivider;
     private readonly FrameStripView _workingLeftEdge;
     private readonly FrameStripView _workingRightEdge;
+    private readonly LineView _messageOptions;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
     private FrameGrid? _workingGrid;
@@ -177,9 +179,25 @@ public sealed class MainView : IDisposable
             Source = new DiffListSource(glyphs),
             Visible = false,
         };
-        WorkingMessage = CreateWorkingPlaceholder(
-            WorkingTreePaneRenderer.MessagePlaceholderText,
-            () => WorkingRects().Message);
+        WorkingMessage = new PaneListView
+        {
+            X = Pos.Func(_ => WorkingRects().MessageEditor.X),
+            Y = Pos.Func(_ => WorkingRects().MessageEditor.Y),
+            Width = Dim.Func(_ => WorkingRects().MessageEditor.Width),
+            Height = Dim.Func(_ => WorkingRects().MessageEditor.Height),
+            CanFocus = true,
+            Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), glyphs),
+            Visible = false,
+        };
+        _messageOptions = new LineView(OptionsLine)
+        {
+            X = Pos.Func(_ => WorkingRects().MessageOptions.X),
+            Y = Pos.Func(_ => WorkingRects().MessageOptions.Y),
+            Width = Dim.Func(_ => WorkingRects().MessageOptions.Width),
+            Height = Dim.Func(_ => WorkingRects().MessageOptions.Height),
+            Visible = false,
+        };
+        _messageOptions.Clicked += OnMessageOptionsClicked;
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -212,6 +230,8 @@ public sealed class MainView : IDisposable
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
         WorkingDiff.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
+        WorkingMessage.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
@@ -242,6 +262,7 @@ public sealed class MainView : IDisposable
             WorkingStaged,
             WorkingDiff,
             WorkingMessage,
+            _messageOptions,
             _picker,
             _status,
             Overlay);
@@ -294,8 +315,14 @@ public sealed class MainView : IDisposable
     /// <summary>The diff box of the working-tree view.</summary>
     public PaneListView WorkingDiff { get; }
 
-    /// <summary>The message box of the working-tree view (a note until the editor exists).</summary>
+    /// <summary>The editor rows of the commit message box of the working-tree view (the option row below them is a separate row).</summary>
     public PaneListView WorkingMessage { get; }
+
+    /// <summary>The commit draft of the active tab, null when it has none; the message box and its option row show it.</summary>
+    public Func<CommitDraft?> ActiveDraft { get; set; } = () => null;
+
+    /// <summary>True while the message box is in Insert mode, so it shows the text cursor.</summary>
+    public Func<bool> IsEditingMessage { get; set; } = () => false;
 
     public Window Window { get; }
 
@@ -326,6 +353,7 @@ public sealed class MainView : IDisposable
         WorkingUnstaged.IsSuppressed = isSuppressed;
         WorkingStaged.IsSuppressed = isSuppressed;
         WorkingDiff.IsSuppressed = isSuppressed;
+        WorkingMessage.IsSuppressed = isSuppressed;
         _picker.IsSuppressed = isSuppressed;
     }
 
@@ -391,6 +419,8 @@ public sealed class MainView : IDisposable
             WorkingUnstaged.SetNeedsDraw();
             WorkingStaged.SetNeedsDraw();
             WorkingDiff.SetNeedsDraw();
+            WorkingMessage.SetNeedsDraw();
+            _messageOptions.SetNeedsDraw();
         }
     }
 
@@ -400,6 +430,7 @@ public sealed class MainView : IDisposable
     {
         PaneKind.WorkingStaged => WorkingStaged,
         PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => WorkingDiff,
+        PaneKind.WorkingMessage => WorkingMessage,
         _ => WorkingUnstaged,
     };
 
@@ -430,6 +461,7 @@ public sealed class MainView : IDisposable
         WorkingStaged.Visible = working && !isPicker;
         WorkingDiff.Visible = working && !isPicker;
         WorkingMessage.Visible = working && !isPicker;
+        _messageOptions.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
@@ -535,7 +567,17 @@ public sealed class MainView : IDisposable
         var unstagedTitle = WorkingTreePaneRenderer.ListTitle(UnstagedSource.Tree, WorkingTreeSection.Unstaged);
         var stagedTitle = WorkingTreePaneRenderer.ListTitle(StagedSource.Tree, WorkingTreeSection.Staged);
         var diffTitle = WorkingDiffTitle();
-        var key = new WorkingGridKey(ScreenWidth, ScreenHeight(), rects, focus, unstagedTitle, stagedTitle, diffTitle, _glyphs.IsAscii);
+        var messageTitle = ActiveDraft()?.Title ?? WorkingTreePaneRenderer.MessageTitle;
+        var key = new WorkingGridKey(
+            ScreenWidth,
+            ScreenHeight(),
+            rects,
+            focus,
+            unstagedTitle,
+            stagedTitle,
+            diffTitle,
+            messageTitle,
+            _glyphs.IsAscii);
         if (_workingGrid is null || _workingGridKey != key)
         {
             _workingGrid = FrameGrid.Build(
@@ -545,7 +587,7 @@ public sealed class MainView : IDisposable
                     new FrameBox(rects.Unstaged, focus == PaneKind.WorkingUnstaged, unstagedTitle),
                     new FrameBox(rects.Staged, focus == PaneKind.WorkingStaged, stagedTitle),
                     new FrameBox(rects.Diff, WorkingPanes.IsDiff(focus), diffTitle),
-                    new FrameBox(rects.Message, false, WorkingTreePaneRenderer.MessageTitle),
+                    new FrameBox(rects.Message, focus == PaneKind.WorkingMessage, messageTitle),
                 ],
                 _glyphs);
             _workingGridKey = key;
@@ -580,7 +622,27 @@ public sealed class MainView : IDisposable
         string UnstagedTitle,
         string StagedTitle,
         string DiffTitle,
+        string MessageTitle,
         bool IsAscii);
+
+    private StyledLine OptionsLine(int width) =>
+        MessageBoxRenderer.OptionsLine(ActiveDraft(), width, PanePadding.ColumnsFor(ScreenWidth), _glyphs);
+
+    // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
+    private void OnMessageOptionsClicked(int column)
+    {
+        if (_suppressed())
+        {
+            return;
+        }
+
+        var padding = PanePadding.ColumnsFor(ScreenWidth);
+        var buttons = MessageBoxRenderer.Buttons(PanePadding.TextWidth(_messageOptions.Viewport.Width, padding), padding);
+        if (TitleButton.ViewAt(buttons, column) is { } buttonView)
+        {
+            Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        }
+    }
 
     private PaneRects Rects()
     {

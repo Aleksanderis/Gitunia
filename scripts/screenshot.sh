@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,working,working-narrow,working-diff,working-diff-narrow,working-stage,working-hunk,working-lines] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,working,working-narrow,working-diff,working-diff-narrow,working-stage,working-hunk,working-lines,working-commit,working-hook] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -15,6 +15,7 @@
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
 # Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background),
 # working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
+# working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -121,6 +122,30 @@ make_dirty_repo() { # make_dirty_repo SOURCE DIR: a copy of the throwaway reposi
   )
 }
 
+make_commit_repo() { # make_commit_repo SOURCE DIR HOOK: a copy with staged, unstaged and untracked changes (no merge); HOOK=hook adds a failing pre-commit hook
+  local source="$1" dir="$2" hook="$3"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  printf 'Division truncates toward zero.\n' >>"$dir/README.md"
+  printf 'int Power(int value, int exponent) => 1; // TODO\n' >"$dir/src/power.txt"
+  git -C "$dir" add README.md src/power.txt
+  printf 'int Modulo(int left, int right) => left %% right; // edited\n' >>"$dir/src/math.txt"
+  printf 'todo\n' >"$dir/notes.txt"
+  )
+  if [ "$hook" = "hook" ]; then
+    printf '#!/bin/sh\necho "pre-commit: found TODO in src/power.txt" >&2\necho "pre-commit: remove it or commit with No-Verify" >&2\nexit 1\n' >"$dir/.git/hooks/pre-commit"
+    chmod +x "$dir/.git/hooks/pre-commit"
+  fi
+}
+
+type_message() { # types a subject, a blank line, a body line and turns SignOff on (Alt-s) in the open message box
+  tmux_cmd send-keys -t shot -l "Drop stale cache entries on refresh"
+  tmux_cmd send-keys -t shot Enter Enter
+  tmux_cmd send-keys -t shot -l "Entries were never dropped when the status changed."
+  tmux_cmd send-keys -t shot M-s
+}
+
 build_converter() { # prints the converter dll path
   local dll="$cache_dir/AnsiToSvg/AnsiToSvg.dll"
   if [ ! -f "$dll" ] || [ "$repo_root/tools/AnsiToSvg/Program.cs" -nt "$dll" ]; then
@@ -174,10 +199,17 @@ render() {
       working-stage) keys="Space s Space a Space a" ;;
       working-hunk) keys="Space s j Enter" keys_after="Space a" ;;
       working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
+      working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
     local scenario_repo="$repo"
-    if [[ "$scenario" == working* && -z "$source_repo" ]]; then
+    if [[ "$scenario" == working-commit && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-commit"
+      [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" plain
+    elif [[ "$scenario" == working-hook && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-hook"
+      [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" hook
+    elif [[ "$scenario" == working* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
     fi
@@ -188,6 +220,12 @@ render() {
       # shellcheck disable=SC2086
       tmux_cmd send-keys -t shot $keys
       sleep 0.5
+      wait_stable "$socket"
+    fi
+    if [[ "$scenario" == working-commit || "$scenario" == working-hook ]]; then
+      type_message
+      if [ "$scenario" = "working-hook" ]; then tmux_cmd send-keys -t shot M-Enter; fi
+      sleep 1
       wait_stable "$socket"
     fi
     if [ -n "$keys_after" ]; then

@@ -1,0 +1,451 @@
+using Gitunia.Core.Editing;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App;
+using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Tests.Fakes;
+using Xunit;
+using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
+
+namespace Gitunia.Tui.Tests.App.WorkingTree;
+
+public class CommitActionsTests
+{
+    [Fact]
+    public void GivenTheLists_WhenWritingTheMessage_ThenTheBoxHasFocusAndInsertModeIsOn()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.True(harness.Commits.IsEditing);
+    }
+
+    [Fact]
+    public void GivenInsertMode_WhenTypingKeysAndNewLines_ThenTheDraftHoldsTheMessage()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+
+        harness.Type("Subject");
+        harness.Run(ActionIds.WorkingTreeMessageNewLine);
+        harness.Run(ActionIds.WorkingTreeMessageNewLine);
+        harness.Type("Body ünï");
+
+        Assert.Equal("Subject\n\nBody ünï", harness.Draft.Editor.Text);
+        Assert.Single(harness.Commits.TabsWithUnsentMessage());
+    }
+
+    [Fact]
+    public void GivenNoInsertMode_WhenAKeyIsTyped_ThenTheBoxDoesNotTakeIt()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x")));
+    }
+
+    [Fact]
+    public void GivenAnotherPromptInInsertMode_WhenEnterArrives_ThenItIsPassedOnAsAccept()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Run(ActionIds.Cancel);
+        harness.Mode = KeyMode.Insert;
+
+        harness.Run(ActionIds.WorkingTreeMessageNewLine);
+
+        Assert.Equal([ActionIds.InputAccept], harness.Routed);
+    }
+
+    [Fact]
+    public void GivenAnEmptyMessage_WhenCommitting_ThenItIsRefusedWithoutRunningGit()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        var notice = harness.Run(ActionIds.WorkingTreeCommit);
+
+        Assert.Equal(CommitCheck.EmptyMessage, notice);
+        Assert.Empty(harness.Writer.Requests);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenNothingStaged_WhenCommitting_ThenItIsRefusedUnlessAMergeIsInProgress()
+    {
+        using var harness = new Harness(Modified("a.txt"));
+        harness.Draft.Editor.SetText("Message");
+
+        Assert.Equal(CommitCheck.NothingStaged, harness.Run(ActionIds.WorkingTreeCommit));
+        Assert.Empty(harness.Writer.Requests);
+
+        harness.Operations.Operation = RepositoryOperation.Merge;
+        Assert.Equal(string.Empty, harness.Run(ActionIds.WorkingTreeCommit));
+    }
+
+    [Fact]
+    public async Task GivenAMessageAndOptions_WhenCommitting_ThenGitGetsThemAndTheDraftIsClearedAndFocusReturnsToTheLists()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Fix the thing");
+        harness.Run(ActionIds.WorkingTreeToggleSignOff);
+        harness.Run(ActionIds.WorkingTreeToggleNoVerify);
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        Assert.True(harness.Draft.IsCommitting);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        var request = Assert.Single(harness.Writer.Requests);
+        Assert.Equal(("Fix the thing", true, true, false), (request.Message, request.SignOff, request.NoVerify, request.Amend));
+        Assert.True(harness.Draft.Editor.IsBlank);
+        Assert.True(harness.Draft.SignOff);
+        Assert.Equal("Committed 2222222", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenAFailingHook_WhenCommitting_ThenTheDraftIsKeptAndTheOutputAndHintAreShown()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.Failure = new GitCommandFailedException(["commit"], 1, "lint failed: a.txt\nfix it\n");
+        harness.Draft.Editor.SetText("Message");
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        Assert.Equal("Message", harness.Draft.Editor.Text);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Equal("Commit failed: lint failed: a.txt", harness.Statuses.Log.Latest.Text);
+        var output = Assert.Single(harness.Outputs);
+        Assert.Equal(CommitFailureReport.Title, output.Title);
+        Assert.Equal(CommitFailureReport.Heading, output.Heading);
+        Assert.Contains("lint failed: a.txt", output.Lines, StringComparer.Ordinal);
+        Assert.Contains("fix it", output.Lines, StringComparer.Ordinal);
+        Assert.Contains("<space>te", output.Lines[^1], StringComparison.Ordinal);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenAHookThatWantsInput_WhenCommitting_ThenTheEmptyOutputStillGetsTheHint()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.Failure = new GitCommandFailedException(["commit"], 1, string.Empty);
+        harness.Draft.Editor.SetText("Message");
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        var output = Assert.Single(harness.Outputs);
+        Assert.Equal(CommitFailureReport.NoOutput, output.Lines[0]);
+        Assert.Contains("passphrase", output.Lines[^1], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("cancel")]
+    [InlineData("navigate.back")]
+    public async Task GivenARunningCommit_WhenEscapeIsPressed_ThenItIsCancelledAndTheDraftStays(string escapeAction)
+    {
+        // Esc is Cancel in Insert mode and NavigateBack in the box's Normal mode: both stop the commit.
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.IsHeld = true;
+        harness.Draft.Editor.SetText("Message");
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        Assert.Equal("A commit is running: Esc cancels it", harness.Run(ActionIds.WorkingTreeCommit));
+        harness.Run(new ActionId(escapeAction));
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        Assert.Equal("Message", harness.Draft.Editor.Text);
+        Assert.StartsWith("Commit cancelled", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Empty(harness.Outputs);
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenARunningCommit_WhenTheTabIsClosed_ThenTheCommitIsCancelledAndNothingThrows()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.IsHeld = true;
+        harness.Draft.Editor.SetText("Message");
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        harness.CloseTab();
+        harness.Commits.ForgetClosedTabs();
+        await harness.Pump.RunPostsAsync(1);
+
+        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+    }
+
+    [Fact]
+    public void GivenARunningCommit_WhenEnterIsPressedInTheBox_ThenTheMessageIsNotEdited()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("Message");
+        harness.Writer.IsHeld = true;
+        harness.Run(ActionIds.WorkingTreeCommit);
+
+        harness.Run(ActionIds.WorkingTreeMessageNewLine);
+
+        Assert.Equal("Message", harness.Draft.Editor.Text);
+    }
+
+    [Fact]
+    public void GivenInsertMode_WhenEscapeIsPressed_ThenNormalModeStartsAndTheBoxKeepsFocus()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+
+        harness.Run(ActionIds.Cancel);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheBoxInNormalMode_WhenGoingBack_ThenTheListWithTheSelectionHasFocus()
+    {
+        using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));
+        harness.Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Staged, 0));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Run(ActionIds.Cancel);
+
+        Assert.True(harness.Commits.TryExecute(harness.Tab, ActionIds.NavigateBack));
+
+        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenInsertModeInTheBox_WhenFocusMovesAway_ThenInsertModeEnds()
+    {
+        using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstaged));
+        harness.Commits.LeaveInsertWhenFocusMoved();
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Commits.HandleTextKey(new KeyEvent("x")));
+    }
+
+    [Fact]
+    public async Task GivenAnEmptyDraft_WhenTogglingAmend_ThenHeadsMessageFillsTheBoxAndTogglingOffRestoresTheEmptyDraft()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        harness.Run(ActionIds.WorkingTreeToggleAmend);
+        await harness.Pump.RunPostsAsync(1);
+
+        Assert.True(harness.Draft.Amend);
+        Assert.Equal("Previous subject\n\nPrevious body", harness.Draft.Editor.Text);
+        Assert.StartsWith("Amending ", harness.Draft.Title, StringComparison.Ordinal);
+        Assert.Contains("Previous subject", harness.Draft.Title, StringComparison.Ordinal);
+
+        harness.Run(ActionIds.WorkingTreeToggleAmend);
+
+        Assert.False(harness.Draft.Amend);
+        Assert.True(harness.Draft.Editor.IsBlank);
+        Assert.Equal("Commit message", harness.Draft.Title);
+    }
+
+    [Fact]
+    public void GivenAMergeInProgress_WhenTogglingAmend_ThenItIsRefused()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Operations.Operation = RepositoryOperation.Merge;
+
+        var notice = harness.Run(ActionIds.WorkingTreeToggleAmend);
+
+        Assert.Equal(CommitCheck.AmendDuringMerge, notice);
+        Assert.False(harness.Draft.Amend);
+    }
+
+    [Fact]
+    public async Task GivenAmend_WhenCommitting_ThenTheStatusNamesThePreviousCommitAndTheUndo()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("Reworded");
+        harness.Run(ActionIds.WorkingTreeToggleAmend);
+        await harness.Pump.RunPostsAsync(1);
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        Assert.True(harness.Writer.Requests[0].Amend);
+        var text = harness.Statuses.Log.Latest!.Text;
+        Assert.Contains("previous commit 1111111", text, StringComparison.Ordinal);
+        Assert.Contains("git reset --soft 1111111", text, StringComparison.Ordinal);
+        Assert.False(harness.Draft.Amend);
+    }
+
+    [Fact]
+    public async Task GivenHeadIsOnTheUpstream_WhenAmending_ThenTheStatusWarnsOfTheForcePush()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Load(upstream: "origin/main", ahead: 0);
+        harness.Draft.Editor.SetText("Reworded");
+        harness.Run(ActionIds.WorkingTreeToggleAmend);
+        await harness.Pump.RunPostsAsync(1);
+
+        harness.Run(ActionIds.WorkingTreeCommit);
+        await harness.Pump.RunUntilAsync(() => !harness.Draft.IsCommitting);
+
+        Assert.Contains("force push", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("origin/main", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheOptionActions_WhenToggling_ThenTheDraftFollows()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+
+        Assert.Equal("SignOff on", harness.Run(ActionIds.WorkingTreeToggleSignOff));
+        Assert.Equal("No-Verify on: hooks are skipped", harness.Run(ActionIds.WorkingTreeToggleNoVerify));
+        Assert.Equal("SignOff off", harness.Run(ActionIds.WorkingTreeToggleSignOff));
+
+        Assert.False(harness.Draft.SignOff);
+        Assert.True(harness.Draft.NoVerify);
+    }
+
+    [Fact]
+    public async Task GivenAMergeInProgress_WhenWritingTheMessage_ThenTheBoxStartsWithGitsMergeMessageAndUntouchedItIsNotUnsent()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Writer.MergeMessage = "Merge branch 'other'";
+        harness.Operations.Operation = RepositoryOperation.Merge;
+
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        await harness.Pump.RunPostsAsync(1);
+
+        Assert.Equal("Merge branch 'other'", harness.Draft.Editor.Text);
+        Assert.Empty(harness.Commits.TabsWithUnsentMessage());
+
+        harness.Type(" edited");
+
+        Assert.Single(harness.Commits.TabsWithUnsentMessage());
+    }
+
+    [Fact]
+    public void GivenAClosedTab_WhenTheWorkspaceChanges_ThenItsDraftIsForgotten()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("Message");
+        var tabId = harness.Tab.Id;
+
+        harness.CloseTab();
+        harness.Commits.ForgetClosedTabs();
+
+        Assert.Null(harness.Commits.DraftOf(tabId));
+    }
+
+    private sealed record Output(string Title, string Heading, IReadOnlyList<string> Lines);
+
+    private sealed class Harness : IDisposable
+    {
+        private readonly WorkspaceHost _host = new(Workspace.Empty);
+
+        public Harness(params StatusEntry[] entries)
+        {
+            GitDirectory = Path.Combine(Path.GetTempPath(), $"gitunia-commit-actions-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(GitDirectory);
+            var location = new RepositoryLocation(GitDirectory, GitDirectory, GitDirectory, false, false);
+            _host.Dispatch(new OpenRepositoryCommand(location));
+            Entries = entries;
+            Load();
+            Send(new OpenWorkingTreeCommand());
+            Pump = new UiPump(TestContext.Current.CancellationToken);
+            Commits = new CommitActions(
+                _host,
+                Writer,
+                Operations,
+                Statuses,
+                Pump.Post,
+                RefreshStatus,
+                _ => TestContext.Current.CancellationToken,
+                (title, heading, lines) => Outputs.Add(new Output(title, heading, lines)),
+                () => Mode,
+                mode => Mode = mode,
+                (action, _) => Routed.Add(action),
+                () => { });
+        }
+
+        public string GitDirectory { get; }
+
+        public StatusEntry[] Entries { get; }
+
+        public UiPump Pump { get; }
+
+        public FakeCommitWriter Writer { get; } = new();
+
+        public FakeOperationDetector Operations { get; } = new();
+
+        public StatusChannel Statuses { get; } = new();
+
+        public CommitActions Commits { get; }
+
+        public KeyMode Mode { get; set; } = KeyMode.Normal;
+
+        public List<Output> Outputs { get; } = [];
+
+        public List<ActionId> Routed { get; } = [];
+
+        public int Refreshes { get; private set; }
+
+        public RepositoryState Tab => _host.Workspace.ActiveTab!;
+
+        public CommitDraft Draft => Commits.DraftFor(Tab.Id);
+
+        public string Run(ActionId action)
+        {
+            Commits.TryExecute(Tab, action);
+            return Commits.Notice;
+        }
+
+        public void Type(string text)
+        {
+            foreach (var character in text)
+            {
+                Assert.True(Commits.HandleTextKey(new KeyEvent(character.ToString())));
+            }
+        }
+
+        public void Send(RepositoryCommand command) =>
+            _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
+
+        public void Load(string? upstream = null, int? ahead = null)
+        {
+            var snapshot = Snapshot(Entries);
+            var branch = snapshot.Branch with { UpstreamName = upstream, Ahead = ahead };
+            Send(new WorkingTreeLoadedCommand(snapshot with { Branch = branch }));
+        }
+
+        public void CloseTab() => _host.Dispatch(new CloseTabCommand(_host.Workspace.ActiveTabId!.Value));
+
+        public void Dispose()
+        {
+            if (Directory.Exists(GitDirectory))
+            {
+                Directory.Delete(GitDirectory, true);
+            }
+        }
+
+        private bool RefreshStatus(TabId tabId, Action done)
+        {
+            Refreshes++;
+            Pump.Post(done);
+            return true;
+        }
+    }
+}

@@ -70,7 +70,7 @@ public sealed class OverlayController
     public string ViewName => State.Kind switch
     {
         OverlayKind.Help => DefaultKeymap.HelpView,
-        OverlayKind.Messages => DefaultKeymap.MessagesView,
+        OverlayKind.Messages or OverlayKind.Output => DefaultKeymap.MessagesView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
         _ => _baseView(),
     };
@@ -97,7 +97,7 @@ public sealed class OverlayController
         {
             Close();
         }
-        else if (State.Kind is OverlayKind.Help or OverlayKind.Messages)
+        else if (State.Kind is OverlayKind.Help or OverlayKind.Messages or OverlayKind.Output)
         {
             ScrollHelp(action, count);
         }
@@ -107,6 +107,20 @@ public sealed class OverlayController
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Shows the output of a failed command (a failing commit hook) in a scrollable box; <c>Esc</c> closes it. An open overlay is
+    /// replaced (the output is the newer fact).
+    /// </summary>
+    /// <param name="title">The box title.</param>
+    /// <param name="heading">The heading of the text section.</param>
+    /// <param name="lines">The output, one entry per line.</param>
+    public void ShowOutput(string title, string heading, IReadOnlyList<string> lines)
+    {
+        var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
+        _helpSections = [new HelpSection(heading, [.. lines.Select(line => new HelpRow(string.Empty, line))])];
+        Open(OverlayState.OpenOutput(title, returnMode), KeyMode.Normal);
     }
 
     /// <summary>Highlights the palette entry drawn on a line of the overlay frame (a mouse click); false when the line is not an entry.</summary>

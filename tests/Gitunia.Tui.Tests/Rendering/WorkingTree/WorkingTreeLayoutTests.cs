@@ -19,6 +19,38 @@ public class WorkingTreeLayoutTests
         Assert.Equal(new PaneRect(41, 29, 78, 5), rects.Message);
     }
 
+    [Fact]
+    public void GivenAWideScreen_WhenComputing_ThenTheMessageBoxSplitsIntoEditorRowsAndOneOptionRow()
+    {
+        var rects = WorkingTreeLayout.Compute(120, 36, PaneKind.WorkingMessage);
+
+        Assert.Equal(new PaneRect(41, 29, 78, 4), rects.MessageEditor);
+        Assert.Equal(new PaneRect(41, 33, 78, 1), rects.MessageOptions);
+    }
+
+    [Fact]
+    public void GivenANarrowScreenWithTheMessageBoxFocused_WhenComputing_ThenOnlyTheMessageBoxShows()
+    {
+        var rects = WorkingTreeLayout.Compute(70, 20, PaneKind.WorkingMessage);
+
+        Assert.True(rects.Unstaged.IsEmpty);
+        Assert.True(rects.Staged.IsEmpty);
+        Assert.True(rects.Diff.IsEmpty);
+        Assert.Equal(new PaneRect(1, 2, 68, 16), rects.Message);
+    }
+
+    [Fact]
+    public void GivenAShortScreenWithTheMessageBoxFocused_WhenComputing_ThenItTakesThePlaceOfTheDiff()
+    {
+        var unfocused = WorkingTreeLayout.Compute(100, 9, PaneKind.WorkingUnstaged);
+        var rects = WorkingTreeLayout.Compute(100, 9, PaneKind.WorkingMessage);
+
+        Assert.True(unfocused.Message.IsEmpty);
+        Assert.True(rects.Diff.IsEmpty);
+        Assert.Equal(unfocused.Diff, rects.Message);
+        Assert.Equal(unfocused.Unstaged, rects.Unstaged);
+    }
+
     [Theory]
     [InlineData(120, 36)]
     [InlineData(80, 24)]

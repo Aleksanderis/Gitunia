@@ -17,8 +17,11 @@ public static class WorkingPanes
     /// <summary>The pane is the diff of the Unstaged or Staged side.</summary>
     public static bool IsDiff(PaneKind pane) => pane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
 
+    /// <summary>The pane is the commit message box.</summary>
+    public static bool IsMessage(PaneKind pane) => pane == PaneKind.WorkingMessage;
+
     /// <summary>The pane belongs to the working-tree view.</summary>
-    public static bool IsWorking(PaneKind pane) => IsList(pane) || IsDiff(pane);
+    public static bool IsWorking(PaneKind pane) => IsList(pane) || IsDiff(pane) || IsMessage(pane);
 
     /// <summary>The file list of a section.</summary>
     public static PaneKind ListOf(WorkingTreeSection section) =>

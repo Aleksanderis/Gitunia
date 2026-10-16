@@ -35,6 +35,28 @@ public static class WorkingTreeLayout
     /// <param name="focused">The focused pane; on narrow screens it decides which list shows.</param>
     public static WorkingTreeRects Compute(int screenWidth, int screenHeight, PaneKind focused)
     {
+        var rects = ComputeBoxes(screenWidth, screenHeight, focused);
+        if (focused != PaneKind.WorkingMessage || !rects.Message.IsEmpty)
+        {
+            return rects;
+        }
+
+        // The message box has focus but did not fit beside the diff (a narrow or short screen): it takes the place of the diff, or,
+        // on a narrow screen, of the whole view, like the focused list does.
+        var none = new PaneRect(0, 0, 0, 0);
+        var whole = new PaneRect(1, ScreenLayout.GraphTop, ScreenLayout.InnerWidth(screenWidth), ScreenLayout.GraphHeight(screenHeight));
+        var place = screenWidth < MinimumWidthForSideBySide ? whole : rects.Diff;
+        return place.IsEmpty
+            ? rects
+            : new WorkingTreeRects(
+                screenWidth < MinimumWidthForSideBySide ? none : rects.Unstaged,
+                screenWidth < MinimumWidthForSideBySide ? none : rects.Staged,
+                none,
+                place);
+    }
+
+    private static WorkingTreeRects ComputeBoxes(int screenWidth, int screenHeight, PaneKind focused)
+    {
         var none = new PaneRect(0, 0, 0, 0);
         var inner = ScreenLayout.InnerWidth(screenWidth);
         var area = ScreenLayout.GraphHeight(screenHeight);

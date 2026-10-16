@@ -26,6 +26,7 @@ public static class OverlayFrameFactory
         {
             OverlayKind.Help => HelpFrameBuilder.Build(helpSections, state.HelpView, state.HelpScroll, screenWidth, screenHeight, glyphs),
             OverlayKind.Messages => HelpFrameBuilder.Build(helpSections, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, "Status messages"),
+            OverlayKind.Output => HelpFrameBuilder.Build(helpSections, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, state.HelpView),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
             _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(pendingKeys, whichKeyRows, screenWidth, screenHeight, glyphs),
             _ => null,

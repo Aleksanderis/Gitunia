@@ -10,6 +10,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Platform;
@@ -72,6 +73,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
+    private readonly QuitGuard _quitGuard = new();
+    private CommitActions _commits = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
     private Action? _suspendedWork;
     private Action? _resumed;
@@ -116,12 +119,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             width => _diffPane.TitleLine(width, glyphs),
             new DiffListSource(glyphs));
 
+        _commits = CreateCommits();
+        _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
+        _view.IsEditingMessage = () => _commits.IsEditing;
         _router = new ActionRouter(
             _host,
             _view.Graph,
             _view.Detail,
             ActiveSession,
-            RequestStop,
+            RequestQuit,
             _sidebar,
             _statuses,
             clipboard);
@@ -151,7 +157,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             mode => _keys.SetMode(mode),
             new RangeCopier(clipboard, ActiveSession).Copy);
         _router.Visual = _visual;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging())
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging(), _commits)
         {
             Diff = _workingDiff,
             Visual = _visual,
@@ -169,7 +175,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
         _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi);
-        _workspaceActions = new WorkspaceActions(_host, _picker, RequestStop);
+        _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit);
 
         _binder = new GraphTabBinder(
             _host,
@@ -207,6 +213,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _host.Changed += _view.RefreshChrome;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
+        _host.Changed += _commits.ForgetClosedTabs;
         _host.Changed += OnBottomTabMaybeChanged;
         _host.Changed += _visual.EndIfFocusMoved;
         _keys.PendingChanged += _view.RefreshChrome;
@@ -221,6 +228,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.WorkingUnstaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingUnstaged, PaneKind.WorkingUnstaged);
         _view.WorkingStaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingStaged, PaneKind.WorkingStaged);
         _view.WorkingDiff.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingDiff, SelectedWorkingDiffPane());
+        _view.WorkingMessage.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingMessage, PaneKind.WorkingMessage);
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
@@ -298,6 +306,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RouteAction(ActionId action, int? count)
     {
+        if (action != ActionIds.AppQuit)
+        {
+            _quitGuard.Reset();
+        }
+
         if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
@@ -316,7 +329,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         if (gesture == MouseGesture.DragStart
             && viewName is DefaultKeymap.SidebarView
                 or DefaultKeymap.WorkingUnstagedView
-                or DefaultKeymap.WorkingStagedView)
+                or DefaultKeymap.WorkingStagedView
+                or DefaultKeymap.WorkingMessageView)
         {
             return;
         }
@@ -400,6 +414,40 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome();
     }
 
+    // Quitting with an unsent commit message says so first; a second quit right after goes through.
+    private void RequestQuit()
+    {
+        var unsent = _commits.TabsWithUnsentMessage();
+        if (_quitGuard.MayQuit(unsent))
+        {
+            RequestStop();
+        }
+        else
+        {
+            _statuses.Warning(QuitGuard.Warning(unsent));
+        }
+    }
+
+    private CommitActions CreateCommits() => new(
+        _host,
+        services.CommitWriter,
+        new RepositoryOperationDetector(),
+        _statuses,
+        InvokeOnUi,
+        _effects.RefreshStatus,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowOutput,
+        () => _keys.Mode,
+        SetMode,
+        RouteAction,
+        _view.RefreshChrome);
+
+    // The overlay controller and the key controller are created after the commit actions, so they are reached through these methods.
+    private void ShowOutput(string title, string heading, IReadOnlyList<string> lines) =>
+        _overlays.ShowOutput(title, heading, lines);
+
+    private void SetMode(KeyMode mode) => _keys.SetMode(mode);
+
     private StagingActions CreateStaging() => new(
         _host,
         services.IndexWriter,
@@ -439,6 +487,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         PaneKind.WorkingUnstaged => _view.WorkingUnstaged,
         PaneKind.WorkingStaged => _view.WorkingStaged,
         PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => _view.WorkingDiff,
+        PaneKind.WorkingMessage => _view.WorkingMessage,
         _ => _view.Graph,
     };
 
@@ -483,7 +532,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         with
         {
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
-            Hints = PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
+            Hints = _commits.IsEditing
+                ? PaneHints.ForMessageEditing()
+                : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 
@@ -601,6 +652,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
+            new CommitMessageInput(_commits),
         ];
     }
 

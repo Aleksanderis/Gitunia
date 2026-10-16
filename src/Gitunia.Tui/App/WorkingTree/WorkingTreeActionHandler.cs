@@ -20,7 +20,13 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
 /// <param name="clipboard">Copies the path of a file.</param>
 /// <param name="staging">Stages and unstages files, hunks and lines.</param>
-public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageHeight, ClipboardCopier clipboard, StagingActions staging)
+/// <param name="commits">The message box and the commit.</param>
+public sealed class WorkingTreeActionHandler(
+    WorkspaceHost host,
+    Func<int> pageHeight,
+    ClipboardCopier clipboard,
+    StagingActions staging,
+    CommitActions commits)
 {
     private static readonly HashSet<ActionId> LeftToOthers =
     [
@@ -28,6 +34,7 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         ActionIds.InputAccept,
         ActionIds.Cancel,
         ActionIds.RepositoryRefresh,
+        ActionIds.ToolCommitEditor,
     ];
 
     /// <summary>The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</summary>
@@ -55,6 +62,12 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
             return true;
         }
 
+        if (isShown && commits.TryExecute(tab, action))
+        {
+            Message = commits.Notice;
+            return true;
+        }
+
         if (!isShown || IsLeftToOthers(action))
         {
             return false;
@@ -63,6 +76,11 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         if (TryVisual(tab, action, count))
         {
             Message = Visual!.Notice;
+        }
+        else if (action == ActionIds.AppQuit)
+        {
+            // q quits from every pane (#333); an active range ended first, above.
+            return false;
         }
         else if (Diff?.TryExecute(action, count) == true)
         {
@@ -106,22 +124,24 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         PaneKind target;
         if (action == ActionIds.PaneNext || action == ActionIds.PanePrevious)
         {
-            // The diff in the cycle is the one of the selected file's side.
-            PaneKind[] cycle = selection is null ? [.. WorkingPanes.Lists] : [.. WorkingPanes.Lists, WorkingPanes.DiffOf(selection.Section)];
+            // The diff in the cycle is the one of the selected file's side; the message box comes last.
+            PaneKind[] cycle = selection is null
+                ? [.. WorkingPanes.Lists, PaneKind.WorkingMessage]
+                : [.. WorkingPanes.Lists, WorkingPanes.DiffOf(selection.Section), PaneKind.WorkingMessage];
             target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, cycle);
         }
         else if (action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown)
         {
-            target = PaneNavigator.StepVertically(focused, action == ActionIds.PaneFocusDown, WorkingPanes.Lists);
+            target = StepVertically(focused, action == ActionIds.PaneFocusDown, selection);
         }
         else if (action == ActionIds.PaneFocusRight)
         {
-            // The diff is the right column: from a list, the diff of the file under the cursor.
-            target = WorkingPanes.IsList(focused) && selection is not null ? WorkingPanes.DiffOf(selection.Section) : focused;
+            // The diff is the right column: from a list, the diff of the file under the cursor (the message box when there is none).
+            target = WorkingPanes.IsList(focused) ? selection is null ? PaneKind.WorkingMessage : WorkingPanes.DiffOf(selection.Section) : focused;
         }
         else if (action == ActionIds.PaneFocusLeft)
         {
-            target = WorkingPanes.IsDiff(focused) ? WorkingPanes.ListOf(WorkingPanes.SectionOf(focused)) : focused;
+            target = WorkingPanes.IsList(focused) ? focused : WorkingPanes.ListOf(selection?.Section ?? WorkingPanes.SectionOf(focused));
         }
         else
         {
@@ -134,6 +154,22 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
         }
 
         return true;
+    }
+
+    // The lists are stacked on the left, the diff above the message box on the right.
+    private static PaneKind StepVertically(PaneKind focused, bool down, WorkingTreeSelection? selection)
+    {
+        if (focused == PaneKind.WorkingMessage)
+        {
+            return !down && selection is not null ? WorkingPanes.DiffOf(selection.Section) : focused;
+        }
+
+        if (WorkingPanes.IsDiff(focused))
+        {
+            return down ? PaneKind.WorkingMessage : focused;
+        }
+
+        return PaneNavigator.StepVertically(focused, down, WorkingPanes.Lists);
     }
 
     // Enter and l on a file: its diff takes the focus (on a narrow screen it replaces the list until h or Esc).

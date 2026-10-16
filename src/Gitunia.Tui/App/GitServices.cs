@@ -22,6 +22,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
 /// <param name="IndexWriter">Stages and unstages files.</param>
+/// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
@@ -35,6 +36,7 @@ public sealed record GitServices(
     IRefReader Refs,
     IStatusReader Status,
     IIndexWriter IndexWriter,
+    ICommitWriter CommitWriter,
     IStashReader Stashes,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
@@ -57,6 +59,7 @@ public sealed record GitServices(
             refs,
             status,
             new IndexWriter(runner),
+            new CommitWriter(runner),
             stashes,
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,
