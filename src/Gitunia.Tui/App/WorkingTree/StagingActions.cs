@@ -1,6 +1,6 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Lists;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;

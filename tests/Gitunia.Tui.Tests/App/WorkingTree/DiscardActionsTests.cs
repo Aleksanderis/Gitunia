@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -174,6 +175,37 @@ public class DiscardActionsTests
         Assert.True(refreshed);
         Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
         Assert.Contains("Could not discard: index.lock exists", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenARangeWithAnUntrackedDirectory_WhenDiscarding_ThenTheDialogSaysEverythingInItIsDeleted()
+    {
+        using var harness = new Harness(Modified("a.txt"), Untracked("build/"), Modified("b.txt"));
+
+        harness.ExecuteRange(0, 2);
+
+        var lines = Assert.Single(harness.Prompts).Lines;
+        Assert.Equal("Discard changes to 3 files?", lines[0]);
+        Assert.Contains("build/", lines[1], StringComparison.Ordinal);
+        Assert.Contains("Untracked directories are deleted with everything in them.", lines);
+    }
+
+    [Fact]
+    public async Task GivenARangeWithOneUsableFileAndAConflict_WhenDiscarding_ThenTheDialogCountsAndTheConflictIsLeftOut()
+    {
+        using var harness = new Harness(Modified("a.txt"), Conflict("c.txt"));
+
+        harness.ExecuteRange(0, 1);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Discard changes to 1 file?", prompt.Lines[0]);
+        Assert.Equal("Discard 1 file", prompt.YesLabel);
+        Assert.Contains("1 conflicted, submodule or unreadable-name file left out.", prompt.Lines);
+
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal([["a.txt"]], harness.Discarder.Restored);
     }
 
     [Fact]
@@ -368,6 +400,8 @@ public class DiscardActionsTests
         private RepositoryState Tab => _host.Workspace.ActiveTab!;
 
         public string Execute() => Discard.Execute(Tab);
+
+        public string ExecuteRange(int first, int last) => Discard.ExecuteRange(Tab, new RowRange(first, last));
 
         public string ExecuteSelection(
             IReadOnlyList<ChangedLine> lines,

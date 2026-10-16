@@ -156,12 +156,16 @@ public sealed class DiscardActions(
     private static ConfirmPrompt RangePrompt(List<StatusEntry> files, int skipped)
     {
         var untracked = files.Where(entry => entry.Kind == StatusEntryKind.Untracked).ToList();
-        List<string> lines = [$"Discard changes to {files.Count} files?"];
+        List<string> lines = [$"Discard changes to {OperationText.Plural(files.Count, "file")}?"];
         if (untracked.Count > 0)
         {
             var names = untracked.Take(NamedUntrackedLimit).Select(entry => WorkingTreeRowRenderer.Printable(entry.Path)).ToList();
             var more = untracked.Count > names.Count ? $" and {untracked.Count - names.Count} more" : string.Empty;
             lines.Add($"Untracked, deleted from disk ({untracked.Count}): {string.Join(", ", names)}{more}");
+            if (untracked.Any(entry => entry.Path.EndsWith(DirectorySuffix, StringComparison.Ordinal)))
+            {
+                lines.Add("Untracked directories are deleted with everything in them.");
+            }
         }
 
         if (files.Any(entry => entry.Kind != StatusEntryKind.Untracked && entry.IndexChange != FileChangeKind.Unmodified))
@@ -171,10 +175,10 @@ public sealed class DiscardActions(
 
         if (skipped > 0)
         {
-            lines.Add($"{skipped} conflicted, submodule or unreadable-name files are left out.");
+            lines.Add($"{OperationText.Plural(skipped, "conflicted, submodule or unreadable-name file")} left out.");
         }
 
-        return new ConfirmPrompt("Discard changes", lines, RangeConsequence, $"Discard {files.Count} files");
+        return new ConfirmPrompt("Discard changes", lines, RangeConsequence, $"Discard {OperationText.Plural(files.Count, "file")}");
     }
 
     private void StartRange(RepositoryState tab, List<StatusEntry> files, int skipped)
