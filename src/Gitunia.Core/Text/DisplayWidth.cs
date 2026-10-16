@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Gitunia.Core.Text;
 
-/// <summary>Terminal column widths of text: wide (CJK, emoji) characters take two columns, combining marks none.</summary>
+/// <summary>Terminal column widths of text: wide (CJK, emoji) characters take two, combining marks none.</summary>
 public static class DisplayWidth
 {
     /// <summary>Columns <paramref name="text"/> occupies.</summary>

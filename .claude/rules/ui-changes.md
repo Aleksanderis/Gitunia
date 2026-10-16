@@ -28,5 +28,5 @@ Specs, the keymap table and the mouse table are in `docs/ux.md`. Checklist for a
 - Colours are decided in one place: `PaletteTable` and `Palette`. Never hard-code a colour in a view. Contrast is tested (4.5, dividers 3.0).
 - Every colour tier has a path: 24-bit, 16-colour, `NO_COLOR`/`TERM=dumb`, and the ASCII glyph set. Focus and selection never rely on colour alone.
 - Layout is data (`PaneLayout`, `GraphColumnLayout`, `FrameGrid`) and is unit- and snapshot-tested at several terminal sizes, including narrow and tiny ones; nothing may crash on resize.
-- Wide characters are never split; text width goes through `TextWidth`.
+- Wide characters are never split; text width goes through `TextWidth` (backed by `DisplayWidth` in Core).
 - UI PRs with a visual change attach one capture (`screenshots` skill); none for key labels, hints only, docs or logic.

@@ -38,13 +38,19 @@ public sealed class CommitDraft
     /// </summary>
     public bool HasUnsentText => !Editor.IsBlank && (_prefilled is null || Editor.Text != _prefilled);
 
-    /// <summary>The title of the message box; once there is a message it ends with the subject width and its soft limit.</summary>
+    /// <summary>
+    /// The title of the message box. Once there is a message, the subject width and its soft limit follow the first words, so a
+    /// narrow box cuts the amend target and not the count.
+    /// </summary>
     public string Title
     {
         get
         {
-            var title = !Amend ? DefaultTitle : AmendTarget.Length > 0 ? $"Amending {AmendTarget}" : "Amending";
-            return Editor.IsBlank ? title : $"{title}  {Editor.SubjectWidth}/{MessageEditor.SubjectSoftLimit}";
+            var label = Amend ? "Amending" : DefaultTitle;
+            var count = Editor.IsBlank ? string.Empty : $" {Editor.SubjectWidth}/{MessageEditor.SubjectSoftLimit}";
+            var target = Amend && AmendTarget.Length > 0 ? $" {AmendTarget}" : string.Empty;
+
+            return $"{label}{count}{target}";
         }
     }
 

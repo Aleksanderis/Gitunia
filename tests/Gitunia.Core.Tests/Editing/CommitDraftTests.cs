@@ -14,7 +14,7 @@ public class CommitDraftTests
         draft.ApplyHeadMessage("abc1234", "Old subject\n\nOld body");
 
         Assert.Equal("Old subject\n\nOld body", draft.Editor.Text);
-        Assert.Equal("Amending abc1234 Old subject  11/72", draft.Title);
+        Assert.Equal("Amending 11/72 abc1234 Old subject", draft.Title);
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class CommitDraftTests
 
         draft.Editor.SetText($"中文 x\nbody that is not counted");
 
-        Assert.Equal("Commit message  6/72", draft.Title);
+        Assert.Equal("Commit message 6/72", draft.Title);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class CommitDraftTests
         draft.ApplyHeadMessage("abc1234", "Old subject");
 
         Assert.Equal("My own message", draft.Editor.Text);
-        Assert.Equal("Amending abc1234 Old subject  14/72", draft.Title);
+        Assert.Equal("Amending 14/72 abc1234 Old subject", draft.Title);
     }
 
     [Fact]

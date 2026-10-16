@@ -202,8 +202,8 @@ public sealed class CommitActions(
     }
 
     /// <summary>
-    /// Puts the editor's cursor where a click on the message box landed. The click's own gesture (focus, Insert mode) follows;
-    /// the lines are scrolled sideways only while the box is being edited, so the offset is read before that starts.
+    /// Puts the editor's cursor where a click on the message box landed. The click's own gesture (focus, Insert
+    /// mode) follows; lines are scrolled sideways only while the box is edited, so the offset is read before that.
     /// </summary>
     /// <param name="textColumn">The pointer's column in the text, left padding removed.</param>
     /// <param name="row">The pointer's row in the box.</param>
