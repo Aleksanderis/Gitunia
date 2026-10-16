@@ -13,6 +13,7 @@
     <!-- Shared fixture builder: one source file, linked instead of a project reference between test projects. -->
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepository.cs" Link="Fixtures\TestRepository.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestFile.cs" Link="Fixtures\TestFile.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepositories.cs" Link="Fixtures\TestRepositories.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gitunia.Tui\Gitunia.Tui.csproj" />

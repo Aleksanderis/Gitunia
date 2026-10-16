@@ -245,7 +245,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 ### 6. Worktrees (M3, planned)
 
 `<space>w` + key. The sidebar's Worktrees section shows each worktree with branch, dirty marker (changed, staged, conflicted), ahead/behind and `locked`/`prunable` flags, so dirty state across all worktrees is visible at a glance without switching.
-1. `wa` add: prompt for the path (default a sibling directory named after the branch), then a choice: new branch (name prompt, start point the selection) or an existing branch (picker; one held by another worktree is refused). The tab stays where it is.
+1. `wa` add: prompt for a branch name, then for the path (default a sibling directory named after the branch). An existing branch is checked out (one held by another worktree is refused); a new name creates the branch at the selected sidebar row's or graph commit, else HEAD. The tab stays where it is.
 2. `ws` switch (on a worktree row): the tab's active worktree changes in place and keeps its view state (selection, scroll, pane layout); the tab bar and the sidebar `*` follow. `<space>wt` opens it as its own tab instead. Switching never changes the process working directory.
 3. `wd` remove: Confirm naming the path; a dirty worktree needs a second Confirm that lists what is lost and says there is no undo (`--force`); a locked one is refused until unlocked; the main worktree and the one the tab is on are refused.
 4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
@@ -440,6 +440,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
 | Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |
 | Sidebar | `<space>Sd` | Drop the stash under the cursor after a Confirm that shows the restore command |
+| Sidebar | `<space>wa` | Add a worktree: prompt for a branch (existing, or a new name started at the selected commit), then the path |
+| Sidebar | `<space>wd` | Remove the selected worktree (Confirm; a dirty one needs a second Confirm) |
+| Sidebar | `<space>wl` `<space>wu` | Lock (optional reason) / unlock the selected worktree |
+| Sidebar | `<space>wp` | Prune worktrees whose directory is gone (Confirm lists them) |
 | Diff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Diff | `]c` `[c` | Next / previous hunk |
 | Diff | `]f` `[f` | Next / previous file |

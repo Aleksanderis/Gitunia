@@ -251,3 +251,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.
 
 **UI:** Stash keys are `<space>S` chords (`Ss` `Su` push without/with untracked; sidebar `Sa` `Sp` `Sd`), not the bare `a` `p` `d` of the first draft, which clash with vim. Apply, pop and drop refuse outside a stash row instead of opening a picker; only drop asks.
+
+**UI:** Worktree add (#41) asks for the branch first (an existing free branch, or a new name started at the selected commit, else HEAD) and then the path (default: sibling directory named after the branch), instead of a path-first prompt and a branch picker. Why: the default path needs the branch, and one prompt chain needs no picker. Remove asks twice for a dirty worktree (second Confirm lists the changes, `--force`); a locked one is never forced. `<space>ws`/`wt` (switch, open as tab) stay with their own issue.
