@@ -136,6 +136,12 @@ public class PaneHintsTests
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
     }
 
+    [Fact]
+    public void GivenThePaletteHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePaletteView()
+    {
+        AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
+    }
+
     private static string ViewFor(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => DefaultKeymap.SidebarView,

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Overlays;
@@ -12,6 +13,7 @@ public static class PaletteFrameBuilder
     private const int MaximumRows = 12;
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
+    private const string HintGap = "  ";
 
     /// <summary>The palette frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(PaletteState palette, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
@@ -46,14 +48,18 @@ public static class PaletteFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        var position = visible.Count == 0 ? 0 : selected + 1;
-        lines.Add(OverlayBox.Text(
-            string.Create(CultureInfo.InvariantCulture, $"{position}/{visible.Count}  Up/Down choose  Enter run  Esc close"),
-            width,
-            glyphs,
-            SegmentRole.Faint));
+        lines.Add(Footer(selected, visible.Count, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
+    }
+
+    private static StyledLine Footer(int selected, int count, int width, GraphGlyphSet glyphs)
+    {
+        var position = count == 0 ? 0 : selected + 1;
+        var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
+            .Append(string.Create(CultureInfo.InvariantCulture, $" {position}/{count}"), SegmentRole.Status);
+        HintRenderer.Append(builder, PaneHints.ForPalette(), HintGap);
+        return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
     }
 
     /// <summary>The index into <see cref="PaletteState.Visible"/> of the entry drawn on <paramref name="frameLine"/> of the frame, or null for the title, the footer or an empty row.</summary>
