@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
 using Gitunia.Git.Commits.Models;
@@ -21,7 +22,7 @@ public static class GraphRowRenderer
     private static readonly string CompactGapText = new(' ', GraphColumnLayout.CompactColumnGap);
     private static readonly string SpaciousGapText = new(' ', GraphColumnLayout.SpaciousColumnGap);
 
-    public static StyledLine Render(GraphEntry entry, GraphRowOptions options, bool isSelected)
+    public static StyledLine Render(GraphEntry entry, GraphRowOptions options, bool isSelected, JumpLabel? jump = null)
     {
         var columns = options.Columns;
         var ellipsis = options.Glyphs.Ellipsis;
@@ -37,7 +38,15 @@ public static class GraphRowRenderer
         // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
         var message = new LineBuilder(columns.MessageWidth + areaWidth - usedLaneWidth - gap, ellipsis);
         AppendDecorations(message, entry.Decorations, options.Glyphs);
-        AppendSubject(message, entry.Subject, isMatch ? options.Highlight : null);
+        if (jump is { } target)
+        {
+            AppendJumpSubject(message, entry.Subject, target);
+        }
+        else
+        {
+            AppendSubject(message, entry.Subject, isMatch ? options.Highlight : null);
+        }
+
         builder.Append(message.Build());
 
         if (columns.AuthorWidth > 0)
@@ -98,6 +107,23 @@ public static class GraphRowRenderer
         builder.Append(subject[..start], SegmentRole.Plain);
         builder.Append(subject.Substring(start, length), SegmentRole.SearchMatch);
         builder.Append(subject[(start + length)..], SegmentRole.Plain);
+    }
+
+    // The match, then the label over the character after it (appended when the match ends the subject).
+    private static void AppendJumpSubject(LineBuilder builder, string subject, JumpLabel jump)
+    {
+        var end = Math.Min(subject.Length, jump.MatchStart + jump.MatchLength);
+        builder.Append(subject[..jump.MatchStart], SegmentRole.Plain);
+        builder.Append(subject[jump.MatchStart..end], SegmentRole.SearchMatch);
+        if (!jump.HasLetter)
+        {
+            builder.Append(subject[end..], SegmentRole.Plain);
+            return;
+        }
+
+        builder.Append(jump.Letter.ToString(), SegmentRole.JumpLabel);
+        var skipped = end < subject.Length && char.IsHighSurrogate(subject[end]) && end + 1 < subject.Length ? 2 : 1;
+        builder.Append(subject[Math.Min(subject.Length, end + skipped)..], SegmentRole.Plain);
     }
 
     private static void AppendLanes(LineBuilder builder, GraphCell[] cells)
