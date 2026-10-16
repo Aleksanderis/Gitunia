@@ -252,11 +252,11 @@ public sealed class WorkingTreeActionHandler(WorkspaceHost host, Func<int> pageH
             return capture.Notice;
         }
 
-        var notice = staging.ExecuteSelection(tab, request);
+        var diff = Diff;
+        var notice = staging.ExecuteSelection(tab, request, () => diff.MoveToHunkAfterReload(capture.HunkIndex));
         if (notice.Length == 0)
         {
             Visual?.End();
-            Diff.MoveToHunkAfterReload(capture.HunkIndex);
         }
 
         return notice;

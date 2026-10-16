@@ -207,12 +207,26 @@ public class StagingActionsTests
     {
         using var harness = new Harness(Untracked("new.txt"));
 
-        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], true, Untracked("new.txt"));
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], false, Untracked("new.txt"));
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Equal(["new.txt"], Assert.Single(harness.Writer.Staged));
         Assert.Empty(harness.Writer.Patches);
-        Assert.Equal("Staged new.txt whole: it has no hunks to pick from", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Staged new.txt whole: new, deleted and binary files are not split into hunks", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenLinesPickedInAFileThatCannotBeSplit_WhenStaging_ThenNothingIsStagedAndAWarningShows()
+    {
+        using var harness = new Harness(Untracked("new.txt"));
+
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], true, Untracked("new.txt"));
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Empty(harness.Writer.Staged);
+        Assert.Empty(harness.Writer.Patches);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("cannot be split into lines", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
     }
 
     [Fact]

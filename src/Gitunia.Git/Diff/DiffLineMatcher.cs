@@ -15,7 +15,7 @@ public static class DiffLineMatcher
         var result = new Dictionary<int, List<int>>();
         foreach (var change in chosen)
         {
-            if (!located.TryGetValue((change.Kind, change.Number), out var found) || found.Text != change.Text)
+            if (!located.TryGetValue(new LineKey(change.Kind, change.Number), out var found) || found.Text != change.Text)
             {
                 return null;
             }
@@ -32,9 +32,9 @@ public static class DiffLineMatcher
         return result.ToDictionary(pair => pair.Key, pair => (IReadOnlyCollection<int>)pair.Value);
     }
 
-    private static Dictionary<(DiffLineKind Kind, int Number), LocatedLine> Locate(DiffFile file)
+    private static Dictionary<LineKey, LocatedLine> Locate(DiffFile file)
     {
-        var located = new Dictionary<(DiffLineKind Kind, int Number), LocatedLine>();
+        var located = new Dictionary<LineKey, LocatedLine>();
         for (var hunkIndex = 0; hunkIndex < file.Hunks.Count; hunkIndex++)
         {
             var lines = file.Hunks[hunkIndex].Lines;
@@ -43,7 +43,7 @@ public static class DiffLineMatcher
                 var line = lines[lineIndex];
                 if (line.Kind != DiffLineKind.Context && NumberOf(line) is { } number)
                 {
-                    located[(line.Kind, number)] = new LocatedLine(hunkIndex, lineIndex, line.Text);
+                    located[new LineKey(line.Kind, number)] = new LocatedLine(hunkIndex, lineIndex, line.Text);
                 }
             }
         }
@@ -52,6 +52,8 @@ public static class DiffLineMatcher
     }
 
     private static int? NumberOf(DiffLine line) => line.Kind == DiffLineKind.Removed ? line.OldLineNumber : line.NewLineNumber;
+
+    private readonly record struct LineKey(DiffLineKind Kind, int Number);
 
     private readonly record struct LocatedLine(int Hunk, int Line, string Text);
 }

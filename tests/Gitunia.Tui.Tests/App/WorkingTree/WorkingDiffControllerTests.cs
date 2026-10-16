@@ -376,7 +376,7 @@ public class WorkingDiffControllerTests
 
         await harness.StageAsync(ActionIds.WorkingTreeStage);
 
-        Assert.Equal("Staged pic.bin whole: it has no hunks to pick from", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Staged pic.bin whole: new, deleted and binary files are not split into hunks", harness.Statuses.Log.Latest!.Text);
         Assert.Equal("A  pic.bin\n", harness.Git("status", "--short"));
     }
 

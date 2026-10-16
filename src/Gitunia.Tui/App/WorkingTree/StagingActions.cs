@@ -92,7 +92,7 @@ public sealed class StagingActions(
     /// Stages (the diff of an Unstaged file) or unstages (one of a Staged file) the hunk or the Visual lines of
     /// <paramref name="request"/>; a file with no hunks goes whole. Returns a notice when nothing was started, empty otherwise.
     /// </summary>
-    public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request)
+    public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request, Action? onStaged = null)
     {
         if (_busy.Contains(tab.Id))
         {
@@ -102,7 +102,7 @@ public sealed class StagingActions(
         _busy.Add(tab.Id);
         var isUnborn = tab.WorkingTree?.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunSelectionAsync(tab, request, isUnborn, token), CancellationToken.None);
+        _ = Task.Run(() => RunSelectionAsync(tab, request, isUnborn, onStaged, token), CancellationToken.None);
         return string.Empty;
     }
 
@@ -171,15 +171,28 @@ public sealed class StagingActions(
         }
     }
 
-    private async Task RunSelectionAsync(RepositoryState tab, DiffStagingRequest request, bool isUnborn, CancellationToken token)
+    private async Task RunSelectionAsync(
+        RepositoryState tab,
+        DiffStagingRequest request,
+        bool isUnborn,
+        Action? onStaged,
+        CancellationToken token)
     {
         var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
         try
         {
+            // Lines picked one by one are never turned into a whole-file stage behind the user's back.
             var result = await patchStager
-                .StageAsync(tab.Location, request.Target.Side, request.Target.Entry, request.Lines, isUnborn, token)
+                .StageAsync(
+                    tab.Location,
+                    request.Target.Side,
+                    request.Target.Entry,
+                    request.Lines,
+                    !request.IsRange,
+                    isUnborn,
+                    token)
                 .ConfigureAwait(false);
-            postToUi(() => Finish(tab.Id, Report(request, result), SeverityOf(result)));
+            postToUi(() => FinishSelection(tab.Id, request, result, onStaged));
         }
         catch (OperationCanceledException)
         {
@@ -192,6 +205,16 @@ public sealed class StagingActions(
         }
     }
 
+    private void FinishSelection(TabId tabId, DiffStagingRequest request, PatchStagingResult result, Action? onStaged)
+    {
+        if (result.Outcome is PatchStagingOutcome.Applied or PatchStagingOutcome.WholeFile)
+        {
+            onStaged?.Invoke();
+        }
+
+        Finish(tabId, Report(request, result), SeverityOf(result));
+    }
+
     private static string Report(DiffStagingRequest request, PatchStagingResult result)
     {
         var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
@@ -201,7 +224,10 @@ public sealed class StagingActions(
         return result.Outcome switch
         {
             PatchStagingOutcome.Applied => $"{(isStage ? "Staged" : "Unstaged")} {what} of {name}",
-            PatchStagingOutcome.WholeFile => $"{(isStage ? "Staged" : "Unstaged")} {name} whole: it has no hunks to pick from",
+            PatchStagingOutcome.WholeFile =>
+                $"{(isStage ? "Staged" : "Unstaged")} {name} whole: new, deleted and binary files are not split into hunks",
+            PatchStagingOutcome.NotSplittable =>
+                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its hunk or the whole file",
             PatchStagingOutcome.FileChanged => $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
             _ => $"Nothing to {verb} in the selection",
         };
@@ -218,7 +244,9 @@ public sealed class StagingActions(
     }
 
     private static StatusSeverity SeverityOf(PatchStagingResult result) =>
-        result.Outcome == PatchStagingOutcome.FileChanged ? StatusSeverity.Warning : StatusSeverity.Info;
+        result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable
+            ? StatusSeverity.Warning
+            : StatusSeverity.Info;
 
     private void Finish(TabId tabId, string message, StatusSeverity severity)
     {

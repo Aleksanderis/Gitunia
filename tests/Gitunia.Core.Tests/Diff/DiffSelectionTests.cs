@@ -82,6 +82,30 @@ public class DiffSelectionTests
         Assert.Equal(1, DiffSelection.HunkIndexAt(document, document.Rows.Count - 1));
     }
 
+    [Fact]
+    public void GivenAWholeFileDiffWithTwoChangeGroups_WhenSelectingTheHunk_ThenOnlyTheGroupUnderTheCursorIsReturned()
+    {
+        var context = Enumerable.Range(1, 12).Select(number => $" keep {number}\n");
+        var patch =
+            "diff --git a/f.txt b/f.txt\n--- a/f.txt\n+++ b/f.txt\n@@ -1,15 +1,15 @@\n"
+            + "-first old\n+first new\n"
+            + string.Concat(context)
+            + "-last old\n+last new\n";
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(patch).Items)
+        {
+            builder.Add(file, 3);
+        }
+
+        var document = builder.Build([]);
+
+        Assert.Equal(2, document.HunkRows.Count);
+        var inFirst = DiffSelection.OfHunk(document, document.HunkRows[0] + 1);
+        var inSecond = DiffSelection.OfHunk(document, document.Rows.Count - 1);
+        Assert.Equal(["first old", "first new"], inFirst.Select(line => line.Text));
+        Assert.Equal(["last old", "last new"], inSecond.Select(line => line.Text));
+    }
+
     private static DiffDocument Build(string patch)
     {
         var builder = new DiffDocumentBuilder();
