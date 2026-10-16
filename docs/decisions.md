@@ -247,3 +247,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-17
 
 **UI:** M3 key flows (ux.md workflows 3-7): prefixes `<space>b` branches, `<space>g` commit operations and continue/abort/skip, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes; reset is `<space>gx` (no single letter, no vim clash); `<space>t` stays the tools prefix. Planned keys live in prose; table rows arrive with each implementing issue.
+
+**Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.
