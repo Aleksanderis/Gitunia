@@ -33,7 +33,10 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     public void Sync()
     {
         var activeId = host.Workspace.ActiveTabId;
-        if (_hasShown && activeId == _shownTabId)
+        var session = activeId is { } shownId ? effects.SessionOf(shownId) : null;
+
+        // A tab pointed at another worktree gets a new session under the same id: its graph is shown from here on.
+        if (_hasShown && activeId == _shownTabId && session == _shownSession)
         {
             return;
         }

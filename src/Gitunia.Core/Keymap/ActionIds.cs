@@ -207,9 +207,13 @@ public static class ActionIds
 
     public static ActionId WorktreeLock { get; } = new("worktree.lock");
 
+    public static ActionId WorktreeOpen { get; } = new("worktree.open");
+
     public static ActionId WorktreePrune { get; } = new("worktree.prune");
 
     public static ActionId WorktreeRemove { get; } = new("worktree.remove");
+
+    public static ActionId WorktreeSwitch { get; } = new("worktree.switch");
 
     public static ActionId WorktreeUnlock { get; } = new("worktree.unlock");
 

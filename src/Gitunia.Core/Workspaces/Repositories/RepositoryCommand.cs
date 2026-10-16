@@ -69,3 +69,8 @@ public sealed record LeaveWorkingTreeCommand : RepositoryCommand;
 /// <param name="Section">The list.</param>
 /// <param name="Index">Row index; clamped to the list, ignored when the list is empty.</param>
 public sealed record SelectWorkingTreeFileCommand(WorkingTreeSection Section, int Index) : RepositoryCommand;
+
+/// <summary>The status of the tab's other worktrees was (re)read, for the sidebar overview.</summary>
+/// <param name="Statuses">The status by worktree path; replaces the previous set.</param>
+public sealed record WorktreeStatusesLoadedCommand(ImmutableDictionary<string, WorktreeStatus> Statuses)
+    : RepositoryCommand;

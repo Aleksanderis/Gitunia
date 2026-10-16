@@ -66,6 +66,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The worktree operations and their prompts, ahead of the sidebar's own keys.</summary>
     public WorktreeActions? Worktrees { get; set; }
 
+    /// <summary>Switching to a worktree and opening one as a tab, next to the worktree operations.</summary>
+    public WorktreeSwitchActions? WorktreeSwitch { get; set; }
+
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
 
@@ -141,6 +144,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         if (DetailTabs?.TryExecute(action) == true)
         {
+            return;
+        }
+
+        if (WorktreeSwitch?.TryExecute(action) == true)
+        {
+            Message = WorktreeSwitch.Notice;
             return;
         }
 

@@ -1,5 +1,9 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Status.Models;
 using Xunit;
 using static Gitunia.Core.Tests.Sidebar.SidebarFixtures;
 
@@ -101,5 +105,43 @@ public class SidebarBuilderTests
         var row = SidebarBuilder.Build(tab).Single(entry => entry.Label == "main");
 
         Assert.Equal((2, 1), (row.Ahead, row.Behind));
+    }
+
+    [Fact]
+    public void GivenOverviewRead_WhenBuilding_ThenOtherWorktreesCarryTheirStatusAndTheirTrackingCounts()
+    {
+        var status = new WorktreeStatus(1, 2, 0, 3, 4);
+        var tab = Tab(worktrees: [Worktree(RepositoryPath, "main", isMain: true), Worktree("/work/wt-a", "feature")]);
+        var statuses = new Dictionary<string, WorktreeStatus> { ["/work/wt-a"] = status };
+        tab = tab with { WorktreeStatuses = statuses.ToImmutableDictionary() };
+
+        var rows = SidebarBuilder.Build(Unfolded(tab));
+
+        var other = rows.Single(row => row is { Kind: SidebarRowKind.Worktree, Label: "wt-a" });
+        Assert.Equal(status, other.Changes);
+        Assert.Equal((3, 4), (other.Ahead, other.Behind));
+        Assert.Null(rows.Single(row => row is { Kind: SidebarRowKind.Worktree, Label: "repo" }).Changes);
+    }
+
+    [Fact]
+    public void GivenTabWorkingTreeLoaded_WhenBuilding_ThenItsOwnWorktreeIsCountedFromThatStatus()
+    {
+        var head = new HeadState(HeadKind.Branch, "main", null);
+        var entry = new StatusEntry(
+            StatusEntryKind.Untracked,
+            "new.txt",
+            null,
+            FileChangeKind.Unmodified,
+            FileChangeKind.Unmodified,
+            null,
+            ConflictKind.None,
+            null);
+        var snapshot = new StatusSnapshot(new StatusBranch(head, null, null, null), [entry], []);
+        var tab = Tab(worktrees: [Worktree(RepositoryPath, "main", isMain: true)]);
+        tab = tab with { WorkingTree = WorkingTreeState.Reconcile(null, snapshot) };
+
+        var row = SidebarBuilder.Build(Unfolded(tab)).Single(candidate => candidate.Kind == SidebarRowKind.Worktree);
+
+        Assert.Equal(new WorktreeStatus(0, 1, 0, 0, 0), row.Changes);
     }
 }

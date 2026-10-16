@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Core.Sidebar;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
@@ -18,6 +19,41 @@ public class SidebarFrameTests
 
     private static SidebarRow Branch(string name, string worktree = "", bool isCurrent = false, int? ahead = null, int? behind = null) =>
         new(SidebarRowKind.LocalBranch, SidebarSection.Branches, name, worktree, null, isCurrent, false, 0, ahead, behind);
+
+    [Fact]
+    public void GivenWorktreeRowsWithStatus_WhenRendered_ThenCountsAndTrackingShowAndCleanOnesStayPlain()
+    {
+        var dirty = new SidebarRow(
+            SidebarRowKind.Worktree,
+            SidebarSection.Worktrees,
+            "wt-a",
+            "feat",
+            null,
+            false,
+            false,
+            0,
+            2,
+            1,
+            "/work/wt-a",
+            new WorktreeStatus(1, 3, 0, 2, 1));
+        var none = new WorktreeStatus(0, 0, 0, 0, 0);
+        var clean = dirty with { Label = "wt-b", Ahead = null, Behind = null, Changes = none };
+        var conflicted = dirty with { Label = "wt-c", Changes = new WorktreeStatus(0, 0, 4, 2, 1) };
+        var sidebar = Sidebar(
+            Section(SidebarSection.Worktrees, "Worktrees", 3, isExpanded: true),
+            dirty,
+            clean,
+            conflicted);
+
+        var lines = new[] { dirty, clean, conflicted }
+            .Select(row => SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd())
+            .ToArray();
+
+        Assert.Equal("    wt-a ↑2↓1 S1 M3 feat", lines[0]);
+        Assert.Equal("    wt-b feat", lines[1]);
+        Assert.Equal("    wt-c ↑2↓1 U4 feat", lines[2]);
+        Assert.Equal(3, sidebar.Rows.Length - 1);
+    }
 
     private static SidebarModel Sidebar(params SidebarRow[] rows) => new([.. rows], 0, 0, string.Empty, false, false);
 
