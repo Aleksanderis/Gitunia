@@ -36,6 +36,8 @@ public sealed class MainView : IDisposable
     private readonly FrameStripView _workingLeftEdge;
     private readonly FrameStripView _workingRightEdge;
     private readonly LineView _messageOptions;
+    private readonly LineView _stageAllButton;
+    private readonly LineView _unstageAllButton;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
     private FrameGrid? _workingGrid;
@@ -198,6 +200,8 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
         _messageOptions.Clicked += OnMessageOptionsClicked;
+        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged);
+        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -265,6 +269,8 @@ public sealed class MainView : IDisposable
             WorkingDiff,
             WorkingMessage,
             _messageOptions,
+            _stageAllButton,
+            _unstageAllButton,
             _picker,
             _status,
             Overlay);
@@ -429,6 +435,8 @@ public sealed class MainView : IDisposable
             WorkingDiff.SetNeedsDraw();
             WorkingMessage.SetNeedsDraw();
             _messageOptions.SetNeedsDraw();
+            _stageAllButton.SetNeedsDraw();
+            _unstageAllButton.SetNeedsDraw();
         }
     }
 
@@ -470,6 +478,8 @@ public sealed class MainView : IDisposable
         WorkingDiff.Visible = working && !isPicker;
         WorkingMessage.Visible = working && !isPicker;
         _messageOptions.Visible = working && !isPicker;
+        _stageAllButton.Visible = working && !isPicker;
+        _unstageAllButton.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
@@ -491,6 +501,49 @@ public sealed class MainView : IDisposable
         Source = source,
         Visible = false,
     };
+
+    // The title row of a file list is the top edge of its box, one row above the list; the button sits at its right end and is the
+    // mouse path of stage all / unstage all. It has no width when the title leaves no room for it.
+    private LineView CreateListButton(WorkingTreeSection section, PaneListView list)
+    {
+        var view = new LineView(_ => ListButton(section) is { } button
+            ? WorkingListTitleButtons.Line(button, _glyphs.IsAscii)
+            : new StyledLine([]))
+        {
+            X = Pos.Func(_ => ListButtonRect(section).X),
+            Y = Pos.Func(_ => ListButtonRect(section).Y),
+            Width = Dim.Func(_ => ListButtonRect(section).Width),
+            Height = Dim.Func(_ => ListButtonRect(section).Height),
+            Visible = false,
+        };
+        view.Clicked += _ =>
+        {
+            if (_suppressed() || ListButton(section) is not { } button)
+            {
+                return;
+            }
+
+            FocusFromTitle(list);
+            Gestured?.Invoke(button.View, MouseGesture.Click, null);
+        };
+        return view;
+    }
+
+    private TitleButton? ListButton(WorkingTreeSection section)
+    {
+        var rect = ListRect(section);
+        var tree = section == WorkingTreeSection.Staged ? StagedSource.Tree : UnstagedSource.Tree;
+        return rect.IsEmpty ? null : WorkingListTitleButtons.Layout(section, WorkingTreePaneRenderer.ListTitle(tree, section), rect.Width);
+    }
+
+    private PaneRect ListRect(WorkingTreeSection section) =>
+        section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;
+
+    private PaneRect ListButtonRect(WorkingTreeSection section)
+    {
+        var rect = ListRect(section);
+        return ListButton(section) is { } button ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1) : Empty;
+    }
 
     private PaneListView CreateWorkingPlaceholder(string text, Func<PaneRect> rect) => new()
     {

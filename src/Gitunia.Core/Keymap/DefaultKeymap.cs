@@ -185,10 +185,11 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
         }
 
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
+        // Stage, unstage and discard also act on a Visual range of files.
+        Add(bindings, Navigation, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
-        Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
+        Add(bindings, Navigation, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
+        Add(bindings, Navigation, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);
     }
 
