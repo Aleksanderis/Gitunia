@@ -57,7 +57,7 @@ public sealed class FakeIndexWriter : IIndexWriter
     {
         if (IsHeld)
         {
-            await _gate.Task.ConfigureAwait(false);
+            await _gate.Task.WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false);
         }
 
         if (Failure is { } failure)

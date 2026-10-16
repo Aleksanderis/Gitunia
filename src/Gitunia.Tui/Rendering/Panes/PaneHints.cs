@@ -154,6 +154,13 @@ public static class PaneHints
         new("Esc", "close", [ActionIds.Cancel]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Palette =
+    [
+        new("Ctrl-j/k", "move", [ActionIds.PaletteNext, ActionIds.PalettePrevious]),
+        new("Enter", "run", [ActionIds.CommandExecute]),
+        new("Esc", "close", [ActionIds.Cancel]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Confirm =
     [
         new("y", "yes, do it", [ActionIds.ConfirmYes]),
@@ -181,4 +188,7 @@ public static class PaneHints
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;
+
+    /// <summary>The hints in the footer of the commands popup.</summary>
+    public static IReadOnlyList<KeyHint> ForPalette() => Palette;
 }

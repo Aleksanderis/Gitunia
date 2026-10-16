@@ -281,6 +281,9 @@ public static class DefaultKeymap
     {
         Add(bindings, [KeyMode.Command], PaletteView, "Up", ActionIds.PalettePrevious);
         Add(bindings, [KeyMode.Command], PaletteView, "Down", ActionIds.PaletteNext);
+        Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-j", ActionIds.PaletteNext);
+        Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-k", ActionIds.PalettePrevious);
+        Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-l", ActionIds.CommandExecute);
     }
 
     private static void AddModals(List<KeyBinding> bindings)

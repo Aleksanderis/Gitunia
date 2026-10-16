@@ -30,7 +30,7 @@ public sealed class FakeCommitWriter : ICommitWriter
         Requests.Add(request);
         if (IsHeld)
         {
-            await _gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await _gate.Task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
         }
 
         if (Failure is { } failure)

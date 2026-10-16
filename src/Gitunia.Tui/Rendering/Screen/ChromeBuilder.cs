@@ -64,13 +64,7 @@ public static class ChromeBuilder
 
     private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
     {
-        for (var index = 0; index < hints.Count; index++)
-        {
-            var hint = hints[index];
-            builder.Append(index == 0 ? " " : HintGap, SegmentRole.Status);
-            builder.Append(hint.Keys, SegmentRole.StatusKey);
-            builder.Append($" {hint.Description}", SegmentRole.Status);
-        }
+        HintRenderer.Append(builder, hints, HintGap);
     }
 
     private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)

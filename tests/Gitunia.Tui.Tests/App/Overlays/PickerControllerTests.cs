@@ -201,7 +201,7 @@ public class PickerControllerTests
         var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
-            release.Wait(TestContext.Current.CancellationToken);
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             return [Path.Combine(directory, "alpha")];
         });
         picker.Open();
@@ -223,7 +223,7 @@ public class PickerControllerTests
         {
             if (directory.EndsWith("slow", StringComparison.Ordinal))
             {
-                release.Wait(TestContext.Current.CancellationToken);
+                Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
                 return [Path.Combine(directory, "stale")];
             }
 
@@ -256,7 +256,7 @@ public class PickerControllerTests
         var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
-            release.Wait(TestContext.Current.CancellationToken);
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             return [Path.Combine(directory, "alpha")];
         }, scanningDelay: TimeSpan.Zero);
 
@@ -297,7 +297,7 @@ public class PickerControllerTests
         var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), TimeSpan.FromMilliseconds(100), directory =>
         {
-            release.Wait(TestContext.Current.CancellationToken);
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             return [Path.Combine(directory, "late")];
         }, TimeSpan.Zero);
         picker.Open();
@@ -329,7 +329,7 @@ public class PickerControllerTests
         var release = new ManualResetEventSlim();
         var (picker, _, pump) = Create(Path.GetTempPath(), listDirectories: directory =>
         {
-            release.Wait(TestContext.Current.CancellationToken);
+            Assert.True(release.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             return [Path.Combine(directory, "alpha"), Path.Combine(directory, "beta")];
         });
         picker.Open();
