@@ -1,4 +1,6 @@
 using Gitunia.Core.Editing;
+using Gitunia.Core.Overlays;
+using Gitunia.Git.Status.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
@@ -33,6 +35,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="setMode">Switches the input mode.</param>
 /// <param name="route">Runs an action as if its key had been pressed (for keys this class passes on).</param>
 /// <param name="redraw">Redraws the screen.</param>
+/// <param name="showConfirm">Shows a Confirm dialog and runs the callback on <c>y</c>; false when it does not fit. Null never asks.</param>
 public sealed class CommitActions(
     WorkspaceHost host,
     ICommitWriter writer,
@@ -45,14 +48,22 @@ public sealed class CommitActions(
     Func<KeyMode> keyMode,
     Action<KeyMode> setMode,
     Action<ActionId, int?> route,
-    Action redraw)
+    Action redraw,
+    Func<ConfirmPrompt, Action, bool>? showConfirm = null)
 {
+    private const string StageAllQuestion = "Nothing is staged. Stage all changes and commit?";
     private const int ShortHashLength = 7;
     private const string CancelledNotice = "Commit cancelled: check the history, git may have finished first";
 
     private readonly Dictionary<TabId, CommitDraft> _drafts = [];
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
     private bool _ownsInsert;
+
+    /// <summary>
+    /// Stages every unstaged file of a tab and calls back once the status shows it; returns a notice when nothing started.
+    /// Set by the application once the staging actions exist.
+    /// </summary>
+    public Func<RepositoryState, Action, string>? StageAllThen { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -338,7 +349,13 @@ public sealed class CommitActions(
     private string Commit(RepositoryState tab, CommitDraft draft)
     {
         var operation = operations.Detect(tab.Location);
-        if (CommitCheck.Refusal(draft, tab.WorkingTree, operation) is { } refusal)
+        var refusal = CommitCheck.Refusal(draft, tab.WorkingTree, operation);
+        if (refusal == CommitCheck.NothingStaged && ShouldOfferStageAll(tab))
+        {
+            return OfferStageAll(tab, draft);
+        }
+
+        if (refusal is not null)
         {
             if (refusal == CommitCheck.EmptyMessage && tab.View.FocusedPane != PaneKind.WorkingMessage)
             {
@@ -349,6 +366,73 @@ public sealed class CommitActions(
             return refusal;
         }
 
+        return StartCommit(tab, draft);
+    }
+
+    // Nothing staged but unstaged changes exist: ask before staging them (the draft stays as it is on no).
+    private bool ShouldOfferStageAll(RepositoryState tab) =>
+        showConfirm is not null
+        && StageAllThen is not null
+        && tab.WorkingTree is { Staged.Count: 0 } tree
+        && tree.Unstaged.Any(entry => entry.Kind != StatusEntryKind.Unmerged);
+
+    private string OfferStageAll(RepositoryState tab, CommitDraft draft)
+    {
+        var tabId = tab.Id;
+        var prompt = new ConfirmPrompt(
+            "Commit",
+            [StageAllQuestion],
+            "Untracked files are included; conflicted files are skipped. Unstage them again with <space>U.",
+            "Stage all and commit");
+        if (!showConfirm!(prompt, () => StageAllAndCommit(tabId, draft)))
+        {
+            return CommitCheck.NothingStaged;
+        }
+
+        return string.Empty;
+    }
+
+    private void StageAllAndCommit(TabId tabId, CommitDraft draft)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab || draft.IsCommitting)
+        {
+            return;
+        }
+
+        var notice = StageAllThen!(tab, () => CommitAfterStaging(tabId, draft));
+        if (notice.Length > 0)
+        {
+            statuses.Warning(notice);
+        }
+    }
+
+    private void CommitAfterStaging(TabId tabId, CommitDraft draft)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab || draft.IsCommitting)
+        {
+            return;
+        }
+
+        var operation = operations.Detect(tab.Location);
+        var refusal = CommitCheck.Refusal(draft, tab.WorkingTree, operation);
+        if (refusal is not null)
+        {
+            statuses.Warning(refusal);
+        }
+        else
+        {
+            var notice = StartCommit(tab, draft);
+            if (notice.Length > 0)
+            {
+                statuses.Warning(notice);
+            }
+        }
+
+        redraw();
+    }
+
+    private string StartCommit(RepositoryState tab, CommitDraft draft)
+    {
         var request = new CommitRequest(draft.Editor.Text, draft.SignOff, draft.NoVerify, draft.Amend);
         var needsForcePush = draft.Amend && CommitCheck.NeedsForcePush(tab.WorkingTree);
         var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;

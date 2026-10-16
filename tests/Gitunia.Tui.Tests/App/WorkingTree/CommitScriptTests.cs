@@ -1,6 +1,8 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -133,6 +135,90 @@ public class CommitScriptTests
         Assert.Contains("<space>te", output, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GivenNothingStaged_WhenCommitting_ThenTheDialogAsksAndNothingRunsYet()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        repository.WriteFile("new.txt", "new\n");
+        var session = await Session.OpenAsync(repository);
+        session.Draft.Editor.SetText("Everything");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+
+        var prompt = Assert.Single(session.Prompts);
+        Assert.Contains("Nothing is staged. Stage all changes and commit?", prompt.Lines);
+        Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD").Trim());
+        Assert.Empty(repository.Git("diff", "--cached", "--name-only"));
+    }
+
+    [Fact]
+    public async Task GivenTheDialog_WhenAnsweringYes_ThenEverythingIsStagedAndCommitted()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        repository.WriteFile("new.txt", "new\n");
+        var session = await Session.OpenAsync(repository);
+        session.Draft.Editor.SetText("Everything");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+        session.Confirm();
+        await session.Pump.RunUntilAsync(() => session.Draft.Editor.IsBlank);
+
+        Assert.Equal("Everything", repository.Git("log", "-1", "--format=%B").Trim());
+        Assert.Equal("a.txt\nnew.txt", repository.Git("show", "--name-only", "--format=", "HEAD").Trim());
+        Assert.Empty(repository.Git("status", "--porcelain"));
+        Assert.True(session.Draft.Editor.IsBlank);
+    }
+
+    [Fact]
+    public async Task GivenTheDialog_WhenAnsweringNo_ThenTheDraftAndTheIndexAreUntouched()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        var session = await Session.OpenAsync(repository);
+        session.Draft.Editor.SetText("Keep me");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+        session.Dismiss();
+
+        Assert.Equal("Keep me", session.Draft.Editor.Text);
+        Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD").Trim());
+        Assert.Empty(repository.Git("diff", "--cached", "--name-only"));
+        Assert.False(session.Draft.IsCommitting);
+    }
+
+    [Fact]
+    public async Task GivenNothingStagedAndAmendOn_WhenCommitting_ThenThereIsNoDialog()
+    {
+        using var repository = TestRepository.Create().Commit("First", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        var session = await Session.OpenAsync(repository);
+        session.Run(ActionIds.WorkingTreeToggleAmend);
+        await session.WaitForHeadMessageAsync();
+        session.Draft.Editor.SetText("Reworded");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+        await session.WaitForCommitAsync();
+
+        Assert.Empty(session.Prompts);
+        Assert.Equal("Reworded", repository.Git("log", "-1", "--format=%B").Trim());
+        Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD").Trim());
+    }
+
+    [Fact]
+    public async Task GivenNothingToCommitAtAll_WhenCommitting_ThenTheNothingStagedNoticeShowsWithoutADialog()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        var session = await Session.OpenAsync(repository);
+        session.Draft.Editor.SetText("Empty");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+
+        Assert.Empty(session.Prompts);
+        Assert.Equal(CommitCheck.NothingStaged, session.Commits.Notice);
+    }
+
     private static void WriteHook(TestRepository repository, string script)
     {
         var path = Path.Combine(repository.WorkingTreePath, ".git", "hooks", "pre-commit");
@@ -168,8 +254,32 @@ public class CommitScriptTests
                 () => _mode,
                 mode => _mode = mode,
                 (_, _) => { },
-                () => { });
+                () => { },
+                (prompt, onConfirmed) =>
+                {
+                    Prompts.Add(prompt);
+                    _onConfirmed = onConfirmed;
+                    return true;
+                });
+            var indexWriter = new IndexWriter(runner);
+            var staging = new StagingActions(
+                _host,
+                indexWriter,
+                new PatchStager(new FakeDiffReader(), indexWriter),
+                Statuses,
+                Pump.Post,
+                RefreshStatus,
+                _ => Token);
+            Commits.StageAllThen = staging.StageAllThen;
         }
+
+        private Action? _onConfirmed;
+
+        public List<ConfirmPrompt> Prompts { get; } = [];
+
+        public void Confirm() => _onConfirmed!();
+
+        public void Dismiss() => _onConfirmed = null;
 
         public UiPump Pump { get; }
 
