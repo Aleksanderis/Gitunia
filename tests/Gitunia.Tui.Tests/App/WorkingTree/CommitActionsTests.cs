@@ -472,6 +472,35 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public void GivenDraftOnATab_WhenMovedToAnotherTab_ThenItIsOnTheNewTabAndNotTheOld()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("Keep me");
+        var from = harness.Tab.Id;
+        var to = new TabId(from.Value + 100);
+
+        Assert.True(harness.Commits.MoveDraft(from, to));
+
+        Assert.Equal("Keep me", harness.Commits.DraftOf(to)!.Editor.Text);
+        Assert.Null(harness.Commits.DraftOf(from));
+    }
+
+    [Fact]
+    public void GivenTargetHasItsOwnMessage_WhenMovingADraft_ThenNothingMoves()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Draft.Editor.SetText("Mine");
+        var from = harness.Tab.Id;
+        var to = new TabId(from.Value + 100);
+        harness.Commits.DraftFor(to).Editor.SetText("Theirs");
+
+        Assert.False(harness.Commits.MoveDraft(from, to));
+
+        Assert.Equal("Mine", harness.Commits.DraftOf(from)!.Editor.Text);
+        Assert.Equal("Theirs", harness.Commits.DraftOf(to)!.Editor.Text);
+    }
+
+    [Fact]
     public void GivenAmendWithAnEditedMessage_WhenSnapshotting_ThenTheMessageIsNotSaved()
     {
         using var harness = new Harness(StagedModified("a.txt"));

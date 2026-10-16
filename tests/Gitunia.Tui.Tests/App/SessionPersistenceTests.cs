@@ -85,6 +85,48 @@ public class SessionPersistenceTests
     }
 
     [Fact]
+    public void GivenUnwritableSessionLocation_WhenFlushingForQuit_ThenItReportsTheFailedSave()
+    {
+        var blocker = Path.Combine(Path.GetTempPath(), $"gitunia-session-blocker-{Guid.NewGuid().ToString("N")}");
+        File.WriteAllText(blocker, "not a directory");
+        try
+        {
+            var host = new WorkspaceHost(Workspace.Empty);
+            using var persistence = new SessionPersistence(new SessionStore(blocker), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            persistence.Start();
+            host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(blocker, "alpha"))));
+
+            Assert.False(persistence.FlushSucceeded());
+        }
+        finally
+        {
+            File.Delete(blocker);
+        }
+    }
+
+    [Fact]
+    public void GivenWritableSessionLocation_WhenFlushingForQuit_ThenItReportsSuccess()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-session-{Guid.NewGuid().ToString("N")}");
+        try
+        {
+            var host = new WorkspaceHost(Workspace.Empty);
+            using var persistence = new SessionPersistence(new SessionStore(directory), host, TimeSpan.FromHours(1), new StatusChannel(), action => action());
+            persistence.Start();
+            host.Dispatch(new OpenRepositoryCommand(Location(Path.Combine(directory, "alpha"))));
+
+            Assert.True(persistence.FlushSucceeded());
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void GivenUnwritableSessionLocation_WhenSavingRepeatedly_ThenOneErrorMessageIsPosted()
     {
         var blocker = Path.Combine(Path.GetTempPath(), $"gitunia-session-blocker-{Guid.NewGuid().ToString("N")}");

@@ -144,6 +144,31 @@ public sealed class CommitActions(
         }
     }
 
+    /// <summary>
+    /// Moves the draft of a tab that is about to be replaced (a located missing tab) to its replacement.
+    /// False when the replacement has an unsent message of its own, so the caller keeps both tabs.
+    /// </summary>
+    public bool MoveDraft(TabId from, TabId to)
+    {
+        if (!_drafts.TryGetValue(from, out var draft) || !draft.HasUnsentText)
+        {
+            return true;
+        }
+
+        if (HasUnsentMessage(to))
+        {
+            return false;
+        }
+
+        _drafts.Remove(from);
+        _drafts[to] = draft;
+        DraftChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Whether any tab holds an unsent message.</summary>
+    public bool HasAnyUnsentMessage() => _drafts.Values.Any(draft => draft.HasUnsentText);
+
     /// <summary>Forgets the drafts of tabs that are gone; call when the workspace changed.</summary>
     public void ForgetClosedTabs()
     {

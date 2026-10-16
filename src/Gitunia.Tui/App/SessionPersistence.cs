@@ -60,6 +60,13 @@ public sealed class SessionPersistence : IDisposable
         Save();
     }
 
+    /// <summary>Saves now like <see cref="Flush"/> and tells whether the session file is up to date (false: the last save failed).</summary>
+    public bool FlushSucceeded()
+    {
+        Flush();
+        return !_lastSaveFailed;
+    }
+
     /// <summary>Tells that a commit draft changed (UI thread); the session is saved after the debounce.</summary>
     public void NotifyDraftChanged() => OnChanged();
 
