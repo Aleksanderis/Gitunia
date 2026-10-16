@@ -2,7 +2,7 @@
 
 A keyboard-first terminal Git client in the spirit of graphical Git clients: a real commit graph, first-class branches and worktrees, vim-style modal navigation, mouse optional.
 
-Status: pre-spike (2026-10-10). No code yet. The first deliverable is the technology spike in `docs/roadmap.md` (M0).
+Status: in development. Milestone progress is in `docs/roadmap.md`.
 
 ## Why
 
@@ -31,9 +31,9 @@ Out until after MVP (ask before adding): interactive rebase editor, submodules, 
 ## Stack
 
 - C# on .NET 10 (LTS), Native AOT for the published binary. Cross-platform: Linux, Windows, macOS (lowest priority).
-- Config and session state live in the user config/state dir (XDG on Linux), never in a repository.
+- Config lives in `~/.config/gitunia` and session state in `~/.local/state/gitunia` on every OS (`XDG_CONFIG_HOME` / `XDG_STATE_HOME` override), never in a repository. Config is meant to be hand-edited and kept in a dotfiles repository.
 - Git access by running the `git` CLI and parsing plumbing/porcelain output (no libgit2 for writes).
-- TUI rendering: decided by the M0 spike (Terminal.Gui v2 vs a thin custom renderer). See `docs/architecture.md`.
+- TUI rendering: Terminal.Gui v2. See `docs/architecture.md`.
 
 ## Docs
 

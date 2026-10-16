@@ -1,8 +1,10 @@
 # Roadmap
 
-Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line.
+Milestone goals and exit criteria. Tasks are GitHub issues grouped by these milestones; order within a milestone comes from each issue's `Blocked by:` line. The status line under each heading is updated when a milestone changes state; the open issues are the source of truth.
 
 ## M0 - Technology spike (throwaway code allowed)
+
+Status: done. Terminal.Gui v2 chosen (`decisions.md`, 2026-10-10); spike code deleted.
 
 Goal: settle the renderer and prove Native AOT works for this app.
 
@@ -15,21 +17,29 @@ Goal: settle the renderer and prove Native AOT works for this app.
 
 ## M1 - Read-only browser
 
+Status: done.
+
 Workspace first: repository picker, tabs (open/close/switch), recents/pins, session persistence, launch from any directory or with a path.
 Graph view (incremental lanes), sidebar with branches/remotes/tags/worktrees, commit details, file list, diff viewer, search, command palette and keymap infrastructure.
 Done when: you can open several repositories in tabs from outside any repository, restart and get them back, and navigate a real mid-size repository entirely by keyboard and the graph matches `git log --graph` topology.
 
 ## M2 - Working tree
 
+Status: nearly done; remaining items are in the M2 tracking issue.
+
 Status view, stage/unstage files, hunks, lines, commit, amend, discard with confirm.
 Done when: a full commit cycle works without leaving the app, including partial staging.
 
 ## M3 - Branches and worktrees (the reason this project exists)
 
+Status: not started.
+
 Branch create/rename/delete/checkout/upstream, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash.
 Done when: the owner can use Gitunia for all daily branch and worktree work.
 
 ## M4 - Remotes and polish
+
+Status: not started (a few early items done).
 
 Fetch/pull/push with progress and cancel, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
 Done when: usable as a daily driver on Linux; macOS/Windows binaries build in CI.
