@@ -4,7 +4,9 @@ using Gitunia.Git.Stash.Models;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-/// <summary>Records the stash writes and answers with a chosen outcome, or throws <see cref="Failure"/> like git failing.</summary>
+/// <summary>
+/// Records the stash writes and answers with a chosen outcome, or throws <see cref="Failure"/> like git failing.
+/// </summary>
 public sealed class FakeStashWriter : IStashWriter
 {
     /// <summary>The calls in order, such as <c>push|msg|True</c> or <c>drop|stash@{0}</c>.</summary>
@@ -23,13 +25,22 @@ public sealed class FakeStashWriter : IStashWriter
         CancellationToken cancellationToken) =>
         Answer($"push|{message}|{includeUntracked}", "0123456789abcdef");
 
-    public Task<StashResult> ApplyAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken) =>
+    public Task<StashResult> ApplyAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken) =>
         Answer($"apply|{entry.Name}", entry.CommitHash);
 
-    public Task<StashResult> PopAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken) =>
+    public Task<StashResult> PopAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken) =>
         Answer($"pop|{entry.Name}", entry.CommitHash);
 
-    public Task<StashResult> DropAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken) =>
+    public Task<StashResult> DropAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken) =>
         Answer($"drop|{entry.Name}", entry.CommitHash);
 
     private Task<StashResult> Answer(string call, string hash)

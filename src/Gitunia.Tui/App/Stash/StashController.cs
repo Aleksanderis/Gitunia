@@ -15,11 +15,11 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Stash;
 
 /// <summary>
-/// The stash actions (ux.md, workflow 7): push with a message prompt in the status bar (untracked files only through their own
-/// key), apply, pop and drop on the stash row under the sidebar cursor. Drop asks first and names the undo command. The target is
-/// fixed when the action starts and travels as the stash commit, so a stack that changed meanwhile never redirects it. The git call
-/// runs off the UI thread; afterwards the tab reads everything again (stash list, refs, status). One operation per tab at a time,
-/// shared with staging.
+/// The stash actions (ux.md, workflow 7): push with a message prompt in the status bar (untracked files only through
+/// their own key), apply, pop and drop on the stash row under the sidebar cursor. Drop asks first and names the undo
+/// command. The target is fixed when the action starts and travels as the stash commit, so a stack that changed
+/// meanwhile never redirects it. The git call runs off the UI thread; afterwards the tab reads everything again (stash
+/// list, refs, status). One operation per tab at a time, shared with staging.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Changes the stash stack.</param>
@@ -27,7 +27,7 @@ namespace Gitunia.Tui.App.Stash;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when the dialog cannot be shown.</param>
+/// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false when it cannot be shown.</param>
 /// <param name="cursorRow">The sidebar row under the cursor of the tab, null when there is none.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while the message is typed).</param>
 /// <param name="redraw">Redraws the status bar.</param>
@@ -291,12 +291,15 @@ public sealed class StashController(
     private static StashReport DropReport(StashResult result, StashEntry entry) =>
         result.Outcome == StashOutcome.Missing
             ? Gone(entry)
-            : new StashReport($"Dropped {entry.Name} ({entry.CommitHash}); undo: {RestoreCommand(entry)}", StatusSeverity.Info);
+            : new StashReport(
+                $"Dropped {entry.Name} ({entry.CommitHash}); undo: {RestoreCommand(entry)}",
+                StatusSeverity.Info);
 
     private static StashReport Gone(StashEntry entry) =>
         new($"{entry.Name} is no longer in the stash list: nothing was changed", StatusSeverity.Warning);
 
-    private static string Short(string? hash) => hash is null ? string.Empty : hash[..Math.Min(ShortHashLength, hash.Length)];
+    private static string Short(string? hash) =>
+        hash is null ? string.Empty : hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private void Finish(TabId tabId, string message, StatusSeverity severity)
     {

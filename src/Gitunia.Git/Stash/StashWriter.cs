@@ -55,13 +55,22 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
             : new StashResult(StashOutcome.Done, after);
     }
 
-    public Task<StashResult> ApplyAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken) =>
+    public Task<StashResult> ApplyAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken) =>
         ApplyOrPopAsync(location, entry, "apply", cancellationToken);
 
-    public Task<StashResult> PopAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken) =>
+    public Task<StashResult> PopAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken) =>
         ApplyOrPopAsync(location, entry, "pop", cancellationToken);
 
-    public async Task<StashResult> DropAsync(RepositoryLocation location, StashEntry entry, CancellationToken cancellationToken)
+    public async Task<StashResult> DropAsync(
+        RepositoryLocation location,
+        StashEntry entry,
+        CancellationToken cancellationToken)
     {
         var name = await FindCurrentNameAsync(location, entry, cancellationToken).ConfigureAwait(false);
         if (name is null)
@@ -89,12 +98,14 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         string[] arguments = ["stash", command, "--quiet", name];
         try
         {
-            await runner.RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken).ConfigureAwait(false);
+            await runner
+                .RunAsync(location.CommandPath, arguments, WriteOptions, cancellationToken)
+                .ConfigureAwait(false);
             return new StashResult(StashOutcome.Done, entry.CommitHash);
         }
         catch (GitCommandFailedException) when (HasUnmergedFiles(location, cancellationToken))
         {
-            // The changes are in the tree with conflict markers and the stash is kept: git does not drop it after a conflict.
+            // The changes are in the tree with conflict markers and the stash is kept: git drops it only after a clean pop.
             return new StashResult(StashOutcome.Conflicted, entry.CommitHash);
         }
     }

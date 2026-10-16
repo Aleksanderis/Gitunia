@@ -47,7 +47,7 @@ public class StashControllerTests
     }
 
     [Fact]
-    public async Task GivenTheDropIsConfirmed_WhenItFinishes_ThenTheMessageHasTheHashAndTheRestoreCommandAndTheTabRefreshes()
+    public async Task GivenTheDropIsConfirmed_WhenItFinishes_ThenTheMessageHasHashAndRestoreCommandAndTheTabRefreshes()
     {
         using var harness = new Harness();
         harness.Execute(ActionIds.StashDrop);
@@ -65,7 +65,7 @@ public class StashControllerTests
     [Theory]
     [InlineData(PaneKind.Graph)]
     [InlineData(PaneKind.Detail)]
-    public void GivenFocusOutsideTheSidebar_WhenApplyingPoppingOrDropping_ThenItIsRefusedWithoutGitOrDialog(PaneKind pane)
+    public void GivenFocusOutsideTheSidebar_WhenApplyingPoppingOrDropping_ThenItIsRefusedWithoutGit(PaneKind pane)
     {
         using var harness = new Harness();
         harness.Focus(pane);
@@ -83,7 +83,9 @@ public class StashControllerTests
     [Fact]
     public void GivenANonStashRow_WhenPopping_ThenItIsRefused()
     {
-        using var harness = new Harness { Row = new SidebarRow(SidebarRowKind.LocalBranch, SidebarSection.Branches, "main", string.Empty, "1", true, false, 0, null, null) };
+        var branch = new SidebarRow(
+            SidebarRowKind.LocalBranch, SidebarSection.Branches, "main", string.Empty, "1", true, false, 0, null, null);
+        using var harness = new Harness { Row = branch };
 
         harness.Execute(ActionIds.StashPop);
 
@@ -115,7 +117,8 @@ public class StashControllerTests
         harness.Execute(ActionIds.StashPop);
         await harness.WaitAsync();
 
-        Assert.StartsWith("Popped stash@{0}; undo the drop: git stash store", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var message = harness.Statuses.Log.Latest!.Text;
+        Assert.StartsWith("Popped stash@{0}; undo the drop: git stash store", message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -134,7 +137,10 @@ public class StashControllerTests
     public async Task GivenGitRefuses_WhenApplying_ThenTheErrorShowsGitsReasonAndTheTabRefreshes()
     {
         using var harness = new Harness();
-        harness.Writer.Failure = new GitCommandFailedException(["stash", "apply"], 1, "error: Your local changes would be overwritten\nmore");
+        harness.Writer.Failure = new GitCommandFailedException(
+            ["stash", "apply"],
+            1,
+            "error: Your local changes would be overwritten\nmore");
 
         harness.Execute(ActionIds.StashApply);
         await harness.WaitAsync();
@@ -249,14 +255,24 @@ public class StashControllerTests
         public Harness()
         {
             var root = Path.Combine(Path.GetTempPath(), "gitunia-stash-controller-tests");
-            var location = new RepositoryLocation(root, Path.Combine(root, ".git"), Path.Combine(root, ".git"), false, false);
+            var gitDirectory = Path.Combine(root, ".git");
+            var location = new RepositoryLocation(root, gitDirectory, gitDirectory, false, false);
             _host.Dispatch(new OpenRepositoryCommand(location));
             TabId = _host.Workspace.ActiveTabId!.Value;
             Entry = new StashEntry(0, "stash@{0}", "abc123", "On main: \"quoted\" work");
             Send(new StashesLoadedCommand([Entry]));
             Send(new FocusPaneCommand(PaneKind.Sidebar));
             Row = new SidebarRow(
-                SidebarRowKind.Stash, SidebarSection.Stashes, Entry.Name, Entry.Message, Entry.CommitHash, false, false, 0, null, null);
+                SidebarRowKind.Stash,
+                SidebarSection.Stashes,
+                Entry.Name,
+                Entry.Message,
+                Entry.CommitHash,
+                false,
+                false,
+                0,
+                null,
+                null);
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Controller = new StashController(
                 _host,

@@ -49,7 +49,7 @@ public class StashWriterTests
     }
 
     [Fact]
-    public async Task GivenUntrackedFileAndExistingStash_WhenPushingWithoutUntracked_ThenTheOldTopIsNotMistakenForANewStash()
+    public async Task GivenUntrackedFileAndOldStash_WhenPushingWithoutUntracked_ThenTheOldTopIsNotTakenForANewStash()
     {
         using var repository = TestRepositories.WithStash();
         repository.WriteFile("another.txt", "x\n");
