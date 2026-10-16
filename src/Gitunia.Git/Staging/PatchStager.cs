@@ -1,5 +1,8 @@
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging.Models;
 using Gitunia.Git.Status.Models;
@@ -38,9 +41,77 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         bool isHeadUnborn,
         CancellationToken cancellationToken)
     {
+        if (chosen.Count > 0 && side == WorkingDiffSide.Unstaged && entry.Kind == StatusEntryKind.Untracked
+            && !GitPathText.HasEscapedBytes(entry.Path))
+        {
+            return await StageUntrackedAsync(location, entry, chosen, allowWholeFile, isHeadUnborn, cancellationToken).ConfigureAwait(false);
+        }
+
         var file = chosen.Count > 0
-            ? await _pickable.ReadAsync(location, side, entry, cancellationToken).ConfigureAwait(false)
+            ? await _pickable.ReadAsync(location, side, entry, false, cancellationToken).ConfigureAwait(false)
             : null;
+        return await StageFromAsync(location, side, entry, file, chosen, allowWholeFile, isHeadUnborn, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Lines of a new file: record intent-to-add so the content shows as an unstaged addition, then stage the chosen lines the usual
+    // way. The empty index entry must never stay behind, so it is removed again on every path that does not stage something.
+    private async Task<PatchStagingResult> StageUntrackedAsync(
+        RepositoryLocation location,
+        StatusEntry entry,
+        IReadOnlyList<ChangedLine> chosen,
+        bool allowWholeFile,
+        bool isHeadUnborn,
+        CancellationToken cancellationToken)
+    {
+        var paths = StagingPaths.Of(entry, WorkingDiffSide.Unstaged);
+        var keep = false;
+        try
+        {
+            await writer.IntentToAddAsync(location, paths, cancellationToken).ConfigureAwait(false);
+            var asTracked = entry with { Kind = StatusEntryKind.Ordinary, WorktreeChange = FileChangeKind.Added };
+            var file = await _pickable.ReadAsync(location, WorkingDiffSide.Unstaged, asTracked, true, cancellationToken)
+                .ConfigureAwait(false);
+            var result = await StageFromAsync(location, WorkingDiffSide.Unstaged, entry, file, chosen, allowWholeFile, isHeadUnborn, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Only an applied patch or a whole-file add turns the empty entry into a real one.
+            keep = result.Outcome is PatchStagingOutcome.Applied or PatchStagingOutcome.WholeFile;
+            return result;
+        }
+        finally
+        {
+            if (!keep)
+            {
+                await RemoveIntentToAddAsync(location, paths, isHeadUnborn).ConfigureAwait(false);
+            }
+        }
+    }
+
+    // Not tied to the caller's token: a cancelled or failed operation must still leave the index as it found it. Best effort: it
+    // runs when the add may not have happened at all (restore then fails) and must not hide the outcome or exception it follows.
+    private async Task RemoveIntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn)
+    {
+        using var timeout = new CancellationTokenSource(GitRunnerOptions.FallbackTimeout);
+        try
+        {
+            await writer.UnstageAsync(location, paths, isHeadUnborn, timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is GitException or OperationCanceledException)
+        {
+            // Nothing more can be done here; the next status read shows the file as an addition if the entry stayed.
+        }
+    }
+
+    private async Task<PatchStagingResult> StageFromAsync(
+        RepositoryLocation location,
+        WorkingDiffSide side,
+        StatusEntry entry,
+        DiffFile? file,
+        IReadOnlyList<ChangedLine> chosen,
+        bool allowWholeFile,
+        bool isHeadUnborn,
+        CancellationToken cancellationToken)
+    {
         if (file is null)
         {
             if (chosen.Count > 0 && !allowWholeFile)

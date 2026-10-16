@@ -195,14 +195,15 @@ public class PatchStagerTests
     }
 
     [Fact]
-    public async Task GivenUntrackedDeletedAndBinaryFiles_WhenStagingLines_ThenEachGoesWhole()
+    public async Task GivenUntrackedBinaryAndDeletedFiles_WhenStagingLines_ThenEachGoesWhole()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("gone.txt", "1\n2\n"), new TestFile("pic.bin", "ab\n"));
-        repository.WriteFile("fresh.txt", "1\n2\n3\n").Delete("gone.txt");
+        repository.Delete("gone.txt");
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "new.bin"), [0, 9, 0, 255]);
         File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "pic.bin"), [0, 1, 2, 0, 255]);
         var chosen = new[] { new ChangedLine(DiffLineKind.Added, 1, "1") };
 
-        foreach (var path in new[] { "fresh.txt", "gone.txt", "pic.bin" })
+        foreach (var path in new[] { "new.bin", "gone.txt", "pic.bin" })
         {
             var (location, entry) = await LocateAsync(repository, path);
             var result = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, chosen, true, false, Token);
@@ -210,7 +211,7 @@ public class PatchStagerTests
         }
 
         Assert.Equal(string.Empty, repository.Git("diff"));
-        Assert.Equal("fresh.txt\ngone.txt\npic.bin\n", repository.Git("diff", "--cached", "--no-renames", "--name-only"));
+        Assert.Equal("gone.txt\nnew.bin\npic.bin\n", repository.Git("diff", "--cached", "--no-renames", "--name-only"));
     }
 
     [Fact]
@@ -286,10 +287,72 @@ public class PatchStagerTests
     }
 
     [Fact]
-    public async Task GivenLinesPickedOneByOneInANewFile_WhenStagingWithoutAllowingWholeFiles_ThenNothingChanges()
+    public async Task GivenAnUntrackedFile_WhenStagingSomeLines_ThenOnlyThoseAreStagedAndTheRestStaysAnUnstagedAddition()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("fresh.txt", "1\n2\n3\n4\n");
+        var (location, entry) = await LocateAsync(repository, "fresh.txt");
+
+        var chosen = await ChangesAsync(location, WorkingDiffSide.Unstaged, entry, DiffOptions.Default, texts: ["2", "3"]);
+        var result = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, chosen, false, false, Token);
+
+        Assert.Equal(PatchStagingOutcome.Applied, result.Outcome);
+        Assert.Equal("2\n3\n", repository.Git("show", ":fresh.txt"));
+        Assert.Equal("1\n2\n3\n4\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "fresh.txt")));
+        Assert.Contains("+1", repository.Git("diff"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedFileOnAnUnbornBranch_WhenStagingSomeLines_ThenOnlyThoseAreStaged()
+    {
+        using var repository = TestRepository.Create();
+        repository.WriteFile("fresh.txt", "1\n2\n3\n");
+        var (location, entry) = await LocateAsync(repository, "fresh.txt");
+
+        var chosen = await ChangesAsync(location, WorkingDiffSide.Unstaged, entry, DiffOptions.Default, texts: ["3"]);
+        var result = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, chosen, false, true, Token);
+
+        Assert.Equal(PatchStagingOutcome.Applied, result.Outcome);
+        Assert.Equal("3\n", repository.Git("show", ":fresh.txt"));
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedFile_WhenTheStagingFailsOrCannotSplit_ThenNoIntentToAddEntryIsLeftBehind()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("fresh.txt", "1\n2\n3\n");
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "new.bin"), [0, 9, 0, 255]);
+        var (location, entry) = await LocateAsync(repository, "fresh.txt");
+        var (_, binary) = await LocateAsync(repository, "new.bin");
+        var line = new[] { new ChangedLine(DiffLineKind.Added, 2, "2") };
+
+        // The line is not in the file any more.
+        var stale = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, [new ChangedLine(DiffLineKind.Added, 2, "gone")], false, false, Token);
+        Assert.Equal(PatchStagingOutcome.FileChanged, stale.Outcome);
+        AssertNothingStaged(repository);
+
+        // A binary file is refused when whole files are not allowed.
+        var refused = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, binary, line, false, false, Token);
+        Assert.Equal(PatchStagingOutcome.NotSplittable, refused.Outcome);
+        AssertNothingStaged(repository);
+
+        // Git refuses the patch, or the operation is cancelled while it is applied.
+        var failing = new PatchStager(Diff, new FailingApplyWriter(Writer, new InvalidOperationException("git refused the patch")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            failing.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, false, Token));
+        AssertNothingStaged(repository);
+
+        var cancelling = new PatchStager(Diff, new FailingApplyWriter(Writer, new OperationCanceledException()));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            cancelling.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, false, Token));
+        AssertNothingStaged(repository);
+    }
+
+    [Fact]
+    public async Task GivenLinesPickedOneByOneInANewFile_WhenStagingWithoutAllowingWholeFiles_ThenNothingChanges()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "fresh.txt"), [0, 1, 2, 0, 255]);
         var (location, entry) = await LocateAsync(repository, "fresh.txt");
 
         var result = await Stager.StageAsync(
@@ -338,6 +401,57 @@ public class PatchStagerTests
 
         Assert.Equal(PatchStagingOutcome.Applied, result.Outcome);
         Assert.Equal(Lines(30, Edit(2, "TWO"), Edit(28, "TWENTY-EIGHT")), repository.Git("show", ":f.txt"));
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedFileOnAnUnbornBranch_WhenTheTokenIsAlreadyCancelledOrThePatchFails_ThenNoEntryIsLeftBehindAndTheOriginalErrorSurfaces()
+    {
+        using var repository = TestRepository.Create();
+        repository.WriteFile("fresh.txt", "1\n2\n");
+        var (location, entry) = await LocateAsync(repository, "fresh.txt");
+        var line = new[] { new ChangedLine(DiffLineKind.Added, 1, "1") };
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, true, cancelled.Token));
+        AssertNothingStaged(repository);
+
+        var failing = new PatchStager(Diff, new FailingApplyWriter(Writer, new InvalidOperationException("git refused the patch")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            failing.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, true, Token));
+        AssertNothingStaged(repository);
+    }
+
+    private static void AssertNothingStaged(TestRepository repository)
+    {
+        // An intent-to-add entry would show up here as an empty blob of that path.
+        var staged = repository.Git("ls-files", "--stage");
+        Assert.DoesNotContain("fresh.txt", staged, StringComparison.Ordinal);
+        Assert.DoesNotContain("new.bin", staged, StringComparison.Ordinal);
+    }
+
+    private sealed class FailingApplyWriter(IIndexWriter inner, Exception failure) : IIndexWriter
+    {
+        public Task StageAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) =>
+            inner.StageAsync(location, paths, cancellationToken);
+
+        public Task IntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken) =>
+            inner.IntentToAddAsync(location, paths, cancellationToken);
+
+        public Task UnstageAsync(
+            RepositoryLocation location,
+            IReadOnlyList<string> paths,
+            bool isHeadUnborn,
+            CancellationToken cancellationToken) =>
+            inner.UnstageAsync(location, paths, isHeadUnborn, cancellationToken);
+
+        public Task ApplyPatchAsync(
+            RepositoryLocation location,
+            string patch,
+            PatchDirection direction,
+            CancellationToken cancellationToken) =>
+            throw failure;
     }
 
     private static string Lines(int count, params LineEdit[] replaced)

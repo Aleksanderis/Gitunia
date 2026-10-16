@@ -24,10 +24,19 @@ public sealed class PickableDiffReader(IDiffReader reader)
     private const char PathTerminator = '\t';
 
     /// <summary>The splittable diff of the file on <paramref name="side"/>, or null when it has to be handled whole.</summary>
+    /// <param name="location">The repository or worktree.</param>
+    /// <param name="side">Which diff to read.</param>
+    /// <param name="entry">The status entry of the file.</param>
+    /// <param name="allowAdded">
+    /// Accept a new file (only meaningful for an intent-to-add entry: its lines are staged through a patch that adds some of them).
+    /// Off for discarding, where lines of a new file cannot be cut back.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the git call.</param>
     public async Task<DiffFile?> ReadAsync(
         RepositoryLocation location,
         WorkingDiffSide side,
         StatusEntry entry,
+        bool allowAdded,
         CancellationToken cancellationToken)
     {
         if (entry.Kind is not (StatusEntryKind.Ordinary or StatusEntryKind.Renamed)
@@ -40,7 +49,7 @@ public sealed class PickableDiffReader(IDiffReader reader)
 
         var read = await ReadFileAsync(location, side, entry, cancellationToken).ConfigureAwait(false);
         var file = read is null ? null : WithoutModeChange(AsEditOfNewPath(read));
-        return file is not null && HasPickableHunks(file) ? file : null;
+        return file is not null && HasPickableHunks(file, allowAdded) ? file : null;
     }
 
     // Staging some lines must not also stage (or, reversed, undo) a chmod: leave the mode lines out of the patch.
@@ -94,11 +103,12 @@ public sealed class PickableDiffReader(IDiffReader reader)
     }
 
     // Binary, added and deleted files, and a diff that is not an exact copy of the file, cannot be cut into partial patches.
-    private static bool HasPickableHunks(DiffFile file) =>
+    private static bool HasPickableHunks(DiffFile file, bool allowAdded) =>
         !file.IsBinary
         && !file.HasInvalidText
         && !file.IsTruncated
-        && file.Status is DiffFileStatus.Modified or DiffFileStatus.Renamed or DiffFileStatus.Copied
+        && (file.Status is DiffFileStatus.Modified or DiffFileStatus.Renamed or DiffFileStatus.Copied
+            || (allowAdded && file.Status == DiffFileStatus.Added))
         && file.Hunks.Count > 0;
 
     private async Task<DiffFile?> ReadFileAsync(

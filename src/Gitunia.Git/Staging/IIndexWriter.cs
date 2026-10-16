@@ -10,6 +10,13 @@ public interface IIndexWriter
     Task StageAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Records untracked files as intent-to-add (<c>git add -N</c>): the index gets an empty entry, so the whole content shows as an
+    /// unstaged addition that a partial patch can then stage. The caller must remove the entry again (<see cref="UnstageAsync"/>) when
+    /// it does not go on to stage something.
+    /// </summary>
+    Task IntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Unstages whole files: resets their index entries to HEAD (<c>git restore --staged</c>), or removes them from the index
     /// (<c>git rm --cached</c>) when the branch is unborn and there is no HEAD to restore from.
     /// </summary>
