@@ -206,7 +206,8 @@ public sealed class WorkingDiffController : IPromptHandler
             _diffList.Source = current?.WorkingDiff?.Source;
             if (current?.WorkingDiff is { } diff)
             {
-                diff.Source.GroupButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
+                diff.Source.GroupButtons = () =>
+                    WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
                 diff.Store.Changed += OnStoreChanged;
                 current.StatusRead += Sync;
                 _actions.RestoreRemembered(diff);

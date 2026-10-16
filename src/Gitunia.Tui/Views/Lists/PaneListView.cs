@@ -30,10 +30,16 @@ public sealed class PaneListView : ListView
     /// <summary>Raised for a click, before <see cref="GestureRaised"/>, with the pointer's column and row inside the pane.</summary>
     public event Action<int, int>? ClickPositioned;
 
-    /// <summary>Tells which button, if any, is drawn inside the list at a column and row of the pane; a click on one is a button click, not a click on the row.</summary>
+    /// <summary>
+    /// Tells which button, if any, is drawn in the list at a column and row of the pane; a click on one is a button click,
+    /// not a click on the row.
+    /// </summary>
     public Func<int, int, string?>? ButtonAt { get; set; }
 
-    /// <summary>Raised instead of <see cref="GestureRaised"/> when a click or double-click hit a button from <see cref="ButtonAt"/>; the pane has the focus by then.</summary>
+    /// <summary>
+    /// Raised instead of <see cref="GestureRaised"/> when a click or double-click hit a button from <see cref="ButtonAt"/>;
+    /// the pane has the focus by then and the cursor has not moved.
+    /// </summary>
     public event Action<string>? ButtonClicked;
 
     protected override bool OnMouseEvent(Mouse mouse)

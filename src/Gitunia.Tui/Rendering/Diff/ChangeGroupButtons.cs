@@ -6,9 +6,9 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// The chips at the right edge of the first line of the change group under the cursor in the working-tree diff: <c>stage</c> and
-/// <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side. They are the same buttons, views and actions as the
-/// ones in the title row (<see cref="DiffTitleButtons"/>), placed where the eye is. A row too narrow to keep
+/// The chips at the right edge of the first line of the change group under the cursor in the working-tree diff:
+/// <c>stage</c> and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side. They are the same buttons,
+/// views and actions as the ones in the title row (<see cref="DiffTitleButtons"/>), placed where the eye is. A row too narrow to keep
 /// <see cref="MinimumTextWidth"/> columns of diff text drops <c>discard</c>, then the rest.
 /// </summary>
 public static class ChangeGroupButtons
@@ -22,9 +22,9 @@ public static class ChangeGroupButtons
 
     private static readonly TitleButton Discard = new(DefaultMouseMap.DiffDiscardButton, " discard ", 0);
 
-    /// <summary>The buttons that fit, left to right, one column of space between them, ending at the right end of the text area.</summary>
+    /// <summary>The buttons that fit, left to right, a column of space before each, ending at the right end of the text.</summary>
     /// <param name="textWidth">Columns of the diff text between the paddings.</param>
-    /// <param name="padding">Padding columns on each side of the text; button columns are counted from the start of the padded line.</param>
+    /// <param name="padding">Padding columns on each side of the text; columns count from the start of the padded line.</param>
     /// <param name="side">Which side of the working tree the diff shows.</param>
     public static IReadOnlyList<TitleButton> Layout(int textWidth, int padding, WorkingTreeButtons side)
     {
@@ -60,12 +60,16 @@ public static class ChangeGroupButtons
         return placed;
     }
 
-    /// <summary>The line with <paramref name="buttons"/> drawn over its right end (the text under them is cut), the right padding kept.</summary>
+    /// <summary>The line with <paramref name="buttons"/> drawn over its right end (the text under them is cut).</summary>
     /// <param name="line">The padded line.</param>
     /// <param name="buttons">From <see cref="Layout"/>; none returns the line as it is.</param>
     /// <param name="padding">Padding columns on the right of the line.</param>
     /// <param name="glyphs">Tells whether the ASCII tier is on.</param>
-    public static StyledLine Overlay(StyledLine line, IReadOnlyList<TitleButton> buttons, int padding, GraphGlyphSet glyphs)
+    public static StyledLine Overlay(
+        StyledLine line,
+        IReadOnlyList<TitleButton> buttons,
+        int padding,
+        GraphGlyphSet glyphs)
     {
         if (buttons.Count == 0)
         {
@@ -76,7 +80,8 @@ public static class ChangeGroupButtons
         for (var index = 0; index < buttons.Count; index++)
         {
             segments.Add(new StyledSegment(" ", SegmentRole.Plain));
-            segments.Add(new StyledSegment(ButtonLabel.For(buttons[index].Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
+            var label = ButtonLabel.For(buttons[index].Label, glyphs.IsAscii);
+            segments.Add(new StyledSegment(label, SegmentRole.RepositoryTab));
         }
 
         segments.Add(new StyledSegment(new string(' ', padding), SegmentRole.Plain));

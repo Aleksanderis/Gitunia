@@ -32,7 +32,10 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>The change group under the cursor is marked (the working-tree diff, where a group is the unit of staging).</summary>
     public bool HighlightsGroup { get; set; }
 
-    /// <summary>Which staging buttons the first line of the highlighted change group carries (none by default); read on every draw, as the side follows the selected file.</summary>
+    /// <summary>
+    /// Which staging buttons the first line of the highlighted change group carries (none by default); read on every draw,
+    /// as the side follows the selected file.
+    /// </summary>
     public Func<WorkingTreeButtons> GroupButtons { get; set; } = () => WorkingTreeButtons.None;
 
     /// <summary>The diff search text to highlight, null for none.</summary>
@@ -216,8 +219,9 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     }
 
     /// <summary>
-    /// The view of the group button under the pointer at <paramref name="column"/>, <paramref name="row"/> (inside <paramref name="listView"/>),
-    /// or null when there is none there: the buttons sit on the first line of the change group under the cursor only.
+    /// The view of the group button under the pointer at <paramref name="column"/>, <paramref name="row"/> (inside
+    /// <paramref name="listView"/>), or null when there is none there: the buttons sit on the first line of the change
+    /// group under the cursor only.
     /// </summary>
     public string? ButtonAt(ListView listView, int column, int row)
     {
@@ -226,7 +230,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var width = PanePadding.TextWidth(listView.Viewport.Width, columns);
 
         return IsInCursorGroup(listView, item) && GroupButtonsAt(item, columns, width) is { } buttons
-            ? TitleButton.ViewAt(buttons, column + listView.Viewport.X)
+            ? TitleButton.ViewAt(buttons, column)
             : null;
     }
 

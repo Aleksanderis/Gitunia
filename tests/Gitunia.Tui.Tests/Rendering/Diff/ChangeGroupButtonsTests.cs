@@ -16,7 +16,9 @@ public class ChangeGroupButtonsTests
     {
         var buttons = ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.Unstaged);
 
-        Assert.Equal([DefaultMouseMap.DiffStageButton, DefaultMouseMap.DiffDiscardButton], buttons.Select(button => button.View));
+        Assert.Equal(
+            [DefaultMouseMap.DiffStageButton, DefaultMouseMap.DiffDiscardButton],
+            buttons.Select(button => button.View));
         var last = buttons[^1];
         Assert.Equal(Padding + 80, last.Start + last.Width);
         Assert.Equal(buttons[0].Start + buttons[0].Width + 1, last.Start);
@@ -43,7 +45,7 @@ public class ChangeGroupButtonsTests
     [InlineData(38, 1)]
     [InlineData(37, 0)]
     [InlineData(0, 0)]
-    public void GivenANarrowRow_WhenLayingOut_ThenDiscardGoesFirstAndThirtyColumnsOfTextStay(int textWidth, int expected)
+    public void GivenANarrowRow_WhenLayingOut_ThenDiscardGoesFirstAndThirtyTextColumnsStay(int textWidth, int expected)
     {
         var buttons = ChangeGroupButtons.Layout(textWidth, Padding, WorkingTreeButtons.Unstaged);
 
@@ -56,7 +58,7 @@ public class ChangeGroupButtonsTests
     }
 
     [Fact]
-    public void GivenALineWithWideCharacters_WhenOverlayingButtons_ThenTheLineKeepsItsWidthAndTheChipsSitAtTheirColumns()
+    public void GivenWideCharacters_WhenOverlayingButtons_ThenTheLineKeepsItsWidthAndTheChipsSitAtTheirColumns()
     {
         const int textWidth = 61;
         var text = string.Concat(Enumerable.Repeat("漢", textWidth / 2)) + "x";
@@ -67,7 +69,8 @@ public class ChangeGroupButtonsTests
 
         Assert.Equal(textWidth + 2 * Padding, TextWidth.Of(result.Text));
         Assert.EndsWith(" stage   discard  ", result.Text);
-        Assert.Equal(buttons[0].Start, TextWidth.Of(result.Text[..result.Text.IndexOf(" stage ", StringComparison.Ordinal)]));
+        var before = result.Text[..result.Text.IndexOf(" stage ", StringComparison.Ordinal)];
+        Assert.Equal(buttons[0].Start, TextWidth.Of(before));
     }
 
     [Fact]
@@ -87,7 +90,8 @@ public class ChangeGroupButtonsTests
     [Fact]
     public void GivenAnAsciiTier_WhenOverlayingButtons_ThenTheChipsUseBrackets()
     {
-        var line = PanePadding.Wrap(new StyledLine([new StyledSegment(new string('x', 60), SegmentRole.Plain)]), Padding);
+        var plain = new StyledLine([new StyledSegment(new string('x', 60), SegmentRole.Plain)]);
+        var line = PanePadding.Wrap(plain, Padding);
         var buttons = ChangeGroupButtons.Layout(60, Padding, WorkingTreeButtons.Staged);
 
         var result = ChangeGroupButtons.Overlay(line, buttons, Padding, GraphGlyphSet.Ascii);
