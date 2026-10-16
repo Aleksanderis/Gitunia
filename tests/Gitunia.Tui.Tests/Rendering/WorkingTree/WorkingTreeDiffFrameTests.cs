@@ -63,7 +63,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  hunk 1/1  src/a…─ stage ─ wrap ─ zoom ──╮",
+                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  change 1/1  src…─ stage ─ wrap ─ zoom ──╮",
                 "│ M src/app.cs                │ M src/app.cs                                             │",
                 "│                             │ @@ -1,3 +1,3 @@                                          │",
                 "│                             │   1   1  first                                           │",
@@ -86,7 +86,7 @@ public class WorkingTreeDiffFrameTests
     {
         var frame = Frame(Working(PaneKind.WorkingStagedDiff, WorkingTreeSection.Staged), 90, 16);
 
-        Assert.Contains("─ Diff  staged  hunk 1/1  src/", frame, StringComparison.Ordinal);
+        Assert.Contains("─ Diff  staged  change 1/1  src", frame, StringComparison.Ordinal);
         Assert.Contains(" unstage ", frame, StringComparison.Ordinal);
         Assert.DoesNotContain(" discard ", frame, StringComparison.Ordinal);
     }
@@ -100,7 +100,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Diff  unstaged  hunk 1/1  src/a…─ stage ─ wrap ─ zoom ──╮",
+                "╭─ Diff  unstaged  change 1/1  src…─ stage ─ wrap ─ zoom ──╮",
                 "│ M src/app.cs                                             │",
                 "│ @@ -1,3 +1,3 @@                                          │",
                 "│   1   1  first                                           │",
@@ -146,7 +146,7 @@ public class WorkingTreeDiffFrameTests
 
         var title = WorkingTreePaneRenderer.DiffTitle(model.Tree, diff);
 
-        Assert.Equal("Diff  unstaged  hunk 1/1  [wrap]  [ctx 6]  src/app.cs", title);
+        Assert.Equal("Diff  unstaged  change 1/1  [wrap]  [ctx 6]  src/app.cs", title);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class WorkingTreeDiffFrameTests
     {
         var frame = Frame(Working(PaneKind.WorkingUnstagedDiff), 90, 16, GraphGlyphSet.Ascii);
 
-        Assert.Contains("- Diff  unstaged  hunk 1/1  src/", frame, StringComparison.Ordinal);
+        Assert.Contains("- Diff  unstaged  change 1/1  src", frame, StringComparison.Ordinal);
         Assert.Contains("[stage]", frame, StringComparison.Ordinal);
         Assert.DoesNotContain('─', frame);
     }

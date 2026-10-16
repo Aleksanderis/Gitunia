@@ -30,6 +30,7 @@ public sealed class DiffListActions
     private readonly ClipboardCopier _clipboard;
     private readonly Func<IDiffViewState?> _active;
     private readonly string _sideBySideHint;
+    private readonly string _anchorName;
     private bool _isSyncing;
 
     /// <param name="diffList">The list of the diff pane.</param>
@@ -37,18 +38,21 @@ public sealed class DiffListActions
     /// <param name="clipboard">Copies diff text.</param>
     /// <param name="active">The active tab's diff, null while it has none.</param>
     /// <param name="sideBySideHint">Appended to the notice when side by side is on but the pane is too narrow.</param>
+    /// <param name="anchorName">What the next and previous anchors are called in notices: "hunk", or "change" in the working-tree diff.</param>
     public DiffListActions(
         ListView diffList,
         Action<KeyMode> setMode,
         ClipboardCopier clipboard,
         Func<IDiffViewState?> active,
-        string sideBySideHint)
+        string sideBySideHint,
+        string anchorName = "hunk")
     {
         _diffList = diffList;
         _setMode = setMode;
         _clipboard = clipboard;
         _active = active;
         _sideBySideHint = sideBySideHint;
+        _anchorName = anchorName;
         diffList.ValueChanged += (_, _) => RememberCursor();
         diffList.ViewportChanged += (_, _) => SyncWidth();
     }
@@ -137,7 +141,7 @@ public sealed class DiffListActions
         }
         else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
         {
-            Jump(diff, document.HunkRows, row, action == ActionIds.DiffNextHunk, count, "hunk");
+            Jump(diff, document.HunkRows, row, action == ActionIds.DiffNextHunk, count, _anchorName);
         }
         else if (action == ActionIds.DiffSearchOpen)
         {

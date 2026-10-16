@@ -234,4 +234,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Platform:** Config and state dirs are the same on every OS: `$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, `$XDG_STATE_HOME/gitunia` or `~/.local/state/gitunia` (supersedes the per-OS dirs, e.g. `%APPDATA%`). Why: Gitunia is a terminal app, config is hand-edited and kept in dotfiles repositories, and config stays apart from machine-local state.
 
+**UX:** working-tree diff units (#386, owner): every group of consecutive added/removed lines is its own unit for `]c`/`[c`, the `change n/m` title and stage/unstage/discard, even inside one hunk. The history diff keeps its hunks (only the working tree stages).
+
 **UI:** Commands popup (#385): `Ctrl-j`/`Ctrl-k` move, `Ctrl-l` runs (like the picker), `Ctrl-h` stays unbound (some terminals send it for Backspace). The footer reuses the status bar hint rendering.

@@ -293,10 +293,48 @@ public class WorkingDiffControllerTests
         await harness.StageAsync(ActionIds.WorkingTreeStage);
 
         Assert.Equal(original.Replace("line 2\n", "two\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
-        Assert.Equal("Staged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Staged change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
         Assert.Single(harness.Document().HunkRows);
         Assert.Equal(harness.Document().HunkRows[0], harness.CursorRow());
         Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenTwoEditsInOneMergedHunk_WhenStagingTheSecondGroup_ThenOnlyItIsStaged()
+    {
+        var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
+        repository.WriteFile("f.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.Equal(2, harness.Document().HunkRows.Count);
+        await harness.ExecuteAsync(ActionIds.DiffNextHunk, 2);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal(original.Replace("line 6\n", "six\n", StringComparison.Ordinal), harness.Git("show", ":f.txt"));
+        Assert.Equal(changed, File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+        Assert.Equal("Staged change (2 lines) of f.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTwoEditsInOneMergedHunk_WhenDiscardingTheSecondGroup_ThenTheFirstEditRemainsAndTheIndexIsUntouched()
+    {
+        var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
+        repository.WriteFile("f.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        await harness.ExecuteAsync(ActionIds.DiffNextHunk, 2);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        await harness.ConfirmAsync();
+
+        Assert.Equal(original.Replace("line 2\n", "two\n", StringComparison.Ordinal), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+        Assert.Equal(original, harness.Git("show", ":f.txt"));
+        Assert.Equal("Discarded change (2 lines) of f.txt", harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -356,7 +394,7 @@ public class WorkingDiffControllerTests
         await harness.StageAsync(ActionIds.WorkingTreeUnstage);
 
         Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), harness.Git("show", ":long.txt"));
-        Assert.Equal("Unstaged hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Unstaged change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -458,7 +496,7 @@ public class WorkingDiffControllerTests
         Handle(harness, ActionIds.WorkingTreeDiscard);
 
         var prompt = Assert.Single(harness.Prompts);
-        Assert.Equal(["Discard this hunk (2 lines) of long.txt?"], prompt.Lines);
+        Assert.Equal(["Discard this change (2 lines) of long.txt?"], prompt.Lines);
         harness.DropDialog();
         Assert.Equal(changed, File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
         Assert.Null(harness.Statuses.Log.Latest);
@@ -479,7 +517,7 @@ public class WorkingDiffControllerTests
 
         Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
         Assert.Equal(original, harness.Git("show", ":long.txt"));
-        Assert.Equal("Discarded hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Equal("Discarded change (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
         Assert.Single(harness.Document().HunkRows);
     }
 

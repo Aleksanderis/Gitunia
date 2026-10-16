@@ -50,6 +50,25 @@ public static class DiffSelection
             index = candidate;
         }
 
-        return index < 0 && document.HunkRows.Count > 0 ? 0 : index;
+        if (index < 0)
+        {
+            return document.HunkRows.Count > 0 ? 0 : index;
+        }
+
+        // Anchors can sit on a change inside a hunk: a header or leading context of the next hunk belongs to its first group.
+        return index + 1 < document.HunkRows.Count && HasHeaderBetween(document, document.HunkRows[index], row) ? index + 1 : index;
+    }
+
+    private static bool HasHeaderBetween(DiffDocument document, int anchorRow, int row)
+    {
+        for (var candidate = anchorRow + 1; candidate <= row && candidate < document.Rows.Count; candidate++)
+        {
+            if (document.Rows[candidate].Kind is DiffRowKind.HunkHeader or DiffRowKind.FileHeader)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

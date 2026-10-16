@@ -66,7 +66,7 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingDiffCommon =
     [
-        new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
+        new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
@@ -84,7 +84,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("<space>a", "stage hunk", [ActionIds.WorkingTreeStage]),
+        new("<space>a", "stage change", [ActionIds.WorkingTreeStage]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
@@ -94,7 +94,7 @@ public static class PaneHints
     [
         .. Pinned,
         new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
-        new("<space>u", "unstage hunk", [ActionIds.WorkingTreeUnstage]),
+        new("<space>u", "unstage change", [ActionIds.WorkingTreeUnstage]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
     ];

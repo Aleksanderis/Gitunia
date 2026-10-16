@@ -58,7 +58,7 @@ public sealed class WorkingDiffController : IPromptHandler
         _diffList = diffList;
         _refreshChrome = refreshChrome;
         _relayout = relayout ?? (() => { });
-        _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty);
+        _actions = new DiffListActions(diffList, setMode, clipboard, () => activeSession()?.WorkingDiff, string.Empty, "change");
         host.Changed += OnWorkspaceChanged;
     }
 
@@ -167,7 +167,7 @@ public sealed class WorkingDiffController : IPromptHandler
 
         var hunkLines = DiffSelection.OfHunk(document, row);
         return hunkIndex >= 0 && hunkLines.Count == 0
-            ? DiffStagingCapture.Refused("The hunk has no added or removed line")
+            ? DiffStagingCapture.Refused("The change has no added or removed line")
             : new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
     }
 

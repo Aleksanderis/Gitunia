@@ -333,14 +333,14 @@ public sealed class StagingActions(
         var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
         var verb = isStage ? "stage" : "unstage";
         var name = WorkingTreeRowRenderer.Printable(request.Target.Entry.Path);
-        var what = request.IsRange ? OperationText.Plural(result.LineCount, "line") : $"hunk ({OperationText.Plural(result.LineCount, "line")})";
+        var what = request.IsRange ? OperationText.Plural(result.LineCount, "line") : $"change ({OperationText.Plural(result.LineCount, "line")})";
         return result.Outcome switch
         {
             PatchStagingOutcome.Applied => $"{(isStage ? "Staged" : "Unstaged")} {what} of {name}",
             PatchStagingOutcome.WholeFile =>
                 $"{(isStage ? "Staged" : "Unstaged")} {name} whole: new, deleted and binary files are not split into hunks",
             PatchStagingOutcome.NotSplittable =>
-                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its hunk or the whole file",
+                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its change or the whole file",
             PatchStagingOutcome.FileChanged => $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
             _ => $"Nothing to {verb} in the selection",
         };

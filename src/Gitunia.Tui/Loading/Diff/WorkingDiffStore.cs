@@ -171,7 +171,7 @@ public sealed class WorkingDiffStore(
         var files = reader.ReadWorkingFileAsync(location, request.Side, request.Entry, warnings, lineLimit, Options, token);
         await foreach (var file in files.ConfigureAwait(false))
         {
-            builder.Add(file, Options.WholeFile ? Options.ContextLines : null);
+            builder.Add(file, groupChanges: true);
             fileCut |= file.IsTruncated;
             if (builder.RowCount >= rows)
             {
