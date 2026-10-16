@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -14,6 +15,7 @@ namespace Gitunia.Tui.Views.Lists;
 /// <summary>List source over the rows of a <see cref="DiffDocument"/>: only the visible rows are drawn, so a 50k-line diff costs no more per frame than a small one.</summary>
 public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
+    private readonly JumpLabelCache _jump = new();
     private DiffWrapMap? _map;
     private DiffSplit? _split;
     private DiffSplitMap? _splitMap;
@@ -27,6 +29,13 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
 
+    /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
+    public string? JumpText
+    {
+        get => _jump.Text;
+        set => _jump.Text = value;
+    }
+
     /// <summary>The pane width in columns, set by the controller on every layout change; wrapping needs it. Zero shows the rows unwrapped.</summary>
     public int Width
     {
@@ -38,6 +47,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
                 RangeInvalidated?.Invoke();
             }
 
+            _jump.Invalidate();
             _paneWidth = value;
         }
     }
@@ -66,6 +76,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public void Update(DiffDocument document)
     {
         Document = document;
+        _jump.Invalidate();
         RangeInvalidated?.Invoke();
         _map = null;
         _split = null;
@@ -78,6 +89,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public void SetWrapped(bool isWrapped)
     {
         IsWrapped = isWrapped;
+        _jump.Invalidate();
         RangeInvalidated?.Invoke();
         _map = null;
         _splitMap = null;
@@ -119,6 +131,28 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         return Map() is { } current ? current.StartOf(row) : row;
     }
 
+    /// <summary>
+    /// The quick-jump targets of <paramref name="text"/> among the diff rows in view of <paramref name="listView"/>, nearest the
+    /// cursor first. A row with wrapped lines is in view when any of its lines is.
+    /// </summary>
+    /// <param name="listView">The list this source is shown in.</param>
+    /// <param name="text">The typed text.</param>
+    public IReadOnlyList<JumpLabel> JumpLabels(ListView listView, string text)
+    {
+        var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
+        if (Count == 0)
+        {
+            return [];
+        }
+
+        var firstLine = Math.Clamp(listView.Viewport.Y, 0, Count - 1);
+        var lastLine = Math.Clamp(listView.Viewport.Y + listView.Viewport.Height - 1, firstLine, Count - 1);
+        var first = RowOf(firstLine);
+        var window = new JumpWindow(first, LastRowOf(lastLine) - first + 1, RowOf(Math.Clamp(listView.SelectedItem ?? 0, 0, Count - 1)));
+
+        return _jump.Labels(text, window, width, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis));
+    }
+
     public bool IsMarked(int item) => false;
 
     public void SetMark(int item, bool value)
@@ -133,12 +167,13 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var current = Map();
         width = PanePadding.TextWidth(width, columns);
         selected |= Range?.Contains(item) == true;
+        var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
         var line = ShowsSideBySide
             ? SplitLine(item, width, selected)
             : current is not null && item >= 0 && item < current.Count
-            ? WrappedLine(current, item, width, selected)
+            ? WrappedLine(current, item, width, selected, jump)
             : current is null && item >= 0 && item < Document.Rows.Count
-                ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs)
+                ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs, jump)
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
         LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
     }
@@ -203,10 +238,29 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             glyphs);
     }
 
-    private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected)
+    private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected, JumpLabel? jump)
     {
         var row = current.RowOf(item);
-        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, _gutterDigits, Highlight, isSelected, glyphs);
+        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, _gutterDigits, Highlight, isSelected, glyphs, jump);
+    }
+
+    // The labels are worked out once per frame (the first line asks); only the first line of a wrapped row shows its label.
+    private JumpLabel? JumpLabelAt(ListView listView, DiffWrapMap? current, int item)
+    {
+        if (string.IsNullOrEmpty(JumpText) || item < 0 || item >= Count)
+        {
+            return null;
+        }
+
+        var row = current is null ? item : current.RowOf(item);
+        if (current is not null && current.StartOf(row) != item)
+        {
+            return null;
+        }
+
+        JumpLabels(listView, JumpText);
+
+        return _jump.LabelOf(row);
     }
 
     private void Notify()

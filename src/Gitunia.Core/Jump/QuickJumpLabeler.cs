@@ -1,7 +1,8 @@
-using Gitunia.Core.Graph;
+using System.Text;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Core.Jump;
 
@@ -15,37 +16,44 @@ public static class QuickJumpLabeler
     /// <summary>Label keys, home row first.</summary>
     public const string Alphabet = "asdfghjklqwertyuiopzxcvbnm";
 
+    // Marks a target as able to take a letter; AssignLetters hands the real letters out in order of distance.
+    private const char Eligible = '\u0001';
+
     private static readonly JumpLabel[] None = [];
 
     /// <summary>
-    /// The targets for <paramref name="text"/> in rows <paramref name="firstRow"/> to <paramref name="firstRow"/> +
-    /// <paramref name="rowCount"/> - 1, nearest to <paramref name="cursorRow"/> first. Empty text has no targets.
+    /// The targets for <paramref name="text"/> among the rows in <paramref name="window"/>, nearest to the cursor first.
+    /// Empty text has no targets. A match whose label would fall outside the columns of its row gets no letter.
     /// </summary>
-    public static IReadOnlyList<JumpLabel> Compute(string text, CommitGraph graph, int firstRow, int rowCount, int cursorRow)
+    /// <param name="text">The typed text.</param>
+    /// <param name="rows">The rows of the view.</param>
+    /// <param name="window">The rows in view.</param>
+    public static IReadOnlyList<JumpLabel> Compute(string text, IJumpRows rows, JumpWindow window)
     {
-        if (text.Length == 0 || rowCount <= 0)
+        if (text.Length == 0 || window.RowCount <= 0)
         {
             return None;
         }
 
-        var first = Math.Max(0, firstRow);
-        var last = Math.Min(graph.Count, firstRow + rowCount);
+        var first = Math.Max(0, window.FirstRow);
+        var last = Math.Min(rows.Count, window.FirstRow + window.RowCount);
         var targets = new List<JumpLabel>();
         var blocked = new HashSet<char>();
         for (var row = first; row < last; row++)
         {
-            var subject = graph[row].Subject;
-            var start = subject.IndexOf(text, StringComparison.OrdinalIgnoreCase);
+            var shown = rows.TextOf(row);
+            var start = shown.IndexOf(text, StringComparison.OrdinalIgnoreCase);
             if (start < 0)
             {
                 continue;
             }
 
-            targets.Add(new JumpLabel(row, start, text.Length, JumpLabel.NoLetter));
-            BlockContinuations(subject, text, start, blocked);
+            var letter = FitsInRow(shown, start + text.Length, rows.ColumnsOf(row), rows.EllipsisWidth) ? Eligible : JumpLabel.NoLetter;
+            targets.Add(new JumpLabel(row, start, text.Length, letter));
+            BlockContinuations(shown, text, start, blocked);
         }
 
-        targets.Sort((left, right) => CompareDistance(left.Row, right.Row, cursorRow));
+        targets.Sort((left, right) => CompareDistance(left.Row, right.Row, window.CursorRow));
         AssignLetters(targets, blocked);
         return targets;
     }
@@ -87,12 +95,35 @@ public static class QuickJumpLabeler
         }
     }
 
+    // The label sits over the character after the match (or after the text when the match ends it): that column, and the
+    // whole character when it is wide, must be inside the columns of the row, short of the ellipsis of a cut text.
+    private static bool FitsInRow(string shown, int labelIndex, int columns, int ellipsisWidth)
+    {
+        var column = DisplayWidth.Of(shown[..Math.Min(labelIndex, shown.Length)]);
+        var replacedWidth = 1;
+        if (labelIndex < shown.Length)
+        {
+            Rune.DecodeFromUtf16(shown.AsSpan(labelIndex), out var replaced, out _);
+            replacedWidth = Math.Max(1, DisplayWidth.Of(replaced));
+        }
+
+        var appended = labelIndex >= shown.Length ? 1 : 0;
+        var limit = DisplayWidth.Of(shown) + appended <= columns ? columns : columns - ellipsisWidth;
+        return column + replacedWidth <= limit;
+    }
+
     private static void AssignLetters(List<JumpLabel> targets, HashSet<char> blocked)
     {
         var letters = Alphabet.Where(letter => !blocked.Contains(letter)).ToArray();
-        for (var index = 0; index < targets.Count && index < letters.Length; index++)
+        var next = 0;
+        for (var index = 0; index < targets.Count; index++)
         {
-            targets[index] = targets[index] with { Letter = letters[index] };
+            if (targets[index].Letter != Eligible)
+            {
+                continue;
+            }
+
+            targets[index] = targets[index] with { Letter = next < letters.Length ? letters[next++] : JumpLabel.NoLetter };
         }
     }
 

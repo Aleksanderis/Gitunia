@@ -22,7 +22,7 @@ public static class PaneHints
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("@", "HEAD", [ActionIds.GraphJumpToHead]),
-        new("<space>j", "quick jump", [ActionIds.GraphQuickJump]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Sidebar =
@@ -54,6 +54,7 @@ public static class PaneHints
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("w", "wrap", [ActionIds.DiffToggleWrap]),
         new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
         new("F", "whole file", [ActionIds.DiffToggleWholeFile]),
@@ -68,6 +69,7 @@ public static class PaneHints
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("w", "wrap", [ActionIds.DiffToggleWrap]),
         new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
         new("F", "whole file", [ActionIds.DiffToggleWholeFile]),
@@ -105,6 +107,7 @@ public static class PaneHints
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
         new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
@@ -118,6 +121,7 @@ public static class PaneHints
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
         new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),

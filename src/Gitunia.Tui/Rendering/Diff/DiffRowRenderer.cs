@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -25,26 +26,27 @@ public static class DiffRowRenderer
     /// <param name="highlight">Text to highlight (the diff search), null for none.</param>
     /// <param name="isSelected">The row is under the cursor.</param>
     /// <param name="glyphs">Supplies the ellipsis.</param>
-    public static StyledLine Render(DiffRow row, int width, int gutterDigits, string? highlight, bool isSelected, GraphGlyphSet glyphs)
+    /// <param name="jump">The quick-jump label of the row, null for none.</param>
+    public static StyledLine Render(DiffRow row, int width, int gutterDigits, string? highlight, bool isSelected, GraphGlyphSet glyphs, JumpLabel? jump = null)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         switch (row.Kind)
         {
             case DiffRowKind.FileHeader:
-                AppendText(builder, row.Text, SegmentRole.DiffFile, highlight, width);
+                AppendText(builder, row.Text, SegmentRole.DiffFile, highlight, width, jump: jump);
                 break;
             case DiffRowKind.HunkHeader:
-                AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight, width);
+                AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight, width, jump: jump);
                 break;
             case DiffRowKind.Warning:
-                AppendText(builder, $"! {row.Text}", SegmentRole.Error, highlight, width);
+                AppendText(builder, row.Text, SegmentRole.Error, highlight, width, "! ", jump);
                 break;
             case DiffRowKind.Note:
             case DiffRowKind.NoNewline:
-                AppendText(builder, $"  {row.Text}", SegmentRole.Faint, highlight, width);
+                AppendText(builder, row.Text, SegmentRole.Faint, highlight, width, "  ", jump);
                 break;
             default:
-                AppendChange(builder, row, width, gutterDigits, highlight);
+                AppendChange(builder, row, width, gutterDigits, highlight, jump);
                 break;
         }
 
@@ -97,7 +99,15 @@ public static class DiffRowRenderer
     }
 
     /// <summary>One screen line of a wrapped row: segment 0 carries the line numbers and marker, the others a blank prefix.</summary>
-    public static StyledLine RenderSegment(DiffRow row, int segment, int width, int gutterDigits, string? highlight, bool isSelected, GraphGlyphSet glyphs)
+    public static StyledLine RenderSegment(
+        DiffRow row,
+        int segment,
+        int width,
+        int gutterDigits,
+        string? highlight,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump = null)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         var prefixWidth = PrefixWidth(row, gutterDigits);
@@ -114,7 +124,7 @@ public static class DiffRowRenderer
         };
         if (columns <= 0)
         {
-            return Render(row, width, gutterDigits, highlight, isSelected, glyphs);
+            return Render(row, width, gutterDigits, highlight, isSelected, glyphs, jump);
         }
 
         if (segment == 0)
@@ -140,7 +150,16 @@ public static class DiffRowRenderer
         }
 
         var chunks = Chunks(ExpandTabs(row.Text), columns);
-        AppendHighlighted(builder, segment < chunks.Count ? chunks[segment] : string.Empty, textRole, highlight);
+        var shown = segment < chunks.Count ? chunks[segment] : string.Empty;
+        if (segment == 0 && jump is { } target)
+        {
+            JumpOverlay.Append(builder, shown, textRole, target);
+        }
+        else
+        {
+            AppendHighlighted(builder, shown, textRole, highlight);
+        }
+
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
@@ -190,7 +209,7 @@ public static class DiffRowRenderer
         return false;
     }
 
-    private static void AppendChange(LineBuilder builder, DiffRow row, int width, int gutterDigits, string? highlight)
+    private static void AppendChange(LineBuilder builder, DiffRow row, int width, int gutterDigits, string? highlight, JumpLabel? jump)
     {
         var style = row.Kind switch
         {
@@ -202,12 +221,21 @@ public static class DiffRowRenderer
         var gutter = $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
         builder.Append(gutter, SegmentRole.Faint);
         builder.Append(style.Marker.ToString(),role == SegmentRole.Plain ? SegmentRole.Faint : role);
-        AppendText(builder, row.Text, role, highlight, width);
+        AppendText(builder, row.Text, role, highlight, width, jump: jump);
     }
 
-    private static void AppendText(LineBuilder builder, string text, SegmentRole role, string? highlight, int width)
+    private static void AppendText(LineBuilder builder, string text, SegmentRole role, string? highlight, int width, string prefix = "", JumpLabel? jump = null)
     {
-        AppendHighlighted(builder, ExpandTabs(CutToWidth(text, width)), role, highlight);
+        builder.Append(prefix, role);
+        var shown = ExpandTabs(CutToWidth(text, width));
+        if (jump is { } target)
+        {
+            JumpOverlay.Append(builder, shown, role, target);
+        }
+        else
+        {
+            AppendHighlighted(builder, shown, role, highlight);
+        }
     }
 
     /// <summary>

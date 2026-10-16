@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -54,13 +55,14 @@ public static class WorkingTreePaneRenderer
     /// <param name="width">Columns for the row's text.</param>
     /// <param name="isSelected">The row is the cursor of its list.</param>
     /// <param name="glyphs">The character set.</param>
-    public static StyledLine RenderRow(WorkingTreeState? tree, WorkingTreeSection section, int item, int width, bool isSelected, GraphGlyphSet glyphs)
+    /// <param name="jump">The quick-jump label of the row, null for none.</param>
+    public static StyledLine RenderRow(WorkingTreeState? tree, WorkingTreeSection section, int item, int width, bool isSelected, GraphGlyphSet glyphs, JumpLabel? jump = null)
     {
         var count = Count(tree, section);
         if (tree is not null && item >= 0 && item < count)
         {
             var entries = section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged;
-            return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs);
+            return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs, jump);
         }
 
         var builder = new LineBuilder(width, glyphs.Ellipsis);

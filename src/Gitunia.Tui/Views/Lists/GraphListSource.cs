@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Graph;
-using Gitunia.Core.Jump;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search.Models;
@@ -19,9 +18,8 @@ namespace Gitunia.Tui.Views.Lists;
 /// </summary>
 public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
-    private readonly Dictionary<int, JumpLabel> _jumpLabels = [];
+    private readonly JumpLabelCache _jump = new();
     private GraphRowOptions? _cachedOptions;
-    private JumpKey? _jumpKey;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -34,7 +32,11 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public SearchQuery? Highlight { get; set; }
 
     /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
-    public string? JumpText { get; set; }
+    public string? JumpText
+    {
+        get => _jump.Text;
+        set => _jump.Text = value;
+    }
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
@@ -53,10 +55,25 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     /// <summary>Tells the list that commits were appended to the graph.</summary>
     public void NotifyAppended()
     {
+        _jump.Invalidate();
         if (!SuspendCollectionChangedEvent)
         {
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
+    }
+
+    /// <summary>The quick-jump targets of <paramref name="text"/> among the commits in view of <paramref name="listView"/>, nearest the cursor first.</summary>
+    /// <param name="listView">The list this source is shown in.</param>
+    /// <param name="text">The typed text.</param>
+    public IReadOnlyList<JumpLabel> JumpLabels(ListView listView, string text)
+    {
+        var first = CommitIndexOf(listView.Viewport.Y);
+        var cursor = CommitIndexOf(listView.SelectedItem ?? 0);
+        var firstHash = first >= 0 && first < graph.Count ? graph[first].Id.GetHashCode() : 0;
+        var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
+        var window = new JumpWindow(first, listView.Viewport.Height, cursor);
+
+        return _jump.Labels(text, window, HashCode.Combine(graph.Count, firstHash, width), () => new GraphJumpRows(graph, OptionsFor(width)));
     }
 
     public bool IsMarked(int item) => false;
@@ -83,7 +100,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     {
     }
 
-    // The labels are worked out once per frame (the first visible row), not once per row.
+    // The labels are worked out once per frame (the first row asks), not once per row.
     private JumpLabel? JumpLabelOf(ListView listView, int commitIndex)
     {
         if (string.IsNullOrEmpty(JumpText))
@@ -91,21 +108,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             return null;
         }
 
-        var first = CommitIndexOf(listView.Viewport.Y);
-        var cursor = CommitIndexOf(listView.SelectedItem ?? 0);
-        var firstHash = first >= 0 && first < graph.Count ? graph[first].Id.GetHashCode() : 0;
-        var key = new JumpKey(JumpText, first, listView.Viewport.Height, cursor, graph.Count, firstHash);
-        if (_jumpKey != key)
-        {
-            _jumpKey = key;
-            _jumpLabels.Clear();
-            foreach (var label in QuickJumpLabeler.Compute(JumpText, graph, first, listView.Viewport.Height, cursor))
-            {
-                _jumpLabels[label.Row] = label;
-            }
-        }
+        JumpLabels(listView, JumpText);
 
-        return _jumpLabels.TryGetValue(commitIndex, out var found) ? found : null;
+        return _jump.LabelOf(commitIndex);
     }
 
     private GraphRowOptions OptionsFor(int width)

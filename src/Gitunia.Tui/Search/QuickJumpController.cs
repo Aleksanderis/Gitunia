@@ -1,6 +1,5 @@
 using System.Globalization;
 using Gitunia.Core.Jump;
-using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.App.Tabs;
@@ -9,15 +8,17 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.Search;
 
 /// <summary>
-/// The <c>&lt;space&gt;j</c> prompt (flash/easymotion style): type text, the commits in view whose subject contains it
-/// get a label key, and pressing a label selects that commit. <c>Enter</c> jumps to the nearest match, <c>Esc</c> cancels.
-/// The matching and the labels are the pure <see cref="QuickJumpLabeler"/>; this class only wires keys to it.
+/// The <c>&lt;space&gt;j</c> prompt (flash/easymotion style): type text, the rows in view that contain it get a label key, and
+/// pressing a label moves the cursor to that row. <c>Enter</c> jumps to the nearest match, <c>Esc</c> cancels. It works on
+/// whichever list has focus through that list's <see cref="IJumpTarget"/>; the matching and the labels are the pure
+/// <see cref="QuickJumpLabeler"/>. This class only wires keys to them.
 /// </summary>
-public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
+public sealed class QuickJumpController(QuickJumpHost host) : IPromptHandler
 {
     private const string Prefix = "jump ";
 
     private TabSession? _session;
+    private IJumpTarget? _target;
     private string _text = string.Empty;
 
     public string Notice { get; private set; } = string.Empty;
@@ -26,7 +27,7 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
     {
         get
         {
-            if (_session is null || view.ActiveSession() != _session)
+            if (_target is null || IsStale())
             {
                 return string.Empty;
             }
@@ -36,7 +37,7 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
                 return $"{Prefix}_  type text, then press a label";
             }
 
-            var count = CurrentLabels(_session).Count;
+            var count = _target.Labels(_text).Count;
             var matches = count.ToString(CultureInfo.InvariantCulture);
             return count == 0 ? $"{Prefix}{_text}_  no match in view" : $"{Prefix}{_text}_  {matches} in view";
         }
@@ -45,38 +46,36 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
-        if (_session is not null && view.ActiveSession() != _session)
+        if (IsStale())
         {
-            // The tab changed under the prompt: drop it; its own accept and cancel keys are then done.
+            // The tab or the pane changed under the prompt: drop it; its own accept and cancel keys are then done.
             Close();
-            view.Redraw();
+            host.Redraw();
             if (action == ActionIds.InputAccept || action == ActionIds.Cancel)
             {
                 return true;
             }
         }
 
-        if (action == ActionIds.GraphQuickJump && view.ActiveSession() is { } session)
+        if (action == ActionIds.QuickJump)
         {
-            _session = session;
-            _text = string.Empty;
-            session.Source.JumpText = _text;
-            view.SetMode(KeyMode.Insert);
+            Open();
         }
-        else if (action == ActionIds.InputAccept && _session is not null)
+        else if (action == ActionIds.InputAccept && _target is not null)
         {
-            var nearest = CurrentLabels(_session).Select(label => (int?)label.Row).FirstOrDefault();
+            var nearest = _target.Labels(_text).Select(label => (int?)label.Row).FirstOrDefault();
+            var target = _target;
             Close();
             if (nearest is { } row)
             {
-                view.SelectRow(row);
+                target.JumpTo(row);
             }
             else
             {
                 Notice = "No match in view";
             }
         }
-        else if (action == ActionIds.Cancel && _session is not null)
+        else if (action == ActionIds.Cancel && _target is not null)
         {
             Close();
         }
@@ -85,56 +84,88 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
             return false;
         }
 
-        view.Redraw();
+        host.Redraw();
         return true;
     }
 
     public bool HandleTextKey(KeyEvent key)
     {
-        if (_session is null)
+        if (_target is null)
         {
             return false;
         }
 
-        if (view.ActiveSession() != _session)
+        if (IsStale())
         {
-            // The tab changed under the prompt: drop it, the key is not ours.
+            // The tab or the pane changed under the prompt: drop it, the key is not ours.
             Close();
             return false;
         }
 
-        var update = QuickJumpLabeler.Apply(_text, key, CurrentLabels(_session));
+        var update = QuickJumpLabeler.Apply(_text, key, _target.Labels(_text));
         if (update.JumpRow is { } row)
         {
+            var target = _target;
             Close();
-            view.SelectRow(row);
+            target.JumpTo(row);
         }
         else
         {
             _text = update.Text;
-            _session.Source.JumpText = _text;
+            _target.ShowLabels(_text);
         }
 
-        view.Redraw();
+        host.Redraw();
         return true;
     }
 
     public void OnGraphChanged()
     {
-        if (_session is not null)
+        if (_target is not null)
         {
-            view.Redraw();
+            host.Redraw();
         }
     }
 
-    private IReadOnlyList<JumpLabel> CurrentLabels(TabSession session) =>
-        QuickJumpLabeler.Compute(_text, session.Graph, view.FirstVisibleRow(), view.VisibleRowCount(), view.SelectedRow());
+    /// <summary>Closes the prompt when focus moved to another pane or tab without a key (a click).</summary>
+    public void CloseIfStale()
+    {
+        if (IsStale())
+        {
+            Close();
+            host.Redraw();
+        }
+    }
+
+    private void Open()
+    {
+        if (host.OpenTarget() is not { } target || host.ActiveSession() is not { } session)
+        {
+            Notice = "Quick jump is not available here";
+        }
+        else if (target.UnavailableReason is { } reason)
+        {
+            Notice = reason;
+        }
+        else
+        {
+            _session = session;
+            _target = target;
+            _text = string.Empty;
+            target.ShowLabels(_text);
+            host.SetMode(KeyMode.Insert);
+        }
+    }
+
+    private bool IsStale() =>
+        _target is not null && (host.ActiveSession() != _session || host.FocusedPane() != _target.Pane);
 
     private void Close()
     {
-        _session?.Source.JumpText = null;
+        _target?.ShowLabels(null);
+        _target = null;
         _session = null;
         _text = string.Empty;
-        view.SetMode(KeyMode.Normal);
+        host.SetMode(KeyMode.Normal);
     }
 }
