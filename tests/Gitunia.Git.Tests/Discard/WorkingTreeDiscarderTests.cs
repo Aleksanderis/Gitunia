@@ -1,12 +1,14 @@
+using System.Diagnostics;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Platform.FileSystem;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Discard;
 
 public class WorkingTreeDiscarderTests
 {
-    private static readonly WorkingTreeDiscarder Discarder = new(DiscardSupport.SharedRunner);
+    private static readonly WorkingTreeDiscarder Discarder = new(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -97,12 +99,72 @@ public class WorkingTreeDiscarderTests
     }
 
     [Fact]
-    public async Task GivenANameThatIsNotUtf8_WhenDeletingUntracked_ThenItIsRefusedBeforeGitRuns()
+    public async Task GivenANameThatIsNotUtf8AndNoByteExactDelete_WhenDeletingUntracked_ThenItIsRefusedBeforeGitRuns()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         var location = await DiscardSupport.LocationOfAsync(repository);
         var escaped = $"bad{(char)0xDCE9}.txt";
+        var discarder = new WorkingTreeDiscarder(DiscardSupport.SharedRunner, new UnsupportedByteExactFileSystem());
 
-        await Assert.ThrowsAsync<NotSupportedException>(() => Discarder.DeleteUntrackedAsync(location, [escaped], Token));
+        Assert.False(discarder.CanDeleteInvalidNames);
+        await Assert.ThrowsAsync<NotSupportedException>(() => discarder.DeleteUntrackedAsync(location, [escaped], Token));
+    }
+
+    [Fact]
+    public async Task GivenUntrackedNamesThatAreNotUtf8_WhenDeleting_ThenOnlyThoseAreDeletedByTheirBytes()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Names that are not UTF-8 exist on Linux only.");
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("keep.txt", "keep\n").WriteFile("dir/ok.txt", "ok\n");
+        Shell(
+            repository,
+            "b=$(printf '\\351'); touch \"bad$b.txt\" \"other$b.txt\" \"dir/x$b.txt\"; "
+            + "mkdir -p \"d$b\"/sub; touch \"d$b\"/sub/f.txt; ln -s keep.txt \"link$b\"");
+        var location = await DiscardSupport.LocationOfAsync(repository);
+        var discarder = new WorkingTreeDiscarder(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
+        string[] targets = [$"bad{(char)0xDCE9}.txt", $"d{(char)0xDCE9}/", $"link{(char)0xDCE9}", "keep.txt"];
+
+        await discarder.DeleteUntrackedAsync(location, targets, Token);
+
+        var left = repository.Git("ls-files", "-o", "-z").Split('\0', StringSplitOptions.RemoveEmptyEntries).Order();
+        Assert.Equal(["dir/ok.txt", "dir/x\ufffd.txt", "other\ufffd.txt"], left);
+        Assert.DoesNotContain(
+            Directory.EnumerateFileSystemEntries(repository.WorkingTreePath, "d*"),
+            entry => Path.GetFileName(entry) != "dir");
+        Assert.True(discarder.CanDeleteInvalidNames);
+    }
+
+    [Fact]
+    public async Task GivenIgnoredAndTrackedFilesBesideAnInvalidName_WhenDeleting_ThenTheyStay()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Names that are not UTF-8 exist on Linux only.");
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile(".gitignore", "*.log\n"));
+        Shell(
+            repository,
+            "b=$(printf '\\351'); mkdir \"d$b\"; touch \"d$b\"/new.txt \"d$b\"/keep.log \"tracked$b.txt\"; "
+            + "git add \"tracked$b.txt\"");
+        var location = await DiscardSupport.LocationOfAsync(repository);
+        var discarder = new WorkingTreeDiscarder(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
+        string[] targets = [$"d{(char)0xDCE9}/", $"tracked{(char)0xDCE9}.txt"];
+
+        await discarder.DeleteUntrackedAsync(location, targets, Token);
+
+        // .NET cannot list a directory with such a name, so ask git.
+        var ignored = repository.Git("ls-files", "-o", "-i", "--exclude-standard", "-z");
+        var tracked = repository.Git("ls-files", "-z");
+        var untracked = repository.Git("ls-files", "-o", "--exclude-standard", "-z");
+        Assert.Contains("keep.log", ignored, StringComparison.Ordinal);
+        Assert.Contains("tracked", tracked, StringComparison.Ordinal);
+        Assert.DoesNotContain("new.txt", untracked, StringComparison.Ordinal);
+    }
+
+    private static void Shell(TestRepository repository, string script)
+    {
+        var start = new ProcessStartInfo("sh") { WorkingDirectory = repository.WorkingTreePath };
+        start.ArgumentList.Add("-c");
+        start.ArgumentList.Add(script);
+        using var process = Process.Start(start)!;
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
     }
 }

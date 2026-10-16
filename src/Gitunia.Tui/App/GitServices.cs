@@ -1,6 +1,7 @@
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
+using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
@@ -62,7 +63,7 @@ public sealed record GitServices(
             refs,
             status,
             new IndexWriter(runner),
-            new WorkingTreeDiscarder(runner),
+            new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             stashes,
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),

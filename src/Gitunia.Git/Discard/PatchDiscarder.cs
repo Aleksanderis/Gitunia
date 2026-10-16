@@ -20,6 +20,9 @@ public sealed class PatchDiscarder(IDiffReader reader, IWorkingTreeDiscarder dis
 {
     private readonly PickableDiffReader _pickable = new(reader);
 
+    /// <summary>True where an untracked name that is not valid UTF-8 can be deleted (Linux).</summary>
+    public bool CanDeleteInvalidNames => discarder.CanDeleteInvalidNames;
+
     /// <summary>Discards the chosen unstaged lines of <paramref name="entry"/>.</summary>
     /// <param name="location">The repository or worktree.</param>
     /// <param name="entry">The status entry of the file.</param>
