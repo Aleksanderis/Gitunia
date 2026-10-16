@@ -100,6 +100,40 @@ public sealed class ListRangeFlowTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAConflictedFile_WhenStagingIt_ThenAConfirmAsksAndYMarksItResolved()
+    {
+        _flow.Load(Conflict("c.txt"), Modified("a.txt"));
+
+        _flow.Run(ActionIds.WorkingTreeStage);
+
+        Assert.Equal(OverlayKind.Confirm, _flow.Overlays.State.Kind);
+        var prompt = _flow.Overlays.State.Confirm!;
+        Assert.Contains("c.txt", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("markers", prompt.Lines[1], StringComparison.Ordinal);
+        Assert.Empty(_flow.Index.Staged);
+
+        _flow.Press(new Key('y'));
+        await _flow.WaitAsync();
+
+        Assert.Equal(["c.txt"], Assert.Single(_flow.Index.Staged));
+        Assert.Equal("Marked c.txt resolved", _flow.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTheResolveDialog_WhenCancelled_ThenNothingIsStaged()
+    {
+        _flow.Load(Conflict("c.txt"));
+        _flow.Run(ActionIds.WorkingTreeStage);
+
+        _flow.Press(Key.Esc);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        Assert.Equal(OverlayKind.None, _flow.Overlays.State.Kind);
+        Assert.Empty(_flow.Index.Staged);
+        Assert.Null(_flow.Statuses.Log.Latest);
+    }
+
+    [Fact]
     public void GivenARange_WhenCopying_ThenThePathsAreCopiedOnePerLine()
     {
         _flow.Load(Modified("a.txt"), Modified("b.txt"));
@@ -209,7 +243,7 @@ public sealed class ListRangeFlowTests : IDisposable
                 engine, Keys, _timer, Route, () => new ScreenSize(100, 30), GraphGlyphSet.Unicode, () => DefaultKeymap.WorkingUnstagedView, Statuses);
 
             Gate = new TabOperationGate();
-            var staging = new StagingActions(_host, Index, new PatchStager(new FakeDiffReader(), Index), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate);
+            var staging = new StagingActions(_host, Index, new PatchStager(new FakeDiffReader(), Index), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Gate, Overlays.ShowConfirm);
             var discard = new DiscardActions(_host, new PatchDiscarder(new FakeDiffReader(), Discarder), Statuses, Pump.Post, Refresh, _ => CancellationToken.None, Overlays.ShowConfirm, Gate);
             var clipboard = new ClipboardWriter(ClipboardOutput, new Osc52Options(Osc52Mode.Direct, 100_000));
             Visual = new VisualRangeController(

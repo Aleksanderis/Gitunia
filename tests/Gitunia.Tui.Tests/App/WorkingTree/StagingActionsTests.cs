@@ -75,7 +75,7 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public void GivenAConflictedFile_WhenStagingIt_ThenItIsRefusedWithoutRunningGit()
+    public void GivenAConflictedFileAndNoDialog_WhenStagingIt_ThenItIsRefusedWithoutRunningGit()
     {
         using var harness = new Harness(Conflict("c.txt"));
 

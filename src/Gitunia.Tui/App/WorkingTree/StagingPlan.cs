@@ -8,6 +8,9 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="Notice">Why nothing runs, empty when something does.</param>
 public sealed record StagingPlan(IReadOnlyList<string> Paths, string Name, int Count, int Skipped, string Notice)
 {
+    /// <summary>The plan marks a conflicted file resolved (an <c>add</c>), so the report says so.</summary>
+    public bool IsResolve { get; init; }
+
     public static StagingPlan Refused(string notice) => new([], string.Empty, 0, 0, notice);
 
     public static StagingPlan For(IReadOnlyList<string> paths, string name, int count, int skipped) =>
