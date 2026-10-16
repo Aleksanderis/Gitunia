@@ -34,19 +34,19 @@ Done when: a full commit cycle works without leaving the app, including partial 
 
 Status: not started.
 
-Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash.
+Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash; tags (create/delete/push); reflog view.
 Done when: the owner can use Gitunia for all daily branch and worktree work.
 
 ## M4 - Remotes and polish
 
 Status: not started (a few early items done).
 
-Fetch/pull/push with progress and cancel, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
+Fetch/pull/push with progress and cancel (keys and buttons, prune, force-with-lease, delete remote branch), interactive rebase editor (reorder/reword/squash/fixup/drop), remote management, clone/init, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
 Done when: usable as a daily driver on Linux; macOS/Windows binaries build in CI.
 
 ## Post-MVP candidates
 
-Interactive rebase editor, blame, conflict resolution view, submodules, PR/issue integration.
+Blame, conflict resolution view, submodules, PR/issue integration.
 
 ## Open questions
 

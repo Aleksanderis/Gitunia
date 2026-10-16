@@ -20,13 +20,17 @@ In:
 - Working tree: status, stage/unstage files, hunks and lines, commit, amend.
 - Diff viewer (unified and side-by-side).
 - Branches: list local/remote, checkout, create, rename, delete, reset (soft/mixed/hard), merge, rebase, upstream tracking, ahead/behind.
+- Tags: create (lightweight and annotated), delete, push and delete on a remote.
+- Reflog: browse it and reset or check out an entry (the undo path for every destructive operation).
+- Interactive rebase editor: reorder, pick, reword, squash, fixup and drop commits.
 - Worktrees: list, add, remove, switch, lock/prune, status per worktree.
 - Stash: list, push, apply, pop, drop.
-- Fetch, pull, push with progress and cancellation.
+- Fetch (with prune), pull, push with progress and cancellation; force push with lease, set upstream on first push, delete a remote branch; dedicated keys and buttons for fetch and pull on top of automatic refresh.
+- Remotes: add, remove, rename, change URL. Clone and init, from the repository picker.
 - Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
-Out until after MVP (ask before adding): interactive rebase editor, submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.
+Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.
 
 ## Stack
 
