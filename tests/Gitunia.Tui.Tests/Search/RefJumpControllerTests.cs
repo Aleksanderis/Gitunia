@@ -38,7 +38,7 @@ public class RefJumpControllerTests
         harness.Press(new Key('f'));
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("rel");
-        Assert.StartsWith("gr rel_  release/1.0 (1/1)", harness.StatusLine, StringComparison.Ordinal);
+        Assert.StartsWith("ref rel_  release/1.0 (1/1)", harness.StatusLine, StringComparison.Ordinal);
         harness.Press(Key.Enter);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);

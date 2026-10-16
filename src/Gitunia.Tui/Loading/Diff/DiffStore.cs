@@ -271,7 +271,7 @@ public sealed class DiffStore(
 
         if (truncated)
         {
-            builder.AddTrailingNote($"Diff cut short after {rows} rows (L loads all of it)");
+            builder.AddTrailingNote($"Diff cut short after {rows} rows (<space>vl loads all of it)");
         }
 
         return new DiffReadResult(builder.Build(warnings), truncated || fileCut);

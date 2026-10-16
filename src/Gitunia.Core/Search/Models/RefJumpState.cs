@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Gitunia.Core.Search.Models;
 
-/// <summary>The <c>gr</c> prompt: the typed text, the ranked candidates and which one <c>Enter</c> picks.</summary>
+/// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): the typed text, the ranked candidates and which one <c>Enter</c> picks.</summary>
 /// <param name="Text">The typed text.</param>
 /// <param name="Candidates">Best match first.</param>
 /// <param name="SelectedIndex">The highlighted candidate.</param>

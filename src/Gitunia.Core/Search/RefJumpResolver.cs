@@ -5,7 +5,7 @@ using Gitunia.Git.Refs.Models;
 
 namespace Gitunia.Core.Search;
 
-/// <summary>Builds the candidate list of the <c>gr</c> prompt: refs ranked fuzzily, plus loaded commits whose hash starts with the text.</summary>
+/// <summary>Builds the candidate list of the ref jump prompt (<c>&lt;space&gt;f</c>): refs ranked fuzzily, plus loaded commits whose hash starts with the text.</summary>
 public static class RefJumpResolver
 {
     private const int MinimumHashLength = 4;
