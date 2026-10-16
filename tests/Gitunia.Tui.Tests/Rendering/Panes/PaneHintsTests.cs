@@ -104,6 +104,12 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheConfirmHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInConfirmMode()
+    {
+        AssertKeysTriggerActions(PaneHints.ForConfirm(), KeyMode.Confirm, DefaultKeymap.ConfirmView);
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
