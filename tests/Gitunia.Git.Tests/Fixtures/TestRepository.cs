@@ -150,7 +150,9 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
-    /// <summary>Stashes a change to the existing tracked <c>file.txt</c> (as in Linear) and an untracked file (<c>untracked.txt</c>).</summary>
+    /// <summary>
+    /// Stashes a change to the existing tracked <c>file.txt</c> (as in Linear) and an untracked <c>untracked.txt</c>.
+    /// </summary>
     public TestRepository StashWithUntracked(string message = "wip")
     {
         WriteFile("file.txt", "stashed change\n");
