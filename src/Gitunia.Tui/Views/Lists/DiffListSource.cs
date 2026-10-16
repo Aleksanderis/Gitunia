@@ -20,11 +20,17 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     private DiffSplit? _split;
     private DiffSplitMap? _splitMap;
     private int _paneWidth;
+    private DiffDocument? _groupDocument;
+    private int _groupCursor = -1;
+    private RowRange? _group;
     private int _gutterDigits = DiffRowRenderer.GutterDigits(0);
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
     public DiffDocument Document { get; private set; } = DiffDocument.Empty;
+
+    /// <summary>The change group under the cursor is marked (the working-tree diff, where a group is the unit of staging).</summary>
+    public bool HighlightsGroup { get; set; }
 
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
@@ -188,11 +194,36 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             : current is null && item >= 0 && item < Document.Rows.Count
                 ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs, jump)
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
-        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
+        var padded = PanePadding.Wrap(line, columns);
+        if (IsInCursorGroup(listView, item))
+        {
+            padded = ChangeGroupMarker.Mark(padded, glyphs);
+        }
+
+        LinePainter.Paint(listView, padded, col, row, listView.HasFocus);
     }
 
     public void Dispose()
     {
+    }
+
+    // Not while a Visual range is open: the range is then the unit the keys act on.
+    private bool IsInCursorGroup(ListView listView, int item)
+    {
+        if (!HighlightsGroup || Range is not null || Count == 0 || item < 0 || item >= Count)
+        {
+            return false;
+        }
+
+        var cursor = RowOf(Math.Clamp(listView.SelectedItem ?? 0, 0, Count - 1));
+        if (!ReferenceEquals(_groupDocument, Document) || _groupCursor != cursor)
+        {
+            _groupDocument = Document;
+            _groupCursor = cursor;
+            _group = DiffSelection.GroupRowsAt(Document, cursor);
+        }
+
+        return _group is { } group && RowOf(item) <= group.Last && LastRowOf(item) >= group.First;
     }
 
     private DiffWrapMap? Map()

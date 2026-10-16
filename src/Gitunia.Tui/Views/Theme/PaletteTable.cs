@@ -49,6 +49,9 @@ public sealed class PaletteTable
     /// <summary>The selected row of a pane without focus: visible but quieter.</summary>
     public required Color SelectionDim { get; init; }
 
+    /// <summary>The tint behind the change group under the cursor of the working-tree diff, quieter than the selection; <see cref="Color.None"/> where the bar beside the group is the only mark.</summary>
+    public required Color GroupBackground { get; init; }
+
     /// <summary>The background of an inactive repository tab (a button on the bar), visibly apart from <see cref="BarBackground"/> (#240).</summary>
     public required Color TabButtonBackground { get; init; }
 
@@ -109,6 +112,7 @@ public sealed class PaletteTable
         PanelBackground = Rgb(0x181825),
         SelectionFocused = Rgb(0x313244),
         SelectionDim = Rgb(0x262637),
+        GroupBackground = Rgb(0x27283a),
         TabButtonBackground = Rgb(0x313244),
         ChipForeground = Rgb(0x11111b),
         ChipBackground = Rgb(0x89b4fa),
@@ -132,6 +136,7 @@ public sealed class PaletteTable
         PanelBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),
         SelectionDim = Rgb(0xe9ecf1),
+        GroupBackground = Rgb(0xe3e6ec),
         TabButtonBackground = Rgb(0xccd0da),
         ChipForeground = Rgb(0xeff1f5),
         ChipBackground = Rgb(0x1a59d7),
@@ -158,6 +163,7 @@ public sealed class PaletteTable
         PanelBackground = Color.None,
         SelectionFocused = Named(ColorName16.DarkGray),
         SelectionDim = Color.None,
+        GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Named(ColorName16.Black),
         ChipBackground = Named(ColorName16.BrightBlue),
@@ -183,6 +189,7 @@ public sealed class PaletteTable
         PanelBackground = Color.None,
         SelectionFocused = Named(ColorName16.Gray),
         SelectionDim = Color.None,
+        GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Named(ColorName16.White),
         ChipBackground = Named(ColorName16.Blue),
@@ -209,6 +216,7 @@ public sealed class PaletteTable
         PanelBackground = Color.None,
         SelectionFocused = Color.None,
         SelectionDim = Color.None,
+        GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Color.None,
         ChipBackground = Color.None,

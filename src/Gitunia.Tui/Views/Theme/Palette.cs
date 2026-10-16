@@ -42,7 +42,7 @@ public static class Palette
         var style = role.Style;
         if (!isSelected)
         {
-            return new Attribute(foreground, segment.OnPanel && background == Color.None ? colors.PanelBackground : background, style);
+            return new Attribute(foreground, BackgroundOf(segment, background, colors), style);
         }
 
         if (!role.KeepsBackground)
@@ -55,6 +55,21 @@ public static class Palette
         }
 
         return new Attribute(foreground, background, style | (isFocused ? colors.SelectionFocusedStyle : colors.SelectionDimStyle));
+    }
+
+    private static Color BackgroundOf(StyledSegment segment, Color background, PaletteTable colors)
+    {
+        if (background != Color.None)
+        {
+            return background;
+        }
+
+        if (segment.InGroup)
+        {
+            return colors.GroupBackground;
+        }
+
+        return segment.OnPanel ? colors.PanelBackground : background;
     }
 
     // Foreground, background, style, and whether the background stays when the row is selected (chips, search matches).
@@ -89,6 +104,7 @@ public static class Palette
             SegmentRole.DiffAdded => new RoleAppearance(colors.Good, Color.None, TextStyle.None, false),
             SegmentRole.DiffRemoved => new RoleAppearance(colors.Bad, Color.None, TextStyle.None, false),
             SegmentRole.DiffHunk => new RoleAppearance(colors.Info, Color.None, TextStyle.None, false),
+            SegmentRole.DiffGroupBar => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.DiffFile => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.Button => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.OverlayKey => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),

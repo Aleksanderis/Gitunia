@@ -34,6 +34,42 @@ public class PaletteTests
 
     [Theory]
     [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenColouringTheCursorGroup_ThenTextIsReadableOnTheGroupTint(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var terminalText = isLight ? LightText : DarkText;
+        SegmentRole[] roles =
+            [SegmentRole.Plain, SegmentRole.Faint, SegmentRole.DiffAdded, SegmentRole.DiffRemoved, SegmentRole.DiffGroupBar];
+
+        var failures = new List<string>();
+        foreach (var role in roles)
+        {
+            var attribute = Palette.For(new StyledSegment("x", role, InGroup: true), false, true, colors);
+            var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
+            var ratio = Contrast(foreground, ToRgb(attribute.Background));
+            if (ratio < ReadableRatio)
+            {
+                failures.Add($"{role}: contrast {ratio:F2}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.None)]
+    public void GivenAColourlessScheme_WhenColouringTheCursorGroup_ThenTheBackgroundIsLeftToTheTerminal(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        var attribute = Palette.For(new StyledSegment("x", SegmentRole.Plain, InGroup: true), false, true, colors);
+
+        Assert.Equal(Color.None, attribute.Background);
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringAnyRole_ThenTextIsReadableOnItsBackground(bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));

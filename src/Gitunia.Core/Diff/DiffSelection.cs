@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Core.Diff;
@@ -19,6 +20,29 @@ public static class DiffSelection
 
         var last = index + 1 < document.HunkRows.Count ? document.HunkRows[index + 1] - 1 : document.Rows.Count - 1;
         return OfRows(document, document.HunkRows[index], last);
+    }
+
+    /// <summary>
+    /// The rows of the change group the cursor row belongs to, as a range from its first changed row to its last (a note about a
+    /// missing newline included), or null when the diff has no group. Cursor on unchanged lines belongs to the group above.
+    /// </summary>
+    public static RowRange? GroupRowsAt(DiffDocument document, int row)
+    {
+        var index = HunkIndexAt(document, row);
+        if (index < 0)
+        {
+            return null;
+        }
+
+        var first = document.HunkRows[index];
+        var last = first;
+        while (last + 1 < document.Rows.Count
+            && document.Rows[last + 1].Kind is DiffRowKind.Added or DiffRowKind.Removed or DiffRowKind.NoNewline)
+        {
+            last++;
+        }
+
+        return new RowRange(first, last);
     }
 
     /// <summary>The changed lines among rows <paramref name="firstRow"/> to <paramref name="lastRow"/>; context, headers and notes are skipped.</summary>
