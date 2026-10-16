@@ -360,6 +360,37 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
+    public async Task GivenTheDiffFocused_WhenZooming_ThenItFillsTheViewUntilFocusLeavesIt()
+    {
+        using var harness = await Harness.OpenAsync(DefaultRepository());
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.False(harness.Controller.IsZoomed);
+
+        await harness.ExecuteAsync(ActionIds.PaneZoom);
+        Assert.True(harness.Controller.IsZoomed);
+
+        await harness.ExecuteAsync(ActionIds.PaneZoom);
+        Assert.False(harness.Controller.IsZoomed);
+
+        await harness.ExecuteAsync(ActionIds.PaneZoom);
+        await harness.ExecuteAsync(ActionIds.NavigateBack);
+        Assert.False(harness.Controller.IsZoomed);
+
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.False(harness.Controller.IsZoomed);
+    }
+
+    [Fact]
+    public async Task GivenAListFocused_WhenZooming_ThenNothingIsZoomed()
+    {
+        using var harness = await Harness.OpenAsync(DefaultRepository());
+
+        await harness.ExecuteAsync(ActionIds.PaneZoom);
+
+        Assert.False(harness.Controller.IsZoomed);
+    }
+
+    [Fact]
     public async Task GivenAModifiedBinaryFile_WhenStagingInTheDiff_ThenTheWholeFileIsStagedAndSaysSo()
     {
         using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "a\n"));

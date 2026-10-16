@@ -142,6 +142,19 @@ public class MouseMapTests
         Assert.Equal(key.Action, binding?.Action);
     }
 
+    [Theory]
+    [InlineData(DefaultMouseMap.DiffStageButton, DefaultKeymap.WorkingUnstagedDiffView, "<space>a")]
+    [InlineData(DefaultMouseMap.DiffDiscardButton, DefaultKeymap.WorkingUnstagedDiffView, "<space>d")]
+    [InlineData(DefaultMouseMap.DiffUnstageButton, DefaultKeymap.WorkingStagedDiffView, "<space>u")]
+    [InlineData(DefaultMouseMap.DiffZoomButton, DefaultKeymap.WorkingUnstagedDiffView, "<space>z")]
+    public void GivenAWorkingTreeDiffButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string diffView, string keys)
+    {
+        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
+        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), diffView).Feed(keys);
+
+        Assert.Equal(key.Action, binding?.Action);
+    }
+
     [Fact]
     public void GivenADragOnEveryListPane_WhenResolving_ThenItInheritsTheListsBindings()
     {

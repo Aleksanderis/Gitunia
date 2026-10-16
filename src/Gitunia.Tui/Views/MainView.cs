@@ -36,6 +36,7 @@ public sealed class MainView : IDisposable
     private readonly FrameStripView _workingLeftEdge;
     private readonly FrameStripView _workingRightEdge;
     private readonly LineView _messageOptions;
+    private readonly LineView _workingDiffTitle;
     private readonly LineView _stageAllButton;
     private readonly LineView _unstageAllButton;
     private bool _isWorkingMode;
@@ -171,6 +172,14 @@ public sealed class MainView : IDisposable
             () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
         _workingRightEdge = CreateWorkingEdge(
             () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+        _workingDiffTitle = new LineView(WorkingDiffTitleLine)
+        {
+            X = Pos.Func(_ => WorkingRects().Diff.X),
+            Y = Pos.Func(_ => WorkingRects().Diff.Y - 1),
+            Width = Dim.Func(_ => WorkingRects().Diff.Width),
+            Height = Dim.Func(_ => WorkingRects().Diff.IsEmpty ? 0 : 1),
+            Visible = false,
+        };
         WorkingDiff = new PaneListView
         {
             X = Pos.Func(_ => WorkingRects().Diff.X),
@@ -244,6 +253,7 @@ public sealed class MainView : IDisposable
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _detailTitle.Clicked += OnDetailTitleClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
+        _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
         Window.Add(
@@ -264,6 +274,7 @@ public sealed class MainView : IDisposable
             _workingDivider,
             _workingLeftEdge,
             _workingRightEdge,
+            _workingDiffTitle,
             WorkingUnstaged,
             WorkingStaged,
             WorkingDiff,
@@ -310,6 +321,12 @@ public sealed class MainView : IDisposable
 
     /// <summary>The keymap view of the diff box (the side of the selected file), for the mouse map.</summary>
     public Func<string> WorkingDiffView { get; set; } = () => DefaultKeymap.WorkingUnstagedDiffView;
+
+    /// <summary>The staging buttons of the diff box's title row: those of the selected file's side.</summary>
+    public Func<WorkingTreeButtons> WorkingDiffButtons { get; set; } = () => WorkingTreeButtons.None;
+
+    /// <summary>True while the diff box fills the whole working-tree view (<c>&lt;space&gt;z</c>).</summary>
+    public Func<bool> IsWorkingDiffZoomed { get; set; } = () => false;
 
     /// <summary>The title of the diff box of the working-tree view: side, hunk and file.</summary>
     public Func<string> WorkingDiffTitle { get; set; } = () => WorkingTreePaneRenderer.DiffTitleName;
@@ -432,6 +449,7 @@ public sealed class MainView : IDisposable
             _workingRightEdge.SetNeedsDraw();
             WorkingUnstaged.SetNeedsDraw();
             WorkingStaged.SetNeedsDraw();
+            _workingDiffTitle.SetNeedsDraw();
             WorkingDiff.SetNeedsDraw();
             WorkingMessage.SetNeedsDraw();
             _messageOptions.SetNeedsDraw();
@@ -476,6 +494,7 @@ public sealed class MainView : IDisposable
         WorkingUnstaged.Visible = working && !isPicker;
         WorkingStaged.Visible = working && !isPicker;
         WorkingDiff.Visible = working && !isPicker;
+        _workingDiffTitle.Visible = working && !isPicker;
         WorkingMessage.Visible = working && !isPicker;
         _messageOptions.Visible = working && !isPicker;
         _stageAllButton.Visible = working && !isPicker;
@@ -572,7 +591,7 @@ public sealed class MainView : IDisposable
         MessageClicked?.Invoke(column - padding, row, textWidth);
     }
 
-    private WorkingTreeRects WorkingRects() => WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight(), WorkingFocus());
+    private WorkingTreeRects WorkingRects() => WorkingTreeLayout.Compute(ScreenWidth, ScreenHeight(), WorkingFocus(), IsWorkingDiffZoomed());
 
     // The line between the lists and the diff, on the screen's rows of content.
     private PaneRect WorkingDividerRect()
@@ -626,6 +645,34 @@ public sealed class MainView : IDisposable
         }
     }
 
+    private void OnWorkingDiffTitleClicked(int column)
+    {
+        if (_suppressed())
+        {
+            return;
+        }
+
+        FocusFromTitle(WorkingDiff);
+        var buttons = DiffTitleButtons.Layout(_workingDiffTitle.Viewport.Width, WorkingDiffButtons());
+        if (TitleButton.ViewAt(buttons, column) is { } buttonView)
+        {
+            Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        }
+    }
+
+    private StyledLine WorkingDiffTitleLine(int width)
+    {
+        var rect = WorkingRects().Diff;
+        var line = DiffPaneRenderer.RenderWorkingTitle(
+            WorkingDiffTitle(),
+            WorkingPanes.IsDiff(WorkingFocus()),
+            WorkingDiffButtons(),
+            width,
+            _glyphs);
+
+        return CurrentGrid().ResolveRules(line, rect.Y - 1, rect.X);
+    }
+
     private FrameGrid CurrentGrid() => _isWorkingMode && !_picker.Visible ? CurrentWorkingGrid() : CurrentHistoryGrid();
 
     private FrameGrid CurrentWorkingGrid()
@@ -634,7 +681,6 @@ public sealed class MainView : IDisposable
         var rects = WorkingRects();
         var unstagedTitle = WorkingTreePaneRenderer.ListTitle(UnstagedSource.Tree, WorkingTreeSection.Unstaged);
         var stagedTitle = WorkingTreePaneRenderer.ListTitle(StagedSource.Tree, WorkingTreeSection.Staged);
-        var diffTitle = WorkingDiffTitle();
         var messageTitle = ActiveDraft()?.Title ?? WorkingTreePaneRenderer.MessageTitle;
         var key = new WorkingGridKey(
             ScreenWidth,
@@ -643,7 +689,6 @@ public sealed class MainView : IDisposable
             focus,
             unstagedTitle,
             stagedTitle,
-            diffTitle,
             messageTitle,
             _glyphs.IsAscii);
         if (_workingGrid is null || _workingGridKey != key)
@@ -654,7 +699,7 @@ public sealed class MainView : IDisposable
                 [
                     new FrameBox(rects.Unstaged, focus == PaneKind.WorkingUnstaged, unstagedTitle),
                     new FrameBox(rects.Staged, focus == PaneKind.WorkingStaged, stagedTitle),
-                    new FrameBox(rects.Diff, WorkingPanes.IsDiff(focus), diffTitle),
+                    new FrameBox(rects.Diff, WorkingPanes.IsDiff(focus), string.Empty),
                     new FrameBox(rects.Message, focus == PaneKind.WorkingMessage, messageTitle),
                 ],
                 _glyphs);
@@ -689,7 +734,6 @@ public sealed class MainView : IDisposable
         PaneKind Focus,
         string UnstagedTitle,
         string StagedTitle,
-        string DiffTitle,
         string MessageTitle,
         bool IsAscii);
 

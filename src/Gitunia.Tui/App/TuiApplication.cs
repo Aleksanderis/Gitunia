@@ -32,6 +32,7 @@ using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Search;
 using Gitunia.Tui.Views;
 using Gitunia.Tui.Views.Lists;
@@ -149,8 +150,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _view.WorkingDiff,
             mode => _keys.SetMode(mode),
             _view.RefreshChrome,
-            clipboard);
+            clipboard,
+            Relayout);
         _view.WorkingDiffTitle = _workingDiff.TitleText;
+        _view.IsWorkingDiffZoomed = () => _workingDiff.IsZoomed;
+        _view.WorkingDiffButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
         _visual = new VisualRangeController(
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             PaneView,

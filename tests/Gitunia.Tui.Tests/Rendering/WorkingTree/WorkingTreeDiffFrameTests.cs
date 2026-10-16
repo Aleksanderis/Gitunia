@@ -63,7 +63,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  hunk 1/1  src/app.cs ───────────────────╮",
+                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  hunk 1/1  src/a…─ stage ─ wrap ─ zoom ──╮",
                 "│ M src/app.cs                │ M src/app.cs                                             │",
                 "│                             │ @@ -1,3 +1,3 @@                                          │",
                 "│                             │   1   1  first                                           │",
@@ -86,7 +86,9 @@ public class WorkingTreeDiffFrameTests
     {
         var frame = Frame(Working(PaneKind.WorkingStagedDiff, WorkingTreeSection.Staged), 90, 16);
 
-        Assert.Contains("─ Diff  staged  hunk 1/1  src/app.cs ─", frame, StringComparison.Ordinal);
+        Assert.Contains("─ Diff  staged  hunk 1/1  src/", frame, StringComparison.Ordinal);
+        Assert.Contains(" unstage ", frame, StringComparison.Ordinal);
+        Assert.DoesNotContain(" discard ", frame, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -98,7 +100,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Diff  unstaged  hunk 1/1  src/app.cs ───────────────────╮",
+                "╭─ Diff  unstaged  hunk 1/1  src/a…─ stage ─ wrap ─ zoom ──╮",
                 "│ M src/app.cs                                             │",
                 "│ @@ -1,3 +1,3 @@                                          │",
                 "│   1   1  first                                           │",
@@ -159,7 +161,8 @@ public class WorkingTreeDiffFrameTests
     {
         var frame = Frame(Working(PaneKind.WorkingUnstagedDiff), 90, 16, GraphGlyphSet.Ascii);
 
-        Assert.Contains("- Diff  unstaged  hunk 1/1  src/app.cs -", frame, StringComparison.Ordinal);
+        Assert.Contains("- Diff  unstaged  hunk 1/1  src/", frame, StringComparison.Ordinal);
+        Assert.Contains("[stage]", frame, StringComparison.Ordinal);
         Assert.DoesNotContain('─', frame);
     }
 
@@ -180,5 +183,40 @@ public class WorkingTreeDiffFrameTests
 
         Assert.True(lines.Count <= Math.Max(height, 0));
         Assert.All(lines, line => Assert.True(TextWidth.Of(line.Text) <= width, $"{width}x{height}: '{line.Text}'"));
+    }
+
+    [Fact]
+    public void GivenAnUnstagedDiffOnAWideScreen_WhenComposing_ThenTheTitleRowEndsInTheStagingAndDiffButtons()
+    {
+        var frame = Frame(Working(PaneKind.WorkingUnstagedDiff), 160, 16);
+
+        var title = frame.Split('\n')[1];
+        Assert.Contains(" stage ", title, StringComparison.Ordinal);
+        Assert.Contains(" discard ", title, StringComparison.Ordinal);
+        Assert.Contains(" zoom ", title, StringComparison.Ordinal);
+        Assert.DoesNotContain(" unstage ", title, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheDiffZoomed_WhenComposing_ThenTheListsAndTheMessageBoxAreGone()
+    {
+        var working = Working(PaneKind.WorkingUnstagedDiff) with { IsDiffZoomed = true };
+
+        var frame = Frame(working, 90, 16);
+
+        Assert.DoesNotContain("Unstaged", frame, StringComparison.Ordinal);
+        Assert.DoesNotContain("Commit message", frame, StringComparison.Ordinal);
+        Assert.Contains("@@ -1,3 +1,3 @@", frame, StringComparison.Ordinal);
+        Assert.Contains("╭─ Diff  unstaged", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheZoomFlagButAListFocused_WhenComposing_ThenTheLayoutIsNormal()
+    {
+        var working = Working(PaneKind.WorkingUnstaged) with { IsDiffZoomed = true };
+
+        var frame = Frame(working, 90, 16);
+
+        Assert.Contains("Unstaged", frame, StringComparison.Ordinal);
     }
 }

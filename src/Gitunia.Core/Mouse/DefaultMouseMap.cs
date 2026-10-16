@@ -38,6 +38,13 @@ public static class DefaultMouseMap
 
     public const string DiffSideBySideButton = "DiffButton.SideBySide";
 
+    /// <summary>The staging buttons of the working-tree diff's title row (#343): stage or unstage the hunk, discard it.</summary>
+    public const string DiffStageButton = "DiffButton.Stage";
+
+    public const string DiffUnstageButton = "DiffButton.Unstage";
+
+    public const string DiffDiscardButton = "DiffButton.Discard";
+
     /// <summary>The tab labels in the detail pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
     public const string DetailDetailsTab = "DetailTab.Details";
 
@@ -137,6 +144,9 @@ public static class DefaultMouseMap
         new(DiffWholeFileButton, MouseGesture.Click, ActionIds.DiffToggleWholeFile),
         new(DiffIgnoreWhitespaceButton, MouseGesture.Click, ActionIds.DiffToggleIgnoreWhitespace),
         new(DiffSideBySideButton, MouseGesture.Click, ActionIds.DiffToggleSideBySide),
+        new(DiffStageButton, MouseGesture.Click, ActionIds.WorkingTreeStage),
+        new(DiffUnstageButton, MouseGesture.Click, ActionIds.WorkingTreeUnstage),
+        new(DiffDiscardButton, MouseGesture.Click, ActionIds.WorkingTreeDiscard),
         new(DetailDetailsTab, MouseGesture.Click, ActionIds.DetailTabDetails),
         new(DetailChangesTab, MouseGesture.Click, ActionIds.DetailTabChanges),
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),

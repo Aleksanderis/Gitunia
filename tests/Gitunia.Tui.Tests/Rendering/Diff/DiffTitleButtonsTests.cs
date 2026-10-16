@@ -37,6 +37,44 @@ public class DiffTitleButtonsTests
     }
 
     [Fact]
+    public void GivenTheUnstagedSide_WhenLayingOut_ThenStageAndDiscardLeadTheRow()
+    {
+        var buttons = DiffTitleButtons.Layout(160, WorkingTreeButtons.Unstaged);
+
+        Assert.Equal(
+            [" stage ", " discard ", " ‹ hunk ", " hunk › ", " ctx- ", " ctx+ ", " file ", " -w ", " split ", " wrap ", " zoom "],
+            buttons.Select(button => button.Label));
+    }
+
+    [Fact]
+    public void GivenTheStagedSide_WhenLayingOut_ThenUnstageIsThereAndDiscardIsNot()
+    {
+        var labels = DiffTitleButtons.Layout(160, WorkingTreeButtons.Staged).Select(button => button.Label).ToList();
+
+        Assert.Equal(" unstage ", labels[0]);
+        Assert.DoesNotContain(" discard ", labels);
+        Assert.DoesNotContain(" stage ", labels);
+    }
+
+    [Fact]
+    public void GivenANarrowRowOnTheUnstagedSide_WhenLayingOut_ThenStageSurvivesBeforeZoomAndWrap()
+    {
+        var labels = DiffTitleButtons.Layout(62, WorkingTreeButtons.Unstaged).Select(button => button.Label).ToList();
+
+        Assert.Equal([" stage ", " hunk › ", " wrap ", " zoom "], labels);
+    }
+
+    [Fact]
+    public void GivenTheHistoryDiff_WhenLayingOut_ThenNoStagingButtonShows()
+    {
+        var views = DiffTitleButtons.Layout(160).Select(button => button.View).ToList();
+
+        Assert.DoesNotContain(DefaultMouseMap.DiffStageButton, views);
+        Assert.DoesNotContain(DefaultMouseMap.DiffUnstageButton, views);
+        Assert.DoesNotContain(DefaultMouseMap.DiffDiscardButton, views);
+    }
+
+    [Fact]
     public void GivenAVeryNarrowTitleRow_WhenLayingOut_ThenThereAreNoButtons()
     {
         Assert.Empty(DiffTitleButtons.Layout(DiffTitleButtons.MinimumTitleWidth));
