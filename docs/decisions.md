@@ -251,3 +251,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.
 
 **UI:** Stash keys are `<space>S` chords (`Ss` `Su` push without/with untracked; sidebar `Sa` `Sp` `Sd`), not the bare `a` `p` `d` of the first draft, which clash with vim. Apply, pop and drop refuse outside a stash row instead of opening a picker; only drop asks.
+
+**UI:** Worktree add (#41) prompts for the branch first, then the path (default: sibling directory named after the branch), instead of path first plus a picker. Why: the default path needs the branch. Details in ux.md workflow 6.

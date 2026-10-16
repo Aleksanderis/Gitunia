@@ -13,6 +13,7 @@ using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Lists;
@@ -57,6 +58,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
+
+    /// <summary>The worktree operations and their prompts, ahead of the sidebar's own keys.</summary>
+    public WorktreeActions? Worktrees { get; set; }
 
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
@@ -127,6 +131,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         if (DetailTabs?.TryExecute(action) == true)
         {
+            return;
+        }
+
+        if (Worktrees?.TryExecute(action, count) == true)
+        {
+            Message = Worktrees.Notice;
             return;
         }
 
