@@ -9,6 +9,7 @@ using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Discard;
@@ -23,6 +24,7 @@ using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
@@ -214,7 +216,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
-        _prompts = [_diffPane, _workingDiff, _quickJump, .. CreatePrompts()];
+        _prompts = [_diffPane, _workingDiff, _quickJump, .. CreatePrompts(operationGate, sidebarSource)];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -677,7 +679,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         return new ClipboardCopier(clipboardWriter, _statuses);
     }
 
-    private IReadOnlyList<IPromptHandler> CreatePrompts()
+    private static SidebarRow? SidebarCursorRow(SidebarListSource source, RepositoryState tab) =>
+        source.Rows.IsEmpty ? null : source.Rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, source.Rows.Length)];
+
+    private IReadOnlyList<IPromptHandler> CreatePrompts(TabOperationGate gate, SidebarListSource sidebarSource)
     {
         var handle = new GraphViewHandle(
             ActiveSession,
@@ -700,6 +705,18 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),
+            new StashController(
+                _host,
+                services.StashWriter,
+                _statuses,
+                InvokeOnUi,
+                tabId => _effects.Refresh(tabId, false),
+                tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+                ShowConfirm,
+                tab => SidebarCursorRow(sidebarSource, tab),
+                _keys.SetMode,
+                _view.RefreshChrome,
+                gate),
         ];
     }
 

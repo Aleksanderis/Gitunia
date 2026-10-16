@@ -213,7 +213,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ 1/101 Ctrl-j/k move  Enter run  Esc close                            │",
+                "│ 1/106 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -313,7 +313,8 @@ public class OverlayFrameTests
         var lines = Text(frame).Split('\n');
 
         Assert.True(frame.Row + lines.Length <= screenHeight - 1, "The frame must end above the status row.");
-        Assert.Contains("101/101", lines[^2]);
+        var total = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView).Count;
+        Assert.Contains($"{total}/{total}", lines[^2]);
         Assert.True(frame.Lines[^3].IsSelected, "The last entry must be the selected row, directly above the footer.");
     }
 
@@ -379,7 +380,7 @@ public class OverlayFrameTests
                 "│ Lists                                                        │",
                 "│  j / Down             │ Move down                            │",
                 "│  k / Up               │ Move up                              │",
-                "│ 1-19/64  list keys scroll  Esc close                         │",
+                "│ 1-19/68  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -392,7 +393,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("<space>s", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("Cancel", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 

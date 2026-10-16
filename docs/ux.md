@@ -250,12 +250,12 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 3. `wd` remove: Confirm naming the path; a dirty worktree needs a second Confirm that lists what is lost and says there is no undo (`--force`); a locked one is refused until unlocked; the main worktree and the one the tab is on are refused.
 4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
 
-### 7. Stashes (M3, planned)
+### 7. Stashes (M3)
 
-`<space>S` + key, or single keys on a stash row in the sidebar.
-1. `Ss` push: prompt for an optional message; untracked files are included only after a second choice, ignored ones never. Refused with nothing to stash.
-2. `Sa` apply, `Sp` pop (sidebar `a`, `p`): a conflict keeps the stash, starts no operation, marks the files `!` and says so in the status bar. A pop that succeeds drops the entry.
-3. `Sd` drop (sidebar `d`): Confirm with the stash subject; the hint is `git stash store -m "<subject>" <hash>`, and the hash is shown in the status message after the drop.
+Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see the key rule). `Ss` `Su` work from every view; `Sa` `Sp` `Sd` act on the stash row under the sidebar cursor and say "Select a stash in the sidebar first" elsewhere (no picker: a destructive key never guesses a target).
+1. `Ss` push the tracked changes, `Su` push them plus the untracked files (ignored ones never): a status-bar prompt for an optional message (`Enter` runs, `Esc` cancels). "Nothing to stash" is a warning and points at `Su`.
+2. `Sa` apply, `Sp` pop: no Confirm (nothing is lost; git refuses when local changes would be overwritten and the status bar shows why). A conflict keeps the stash, starts no operation, marks the files `!` and says so in the status bar. A pop that succeeds drops the entry and the message carries the restore command.
+3. `Sd` drop: Confirm with the stash name and subject; the hint is `git stash store -m "<subject>" <hash>`, and the same command with the full hash is in the status message after the drop. The target travels as its commit hash, so a stack that changed meanwhile never redirects it ("no longer in the stash list", nothing happens).
 4. `Enter` on a stash row shows its diff in the detail pane (a stash is not a graph node).
 
 ## Look and colours
@@ -329,6 +329,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
+| Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
+| Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -435,6 +437,9 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `h` | Collapse section / parent |
 | Sidebar | `/` | Filter entries |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
+| Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
+| Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |
+| Sidebar | `<space>Sd` | Drop the stash under the cursor after a Confirm that shows the restore command |
 | Diff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Diff | `]c` `[c` | Next / previous hunk |
 | Diff | `]f` `[f` | Next / previous file |
