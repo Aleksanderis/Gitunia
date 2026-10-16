@@ -303,6 +303,39 @@ public class PatchStagerTests
     }
 
     [Fact]
+    public async Task GivenAnUntrackedSymlink_WhenStagingLines_ThenItIsRefusedOrGoesWholeAndNoEntryIsLeftBehind()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("target.txt", "1\n2\n3\n");
+        File.CreateSymbolicLink(Path.Combine(repository.WorkingTreePath, "link.txt"), "target.txt");
+        var (location, entry) = await LocateAsync(repository, "link.txt");
+        var line = new[] { new ChangedLine(DiffLineKind.Added, 2, "2") };
+
+        var refused = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, false, false, Token);
+        Assert.Equal(PatchStagingOutcome.NotSplittable, refused.Outcome);
+        AssertNothingStaged(repository);
+
+        var whole = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, line, true, false, Token);
+        Assert.Equal(PatchStagingOutcome.WholeFile, whole.Outcome);
+        Assert.Equal("target.txt", repository.Git("show", ":link.txt").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedCrlfFileUnderAutocrlf_WhenStagingLines_ThenTheChosenLinesAreStaged()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.Git("config", "core.autocrlf", "true");
+        File.WriteAllBytes(Path.Combine(repository.WorkingTreePath, "crlf.txt"), "1\r\n2\r\n3\r\n"u8.ToArray());
+        var (location, entry) = await LocateAsync(repository, "crlf.txt");
+
+        var chosen = await ChangesAsync(location, WorkingDiffSide.Unstaged, entry, DiffOptions.Default, texts: ["2", "2\r"]);
+        var result = await Stager.StageAsync(location, WorkingDiffSide.Unstaged, entry, chosen, false, false, Token);
+
+        Assert.Equal(PatchStagingOutcome.Applied, result.Outcome);
+        Assert.Equal("2\n", repository.Git("show", ":crlf.txt"));
+    }
+
+    [Fact]
     public async Task GivenAnUntrackedFileOnAnUnbornBranch_WhenStagingSomeLines_ThenOnlyThoseAreStaged()
     {
         using var repository = TestRepository.Create();

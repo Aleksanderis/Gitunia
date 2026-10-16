@@ -63,6 +63,19 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         bool isHeadUnborn,
         CancellationToken cancellationToken)
     {
+        // The untracked view follows a symlink (raw target content), while the index records the link target: the picked lines
+        // do not exist in the diff the patch is cut from, so a link is only ever staged whole.
+        if (IsSymbolicLink(location, entry.Path))
+        {
+            if (!allowWholeFile)
+            {
+                return new PatchStagingResult(PatchStagingOutcome.NotSplittable, 0);
+            }
+
+            await WholeFileAsync(location, WorkingDiffSide.Unstaged, entry, isHeadUnborn, cancellationToken).ConfigureAwait(false);
+            return new PatchStagingResult(PatchStagingOutcome.WholeFile, 0);
+        }
+
         var paths = StagingPaths.Of(entry, WorkingDiffSide.Unstaged);
         var keep = false;
         try
@@ -86,6 +99,9 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
             }
         }
     }
+
+    private static bool IsSymbolicLink(RepositoryLocation location, string path) =>
+        new FileInfo(Path.Combine(location.CommandPath, path)).LinkTarget is not null;
 
     // Not tied to the caller's token: a cancelled or failed operation must still leave the index as it found it. Best effort: it
     // runs when the add may not have happened at all (restore then fails) and must not hide the outcome or exception it follows.
