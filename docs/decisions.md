@@ -225,3 +225,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Platform:** Untracked names that are not valid UTF-8 are deleted on Linux only, by raw bytes through libc `unlink`/`rmdir` (P/Invoke) after `git ls-files -o -z` lists them; Windows and macOS keep the refusal (#358). Why: process arguments cannot carry such bytes and .NET paths are strings.
 
 **UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.
+
+**Git layer:** The working-tree diff of a name that is not valid UTF-8 (#344) streams the unfiltered diff and picks the file by its lossy path; an untracked one is read in-process through a small `open(2)` P/Invoke in `Gitunia.Platform` (bounded read, Linux/macOS only). Why: `git diff` has no pathspec file and the runtime cannot spell such a path.

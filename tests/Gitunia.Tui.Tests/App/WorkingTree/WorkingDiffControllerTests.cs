@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Drawing;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
@@ -8,8 +9,6 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
@@ -270,24 +269,15 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
-    public async Task GivenAPathThatIsNotValidUtf8_WhenSelected_ThenTheDiffBoxExplainsItCannotBeShown()
+    public async Task GivenAPathThatIsNotValidUtf8_WhenSelected_ThenTheDiffBoxShowsItsChanges()
     {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux allows file names that are not UTF-8.");
         using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
+        CreateFileWithInvalidName(repository.WorkingTreePath);
+
         using var harness = await Harness.OpenAsync(repository);
-        var entry = new StatusEntry(
-            StatusEntryKind.Untracked,
-            $"bad{(char)0xDCE9}.txt",
-            null,
-            FileChangeKind.Unmodified,
-            FileChangeKind.Unmodified,
-            null,
-            ConflictKind.None,
-            null);
 
-        harness.Session.WorkingDiff!.Store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entry), 99);
-        await harness.WaitAsync(() => harness.Session.WorkingDiff.Store.Status == DiffStatus.Failed);
-
-        Assert.Contains("not valid UTF-8", harness.Document().Rows[0].Text, StringComparison.Ordinal);
+        Assert.Contains(harness.Rows(), row => row.Contains("added line", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -558,6 +548,17 @@ public class WorkingDiffControllerTests
         return repository;
     }
 
+    private static void CreateFileWithInvalidName(string directory)
+    {
+        // The runtime cannot spell a non-UTF-8 name, so the shell creates the file from an octal escape.
+        var startInfo = new ProcessStartInfo("sh") { WorkingDirectory = directory };
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add("printf 'added line\\n' > \"$(printf 'bad\\377.txt')\"");
+        using var process = Process.Start(startInfo)!;
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly UiPump _pump;
@@ -706,8 +707,6 @@ public class WorkingDiffControllerTests
 
             await WaitForLoadedAsync();
         }
-
-        public Task WaitAsync(Func<bool> condition) => _pump.RunUntilAsync(condition);
 
         public void Dispose()
         {

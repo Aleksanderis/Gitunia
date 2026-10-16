@@ -1,5 +1,6 @@
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
 
@@ -29,8 +30,11 @@ public sealed class PickableDiffReader(IDiffReader reader)
         StatusEntry entry,
         CancellationToken cancellationToken)
     {
-        if (entry.Kind is not (StatusEntryKind.Ordinary or StatusEntryKind.Renamed))
+        if (entry.Kind is not (StatusEntryKind.Ordinary or StatusEntryKind.Renamed)
+            || GitPathText.HasEscapedBytes(entry.Path)
+            || (entry.OriginalPath is { } original && GitPathText.HasEscapedBytes(original)))
         {
+            // A name that is not valid UTF-8 gives an inexact patch, so it is handled whole by path without reading the diff.
             return null;
         }
 
@@ -103,17 +107,10 @@ public sealed class PickableDiffReader(IDiffReader reader)
         StatusEntry entry,
         CancellationToken cancellationToken)
     {
-        try
+        var files = reader.ReadWorkingFileAsync(location, side, entry, cancellationToken: cancellationToken);
+        await foreach (var file in files.ConfigureAwait(false))
         {
-            var files = reader.ReadWorkingFileAsync(location, side, entry, cancellationToken: cancellationToken);
-            await foreach (var file in files.ConfigureAwait(false))
-            {
-                return file;
-            }
-        }
-        catch (NotSupportedException)
-        {
-            // A path that is not valid UTF-8 cannot be given to the diff command; it is handled whole by path.
+            return file;
         }
 
         return null;

@@ -1,8 +1,10 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Platform.Files;
 
 namespace Gitunia.Git.Diff;
 
@@ -60,7 +62,7 @@ public sealed class DiffReader : IDiffReader
         if (GitPathText.HasEscapedBytes(entry.Path) || (entry.OriginalPath is { } original && GitPathText.HasEscapedBytes(original)))
         {
             // Unlike add and restore, diff cannot read its paths from stdin, and such a name cannot be a process argument.
-            throw new NotSupportedException("The file name is not valid UTF-8, and git diff cannot take it on stdin");
+            return ReadEscapedPathAsync(location, side, entry, warnings, maximumLinesPerFile, options, cancellationToken);
         }
 
         var extra = (options ?? DiffOptions.Default).ToArguments();
@@ -82,6 +84,73 @@ public sealed class DiffReader : IDiffReader
 
         var run = isUntracked ? NoIndexRun : GitRunOptions.ReadOnlyRun;
         return StreamAsync(location, command, run, isConflicted, warnings, maximumLinesPerFile, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads the diff of a file whose name cannot be an argument: an untracked file is read in-process and written as additions;
+    /// for a tracked one the unfiltered diff is streamed and the file is picked by its lossily decoded path, and the stream
+    /// stops after it (disposing it kills git).
+    /// </summary>
+    private async IAsyncEnumerable<DiffFile> ReadEscapedPathAsync(
+        RepositoryLocation location,
+        WorkingDiffSide side,
+        StatusEntry entry,
+        ICollection<string>? warnings,
+        int maximumLinesPerFile,
+        DiffOptions? options,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var nameBytes = GitPathText.Encode(entry.Path);
+        if (side == WorkingDiffSide.Unstaged && entry.Kind == StatusEntryKind.Untracked)
+        {
+            var parser = new DiffParser(maximumLinesPerFile);
+            var files = new List<DiffFile>();
+            var content = await Task.Run(() => ReadRawFile(location, nameBytes), cancellationToken).ConfigureAwait(false);
+            if (content is not null)
+            {
+                parser.Feed(NewFilePatch.Write(nameBytes, content), files);
+                parser.Complete(files);
+            }
+
+            foreach (var file in files)
+            {
+                yield return file;
+            }
+
+            yield break;
+        }
+
+        var lossyPath = Encoding.UTF8.GetString(nameBytes);
+        var isConflicted = side == WorkingDiffSide.Unstaged && entry.Kind == StatusEntryKind.Unmerged;
+        var extra = (options ?? DiffOptions.Default).ToArguments();
+        IReadOnlyList<string> command = side == WorkingDiffSide.Staged ? ["diff", GitOptions.Cached, .. extra] : ["diff", .. extra];
+        await foreach (var file in StreamAsync(
+            location,
+            command,
+            GitRunOptions.ReadOnlyRun,
+            isConflicted,
+            warnings,
+            maximumLinesPerFile,
+            cancellationToken).ConfigureAwait(false))
+        {
+            if (file.Path == lossyPath)
+            {
+                yield return file;
+                yield break;
+            }
+        }
+    }
+
+    private static byte[]? ReadRawFile(RepositoryLocation location, byte[] nameBytes)
+    {
+        if (location.WorkingTreePath is not { } root)
+        {
+            return null;
+        }
+
+        var prefix = Encoding.UTF8.GetBytes(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar);
+
+        return RawPathFileReader.TryReadAll([.. prefix, .. nameBytes]);
     }
 
     private static IEnumerable<string> LiteralPaths(StatusEntry entry, bool includeOriginal)

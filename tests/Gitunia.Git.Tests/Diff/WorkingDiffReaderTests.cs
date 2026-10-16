@@ -1,4 +1,4 @@
-using Gitunia.Git.Commits.Models;
+using System.Diagnostics;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
@@ -157,21 +157,79 @@ public class WorkingDiffReaderTests
     }
 
     [Fact]
-    public async Task GivenPathThatIsNotValidUtf8_WhenReadingTheDiff_ThenItIsRefused()
+    public async Task GivenModifiedFileWithNonUtf8Name_WhenReadingUnstaged_ThenItsChangesAreShown()
     {
-        using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux allows file names that are not UTF-8.");
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("other.txt", "o\n"));
+        CreateOddFile(testRepository.WorkingTreePath, "one\ntwo\n");
+        testRepository.Git("add", "-A");
+        testRepository.Git("commit", "-m", "odd");
+        CreateOddFile(testRepository.WorkingTreePath, "one\n2\n");
+        testRepository.WriteFile("other.txt", "changed\n");
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        var entry = new StatusEntry(
-            StatusEntryKind.Ordinary,
-            GitPathText.Decode([(byte)'x', 0xFF]),
-            null,
-            FileChangeKind.Unmodified,
-            FileChangeKind.Modified,
-            null,
-            ConflictKind.None,
-            null);
 
-        Assert.Throws<NotSupportedException>(() => Diff.ReadWorkingFileAsync(location, WorkingDiffSide.Unstaged, entry, cancellationToken: Token));
+        var files = await ReadOddAsync(location, WorkingDiffSide.Unstaged);
+
+        var file = Assert.Single(files);
+        Assert.True(file.HasInvalidText);
+        var lines = file.Hunks.Single().Lines;
+        Assert.Contains(lines, line => line.Kind == DiffLineKind.Removed && line.Text == "two");
+        Assert.Contains(lines, line => line.Kind == DiffLineKind.Added && line.Text == "2");
+    }
+
+    [Fact]
+    public async Task GivenStagedFileWithNonUtf8Name_WhenReadingStaged_ThenItsChangesAreShown()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux allows file names that are not UTF-8.");
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("other.txt", "o\n"));
+        CreateOddFile(testRepository.WorkingTreePath, "one\n");
+        testRepository.Git("add", "-A");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var files = await ReadOddAsync(location, WorkingDiffSide.Staged);
+
+        var file = Assert.Single(files);
+        Assert.Equal(DiffFileStatus.Added, file.Status);
+        Assert.Equal(["one"], file.Hunks.Single().Lines.Select(line => line.Text));
+    }
+
+    [Fact]
+    public async Task GivenUntrackedFileWithNonUtf8Name_WhenReadingUnstaged_ThenItIsShownAsAdditions()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Only Linux allows file names that are not UTF-8.");
+        using var testRepository = TestRepository.Create().Commit("base", new TestFile("other.txt", "o\n"));
+        CreateOddFile(testRepository.WorkingTreePath, "one\ntwo");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+
+        var files = await ReadOddAsync(location, WorkingDiffSide.Unstaged);
+
+        var file = Assert.Single(files);
+        Assert.Equal(DiffFileStatus.Added, file.Status);
+        Assert.Equal(["one", "two"], file.Hunks.Single().Lines.Select(line => line.Text));
+    }
+
+    private static async Task<IReadOnlyList<DiffFile>> ReadOddAsync(RepositoryLocation location, WorkingDiffSide side)
+    {
+        var snapshot = await Status.ReadStatusAsync(location, false, UntrackedFilesMode.All, Token);
+        var entry = snapshot.Entries.Single(candidate => GitPathText.HasEscapedBytes(candidate.Path));
+        var files = new List<DiffFile>();
+        await foreach (var file in Diff.ReadWorkingFileAsync(location, side, entry, cancellationToken: Token))
+        {
+            files.Add(file);
+        }
+
+        return files;
+    }
+
+    private static void CreateOddFile(string directory, string content)
+    {
+        // The runtime cannot spell a non-UTF-8 name, so the shell creates the file from an octal escape.
+        var startInfo = new ProcessStartInfo("sh") { WorkingDirectory = directory };
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add($"printf '{content.Replace("\n", "\\n")}' > \"$(printf 'odd\\377 name.txt')\"");
+        using var process = Process.Start(startInfo)!;
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
     }
 
     private static async Task<IReadOnlyList<DiffFile>> ReadAsync(
