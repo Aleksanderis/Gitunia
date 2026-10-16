@@ -203,11 +203,12 @@ public class StagingActionsTests
     }
 
     [Fact]
-    public async Task GivenAFileWithoutHunks_WhenStagingTheSelection_ThenTheWholeFileIsStaged()
+    public async Task GivenADeletedFileWithoutHunks_WhenStagingTheSelection_ThenTheWholeFileIsStaged()
     {
-        using var harness = new Harness(Untracked("new.txt"));
+        using var harness = new Harness(Deleted("new.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "new.txt");
 
-        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], false, Untracked("new.txt"));
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], false, Deleted("new.txt"));
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Equal(["new.txt"], Assert.Single(harness.Writer.Staged));
@@ -218,9 +219,10 @@ public class StagingActionsTests
     [Fact]
     public async Task GivenLinesPickedInAFileThatCannotBeSplit_WhenStaging_ThenNothingIsStagedAndAWarningShows()
     {
-        using var harness = new Harness(Untracked("new.txt"));
+        using var harness = new Harness(Deleted("new.txt"));
+        harness.Reader.SetWorking(WorkingDiffSide.Unstaged, "new.txt");
 
-        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], true, Untracked("new.txt"));
+        harness.Select(WorkingDiffSide.Unstaged, [new ChangedLine(DiffLineKind.Added, 1, "x")], true, Deleted("new.txt"));
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
 
         Assert.Empty(harness.Writer.Staged);

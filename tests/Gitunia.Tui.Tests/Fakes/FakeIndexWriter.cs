@@ -31,6 +31,11 @@ public sealed class FakeIndexWriter : IIndexWriter
         Staged.Add(paths);
     }
 
+    public async Task IntentToAddAsync(RepositoryLocation location, IReadOnlyList<string> paths, CancellationToken cancellationToken)
+    {
+        await WaitAsync().ConfigureAwait(false);
+    }
+
     public async Task UnstageAsync(RepositoryLocation location, IReadOnlyList<string> paths, bool isHeadUnborn, CancellationToken cancellationToken)
     {
         await WaitAsync().ConfigureAwait(false);
