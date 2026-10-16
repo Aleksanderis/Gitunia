@@ -1,4 +1,5 @@
 using Gitunia.Git.Branches;
+using Gitunia.Git.Reset;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
@@ -29,6 +30,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
@@ -46,6 +48,7 @@ public sealed record GitServices(
     IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
+    IResetWriter Reset,
     IStashReader Stashes,
     IStashWriter StashWriter,
     IWorktreeWriter Worktrees,
@@ -73,6 +76,7 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             new BranchWriter(runner),
+            new ResetWriter(runner),
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),

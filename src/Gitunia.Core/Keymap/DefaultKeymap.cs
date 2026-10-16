@@ -196,6 +196,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
+        Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
     }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.

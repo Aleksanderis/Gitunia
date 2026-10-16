@@ -137,6 +137,8 @@ public static class ActionIds
 
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
+    public static ActionId ResetBranch { get; } = new("reset.branch");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");
