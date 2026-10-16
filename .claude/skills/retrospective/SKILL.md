@@ -16,7 +16,9 @@ Safety and destructive-operation rules, pushing and merge rules, scope (MVP) rul
 ## 1. Collect
 
 - Range: since the last entry in `docs/retrospectives.md` (PR number or date); the first run takes the last 40 merged PRs.
-- `gh pr list --state merged --json number,title,mergedAt`, then per PR `gh pr view <n> --json comments,reviews`: the reviewer findings, the implementer fix replies, and any owner comment. Also `git log --grep` for fix-up commits after review. Work in the scratchpad, not in the repo.
+- Run `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]`. It writes every PR's comments, tagged OWNER, REVIEWER or IMPLEMENTER and cut to 1500 characters, and prints counts. Read the file in parts; do not paste raw `gh` output into the session. Work in the scratchpad, not in the repo.
+- Many PRs (more than ~30) or a long session: do the reading in a forked subagent and bring back only the grouped findings, so the session stays small.
+- Weight the evidence: an OWNER comment outweighs a reviewer finding (the owner is telling you what they care about); a reviewer finding the implementer fixed counts as a real miss; a finding the implementer skipped ("Not done", "accepted as a nit") in 3 or more PRs is reviewer noise, which is a proposal against `reviewer.md` (drop or demote the check), not a new rule.
 
 ## 2. Find what repeats
 
@@ -30,8 +32,9 @@ Safety and destructive-operation rules, pushing and merge rules, scope (MVP) rul
 
 ## 3. Audit what exists
 
-Read `CLAUDE.md`, `.claude/rules/*`, `.claude/agents/*`, every `SKILL.md`. Report, with file:line:
-- **Never fired:** rules with no matching finding or fix in the range. Candidates to trim, not proof they are dead; say so.
+Read `CLAUDE.md`, `.claude/rules/*`, `.claude/agents/*`, every `SKILL.md`, and the owner's memory feedback files (`MEMORY.md` in the project memory directory): a memory that restates a repo rule is a duplicate (keep the repo copy, ask before deleting the memory), and a memory the repo contradicts is stale. Report, with file:line:
+- **Enforceable:** prose rules a script, `.editorconfig` or test could now enforce (and so can leave the prose).
+- **No findings is not "unused".** A rule agents follow produces no findings, so silence never justifies trimming a rule. Trim only duplicates, stale text, and prose that is now enforced mechanically.
 - **Duplicates:** the same rule in two places (keep the narrowest, point to it from the other).
 - **Contradictions** between files, or with `docs/decisions.md`.
 - **Stale references:** files, scripts, commands, labels, issue numbers or doc sections that no longer exist (check each with ls/grep/gh).
