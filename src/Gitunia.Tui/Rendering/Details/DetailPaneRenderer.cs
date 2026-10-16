@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -61,6 +62,27 @@ public static class DetailPaneRenderer
         {
             builder.Append(segment.Text, segment.Role, segment.ColorIndex);
         }
+
+        return builder.Build(SegmentRole.Plain, isSelected);
+    }
+
+    /// <summary>A row with the quick-jump label drawn over it: the text after the change mark is flattened to one colour so the match and the letter show.</summary>
+    /// <param name="content">The rows of the pane.</param>
+    /// <param name="index">The row.</param>
+    /// <param name="isSelected">Whether the cursor is on the row.</param>
+    /// <param name="width">Columns of the text area.</param>
+    /// <param name="glyphs">The glyph set.</param>
+    /// <param name="jump">The label of the row.</param>
+    public static StyledLine RenderRow(DetailContent content, int index, bool isSelected, int width, GraphGlyphSet glyphs, JumpLabel jump)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        if (DetailJumpRows.MarkColumns(content, index) > 0)
+        {
+            var mark = content.Rows[index].Segments[0];
+            builder.Append(mark.Text + " ", mark.Role, mark.ColorIndex);
+        }
+
+        JumpOverlay.Append(builder, DetailJumpRows.TextOf(content, index), SegmentRole.Plain, jump);
 
         return builder.Build(SegmentRole.Plain, isSelected);
     }

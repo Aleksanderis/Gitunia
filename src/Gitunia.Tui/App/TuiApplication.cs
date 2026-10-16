@@ -710,7 +710,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _keys.SetMode,
         _view.RefreshChrome));
 
-    // The target of the focused list, null for a pane without a quick jump (the detail pane, the sidebar, the message box).
+    // The target of the focused list, null for a pane without a quick jump (the sidebar, the message box).
     private IJumpTarget? OpenJumpTarget()
     {
         if (ActiveSession() is not { } session)
@@ -722,6 +722,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             PaneKind.Graph => GraphJumpTarget(session),
             PaneKind.Diff => _diffPane.JumpTarget(),
+            PaneKind.Detail => DetailJumpTarget(session),
             PaneKind.WorkingUnstaged => FileListJumpTarget(PaneKind.WorkingUnstaged, _view.UnstagedSource, _view.WorkingUnstaged),
             PaneKind.WorkingStaged => FileListJumpTarget(PaneKind.WorkingStaged, _view.StagedSource, _view.WorkingStaged),
             PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => _workingDiff.JumpTarget(),
@@ -741,6 +742,20 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
             _view.Graph.EnsureSelectedItemVisible();
+        });
+
+    private ListJumpTarget DetailJumpTarget(TabSession session) => new(
+        PaneKind.Detail,
+        text => session.DetailSource.JumpLabels(_view.Detail, text),
+        text =>
+        {
+            session.DetailSource.JumpText = text;
+            _view.Detail.SetNeedsDraw();
+        },
+        row =>
+        {
+            _view.Detail.SelectedItem = row;
+            _view.Detail.EnsureSelectedItemVisible();
         });
 
     private static ListJumpTarget FileListJumpTarget(PaneKind pane, WorkingTreeListSource source, PaneListView list) => new(

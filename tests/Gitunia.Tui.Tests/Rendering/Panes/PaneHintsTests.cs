@@ -29,6 +29,7 @@ public class PaneHintsTests
     [Theory]
     [InlineData(PaneKind.Graph)]
     [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.Detail)]
     [InlineData(PaneKind.WorkingUnstaged)]
     [InlineData(PaneKind.WorkingStaged)]
     [InlineData(PaneKind.WorkingUnstagedDiff)]

@@ -228,7 +228,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Lines of an untracked text file (#351) are staged via `git add -N` first, undone when nothing is staged; untracked symlinks go whole (#379). Supersedes "new files go whole" of #31.
 
-**UI:** Quick jump (#353) is one action on `<space>j` in the graph, diffs and working-tree lists; side-by-side diff (#381) and the detail pane (#382) follow.
+**UI:** Quick jump (#353) is one action on `<space>j` in the graph, diffs and working-tree lists; side-by-side diff (#381) follows; the detail pane (#382) has it too.
 
 **UI:** Drafts and quit (#369): a missing tab's draft moves to the replacing tab; `q` quits at once unless the final session save fails with an unsent message. Supersedes the quit-guard removal of #347.
 

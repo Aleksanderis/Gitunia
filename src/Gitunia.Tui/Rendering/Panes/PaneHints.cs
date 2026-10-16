@@ -42,6 +42,7 @@ public static class PaneHints
         new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
         new("l", "open diff", [ActionIds.DetailOpenDiff]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("h", "back", [ActionIds.NavigateBack]),
         new("<space>r", "retry", [ActionIds.DetailRetry]),
     ];
