@@ -2,7 +2,7 @@
 
 Short dated log of settled choices that cut across docs. Agents follow these without asking. Open questions live in `roadmap.md`.
 
-Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), 1-3 lines (decision and why), a blank line between entries. Implementation detail, measurements and limits go in the area doc (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`, or `docs/history/` for the why and the measurements) or stay in the issue or PR. When a decision changes, append a new entry that supersedes the old one.
+Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one.
 
 ## 2026-10-10
 
@@ -32,11 +32,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Standalone launch resolves paths with `git -C <path> rev-parse` and dedupes tabs by the resolved toplevel (spike #3). Detail: `docs/history/git-layer.md`.
 
-**Architecture:** The renderer stays swappable but only Terminal.Gui is maintained; `src/Gitunia.CustomRenderTui` is a parked future option, not referenced by the app and only kept building in CI. Terminal.Gui types stay in the rendering project and no renderer interface is added until a second renderer is revived.
-
 ## 2026-10-11
-
-**UI:** The Terminal.Gui spike (#4) is kept as a reference sample in `samples/Gitunia.TerminalGuiSpike` (tag `archive/spike-4-terminal-gui-heavy`), unmaintained; the custom demo's look is achievable in Terminal.Gui.
 
 **Code structure:** Conventions from the PR #60 review live in `.claude/rules/csharp-style.md`: no truncated names, one type per file, scripts in `scripts/`, tmux-based interactive testing is Linux/macOS only.
 
@@ -142,15 +138,15 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Code structure:** Folders group by domain first, technical kind second (`Models/` inside a domain); test folders mirror the code. Why: one flat folder with 72 files hides what belongs together. Done in #246.
 
-**Code structure:** Pure parsers and formatters stay static; classes with I/O, a clock or a cache are instances with constructor injection, wired by hand, with interfaces only where another layer needs a fake and no DI container. Why: static leaves no seam for effect tests; a reflection-based container conflicts with AOT and startup. Tracked in #252.
+**Code structure:** Pure parsers and formatters are static; classes with I/O, a clock or a cache are instances with constructor injection, wired by hand, no DI container (AOT). Why: static leaves no seam for fakes (#252).
 
-**Code structure:** The git readers are instance classes that hold a `GitRunner` and take a `RepositoryLocation` per call; the `Repository` handle is gone. `GitServices.Create` is the hand-wired composition root, the Tui sees reader interfaces; the details store, diff store and status poller tests use fakes, the rest follow in #269. Startup is unchanged. Done in #252.
+**Code structure:** Git readers are instances holding a `GitRunner` and taking a `RepositoryLocation` per call; `GitServices.Create` is the hand-wired composition root and the Tui sees reader interfaces (#252).
 
 **UI:** Key notation is the spelled-out `Ctrl-d` / `Alt-1` form everywhere, and keys and descriptions sit in separate columns (help) or as key plus description pairs (status hints) (#242). Why: `^d` and bare key lists were unreadable without knowing the keys.
 
 **UI:** Inactive repository tabs are buttons: a chip on its own tint (`PaletteTable.TabButtonBackground`, visibly apart from the bar in both schemes), underlined without colours, bracketed in ASCII. Why: plain muted text did not read as clickable (#240).
 
-**UI:** Graph (#238): a commit with one child and one parent on its own lane is drawn as part of the line (`GraphGlyphSet.LineNode`, `│` / `|`), node dots only where a lane starts, ends, forks or merges. Why: runs of commits on one branch read as a line, dots mark the branch structure. Terminal-drawn glyph tiers stay in #154. Superseded in part by #280 below.
+**UI:** Graph (#238): unlabelled single-parent, single-child commits are drawn as part of the line, node dots only where a lane starts, ends, forks or merges. Partly superseded by #280.
 
 **UI:** The detail list view paints cells its rows leave blank in the panel colour, also with the cursor on the last row (#243); a frame test cannot see this, so it is checked in a real terminal and screenshots.
 
@@ -164,76 +160,74 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Palette (#96, owner did not answer, recommended default taken): modal-only actions (`confirm.*`, `picker.*` except open, palette/input accept, `Esc`) are hidden; actions bound before their feature are listed greyed out. Keeps the palette to what a user can run.
 
-**Code structure:** `RepositoryOperationDetector` (behind `IRepositoryOperationDetector`, injected into `RepositoryRefresher`) and `FramePrinter` (takes `GitServices`) are instances, not static (#269). Why: classes with I/O are instances so the operation section can be faked; static was only there to satisfy CA1822. Every reader interface has a fake (the detector is faked inline in the refresher test).
+**Code structure:** `RepositoryOperationDetector` and `FramePrinter` are instances, not static, so they can be faked (#269).
 
 **Code structure:** Unused usings (IDE0005) fail the build; Roslyn needs `GenerateDocumentationFile` for it, so doc warnings CS1573/1591 are silenced (CS1574/1734 were re-enabled in #295). Small `Models/` folders (Refs, Watching, Execution) stay for consistency (#258).
 
 **UI:** Status bar hints (#287, owner): wording stays short and is not derived from `ActionCatalog` titles; each hint names an `ActionId` per key and a test checks the default keymap binds the key to it.
 
-**UI:** Graph lane 0 (#301, owner): when a branch is checked out, lane 0 is reserved for the first-parent chain of its tip, so the current branch is a straight shaft on the left and other branches join it from the right. A detached or unborn HEAD keeps the leftmost-free-lane layout. Why: other tips listed first (`origin/main`, merged features) pushed the current branch off the left edge and bent it. Amended (#307, owner): a tip directly above the chain (first parent is HEAD, e.g. `origin/main` one commit ahead) also takes lane 0, so the shaft is not bent at the top; deeper ahead branches still bend in (the streamed layout cannot look ahead).
+**UI:** Graph lane 0 (#301, #307, #308, owner): with a branch checked out, lane 0 is the first-parent chain of its tip and ahead branches continue it upwards, so the current branch is a straight shaft on the left. A detached or unborn HEAD keeps the leftmost-free-lane layout.
 
 **UI:** Bottom pane tabs (#300): inactive tabs reuse the repository tab chip role (`TabButton` removed); the selected tab of an unfocused pane has its own role (`SelectedTab`: bold on the chip, bold underline without colours), so it stays distinct in every tier.
 
 **UI:** Diff title buttons (#302, owner): chips like the tabs with words (`‹ file`, `hunk ›`, `wrap`, `zoom`) instead of key-like brackets; the `[x]` close button is gone (the diff is part of the Changes tab).
 
-**UI:** Pane padding (#244, owner): two blank columns inside the frame for the History list and the bottom detail and diff panes from 100 columns of screen width, one below (the sidebar keeps one). The graph's own two-column right margin stays, so History has four blank columns at its right end on wide screens (kept on purpose, #301 owns the lane layout). The diff title has no hash (the detail title shows it).
-
-**UI:** Graph lane 0 and ahead branches (#308, owner follow-up to #307): commits above HEAD whose first-parent chain reaches it continue the lane 0 shaft upwards, so a branch ahead by any number of commits (for example `origin/main`) is straight too; this supersedes "deeper ahead branches still bend in". Why: the topmost branch should run straight and leftmost; the layout gets the set from one extra git run (cost in `docs/performance.md`).
+**UI:** Pane padding (#244, owner): two blank columns inside History and the bottom panes from 100 columns of width, one below; the sidebar keeps one.
 
 **UI:** The diff title row has no `‹ file` / `file ›` buttons (#310): files are chosen in the file list, `[f`/`]f` stay. Buttons count every click of a quick burst (the toolkit reports the second and third as double and triple click); a triple click elsewhere stays ignored.
 
-**UI:** Commit messages (#32, owner): a built-in Insert-mode editor and `$EDITOR` hand-off (#51) both exist, as in most git clients. Supersedes "no built-in text editor". Working tree is its own view: unstaged and staged lists left, diff right, message box below with SignOff, No-Verify and Amend options (#28).
+**UI:** Commit messages (#32, owner): a built-in Insert-mode editor and the `$EDITOR` hand-off (#51) both exist. The working tree is its own view with a message box (#28).
 
 **UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
 
 **UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
 
-**Git layer:** Non-UTF-8 paths (#94): status output is decoded surrogate-escaped (`GitPathText`) and paths reach git on stdin (`--pathspec-from-file=-`), never as arguments. Line and hunk patches of files with invalid UTF-8 are refused (`InexactPatchException`); such files are staged whole. Affects #30, #31, #33.
+**Git layer:** Non-UTF-8 paths (#94) are decoded surrogate-escaped and reach git on stdin, never as arguments; line patches of such files are refused and the files staged whole.
 
 **UI:** Working-tree view keys (#28) are designed in workflow 2 of `docs/ux.md` and stay out of the Keymap table until implemented, because the keymap test requires every row there to be bound.
 
-**UI:** Working-tree view (#29): the view mode is tab state (`RepositoryViewState.Mode`) and is not saved with the session, so a restart opens the history; Unstaged shows conflicted files first, applied in `WorkingTreeState` so selection indexes stay row indexes. Diff and message box are placeholder boxes until the working-tree diff and #314 exist.
+**UI:** The working-tree view mode (#29) is tab state and is not saved with the session; a restart opens the history.
 
-**UI:** External tools (#51): `git commit` (git picks the editor), `git difftool` and `git mergetool` run with the real terminal; the TUI suspends by disposing the Terminal.Gui application and creating a fresh one afterwards (see `docs/architecture.md`, "External tools"). Interim keys in the graph: `D` difftool of the commit, `M` mergetool, `E` commit with the editor; the working-tree view (#28) adds `ce` on the same hand-off.
+**UI:** External tools (#51): `git commit`, `git difftool` and `git mergetool` run with the real terminal by suspending the TUI (`docs/architecture.md`, "External tools").
 
 **UI:** Commit message editor (#314): an own `MessageEditor` in Core drawn by our renderer, not Terminal.Gui `TextView` (obsolete, its replacement is a separate package to vet for AOT); testable without a terminal.
 
-**UI:** `q` always quits from any pane (it first closes an open overlay or ends a Visual range); `h` and `Esc` step back a pane (#333). Supersedes the "q goes back one level" rule: a key that sometimes only moves focus reads as a bug. Working-tree view keys in workflow 2 must not bind `q` to leaving.
+**UI:** `q` always quits from any pane (#333); `h` and `Esc` step back. Supersedes "q goes back one level".
 
-**UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the bare keys of the earlier working-tree and external-tool entries; mapping in `docs/ux.md` ("Key rule"); `<space>j` is reserved for the quick jump (#334).
+**UI:** Vim-safe keys (#335, owner): standard vim keys keep their vim meaning; Gitunia actions use `<space>` chords or `Ctrl-`/`Alt-` keys. Mapping in `docs/ux.md` ("Key rule").
 
-**UI:** Stage and unstage (#30): stage all takes everything in Unstaged except conflicted files (skipped and counted), untracked files included; one index operation per tab, and the next action waits for the status re-read so the cursor keeps its index. Paths are always literal (--literal-pathspecs). Open: Visual ranges #340, resolve a conflicted file #341.
+**UI:** Stage and unstage (#30): stage all skips conflicted files and counts them; one index operation per tab at a time; paths are always literal.
 
-**UI:** Commit (#32): comment lines of the typed message are kept (a commit through `$EDITOR` strips them); a hook or signing program that prompts fails with its output and a hint to use `<space>te`; quitting with an unsent message needs a second `q` (guard) instead of Confirm mode, which is for destructive actions.
+**UI:** Commit (#32): comment lines of a typed message are kept; a prompting hook or signing program fails with a hint to use `<space>te`. The quit guard is superseded by #347 and #369.
 
 **UI:** `q` quits from the working-tree view too (#333 rule applied to #29/#30, which left `q` unbound there): `h`/`Esc` leave it.
 
-**UI:** Working-tree diff (#330): `q` quits in the diff as everywhere (#333), `h`/`Esc` go back; a conflicted file shows git's combined diff folded into one old/new pair (the per-parent columns are dropped), so it does not literally equal `git diff`; a path that is not valid UTF-8 shows a note because `git diff` reads no pathspec file (#344); a failed read is retried only when the status is read again or the options change.
+**UI:** Working-tree diff (#330): `q` quits, `h`/`Esc` go back; a conflicted file shows git's combined diff folded into one old/new pair.
 
-**Git layer:** Hunk and line staging (#31): the patch is never built from the rows on screen; the file's diff is re-read with default context, the picked lines are found by number and text and applied with `git apply --cached` (`-R` to unstage). Binary, new, deleted and copied files go whole for a hunk and refuse a line range; mode lines stay out of partial patches; a renamed file with edits is cut as an edit of its new path.
+**Git layer:** Hunk and line staging (#31): the file's diff is re-read with default context and the picked lines applied with `git apply --cached` (`-R` to unstage), never built from the rows on screen.
 
 **UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.
 
-**UI:** Discard (#33): always behind a Confirm dialog (reusable `OverlayController.ShowConfirm`; `y`/`n`/`Esc` only, swallows every other key) that states what is lost; no dangling stash is saved (the dialog says "cannot be undone"). Untracked files are deleted without a copy, hunks and lines are applied backwards to the working tree only, and discarding is one file at a time (no discard-all, no file-list ranges yet).
+**UI:** Discard (#33) is always behind a Confirm dialog that states what is lost; no dangling stash; one file at a time.
 
-**UI:** Quick jump (#334): `<space>j`, matching on the commit subject over the rows in view only (cost independent of log size); a letter that would continue a match in view is never a label, so labels and typing cannot clash; `Enter` takes the nearest match, matches beyond the 26 letters stay unlabelled (type more).
+**UI:** Quick jump (#334): `<space>j` labels only rows in view; a letter that would continue a match is never a label.
 
 ## 2026-10-16
 
 **UI:** vim-safe keys (#338, owner): diff display toggles move to the `<space>v` family (`w` `i` `f` `s` `l`), `@` to `<space>h`, `gr` to `<space>f`; `q` `h` `l` `]` `[` `?` `Y` `+` `-` `gd` `gc` `gf` stay as documented exceptions (read-only panes or navigation, muscle memory; list in `docs/ux.md`).
 
-**Process:** CI cost (free plan ~1100 of 2000 min used mid-month): CI runs once per ready PR, weekly on main and by dispatch, not on push to main; AOT publish only on PRs touching project/dependency files; agents verify locally, open PRs ready and push once; screenshots only for visual changes, one capture per PR. Revisit at v1.0. Supersedes the draft-PR flow.
+**Process:** CI cost (free plan): CI runs once per ready PR, weekly on main and by dispatch; AOT publish only on PRs touching project files; agents verify locally and push once. Supersedes the draft-PR flow. Revisit at v1.0.
 
 **Platform:** Untracked names that are not valid UTF-8 are deleted on Linux only, by raw bytes through libc `unlink`/`rmdir` (P/Invoke) after `git ls-files -o -z` lists them; Windows and macOS keep the refusal (#358). Why: process arguments cannot carry such bytes and .NET paths are strings.
 
 **UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.
 
-**Git layer:** The working-tree diff of a name that is not valid UTF-8 (#344) streams the unfiltered diff and picks the file by its lossy path; an untracked one is read in-process through a small `open(2)` P/Invoke in `Gitunia.Platform` (bounded read, Linux/macOS only). Why: `git diff` has no pathspec file and the runtime cannot spell such a path.
+**Git layer:** The working-tree diff of a non-UTF-8 name (#344) streams the unfiltered diff and picks the file by its lossy path; untracked ones are read through a small `open(2)` P/Invoke (Linux/macOS).
 
-**UI:** Working-tree diff chrome (#343): zoom is a flag of the tab's working-diff session and ends when focus leaves the diff; the title row has its own line view with the history diff's buttons plus `stage`/`discard` (Unstaged) or `unstage` (Staged), `stage` first and `discard` after the hunk buttons in the drop order. Click from a list to its diff on narrow screens is deferred to #376.
+**UI:** Working-tree diff chrome (#343): zoom ends when focus leaves the diff; the title row has `stage`/`discard` (Unstaged) or `unstage` (Staged) buttons. Click-through on narrow screens is #376.
 
-**Git layer:** Lines of an untracked text file (#351, supersedes the "new files go whole" part of #31): `git add -N` (intent-to-add) first, then the usual patch; the empty entry is removed again on every outcome that stages nothing, best effort (a kill -9 in between leaves it, visible as an unstaged addition). An untracked symlink is staged whole, never by lines (#379): the no-index view follows the link, the index records its target.
+**Git layer:** Lines of an untracked text file (#351) are staged via `git add -N` first, undone when nothing is staged; untracked symlinks go whole (#379). Supersedes "new files go whole" of #31.
 
-**UI:** Quick jump (#353) is one action bound to `<space>j` in the graph, the diffs and the working-tree file lists; only rows in view get labels and a label that would sit past the visible width takes no letter. Side-by-side diff (#381) and the detail pane (#382) follow; #361 reuses the prompt and labeler.
+**UI:** Quick jump (#353) is one action on `<space>j` in the graph, diffs and working-tree lists; side-by-side diff (#381) and the detail pane (#382) follow.
 
-**UI:** Drafts and quit (#369): locating a missing tab moves its draft (message, SignOff, No-Verify, never Amend) to the replacing tab, and both tabs stay when the replacement holds a message of its own. `q` quits at once unless the final session save fails while a message is unsent: then the first `q` warns and the next leaves (supersedes "the quit guard is gone" of #347).
+**UI:** Drafts and quit (#369): a missing tab's draft moves to the replacing tab; `q` quits at once unless the final session save fails with an unsent message. Supersedes the quit-guard removal of #347.

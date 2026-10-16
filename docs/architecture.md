@@ -21,7 +21,7 @@ Git layer (async, cancellable) ---- spawns `git` ---- repo on disk
 - three layers, strictly one-way dependencies: Rendering -> State -> Git. Git knows nothing about state or UI; State knows nothing about the console.
 - State is pure and testable without a terminal. Effects (run a git command, open an editor, copy to clipboard) are returned as data and executed by a runner that feeds results back as commands.
 - all git calls are async, cancellable and time-bounded; the UI never blocks on them.
-- Terminal.Gui v2 is the UI toolkit; the rendering layer wraps it and the state layer never sees it. Custom drawing (commit graph, diff) goes in custom views; modal keys and chords are handled at the application level by our keymap engine. Settings and pitfalls (iteration rate, streaming list source, key handling) and the measured numbers are in `docs/history/architecture.md`. The custom-renderer spikes were rejected on readability and maintenance cost, not speed. A custom renderer may be added later as a separate project, so keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`).
+- Terminal.Gui v2 is the UI toolkit; the rendering layer wraps it and the state layer never sees it. Custom drawing (commit graph, diff) goes in custom views; modal keys and chords are handled at the application level by our keymap engine. Settings and pitfalls (iteration rate, streaming list source, key handling) and the measured numbers are in `docs/history/architecture.md`. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`).
 
 ## Solution layout
 
@@ -31,17 +31,14 @@ src/
   Gitunia.Git/        process runner, parsers, readers (instance classes with an interface where the Tui consumes them), repo/worktree/branch/graph models; folders by domain: Commits, Diff, Execution (runner, version, exceptions), Refs, Repositories, Status, Stash, Watching, Worktrees; each has a `Models/` subfolder where records and enums are many; shared `ObjectId` and `ParseResult` stay in the root
   Gitunia.Core/       state, commands, effects, keymap, mouse map, config (no console, no process); folders by domain (Keymap and Search with a `Models/` subfolder, Workspaces with Panes, Repositories and Tabs subfolders, ...)
   Gitunia.Tui/        renderer, input, views, app entry point (AOT publish target); folders: Rendering (no Terminal.Gui types; subfolders Details, Diff, Graph, Panes, Screen, Sidebar, Styling, Tabs, Overlays), Views (Terminal.Gui views; subfolders Lists, Theme), Input (key and mouse translation, keymap and mouse controllers; Drag subfolder), Loading (streaming from git; subfolders Commits, Diff, Graph), Search (graph search, jump-to-ref and the quick-jump prompt with its IJumpTarget), App (wiring: workspace host, effect runner, action router; subfolders Clipboard, CommandLine, Details, Overlays, Panes, Sidebar, Tabs)
-  Gitunia.CustomRenderTui/  parked alternative renderer (cell buffer, VT input, raw terminal); not referenced by the app, not actively maintained
-samples/              runnable demos and reference spikes (not referenced by the app, not maintained)
 tests/
   Gitunia.Git.Tests/  against real temp repos
   Gitunia.Core.Tests/ pure state/keymap tests
   Gitunia.Tui.Tests/  snapshot tests of rendered frames
   Gitunia.Platform.Tests/
-  Gitunia.CustomRenderTui.Tests/  cell buffer diff and input parser tests
 tools/
-  ConPtyHarness/      Windows pseudoconsole smoke harness (standalone, used by the custom renderer workflow)
-scripts/              helper scripts (bash and PowerShell): fixture and big-repo generators, measurement harness
+  AnsiToSvg/          turns a tmux capture of the live UI into SVG for PR screenshots (local only, never in CI)
+scripts/              bash and PowerShell helpers: big-repo generator, measurement harness, inspectcode wrapper, screenshots
 ```
 
 Folder rule: domain first, technical kind second (`Models/` for records and enums), namespaces follow folders, and every test project mirrors the folder and file names of the code it tests (`Commits/CommitLogParserTests.cs`); shared test helpers sit in the folder of their domain or in `Fixtures/`. Unused usings fail the build (IDE0005; it needs `GenerateDocumentationFile`, so the missing-doc, partial-param-doc and broken-cref warnings that brings are silenced in `Directory.Build.props`). Small `Models/` folders (Refs, Watching, Execution) stay for consistency.
