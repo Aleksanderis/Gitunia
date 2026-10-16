@@ -9,7 +9,9 @@ namespace Gitunia.Git.Tags;
 /// </summary>
 public interface ITagWriter
 {
-    /// <summary>True when <paramref name="name"/> is a valid tag name (<c>git check-ref-format refs/tags/&lt;name&gt;</c>).</summary>
+    /// <summary>
+    /// True when <paramref name="name"/> is a valid tag name (<c>git check-ref-format refs/tags/&lt;name&gt;</c>).
+    /// </summary>
     Task<bool> IsValidNameAsync(RepositoryLocation location, string name, CancellationToken cancellationToken);
 
     /// <summary>
@@ -29,7 +31,9 @@ public interface ITagWriter
     /// <summary>The names of the configured remotes.</summary>
     Task<IReadOnlyList<string>> ListRemotesAsync(RepositoryLocation location, CancellationToken cancellationToken);
 
-    /// <summary>Pushes <c>refs/tags/&lt;name&gt;</c> to <paramref name="remote"/>: that one ref, nothing else.</summary>
+    /// <summary>
+    /// Pushes <c>refs/tags/&lt;name&gt;</c> to <paramref name="remote"/>: that one ref, nothing else.
+    /// </summary>
     Task PushAsync(RepositoryLocation location, string remote, string name, CancellationToken cancellationToken);
 
     /// <summary>Deletes <c>refs/tags/&lt;name&gt;</c> on <paramref name="remote"/>; the local tag stays.</summary>

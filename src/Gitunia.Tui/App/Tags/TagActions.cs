@@ -3,7 +3,6 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
-using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
@@ -13,6 +12,9 @@ using Gitunia.Git.Tags;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Input;
+
+// Core.Overlays has a FuzzyMatcher too (ConfirmPrompt lives there); the remote picker uses the Search one.
+using RemoteMatcher = Gitunia.Core.Search.FuzzyMatcher;
 
 namespace Gitunia.Tui.App.Tags;
 
@@ -309,7 +311,10 @@ public sealed class TagActions(
 
         var prompt = new ConfirmPrompt(
             "Delete tag",
-            [$"Delete the local tag {tag!.Name} (at {ShortHash(tag.CommitHash)})?", "A copy on a remote is not touched."],
+            [
+                $"Delete the local tag {tag!.Name} (at {ShortHash(tag.CommitHash)})?",
+                "A copy on a remote is not touched.",
+            ],
             $"Undo: git tag {tag.Name} {tag.ObjectHash}",
             "Delete tag");
         return confirm(prompt, () => StartDelete(tab.Id, tag)) ? string.Empty : TooSmallNotice;
@@ -453,6 +458,7 @@ public sealed class TagActions(
         });
     }
 
+    // Own busy set, not the shared operation gate: tag writes take ref locks, never the index lock.
     private void Start(RepositoryState tab, string failure, Func<CancellationToken, Task<string>> work)
     {
         _busy.Add(tab.Id);

@@ -61,7 +61,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
     public BranchActions? Branches { get; set; }
 
-    /// <summary>The tag actions (create, delete, push, delete on a remote), which own their prompts in every pane.</summary>
+    /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
     public TagActions? Tags { get; set; }
 
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>

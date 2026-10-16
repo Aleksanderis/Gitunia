@@ -155,7 +155,8 @@ public class TagActionsTests
 
         harness.Run(ActionIds.TagDelete);
 
-        Assert.Contains($"git tag v1 {tagObject}", Assert.Single(harness.Prompts).Consequence, StringComparison.Ordinal);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains($"git tag v1 {tagObject}", prompt.Consequence, StringComparison.Ordinal);
     }
 
     [Fact]
