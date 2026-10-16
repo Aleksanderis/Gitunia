@@ -1,8 +1,8 @@
 namespace Gitunia.Platform.FileSystem;
 
 /// <summary>
-/// Deletes by raw path bytes, for names that are not valid UTF-8 (possible on Linux) and so cannot be written as a .NET string
-/// without losing them. Paths are absolute and NUL-free; the caller builds them from bytes it got from git.
+/// Deletes by raw path bytes, for names that are not valid UTF-8 (possible on Linux) and so cannot be written as a .NET
+/// string without losing them. Paths are absolute and NUL-free; the caller builds them from bytes it got from git.
 /// </summary>
 public interface IByteExactFileSystem
 {

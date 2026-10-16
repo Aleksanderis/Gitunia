@@ -1,3 +1,4 @@
+using Gitunia.Platform.FileSystem;
 using System.Text;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Discard;
@@ -10,7 +11,8 @@ namespace Gitunia.Git.Tests.Discard;
 
 public class PatchDiscarderTests
 {
-    private static readonly PatchDiscarder Discarder = new(DiffReaderInstance, new WorkingTreeDiscarder(SharedRunner));
+    private static readonly PatchDiscarder Discarder =
+        new(DiffReaderInstance, new WorkingTreeDiscarder(SharedRunner, new UnsupportedByteExactFileSystem()));
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 

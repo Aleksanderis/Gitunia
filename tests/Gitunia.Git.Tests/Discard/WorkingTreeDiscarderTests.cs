@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Platform.FileSystem;
@@ -7,7 +8,7 @@ namespace Gitunia.Git.Tests.Discard;
 
 public class WorkingTreeDiscarderTests
 {
-    private static readonly WorkingTreeDiscarder Discarder = new(DiscardSupport.SharedRunner);
+    private static readonly WorkingTreeDiscarder Discarder = new(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -115,26 +116,54 @@ public class WorkingTreeDiscarderTests
         Assert.SkipUnless(OperatingSystem.IsLinux(), "Names that are not UTF-8 exist on Linux only.");
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("keep.txt", "keep\n").WriteFile("dir/ok.txt", "ok\n");
-        Shell(repository, "touch \"bad$(printf '\\351').txt\" \"other$(printf '\\351').txt\"; mkdir -p \"d$(printf '\\351')\"/sub; touch \"d$(printf '\\351')\"/sub/f.txt \"dir/x$(printf '\\351').txt\"");
+        Shell(
+            repository,
+            "b=$(printf '\\351'); touch \"bad$b.txt\" \"other$b.txt\" \"dir/x$b.txt\"; "
+            + "mkdir -p \"d$b\"/sub; touch \"d$b\"/sub/f.txt; ln -s keep.txt \"link$b\"");
         var location = await DiscardSupport.LocationOfAsync(repository);
         var discarder = new WorkingTreeDiscarder(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
-        var bad = $"bad{(char)0xDCE9}.txt";
-        var directory = $"d{(char)0xDCE9}/";
+        string[] targets = [$"bad{(char)0xDCE9}.txt", $"d{(char)0xDCE9}/", $"link{(char)0xDCE9}", "keep.txt"];
 
-        await discarder.DeleteUntrackedAsync(location, [bad, directory, "keep.txt"], Token);
+        await discarder.DeleteUntrackedAsync(location, targets, Token);
 
-        var left = repository.Git("ls-files", "-o", "-z").Split('\0', StringSplitOptions.RemoveEmptyEntries).Order().ToArray();
+        var left = repository.Git("ls-files", "-o", "-z").Split('\0', StringSplitOptions.RemoveEmptyEntries).Order();
         Assert.Equal(["dir/ok.txt", "dir/x\ufffd.txt", "other\ufffd.txt"], left);
-        Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(repository.WorkingTreePath, "d*"), entry => Path.GetFileName(entry) != "dir");
+        Assert.DoesNotContain(
+            Directory.EnumerateFileSystemEntries(repository.WorkingTreePath, "d*"),
+            entry => Path.GetFileName(entry) != "dir");
         Assert.True(discarder.CanDeleteInvalidNames);
+    }
+
+    [Fact]
+    public async Task GivenIgnoredAndTrackedFilesBesideAnInvalidName_WhenDeleting_ThenTheyStay()
+    {
+        Assert.SkipUnless(OperatingSystem.IsLinux(), "Names that are not UTF-8 exist on Linux only.");
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile(".gitignore", "*.log\n"));
+        Shell(
+            repository,
+            "b=$(printf '\\351'); mkdir \"d$b\"; touch \"d$b\"/new.txt \"d$b\"/keep.log \"tracked$b.txt\"; "
+            + "git add \"tracked$b.txt\"");
+        var location = await DiscardSupport.LocationOfAsync(repository);
+        var discarder = new WorkingTreeDiscarder(DiscardSupport.SharedRunner, new LinuxByteExactFileSystem());
+        string[] targets = [$"d{(char)0xDCE9}/", $"tracked{(char)0xDCE9}.txt"];
+
+        await discarder.DeleteUntrackedAsync(location, targets, Token);
+
+        // .NET cannot list a directory with such a name, so ask git.
+        var ignored = repository.Git("ls-files", "-o", "-i", "--exclude-standard", "-z");
+        var tracked = repository.Git("ls-files", "-z");
+        var untracked = repository.Git("ls-files", "-o", "--exclude-standard", "-z");
+        Assert.Contains("keep.log", ignored, StringComparison.Ordinal);
+        Assert.Contains("tracked", tracked, StringComparison.Ordinal);
+        Assert.DoesNotContain("new.txt", untracked, StringComparison.Ordinal);
     }
 
     private static void Shell(TestRepository repository, string script)
     {
-        var start = new System.Diagnostics.ProcessStartInfo("sh") { WorkingDirectory = repository.WorkingTreePath };
+        var start = new ProcessStartInfo("sh") { WorkingDirectory = repository.WorkingTreePath };
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add(script);
-        using var process = System.Diagnostics.Process.Start(start)!;
+        using var process = Process.Start(start)!;
         process.WaitForExit();
         Assert.Equal(0, process.ExitCode);
     }
