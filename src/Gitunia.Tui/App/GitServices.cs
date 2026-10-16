@@ -27,6 +27,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
+/// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
 /// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
@@ -42,6 +43,7 @@ public sealed record GitServices(
     IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
     IStashReader Stashes,
+    IStashWriter StashWriter,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
@@ -66,6 +68,7 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             stashes,
+            new StashWriter(runner),
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),

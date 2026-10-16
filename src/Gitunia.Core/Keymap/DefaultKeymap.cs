@@ -101,6 +101,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
         Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);
         Add(bindings, NormalOnly, global, "<space>s", ActionIds.WorkingTreeToggle);
+        Add(bindings, NormalOnly, global, "<space>Ss", ActionIds.StashPush);
+        Add(bindings, NormalOnly, global, "<space>Su", ActionIds.StashPushUntracked);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -150,6 +152,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "h", ActionIds.SidebarCollapse);
         Add(bindings, NormalOnly, SidebarView, "/", ActionIds.SidebarFilter);
         Add(bindings, NormalOnly, SidebarView, "y", ActionIds.SidebarCopy);
+        Add(bindings, NormalOnly, SidebarView, "<space>Sa", ActionIds.StashApply);
+        Add(bindings, NormalOnly, SidebarView, "<space>Sp", ActionIds.StashPop);
+        Add(bindings, NormalOnly, SidebarView, "<space>Sd", ActionIds.StashDrop);
 
         Add(bindings, NormalOnly, DiffView, "]c", ActionIds.DiffNextHunk);
         Add(bindings, NormalOnly, DiffView, "[c", ActionIds.DiffPreviousHunk);
