@@ -213,3 +213,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** Hunk and line staging (#31): the patch is never built from the rows on screen; the file's diff is re-read with default context, the picked lines are found by number and text and applied with `git apply --cached` (`-R` to unstage). Binary, new, deleted and copied files go whole for a hunk and refuse a line range; mode lines stay out of partial patches; a renamed file with edits is cut as an edit of its new path.
 
 **UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.
+
+## 2026-10-16
+
+**Process:** CI cost (free plan ~1100 of 2000 min used mid-month): CI runs once per ready PR, weekly on main and by dispatch, not on push to main; AOT publish only on PRs touching project/dependency files; agents verify locally, open PRs ready and push once; screenshots only for visual changes, one capture per PR. Revisit at v1.0. Supersedes the draft-PR flow.
