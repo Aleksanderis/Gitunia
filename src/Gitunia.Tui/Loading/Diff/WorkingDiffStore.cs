@@ -2,6 +2,7 @@ using Gitunia.Core.Diff;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Tui.Loading.Diff;
 
@@ -73,7 +74,8 @@ public sealed class WorkingDiffStore(
             _cache.Clear();
         }
 
-        if (request == Request && !isNewGeneration && Status != DiffStatus.Failed)
+        // A failed read is not retried until the status is read again, the options change or L asks: a key press must not start git again.
+        if (request == Request && !isNewGeneration)
         {
             return false;
         }
@@ -179,6 +181,11 @@ public sealed class WorkingDiffStore(
             }
         }
 
+        if (builder.RowCount == 0 && warnings.Count == 0 && NoteForNoFile(request.Entry) is { } note)
+        {
+            builder.AddTrailingNote(note);
+        }
+
         if (truncated)
         {
             builder.AddTrailingNote($"Diff cut short after {rows} rows (L loads all of it)");
@@ -186,6 +193,25 @@ public sealed class WorkingDiffStore(
 
         return new DiffReadResult(builder.Build(warnings), truncated || fileCut);
     }
+
+    // Git prints no patch for these, and "no changes" would mislead.
+    private static string? NoteForNoFile(StatusEntry entry) => entry.Kind switch
+    {
+        StatusEntryKind.Unmerged => $"Conflicted ({DescribeConflict(entry.Conflict)}): git shows no combined diff for it",
+        StatusEntryKind.Untracked => "Nothing to show: an untracked directory or repository, or a file that cannot be read",
+        _ => null,
+    };
+
+    private static string DescribeConflict(ConflictKind kind) => kind switch
+    {
+        ConflictKind.BothDeleted => "deleted by both",
+        ConflictKind.DeletedByThem => "deleted by them",
+        ConflictKind.DeletedByUs => "deleted by us",
+        ConflictKind.AddedByUs => "added by us",
+        ConflictKind.AddedByThem => "added by them",
+        ConflictKind.BothAdded => "added by both",
+        _ => "both modified",
+    };
 
     private async Task LoadAsync(WorkingDiffRequest request, bool limited, CancellationToken token)
     {

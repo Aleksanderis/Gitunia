@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
@@ -119,7 +120,7 @@ public class WorkingDiffStoreTests
     }
 
     [Fact]
-    public async Task GivenAFailingRead_WhenShowing_ThenTheMessageSaysItAndAskingAgainRetries()
+    public async Task GivenAFailingRead_WhenShowing_ThenTheMessageSaysItAndOnlyANewGenerationRetries()
     {
         var reader = new FakeDiffReader();
         var pump = new UiPump(Token);
@@ -130,7 +131,9 @@ public class WorkingDiffStoreTests
 
         Assert.StartsWith("Could not load the diff", Assert.Single(store.Document.Rows).Text, StringComparison.Ordinal);
         reader.SetWorking(WorkingDiffSide.Unstaged, "missing.txt", FakeDiffReader.FileAdding("missing.txt", ["now here"]));
-        Assert.True(store.Show(Unstaged("missing.txt"), 0));
+        Assert.False(store.Show(Unstaged("missing.txt"), 0));
+        Assert.Equal(DiffStatus.Failed, store.Status);
+        Assert.True(store.Show(Unstaged("missing.txt"), 1));
         await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
     }
 
@@ -200,6 +203,20 @@ public class WorkingDiffStoreTests
         Assert.Equal("No file selected", Assert.Single(store.Document.Rows).Text);
         Assert.Equal(1, changes);
         Assert.Null(store.Request);
+    }
+
+    [Fact]
+    public async Task GivenAConflictedFileWithoutAPatch_WhenLoaded_ThenARemarkNamesTheConflict()
+    {
+        var reader = new FakeDiffReader();
+        reader.SetWorking(WorkingDiffSide.Unstaged, "f.txt");
+        var pump = new UiPump(Token);
+        using var store = CreateStore(pump, reader);
+
+        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, Conflict("f.txt", ConflictKind.DeletedByThem)), 0);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Contains("deleted by them", store.Document.Rows.Single().Text, StringComparison.Ordinal);
     }
 
     private static WorkingDiffRequest Unstaged(string path) => new(WorkingDiffSide.Unstaged, Modified(path));

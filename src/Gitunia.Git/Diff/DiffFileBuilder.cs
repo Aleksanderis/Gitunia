@@ -233,8 +233,11 @@ internal sealed class DiffFileBuilder
             || !TryParseRange(ranges[0][1..], out var oldStart, out var oldCount)
             || !TryParseRange(ranges[^1][1..], out var newStart, out var newCount))
         {
-            _warnings.Add($"Skipped hunk with an unreadable header: '{line}'");
+            // Keep the lines that follow as the body of an unnumbered hunk rather than as header lines.
+            _warnings.Add($"Could not read the hunk header '{line}'");
             _combinedParents = Math.Max(1, parents);
+            _openHeaderText = line;
+            _nextNewNumber = 1;
             return;
         }
 

@@ -38,9 +38,9 @@ public class KeyedDiffCache<TKey>
     public int RowCount => _rowCount;
 
     /// <summary>Looks an entry up and marks it as the most recently used.</summary>
-    public bool TryGet(TKey commit, out DiffDocument document)
+    public bool TryGet(TKey key, out DiffDocument document)
     {
-        if (_nodes.TryGetValue(commit, out var node))
+        if (_nodes.TryGetValue(key, out var node))
         {
             _recentFirst.Remove(node);
             _recentFirst.AddFirst(node);
@@ -53,18 +53,18 @@ public class KeyedDiffCache<TKey>
     }
 
     /// <summary>Whether a key is cached, without changing its recency.</summary>
-    public bool Contains(TKey commit) => _nodes.ContainsKey(commit);
+    public bool Contains(TKey key) => _nodes.ContainsKey(key);
 
     /// <summary>Adds (or refreshes) an entry as the most recently used and evicts the least recently used ones beyond the bounds.</summary>
-    public void Add(TKey commit, DiffDocument document)
+    public void Add(TKey key, DiffDocument document)
     {
-        Remove(commit);
+        Remove(key);
         if (document.Rows.Count > _rowBudget)
         {
             return;
         }
 
-        _nodes[commit] = _recentFirst.AddFirst(new KeyedDiffCacheEntry<TKey>(commit, document));
+        _nodes[key] = _recentFirst.AddFirst(new KeyedDiffCacheEntry<TKey>(key, document));
         _rowCount += document.Rows.Count;
         while (_nodes.Count > _capacity || _rowCount > _rowBudget)
         {
@@ -79,9 +79,9 @@ public class KeyedDiffCache<TKey>
         _rowCount = 0;
     }
 
-    private void Remove(TKey commit)
+    private void Remove(TKey key)
     {
-        if (_nodes.Remove(commit, out var node))
+        if (_nodes.Remove(key, out var node))
         {
             _recentFirst.Remove(node);
             _rowCount -= node.Value.Document.Rows.Count;
