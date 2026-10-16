@@ -362,7 +362,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         // The dirty marker belongs to a tab chip: the click first switches to that tab, then opens its working tree (#331).
-        if (viewName == DefaultMouseMap.TabDirtyMarker && !_overlays.State.IsOpen)
+        if (viewName == DefaultMouseMap.TabDirtyMarker)
         {
             _mouse.Handle(DefaultMouseMap.TabsView, gesture, target);
         }
