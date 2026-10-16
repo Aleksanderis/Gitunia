@@ -8,6 +8,9 @@ public sealed class FakeWorkingTreeDiscarder : IWorkingTreeDiscarder
 {
     private readonly TaskCompletionSource _gate = new();
 
+    /// <summary>What the fake reports for names that are not valid UTF-8.</summary>
+    public bool CanDeleteInvalidNames { get; set; } = true;
+
     public List<IReadOnlyList<string>> Restored { get; } = [];
 
     public List<IReadOnlyList<string>> Deleted { get; } = [];

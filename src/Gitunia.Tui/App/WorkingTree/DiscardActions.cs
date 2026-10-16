@@ -138,7 +138,7 @@ public sealed class DiscardActions(
         entry.Kind == StatusEntryKind.Untracked || entry.WorktreeChange == FileChangeKind.Deleted;
 
     // The cases that never reach the dialog: nothing to discard here, or no safe way to do it.
-    private static string Refusal(StatusEntry entry)
+    private string Refusal(StatusEntry entry)
     {
         var name = WorkingTreeRowRenderer.Printable(entry.Path);
         if (entry.Kind == StatusEntryKind.Unmerged)
@@ -151,9 +151,9 @@ public sealed class DiscardActions(
             return $"{name} is a submodule: discard its changes inside it";
         }
 
-        if (entry.Kind == StatusEntryKind.Untracked && GitPathText.HasEscapedBytes(entry.Path))
+        if (entry.Kind == StatusEntryKind.Untracked && GitPathText.HasEscapedBytes(entry.Path) && !patchDiscarder.CanDeleteInvalidNames)
         {
-            return $"{name} has a name that is not valid UTF-8: delete it by hand";
+            return $"{name} has a name that is not valid UTF-8, which this OS cannot delete from here: delete it by hand";
         }
 
         return string.Empty;

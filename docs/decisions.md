@@ -222,4 +222,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** CI cost (free plan ~1100 of 2000 min used mid-month): CI runs once per ready PR, weekly on main and by dispatch, not on push to main; AOT publish only on PRs touching project/dependency files; agents verify locally, open PRs ready and push once; screenshots only for visual changes, one capture per PR. Revisit at v1.0. Supersedes the draft-PR flow.
 
+**Platform:** Untracked names that are not valid UTF-8 are deleted on Linux only, by raw bytes through libc `unlink`/`rmdir` (P/Invoke) after `git ls-files -o -z` lists them; Windows and macOS keep the refusal (#358). Why: process arguments cannot carry such bytes and .NET paths are strings.
+
 **UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.
