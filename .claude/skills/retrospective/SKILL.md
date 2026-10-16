@@ -1,62 +1,47 @@
 ---
 name: retrospective
-description: Owner-run review of how the agents work. Mines recent PR review comments and fixes for repeated findings, audits CLAUDE.md, rules, skills and agents for stale, duplicate, unused or contradicting text, and proposes changes the owner approves one by one. Use when the owner types /retrospective or asks to tune, clean up or extend the instructions.
+description: Owner-run review of how the agents work. Mines PR review comments for repeated findings, audits CLAUDE.md, rules, skills and agents for stale, duplicate or contradicting text, and proposes changes the owner approves one by one. Use on /retrospective or when asked to tune, clean up or extend the instructions.
 model: sonnet
 effort: high
 ---
 
 # Retrospective
 
-Improve the instructions from evidence. Nothing is changed until the owner approves it item by item; this skill never runs unattended and never edits the fenced files below.
+Improve the instructions from evidence. Never runs unattended; nothing changes until the owner approves it by id.
 
-## Fenced (never propose changes, only report a problem you see)
-
-Safety and destructive-operation rules, pushing and merge rules, scope (MVP) rules, agent identity, model choice, and the autonomy invariants in `CLAUDE.md` "Working autonomously". Only the owner edits these.
+**Fenced, never propose changes (only report a problem you see):** safety and destructive-operation rules, pushing and merge rules, MVP scope, agent identity, model choice, the autonomy invariants in `CLAUDE.md`. Only the owner edits these.
 
 ## 1. Collect
 
-- Range: since the last entry in `docs/retrospectives.md` (PR number or date); the first run takes the last 40 merged PRs.
-- Run `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]`. It writes every PR's comments, tagged OWNER, REVIEWER or IMPLEMENTER and cut to 1500 characters, and prints counts. Read the file in parts; do not paste raw `gh` output into the session. Work in the scratchpad, not in the repo.
-- Many PRs (more than ~30) or a long session: do the reading in a forked subagent and bring back only the grouped findings, so the session stays small.
-- Weight the evidence: an OWNER comment outweighs a reviewer finding (the owner is telling you what they care about); a reviewer finding the implementer fixed counts as a real miss; a finding the implementer skipped ("Not done", "accepted as a nit") in 3 or more PRs is reviewer noise, which is a proposal against `reviewer.md` (drop or demote the check), not a new rule.
+- Range: after the last entry in `docs/retrospectives.md`; the first run takes the last 40 merged PRs.
+- `.claude/skills/retrospective/scripts/collect.sh <scratchpad>/retro.md [since-pr] [limit]` writes every PR's comments tagged OWNER, REVIEWER or IMPLEMENTER and prints counts. Read the file in parts, never raw `gh` output. Over ~30 PRs, read in a forked subagent and bring back grouped findings only.
+- Weight: an OWNER comment outweighs a reviewer finding; a finding the implementer fixed is a real miss; a finding the implementer skipped ("Not done", "accepted as a nit") in 3+ PRs is reviewer noise, so propose dropping or demoting that check in `reviewer.md` instead of a new rule.
 
 ## 2. Find what repeats
 
-- Group findings by cause, not wording (line length, stale text after rename, missing decisions entry, untested wiring...). Count the distinct PRs for each group.
-- Thresholds: 3 PRs for a prose rule, 2 for something a script, `.editorconfig` severity or test can enforce. One-offs stay out.
-- For each group that qualifies, choose the weakest fix that works, in this order:
-  1. **Enforce:** a check in `scripts/check-diff.sh`, an `.editorconfig` severity, an analyzer or a test. Cannot be ignored or drift.
-  2. **Fix an existing rule:** it exists but was missed, so make it findable (shorter, in the file loaded for those paths, a checklist item in `work-task`).
-  3. **New rule:** one line, in the narrowest place that is loaded when it matters (`.claude/rules/` by path before `CLAUDE.md`).
-- A mechanical fix the agents keep doing by hand (same command, same edit) is a candidate for a script in `scripts/`.
+- Group findings by cause, not wording; count distinct PRs. Threshold: 3 for a prose rule, 2 for something a script, `.editorconfig` severity or test can enforce. One-offs and ideas the owner declined before (see the log) stay out.
+- For each group take the weakest fix that works:
+  1. **Enforce** in `scripts/check-diff.sh`, `.editorconfig`, an analyzer or a test.
+  2. **Make an existing rule findable:** shorter, in the path-loaded file, or a `work-task` checklist item.
+  3. **New rule:** one line, in the narrowest place loaded when it matters (`.claude/rules/` before `CLAUDE.md`).
+- A manual fix agents repeat by hand is a candidate for a script in `scripts/`.
 
 ## 3. Audit what exists
 
-Read `CLAUDE.md`, `.claude/rules/*`, `.claude/agents/*`, every `SKILL.md`, and the owner's memory feedback files (`MEMORY.md` in the project memory directory): a memory that restates a repo rule is a duplicate (keep the repo copy, ask before deleting the memory), and a memory the repo contradicts is stale. Report, with file:line:
-- **Enforceable:** prose rules a script, `.editorconfig` or test could now enforce (and so can leave the prose).
-- **No findings is not "unused".** A rule agents follow produces no findings, so silence never justifies trimming a rule. Trim only duplicates, stale text, and prose that is now enforced mechanically.
-- **Duplicates:** the same rule in two places (keep the narrowest, point to it from the other).
-- **Contradictions** between files, or with `docs/decisions.md`.
-- **Stale references:** files, scripts, commands, labels, issue numbers or doc sections that no longer exist (check each with ls/grep/gh).
-- **Size:** line counts per file against the previous run; any file that grew should say what it dropped. Long rule files get a rule-of-thumb target: new text means old text trimmed.
+Read `CLAUDE.md`, `.claude/rules/*`, `.claude/agents/*`, every `SKILL.md` and the memory feedback files (`MEMORY.md` in the project memory directory). Report with file:line:
+- **Duplicates** (keep the narrowest, point to it from the other; a memory restating a repo rule is one, ask before deleting it) and **contradictions** between files or with `docs/decisions.md`.
+- **Stale references:** files, scripts, commands, labels, issue numbers, doc sections that no longer exist (verify with ls, grep, gh).
+- **Now enforceable:** prose a script, `.editorconfig` or test could replace.
+- **Size:** line counts against the last run. Silence is not "unused": a rule agents follow yields no findings, so trim only duplicates, stale text and enforced prose, and any growth names what it drops.
 
 ## 4. Present
 
-One report to the owner in the terminal, no edits yet:
-- Table of proposals: id, evidence (PR numbers), proposed action (enforce / fix / add / merge / delete), exact new wording or diff, target file, what it replaces.
-- Audit findings as a short list.
-- Anything in a fenced area as "for the owner to decide".
-Ask which ids to apply (AskUserQuestion with multiSelect when there are few, otherwise a numbered list to answer by id).
+One terminal report, no edits: a table of proposals (id, evidence PRs, action enforce/fix/add/merge/delete, exact wording or diff, target file, what it replaces), the audit list, and anything fenced as "for the owner". Ask which ids to apply.
 
-## 5. Apply what was approved
+## 5. Apply
 
-- Only approved ids, exactly as worded in the report; anything new that comes up becomes a new proposal, not a silent edit.
-- Owner-requested instruction and script changes go straight to `main` as a local commit (`chore:` with an `Agent: orchestrator` trailer), not pushed; say "committed locally, not pushed". Changes that answer PR review comments go through a PR branch instead (CLAUDE.md).
-- Run `scripts/check-diff.sh` and `dotnet build` if a script or `.editorconfig` changed; a new enforcing check must be run once against recent history to confirm it does not flag clean code.
-- Append an entry to `docs/retrospectives.md`: date, PR range covered, counts per recurring group, proposals applied or declined (with the owner's reason, so a declined idea is not proposed again), and the line counts of the instruction files. Create the file with a one-line header on the first run.
-
-## Do not
-
-- Add a rule for a single occurrence, or one the owner declined before (check `docs/retrospectives.md`).
-- Grow the instructions without naming what is trimmed or enforced instead.
-- Weaken a rule or a gate to make agents faster. Say so to the owner if that seems to be the right call.
+- Only approved ids, as worded; anything new becomes a new proposal.
+- Owner-requested instruction changes: local `chore:` commit on `main` with an `Agent: orchestrator` trailer, not pushed (say so). Changes answering PR review comments go through a PR branch.
+- After a script or `.editorconfig` change run `dotnet build` and `scripts/check-diff.sh`; run a new check once over recent history to confirm it flags nothing clean.
+- Append to `docs/retrospectives.md` (create with a one-line header): date, PR range, counts per recurring group, proposals applied or declined with the owner's reason, instruction file line counts.
+- Never weaken a rule or gate to make agents faster; if that seems right, tell the owner.
