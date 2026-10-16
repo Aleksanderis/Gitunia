@@ -85,14 +85,14 @@ public sealed class StagingActions(
         _gate.Begin(tab.Id);
         var isUnborn = tree.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab, plan, isStage, isUnborn, token), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab, plan, isStage, isUnborn, null, token), CancellationToken.None);
         return string.Empty;
     }
 
     /// <summary>
-    /// Stages every unstaged file of <paramref name="tab"/> whatever the focus (as <c>&lt;space&gt;A</c>: untracked included, conflicted
-    /// skipped) and calls <paramref name="afterStaged"/> on the UI thread once the status shows the result. Returns a notice when
-    /// nothing was started, empty otherwise; <paramref name="afterStaged"/> does not run after a failure.
+    /// Stages every unstaged file of <paramref name="tab"/> whatever the focus (as <c>&lt;space&gt;A</c>: untracked
+    /// included, conflicted skipped) and calls <paramref name="afterStaged"/> on the UI thread once the status shows the
+    /// result. Returns a notice when nothing was started, empty otherwise; it does not run after a failure.
     /// </summary>
     public string StageAllThen(RepositoryState tab, Action afterStaged)
     {
@@ -114,7 +114,7 @@ public sealed class StagingActions(
 
         _gate.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab, plan, true, false, token, afterStaged), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab, plan, true, false, afterStaged, token), CancellationToken.None);
         return string.Empty;
     }
 
@@ -175,7 +175,13 @@ public sealed class StagingActions(
     private static IReadOnlyList<string> PathsOf(StatusEntry entry, WorkingTreeSection section) =>
         StagingPaths.Of(entry, section == WorkingTreeSection.Staged ? WorkingDiffSide.Staged : WorkingDiffSide.Unstaged);
 
-    private async Task RunAsync(RepositoryState tab, StagingPlan plan, bool isStage, bool isUnborn, CancellationToken token, Action? afterStaged = null)
+    private async Task RunAsync(
+        RepositoryState tab,
+        StagingPlan plan,
+        bool isStage,
+        bool isUnborn,
+        Action? afterStaged,
+        CancellationToken token)
     {
         try
         {

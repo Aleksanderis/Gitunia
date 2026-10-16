@@ -1,8 +1,7 @@
 using Gitunia.Core.Editing;
-using Gitunia.Core.Overlays;
-using Gitunia.Git.Status.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -13,6 +12,7 @@ using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Tui.App.WorkingTree;
 
@@ -35,7 +35,9 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="setMode">Switches the input mode.</param>
 /// <param name="route">Runs an action as if its key had been pressed (for keys this class passes on).</param>
 /// <param name="redraw">Redraws the screen.</param>
-/// <param name="showConfirm">Shows a Confirm dialog and runs the callback on <c>y</c>; false when it does not fit. Null never asks.</param>
+/// <param name="showConfirm">
+/// Shows a Confirm dialog and runs the callback on <c>y</c>; false when it does not fit. Null never asks.
+/// </param>
 public sealed class CommitActions(
     WorkspaceHost host,
     ICommitWriter writer,
@@ -60,7 +62,8 @@ public sealed class CommitActions(
     private bool _ownsInsert;
 
     /// <summary>
-    /// Stages every unstaged file of a tab and calls back once the status shows it; returns a notice when nothing started.
+    /// Stages every unstaged file of a tab and calls back once the status shows it; returns a notice when nothing
+    /// started.
     /// Set by the application once the staging actions exist.
     /// </summary>
     public Func<RepositoryState, Action, string>? StageAllThen { get; set; }
@@ -366,7 +369,7 @@ public sealed class CommitActions(
             return refusal;
         }
 
-        return StartCommit(tab, draft);
+        return StartCommit(tab, draft, Snapshot(draft));
     }
 
     // Nothing staged but unstaged changes exist: ask before staging them (the draft stays as it is on no).
@@ -399,29 +402,30 @@ public sealed class CommitActions(
             return;
         }
 
-        var notice = StageAllThen!(tab, () => CommitAfterStaging(tabId, draft));
+        // The message and options are those of the answer: later edits cannot change what the confirmed commit does.
+        var request = Snapshot(draft);
+        var notice = StageAllThen!(tab, () => CommitAfterStaging(tabId, draft, request));
         if (notice.Length > 0)
         {
             statuses.Warning(notice);
         }
     }
 
-    private void CommitAfterStaging(TabId tabId, CommitDraft draft)
+    private void CommitAfterStaging(TabId tabId, CommitDraft draft, CommitRequest request)
     {
         if (host.Workspace.FindTab(tabId) is not { } tab || draft.IsCommitting)
         {
             return;
         }
 
-        var operation = operations.Detect(tab.Location);
-        var refusal = CommitCheck.Refusal(draft, tab.WorkingTree, operation);
+        var refusal = tab.WorkingTree is { Staged.Count: 0 } ? CommitCheck.NothingStaged : null;
         if (refusal is not null)
         {
             statuses.Warning(refusal);
         }
         else
         {
-            var notice = StartCommit(tab, draft);
+            var notice = StartCommit(tab, draft, request);
             if (notice.Length > 0)
             {
                 statuses.Warning(notice);
@@ -431,10 +435,12 @@ public sealed class CommitActions(
         redraw();
     }
 
-    private string StartCommit(RepositoryState tab, CommitDraft draft)
+    private static CommitRequest Snapshot(CommitDraft draft) =>
+        new(draft.Editor.Text, draft.SignOff, draft.NoVerify, draft.Amend);
+
+    private string StartCommit(RepositoryState tab, CommitDraft draft, CommitRequest request)
     {
-        var request = new CommitRequest(draft.Editor.Text, draft.SignOff, draft.NoVerify, draft.Amend);
-        var needsForcePush = draft.Amend && CommitCheck.NeedsForcePush(tab.WorkingTree);
+        var needsForcePush = request.Amend && CommitCheck.NeedsForcePush(tab.WorkingTree);
         var upstream = needsForcePush ? tab.WorkingTree?.Snapshot.Branch.UpstreamName : null;
         var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
         _running[tab.Id] = source;

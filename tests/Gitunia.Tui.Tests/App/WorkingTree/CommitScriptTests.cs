@@ -2,7 +2,6 @@ using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
-using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -17,6 +16,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Tests.Fakes;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App.WorkingTree;
@@ -207,6 +207,21 @@ public class CommitScriptTests
     }
 
     [Fact]
+    public async Task GivenTheDialogDoesNotFit_WhenCommitting_ThenNothingStagedShowsAndNothingStarts()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        var session = await Session.OpenAsync(repository);
+        session.DialogFits = false;
+        session.Draft.Editor.SetText("Msg");
+
+        session.Run(ActionIds.WorkingTreeCommit);
+
+        Assert.Equal(CommitCheck.NothingStaged, session.Commits.Notice);
+        Assert.Empty(repository.Git("diff", "--cached", "--name-only"));
+    }
+
+    [Fact]
     public async Task GivenNothingToCommitAtAll_WhenCommitting_ThenTheNothingStagedNoticeShowsWithoutADialog()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
@@ -259,7 +274,7 @@ public class CommitScriptTests
                 {
                     Prompts.Add(prompt);
                     _onConfirmed = onConfirmed;
-                    return true;
+                    return DialogFits;
                 });
             var indexWriter = new IndexWriter(runner);
             var staging = new StagingActions(
@@ -274,6 +289,8 @@ public class CommitScriptTests
         }
 
         private Action? _onConfirmed;
+
+        public bool DialogFits { get; set; } = true;
 
         public List<ConfirmPrompt> Prompts { get; } = [];
 
