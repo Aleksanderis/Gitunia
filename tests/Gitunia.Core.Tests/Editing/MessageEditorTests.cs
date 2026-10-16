@@ -169,6 +169,86 @@ public class MessageEditorTests
     }
 
     [Fact]
+    public void GivenWideCharacters_WhenMovingUpAndDown_ThenTheDisplayColumnIsKept()
+    {
+        var editor = Editor($"{Wide}{Wide}{Wide}\nabcdef");
+
+        editor.Apply(new KeyEvent(KeyNames.Up));
+        Assert.Equal((0, 3), (editor.CursorRow, editor.CursorColumn));
+        editor.Apply(new KeyEvent(KeyNames.Down));
+        Assert.Equal((1, 6), (editor.CursorRow, editor.CursorColumn));
+        editor.Apply(new KeyEvent(KeyNames.Left));
+        editor.Apply(new KeyEvent(KeyNames.Left));
+        editor.Apply(new KeyEvent(KeyNames.Left));
+        Assert.Equal(3, editor.CursorDisplayColumn);
+
+        editor.Apply(new KeyEvent(KeyNames.Up));
+
+        // Column 3 falls inside the second wide character, so the cursor stays before it.
+        Assert.Equal((0, 1), (editor.CursorRow, editor.CursorColumn));
+        editor.Apply(new KeyEvent(KeyNames.Down));
+        Assert.Equal((1, 3), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenALongerLineBelow_WhenMovingDown_ThenTheCursorClampsAndTheWantedColumnReturns()
+    {
+        var editor = Editor($"abcdef\n{Wide}\nabcdef");
+        editor.Apply(new KeyEvent(KeyNames.Up));
+        editor.Apply(new KeyEvent(KeyNames.Up));
+        editor.Apply(new KeyEvent(KeyNames.End));
+        editor.Apply(new KeyEvent(KeyNames.Down));
+        Assert.Equal(Wide.Length, editor.CursorColumn);
+
+        editor.Apply(new KeyEvent(KeyNames.Down));
+
+        Assert.Equal((2, 6), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenTab_WhenInInsertMode_ThenSpacesFillToTheNextFourColumnStop()
+    {
+        var editor = Editor("ab");
+
+        Assert.True(editor.Apply(new KeyEvent(KeyNames.Tab)));
+        Assert.Equal("ab  ", editor.Text);
+        editor.Apply(new KeyEvent(KeyNames.Tab));
+        Assert.Equal("ab      ", editor.Text);
+        editor.SetText($"{Wide}{Wide}");
+        editor.Apply(new KeyEvent(KeyNames.Tab));
+        Assert.Equal($"{Wide}{Wide}    ", editor.Text);
+        Assert.False(editor.Apply(new KeyEvent(KeyNames.Tab, KeyModifiers.Shift)));
+    }
+
+    [Fact]
+    public void GivenAClick_WhenPlacingTheCursor_ThenItLandsOnTheElementAtTheDisplayColumn()
+    {
+        var editor = Editor($"a{Wide}b\nxy");
+
+        editor.PlaceCursor(0, 2);
+        Assert.Equal((0, 1), (editor.CursorRow, editor.CursorColumn));
+        editor.PlaceCursor(0, 3);
+        Assert.Equal((0, 2), (editor.CursorRow, editor.CursorColumn));
+        editor.PlaceCursor(0, 40);
+        Assert.Equal((0, 3), (editor.CursorRow, editor.CursorColumn));
+        editor.PlaceCursor(9, 1);
+        Assert.Equal((1, 1), (editor.CursorRow, editor.CursorColumn));
+        editor.PlaceCursor(-3, -2);
+        Assert.Equal((0, 0), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
+    public void GivenAClick_WhenMovingVerticallyAfterwards_ThenTheClickedColumnIsKept()
+    {
+        var editor = Editor("abcdef\nabcdef");
+
+        editor.PlaceCursor(0, 2);
+        editor.Apply(new KeyEvent(KeyNames.Down));
+
+        Assert.Equal((1, 2), (editor.CursorRow, editor.CursorColumn));
+    }
+
+    [Fact]
     public void GivenOnlyWhitespace_WhenCheckingBlank_ThenItIsBlank()
     {
         Assert.True(Editor(" \n\t").IsBlank);

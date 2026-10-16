@@ -38,8 +38,15 @@ public sealed class CommitDraft
     /// </summary>
     public bool HasUnsentText => !Editor.IsBlank && (_prefilled is null || Editor.Text != _prefilled);
 
-    /// <summary>The title of the message box.</summary>
-    public string Title => !Amend ? DefaultTitle : AmendTarget.Length > 0 ? $"Amending {AmendTarget}" : "Amending";
+    /// <summary>The title of the message box; once there is a message it ends with the subject width and its soft limit.</summary>
+    public string Title
+    {
+        get
+        {
+            var title = !Amend ? DefaultTitle : AmendTarget.Length > 0 ? $"Amending {AmendTarget}" : "Amending";
+            return Editor.IsBlank ? title : $"{title}  {Editor.SubjectWidth}/{MessageEditor.SubjectSoftLimit}";
+        }
+    }
 
     /// <summary>Starts an empty box with a prepared message (git's merge message); ignored when something is typed.</summary>
     /// <param name="message">The message to start with.</param>

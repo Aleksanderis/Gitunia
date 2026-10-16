@@ -14,7 +14,18 @@ public class CommitDraftTests
         draft.ApplyHeadMessage("abc1234", "Old subject\n\nOld body");
 
         Assert.Equal("Old subject\n\nOld body", draft.Editor.Text);
-        Assert.Equal("Amending abc1234 Old subject", draft.Title);
+        Assert.Equal("Amending abc1234 Old subject  11/72", draft.Title);
+    }
+
+    [Fact]
+    public void GivenAMessage_WhenReadingTheTitle_ThenItEndsWithTheSubjectWidthAndTheSoftLimit()
+    {
+        var draft = new CommitDraft();
+        Assert.Equal("Commit message", draft.Title);
+
+        draft.Editor.SetText($"中文 x\nbody that is not counted");
+
+        Assert.Equal("Commit message  6/72", draft.Title);
     }
 
     [Fact]
@@ -53,7 +64,7 @@ public class CommitDraftTests
         draft.ApplyHeadMessage("abc1234", "Old subject");
 
         Assert.Equal("My own message", draft.Editor.Text);
-        Assert.Equal("Amending abc1234 Old subject", draft.Title);
+        Assert.Equal("Amending abc1234 Old subject  14/72", draft.Title);
     }
 
     [Fact]

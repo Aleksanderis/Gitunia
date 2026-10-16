@@ -13,6 +13,7 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui.App.WorkingTree;
 
@@ -198,6 +199,27 @@ public sealed class CommitActions(
         draft.Editor.Apply(key);
         redraw();
         return true;
+    }
+
+    /// <summary>
+    /// Puts the editor's cursor where a click on the message box landed. The click's own gesture (focus, Insert mode) follows;
+    /// the lines are scrolled sideways only while the box is being edited, so the offset is read before that starts.
+    /// </summary>
+    /// <param name="textColumn">The pointer's column in the text, left padding removed.</param>
+    /// <param name="row">The pointer's row in the box.</param>
+    /// <param name="textWidth">Text columns of the box.</param>
+    public void PlaceCursor(int textColumn, int row, int textWidth)
+    {
+        if (host.Workspace.ActiveTab is not { } tab || DraftFor(tab.Id) is not { IsCommitting: false } draft)
+        {
+            return;
+        }
+
+        var editor = draft.Editor;
+        var line = Math.Clamp(draft.Top + row, 0, editor.Lines.Count - 1);
+        var offset = IsEditing && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
+        editor.PlaceCursor(line, Math.Max(0, textColumn) + offset);
+        redraw();
     }
 
     private string Run(RepositoryState tab, ActionId action)

@@ -238,6 +238,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
+        _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
         _view.EdgeDragged += OnEdgeDragged;

@@ -27,6 +27,9 @@ public sealed class PaneListView : ListView
     /// </summary>
     public event Action<MouseGesture, int?>? GestureRaised;
 
+    /// <summary>Raised for a click, before <see cref="GestureRaised"/>, with the pointer's column and row inside the pane.</summary>
+    public event Action<int, int>? ClickPositioned;
+
     protected override bool OnMouseEvent(Mouse mouse)
     {
         if (IsSuppressed())
@@ -53,6 +56,11 @@ public sealed class PaneListView : ListView
         }
 
         FocusPane();
+        if (gesture == MouseGesture.Click && mouse.Position is { } clicked)
+        {
+            ClickPositioned?.Invoke(clicked.X, clicked.Y);
+        }
+
         if (gesture is MouseGesture.Click or MouseGesture.DoubleClick)
         {
             base.OnMouseEvent(mouse);
