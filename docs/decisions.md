@@ -213,3 +213,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** Hunk and line staging (#31): the patch is never built from the rows on screen; the file's diff is re-read with default context, the picked lines are found by number and text and applied with `git apply --cached` (`-R` to unstage). Binary, new, deleted and copied files go whole for a hunk and refuse a line range; mode lines stay out of partial patches; a renamed file with edits is cut as an edit of its new path.
 
 **UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.
+
+**UI:** Quick jump (#334): `<space>j`, matching on the commit subject over the rows in view only (cost independent of log size); a letter that would continue a match in view is never a label, so labels and typing cannot clash; `Enter` takes the nearest match, matches beyond the 26 letters stay unlabelled (type more).

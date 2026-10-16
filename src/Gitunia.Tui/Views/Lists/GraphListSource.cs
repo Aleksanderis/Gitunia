@@ -93,7 +93,8 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 
         var first = CommitIndexOf(listView.Viewport.Y);
         var cursor = CommitIndexOf(listView.SelectedItem ?? 0);
-        var key = new JumpKey(JumpText, first, listView.Viewport.Height, cursor, graph.Count);
+        var firstHash = first >= 0 && first < graph.Count ? graph[first].Id.GetHashCode() : 0;
+        var key = new JumpKey(JumpText, first, listView.Viewport.Height, cursor, graph.Count, firstHash);
         if (_jumpKey != key)
         {
             _jumpKey = key;

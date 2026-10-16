@@ -35,7 +35,7 @@ public sealed class PromptHarness : IDisposable
 
         var references = refs?.ToArray() ?? [];
         var handle = new GraphViewHandle(
-            () => Session,
+            () => ActiveSession ?? Session,
             () => SelectedRow,
             row => SelectedRow = row,
             () => FirstVisibleRow,
@@ -66,6 +66,9 @@ public sealed class PromptHarness : IDisposable
     }
 
     public TabSession Session { get; }
+
+    /// <summary>When set, the session the shell reports as active instead of <see cref="Session"/> (a tab switch).</summary>
+    public TabSession? ActiveSession { get; set; }
 
     public int SelectedRow { get; set; }
 

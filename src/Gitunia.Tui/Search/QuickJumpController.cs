@@ -26,7 +26,7 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
     {
         get
         {
-            if (_session is null)
+            if (_session is null || view.ActiveSession() != _session)
             {
                 return string.Empty;
             }
@@ -45,6 +45,17 @@ public sealed class QuickJumpController(GraphViewHandle view) : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
+        if (_session is not null && view.ActiveSession() != _session)
+        {
+            // The tab changed under the prompt: drop it; its own accept and cancel keys are then done.
+            Close();
+            view.Redraw();
+            if (action == ActionIds.InputAccept || action == ActionIds.Cancel)
+            {
+                return true;
+            }
+        }
+
         if (action == ActionIds.GraphQuickJump && view.ActiveSession() is { } session)
         {
             _session = session;

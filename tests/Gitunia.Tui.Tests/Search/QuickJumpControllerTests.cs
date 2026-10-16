@@ -102,6 +102,23 @@ public class QuickJumpControllerTests
     }
 
     [Fact]
+    public void GivenAnOpenJump_WhenTheTabChangesAndEnterIsPressed_ThenThePromptClosesWithoutSelecting()
+    {
+        using var harness = new PromptHarness(Graph()) { SelectedRow = 1 };
+        using var other = new PromptHarness(Graph());
+        harness.Press(new Key(' '));
+        harness.Press(new Key('j'));
+        harness.Type("fix");
+        harness.ActiveSession = other.Session;
+
+        harness.Press(Key.Enter);
+
+        Assert.Equal(1, harness.SelectedRow);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Null(harness.Session.Source.JumpText);
+    }
+
+    [Fact]
     public void GivenNoMatchInView_WhenPressingEnter_ThenTheNoticeSaysSoAndTheSelectionStays()
     {
         using var harness = new PromptHarness(Graph()) { SelectedRow = 1 };

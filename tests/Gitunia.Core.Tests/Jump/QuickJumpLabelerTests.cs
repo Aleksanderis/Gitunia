@@ -72,6 +72,18 @@ public class QuickJumpLabelerTests
     }
 
     [Fact]
+    public void GivenTextThatRepeatsInOneSubject_WhenComputing_ThenEveryContinuationIsBlocked()
+    {
+        var graph = SearchTestGraph.Build(new SearchTestRow("aab aac", "Bob"));
+
+        var labels = QuickJumpLabeler.Compute("aa", graph, 0, 1, 0);
+
+        Assert.Single(labels);
+        Assert.NotEqual('b', labels[0].Letter);
+        Assert.NotEqual('c', labels[0].Letter);
+    }
+
+    [Fact]
     public void GivenALabelKey_WhenApplying_ThenItJumpsWithoutChangingTheText()
     {
         var graph = SearchTestGraph.Build(Rows);
