@@ -14,6 +14,12 @@ public enum PaneKind
     /// <summary>The Staged file list of the working-tree view (that view only).</summary>
     WorkingStaged,
 
+    /// <summary>The diff of the file selected in the Unstaged list (that view only).</summary>
+    WorkingUnstagedDiff,
+
+    /// <summary>The diff of the file selected in the Staged list (that view only).</summary>
+    WorkingStagedDiff,
+
     /// <summary>The commit message box of the working-tree view (that view only).</summary>
     WorkingMessage,
 }

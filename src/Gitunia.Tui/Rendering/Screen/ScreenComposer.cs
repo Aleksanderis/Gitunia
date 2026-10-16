@@ -106,7 +106,7 @@ public static class ScreenComposer
         {
             new(rects.Unstaged, isUnstagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Unstaged)),
             new(rects.Staged, isStagedFocused, WorkingTreePaneRenderer.ListTitle(tree, WorkingTreeSection.Staged)),
-            new(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
+            new(rects.Diff, WorkingPanes.IsDiff(working.Focused), WorkingTreePaneRenderer.DiffTitle(tree, working.Diff)),
             new(rects.Message, isMessageFocused, working.Draft?.Title ?? WorkingTreePaneRenderer.MessageTitle),
         };
         var grid = FrameGrid.Build(width, height, boxes, glyphs);
@@ -116,10 +116,12 @@ public static class ScreenComposer
             overlays, tree, WorkingTreeSection.Unstaged, rects.Unstaged, working.UnstagedTop, isUnstagedFocused, padding, glyphs);
         AddWorkingList(
             overlays, tree, WorkingTreeSection.Staged, rects.Staged, working.StagedTop, isStagedFocused, padding, glyphs);
-        AddPlaceholder(
-            overlays,
-            rects.Diff,
-            WorkingTreePaneRenderer.DiffPlaceholderLines(rects.Diff, padding, glyphs));
+        if (!rects.Diff.IsEmpty)
+        {
+            var diffRows = WorkingTreePaneRenderer.DiffLines(working.Diff, rects.Diff, padding, glyphs);
+            overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y, diffRows, SegmentSelection.Focused));
+        }
+
         if (!rects.Message.IsEmpty)
         {
             var editor = MessageBoxRenderer.EditorLines(working.Draft, rects.MessageEditor, padding, working.IsEditing, glyphs);

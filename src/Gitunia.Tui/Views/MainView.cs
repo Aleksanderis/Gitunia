@@ -169,9 +169,16 @@ public sealed class MainView : IDisposable
             () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
         _workingRightEdge = CreateWorkingEdge(
             () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
-        WorkingDiff = CreateWorkingPlaceholder(
-            WorkingTreePaneRenderer.DiffPlaceholderText,
-            () => WorkingRects().Diff);
+        WorkingDiff = new PaneListView
+        {
+            X = Pos.Func(_ => WorkingRects().Diff.X),
+            Y = Pos.Func(_ => WorkingRects().Diff.Y),
+            Width = Dim.Func(_ => WorkingRects().Diff.Width),
+            Height = Dim.Func(_ => WorkingRects().Diff.Height),
+            CanFocus = true,
+            Source = new DiffListSource(glyphs),
+            Visible = false,
+        };
         WorkingMessage = new PaneListView
         {
             X = Pos.Func(_ => WorkingRects().MessageEditor.X),
@@ -221,6 +228,8 @@ public sealed class MainView : IDisposable
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
         WorkingStaged.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
+        WorkingDiff.GestureRaised +=
+            (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
         WorkingMessage.GestureRaised +=
             (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
@@ -285,6 +294,12 @@ public sealed class MainView : IDisposable
     /// <summary>The pane that has focus in the working-tree view, from the tab's state; the layout of a narrow screen follows it.</summary>
     public Func<PaneKind> WorkingFocus { get; set; } = () => PaneKind.WorkingUnstaged;
 
+    /// <summary>The keymap view of the diff box (the side of the selected file), for the mouse map.</summary>
+    public Func<string> WorkingDiffView { get; set; } = () => DefaultKeymap.WorkingUnstagedDiffView;
+
+    /// <summary>The title of the diff box of the working-tree view: side, hunk and file.</summary>
+    public Func<string> WorkingDiffTitle { get; set; } = () => WorkingTreePaneRenderer.DiffTitleName;
+
     /// <summary>The rows of the Unstaged list of the working-tree view.</summary>
     public WorkingTreeListSource UnstagedSource { get; }
 
@@ -297,7 +312,7 @@ public sealed class MainView : IDisposable
     /// <summary>The Staged file list of the working-tree view.</summary>
     public PaneListView WorkingStaged { get; }
 
-    /// <summary>The diff box of the working-tree view (a note until the diff pane exists).</summary>
+    /// <summary>The diff box of the working-tree view.</summary>
     public PaneListView WorkingDiff { get; }
 
     /// <summary>The editor rows of the commit message box of the working-tree view (the option row below them is a separate row).</summary>
@@ -337,6 +352,7 @@ public sealed class MainView : IDisposable
         Diff.IsSuppressed = isSuppressed;
         WorkingUnstaged.IsSuppressed = isSuppressed;
         WorkingStaged.IsSuppressed = isSuppressed;
+        WorkingDiff.IsSuppressed = isSuppressed;
         WorkingMessage.IsSuppressed = isSuppressed;
         _picker.IsSuppressed = isSuppressed;
     }
@@ -402,6 +418,7 @@ public sealed class MainView : IDisposable
             _workingRightEdge.SetNeedsDraw();
             WorkingUnstaged.SetNeedsDraw();
             WorkingStaged.SetNeedsDraw();
+            WorkingDiff.SetNeedsDraw();
             WorkingMessage.SetNeedsDraw();
             _messageOptions.SetNeedsDraw();
         }
@@ -412,6 +429,7 @@ public sealed class MainView : IDisposable
     private PaneListView FocusedWorkingList() => WorkingFocus() switch
     {
         PaneKind.WorkingStaged => WorkingStaged,
+        PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff => WorkingDiff,
         PaneKind.WorkingMessage => WorkingMessage,
         _ => WorkingUnstaged,
     };
@@ -548,8 +566,18 @@ public sealed class MainView : IDisposable
         var rects = WorkingRects();
         var unstagedTitle = WorkingTreePaneRenderer.ListTitle(UnstagedSource.Tree, WorkingTreeSection.Unstaged);
         var stagedTitle = WorkingTreePaneRenderer.ListTitle(StagedSource.Tree, WorkingTreeSection.Staged);
+        var diffTitle = WorkingDiffTitle();
         var messageTitle = ActiveDraft()?.Title ?? WorkingTreePaneRenderer.MessageTitle;
-        var key = new WorkingGridKey(ScreenWidth, ScreenHeight(), rects, focus, unstagedTitle, stagedTitle, messageTitle, _glyphs.IsAscii);
+        var key = new WorkingGridKey(
+            ScreenWidth,
+            ScreenHeight(),
+            rects,
+            focus,
+            unstagedTitle,
+            stagedTitle,
+            diffTitle,
+            messageTitle,
+            _glyphs.IsAscii);
         if (_workingGrid is null || _workingGridKey != key)
         {
             _workingGrid = FrameGrid.Build(
@@ -558,7 +586,7 @@ public sealed class MainView : IDisposable
                 [
                     new FrameBox(rects.Unstaged, focus == PaneKind.WorkingUnstaged, unstagedTitle),
                     new FrameBox(rects.Staged, focus == PaneKind.WorkingStaged, stagedTitle),
-                    new FrameBox(rects.Diff, false, WorkingTreePaneRenderer.DiffTitle),
+                    new FrameBox(rects.Diff, WorkingPanes.IsDiff(focus), diffTitle),
                     new FrameBox(rects.Message, focus == PaneKind.WorkingMessage, messageTitle),
                 ],
                 _glyphs);
@@ -593,6 +621,7 @@ public sealed class MainView : IDisposable
         PaneKind Focus,
         string UnstagedTitle,
         string StagedTitle,
+        string DiffTitle,
         string MessageTitle,
         bool IsAscii);
 

@@ -10,9 +10,10 @@ using Gitunia.Tui.Rendering.WorkingTree;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>
-/// Handles the actions of the working-tree view: opening and leaving it, moving between its lists and the cursor in them, and
-/// copying a path. While the view is shown it owns every list and pane action, so none of them reaches the hidden graph or
-/// sidebar. Everything it changes goes through commands, so the state decides and the views follow.
+/// Handles the actions of the working-tree view: opening and leaving it, moving between its lists and the diff and the cursor in
+/// them, and copying a path. While the view is shown it owns every list and pane action, so none of them reaches the hidden graph
+/// or sidebar; the actions of the diff go to the <see cref="WorkingDiffController"/> first. Everything it changes goes through
+/// commands, so the state decides and the views follow.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="pageHeight">Visible rows of the focused list, for the half-page motions.</param>
@@ -26,8 +27,6 @@ public sealed class WorkingTreeActionHandler(
     StagingActions staging,
     CommitActions commits)
 {
-    private static readonly PaneKind[] Panes = [PaneKind.WorkingUnstaged, PaneKind.WorkingStaged, PaneKind.WorkingMessage];
-
     private static readonly HashSet<ActionId> LeftToOthers =
     [
         ActionIds.TabRename,
@@ -37,6 +36,9 @@ public sealed class WorkingTreeActionHandler(
         ActionIds.ToolCommitEditor,
         ActionIds.AppQuit,
     ];
+
+    /// <summary>The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</summary>
+    public WorkingDiffController? Diff { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -68,11 +70,15 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        if (action == ActionIds.NavigateBack)
+        if (Diff?.TryExecute(action, count) == true)
+        {
+            Message = Diff.Notice;
+        }
+        else if (action == ActionIds.NavigateBack)
         {
             Send(tab, new LeaveWorkingTreeCommand());
         }
-        else if (!TryFocus(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action))
+        else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action))
         {
             Message = $"{ActionCatalog.Describe(action)}: not available in the working-tree view";
         }
@@ -102,21 +108,28 @@ public sealed class WorkingTreeActionHandler(
     private bool TryFocus(RepositoryState tab, ActionId action)
     {
         var focused = tab.View.FocusedPane;
+        var selection = tab.WorkingTree?.Selection;
         PaneKind target;
         if (action == ActionIds.PaneNext || action == ActionIds.PanePrevious)
         {
-            target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, Panes);
+            // The diff in the cycle is the one of the selected file's side; the message box comes last.
+            PaneKind[] cycle = selection is null
+                ? [.. WorkingPanes.Lists, PaneKind.WorkingMessage]
+                : [.. WorkingPanes.Lists, WorkingPanes.DiffOf(selection.Section), PaneKind.WorkingMessage];
+            target = PaneNavigator.Cycle(focused, action == ActionIds.PaneNext, cycle);
         }
         else if (action == ActionIds.PaneFocusUp || action == ActionIds.PaneFocusDown)
         {
-            target = focused == PaneKind.WorkingMessage
-                ? (action == ActionIds.PaneFocusUp ? ListPaneOf(tab) : focused)
-                : PaneNavigator.StepVertically(focused, action == ActionIds.PaneFocusDown, Panes);
+            target = StepVertically(focused, action == ActionIds.PaneFocusDown, selection);
         }
-        else if (action == ActionIds.PaneFocusLeft || action == ActionIds.PaneFocusRight)
+        else if (action == ActionIds.PaneFocusRight)
         {
-            // The lists are the left column; the message box (the diff will sit above it) is the right one.
-            target = action == ActionIds.PaneFocusRight ? PaneKind.WorkingMessage : focused == PaneKind.WorkingMessage ? ListPaneOf(tab) : focused;
+            // The diff is the right column: from a list, the diff of the file under the cursor (the message box when there is none).
+            target = WorkingPanes.IsList(focused) ? selection is null ? PaneKind.WorkingMessage : WorkingPanes.DiffOf(selection.Section) : focused;
+        }
+        else if (action == ActionIds.PaneFocusLeft)
+        {
+            target = WorkingPanes.IsList(focused) ? focused : WorkingPanes.ListOf(selection?.Section ?? WorkingPanes.SectionOf(focused));
         }
         else
         {
@@ -131,8 +144,50 @@ public sealed class WorkingTreeActionHandler(
         return true;
     }
 
+    // The lists are stacked on the left, the diff above the message box on the right.
+    private static PaneKind StepVertically(PaneKind focused, bool down, WorkingTreeSelection? selection)
+    {
+        if (focused == PaneKind.WorkingMessage)
+        {
+            return !down && selection is not null ? WorkingPanes.DiffOf(selection.Section) : focused;
+        }
+
+        if (WorkingPanes.IsDiff(focused))
+        {
+            return down ? PaneKind.WorkingMessage : focused;
+        }
+
+        return PaneNavigator.StepVertically(focused, down, WorkingPanes.Lists);
+    }
+
+    // Enter and l on a file: its diff takes the focus (on a narrow screen it replaces the list until h or Esc).
+    private bool TryOpenDiff(RepositoryState tab, ActionId action)
+    {
+        if (action != ActionIds.WorkingTreeOpenDiff)
+        {
+            return false;
+        }
+
+        if (tab.WorkingTree?.Selection is { } selection)
+        {
+            Send(tab, new FocusPaneCommand(WorkingPanes.DiffOf(selection.Section)));
+        }
+        else
+        {
+            Message = "Select a file to see its diff";
+        }
+
+        return true;
+    }
+
     private bool TryMove(RepositoryState tab, ActionId action, int? count)
     {
+        if (WorkingPanes.IsDiff(tab.View.FocusedPane))
+        {
+            // The diff's own motions went to the diff above; a list motion here has nothing to move.
+            return false;
+        }
+
         if (tab.WorkingTree is not { } tree)
         {
             return ListMotion.TryMove(action, count, 0, 0, pageHeight(), out _);
@@ -181,9 +236,6 @@ public sealed class WorkingTreeActionHandler(
         Message = staging.Execute(tab, action);
         return true;
     }
-
-    private static PaneKind ListPaneOf(RepositoryState tab) =>
-        tab.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged ? PaneKind.WorkingStaged : PaneKind.WorkingUnstaged;
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>
         (tab.View.FocusedPane == PaneKind.WorkingStaged) == (selection.Section == WorkingTreeSection.Staged);

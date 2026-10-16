@@ -207,3 +207,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Commit (#32): the message goes to `git commit -F -` on stdin, so comment lines are kept (a commit through `$EDITOR` strips them); stdin is closed for hooks and signing, so one that prompts fails with its output and a hint to use `<space>te`, which runs in the real terminal. Quitting with an unsent message needs a second `q` (guard), because Confirm mode is for destructive actions and a draft is not yet saved with the session.
 
 **UI:** `q` quits from the working-tree view too (#333 rule applied to #29/#30, which left `q` unbound there): `h`/`Esc` leave it.
+
+**UI:** Working-tree diff (#330): `q` quits in the diff as everywhere (#333), `h`/`Esc` go back; a conflicted file shows git's combined diff folded into one old/new pair (the per-parent columns are dropped), so it does not literally equal `git diff`; a path that is not valid UTF-8 shows a note because `git diff` reads no pathspec file (#344); a failed read is retried only when the status is read again or the options change.

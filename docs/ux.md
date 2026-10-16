@@ -82,17 +82,20 @@ Each later workflow (3-7 at the end of this section) needs a written step-by-ste
 
 ### 2. Working-tree view: stage, commit, amend, discard (design for #29-#33, #51, #314)
 
-Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys in the planned table below are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingUnstaged`, `WorkingStaged`, the two diffs and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
+Owner decision (2026-10-15, #28): the working tree is a separate view of the tab, not a graph pane or pseudo-row. The keys in the planned table below are listed here, not in the Keymap table, because the keymap test requires every row there to be a registered default. The implementing issue moves its rows into the Keymap table together with the `DefaultKeymap` entries, `ActionIds` and hints (views `WorkingUnstaged`, `WorkingStaged`, `WorkingUnstagedDiff`, `WorkingStagedDiff` (moved in #330) and `WorkingMessage`; they inherit `Lists` and `Global`, and the diff the existing `Diff` navigation rows).
 
 **Layout.** Left column: `Unstaged` list on top (conflicted files first, in their own group, then modified, deleted, renamed and untracked files, each with its status letter and path) and `Staged` list below it, each titled with its count. Right: the diff of the file under the cursor (the working-tree diff for Unstaged, the index diff for Staged; untracked files show their content as additions) and, below the diff, the message box with an option row `[ ] SignOff  [ ] No-Verify  [ ] Amend` and a `Commit` button. The sidebar is hidden in this view (it gets the whole width); the tab bar stays. Terminals under 80 columns show one pane at a time, as the diff does in 1c. Lists and diff follow the pane, selection, zoom (`<space>z`) and diff option rules of workflows 1 and 1c; the diff is the same widget (hunk navigation, wrap, context, split).
 
-**Built in #29** (lists and layout only; the click on a tab's dirty marker is #331 and the palette entries are `Open the working tree` and `Open or leave the working tree`): the view opens and closes as described below, shows the Unstaged and Staged lists with their counts and status letters (`M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted with the kind of conflict; a rename or copy as `old -> new` in the Staged list, an edit of the renamed file under its new path in Unstaged; a path that is not valid UTF-8 shows its stray bytes as replacement characters), keeps one cursor per tab (state: `WorkingTreeState.Selection`, the conflicted group first in the Unstaged display order) and moves it with the list motions, the wheel and clicks. Diff and message box are boxes with a note until #314 and the working-tree diff exist. On a screen under 80 columns only the focused list shows (`Tab` switches); under 7 rows of content the two lists do not stack and the focused one takes the left column. The view mode is not saved with the session (a restart opens on the history).
+**Built in #29** (lists and layout only; the click on a tab's dirty marker is #331 and the palette entries are `Open the working tree` and `Open or leave the working tree`): the view opens and closes as described below, shows the Unstaged and Staged lists with their counts and status letters (`M` `A` `D` `R` `C` `T`, `?` untracked, `!` conflicted with the kind of conflict; a rename or copy as `old -> new` in the Staged list, an edit of the renamed file under its new path in Unstaged; a path that is not valid UTF-8 shows its stray bytes as replacement characters), keeps one cursor per tab (state: `WorkingTreeState.Selection`, the conflicted group first in the Unstaged display order) and moves it with the list motions, the wheel and clicks. The message box is a box with a note until #314. On a screen under 80 columns only the focused list shows (`Tab` switches); under 7 rows of content the two lists do not stack and the focused one takes the left column. The view mode is not saved with the session (a restart opens on the history).
+
+**Built in #330** (the diff): the right box shows the diff of the file under the cursor of the focused list, read off the UI thread with the history diff's limits: the working-tree diff for Unstaged (`git diff -- <path>`), the index diff for Staged (`git diff --cached`, both paths of a rename), an untracked file as additions (`git diff --no-index -- /dev/null <path>`), a binary file as a note and a conflicted file as the combined diff (one file; each line is added, removed or context as in the result, with the result's line numbers; the per-parent columns are not shown). It uses the same widget as the history diff (hunk jumps, `w`, `+`/`-`, `F`, `W`, `S`, `/` `n` `N`, `y` `Y`, `L`); the title reads `Diff  unstaged|staged  hunk n/m  <path>`. It follows the cursor and reloads after every status read, also when the file's status letters did not change (a second edit), keeping the cursor row. `Enter`/`l` on a file and `Ctrl-w l` focus the diff of its side, `Tab` reaches it after the lists, `h`/`Esc` go back to the list (`q` still quits, #333); on a screen under 80 columns the focused diff replaces the list. Limits: a path that is not valid UTF-8 shows a note instead (the diff command reads no pathspec file, so stdin cannot carry it), and zoom, Visual ranges, the title buttons and the per-side staging keys are not in the diff yet.
 
 **Built in #30** (whole files; `IndexWriter` in the git layer): `<space>a` `<space>u` `<space>A` `<space>U` and the double-click run `add`, `restore --staged` (`rm --cached` on an unborn branch) with the paths on stdin and `--literal-pathspecs`, off the UI thread, one operation per tab at a time (a key pressed meanwhile says "busy"). When the operation is done the tab re-reads its status and the cursor lands on the same index, so the keys repeat. Stage all skips conflicted files and says how many; unstaging a rename passes both paths. Failures show git's message in the status bar. Not built yet: Visual ranges of files and the `stage all` / `unstage all` title buttons (#340), marking a conflicted file resolved (#341), hunks and lines (#31).
 
-**Open and leave.** `<space>s` (global) toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `h`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc`/`h` in the diff and the message box step back to the lists first (the 1c rule). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
 
-**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message; `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between Unstaged and Staged (stacked), `Ctrl-w l` from either goes to the diff; `l`/`Enter` on a file moves into its diff, `h`/`Esc` back; `y` copies the file's path. `v` (Visual) is extended to the file lists and the working-tree diff by the implementing issues, with the Mouse drag; in a file list a Visual range works with `<space>a`, `<space>u` and `<space>d` (the Confirm names the count), in the diff they act on the selected lines (rows marked `(Visual)` when they join the Keymap table).
+**Open and leave.** `<space>s` (global) toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Working tree`. The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. Leave with `q`/`Esc` from a list (back to the history view with the same graph selection) or `<space>s` again; `Esc` in the diff and the message box steps back to the lists first (the 1c rule; `q` quits, #333). Opening the view focuses the first non-empty list (Unstaged, else Staged); a clean tree shows "Nothing to commit, working tree clean" and the message box stays usable for Amend.
+
+**Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message; `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between Unstaged and Staged (stacked), `Ctrl-w l` from either goes to the diff; `l`/`Enter` on a file moves into its diff (built in #330), `h`/`Esc` back; `y` copies the file's path. `v` (Visual) is extended to the file lists and the working-tree diff by the implementing issues, with the Mouse drag; in a file list a Visual range works with `<space>a`, `<space>u` and `<space>d` (the Confirm names the count), in the diff they act on the selected lines (rows marked `(Visual)` when they join the Keymap table).
 
 **Side-specific keys.** Each list and each diff side is its own view for the keymap (`WorkingUnstaged`, `WorkingStaged`, `WorkingUnstagedDiff`, `WorkingStagedDiff`), so help and hints show only what applies: `<space>a`, `<space>A`, `<space>d` exist only on the Unstaged side, `<space>u`, `<space>U` only on the Staged side; the other key there is unbound, not a no-op.
 
@@ -122,13 +125,9 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 |---|---|---|
 | WorkingUnstaged | `<space>a` | On a conflicted file: mark it resolved after a Confirm (#341; until then it is refused) |
 | WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
-| WorkingUnstaged / WorkingStaged | `Enter` `l` | Go to the diff of the file |
 | WorkingUnstagedDiff | `<space>a` | Stage the hunk, or the Visual-selected lines |
 | WorkingStagedDiff | `<space>u` | Unstage the hunk, or the Visual-selected lines |
 | WorkingUnstagedDiff | `<space>d` | Discard the hunk or selected lines (Confirm) |
-| WorkingUnstagedDiff / WorkingStagedDiff | `<space>c` | Write the commit message |
-| WorkingUnstagedDiff / WorkingStagedDiff | `]c` `[c` `]f` `[f` `w` `+` `-` `F` `W` `S` `y` `/` `n` `N` | As the history diff (1c) |
-| WorkingUnstagedDiff / WorkingStagedDiff | `Esc` / `h` | Back to the file list |
 
 Conflict check: `<space>` is a Normal-mode prefix used only by Gitunia, so none of these shadows a vim command; `<space>a` `A` `u` `U` `d` `c` `r` `t` are unused by the global leader rows (`<space>o` `p` `x` `m` `s` `z` `<Tab>`); `S`, `W`, `F` keep their display meaning in the working-tree diff; `Alt-p` and `Alt-d` are Picker-only and `Alt-1`..`Alt-9` jump tabs, so `Alt-s`, `Alt-n`, `Alt-a` are free (they act only in this view). `<space>c` is a single key in the lists and the diff (write) and in the box (commit): each is its own view.
 
@@ -256,6 +255,40 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingMessage | `<space>r` | Refresh the status |
 | WorkingMessage | `h` / `Esc` | Back to the file lists |
 | WorkingMessage | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingUnstaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
+| WorkingStaged | `Enter` `l` | Go to the diff of the file under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
+| WorkingUnstagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
+| WorkingUnstagedDiff | `]c` `[c` | Next / previous hunk |
+| WorkingUnstagedDiff | `]f` `[f` | Next / previous file (the diff holds the one file under the list cursor, so these only report the end) |
+| WorkingUnstagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingUnstagedDiff | `/` `n` `N` | Search in diff, next, previous |
+| WorkingUnstagedDiff | `w` | Toggle word wrap |
+| WorkingUnstagedDiff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
+| WorkingUnstagedDiff | `Y` | Copy the displayed rows of the file (not a pasteable patch) |
+| WorkingUnstagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
+| WorkingUnstagedDiff | `F` | Toggle showing the whole file instead of hunks (title `[file]`) |
+| WorkingUnstagedDiff | `W` | Toggle ignoring whitespace-only changes (title `[-w]`) |
+| WorkingUnstagedDiff | `S` | Toggle the side-by-side view (title `[split]`; needs 80 text columns) |
+| WorkingUnstagedDiff | `L` | Load anyway: read the file without the row and per-file limits |
+| WorkingUnstagedDiff | `<space>c` | Write the commit message (focus the message box, Insert mode) |
+| WorkingUnstagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
+| WorkingUnstagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
+| WorkingStagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
+| WorkingStagedDiff | `]c` `[c` | Next / previous hunk |
+| WorkingStagedDiff | `]f` `[f` | Next / previous file (the diff holds the one file under the list cursor, so these only report the end) |
+| WorkingStagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingStagedDiff | `/` `n` `N` | Search in diff, next, previous |
+| WorkingStagedDiff | `w` | Toggle word wrap |
+| WorkingStagedDiff | `y` | Copy the cursor line (with its `+`, `-` or space prefix) |
+| WorkingStagedDiff | `Y` | Copy the displayed rows of the file (not a pasteable patch) |
+| WorkingStagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
+| WorkingStagedDiff | `F` | Toggle showing the whole file instead of hunks (title `[file]`) |
+| WorkingStagedDiff | `W` | Toggle ignoring whitespace-only changes (title `[-w]`) |
+| WorkingStagedDiff | `S` | Toggle the side-by-side view (title `[split]`; needs 80 text columns) |
+| WorkingStagedDiff | `L` | Load anyway: read the file without the row and per-file limits |
+| WorkingStagedDiff | `<space>c` | Write the commit message (focus the message box, Insert mode) |
+| WorkingStagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
+| WorkingStagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | Sidebar | `l` | Expand section; on a leaf, focus graph |
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |

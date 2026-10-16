@@ -29,7 +29,7 @@ public class WorkingTreeFrameTests
                 .Select(line => line.Text.TrimEnd()));
 
     [Fact]
-    public void GivenMixedChanges_WhenComposingAt90x16_ThenListsCountsAndPlaceholdersShow()
+    public void GivenMixedChanges_WhenComposingAt90x16_ThenListsCountsAndAnEmptyDiffBoxShow()
     {
         var frame = Frame(MixedTree(), PaneKind.WorkingUnstaged, 90, 16);
 
@@ -38,7 +38,7 @@ public class WorkingTreeFrameTests
                 '\n',
                 "   1 repo",
                 "╭─ Unstaged 3 ────────────────┬─ Diff ───────────────────────────────────────────────────╮",
-                "│ ! src/merge.cs  both modif… │ The diff of the selected file is not implemented yet     │",
+                "│ ! src/merge.cs  both modif… │                                                          │",
                 "│ M src/app.cs                │                                                          │",
                 "│ ? notes.txt                 │                                                          │",
                 "│                             │                                                          │",
@@ -51,7 +51,7 @@ public class WorkingTreeFrameTests
                 "│                             │                                                          │",
                 "│                             │ [ ] SignOff  [ ] No-Verify  [ ] Amend            Commit  │",
                 "╰─────────────────────────────┴──────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  <…"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  l…"),
             frame);
     }
 

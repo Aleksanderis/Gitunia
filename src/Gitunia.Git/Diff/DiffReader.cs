@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Git.Diff;
 
@@ -34,12 +35,73 @@ public sealed class DiffReader : IDiffReader
         _runner = runner;
     }
 
-    public async IAsyncEnumerable<DiffFile> ReadAsync(
+    /// <summary>Exit code of <c>git diff --no-index</c> when the files differ, which is the normal case here.</summary>
+    private const int DifferencesExitCode = 1;
+
+    private static readonly GitRunOptions NoIndexRun = GitRunOptions.ReadOnlyRun with { AcceptedExitCodes = [DifferencesExitCode] };
+
+    public IAsyncEnumerable<DiffFile> ReadAsync(
         RepositoryLocation location,
         IReadOnlyList<string> command,
         ICollection<string>? warnings = null,
         int maximumLinesPerFile = int.MaxValue,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        StreamAsync(location, command, GitRunOptions.ReadOnlyRun, false, warnings, maximumLinesPerFile, cancellationToken);
+
+    public IAsyncEnumerable<DiffFile> ReadWorkingFileAsync(
+        RepositoryLocation location,
+        WorkingDiffSide side,
+        StatusEntry entry,
+        ICollection<string>? warnings = null,
+        int maximumLinesPerFile = int.MaxValue,
+        DiffOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (GitPathText.HasEscapedBytes(entry.Path) || (entry.OriginalPath is { } original && GitPathText.HasEscapedBytes(original)))
+        {
+            // Unlike add and restore, diff cannot read its paths from stdin, and such a name cannot be a process argument.
+            throw new NotSupportedException("The file name is not valid UTF-8, and git diff cannot take it on stdin");
+        }
+
+        var extra = (options ?? DiffOptions.Default).ToArguments();
+        var isUntracked = side == WorkingDiffSide.Unstaged && entry.Kind == StatusEntryKind.Untracked;
+        var isConflicted = side == WorkingDiffSide.Unstaged && entry.Kind == StatusEntryKind.Unmerged;
+        IReadOnlyList<string> command;
+        if (isUntracked)
+        {
+            command = ["diff", GitOptions.NoIndex, .. extra, GitOptions.EndOfOptions, GitOptions.NullDevice, entry.Path];
+        }
+        else if (side == WorkingDiffSide.Staged)
+        {
+            command = ["diff", GitOptions.Cached, .. extra, GitOptions.EndOfOptions, .. LiteralPaths(entry, includeOriginal: true)];
+        }
+        else
+        {
+            command = ["diff", .. extra, GitOptions.EndOfOptions, .. LiteralPaths(entry, includeOriginal: false)];
+        }
+
+        var run = isUntracked ? NoIndexRun : GitRunOptions.ReadOnlyRun;
+        return StreamAsync(location, command, run, isConflicted, warnings, maximumLinesPerFile, cancellationToken);
+    }
+
+    private static IEnumerable<string> LiteralPaths(StatusEntry entry, bool includeOriginal)
+    {
+        yield return GitOptions.LiteralPathspecPrefix + entry.Path;
+        if (includeOriginal && entry.OriginalPath is { } original)
+        {
+            // Both sides of a rename, or git shows an addition and no rename.
+            yield return GitOptions.LiteralPathspecPrefix + original;
+        }
+    }
+
+    private async IAsyncEnumerable<DiffFile> StreamAsync(
+        RepositoryLocation location,
+        IReadOnlyList<string> command,
+        GitRunOptions run,
+        bool readsCombined,
+        ICollection<string>? warnings,
+        int maximumLinesPerFile,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfZero(command.Count);
         var arguments = new List<string>(command.Count + FixedOptions.Length) { command[0] };
@@ -49,12 +111,12 @@ public sealed class DiffReader : IDiffReader
             arguments.Add(command[index]);
         }
 
-        var parser = new DiffParser(maximumLinesPerFile);
+        var parser = new DiffParser(maximumLinesPerFile, readsCombined);
         var completed = new List<DiffFile>();
         try
         {
             await foreach (var chunk in _runner
-                .StreamAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken)
+                .StreamAsync(location.CommandPath, arguments, run, cancellationToken)
                 .ConfigureAwait(false))
             {
                 parser.Feed(chunk, completed);

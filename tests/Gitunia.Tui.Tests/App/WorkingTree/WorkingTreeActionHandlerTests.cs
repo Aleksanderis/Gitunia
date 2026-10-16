@@ -1,6 +1,5 @@
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -120,24 +119,96 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
-    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenUpAndDownMoveBetweenTheListsAndRightAndLeftToTheMessageBox()
+    public void GivenTheWorkingTree_WhenMovingFocusByDirection_ThenUpAndDownSwitchListsAndRightAndLeftGoToTheDiffAndBack()
     {
         var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
 
-        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
-        Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
-
         harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
-        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
 
         harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
         Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheDiff_WhenMovingDownAndUp_ThenTheMessageBoxIsBelowIt()
+    {
+        var harness = Harness.Open(Modified("a.txt"));
+        harness.Handler.TryExecute(ActionIds.PaneFocusRight, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusUp, null);
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneFocusDown, null);
+        harness.Handler.TryExecute(ActionIds.PaneFocusLeft, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Theory]
+    [InlineData(false, PaneKind.WorkingUnstagedDiff)]
+    [InlineData(true, PaneKind.WorkingStagedDiff)]
+    public void GivenAFileUnderTheCursor_WhenOpeningItsDiff_ThenTheDiffOfItsSideTakesFocus(bool isStaged, PaneKind expected)
+    {
+        var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+        if (isStaged)
+        {
+            harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        }
+
+        Assert.True(harness.Handler.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+
+        Assert.Equal(expected, harness.Tab.View.FocusedPane);
+        Assert.Equal(TabViewMode.WorkingTree, harness.Tab.View.Mode);
+    }
+
+    [Fact]
+    public void GivenNoFile_WhenOpeningTheDiff_ThenANoticeAsksForAFile()
+    {
+        var harness = new Harness();
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggle, null);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeOpenDiff, null);
+
+        Assert.Equal("Select a file to see its diff", harness.Handler.Message);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheWorkingTree_WhenCyclingPastTheLists_ThenTheDiffOfTheSelectedSideAndTheMessageBoxAreInTheCycle()
+    {
+        var harness = Harness.Open(Modified("a.txt"), StagedModified("b.txt"));
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingStagedDiff, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PaneNext, null);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+
+        harness.Handler.TryExecute(ActionIds.PanePrevious, null);
+        Assert.Equal(PaneKind.WorkingMessage, harness.Tab.View.FocusedPane);
     }
 
     [Fact]
@@ -222,19 +293,7 @@ public class WorkingTreeActionHandlerTests
             var writer = new ClipboardWriter(new StringWriter(), new Osc52Options(Osc52Mode.Direct, 100_000));
             Statuses = new StatusChannel();
             var staging = new StagingActions(_host, new FakeIndexWriter(), Statuses, action => action(), (_, done) => { done(); return true; }, _ => CancellationToken.None);
-            var commits = new CommitActions(
-                _host,
-                new FakeCommitWriter(),
-                new FakeOperationDetector(),
-                Statuses,
-                action => action(),
-                (_, done) => { done(); return true; },
-                _ => CancellationToken.None,
-                (_, _, _) => { },
-                () => KeyMode.Normal,
-                _ => { },
-                (_, _) => { },
-                () => { });
+            var commits = TestCommitActions.Create(_host, Statuses);
             Handler = new WorkingTreeActionHandler(_host, () => PageHeight, new ClipboardCopier(writer, Statuses), staging, commits);
         }
 

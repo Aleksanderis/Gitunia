@@ -117,7 +117,8 @@ public sealed class EffectRunner : IDisposable
             load.TabId,
             _glyphs,
             new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
-            new DiffStore(_services.Diff, tab.Location, _postToUi));
+            new DiffStore(_services.Diff, tab.Location, _postToUi),
+            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;

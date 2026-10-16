@@ -160,6 +160,61 @@ public class WorkingTreeViewReducerTests
         Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "z-conflict.txt", 0), state.WorkingTree!.Selection);
     }
 
+    [Fact]
+    public void GivenAFileInUnstaged_WhenFocusingTheStagedDiff_ThenTheDiffOfTheSelectedSideTakesFocus()
+    {
+        var state = RepositoryReducer.Reduce(Load(Snapshot(Unstaged("a.txt"), Staged("b.txt"))), new OpenWorkingTreeCommand());
+
+        state = RepositoryReducer.Reduce(state, new FocusPaneCommand(PaneKind.WorkingStagedDiff));
+
+        Assert.Equal(PaneKind.WorkingUnstagedDiff, state.View.FocusedPane);
+        Assert.Equal(WorkingTreeSection.Unstaged, state.WorkingTree!.Selection!.Section);
+    }
+
+    [Fact]
+    public void GivenNoFile_WhenFocusingADiff_ThenFocusStays()
+    {
+        var state = RepositoryReducer.Reduce(Load(Snapshot()), new OpenWorkingTreeCommand());
+
+        state = RepositoryReducer.Reduce(state, new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        Assert.Equal(PaneKind.WorkingUnstaged, state.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenTheUnstagedDiffFocused_WhenItsFileMovesToStaged_ThenTheStagedDiffKeepsTheFocus()
+    {
+        var state = RepositoryReducer.Reduce(Load(Snapshot(Unstaged("a.txt"))), new OpenWorkingTreeCommand());
+        state = RepositoryReducer.Reduce(state, new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        state = RepositoryReducer.Reduce(state, new WorkingTreeLoadedCommand(Snapshot(Staged("a.txt"))));
+
+        Assert.Equal(PaneKind.WorkingStagedDiff, state.View.FocusedPane);
+        Assert.Equal(WorkingTreeSection.Staged, state.WorkingTree!.Selection!.Section);
+    }
+
+    [Fact]
+    public void GivenADiffFocused_WhenTheTreeBecomesClean_ThenTheUnstagedListTakesFocus()
+    {
+        var state = RepositoryReducer.Reduce(Load(Snapshot(Unstaged("a.txt"))), new OpenWorkingTreeCommand());
+        state = RepositoryReducer.Reduce(state, new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        state = RepositoryReducer.Reduce(state, new WorkingTreeLoadedCommand(Snapshot()));
+
+        Assert.Equal(PaneKind.WorkingUnstaged, state.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenAFocusedDiff_WhenLeavingTheWorkingTree_ThenTheGraphIsFocusedAgain()
+    {
+        var state = RepositoryReducer.Reduce(Load(Snapshot(Unstaged("a.txt"))), new OpenWorkingTreeCommand());
+        state = RepositoryReducer.Reduce(state, new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        state = RepositoryReducer.Reduce(state, new LeaveWorkingTreeCommand());
+
+        Assert.Equal(PaneKind.Graph, state.View.FocusedPane);
+    }
+
     private static RepositoryState NewTab()
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-working-tree-view-tests");

@@ -535,16 +535,8 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         diff.PendingFilePath = path;
-        Notice = DescribeOptions(changed);
+        Notice = DiffOptionsLabel.Describe(changed);
         return true;
-    }
-
-    private static string DescribeOptions(DiffOptions options)
-    {
-        var context = options.WholeFile
-            ? "whole files"
-            : $"{options.ContextLines.ToString(CultureInfo.InvariantCulture)} context lines";
-        return options.IgnoreWhitespace ? $"Diff: {context}, whitespace ignored" : $"Diff: {context}";
     }
 
     private void LoadAnyway(DiffSession diff)

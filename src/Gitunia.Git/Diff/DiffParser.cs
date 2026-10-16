@@ -8,9 +8,10 @@ namespace Gitunia.Git.Diff;
 /// Incremental parser for the patch text of <c>git diff</c>, <c>git show</c> and <c>git log -p</c> (with
 /// <c>--no-color</c>). Feed it chunks of any size; a file is emitted as soon as the next one starts, so memory is
 /// bounded by the largest single file, not by the diff. Anything before the first <c>diff --git</c> line (such as the
-/// commit message of <c>git show</c>) is ignored. Combined diffs (<c>diff --cc</c>, merge commits) are skipped with a warning.
+/// commit message of <c>git show</c>) is ignored. Combined diffs (<c>diff --cc</c>, merge commits) are skipped with a warning,
+/// unless <c>readsCombined</c> is set (the diff of a conflicted file): they are then shown as one file with the result's line numbers.
 /// </summary>
-public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
+public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue, bool readsCombined = false)
 {
     private const string FileHeaderPrefix = "diff --git ";
 
@@ -90,7 +91,7 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
         var line = Decode(bytes, invalid);
         var startsFile = line.StartsWith(FileHeaderPrefix, StringComparison.Ordinal);
         var startsCombined = line.StartsWith("diff --cc ", StringComparison.Ordinal) || line.StartsWith("diff --combined ", StringComparison.Ordinal);
-        if (_current is not null && _current.IsInHunkBody)
+        if (_current is not null && _current.TakesBodyLine(line))
         {
             MarkInvalid(_current, invalid);
             _current.Add(line);
@@ -100,8 +101,13 @@ public sealed class DiffParser(int maximumLinesPerFile = int.MaxValue)
         if (startsFile || startsCombined)
         {
             EmitCurrent(output);
-            _skippingCombined = startsCombined;
-            if (startsCombined)
+            _skippingCombined = startsCombined && !readsCombined;
+            if (startsCombined && readsCombined)
+            {
+                _current = DiffFileBuilder.Combined(line, _warnings, maximumLinesPerFile);
+                MarkInvalid(_current, invalid);
+            }
+            else if (startsCombined)
             {
                 _warnings.Add($"Skipped combined diff '{line}'");
             }
