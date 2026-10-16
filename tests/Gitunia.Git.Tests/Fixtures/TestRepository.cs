@@ -117,7 +117,7 @@ public sealed class TestRepository : IDisposable
     /// <summary>Directory of the local bare repository created by <see cref="AddOrigin"/>.</summary>
     public string OriginPath => Path.Combine(_rootDirectory, "origin.git");
 
-    /// <summary>Creates a local bare <c>origin</c>, pushes the current branch and makes it track <c>origin/main</c>.</summary>
+    /// <summary>Creates a local bare <c>origin</c> and pushes <c>main</c> with upstream tracking.</summary>
     public TestRepository AddOrigin()
     {
         Directory.CreateDirectory(OriginPath);
@@ -134,7 +134,9 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
-    /// <summary>Adds a commit to <paramref name="branch"/> on origin only (through a throwaway clone), then fetches it here.</summary>
+    /// <summary>
+    /// Adds a commit to <paramref name="branch"/> on origin only (through a throwaway clone), then fetches it here.
+    /// </summary>
     public TestRepository CommitOnOrigin(string branch, string message, TestFile file)
     {
         var clone = Path.Combine(_rootDirectory, $"clone-{_commitCounter}");
@@ -147,7 +149,7 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
-    /// <summary>Creates a stash holding a tracked change (<c>file.txt</c>) and an untracked file (<c>untracked.txt</c>).</summary>
+    /// <summary>Stashes a tracked change (<c>file.txt</c>) and an untracked file (<c>untracked.txt</c>).</summary>
     public TestRepository StashWithUntracked(string message = "wip")
     {
         WriteFile("file.txt", "stashed change\n");
@@ -170,7 +172,7 @@ public sealed class TestRepository : IDisposable
         return this;
     }
 
-    /// <summary>Rebases the current branch onto <paramref name="onto"/> expecting a conflict; leaves the rebase stopped.</summary>
+    /// <summary>Rebases onto <paramref name="onto"/> expecting a conflict; leaves the rebase stopped.</summary>
     public TestRepository RebaseExpectingConflict(string onto)
     {
         Git(["rebase", onto], acceptedExitCodes: [1]);
@@ -187,7 +189,7 @@ public sealed class TestRepository : IDisposable
     public string Git(string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes) =>
         GitIn(WorkingTreePath, arguments, acceptedExitCodes);
 
-    /// <summary>Runs git with the isolated environment in <paramref name="directory"/> (a worktree, clone or bare repository).</summary>
+    /// <summary>Runs isolated git in <paramref name="directory"/> (a worktree, clone or bare repository).</summary>
     public string GitIn(string directory, string[] arguments, IReadOnlyCollection<int>? acceptedExitCodes = null)
     {
         // Every call moves the clock, so any history-writing command (commit, merge, cherry-pick, rebase, ...) has a distinct, ordered time.

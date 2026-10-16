@@ -97,7 +97,8 @@ public class TestRepositoryTests
     {
         using var repository = TestRepositories.WithManyWorktrees(out _, out _, out var dirtyPath);
 
-        var blocks = repository.Git("worktree", "list", "--porcelain").Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        var listing = repository.Git("worktree", "list", "--porcelain");
+        var blocks = listing.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
 
         Assert.Equal(4, blocks.Length);
         Assert.Contains(blocks, block => block.Contains("wt-locked") && block.Contains("locked test lock"));

@@ -54,10 +54,15 @@ public static class TestRepositories
     /// <summary>Linear main pushed to a local bare origin with upstream tracking set.</summary>
     public static TestRepository WithOrigin() => Linear(2).AddOrigin();
 
-    /// <summary>Branch <c>topic</c> tracking <c>origin/topic</c> with <paramref name="ahead"/> local and <paramref name="behind"/> remote-only commits.</summary>
+    /// <summary>
+    /// Branch <c>topic</c> tracking <c>origin/topic</c> with <paramref name="ahead"/> local and
+    /// <paramref name="behind"/> remote-only commits.
+    /// </summary>
     public static TestRepository WithTrackingBranch(int ahead, int behind)
     {
-        var repository = WithOrigin().CheckoutNewBranch("topic").Commit("Topic base", new TestFile("topic.txt", "base\n"));
+        var repository = WithOrigin()
+            .CheckoutNewBranch("topic")
+            .Commit("Topic base", new TestFile("topic.txt", "base\n"));
         repository.PushWithUpstream("topic");
         for (var index = 1; index <= behind; index++)
         {
@@ -76,8 +81,14 @@ public static class TestRepositories
     public static TestRepository WithoutUpstreamBranch() =>
         WithOrigin().CheckoutNewBranch("lonely").Commit("Lonely", new TestFile("lonely.txt", "x\n"));
 
-    /// <summary>Main plus linked worktrees <c>wt-locked</c> (locked), <c>wt-prunable</c> (directory deleted) and <c>wt-dirty</c> (uncommitted change).</summary>
-    public static TestRepository WithManyWorktrees(out string lockedPath, out string prunablePath, out string dirtyPath)
+    /// <summary>
+    /// Main plus linked worktrees <c>wt-locked</c> (locked), <c>wt-prunable</c> (directory deleted) and
+    /// <c>wt-dirty</c> (uncommitted change).
+    /// </summary>
+    public static TestRepository WithManyWorktrees(
+        out string lockedPath,
+        out string prunablePath,
+        out string dirtyPath)
     {
         var repository = Linear(2);
         lockedPath = repository.AddWorktree("wt-locked", "locked", createBranch: true);
@@ -89,13 +100,19 @@ public static class TestRepositories
         return repository;
     }
 
-    /// <summary>Branch <c>other</c> and main edit <c>conflict.txt</c> differently; a rebase of <c>other</c> onto main is stopped on the conflict.</summary>
-    public static TestRepository RebaseConflicted() => ConflictingBranches().Checkout("other").RebaseExpectingConflict("main");
+    /// <summary>
+    /// Branch <c>other</c> and main edit <c>conflict.txt</c> differently; a rebase of <c>other</c> onto main is
+    /// stopped on the conflict.
+    /// </summary>
+    public static TestRepository RebaseConflicted() =>
+        ConflictingBranches().Checkout("other").RebaseExpectingConflict("main");
 
     /// <summary>A cherry-pick of <c>other</c> onto main stopped on a conflict in <c>conflict.txt</c>.</summary>
     public static TestRepository CherryPickConflicted() => ConflictingBranches().CherryPickExpectingConflict("other");
 
-    /// <summary>A revert of the first change to <c>conflict.txt</c> stopped on a conflict (a later commit changed the same line).</summary>
+    /// <summary>
+    /// A revert of the first change to <c>conflict.txt</c> stopped on a conflict (a later commit changed the same line).
+    /// </summary>
     public static TestRepository RevertConflicted()
     {
         return TestRepository.Create()
