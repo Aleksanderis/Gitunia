@@ -41,7 +41,10 @@ public class ListSourceJumpTests
     {
         var source = new DiffListSource(GraphGlyphSet.Unicode);
         source.Update(new DiffDocument(
-            [new DiffRow(DiffRowKind.Removed, "old needle", 1, null, 0), new DiffRow(DiffRowKind.Added, "new needle", null, 1, 0)],
+            [
+                new DiffRow(DiffRowKind.Removed, "old needle", 1, null, 0),
+                new DiffRow(DiffRowKind.Added, "new needle", null, 1, 0),
+            ],
             [0],
             [0],
             [["f"]],
@@ -64,12 +67,12 @@ public class ListSourceJumpTests
         var rows = new List<DiffRow>();
         for (var index = 0; index < 4; index++)
         {
-            rows.Add(new DiffRow(DiffRowKind.Removed, "needle old " + index, index + 1, null, 0));
+            rows.Add(new DiffRow(DiffRowKind.Removed, $"needle old {index}", index + 1, null, 0));
         }
 
         for (var index = 0; index < 4; index++)
         {
-            rows.Add(new DiffRow(DiffRowKind.Added, "needle new " + index, null, index + 1, 0));
+            rows.Add(new DiffRow(DiffRowKind.Added, $"needle new {index}", null, index + 1, 0));
         }
 
         var source = new DiffListSource(GraphGlyphSet.Unicode);

@@ -66,7 +66,7 @@ How and why the decisions behind `docs/ux.md` were made, roughly in the order th
 
   - 2026-10-16: **UI:** Working-tree diff chrome (#343): zoom is a flag of the tab's working-diff session and ends when focus leaves the diff; the title row has its own line view with the history diff's buttons plus `stage`/`discard` (Unstaged) or `unstage` (Staged), `stage` first and `discard` after the hunk buttons in the drop order. Click from a list to its diff on narrow screens is deferred to #376.
 
-  - 2026-10-16: **UI:** Quick jump (#353) is one action bound to `<space>j` in the graph, the diffs and the working-tree file lists; only rows in view get labels and a label that would sit past the visible width takes no letter. Side-by-side diff (#381) and the detail pane (#382) has it too; #361 reuses the prompt and labeler.
+  - 2026-10-16: **UI:** Quick jump (#353) is one action bound to `<space>j` in the graph, the diffs and the working-tree file lists; only rows in view get labels and a label that would sit past the visible width takes no letter. The side-by-side diff (#381) and the detail pane (#382) have it too; #361 reuses the prompt and labeler.
 
   - 2026-10-16: **UI:** Drafts and quit (#369): locating a missing tab moves its draft (message, SignOff, No-Verify, never Amend) to the replacing tab, and both tabs stay when the replacement holds a message of its own. `q` quits at once unless the final session save fails while a message is unsent: then the first `q` warns and the next leaves (supersedes "the quit guard is gone" of #347).
 

@@ -100,6 +100,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public void SetSideBySide(bool isSideBySide)
     {
         IsSideBySide = isSideBySide;
+        _jump.Invalidate();
         RangeInvalidated?.Invoke();
         _splitMap = null;
         Notify();
@@ -163,37 +164,6 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var window = new JumpWindow(first, LastRowOf(lastLine) - first + 1, cursor);
 
         return _jump.Labels(text, window, width, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis));
-    }
-
-    // Side by side the rows of a line sit in two halves: the window spans the rows of the lines in view, and rows between that are on
-    // lines out of view get no text (DiffJumpRows), so no label is hidden off screen.
-    private IReadOnlyList<JumpLabel> SplitJumpLabels(string text, int firstLine, int lastLine, int cursor, int width)
-    {
-        var map = SplitMap();
-        var first = map.SplitLineOf(firstLine);
-        if (map.StartOfSplitLine(first) < firstLine)
-        {
-            first++;
-        }
-
-        var last = map.SplitLineOf(lastLine);
-        if (first > last)
-        {
-            return [];
-        }
-
-        var low = int.MaxValue;
-        var high = -1;
-        for (var index = first; index <= last; index++)
-        {
-            var line = map.Split.Lines[index];
-            low = Math.Min(low, line.FirstRow);
-            high = Math.Max(high, line.LastRow);
-        }
-
-        var window = new JumpWindow(low, high - low + 1, cursor);
-        var stamp = HashCode.Combine(width, first, last, IsWrapped);
-        return _jump.Labels(text, window, stamp, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis, map.Split, first, last));
     }
 
     public bool IsMarked(int item) => false;
@@ -277,7 +247,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         {
             JumpLabels(listView, JumpText);
             left = _jump.LabelOf(splitLine.LeftRow);
-            right = splitLine.IsFull || splitLine.LeftRow == splitLine.RightRow ? null : _jump.LabelOf(splitLine.RightRow);
+            var sharesRow = splitLine.IsFull || splitLine.LeftRow == splitLine.RightRow;
+            right = sharesRow ? null : _jump.LabelOf(splitLine.RightRow);
         }
 
         return DiffSplitRenderer.Render(
@@ -317,6 +288,41 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         JumpLabels(listView, JumpText);
 
         return _jump.LabelOf(row);
+    }
+
+    // Side by side the rows of a line sit in two halves: the window spans the rows of the lines in view, and rows between
+    // that are on lines out of view get no text (DiffJumpRows), so no label is hidden off screen.
+    private IReadOnlyList<JumpLabel> SplitJumpLabels(string text, int firstLine, int lastLine, int cursor, int width)
+    {
+        var map = SplitMap();
+        var first = map.SplitLineOf(firstLine);
+        if (map.StartOfSplitLine(first) < firstLine)
+        {
+            first++;
+        }
+
+        var last = map.SplitLineOf(lastLine);
+        if (first > last)
+        {
+            return [];
+        }
+
+        var low = int.MaxValue;
+        var high = -1;
+        for (var index = first; index <= last; index++)
+        {
+            var line = map.Split.Lines[index];
+            low = Math.Min(low, line.FirstRow);
+            high = Math.Max(high, line.LastRow);
+        }
+
+        var window = new JumpWindow(low, high - low + 1, cursor);
+        var stamp = HashCode.Combine(width, first, last, IsWrapped);
+        return _jump.Labels(
+            text,
+            window,
+            stamp,
+            () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis, map.Split, first, last));
     }
 
     private void Notify()

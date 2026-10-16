@@ -23,6 +23,9 @@ public static class DiffSplitRenderer
     /// <summary>Columns of the new (right) side; one more than the left when the width is even.</summary>
     public static int RightWidth(int width) => width - SeparatorWidth - LeftWidth(width);
 
+    /// <summary>Columns of the line number and marker in front of the text of one side.</summary>
+    public static int SidePrefixWidth(int gutterDigits) => gutterDigits + SideMarkerAndSpaceWidth;
+
     /// <summary>How many screen lines <paramref name="line"/> takes when its text wraps in a pane of <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffDocument document, DiffSplitLine line, int width, int gutterDigits)
     {
@@ -45,7 +48,7 @@ public static class DiffSplitRenderer
     /// <param name="isSelected">The line is under the cursor.</param>
     /// <param name="isWrapped">Text wraps instead of being cut.</param>
     /// <param name="glyphs">Supplies the ellipsis and the rule.</param>
-    /// <param name="leftJump">The quick-jump label of the old side's row (of the whole line when it spans both sides).</param>
+    /// <param name="leftJump">The quick-jump label of the old side's row (the whole line's when it spans both).</param>
     /// <param name="rightJump">The quick-jump label of the new side's row.</param>
     public static StyledLine Render(
         DiffDocument document,
@@ -64,14 +67,17 @@ public static class DiffSplitRenderer
         {
             var row = document.Rows[line.LeftRow];
             return isWrapped
-                ? DiffRowRenderer.RenderSegment(row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump)
+                ? DiffRowRenderer.RenderSegment(
+                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump)
                 : DiffRowRenderer.Render(row, width, gutterDigits, highlight, isSelected, glyphs, leftJump);
         }
 
         var leftWidth = LeftWidth(width);
         var rightWidth = RightWidth(width);
-        var left = RenderSide(document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs, leftJump);
-        var right = RenderSide(document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs, rightJump);
+        var left = RenderSide(
+            document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs, leftJump);
+        var right = RenderSide(
+            document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs, rightJump);
         var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
         return new LineBuilder(width, glyphs.Ellipsis)
             .Append(left)
@@ -82,9 +88,6 @@ public static class DiffSplitRenderer
 
     private static int SideSegmentCount(DiffDocument document, int row, int width, int gutterDigits) =>
         row < 0 ? 1 : DiffRowRenderer.TextSegmentCount(document.Rows[row].Text, width - SidePrefixWidth(gutterDigits));
-
-    /// <summary>Columns of the line number and marker in front of the text of one side.</summary>
-    public static int SidePrefixWidth(int gutterDigits) => gutterDigits + SideMarkerAndSpaceWidth;
 
     private static StyledLine RenderSide(
         DiffDocument document,
@@ -145,7 +148,12 @@ public static class DiffSplitRenderer
         return builder.Build();
     }
 
-    private static void AppendText(LineBuilder builder, string shown, SegmentRole role, string? highlight, JumpLabel? jump)
+    private static void AppendText(
+        LineBuilder builder,
+        string shown,
+        SegmentRole role,
+        string? highlight,
+        JumpLabel? jump)
     {
         if (jump is { } target)
         {
