@@ -294,6 +294,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
 | Detail | `y` | Copy the path of the selected file |
+| Detail | `<space>j` | Quick jump: type text, labels appear on the rows in view that contain it (file paths on Changes), press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Detail | `<space>r` | Retry loading the commit details after a failure |
 | Detail | `]` `[` | Next / previous tab of the detail pane (Details, Changes, Files; wraps) |
 | Detail | `gd` `gc` `gf` | Show the Details / Changes / Files tab |
