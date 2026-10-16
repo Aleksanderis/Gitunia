@@ -137,6 +137,14 @@ public static class ActionIds
 
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
+    public static ActionId TagCreate { get; } = new("tag.create");
+
+    public static ActionId TagDelete { get; } = new("tag.delete");
+
+    public static ActionId TagDeleteRemote { get; } = new("tag.delete-remote");
+
+    public static ActionId TagPush { get; } = new("tag.push");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");

@@ -223,7 +223,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Reset** (`<space>gx`, not a single letter, so it cannot clash with vim motions or `g` chords): the current branch moves to the selected commit. A small dialog offers `s` soft (keeps index and files), `m` mixed (keeps files, clears the index), `h` hard. Soft runs at once and shows the old tip in the status ("Reset to abc1234, was def5678"). Mixed runs at once when the index equals HEAD; otherwise it opens a Confirm saying the staged state (including partially staged hunks) is dropped and cannot be recovered from the reflog. Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files are untouched, and it says so) and the old tip for the undo (the reflog restores commits, never uncommitted changes, and the Confirm says so). Refused during an in-progress operation and on a detached HEAD. The reflog view offers the same key on an entry.
 
-**Tags** (`<space>T` + key): `Tc` create at the selected commit (prompt for the name, then an optional message: empty makes a lightweight tag, text an annotated one, so no editor is needed). `Td` delete: Confirm with the tag's target hash. `Tp` push the selected tag to a remote: one ref, no progress, no prompts, git's error shown; the push of workflow 5 generalises it. `TD` deletes the tag on a remote (`git push <remote> --delete refs/tags/<name>`): remote picker, then a Confirm naming the remote and the tag; no undo besides re-pushing the tag. Sidebar shortcut on a tag row: `d`.
+**Tags** (`<space>T` + key; implemented in #397): `Tc` create at the selected commit, or the commit of the selected sidebar row: a name prompt, then a message prompt (empty makes a lightweight tag, text an annotated one, so no editor is needed; the call also passes `-c core.editor=true`). A name in use is refused before git runs, an invalid one by `git check-ref-format`. `Td` delete the local tag: Confirm with the tag's target hash and the undo command (`git tag <name> <hash>`; for an annotated tag the hash is the tag object, so the message survives); a copy on a remote is not touched. `Tp` push the selected tag to a remote: a type-to-filter remote prompt, then one ref (`git push --no-progress <remote> refs/tags/<name>`), no progress, no prompts, git's first error line shown; the push of workflow 5 generalises it. `TD` deletes the tag on a remote (`git push <remote> --delete refs/tags/<name>`): remote prompt, then a Confirm naming the remote and the tag and saying the local tag stays; no undo besides re-pushing the tag. From the graph the tag actions act on the one tag at the selected commit (several: pick one in the sidebar). No sidebar `d` shortcut: it is a vim operator (vim-clash rule), so the sidebar uses the same `<space>T` chords on the selected row.
 
 **Reflog** (`<space>l`, graph and sidebar): opens a list view of the reflog of `HEAD`, or of another branch chosen in the ref picker `<space>l` offers first (`Enter` on `HEAD`; on a sidebar branch row it opens that branch's reflog). Newest first: short hash, `HEAD@{n}`, action and message, relative time). `j`/`k`/`gg`/`G`/`/` as in any list; `Enter` selects the commit in the graph (a commit outside the loaded graph says so); `<space>gx` resets the current branch to the entry (the reset rules above); `<space>bc` creates a branch there and `<space>bs` checks it out detached. `Esc` or `h` returns. The view is read from git on open and on `<space>r`.
 
@@ -352,6 +352,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>bd` | Delete the local branch at the selected commit after a Confirm (a second one when it is unmerged) |
 | Graph | `<space>bu` | Set the upstream of the local branch at the selected commit (type-to-filter picker of remote branches) |
 | Graph | `<space>bU` | Unset the upstream of the local branch at the selected commit |
+| Graph | `<space>Tc` | Create a tag at the selected commit (status bar prompts: name, then an optional message; empty is lightweight) |
+| Graph | `<space>Td` | Delete the local tag at the selected commit after a Confirm |
+| Graph | `<space>Tp` | Push the tag at the selected commit to a remote (type-to-filter picker; one ref, no progress) |
+| Graph | `<space>TD` | Delete the tag at the selected commit on a remote (picker, then a Confirm) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
@@ -450,6 +454,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>bd` | Delete the selected local branch after a Confirm (a second one when it is unmerged) |
 | Sidebar | `<space>bu` | Set the upstream of the selected local branch (type-to-filter picker of remote branches) |
 | Sidebar | `<space>bU` | Unset the upstream of the selected local branch |
+| Sidebar | `<space>Tc` | Create a tag at the selected row's commit (status bar prompts: name, then an optional message) |
+| Sidebar | `<space>Td` | Delete the selected local tag after a Confirm |
+| Sidebar | `<space>Tp` | Push the selected tag to a remote (type-to-filter picker; one ref, no progress) |
+| Sidebar | `<space>TD` | Delete the selected tag on a remote (picker, then a Confirm) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
 | Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |

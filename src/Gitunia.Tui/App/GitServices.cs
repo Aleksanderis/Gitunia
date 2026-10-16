@@ -8,6 +8,7 @@ using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
+using Gitunia.Git.Tags;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
@@ -46,6 +47,7 @@ public sealed record GitServices(
     IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
+    ITagWriter Tags,
     IStashReader Stashes,
     IStashWriter StashWriter,
     IWorktreeWriter Worktrees,
@@ -73,6 +75,7 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             new BranchWriter(runner),
+            new TagWriter(runner),
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),

@@ -19,6 +19,7 @@ using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
@@ -85,6 +86,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
+    private TagActions _tags = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -133,6 +135,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _commits = CreateCommits();
         _branches = CreateBranches();
+        _tags = CreateTags();
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.IsEditing;
         _router = new ActionRouter(
@@ -183,6 +186,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _router.Tags = _tags;
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
@@ -508,6 +512,18 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         BranchSelectionNow);
 
+    private TagActions CreateTags() => new(
+        _host,
+        services.Tags,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow);
+
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
@@ -774,6 +790,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
+            _tags,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),

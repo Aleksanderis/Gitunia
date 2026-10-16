@@ -139,6 +139,8 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
+        AddTagKeys(bindings, GraphView);
+        AddTagKeys(bindings, SidebarView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
@@ -196,6 +198,15 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
+    }
+
+    // The tag operations act on the selected commit (graph) or the selected row (sidebar).
+    private static void AddTagKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>Tc", ActionIds.TagCreate);
+        Add(bindings, NormalOnly, view, "<space>Td", ActionIds.TagDelete);
+        Add(bindings, NormalOnly, view, "<space>Tp", ActionIds.TagPush);
+        Add(bindings, NormalOnly, view, "<space>TD", ActionIds.TagDeleteRemote);
     }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
