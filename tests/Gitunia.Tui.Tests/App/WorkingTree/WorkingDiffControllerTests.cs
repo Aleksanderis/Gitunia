@@ -300,6 +300,44 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
+    public async Task GivenTwoEditsInOneMergedHunk_WhenStagingTheSecondGroup_ThenOnlyItIsStaged()
+    {
+        var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
+        repository.WriteFile("f.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.Equal(2, harness.Document().HunkRows.Count);
+        await harness.ExecuteAsync(ActionIds.DiffNextHunk, 2);
+
+        await harness.StageAsync(ActionIds.WorkingTreeStage);
+
+        Assert.Equal(original.Replace("line 6\n", "six\n", StringComparison.Ordinal), harness.Git("show", ":f.txt"));
+        Assert.Equal(changed, File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+        Assert.Equal("Staged change (2 lines) of f.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTwoEditsInOneMergedHunk_WhenDiscardingTheSecondGroup_ThenTheFirstEditRemainsAndTheIndexIsUntouched()
+    {
+        var original = string.Concat(Enumerable.Range(1, 12).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 6\n", "six\n", StringComparison.Ordinal);
+        repository.WriteFile("f.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        await harness.ExecuteAsync(ActionIds.DiffNextHunk, 2);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        await harness.ConfirmAsync();
+
+        Assert.Equal(original.Replace("line 2\n", "two\n", StringComparison.Ordinal), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+        Assert.Equal(original, harness.Git("show", ":f.txt"));
+        Assert.Equal("Discarded change (2 lines) of f.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
     public async Task GivenAVisualRangeOverOneAddedLine_WhenStaging_ThenOnlyThatLineIsStagedAndTheRangeEnds()
     {
         using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));

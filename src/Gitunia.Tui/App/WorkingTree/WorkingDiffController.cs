@@ -167,7 +167,7 @@ public sealed class WorkingDiffController : IPromptHandler
 
         var hunkLines = DiffSelection.OfHunk(document, row);
         return hunkIndex >= 0 && hunkLines.Count == 0
-            ? DiffStagingCapture.Refused("The hunk has no added or removed line")
+            ? DiffStagingCapture.Refused("The change has no added or removed line")
             : new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
     }
 

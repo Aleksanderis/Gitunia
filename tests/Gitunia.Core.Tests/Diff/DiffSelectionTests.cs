@@ -125,6 +125,23 @@ public class DiffSelectionTests
         Assert.Equal(["d", "D"], DiffSelection.OfHunk(document, document.Rows.Count - 1).Select(line => line.Text));
     }
 
+    [Fact]
+    public void GivenGroupedChangesInTwoHunks_WhenTheCursorIsOnTheSecondHunkHeader_ThenItsFirstGroupIsUsed()
+    {
+        var builder = new DiffDocumentBuilder();
+        foreach (var file in DiffParser.Parse(TwoHunks).Items)
+        {
+            builder.Add(file, groupChanges: true);
+        }
+
+        var document = builder.Build([]);
+        var header = document.Rows.Index().First(item => item.Item.Kind == DiffRowKind.HunkHeader && item.Index > 3).Index;
+
+        var lines = DiffSelection.OfHunk(document, header);
+
+        Assert.Equal(["added one", "added two"], lines.Select(line => line.Text));
+    }
+
     private static DiffDocument Build(string patch)
     {
         var builder = new DiffDocumentBuilder();

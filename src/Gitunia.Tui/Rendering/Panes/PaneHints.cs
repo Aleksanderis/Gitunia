@@ -66,7 +66,7 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingDiffCommon =
     [
-        new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
+        new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),

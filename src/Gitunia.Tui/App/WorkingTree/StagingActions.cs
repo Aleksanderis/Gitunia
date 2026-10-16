@@ -340,7 +340,7 @@ public sealed class StagingActions(
             PatchStagingOutcome.WholeFile =>
                 $"{(isStage ? "Staged" : "Unstaged")} {name} whole: new, deleted and binary files are not split into hunks",
             PatchStagingOutcome.NotSplittable =>
-                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its hunk or the whole file",
+                $"{name} cannot be split into lines (new, deleted or binary file): {verb} its change or the whole file",
             PatchStagingOutcome.FileChanged => $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
             _ => $"Nothing to {verb} in the selection",
         };
