@@ -26,7 +26,7 @@ public class StagingActionsTests
     {
         using var harness = new Harness(Modified("a.txt"), Modified("b.txt"), Modified("c.txt"));
         harness.Select(WorkingTreeSection.Unstaged, 1);
-        harness.OnRefresh = () => harness.Load(Modified("a.txt"), Modified("c.txt"), StagedModified("b.txt"));
+        harness.ReloadOnRefresh(Modified("a.txt"), Modified("c.txt"), StagedModified("b.txt"));
 
         harness.Run(ActionIds.WorkingTreeStage);
         await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
@@ -302,6 +302,9 @@ public class StagingActionsTests
             var shown = entry ?? (side == WorkingDiffSide.Staged ? Tab.WorkingTree!.Staged[0] : Tab.WorkingTree!.Unstaged[0]);
             return Staging.ExecuteSelection(Tab, new DiffStagingRequest(new WorkingDiffRequest(side, shown), lines, isRange));
         }
+
+        /// <summary>Makes the next status re-read show these entries.</summary>
+        public void ReloadOnRefresh(params StatusEntry[] entries) => OnRefresh = () => Load(entries);
 
         public void Load(params StatusEntry[] entries) => Send(new WorkingTreeLoadedCommand(Snapshot(entries)));
 

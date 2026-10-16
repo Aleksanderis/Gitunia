@@ -144,7 +144,7 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         try
         {
             var files = reader.ReadWorkingFileAsync(location, side, entry, cancellationToken: cancellationToken);
-            await foreach (var file in files.WithCancellation(cancellationToken).ConfigureAwait(false))
+            await foreach (var file in files.ConfigureAwait(false))
             {
                 return file;
             }
