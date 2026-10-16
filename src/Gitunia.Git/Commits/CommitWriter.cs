@@ -45,6 +45,7 @@ public sealed class CommitWriter(GitRunner runner) : ICommitWriter
         await runner
             .RunAsync(location.CommandPath, ArgumentsOf(request), options, cancellationToken)
             .ConfigureAwait(false);
+
         // The commit exists now: reading its hash is not cancellable, so a late cancel never reports a commit in the history as cancelled.
         var head = await ReadHeadAsync(location, CancellationToken.None).ConfigureAwait(false);
         return new CommitResult(head ?? string.Empty, previous);
@@ -107,6 +108,7 @@ public sealed class CommitWriter(GitRunner runner) : ICommitWriter
             Timeout: ReadTimeout,
             ReadOnly: true,
             AcceptedExitCodes: [GitRunOptions.NoMatchExitCode]);
+
         try
         {
             var result = await runner
