@@ -27,7 +27,7 @@ namespace Gitunia.Tui.App.Stash;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
-/// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false when it cannot be shown.</param>
+/// <param name="confirm">Shows the confirm dialog, runs the callback on <c>y</c>; false if it cannot show.</param>
 /// <param name="cursorRow">The sidebar row under the cursor of the tab, null when there is none.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while the message is typed).</param>
 /// <param name="redraw">Redraws the status bar.</param>

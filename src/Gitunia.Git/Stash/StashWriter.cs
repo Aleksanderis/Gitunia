@@ -105,7 +105,7 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
         }
         catch (GitCommandFailedException) when (HasUnmergedFiles(location, cancellationToken))
         {
-            // The changes are in the tree with conflict markers and the stash is kept: git drops it only after a clean pop.
+            // Conflict markers are in the tree and the stash is kept: git drops it only after a clean pop.
             return new StashResult(StashOutcome.Conflicted, entry.CommitHash);
         }
     }
