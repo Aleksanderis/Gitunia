@@ -66,6 +66,11 @@ public static class DefaultMouseMap
 
     public const string MessageCommitButton = "MessageButton.Commit";
 
+    /// <summary>The buttons in the title rows of the two working-tree file lists: <c>stage all</c> (Unstaged) and <c>unstage all</c> (Staged).</summary>
+    public const string StageAllButton = "ListButton.StageAll";
+
+    public const string UnstageAllButton = "ListButton.UnstageAll";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -128,6 +133,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext),
         new(ConfirmYesButton, MouseGesture.Click, ActionIds.ConfirmYes),
         new(ConfirmNoButton, MouseGesture.Click, ActionIds.ConfirmNo),
+        new(StageAllButton, MouseGesture.Click, ActionIds.WorkingTreeStageAll),
+        new(UnstageAllButton, MouseGesture.Click, ActionIds.WorkingTreeUnstageAll),
         new(DiffPreviousHunkButton, MouseGesture.Click, ActionIds.DiffPreviousHunk),
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),

@@ -1,3 +1,4 @@
+using Gitunia.Core.Lists;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
@@ -43,6 +44,9 @@ public sealed class DiscardActions(
     private const string DirectorySuffix = "/";
     private const string TrackedConsequence =
         "The changes are removed from the file on disk. Git keeps no copy: this cannot be undone.";
+    private const string RangeConsequence =
+        "The changes are removed from disk and untracked files are deleted. This cannot be undone.";
+    private const int NamedUntrackedLimit = 5;
     private const string UntrackedConsequence =
         "It is removed from disk. Git has no copy of it: this cannot be undone.";
 
@@ -88,6 +92,143 @@ public sealed class DiscardActions(
         }
 
         return Ask(FilePrompt(entry), () => StartFile(tab, entry));
+    }
+
+    /// <summary>
+    /// Asks whether to discard the files of a Visual <paramref name="range"/> of the Unstaged list: one dialog that counts the files and
+    /// names the untracked ones, which are deleted. Files that cannot be discarded from here (conflicted, submodules, names that are not
+    /// valid UTF-8) are left out and counted. Returns a notice when no dialog opened, empty when it did.
+    /// </summary>
+    /// <param name="tab">The tab whose Unstaged list it is.</param>
+    /// <param name="range">The rows of the list.</param>
+    /// <param name="onConfirmed">Runs when the user answered <c>y</c> and the discard starts (the caller ends its range selection).</param>
+    public string ExecuteRange(RepositoryState tab, RowRange range, Action? onConfirmed = null)
+    {
+        if (tab.View.FocusedPane != PaneKind.WorkingUnstaged)
+        {
+            return tab.View.FocusedPane == PaneKind.WorkingStaged
+                ? "Discard works in the Unstaged list: unstage the files first"
+                : "Focus a file list first";
+        }
+
+        if (tab.WorkingTree is not { } tree)
+        {
+            return "The status is not loaded yet";
+        }
+
+        if (gate.IsBusy(tab.Id))
+        {
+            return BusyNotice;
+        }
+
+        if (tree.Unstaged.Count == 0)
+        {
+            return "Select a file first";
+        }
+
+        var first = Math.Clamp(range.First, 0, tree.Unstaged.Count - 1);
+        var last = Math.Clamp(range.Last, first, tree.Unstaged.Count - 1);
+        var picked = tree.Unstaged.Skip(first).Take(last - first + 1).ToList();
+        var usable = picked.Where(entry => Refusal(entry).Length == 0).ToList();
+        var skipped = picked.Count - usable.Count;
+        if (usable.Count == 0)
+        {
+            return Refusal(picked[0]);
+        }
+
+        if (usable.Count == 1 && skipped == 0)
+        {
+            var entry = usable[0];
+            return Ask(FilePrompt(entry), () =>
+            {
+                onConfirmed?.Invoke();
+                StartFile(tab, entry);
+            });
+        }
+
+        return Ask(RangePrompt(usable, skipped), () =>
+        {
+            onConfirmed?.Invoke();
+            StartRange(tab, usable, skipped);
+        });
+    }
+
+    private static ConfirmPrompt RangePrompt(List<StatusEntry> files, int skipped)
+    {
+        var untracked = files.Where(entry => entry.Kind == StatusEntryKind.Untracked).ToList();
+        List<string> lines = [$"Discard changes to {OperationText.Plural(files.Count, "file")}?"];
+        if (untracked.Count > 0)
+        {
+            var names = untracked.Take(NamedUntrackedLimit).Select(entry => WorkingTreeRowRenderer.Printable(entry.Path)).ToList();
+            var more = untracked.Count > names.Count ? $" and {untracked.Count - names.Count} more" : string.Empty;
+            lines.Add($"Untracked, deleted from disk ({untracked.Count}): {string.Join(", ", names)}{more}");
+            if (untracked.Any(entry => entry.Path.EndsWith(DirectorySuffix, StringComparison.Ordinal)))
+            {
+                lines.Add("Untracked directories are deleted with everything in them.");
+            }
+        }
+
+        if (files.Any(entry => entry.Kind != StatusEntryKind.Untracked && entry.IndexChange != FileChangeKind.Unmodified))
+        {
+            lines.Add("Staged changes are kept.");
+        }
+
+        if (skipped > 0)
+        {
+            lines.Add($"{OperationText.Plural(skipped, "conflicted, submodule or unreadable-name file")} left out.");
+        }
+
+        return new ConfirmPrompt("Discard changes", lines, RangeConsequence, $"Discard {OperationText.Plural(files.Count, "file")}");
+    }
+
+    private void StartRange(RepositoryState tab, List<StatusEntry> files, int skipped)
+    {
+        if (gate.IsBusy(tab.Id))
+        {
+            statuses.Warning($"{BusyNotice}; nothing was discarded");
+            return;
+        }
+
+        gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => RunRangeAsync(tab, files, skipped, token), CancellationToken.None);
+    }
+
+    private async Task RunRangeAsync(RepositoryState tab, List<StatusEntry> files, int skipped, CancellationToken token)
+    {
+        var done = 0;
+        try
+        {
+            foreach (var entry in files)
+            {
+                await patchDiscarder.DiscardAsync(tab.Location, entry, [], true, token).ConfigureAwait(false);
+                done++;
+            }
+
+            var deleted = files.Count(entry => entry.Kind == StatusEntryKind.Untracked);
+            var extra = new List<string>();
+            if (deleted > 0)
+            {
+                extra.Add($"{deleted} untracked deleted");
+            }
+
+            if (skipped > 0)
+            {
+                extra.Add($"{skipped} skipped");
+            }
+
+            var suffix = extra.Count > 0 ? $" ({string.Join(", ", extra)})" : string.Empty;
+            postToUi(() => Finish(tab.Id, $"Discarded {OperationText.Plural(done, "file")}{suffix}", StatusSeverity.Info));
+        }
+        catch (OperationCanceledException)
+        {
+            postToUi(() => gate.End(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var failure = $"Could not discard: {OperationText.Reason(exception)} ({done} of {files.Count} files discarded)";
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
+        }
     }
 
     /// <summary>

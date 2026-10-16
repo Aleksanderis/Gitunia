@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -9,8 +10,8 @@ using Terminal.Gui.Views;
 
 namespace Gitunia.Tui.Views.Lists;
 
-/// <summary>List source over one file list (Unstaged or Staged) of the working-tree view of the active tab.</summary>
-public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource
+/// <summary>List source over one file list (Unstaged or Staged) of the working-tree view of the active tab; it can show a Visual range of files.</summary>
+public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
     private WorkingTreeState? _tree;
 
@@ -29,6 +30,10 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
+    public RowRange? Range { get; set; }
+
+    public event Action? RangeInvalidated;
+
     /// <summary>Shows the rows of another working-tree state. Returns true when the rows are new.</summary>
     /// <param name="tree">The active tab's working tree, null when it has none yet.</param>
     public bool Update(WorkingTreeState? tree)
@@ -39,6 +44,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         }
 
         _tree = tree;
+        RangeInvalidated?.Invoke();
         if (!SuspendCollectionChangedEvent)
         {
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
@@ -59,7 +65,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     {
         var padding = ScreenPadding.Columns(listView);
         var textWidth = PanePadding.TextWidth(width, padding);
-        var line = WorkingTreePaneRenderer.RenderRow(_tree, section, item, textWidth, selected, glyphs);
+        var line = WorkingTreePaneRenderer.RenderRow(_tree, section, item, textWidth, selected || Range?.Contains(item) == true, glyphs);
         LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus);
     }
 
