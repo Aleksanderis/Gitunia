@@ -26,7 +26,7 @@ Applies to every new and touched C# file, tests included. The build enforces `_f
 ## Readability
 
 - No local functions (named or lambda-valued, least of all with function parameters): make them private methods, with the shared state in fields or parameters.
-- Lines stay within 120 columns (`max_line_length`): wrap long signatures, calls, initializers and conditions, one argument per line once they don't fit. Touched code is wrapped; don't mass-rewrap untouched files.
+- Lines stay within 120 columns (`max_line_length`): wrap long signatures, calls, initializers and conditions, one argument per line once they don't fit. Wrap every line you add or change; leave untouched lines alone (`scripts/check-diff.sh` checks added lines only).
 - Blank lines separate steps: before `while`/`foreach`/`if` after a setup block, before `return`, and between groups of wiring statements. Long wiring methods (`Run`, composition) are split into private methods named for the step instead of one wall of inlined lambdas.
 - Prefer `while (await ReadLineAsync() is { } line)` over declaring the variable and assigning in the condition.
 
