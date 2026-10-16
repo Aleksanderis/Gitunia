@@ -7,6 +7,7 @@
 - State and keymap logic is pure and tested without a terminal.
 - No test touches the user's repos, global git config or network. Isolation recipe, naming, waiting rules and fixture shapes are in the `testing` skill.
 - Tests run in parallel and git children inherit the process environment: never change process-wide environment variables in a test, except in the `AmbientEnvironmentGroup` collection (runs alone), or concurrent git runs flake (#299).
+- No unbounded waits: a blocking wait or gate in a test or fake carries a timeout (30 s), because `TestContext.Current.CancellationToken` only fires when the run ends. `Gitunia.Tui.Tests` also has a 10-minute run watchdog (`RunWatchdog`) that aborts a hung testhost (it cannot help if the stuck process is the `dotnet test` driver; #384).
 - A failing test blocks merge. No coverage percentage gate.
 
 ## Layers
