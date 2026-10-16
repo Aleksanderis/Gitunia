@@ -214,6 +214,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.
 
+**UI:** Quick jump (#334): `<space>j`, matching on the commit subject over the rows in view only (cost independent of log size); a letter that would continue a match in view is never a label, so labels and typing cannot clash; `Enter` takes the nearest match, matches beyond the 26 letters stay unlabelled (type more).
+
 ## 2026-10-16
 
 **Process:** CI cost (free plan ~1100 of 2000 min used mid-month): CI runs once per ready PR, weekly on main and by dispatch, not on push to main; AOT publish only on PRs touching project/dependency files; agents verify locally, open PRs ready and push once; screenshots only for visual changes, one capture per PR. Revisit at v1.0. Supersedes the draft-PR flow.

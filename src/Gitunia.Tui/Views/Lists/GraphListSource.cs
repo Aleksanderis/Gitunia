@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Specialized;
 using Gitunia.Core.Graph;
+using Gitunia.Core.Jump;
+using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -17,7 +19,9 @@ namespace Gitunia.Tui.Views.Lists;
 /// </summary>
 public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : IListDataSource, IRangeSource
 {
+    private readonly Dictionary<int, JumpLabel> _jumpLabels = [];
     private GraphRowOptions? _cachedOptions;
+    private JumpKey? _jumpKey;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -28,6 +32,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 
     /// <summary>The active graph search whose matches are highlighted, null when none.</summary>
     public SearchQuery? Highlight { get; set; }
+
+    /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
+    public string? JumpText { get; set; }
 
     public bool SuspendCollectionChangedEvent { get; set; }
 
@@ -67,13 +74,38 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var commitIndex = CommitIndexOf(item);
         selected |= Range?.Contains(item) == true;
         var line = commitIndex >= 0 && commitIndex < graph.Count
-            ? GraphRowRenderer.Render(graph[commitIndex], options, selected)
+            ? GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex))
             : GraphRowRenderer.RenderEmpty(options, selected);
         LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
     }
 
     public void Dispose()
     {
+    }
+
+    // The labels are worked out once per frame (the first visible row), not once per row.
+    private JumpLabel? JumpLabelOf(ListView listView, int commitIndex)
+    {
+        if (string.IsNullOrEmpty(JumpText))
+        {
+            return null;
+        }
+
+        var first = CommitIndexOf(listView.Viewport.Y);
+        var cursor = CommitIndexOf(listView.SelectedItem ?? 0);
+        var firstHash = first >= 0 && first < graph.Count ? graph[first].Id.GetHashCode() : 0;
+        var key = new JumpKey(JumpText, first, listView.Viewport.Height, cursor, graph.Count, firstHash);
+        if (_jumpKey != key)
+        {
+            _jumpKey = key;
+            _jumpLabels.Clear();
+            foreach (var label in QuickJumpLabeler.Compute(JumpText, graph, first, listView.Viewport.Height, cursor))
+            {
+                _jumpLabels[label.Row] = label;
+            }
+        }
+
+        return _jumpLabels.TryGetValue(commitIndex, out var found) ? found : null;
     }
 
     private GraphRowOptions OptionsFor(int width)

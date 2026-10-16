@@ -35,11 +35,14 @@ public sealed class PromptHarness : IDisposable
 
         var references = refs?.ToArray() ?? [];
         var handle = new GraphViewHandle(
-            () => Session,
+            () => ActiveSession ?? Session,
             () => SelectedRow,
             row => SelectedRow = row,
+            () => FirstVisibleRow,
+            () => VisibleRowCount,
             mode => _keys!.SetMode(mode),
             () => Redraws++);
+        _prompts.Add(new QuickJumpController(handle));
         _prompts.Add(new RefJumpController(handle, () => references));
         _prompts.Add(new SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
         Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());
@@ -64,7 +67,14 @@ public sealed class PromptHarness : IDisposable
 
     public TabSession Session { get; }
 
+    /// <summary>When set, the session the shell reports as active instead of <see cref="Session"/> (a tab switch).</summary>
+    public TabSession? ActiveSession { get; set; }
+
     public int SelectedRow { get; set; }
+
+    public int FirstVisibleRow { get; set; }
+
+    public int VisibleRowCount { get; set; } = 50;
 
     public int Redraws { get; private set; }
 

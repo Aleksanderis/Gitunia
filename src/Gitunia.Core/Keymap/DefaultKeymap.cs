@@ -125,6 +125,7 @@ public static class DefaultKeymap
     {
         Add(bindings, NormalOnly, GraphView, "@", ActionIds.GraphJumpToHead);
         Add(bindings, NormalOnly, GraphView, "gr", ActionIds.GraphJumpToRef);
+        Add(bindings, NormalOnly, GraphView, "<space>j", ActionIds.GraphQuickJump);
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
         Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);

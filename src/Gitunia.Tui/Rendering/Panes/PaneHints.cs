@@ -21,6 +21,7 @@ public static class PaneHints
         new("gg/G", "top/end", [ActionIds.ListTop, ActionIds.ListBottom]),
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("@", "HEAD", [ActionIds.GraphJumpToHead]),
+        new("<space>j", "quick jump", [ActionIds.GraphQuickJump]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Sidebar =

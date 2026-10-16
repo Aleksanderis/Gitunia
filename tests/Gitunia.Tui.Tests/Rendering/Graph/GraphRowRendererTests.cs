@@ -1,3 +1,4 @@
+using Gitunia.Core.Jump.Models;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -226,6 +227,30 @@ public class GraphRowRendererTests
 
         Assert.True(GraphRowRenderer.Render(graph[0], options, true).IsSelected);
         Assert.False(GraphRowRenderer.Render(graph[0], options, false).IsSelected);
+    }
+
+    [Fact]
+    public void GivenAJumpLabel_WhenRendering_ThenTheMatchIsHighlightedAndTheLabelReplacesTheNextCharacter()
+    {
+        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "Fix typo", []));
+        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Unicode);
+
+        var line = GraphRowRenderer.Render(graph[0], options, false, new JumpLabel(0, 0, 3, 'k'));
+
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.SearchMatch && segment.Text == "Fix");
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.JumpLabel && segment.Text == "k");
+        Assert.Contains("Fixktypo", line.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAJumpLabelAtTheEndOfTheSubject_WhenRendering_ThenTheLabelIsAppended()
+    {
+        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "Fix", []));
+        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Unicode);
+
+        var line = GraphRowRenderer.Render(graph[0], options, false, new JumpLabel(0, 0, 3, 'k'));
+
+        Assert.Contains("Fixk", line.Text, StringComparison.Ordinal);
     }
 
     [Fact]

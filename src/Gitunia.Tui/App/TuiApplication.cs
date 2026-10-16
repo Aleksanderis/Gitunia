@@ -640,6 +640,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
                 _view.Graph.EnsureSelectedItemVisible();
             },
+            () => Math.Max(0, GraphListSource.CommitIndexOf(_view.Graph.Viewport.Y)),
+            () => _view.Graph.Viewport.Height,
             _keys.SetMode,
             () =>
             {
@@ -650,6 +652,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
+            new QuickJumpController(handle),
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),

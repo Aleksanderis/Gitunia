@@ -83,4 +83,7 @@ public enum SegmentRole
 
     /// <summary>The text cursor of the message editor: a chip like the mode label, so it shows without colour too.</summary>
     Cursor,
+
+    /// <summary>The key of a quick-jump target, drawn over the character after the match: a chip like the cursor, so it shows without colour too.</summary>
+    JumpLabel,
 }
