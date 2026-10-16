@@ -80,6 +80,7 @@ public static class PaneHints
         .. Pinned,
         new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage hunk", [ActionIds.WorkingTreeStage]),
+        new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
     ];
@@ -100,6 +101,7 @@ public static class PaneHints
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
         new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
@@ -145,6 +147,12 @@ public static class PaneHints
         new("Esc", "close", [ActionIds.Cancel]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Confirm =
+    [
+        new("y", "yes, do it", [ActionIds.ConfirmYes]),
+        new("n/Esc", "cancel", [ActionIds.ConfirmNo, ActionIds.Cancel]),
+    ];
+
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => Sidebar,
@@ -160,6 +168,9 @@ public static class PaneHints
 
     /// <summary>The hints while the commit message box is in Insert mode (typed keys are text, so only these act).</summary>
     public static IReadOnlyList<KeyHint> ForMessageEditing() => MessageEditing;
+
+    /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>
+    public static IReadOnlyList<KeyHint> ForConfirm() => Confirm;
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;

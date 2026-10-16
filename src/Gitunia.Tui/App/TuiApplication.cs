@@ -3,6 +3,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
@@ -10,6 +11,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
@@ -157,10 +159,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             mode => _keys.SetMode(mode),
             new RangeCopier(clipboard, ActiveSession).Copy);
         _router.Visual = _visual;
-        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging(), _commits)
+        var operationGate = new TabOperationGate();
+        _router.WorkingTree = new WorkingTreeActionHandler(_host, FocusedPageHeight, clipboard, CreateStaging(operationGate), _commits)
         {
             Diff = _workingDiff,
             Visual = _visual,
+            Discard = CreateDiscard(operationGate),
         };
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
@@ -233,6 +237,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
         _view.Gestured += OnGestured;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
+        _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -394,6 +399,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
         }
+        else if (_overlays.ConfirmAnswerAt(line) is { } answer)
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            _mouse.Handle(answer == ConfirmAnswer.Yes ? DefaultMouseMap.ConfirmYesButton : DefaultMouseMap.ConfirmNoButton, MouseGesture.Click);
+        }
     }
 
     private void RefreshOverlay()
@@ -448,14 +458,27 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void SetMode(KeyMode mode) => _keys.SetMode(mode);
 
-    private StagingActions CreateStaging() => new(
+    private bool ShowConfirm(ConfirmPrompt prompt, Action onConfirmed) => _overlays.ShowConfirm(prompt, onConfirmed);
+
+    private DiscardActions CreateDiscard(TabOperationGate gate) => new(
+        _host,
+        new PatchDiscarder(services.Diff, services.Discarder),
+        _statuses,
+        InvokeOnUi,
+        _effects.RefreshStatus,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        gate);
+
+    private StagingActions CreateStaging(TabOperationGate gate) => new(
         _host,
         services.IndexWriter,
         new PatchStager(services.Diff, services.IndexWriter),
         _statuses,
         InvokeOnUi,
         _effects.RefreshStatus,
-        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None);
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        gate);
 
     private TabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
@@ -532,9 +555,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         with
         {
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
-            Hints = _commits.IsEditing
-                ? PaneHints.ForMessageEditing()
-                : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
+            Hints = _overlays.State.Kind == OverlayKind.Confirm
+                ? PaneHints.ForConfirm()
+                : _commits.IsEditing
+                    ? PaneHints.ForMessageEditing()
+                    : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 

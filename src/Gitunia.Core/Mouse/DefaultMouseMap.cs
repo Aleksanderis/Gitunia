@@ -56,6 +56,11 @@ public static class DefaultMouseMap
 
     public const string MessageCommitButton = "MessageButton.Commit";
 
+    /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
+    public const string ConfirmYesButton = "ConfirmButton.Yes";
+
+    public const string ConfirmNoButton = "ConfirmButton.No";
+
     /// <summary>List rows moved per wheel notch.</summary>
     public const int WheelLines = 3;
 
@@ -73,7 +78,7 @@ public static class DefaultMouseMap
     };
 
     /// <summary>The views of the overlays: their gestures run even though an open overlay otherwise suppresses the panes behind it.</summary>
-    public static IReadOnlyList<string> OverlayViews { get; } = [DefaultKeymap.HelpView, DefaultKeymap.MessagesView, DefaultKeymap.PaletteView, BackdropView];
+    public static IReadOnlyList<string> OverlayViews { get; } = [DefaultKeymap.HelpView, DefaultKeymap.MessagesView, DefaultKeymap.PaletteView, BackdropView, ConfirmYesButton, ConfirmNoButton];
 
     public static MouseMap Create() => new(CreateBindings(), ViewParents);
 
@@ -110,6 +115,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelDown, ActionIds.PaletteNext),
+        new(ConfirmYesButton, MouseGesture.Click, ActionIds.ConfirmYes),
+        new(ConfirmNoButton, MouseGesture.Click, ActionIds.ConfirmNo),
         new(DiffPreviousHunkButton, MouseGesture.Click, ActionIds.DiffPreviousHunk),
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),

@@ -70,6 +70,8 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
         }
 
         PendingChanged?.Invoke();
-        return result.Outcome != KeyOutcome.Unbound || _state.Mode is KeyMode.Command or KeyMode.Insert;
+
+        // A confirm dialog swallows every key, so a stray one (Enter, an arrow) reaches nothing behind it.
+        return result.Outcome != KeyOutcome.Unbound || _state.Mode is KeyMode.Command or KeyMode.Insert or KeyMode.Confirm;
     }
 }

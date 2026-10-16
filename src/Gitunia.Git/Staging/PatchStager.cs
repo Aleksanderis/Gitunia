@@ -16,14 +16,7 @@ namespace Gitunia.Git.Staging;
 /// <param name="writer">Changes the index.</param>
 public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
 {
-    private const string DiffHeaderPrefix = "diff --git ";
-    private const string OldSidePrefix = "a/";
-    private const string NewSidePrefix = "b/";
-    private const string OldPathPrefix = "--- a/";
-    private const string NewPathPrefix = "+++ b/";
-    private const string OldModePrefix = "old mode ";
-    private const string NewModePrefix = "new mode ";
-    private const char PathTerminator = '\t';
+    private readonly PickableDiffReader _pickable = new(reader);
 
     /// <summary>Stages (<see cref="WorkingDiffSide.Unstaged"/>) or unstages (<see cref="WorkingDiffSide.Staged"/>) the chosen lines.</summary>
     /// <param name="location">The repository or worktree.</param>
@@ -45,11 +38,10 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
         bool isHeadUnborn,
         CancellationToken cancellationToken)
     {
-        var read = chosen.Count > 0 && entry.Kind is StatusEntryKind.Ordinary or StatusEntryKind.Renamed
-            ? await ReadAsync(location, side, entry, cancellationToken).ConfigureAwait(false)
+        var file = chosen.Count > 0
+            ? await _pickable.ReadAsync(location, side, entry, cancellationToken).ConfigureAwait(false)
             : null;
-        var file = read is null ? null : WithoutModeChange(AsEditOfNewPath(read));
-        if (file is null || !HasPickableHunks(file))
+        if (file is null)
         {
             if (chosen.Count > 0 && !allowWholeFile)
             {
@@ -75,86 +67,6 @@ public sealed class PatchStager(IDiffReader reader, IIndexWriter writer)
 
         await writer.ApplyPatchAsync(location, patch, direction, cancellationToken).ConfigureAwait(false);
         return new PatchStagingResult(PatchStagingOutcome.Applied, chosen.Count);
-    }
-
-    // Staging some lines must not also stage (or, reversed, undo) a chmod: leave the mode lines out of the patch.
-    private static DiffFile? WithoutModeChange(DiffFile? file) =>
-        file is null || !file.IsModeChange
-            ? file
-            : file with
-            {
-                HeaderLines =
-                [
-                    .. file.HeaderLines.Where(line =>
-                        !line.StartsWith(OldModePrefix, StringComparison.Ordinal)
-                        && !line.StartsWith(NewModePrefix, StringComparison.Ordinal)),
-                ],
-            };
-
-    // A partial patch that kept the rename header would rename the file in the index when applied (and undo the rename
-    // when reversed), so a renamed file with edits is cut as a plain edit of its new path: the index holds that path in
-    // both cases. Null when the header cannot be rewritten (a quoted path), which sends the file through whole.
-    private static DiffFile? AsEditOfNewPath(DiffFile file)
-    {
-        if (file.Status != DiffFileStatus.Renamed)
-        {
-            return file;
-        }
-
-        var newPathLine = file.HeaderLines.FirstOrDefault(line => line.StartsWith(NewPathPrefix, StringComparison.Ordinal));
-        if (newPathLine is null)
-        {
-            return null;
-        }
-
-        // Git ends the path with a tab when it contains a space.
-        var pathText = newPathLine[NewPathPrefix.Length..];
-        var path = pathText.TrimEnd(PathTerminator);
-        IReadOnlyList<string> header =
-        [
-            $"{DiffHeaderPrefix}{OldSidePrefix}{path} {NewSidePrefix}{path}",
-            $"{OldPathPrefix}{pathText}",
-            newPathLine,
-        ];
-        return file with
-        {
-            Status = DiffFileStatus.Modified,
-            OldPath = file.NewPath,
-            Similarity = null,
-            OldMode = null,
-            NewMode = null,
-            HeaderLines = header,
-        };
-    }
-
-    // Binary, added and deleted files, and a diff that is not an exact copy of the file, cannot be cut into partial patches.
-    private static bool HasPickableHunks(DiffFile file) =>
-        !file.IsBinary
-        && !file.HasInvalidText
-        && !file.IsTruncated
-        && file.Status is DiffFileStatus.Modified or DiffFileStatus.Renamed or DiffFileStatus.Copied
-        && file.Hunks.Count > 0;
-
-    private async Task<DiffFile?> ReadAsync(
-        RepositoryLocation location,
-        WorkingDiffSide side,
-        StatusEntry entry,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var files = reader.ReadWorkingFileAsync(location, side, entry, cancellationToken: cancellationToken);
-            await foreach (var file in files.ConfigureAwait(false))
-            {
-                return file;
-            }
-        }
-        catch (NotSupportedException)
-        {
-            // A path that is not valid UTF-8 cannot be given to the diff command; it is staged whole by path.
-        }
-
-        return null;
     }
 
     private Task WholeFileAsync(

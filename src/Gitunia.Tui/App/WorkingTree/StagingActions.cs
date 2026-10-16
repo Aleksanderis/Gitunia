@@ -5,7 +5,6 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Diff.Models;
-using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Staging.Models;
@@ -26,6 +25,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
+/// <param name="gate">The one-operation-per-tab gate, shared with the discard actions; null gives this instance its own.</param>
 public sealed class StagingActions(
     WorkspaceHost host,
     IIndexWriter writer,
@@ -33,12 +33,13 @@ public sealed class StagingActions(
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
-    Func<TabId, CancellationToken> cancellationOf)
+    Func<TabId, CancellationToken> cancellationOf,
+    TabOperationGate? gate = null)
 {
-    private readonly HashSet<TabId> _busy = [];
+    private readonly TabOperationGate _gate = gate ?? new TabOperationGate();
 
     /// <summary>An operation is running or its status re-read is still pending.</summary>
-    public bool IsRunning => _busy.Count > 0;
+    public bool IsRunning => _gate.IsAnyBusy;
 
     /// <summary>True for the actions this class runs.</summary>
     public static bool Handles(ActionId action) =>
@@ -69,7 +70,7 @@ public sealed class StagingActions(
             return "The status is not loaded yet";
         }
 
-        if (_busy.Contains(tab.Id))
+        if (_gate.IsBusy(tab.Id))
         {
             return "Busy: the last stage or unstage is still running";
         }
@@ -81,7 +82,7 @@ public sealed class StagingActions(
             return plan.Notice;
         }
 
-        _busy.Add(tab.Id);
+        _gate.Begin(tab.Id);
         var isUnborn = tree.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => RunAsync(tab, plan, isStage, isUnborn, token), CancellationToken.None);
@@ -94,12 +95,12 @@ public sealed class StagingActions(
     /// </summary>
     public string ExecuteSelection(RepositoryState tab, DiffStagingRequest request, Action? onStaged = null)
     {
-        if (_busy.Contains(tab.Id))
+        if (_gate.IsBusy(tab.Id))
         {
             return "Busy: the last stage or unstage is still running";
         }
 
-        _busy.Add(tab.Id);
+        _gate.Begin(tab.Id);
         var isUnborn = tab.WorkingTree?.Snapshot.Branch.Head.Kind == HeadKind.Unborn;
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => RunSelectionAsync(tab, request, isUnborn, onStaged, token), CancellationToken.None);
@@ -167,7 +168,7 @@ public sealed class StagingActions(
         catch (Exception exception)
         {
             var verb = isStage ? "stage" : "unstage";
-            postToUi(() => Finish(tab.Id, $"Could not {verb}: {Reason(exception)}", StatusSeverity.Error));
+            postToUi(() => Finish(tab.Id, $"Could not {verb}: {OperationText.Reason(exception)}", StatusSeverity.Error));
         }
     }
 
@@ -201,7 +202,7 @@ public sealed class StagingActions(
         catch (Exception exception)
         {
             var verb = isStage ? "stage" : "unstage";
-            postToUi(() => Finish(tab.Id, $"Could not {verb} the selection: {Reason(exception)}", StatusSeverity.Error));
+            postToUi(() => Finish(tab.Id, $"Could not {verb} the selection: {OperationText.Reason(exception)}", StatusSeverity.Error));
         }
     }
 
@@ -220,7 +221,7 @@ public sealed class StagingActions(
         var isStage = request.Target.Side == WorkingDiffSide.Unstaged;
         var verb = isStage ? "stage" : "unstage";
         var name = WorkingTreeRowRenderer.Printable(request.Target.Entry.Path);
-        var what = request.IsRange ? Plural(result.LineCount, "line") : $"hunk ({Plural(result.LineCount, "line")})";
+        var what = request.IsRange ? OperationText.Plural(result.LineCount, "line") : $"hunk ({OperationText.Plural(result.LineCount, "line")})";
         return result.Outcome switch
         {
             PatchStagingOutcome.Applied => $"{(isStage ? "Staged" : "Unstaged")} {what} of {name}",
@@ -231,16 +232,6 @@ public sealed class StagingActions(
             PatchStagingOutcome.FileChanged => $"{name} changed since the diff was read: nothing was {verb}d, the diff is read again",
             _ => $"Nothing to {verb} in the selection",
         };
-    }
-
-    private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
-
-    // Git's own first line of stderr; the exception message also repeats the whole command line.
-    private static string Reason(Exception exception)
-    {
-        var text = exception is GitCommandFailedException failed ? failed.StandardError : exception.Message;
-        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return lines.Length > 0 ? lines[0] : "unknown error";
     }
 
     private static StatusSeverity SeverityOf(PatchStagingResult result) =>
@@ -259,7 +250,7 @@ public sealed class StagingActions(
         }
     }
 
-    private void Release(TabId tabId) => _busy.Remove(tabId);
+    private void Release(TabId tabId) => _gate.End(tabId);
 
     private static string Report(StagingPlan plan, bool isStage)
     {

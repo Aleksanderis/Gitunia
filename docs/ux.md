@@ -23,6 +23,8 @@ Spec for workflows and keys; the flows are written before the views. Keyboard an
 
 Normal (navigate, act), Visual (select a range of lines/commits), Insert (text input: commit message, filters), Command (`:` palette), Confirm (y/n dialogs).
 
+**Confirm mode** (built in #33, reused by every destructive action, such as #341): `OverlayController.ShowConfirm(ConfirmPrompt, onConfirmed)` opens a centred dialog and switches the key mode to Confirm. The `ConfirmPrompt` (Core) holds the title, what will happen (paragraphs), what cannot be undone or how to undo it (drawn in the warning colour) and what `y` is called. Only `y` runs the callback, after the dialog has closed; `n` and `Esc` drop it; every other key is swallowed (never `Enter`, and nothing behind the dialog moves). The two answers are rows of the dialog and clickable (`ConfirmButton.Yes`, `ConfirmButton.No`); a click anywhere else closes it like `n`. The dialog is not shown, and the action does not start, when it does not fit the screen (the status bar says so): an answer nobody can read is no confirmation. The input mode before the dialog (Normal, or Visual with a range) is restored when it closes. What the action does is fixed when the dialog opens, not when `y` is pressed.
+
 ## Focus model and key style
 
 - Panes: sidebar (left), graph (center), detail pane with Details, Changes and Files tabs (right/bottom) and diff (the diff belongs to the Changes tab and sits beside its file list; on screens too narrow for both it opens on demand and replaces the detail pane, see 1c). `Tab` cycles in the order sidebar, graph, detail, diff (skipping panes that are closed); `Shift-Tab` reverses. Directions follow that layout (sidebar and graph on top, detail and diff below them). `Ctrl-w` + `h` `j` `k` `l` moves focus by direction (`j` from the sidebar or graph goes to the detail pane, or the diff when the detail pane is hidden; `k` from a bottom pane goes to the graph), `Ctrl-w w` cycles, `Ctrl-w c` closes the tab. Both exist; the focused pane has a highlighted border and its own status hints.
@@ -108,7 +110,9 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 3. Conflicted files show a `!` letter; `<space>a` on one marks it resolved (`git add`) after a Confirm that says unresolved conflict markers stay in the file. Resolving conflicts itself is M3.
 4. Every action is also a button or a palette entry (Mouse paragraph below). The lists refresh from the tab's `StatusSnapshot` (#313) after each operation and on the file watcher; `<space>r` forces a refresh.
 
-**Discard.** `<space>d` on a file in Unstaged, or on a hunk or Visual lines in the Unstaged diff, opens a Confirm dialog that names what is lost ("Discard changes to 2 files? This cannot be undone"; for untracked files "Delete untracked file X? This cannot be undone"). `y` runs it, `n`/`Esc` cancels. There is no key for discarding staged changes (unstage first). Git keeps no copy of discarded working-tree changes, so there is no reflog hint; #33 may decide to save a dangling stash commit first (recommended default: no, the dialog is the safety).
+**Discard.** `<space>d` on a file in Unstaged, or on a hunk or Visual lines in the Unstaged diff, opens a Confirm dialog that names what is lost; `y` runs it, `n`/`Esc` cancels. There is no key for discarding staged changes (unstage first), no "discard all", and the file lists have no ranges yet, so a file is discarded one at a time. Git keeps no copy of discarded working-tree changes, so there is no reflog hint: the dialog says "this cannot be undone" and no dangling stash is saved (decision of #33, logged in `docs/decisions.md`; the dialog is the safety).
+
+**Built in #33** (`DiscardActions`, `PatchDiscarder`, `WorkingTreeDiscarder`; Confirm mode above): the dialog texts are "Discard all unstaged changes to X?" (plus "The deleted file is restored from the index." for a file deleted on disk and "Its staged changes are kept." when the file has staged changes too), "Discard this hunk (N lines) of X?", "Discard the N selected lines of X?" and, for an untracked file, "Delete the untracked file X?" (an untracked directory: "...and everything in it"); an untracked file is deleted from disk (`git clean`, which never touches a tracked or an ignored path). A tracked file is put back as the index has it (`git restore --worktree`: staged changes stay). Hunks and lines are cut from the file's unstaged diff read again with git's default context (the same patches staging uses, `PickableDiffReader`) and applied backwards to the working tree only (`git apply -R`, the index is never touched; git refuses a patch that does not apply and changes nothing, and a line that is no longer in the file stops with "changed since the diff was read"). A file with no hunks to pick from (binary, deleted on disk, untracked) is discarded whole when the key acts on the hunk, and the dialog says so. The whole file is never discarded behind a dialog that named a hunk: a file that shows hunks but cannot be cut (text that is not valid UTF-8, a renamed file with a quoted path) is refused with "cannot be split into hunks or lines ... nothing was discarded; discard the whole file from the list". A confirm dialog that stops fitting after a terminal resize is closed unanswered (nothing happens, a warning says so). Lines picked in a Visual range are never widened to the whole file ("cannot be split into lines", nothing changes). A conflicted file, a submodule and an untracked name that is not valid UTF-8 (it cannot be an argument to `git clean`) are refused before the dialog. The Visual range ends when the user answers `y`; after the discard the status is read again and the cursor goes to the hunk now at the same position. Same busy rule as staging (one operation per tab, shared). Mouse: the answers of the dialog are clickable; the discard itself is reached from the palette (`:`) like the other actions without a button.
 
 **Message and commit.**
 1. `<space>c` (from a list or the diff) focuses the message box and enters Insert mode (the built-in editor of #314: first line is the subject, a blank line then the body; the subject length is shown with a soft hint at 72 columns, never enforced). `Esc` leaves Insert mode but stays in the box (its Normal mode: `i`/`Enter` back to Insert, `h`/`Esc` back to the lists). The draft is kept per tab until a commit succeeds. Editor keys (Insert mode, `MessageEditor` in Core, drawn by `MessageEditorRenderer`; not in the Keymap table, like the prompt editing keys): typed text and pastes insert at the cursor (line endings become new lines); `Enter` is a new line; `Backspace` and `Delete` join lines at their ends; `Left`/`Right` wrap across lines, `Up`/`Down` keep the column (counted in characters, not display columns), `Home`/`End` and `Ctrl-a`/`Ctrl-e` go to the line edges; `Ctrl-u` deletes to line start, `Ctrl-k` to line end, `Ctrl-w` the previous word. The cursor never splits a wide character, emoji sequence or combining mark. Lines are not wrapped on screen: the cursor's line scrolls sideways, and the part of the subject past column 72 is drawn as an error-coloured hint.
@@ -127,8 +131,6 @@ Owner decision (2026-10-15, #28): the working tree is a separate view of the tab
 | View | Key | Action |
 |---|---|---|
 | WorkingUnstaged | `<space>a` | On a conflicted file: mark it resolved after a Confirm (#341; until then it is refused) |
-| WorkingUnstaged | `<space>d` | Discard the file's changes (Confirm) |
-| WorkingUnstagedDiff | `<space>d` | Discard the hunk or selected lines (Confirm) |
 
 Conflict check: `<space>` is a Normal-mode prefix used only by Gitunia, so none of these shadows a vim command; `<space>a` `A` `u` `U` `d` `c` `r` `t` are unused by the global leader rows (`<space>o` `p` `x` `m` `s` `z` `<Tab>`); `S`, `W`, `F` keep their display meaning in the working-tree diff; `Alt-p` and `Alt-d` are Picker-only and `Alt-1`..`Alt-9` jump tabs, so `Alt-s`, `Alt-n`, `Alt-a` are free (they act only in this view). `<space>c` is a single key in the lists and the diff (write) and in the box (commit): each is its own view.
 
@@ -239,6 +241,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
 | WorkingUnstaged | `<space>a` | Stage the file under the cursor (the cursor keeps its index; a conflicted file is refused until #341) |
 | WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
+| WorkingUnstaged | `<space>d` | Discard the changes of the file under the cursor after a Confirm; an untracked file is deleted (no undo) |
 | WorkingUnstaged | `h` / `Esc` | Leave the working-tree view (back to the history) |
 | WorkingUnstaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingUnstaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
@@ -277,6 +280,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstagedDiff | `L` | Load anyway: read the file without the row and per-file limits |
 | WorkingUnstagedDiff | `<space>a` | Stage the hunk under the cursor (a file without hunks goes whole) |
 | WorkingUnstagedDiff (Visual) | `<space>a` | Stage the selected added and removed lines only (the range ends) |
+| WorkingUnstagedDiff | `<space>d` | Discard the hunk under the cursor after a Confirm (a file without hunks is discarded whole; no undo) |
+| WorkingUnstagedDiff (Visual) | `<space>d` | Discard the selected added and removed lines only after a Confirm (the range ends when confirmed) |
 | WorkingUnstagedDiff | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingUnstagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
 | WorkingUnstagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
@@ -346,6 +351,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |
 | Palette | Wheel down | `palette.next` | Move the highlight down one row |
+| ConfirmButton.Yes | Click | `confirm.yes` | The `y` row of a confirm dialog, same as `y` |
+| ConfirmButton.No | Click | `confirm.no` | The `n` row of a confirm dialog, same as `n` / `Esc` |
 | Help | Wheel up | `list.up` | Scroll the help up 3 lines (wherever the pointer is while the overlay is open) |
 | Help | Wheel down | `list.down` | Scroll the help down 3 lines |
 | Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
