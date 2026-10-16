@@ -28,6 +28,18 @@ public class PaneHintsTests
 
     [Theory]
     [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingUnstaged)]
+    [InlineData(PaneKind.WorkingStaged)]
+    [InlineData(PaneKind.WorkingUnstagedDiff)]
+    [InlineData(PaneKind.WorkingStagedDiff)]
+    public void GivenAPaneWithTheQuickJump_WhenAskingForHints_ThenTheyOfferIt(PaneKind pane)
+    {
+        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>j" && hint.Actions.Contains(ActionIds.QuickJump));
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
     [InlineData(PaneKind.Sidebar)]
     [InlineData(PaneKind.Detail)]
     public void GivenAHistoryPane_WhenAskingForHints_ThenTheyShowHowToOpenTheWorkingTree(PaneKind pane)

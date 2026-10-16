@@ -41,8 +41,6 @@ public sealed class PromptHarness : IDisposable
             () => ActiveSession ?? Session,
             () => SelectedRow,
             row => SelectedRow = row,
-            () => FirstVisibleRow,
-            () => VisibleRowCount,
             mode => _keys!.SetMode(mode),
             () => Redraws++);
         _prompts.Add(new QuickJumpController(new QuickJumpHost(

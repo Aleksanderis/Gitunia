@@ -140,7 +140,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     public IReadOnlyList<JumpLabel> JumpLabels(ListView listView, string text)
     {
         var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
-        if (Count == 0)
+        if (Count == 0 || ShowsSideBySide)
         {
             return [];
         }
@@ -148,7 +148,14 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var firstLine = Math.Clamp(listView.Viewport.Y, 0, Count - 1);
         var lastLine = Math.Clamp(listView.Viewport.Y + listView.Viewport.Height - 1, firstLine, Count - 1);
         var first = RowOf(firstLine);
-        var window = new JumpWindow(first, LastRowOf(lastLine) - first + 1, RowOf(Math.Clamp(listView.SelectedItem ?? 0, 0, Count - 1)));
+        if (LineOf(first) < firstLine)
+        {
+            // A wrapped row scrolled partly off the top shows no first line, so it has no room for a label.
+            first++;
+        }
+
+        var cursor = RowOf(Math.Clamp(listView.SelectedItem ?? 0, 0, Count - 1));
+        var window = new JumpWindow(first, LastRowOf(lastLine) - first + 1, cursor);
 
         return _jump.Labels(text, window, width, () => new DiffJumpRows(Document, width, _gutterDigits, glyphs.Ellipsis));
     }

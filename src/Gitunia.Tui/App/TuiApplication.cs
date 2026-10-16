@@ -211,6 +211,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _overlays.Changed += RefreshOverlay;
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
+        // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
         _prompts = [_diffPane, _workingDiff, _quickJump, .. CreatePrompts()];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
@@ -670,8 +671,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 _view.Graph.SelectedItem = row + ScreenLayout.ReservedLeadingRows;
                 _view.Graph.EnsureSelectedItemVisible();
             },
-            () => Math.Max(0, GraphListSource.CommitIndexOf(_view.Graph.Viewport.Y)),
-            () => _view.Graph.Viewport.Height,
             _keys.SetMode,
             () =>
             {
