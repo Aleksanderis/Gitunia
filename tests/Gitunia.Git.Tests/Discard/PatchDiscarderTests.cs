@@ -175,4 +175,23 @@ public class PatchDiscarderTests
         Assert.Equal(PatchStagingOutcome.WholeFile, result.Outcome);
         Assert.Equal("a\nb\n", Read(repository, "f.txt"));
     }
+
+    [Fact]
+    public async Task GivenEditedAndUntrackedFiles_WhenDiscardingThemInABatch_ThenTrackedAreRestoredAndUntrackedDeleted()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile("f.txt", "a\n"), new TestFile("g.txt", "b\n"));
+        repository.WriteFile("f.txt", "A\n");
+        repository.WriteFile("g.txt", "B\n");
+        repository.WriteFile("new.txt", "x\n");
+        var f = await LocateAsync(repository, "f.txt");
+        var g = await LocateAsync(repository, "g.txt");
+        var n = await LocateAsync(repository, "new.txt");
+
+        await Discarder.DiscardWholeFilesAsync(f.Location, [f.Entry, n.Entry, g.Entry], Token);
+
+        Assert.Equal("a\n", Read(repository, "f.txt"));
+        Assert.Equal("b\n", Read(repository, "g.txt"));
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "new.txt")));
+    }
 }

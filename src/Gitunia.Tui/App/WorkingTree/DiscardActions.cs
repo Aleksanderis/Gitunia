@@ -196,14 +196,9 @@ public sealed class DiscardActions(
 
     private async Task RunRangeAsync(RepositoryState tab, List<StatusEntry> files, int skipped, CancellationToken token)
     {
-        var done = 0;
         try
         {
-            foreach (var entry in files)
-            {
-                await patchDiscarder.DiscardAsync(tab.Location, entry, [], true, token).ConfigureAwait(false);
-                done++;
-            }
+            await patchDiscarder.DiscardWholeFilesAsync(tab.Location, files, token).ConfigureAwait(false);
 
             var deleted = files.Count(entry => entry.Kind == StatusEntryKind.Untracked);
             var extra = new List<string>();
@@ -218,7 +213,7 @@ public sealed class DiscardActions(
             }
 
             var suffix = extra.Count > 0 ? $" ({string.Join(", ", extra)})" : string.Empty;
-            postToUi(() => Finish(tab.Id, $"Discarded {OperationText.Plural(done, "file")}{suffix}", StatusSeverity.Info));
+            postToUi(() => Finish(tab.Id, $"Discarded {OperationText.Plural(files.Count, "file")}{suffix}", StatusSeverity.Info));
         }
         catch (OperationCanceledException)
         {
@@ -226,7 +221,7 @@ public sealed class DiscardActions(
         }
         catch (Exception exception)
         {
-            var failure = $"Could not discard: {OperationText.Reason(exception)} ({done} of {files.Count} files discarded)";
+            var failure = $"Could not discard: {OperationText.Reason(exception)} (nothing or only some of the {files.Count} files were discarded)";
             postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
