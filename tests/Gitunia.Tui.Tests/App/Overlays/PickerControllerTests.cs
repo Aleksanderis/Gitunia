@@ -1,5 +1,7 @@
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Overlays;
@@ -13,13 +15,65 @@ public class PickerControllerTests
         string home,
         TimeSpan? listingTimeout = null,
         Func<string, IReadOnlyList<string>>? listDirectories = null,
-        TimeSpan? scanningDelay = null)
+        TimeSpan? scanningDelay = null,
+        Func<TabId, TabId, bool>? moveDraft = null)
     {
         var host = new WorkspaceHost(Workspace.Empty);
         var pump = new UiPump(TestContext.Current.CancellationToken);
         // Never show scanning by default: only the tests about it opt in, with a zero delay.
-        var picker = new PickerController(TestGit.Services.Discovery, host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan);
+        var picker = new PickerController(TestGit.Services.Discovery, host, home, pump.Post, listingTimeout, listDirectories, scanningDelay ?? Timeout.InfiniteTimeSpan, moveDraft);
         return new PickerHarness(picker, host, pump);
+    }
+
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    public async Task GivenMissingTabWithADraft_WhenLocatingIt_ThenTheDraftMovesToTheNewTab(bool moved, int expectedTabs)
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var moves = new List<(TabId From, TabId To)>();
+        var (picker, host, pump) = Create(Path.GetTempPath(), moveDraft: (source, target) =>
+        {
+            moves.Add((source, target));
+            return moved;
+        });
+        var gone = Path.Combine(Path.GetTempPath(), $"gitunia-gone-{Guid.NewGuid().ToString("N")}");
+        host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(gone, gone, gone, false, false)));
+        var missing = host.Workspace.ActiveTabId!.Value;
+        picker.Open(missing);
+
+        picker.OpenPath(repository.WorkingTreePath, missing);
+        await pump.RunUntilAsync(() => moves.Count > 0);
+
+        var (from, to) = Assert.Single(moves);
+        Assert.Equal(missing, from);
+        Assert.Equal(Path.GetFullPath(repository.WorkingTreePath), host.Workspace.FindTab(to)!.Location.RootPath);
+        Assert.Equal(expectedTabs, host.Workspace.Tabs.Length);
+        Assert.Equal(moved, host.Workspace.FindTab(missing) is null);
+    }
+
+    [Fact]
+    public async Task GivenMissingTabLocatedAtItsOwnPath_WhenOpening_ThenTheTabStaysWithoutMovingItsDraft()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        var moves = 0;
+        var (picker, host, pump) = Create(Path.GetTempPath(), moveDraft: (_, _) =>
+        {
+            moves++;
+            return true;
+        });
+        var root = Path.GetFullPath(repository.WorkingTreePath);
+        host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, root, root, false, false)));
+        var tab = host.Workspace.ActiveTabId!.Value;
+        picker.Open(tab);
+
+        picker.OpenPath(repository.WorkingTreePath, tab);
+        await pump.RunUntilAsync(() => !picker.IsOpen);
+
+        Assert.Equal(tab, Assert.Single(host.Workspace.Tabs).Id);
+        Assert.Equal(0, moves);
     }
 
     [Fact]

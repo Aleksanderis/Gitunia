@@ -144,6 +144,46 @@ public sealed class CommitActions(
         }
     }
 
+    /// <summary>
+    /// Moves the draft of a tab that is about to be replaced (a located missing tab) to its replacement: what a restart would
+    /// keep (message, SignOff, No-Verify), never Amend, which belongs to the old repository's HEAD.
+    /// False when the replacement has an unsent message of its own, so the caller keeps both tabs.
+    /// </summary>
+    public bool MoveDraft(TabId from, TabId to)
+    {
+        if (!_drafts.TryGetValue(from, out var draft))
+        {
+            return true;
+        }
+
+        var text = draft.HasUnsentText && !draft.Amend ? draft.Editor.Text : string.Empty;
+        var saved = new SessionDraft(text, draft.SignOff, draft.NoVerify);
+        if (saved.IsEmpty)
+        {
+            return true;
+        }
+
+        if (text.Length > 0 && HasUnsentMessage(to))
+        {
+            return false;
+        }
+
+        var target = DraftFor(to);
+        if (text.Length > 0)
+        {
+            target.Editor.SetText(text);
+        }
+
+        target.SignOff |= saved.SignOff;
+        target.NoVerify |= saved.NoVerify;
+        _drafts.Remove(from);
+        DraftChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Whether any tab holds an unsent message.</summary>
+    public bool HasAnyUnsentMessage() => _drafts.Values.Any(draft => draft.HasUnsentText);
+
     /// <summary>Forgets the drafts of tabs that are gone; call when the workspace changed.</summary>
     public void ForgetClosedTabs()
     {

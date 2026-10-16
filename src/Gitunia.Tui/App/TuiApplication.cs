@@ -78,6 +78,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
+    private SessionPersistence? _persistence;
+    private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
     private Action? _suspendedWork;
     private Action? _resumed;
@@ -184,7 +186,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
-        _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi);
+        _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi, moveDraft: _commits.MoveDraft);
         _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit, _commits.HasUnsentMessage);
 
         _binder = new GraphTabBinder(
@@ -283,6 +285,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         using var persistence = new SessionPersistence(store, _host, SaveDebounce, _statuses, InvokeOnUi, _commits.SnapshotForSession);
+        _persistence = persistence;
+        _quitGuard = new QuitGuard(_commits.HasAnyUnsentMessage, persistence.FlushSucceeded);
+        _commits.DraftChanged += _quitGuard.Reset;
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
@@ -441,7 +446,17 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     }
 
     // Unsent commit messages are saved with the session on exit and restored per tab, so a quit never loses one.
-    private void RequestQuit() => RequestStop();
+    // Only when the session could not be saved does a quit guard remain: the first quit warns, the next one leaves (#369).
+    private void RequestQuit()
+    {
+        if (_persistence is not null && !_quitGuard.ShouldQuit())
+        {
+            _statuses.Warning("Unsent commit message and the session could not be saved: quit again to leave and lose it");
+            return;
+        }
+
+        RequestStop();
+    }
 
     private CommitActions CreateCommits() => new(
         _host,

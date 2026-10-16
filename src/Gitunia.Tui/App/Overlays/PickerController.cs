@@ -15,7 +15,8 @@ namespace Gitunia.Tui.App.Overlays;
 public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHost host, string homeDirectory, Action<Action> postToUi,
     TimeSpan? listingTimeout = null,
     Func<string, IReadOnlyList<string>>? listDirectories = null,
-    TimeSpan? scanningDelay = null)
+    TimeSpan? scanningDelay = null,
+    Func<TabId, TabId, bool>? moveDraft = null)
 {
     private static readonly TimeSpan RescanInterval = TimeSpan.FromSeconds(30);
 
@@ -193,7 +194,22 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
         host.Dispatch(new OpenRepositoryCommand(location));
         if (replacing is { } missing)
         {
-            host.Dispatch(new CloseTabCommand(missing));
+            // The commit draft of the missing tab moves to the replacing tab; when that tab already has its own message, the
+            // missing tab stays so nothing is dropped (#369).
+            var target = host.Workspace.FindTabByRootPath(location.RootPath);
+            if (target?.Id == missing)
+            {
+                // The repository is back at the same path: the tab is its own replacement and keeps its draft.
+            }
+            else if (target is null || moveDraft is null || moveDraft(missing, target.Id))
+            {
+                host.Dispatch(new CloseTabCommand(missing));
+            }
+            else
+            {
+                Apply(new SetMessageCommand("Both tabs hold an unsent commit message; the missing tab stays open (close it with Ctrl-w c)"));
+                return;
+            }
         }
 
         Close();
