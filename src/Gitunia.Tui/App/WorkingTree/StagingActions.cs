@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -27,6 +28,7 @@ namespace Gitunia.Tui.App.WorkingTree;
 /// <param name="refreshStatus">Asks a tab to re-read its status and calls back when the new state is in; false when it cannot.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the discard actions; null gives this instance its own.</param>
+/// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot be shown. Without it a conflicted file is refused.</param>
 public sealed class StagingActions(
     WorkspaceHost host,
     IIndexWriter writer,
@@ -35,7 +37,8 @@ public sealed class StagingActions(
     Action<Action> postToUi,
     Func<TabId, Action, bool> refreshStatus,
     Func<TabId, CancellationToken> cancellationOf,
-    TabOperationGate? gate = null)
+    TabOperationGate? gate = null,
+    Func<ConfirmPrompt, Action, bool>? confirm = null)
 {
     private readonly TabOperationGate _gate = gate ?? new TabOperationGate();
 
@@ -80,6 +83,11 @@ public sealed class StagingActions(
         }
 
         var isAll = action == ActionIds.WorkingTreeStageAll || action == ActionIds.WorkingTreeUnstageAll;
+        if (isStage && !isAll && range is null && ConflictedUnderCursor(tree) is { } conflicted)
+        {
+            return AskResolved(tab, conflicted);
+        }
+
         var plan = isAll ? PlanAll(tree, section) : range is { } rows ? PlanRange(tree, section, rows) : PlanOne(tree, section);
         if (plan.Notice.Length > 0)
         {
@@ -140,6 +148,44 @@ public sealed class StagingActions(
         return string.Empty;
     }
 
+    private static StatusEntry? ConflictedUnderCursor(WorkingTreeState tree) =>
+        tree.Selection is { Section: WorkingTreeSection.Unstaged } selection
+            ? tree.Unstaged.FirstOrDefault(entry => entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged)
+            : null;
+
+    // Marking a conflicted file resolved is an `add`: the markers stay in the file, so the user confirms first (ux.md, workflow 2).
+    private string AskResolved(RepositoryState tab, StatusEntry entry)
+    {
+        var name = WorkingTreeRowRenderer.Printable(entry.Path);
+        var prompt = new ConfirmPrompt(
+            "Mark conflict resolved",
+            [$"Mark {name} as resolved?", "Conflict markers still in the file are not removed or checked: they are committed as they are."],
+            "Undo: git checkout --merge <file> brings the conflict back.",
+            "Mark resolved");
+        if (confirm is null || !confirm(prompt, () => StartResolved(tab, entry)))
+        {
+            return confirm is null
+                ? $"{name} is conflicted: resolve it first"
+                : "The screen is too small to ask: nothing was marked resolved";
+        }
+
+        return string.Empty;
+    }
+
+    private void StartResolved(RepositoryState tab, StatusEntry entry)
+    {
+        if (_gate.IsBusy(tab.Id))
+        {
+            statuses.Warning("Busy: the last stage or unstage is still running; nothing was marked resolved");
+            return;
+        }
+
+        _gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        var plan = StagingPlan.For(PathsOf(entry, WorkingTreeSection.Unstaged), WorkingTreeRowRenderer.Printable(entry.Path), 1, 0) with { IsResolve = true };
+        _ = Task.Run(() => RunAsync(tab, plan, true, false, null, token), CancellationToken.None);
+    }
+
     private static StagingPlan PlanOne(WorkingTreeState tree, WorkingTreeSection section)
     {
         var entries = section == WorkingTreeSection.Staged ? tree.Staged : tree.Unstaged;
@@ -157,7 +203,7 @@ public sealed class StagingActions(
         var name = WorkingTreeRowRenderer.Printable(entry.Path);
         if (entry.Kind == StatusEntryKind.Unmerged)
         {
-            return StagingPlan.Refused($"{name} is conflicted: resolve it first (marking it resolved is not built yet)");
+            return StagingPlan.Refused($"{name} is conflicted: mark it resolved from the Unstaged list");
         }
 
         return StagingPlan.For(PathsOf(entry, section), name, 1, 0);
@@ -179,7 +225,7 @@ public sealed class StagingActions(
         var skipped = picked.Count - usable.Count;
         if (usable.Count == 0)
         {
-            return StagingPlan.Refused($"Only conflicted files are selected ({skipped} skipped; resolving is not built yet)");
+            return StagingPlan.Refused($"Only conflicted files are selected ({skipped} skipped; mark one resolved on its own)");
         }
 
         var name = usable.Count == 1 ? WorkingTreeRowRenderer.Printable(usable[0].Path) : string.Empty;
@@ -322,6 +368,11 @@ public sealed class StagingActions(
 
     private static string Report(StagingPlan plan, bool isStage)
     {
+        if (plan.IsResolve)
+        {
+            return $"Marked {plan.Name} resolved";
+        }
+
         var verb = isStage ? "Staged" : "Unstaged";
         var what = plan.Name.Length > 0 ? plan.Name : plan.Count == 1 ? "1 file" : $"{plan.Count} files";
         return plan.Skipped > 0 ? $"{verb} {what} ({plan.Skipped} conflicted skipped)" : $"{verb} {what}";

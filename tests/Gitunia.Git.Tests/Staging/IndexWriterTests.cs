@@ -48,6 +48,21 @@ public class IndexWriterTests
     }
 
     [Fact]
+    public async Task GivenAMergeConflict_WhenStagingTheConflictedFile_ThenItIsResolvedAndTheMarkersStayInTheFile()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("c.txt", "base\n"));
+        repository.CheckoutNewBranch("other").Commit("Other", new TestFile("c.txt", "other\n"));
+        repository.Checkout("main").Commit("Main", new TestFile("c.txt", "main\n")).MergeExpectingConflict("other");
+        var location = await LocateAsync(repository);
+        Assert.Equal(StatusEntryKind.Unmerged, Entry(await ReadAsync(location), "c.txt").Kind);
+
+        await Writer.StageAsync(location, ["c.txt"], Token);
+
+        Assert.DoesNotContain(await ReadAsync(location), entry => entry.Kind == StatusEntryKind.Unmerged);
+        Assert.Contains("<<<<<<<", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "c.txt")), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenDeletedFile_WhenStaging_ThenTheDeletionIsStaged()
     {
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("gone.txt", "x\n"));

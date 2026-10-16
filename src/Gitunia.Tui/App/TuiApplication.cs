@@ -474,7 +474,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         InvokeOnUi,
         _effects.RefreshStatus,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
-        gate);
+        gate,
+        ShowConfirm);
 
     private TabSession? ActiveSession() => _host.Workspace.ActiveTabId is { } id ? _effects.SessionOf(id) : null;
 
