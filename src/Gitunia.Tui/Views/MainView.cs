@@ -564,17 +564,6 @@ public sealed class MainView : IDisposable
         return ListButton(section) is { } button ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1) : Empty;
     }
 
-    private PaneListView CreateWorkingPlaceholder(string text, Func<PaneRect> rect) => new()
-    {
-        X = Pos.Func(_ => rect().X),
-        Y = Pos.Func(_ => rect().Y),
-        Width = Dim.Func(_ => rect().Width),
-        Height = Dim.Func(_ => rect().Height),
-        CanFocus = false,
-        Source = new PlaceholderListSource(text, _glyphs),
-        Visible = false,
-    };
-
     private FrameStripView CreateWorkingEdge(Func<PaneRect> rect) => new(CurrentGrid)
     {
         X = Pos.Func(_ => rect().X),

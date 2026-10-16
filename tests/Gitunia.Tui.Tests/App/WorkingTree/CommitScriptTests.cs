@@ -334,7 +334,7 @@ public class CommitScriptTests
         {
             foreach (var character in text)
             {
-                Assert.True(Commits.HandleTextKey(new KeyEvent(character.ToString(), KeyModifiers.None)));
+                Assert.True(Commits.HandleTextKey(new KeyEvent(character.ToString())));
             }
         }
 

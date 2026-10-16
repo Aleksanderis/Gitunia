@@ -61,7 +61,7 @@ public class MessageBoxRendererTests
     [InlineData(100)]
     public void GivenARowWidth_WhenLayingOutTheButtons_ThenEachClickLandsOnItsOwnLabel(int width)
     {
-        var textWidth = PanePadding.TextWidth(width, Padding);
+        var textWidth = PanePadding.TextWidth(width);
         var buttons = MessageBoxRenderer.Buttons(textWidth, Padding);
         var line = Text(MessageBoxRenderer.OptionsLine(new CommitDraft(), width, Padding, GraphGlyphSet.Unicode));
 
@@ -116,7 +116,7 @@ public class MessageBoxRendererTests
         MessageBoxRenderer.EditorLines(draft, rect, Padding, true, GraphGlyphSet.Unicode);
         Assert.Equal(6, draft.Top);
 
-        draft.Editor.Apply(new KeyEvent(KeyNames.Up, KeyModifiers.None));
+        draft.Editor.Apply(new KeyEvent(KeyNames.Up));
         var rows = MessageBoxRenderer.EditorLines(draft, rect, Padding, true, GraphGlyphSet.Unicode);
 
         Assert.Equal(6, draft.Top);
