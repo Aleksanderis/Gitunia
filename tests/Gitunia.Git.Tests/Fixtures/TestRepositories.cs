@@ -51,6 +51,73 @@ public static class TestRepositories
             .MergeExpectingConflict("other");
     }
 
+    /// <summary>Linear main pushed to a local bare origin with upstream tracking set.</summary>
+    public static TestRepository WithOrigin() => Linear(2).AddOrigin();
+
+    /// <summary>Branch <c>topic</c> tracking <c>origin/topic</c> with <paramref name="ahead"/> local and <paramref name="behind"/> remote-only commits.</summary>
+    public static TestRepository WithTrackingBranch(int ahead, int behind)
+    {
+        var repository = WithOrigin().CheckoutNewBranch("topic").Commit("Topic base", new TestFile("topic.txt", "base\n"));
+        repository.PushWithUpstream("topic");
+        for (var index = 1; index <= behind; index++)
+        {
+            repository.CommitOnOrigin("topic", $"Remote {index}", new TestFile($"remote{index}.txt", "r\n"));
+        }
+
+        for (var index = 1; index <= ahead; index++)
+        {
+            repository.Commit($"Local {index}", new TestFile($"local{index}.txt", "l\n"));
+        }
+
+        return repository;
+    }
+
+    /// <summary>Branch <c>lonely</c> that exists only locally, with no upstream.</summary>
+    public static TestRepository WithoutUpstreamBranch() =>
+        WithOrigin().CheckoutNewBranch("lonely").Commit("Lonely", new TestFile("lonely.txt", "x\n"));
+
+    /// <summary>Main plus linked worktrees <c>wt-locked</c> (locked), <c>wt-prunable</c> (directory deleted) and <c>wt-dirty</c> (uncommitted change).</summary>
+    public static TestRepository WithManyWorktrees(out string lockedPath, out string prunablePath, out string dirtyPath)
+    {
+        var repository = Linear(2);
+        lockedPath = repository.AddWorktree("wt-locked", "locked", createBranch: true);
+        prunablePath = repository.AddWorktree("wt-prunable", "prunable", createBranch: true);
+        dirtyPath = repository.AddWorktree("wt-dirty", "dirty", createBranch: true);
+        repository.Git("worktree", "lock", "--reason", "test lock", lockedPath);
+        Directory.Delete(prunablePath, recursive: true);
+        File.WriteAllText(Path.Combine(dirtyPath, "file.txt"), "dirty\n");
+        return repository;
+    }
+
+    /// <summary>Branch <c>other</c> and main edit <c>conflict.txt</c> differently; a rebase of <c>other</c> onto main is stopped on the conflict.</summary>
+    public static TestRepository RebaseConflicted() => ConflictingBranches().Checkout("other").RebaseExpectingConflict("main");
+
+    /// <summary>A cherry-pick of <c>other</c> onto main stopped on a conflict in <c>conflict.txt</c>.</summary>
+    public static TestRepository CherryPickConflicted() => ConflictingBranches().CherryPickExpectingConflict("other");
+
+    /// <summary>A revert of the first change to <c>conflict.txt</c> stopped on a conflict (a later commit changed the same line).</summary>
+    public static TestRepository RevertConflicted()
+    {
+        return TestRepository.Create()
+            .Commit("Initial", new TestFile("conflict.txt", "original\n"))
+            .Commit("First change", new TestFile("conflict.txt", "first\n"))
+            .Commit("Second change", new TestFile("conflict.txt", "second\n"))
+            .RevertExpectingConflict("HEAD~1");
+    }
+
+    /// <summary>Linear repository with one stash holding a tracked and an untracked change.</summary>
+    public static TestRepository WithStash() => Linear(2).StashWithUntracked();
+
+    private static TestRepository ConflictingBranches()
+    {
+        return TestRepository.Create()
+            .Commit("Initial", new TestFile("conflict.txt", "original\n"))
+            .CheckoutNewBranch("other")
+            .Commit("Other change", new TestFile("conflict.txt", "other\n"))
+            .Checkout("main")
+            .Commit("Main change", new TestFile("conflict.txt", "main\n"));
+    }
+
     /// <summary>Paths with spaces, unicode, quotes and nested directories.</summary>
     public static TestRepository OddPaths()
     {
