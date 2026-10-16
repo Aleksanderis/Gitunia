@@ -24,20 +24,32 @@ public static class CommitFailureReport
     private const int MaximumNoticeLength = 160;
 
     /// <summary>The lines of the overlay: the output as printed, a blank line, then the hint.</summary>
-    /// <param name="standardError">What git and the hooks wrote.</param>
-    public static IReadOnlyList<string> Lines(string standardError)
+    /// <param name="standardError">What git and the hooks wrote to stderr.</param>
+    /// <param name="standardOutput">What git printed to stdout (e.g. "nothing to commit"), shown after stderr.</param>
+    public static IReadOnlyList<string> Lines(string standardError, string standardOutput = "")
     {
-        var output = OutputLines(standardError);
+        var output = OutputLines(Combine(standardError, standardOutput));
         return [.. output.Count == 0 ? [NoOutput] : output, string.Empty, Hint];
     }
 
     /// <summary>The first line of the output, for the status bar ("Commit failed: ...").</summary>
-    /// <param name="standardError">What git and the hooks wrote.</param>
-    public static string Notice(string standardError)
+    /// <param name="standardError">What git and the hooks wrote to stderr.</param>
+    /// <param name="standardOutput">What git printed to stdout.</param>
+    public static string Notice(string standardError, string standardOutput = "")
     {
-        var first = OutputLines(standardError).FirstOrDefault(line => line.Trim().Length > 0) ?? NoOutput;
+        var first = OutputLines(Combine(standardError, standardOutput)).FirstOrDefault(line => line.Trim().Length > 0) ?? NoOutput;
         var text = first.Trim();
         return text.Length > MaximumNoticeLength ? $"{text[..MaximumNoticeLength]}..." : text;
+    }
+
+    private static string Combine(string standardError, string standardOutput)
+    {
+        if (standardOutput.Trim().Length == 0)
+        {
+            return standardError;
+        }
+
+        return standardError.Trim().Length == 0 ? standardOutput : $"{standardError.TrimEnd()}\n{standardOutput}";
     }
 
     private static List<string> OutputLines(string text)

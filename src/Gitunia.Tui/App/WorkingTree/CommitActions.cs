@@ -61,6 +61,7 @@ public sealed class CommitActions(
 
     private readonly Dictionary<TabId, CommitDraft> _drafts = [];
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
+    private readonly Dictionary<TabId, IReadOnlyList<string>> _pendingFailures = [];
     private bool _ownsInsert;
 
     /// <summary>
@@ -146,6 +147,11 @@ public sealed class CommitActions(
     /// <summary>Forgets the drafts of tabs that are gone; call when the workspace changed.</summary>
     public void ForgetClosedTabs()
     {
+        foreach (var tabId in _pendingFailures.Keys.Where(id => host.Workspace.FindTab(id) is null).ToList())
+        {
+            _pendingFailures.Remove(tabId);
+        }
+
         foreach (var tabId in _drafts.Keys.Where(id => host.Workspace.FindTab(id) is null).ToList())
         {
             _drafts.Remove(tabId);
@@ -158,6 +164,20 @@ public sealed class CommitActions(
         }
 
         LeaveInsertWhenFocusMoved();
+    }
+
+    /// <summary>
+    /// Opens the output of a commit that failed while its tab was in the background, once that tab is the active one (#364).
+    /// </summary>
+    public void ShowPendingFailure()
+    {
+        if (_pendingFailures.Count == 0 || host.Workspace.ActiveTabId is not { } tabId
+            || !_pendingFailures.Remove(tabId, out var lines))
+        {
+            return;
+        }
+
+        showOutput(CommitFailureReport.Title, CommitFailureReport.Heading, lines);
     }
 
     /// <summary>Ends Insert mode when the box that owned it lost focus (a click, <c>Tab</c> or a tab switch).</summary>
@@ -527,8 +547,9 @@ public sealed class CommitActions(
         }
         catch (GitCommandFailedException exception)
         {
-            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.StandardError)}";
-            postToUi(() => Failed(tabId, draft, notice, exception.StandardError));
+            var notice = $"Commit failed: {CommitFailureReport.Notice(exception.StandardError, exception.StandardOutput)}";
+            var lines = CommitFailureReport.Lines(exception.StandardError, exception.StandardOutput);
+            postToUi(() => Failed(tabId, draft, notice, lines));
         }
         catch (Exception exception)
         {
@@ -559,14 +580,19 @@ public sealed class CommitActions(
         }
     }
 
-    private void Failed(TabId tabId, CommitDraft draft, string message, string? output)
+    private void Failed(TabId tabId, CommitDraft draft, string message, IReadOnlyList<string>? output)
     {
         ReleaseSource(tabId);
         draft.IsCommitting = false;
         statuses.Error(message);
         if (output is not null && host.Workspace.ActiveTabId == tabId)
         {
-            showOutput(CommitFailureReport.Title, CommitFailureReport.Heading, CommitFailureReport.Lines(output));
+            showOutput(CommitFailureReport.Title, CommitFailureReport.Heading, output);
+        }
+        else if (output is not null && host.Workspace.FindTab(tabId) is not null)
+        {
+            // Kept until the tab is shown (ShowPendingFailure).
+            _pendingFailures[tabId] = output;
         }
 
         // A hook may have changed files, and a cancelled commit may have got as far as the index.

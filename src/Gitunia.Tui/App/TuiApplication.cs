@@ -227,6 +227,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
         _host.Changed += _commits.ForgetClosedTabs;
+        _host.Changed += _commits.ShowPendingFailure;
         _host.Changed += OnBottomTabMaybeChanged;
         _host.Changed += _visual.EndIfFocusMoved;
         _host.Changed += _quickJump.CloseIfStale;
