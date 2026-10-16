@@ -1,5 +1,6 @@
 using Gitunia.Core.Diff;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
@@ -7,7 +8,7 @@ using Gitunia.Tui.Views.Lists;
 namespace Gitunia.Tui.App.WorkingTree;
 
 /// <summary>The runtime side of one tab's working-tree diff: the loaded diff, what the list shows and the search. UI thread only.</summary>
-public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet glyphs) : IDisposable
+public sealed class WorkingDiffSession(WorkingDiffStore store, GraphGlyphSet glyphs) : IDiffViewState, IDisposable
 {
     public WorkingDiffStore Store { get; } = store;
 

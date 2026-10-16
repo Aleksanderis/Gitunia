@@ -7,7 +7,7 @@ using Gitunia.Tui.Views.Lists;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>The runtime side of one tab's diff pane: the loaded diff, what the list shows, the search and the pane layout choices. UI thread only.</summary>
-public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs) : IDisposable
+public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs) : IDiffViewState, IDisposable
 {
     public DiffStore Store { get; } = store;
 

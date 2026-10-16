@@ -1,14 +1,10 @@
-using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Lists;
-using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
-using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -31,18 +27,17 @@ namespace Gitunia.Tui.App.Panes;
 /// </summary>
 public sealed class DiffPaneController : IPromptHandler
 {
+    private const string SideBySideHint = " (zoom with <space>z)";
+
     private readonly WorkspaceHost _host;
     private readonly Func<TabSession?> _activeSession;
     private readonly ListView _detailList;
     private readonly ListView _diffList;
-    private readonly Action<KeyMode> _setMode;
     private readonly Func<ScreenSize> _screenSize;
     private readonly Action _relayout;
     private readonly Action _refreshChrome;
-    private readonly ClipboardCopier _clipboard;
+    private readonly DiffListActions _actions;
     private bool _isFileSyncing;
-    private bool _isRestoring;
-    private bool _isSyncing;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -64,23 +59,29 @@ public sealed class DiffPaneController : IPromptHandler
         Action refreshChrome,
         ClipboardCopier clipboard)
     {
-        _clipboard = clipboard;
         _host = host;
         _activeSession = activeSession;
         _detailList = detailList;
         _diffList = diffList;
-        _setMode = setMode;
         _screenSize = screenSize;
         _relayout = relayout;
         _refreshChrome = refreshChrome;
-        diffList.ValueChanged += (_, _) => RememberCursor();
-        diffList.ViewportChanged += (_, _) => SyncWidth();
+        _actions = new DiffListActions(
+            diffList,
+            setMode,
+            clipboard,
+            () => activeSession()?.Diff,
+            SideBySideHint);
         host.Changed += OnWorkspaceChanged;
     }
 
-    public string Notice { get; private set; } = string.Empty;
+    public string Notice
+    {
+        get => _actions.Notice;
+        private set => _actions.Notice = value;
+    }
 
-    public string StatusLine => _activeSession()?.Diff is { Search.IsOpen: true } diff ? diff.Search.Describe(SearchRow(diff)) : string.Empty;
+    public string StatusLine => _actions.StatusLine(_activeSession()?.Diff);
 
     /// <summary>The panes' arrangement for the active tab; a zoom that does not match the focused pane is not part of it. Has no side effects (see <see cref="ReleaseStaleZoom"/>).</summary>
     public PaneArrangement Arrangement()
@@ -109,7 +110,7 @@ public sealed class DiffPaneController : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
-        SyncWidth();
+        _actions.SyncWidth();
         FollowSelection();
         if (_activeSession()?.Diff is not { } diff || _host.Workspace.ActiveTab is not { } tab)
         {
@@ -134,17 +135,9 @@ public sealed class DiffPaneController : IPromptHandler
 
     public bool HandleTextKey(KeyEvent key)
     {
-        if (_activeSession()?.Diff is not { Search.Phase: DiffSearchPhase.Editing } diff)
-        {
-            return false;
-        }
+        var diff = _activeSession()?.Diff;
 
-        if (PromptTextEditor.Apply(diff.Search.Text, key) is { } text && text != diff.Search.Text)
-        {
-            ApplySearch(diff, DiffSearch.Edit(diff.Search, text, diff.Store.Document));
-        }
-
-        return true;
+        return _actions.HandleTextKey(diff, diff?.Store.Document ?? DiffDocument.Empty, key);
     }
 
     /// <summary>
@@ -209,7 +202,6 @@ public sealed class DiffPaneController : IPromptHandler
     /// <summary>The diff pane's title row for the active tab.</summary>
     public StyledLine TitleLine(int width, GraphGlyphSet glyphs) =>
         DiffPaneRenderer.RenderTitle(ModelOf(_activeSession()?.Diff, _diffList.HasFocus), width, glyphs);
-
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
     public void OnTabSwitched(TabSession? previous, TabSession? current)
     {
@@ -217,27 +209,22 @@ public sealed class DiffPaneController : IPromptHandler
         {
             old.Store.Changed -= OnStoreChanged;
             old.Store.ReleaseCache();
-            AbandonTypedSearch(old);
+            _actions.AbandonTypedSearch(old);
         }
 
-        _isRestoring = true;
+        _actions.IsRestoring = true;
         try
         {
             _diffList.Source = current?.Diff?.Source;
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
-                diff.Source.Width = ListTextWidth();
-                if (diff.Source.Count > 0)
-                {
-                    _diffList.SelectedItem = Math.Min(diff.Source.LineOf(diff.SelectedRow), diff.Source.Count - 1);
-                    _diffList.Viewport = _diffList.Viewport with { Y = diff.Source.LineOf(diff.TopRow) };
-                }
+                _actions.RestoreRemembered(diff);
             }
         }
         finally
         {
-            _isRestoring = false;
+            _actions.IsRestoring = false;
         }
 
         if (current?.Diff is { } open && IsShown(open))
@@ -261,8 +248,58 @@ public sealed class DiffPaneController : IPromptHandler
         if (_activeSession()?.Diff is { Search.Phase: DiffSearchPhase.Editing } diff && _host.Workspace.ActiveTab?.View.FocusedPane != PaneKind.Diff)
         {
             // The pane lost focus (a click) while the search was being typed: keys no longer reach the box, so end it.
-            AbandonTypedSearch(diff);
+            _actions.AbandonTypedSearch(diff);
         }
+    }
+
+    private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused) =>
+        diff is null
+            ? new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused)
+            : _actions.ModelOf(diff, diff.Store.Options, isFocused);
+
+    private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
+    {
+        if (diff.Search.Phase == DiffSearchPhase.Editing)
+        {
+            return _actions.ExecuteInSearchBox(diff, action);
+        }
+
+        if (_actions.TryExecuteView(diff, action, count))
+        {
+            return true;
+        }
+
+        if (action == ActionIds.DiffLoadAnyway)
+        {
+            LoadAnyway(diff);
+        }
+        else if (TryChangeOptions(diff, action))
+        {
+            // The diff loads again with the new options; the cursor returns to the same file.
+        }
+        else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
+        {
+            var document = diff.Source.Document;
+            _actions.Jump(diff, document.FileRows, _actions.CursorRow(diff), action == ActionIds.DiffNextFile, count, "file");
+            SelectFileInList(diff);
+        }
+        else if (action == ActionIds.NavigateBack)
+        {
+            if (diff.Search.IsOpen)
+            {
+                _actions.ApplySearch(diff, DiffSearch.Cancel());
+            }
+            else
+            {
+                Close(tab, diff);
+            }
+        }
+        else
+        {
+            return false;
+        }
+
+        return true;
     }
 
     // The Changes tab was left (or the screen shrank) while the diff had focus: the diff is hidden now, so focus goes back to the file list.
@@ -298,134 +335,6 @@ public sealed class DiffPaneController : IPromptHandler
 
         var index = (_detailList.SelectedItem ?? -1) - content.FirstFileRow;
         return index >= 0 && index < content.Files.Count ? content.Files[index].Path : null;
-    }
-
-    /// <summary>Drops a search that is still being typed (not an accepted one) and leaves Insert mode.</summary>
-    private void AbandonTypedSearch(DiffSession diff)
-    {
-        if (diff.Search.Phase != DiffSearchPhase.Editing)
-        {
-            return;
-        }
-
-        diff.Search = DiffSearchState.Idle;
-        diff.Source.Highlight = null;
-        _setMode(KeyMode.Normal);
-        _diffList.SetNeedsDraw();
-    }
-
-    private int ListTextWidth() => PanePadding.TextWidth(_diffList.Viewport.Width, ScreenPadding.Columns(_diffList));
-
-    private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused)
-    {
-        if (diff is null)
-        {
-            return new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused);
-        }
-
-        return new DiffPaneModel(
-            diff.Source.Document,
-            CursorRow(diff),
-            diff.Source.RowOf(_diffList.Viewport.Y),
-            isFocused,
-            diff.Search.Highlight,
-            diff.Source.IsWrapped,
-            DiffOptionsLabel.Of(diff.Store.Options, diff.Source.IsSideBySide, diff.Source.ShowsSideBySide));
-    }
-
-    private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
-    {
-        if (diff.Search.Phase == DiffSearchPhase.Editing)
-        {
-            return ExecuteInSearchBox(diff, action);
-        }
-
-        var document = diff.Source.Document;
-        var row = CursorRow(diff);
-        if (ListMotion.TryMove(action, count, _diffList.SelectedItem ?? 0, diff.Source.Count, _diffList.Viewport.Height, out var target))
-        {
-            SelectLine(target);
-        }
-        else if (action == ActionIds.DiffToggleWrap)
-        {
-            diff.Source.SetWrapped(!diff.Source.IsWrapped);
-            Select(row, atTop: true);
-            Notice = diff.Source.IsWrapped ? "Word wrap on" : "Word wrap off";
-        }
-        else if (action == ActionIds.DiffToggleSideBySide)
-        {
-            ToggleSideBySide(diff, row);
-        }
-        else if (action == ActionIds.DiffCopyLine || action == ActionIds.DiffCopyFile)
-        {
-            Copy(document, row, action == ActionIds.DiffCopyFile);
-        }
-        else if (action == ActionIds.DiffLoadAnyway)
-        {
-            LoadAnyway(diff);
-        }
-        else if (TryChangeOptions(diff, action))
-        {
-            // The diff loads again with the new options; the cursor returns to the same file.
-        }
-        else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
-        {
-            Jump(document.HunkRows, row, action == ActionIds.DiffNextHunk, count, "hunk");
-        }
-        else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
-        {
-            Jump(document.FileRows, row, action == ActionIds.DiffNextFile, count, "file");
-            SelectFileInList(diff);
-        }
-        else if (action == ActionIds.DiffSearchOpen)
-        {
-            ApplySearch(diff, DiffSearch.Open());
-            _setMode(KeyMode.Insert);
-        }
-        else if (action == ActionIds.DiffSearchNext || action == ActionIds.DiffSearchPrevious)
-        {
-            var update = DiffSearch.Step(diff.Search, action == ActionIds.DiffSearchNext, count ?? 1, SearchRow(diff));
-            ApplySearch(diff, update);
-            Notice = update.State.Notice;
-        }
-        else if (action == ActionIds.NavigateBack)
-        {
-            if (diff.Search.IsOpen)
-            {
-                ApplySearch(diff, DiffSearch.Cancel());
-            }
-            else
-            {
-                Close(tab, diff);
-            }
-        }
-        else
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private bool ExecuteInSearchBox(DiffSession diff, ActionId action)
-    {
-        if (action == ActionIds.InputAccept)
-        {
-            var update = DiffSearch.Accept(diff.Search, diff.Source.Document, SearchRow(diff));
-            ApplySearch(diff, update);
-            Notice = update.State.Notice;
-        }
-        else if (action == ActionIds.Cancel)
-        {
-            ApplySearch(diff, DiffSearch.Cancel());
-        }
-        else
-        {
-            return false;
-        }
-
-        _setMode(KeyMode.Normal);
-        return true;
     }
 
     private void OpenSelectedFile(RepositoryState tab, DiffSession diff)
@@ -465,64 +374,9 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
-    private void Copy(DiffDocument document, int row, bool wholeFile)
-    {
-        if (row < 0 || row >= document.Rows.Count || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
-        {
-            Notice = "Nothing to copy";
-        }
-        else if (!wholeFile)
-        {
-            _clipboard.Copy(DiffTextWriter.Line(document.Rows[row]), "diff line");
-        }
-        else if (document.Rows[row].FileIndex < 0)
-        {
-            Notice = "The cursor is not in a file";
-        }
-        else
-        {
-            _clipboard.Copy(DiffTextWriter.File(document, document.Rows[row].FileIndex), "file diff");
-        }
-    }
-
-    private void ToggleSideBySide(DiffSession diff, int row)
-    {
-        diff.Source.SetSideBySide(!diff.Source.IsSideBySide);
-        Select(row, atTop: true);
-        if (!diff.Source.IsSideBySide)
-        {
-            Notice = "Side by side off";
-        }
-        else
-        {
-            var needed = DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture);
-            Notice = diff.Source.ShowsSideBySide
-                ? "Side by side on"
-                : $"Side by side on: needs {needed} columns (zoom with <space>z)";
-        }
-    }
-
     private bool TryChangeOptions(DiffSession diff, ActionId action)
     {
-        var options = diff.Store.Options;
-        DiffOptions changed;
-        if (action == ActionIds.DiffMoreContext)
-        {
-            changed = options.MoreContext();
-        }
-        else if (action == ActionIds.DiffLessContext)
-        {
-            changed = options.LessContext();
-        }
-        else if (action == ActionIds.DiffToggleWholeFile)
-        {
-            changed = options with { WholeFile = !options.WholeFile };
-        }
-        else if (action == ActionIds.DiffToggleIgnoreWhitespace)
-        {
-            changed = options with { IgnoreWhitespace = !options.IgnoreWhitespace };
-        }
-        else
+        if (!DiffListActions.TryResolveOptions(diff.Store.Options, action, out var changed))
         {
             return false;
         }
@@ -556,7 +410,7 @@ public sealed class DiffPaneController : IPromptHandler
     private string? CurrentFilePath(DiffSession diff)
     {
         var document = diff.Source.Document;
-        var row = CursorRow(diff);
+        var row = _actions.CursorRow(diff);
         var file = row >= 0 && row < document.Rows.Count ? document.Rows[row].FileIndex : -1;
         return file >= 0 && file < document.FilePaths.Count ? document.FilePaths[file][0] : null;
     }
@@ -624,32 +478,6 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
-    private void Jump(IReadOnlyList<int> anchors, int row, bool forward, int? count, string what)
-    {
-        if (DiffNavigator.Step(anchors, row, forward, count ?? 1) is { } target)
-        {
-            Select(target, atTop: true);
-        }
-        else
-        {
-            Notice = forward ? $"No next {what}" : $"No previous {what}";
-        }
-    }
-
-    private void ApplySearch(DiffSession diff, DiffSearchUpdate update)
-    {
-        diff.Search = update.State;
-        diff.Source.Highlight = update.State.Highlight;
-        diff.SearchRow = null;
-        if (update.RevealRow is { } row)
-        {
-            Select(row, atTop: false);
-            diff.SearchRow = row;
-        }
-
-        _diffList.SetNeedsDraw();
-    }
-
     private void OnStoreChanged()
     {
         if (_activeSession()?.Diff is { } diff)
@@ -663,108 +491,19 @@ public sealed class DiffPaneController : IPromptHandler
         var document = diff.Store.Document;
         if (!ReferenceEquals(diff.Source.Document, document))
         {
-            // A different diff: the old search no longer describes it.
-            if (diff.Search.Phase == DiffSearchPhase.Editing)
-            {
-                _setMode(KeyMode.Normal);
-            }
-
-            diff.Search = DiffSearchState.Idle;
-            diff.Source.Highlight = null;
+            _actions.ForgetSearch(diff);
             diff.Source.Update(document);
-            Select(0, atTop: true);
+            _actions.Select(diff, 0, atTop: true);
         }
 
         if (diff.Store.Status == DiffStatus.Loaded && diff.PendingFilePath is { } path)
         {
             diff.PendingFilePath = null;
             var file = document.FileIndexOf(path);
-            Select(file >= 0 ? document.FileRows[file] : 0, atTop: true);
+            _actions.Select(diff, file >= 0 ? document.FileRows[file] : 0, atTop: true);
         }
 
         _diffList.SetNeedsDraw();
         _refreshChrome();
-    }
-
-    /// <summary>Gives the diff source the list's width; when wrapping is on and the width changed, the cursor and the top row are kept.</summary>
-    private void SyncWidth()
-    {
-        if (_isSyncing || _activeSession()?.Diff is not { } diff || diff.Source.Width == ListTextWidth())
-        {
-            return;
-        }
-
-        _isSyncing = true;
-        try
-        {
-            if (!diff.Source.IsWrapped && !diff.Source.IsSideBySide)
-            {
-                diff.Source.Width = ListTextWidth();
-                return;
-            }
-
-            var row = CursorRow(diff);
-            var top = diff.Source.RowOf(_diffList.Viewport.Y);
-            diff.Source.Width = ListTextWidth();
-            _isRestoring = true;
-            try
-            {
-                Select(row, atTop: false);
-                _diffList.Viewport = _diffList.Viewport with { Y = Math.Min(diff.Source.LineOf(top), Math.Max(0, diff.Source.Count - _diffList.Viewport.Height)) };
-            }
-            finally
-            {
-                _isRestoring = false;
-            }
-        }
-        finally
-        {
-            _isSyncing = false;
-        }
-    }
-
-    // Side by side, the cursor row is the first row of a line, but a match may sit on the line's other row: stepping starts from the matched row while the cursor is still on its line.
-    private int SearchRow(DiffSession diff) =>
-        diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0) ? matched : CursorRow(diff);
-
-    private int CursorRow(DiffSession diff) => diff.Source.RowOf(_diffList.SelectedItem ?? 0);
-
-    private void SelectLine(int line)
-    {
-        var count = _diffList.Source?.Count ?? 0;
-        if (count > 0)
-        {
-            _diffList.SelectedItem = Math.Clamp(line, 0, count - 1);
-            _diffList.EnsureSelectedItemVisible();
-        }
-    }
-
-    private void Select(int row, bool atTop)
-    {
-        var count = _diffList.Source?.Count ?? 0;
-        if (count == 0 || _activeSession()?.Diff is not { } diff)
-        {
-            return;
-        }
-
-        var clamped = Math.Clamp(diff.Source.LineOf(row), 0, count - 1);
-        _diffList.SelectedItem = clamped;
-        if (atTop)
-        {
-            _diffList.Viewport = _diffList.Viewport with { Y = Math.Min(clamped, Math.Max(0, count - _diffList.Viewport.Height)) };
-        }
-        else
-        {
-            _diffList.EnsureSelectedItemVisible();
-        }
-    }
-
-    private void RememberCursor()
-    {
-        if (!_isRestoring && _activeSession()?.Diff is { } diff)
-        {
-            diff.SelectedRow = CursorRow(diff);
-            diff.TopRow = diff.Source.RowOf(_diffList.Viewport.Y);
-        }
     }
 }
