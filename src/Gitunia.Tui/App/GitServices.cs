@@ -5,6 +5,7 @@ using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Operations;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
@@ -33,6 +34,8 @@ namespace Gitunia.Tui.App;
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
+/// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
+/// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
 /// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
@@ -52,6 +55,8 @@ public sealed record GitServices(
     IStashReader Stashes,
     IStashWriter StashWriter,
     IWorktreeWriter Worktrees,
+    IOperationWriter OperationWriter,
+    IOperationInfoReader OperationInfo,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
@@ -65,6 +70,7 @@ public sealed record GitServices(
         var status = new StatusReader(runner);
         var stashes = new StashReader(runner);
         var graphLoader = new GraphLoader(commitLog);
+        var operationDetector = new RepositoryOperationDetector();
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
@@ -80,7 +86,9 @@ public sealed record GitServices(
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),
-            new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
+            new OperationWriter(new OperationRunner(runner, operationDetector)),
+            new OperationInfoReader(),
+            new RepositoryRefresher(refs, status, operationDetector),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),
             new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));

@@ -15,6 +15,7 @@ using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Screen;
@@ -72,6 +73,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Switching to a worktree and opening one as a tab, next to the worktree operations.</summary>
     public WorktreeSwitchActions? WorktreeSwitch { get; set; }
+
+    /// <summary>Continue, abort and skip of the operation in progress (works in every view).</summary>
+    public OperationController? Operations { get; set; }
 
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
@@ -160,6 +164,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (WorktreeSwitch?.TryExecute(action) == true)
         {
             Message = WorktreeSwitch.Notice;
+            return;
+        }
+
+        if (Operations?.TryExecute(action, count) == true)
+        {
+            Message = Operations.Notice;
             return;
         }
 

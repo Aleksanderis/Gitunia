@@ -103,6 +103,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>s", ActionIds.WorkingTreeToggle);
         Add(bindings, NormalOnly, global, "<space>Ss", ActionIds.StashPush);
         Add(bindings, NormalOnly, global, "<space>Su", ActionIds.StashPushUntracked);
+        Add(bindings, NormalOnly, global, "<space>gc", ActionIds.OperationContinue);
+        Add(bindings, NormalOnly, global, "<space>ga", ActionIds.OperationAbort);
+        Add(bindings, NormalOnly, global, "<space>gk", ActionIds.OperationSkip);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 

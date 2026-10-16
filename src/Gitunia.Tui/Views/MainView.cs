@@ -26,6 +26,7 @@ public sealed class MainView : IDisposable
     private readonly TabBarView _tabs;
     private readonly PickerView _picker;
     private readonly LineView _status;
+    private readonly LineView _bottomEdge;
     private readonly LineView _sidebarFilter;
     private readonly FrameStripView _divider;
     private readonly FrameStripView[] _edges;
@@ -98,10 +99,16 @@ public sealed class MainView : IDisposable
         _edges =
         [
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
-            new FrameStripView(CurrentGrid) { X = 0, Y = Pos.Func(_ => ScreenLayout.FrameBottom(ScreenHeight())), Width = Dim.Fill(), Height = 1 },
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
             new FrameStripView(CurrentGrid) { X = Pos.Func(_ => Math.Max(0, ScreenWidth - 1)), Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
         ];
+        _bottomEdge = new LineView(BottomEdgeLine)
+        {
+            X = 0,
+            Y = Pos.Func(_ => ScreenLayout.FrameBottom(ScreenHeight())),
+            Width = Dim.Fill(),
+            Height = 1,
+        };
         _divider = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().SidebarDivider.X),
@@ -219,7 +226,10 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())),
             Visible = false,
         };
-        _status = new LineView(width => ChromeBuilder.Status(model(), width, glyphs))
+        _status = new LineView(width => ChromeBuilder.Status(
+            BannerRenderer.ForStatusBar(model(), ScreenHeight()),
+            width,
+            glyphs))
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
@@ -254,6 +264,7 @@ public sealed class MainView : IDisposable
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
         _detailTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
         _diffTitle.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Bottom, column, row);
+        _bottomEdge.Clicked += OnBottomEdgeClicked;
         _detailTitle.Clicked += OnDetailTitleClicked;
         _diffTitle.Clicked += OnDiffTitleClicked;
         _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
@@ -262,9 +273,9 @@ public sealed class MainView : IDisposable
         Window.Add(
             _tabs,
             _edges[0],
+            _bottomEdge,
             _edges[1],
             _edges[2],
-            _edges[3],
             Sidebar,
             _sidebarFilter,
             _divider,
@@ -436,6 +447,7 @@ public sealed class MainView : IDisposable
         _picker.SetNeedsDraw();
         _sidebarFilter.SetNeedsDraw();
         _divider.SetNeedsDraw();
+        _bottomEdge.SetNeedsDraw();
         foreach (var edge in _edges)
         {
             edge.SetNeedsDraw();
@@ -663,6 +675,27 @@ public sealed class MainView : IDisposable
             _glyphs);
 
         return CurrentGrid().ResolveRules(line, rect.Y - 1, rect.X);
+    }
+
+    // The frame's bottom edge, or the in-progress operation banner over it (ux.md, workflow 4).
+    private StyledLine BottomEdgeLine(int width)
+    {
+        var edge = CurrentGrid().Row(ScreenLayout.FrameBottom(ScreenHeight()), 0, width);
+        return BannerRenderer.EdgeLine(_model(), edge, width, ScreenHeight(), _glyphs);
+    }
+
+    private void OnBottomEdgeClicked(int column)
+    {
+        var model = _model();
+        if (_suppressed() || model.Banner is not { } banner || ScreenHeight() < ScreenLayout.MinimumHeightWithBanner)
+        {
+            return;
+        }
+
+        if (BannerRenderer.Build(banner, ScreenWidth, _glyphs).ViewAt(column) is { } view)
+        {
+            Gestured?.Invoke(view, MouseGesture.Click, null);
+        }
     }
 
     private FrameGrid CurrentGrid() => _isWorkingMode && !_picker.Visible ? CurrentWorkingGrid() : CurrentHistoryGrid();

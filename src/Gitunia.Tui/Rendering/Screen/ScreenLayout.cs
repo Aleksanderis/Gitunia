@@ -24,6 +24,10 @@ public static class ScreenLayout
     /// <summary>Rows of the graph list that precede the first commit: the slot reserved for the working-tree pseudo-row (none yet).</summary>
     public const int ReservedLeadingRows = 0;
 
+    /// <summary>Shortest terminal that draws the operation banner on the frame's bottom edge; below it the status bar
+    /// carries the text.</summary>
+    public const int MinimumHeightWithBanner = 10;
+
     /// <summary>Narrowest terminal that still shows the sidebar; below it the graph gets the whole width.</summary>
     public const int MinimumWidthWithSidebar = 60;
 

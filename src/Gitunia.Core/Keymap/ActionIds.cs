@@ -91,6 +91,12 @@ public static class ActionIds
 
     public static ActionId NavigateBack { get; } = new("navigate.back");
 
+    public static ActionId OperationContinue { get; } = new("operation.continue");
+
+    public static ActionId OperationAbort { get; } = new("operation.abort");
+
+    public static ActionId OperationSkip { get; } = new("operation.skip");
+
     public static ActionId PaletteNext { get; } = new("palette.next");
 
     public static ActionId PaletteOpen { get; } = new("palette.open");

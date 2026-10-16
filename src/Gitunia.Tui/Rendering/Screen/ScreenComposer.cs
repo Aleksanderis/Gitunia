@@ -67,12 +67,15 @@ public static class ScreenComposer
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
-            lines.Add(BuildRow(grid, row, width, overlays));
+            var edge = BuildRow(grid, row, width, overlays);
+            lines.Add(row == ScreenLayout.FrameBottom(height)
+                ? BannerRenderer.EdgeLine(model, edge, width, height, glyphs)
+                : edge);
         }
 
         if (height > ScreenLayout.TabRow + 1)
         {
-            lines.Add(ChromeBuilder.Status(model, width, glyphs));
+            lines.Add(ChromeBuilder.Status(BannerRenderer.ForStatusBar(model, height), width, glyphs));
         }
 
         return lines;
@@ -141,12 +144,15 @@ public static class ScreenComposer
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
         {
-            lines.Add(BuildRow(grid, row, width, overlays));
+            var edge = BuildRow(grid, row, width, overlays);
+            lines.Add(row == ScreenLayout.FrameBottom(height)
+                ? BannerRenderer.EdgeLine(model, edge, width, height, glyphs)
+                : edge);
         }
 
         if (height > ScreenLayout.TabRow + 1)
         {
-            lines.Add(ChromeBuilder.Status(model, width, glyphs));
+            lines.Add(ChromeBuilder.Status(BannerRenderer.ForStatusBar(model, height), width, glyphs));
         }
 
         return lines;

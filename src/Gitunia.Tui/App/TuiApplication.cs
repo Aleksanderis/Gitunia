@@ -26,6 +26,7 @@ using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
@@ -190,6 +191,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
+        _router.Operations = CreateOperations(operationGate);
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -545,6 +547,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _statuses,
         InvokeOnUi,
         _effects.RefreshStatus,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        gate);
+
+    private OperationController CreateOperations(TabOperationGate gate) => new(
+        _host,
+        services.OperationWriter,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.Refresh(tabId, false),
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         ShowConfirm,
         gate);

@@ -125,7 +125,18 @@ public sealed class EffectRunner : IDisposable
         void Start()
         {
             session.MarkStarted();
-            var refresher = new TabRefresher(_services.Refresher, _services.Stashes, _services.IncrementalGraphLoader, _host, session, tab.Location, _statuses, _postToUi, _watchBudget, _watcherOptions);
+            var refresher = new TabRefresher(
+                _services.Refresher,
+                _services.Stashes,
+                _services.IncrementalGraphLoader,
+                _host,
+                session,
+                tab.Location,
+                _statuses,
+                _postToUi,
+                _watchBudget,
+                _watcherOptions,
+                operations: _services.OperationInfo);
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);

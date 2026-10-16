@@ -10,6 +10,8 @@ namespace Gitunia.Tui.Rendering.Tabs;
 /// <param name="Behind">Commits behind the upstream.</param>
 /// <param name="IsMissing">The repository directory is gone.</param>
 /// <param name="IsLoading">The tab is still loading in the background.</param>
+/// <param name="HasOperation">A merge, rebase, cherry-pick or revert is in progress in the tab (shown as
+/// <c>!</c>).</param>
 public sealed record TabLabel(
     int Number,
     string Name,
@@ -19,4 +21,5 @@ public sealed record TabLabel(
     int Ahead,
     int Behind,
     bool IsMissing,
-    bool IsLoading);
+    bool IsLoading,
+    bool HasOperation = false);

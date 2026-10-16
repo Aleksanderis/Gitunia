@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
@@ -57,7 +58,10 @@ public static class ScreenModelFactory
             message.Length > 0 ? message : session?.LoadError is { Length: > 0 } loadError ? loadError : picker is null ? MissingNotice(tab) : string.Empty,
             Tabs: tabs,
             Picker: picker,
-            HomeDirectory: homeDirectory);
+            HomeDirectory: homeDirectory,
+            Banner: OperationBannerBuilder.Build(
+                tab?.Operation,
+                OperationBannerBuilder.ConflictCount(tab?.WorkingTree)));
     }
 
     private static string MissingNotice(RepositoryState? tab) =>

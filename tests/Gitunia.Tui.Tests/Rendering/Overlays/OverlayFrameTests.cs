@@ -252,7 +252,7 @@ public class OverlayFrameTests
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
                 "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
-                "│ 2/28 Ctrl-j/k move  Enter run  Esc close               │",
+                "│ 2/30 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
