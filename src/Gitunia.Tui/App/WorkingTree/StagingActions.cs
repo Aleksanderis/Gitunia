@@ -159,8 +159,11 @@ public sealed class StagingActions(
         var name = WorkingTreeRowRenderer.Printable(entry.Path);
         var prompt = new ConfirmPrompt(
             "Mark conflict resolved",
-            [$"Mark {name} as resolved?", "Conflict markers still in the file are not removed or checked: they are committed as they are."],
-            "Undo: git checkout --merge <file> brings the conflict back.",
+            [
+                $"Mark {name} as resolved?",
+                "Conflict markers still in the file are not removed or checked: they are committed as they are.",
+            ],
+            "Undo: git checkout --merge <file> re-creates the conflict (it overwrites the file's current content).",
             "Mark resolved");
         if (confirm is null || !confirm(prompt, () => StartResolved(tab, entry)))
         {
@@ -182,7 +185,8 @@ public sealed class StagingActions(
 
         _gate.Begin(tab.Id);
         var token = cancellationOf(tab.Id);
-        var plan = StagingPlan.For(PathsOf(entry, WorkingTreeSection.Unstaged), WorkingTreeRowRenderer.Printable(entry.Path), 1, 0) with { IsResolve = true };
+        var name = WorkingTreeRowRenderer.Printable(entry.Path);
+        var plan = StagingPlan.For(PathsOf(entry, WorkingTreeSection.Unstaged), name, 1, 0) with { IsResolve = true };
         _ = Task.Run(() => RunAsync(tab, plan, true, false, null, token), CancellationToken.None);
     }
 

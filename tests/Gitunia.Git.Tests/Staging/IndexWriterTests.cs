@@ -60,6 +60,26 @@ public class IndexWriterTests
 
         Assert.DoesNotContain(await ReadAsync(location), entry => entry.Kind == StatusEntryKind.Unmerged);
         Assert.Contains("<<<<<<<", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "c.txt")), StringComparison.Ordinal);
+
+        // The undo the dialog names: the conflict comes back.
+        repository.Git("checkout", "--merge", "--", "c.txt");
+        Assert.Equal(StatusEntryKind.Unmerged, Entry(await ReadAsync(location), "c.txt").Kind);
+    }
+
+    [Fact]
+    public async Task GivenADeleteModifyConflict_WhenStagingTheFile_ThenItIsResolved()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("c.txt", "base\n"));
+        repository.CheckoutNewBranch("other").Commit("Other", new TestFile("c.txt", "other\n"));
+        repository.Checkout("main").Delete("c.txt");
+        repository.Git("commit", "-a", "-m", "Delete");
+        repository.MergeExpectingConflict("other");
+        var location = await LocateAsync(repository);
+        Assert.Equal(StatusEntryKind.Unmerged, Entry(await ReadAsync(location), "c.txt").Kind);
+
+        await Writer.StageAsync(location, ["c.txt"], Token);
+
+        Assert.DoesNotContain(await ReadAsync(location), entry => entry.Kind == StatusEntryKind.Unmerged);
     }
 
     [Fact]
