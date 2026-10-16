@@ -14,7 +14,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Platform:** Cross-platform from day one (Linux first; macOS lowest priority and droppable). Platform-specific code only behind a platform abstraction.
 
-**Stack:** Minimum git 2.43, `net10.0`, JSON config with source generation, MIT licence, binary name `gitunia`, config under the platform config dir `gitunia`. Why: LTS on current distros and AOT-safe.
+**Stack:** Minimum git 2.43, `net10.0`, JSON config with source generation, MIT licence, binary name `gitunia`, config in a `gitunia` dir (location: see the 2026-10-16 Platform entry). Why: LTS on current distros and AOT-safe.
 
 **Architecture:** `Gitunia.Platform` holds config/state dirs and console capability detection, so Core stays free of OS code. SDK pinned to 10.0.400 (`rollForward: latestFeature`), test projects use xUnit v3, underscores allowed in test names.
 
@@ -88,7 +88,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Graph reload after a refresh is incremental (#126). Why: a full re-read of 100k commits took ~840 ms (git itself ~780 ms), the incremental one ~105 ms; only a `git replace` ref that keeps the commit count goes unnoticed until a manual refresh (`r`).
 
-**UI:** Diff extras (#106): word wrap is real wrapping, "Load anyway" (`L`) lifts the row caps, and the diff follows the graph selection. Dropped: progressive display while streaming and binary content.
+**UI:** Diff extras (#106): word wrap is real wrapping, "Load anyway" lifts the row caps, and the diff follows the graph selection. Dropped: progressive display while streaming and binary content.
 
 **UI:** The mouse follows the key path (#64): gestures map to action ids through a mouse map and run the same handlers as keys; the toolkit's own wheel scrolling is replaced. Detail: `docs/history/ux.md`.
 
@@ -180,7 +180,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Diff options (#312, owner): context lines, whole files and ignore-whitespace can be changed from the diff pane, per tab and not saved (keys in `docs/ux.md`). Side-by-side (README says "later") and visible whitespace are split off as follow-ups, not part of this change.
 
-**UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side (`S`) is in, unified stays when the pane is under 80 columns.
+**UI:** Diff options follow-up (#312, #315): every option has a title button; whole-file mode keeps per-group hunk navigation; side-by-side is in, unified stays when the pane is under 80 columns.
 
 **Git layer:** Non-UTF-8 paths (#94) are decoded surrogate-escaped and reach git on stdin, never as arguments; line patches of such files are refused and the files staged whole.
 
@@ -220,7 +220,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Platform:** Untracked names that are not valid UTF-8 are deleted on Linux only, by raw bytes through libc `unlink`/`rmdir` (P/Invoke) after `git ls-files -o -z` lists them; Windows and macOS keep the refusal (#358). Why: process arguments cannot carry such bytes and .NET paths are strings.
 
-**UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone; closing a tab with an unsent message needs a second `Ctrl-w c` instead.
+**UI:** Commit drafts (#347) are saved in the session file (message, SignOff, No-Verify, not Amend) and restored per tab, so the quit guard is gone (partly restored by #369, see below); closing a tab with an unsent message needs a second `Ctrl-w c` instead.
 
 **Git layer:** The working-tree diff of a non-UTF-8 name (#344) streams the unfiltered diff and picks the file by its lossy path; untracked ones are read through a small `open(2)` P/Invoke (Linux/macOS).
 
