@@ -44,4 +44,13 @@ public sealed record SessionTabDocument
 
     /// <summary>Name of the bottom detail pane tab (<c>Details</c>, <c>Changes</c>, <c>Files</c>); null or unknown (older files) is <c>Changes</c>.</summary>
     public string? BottomTab { get; init; }
+
+    /// <summary>The unsent commit message of the tab (#347); null or empty when there is none. Amend is not saved.</summary>
+    public string? DraftMessage { get; init; }
+
+    /// <summary>The SignOff option of the commit draft.</summary>
+    public bool DraftSignOff { get; init; }
+
+    /// <summary>The No-Verify option of the commit draft.</summary>
+    public bool DraftNoVerify { get; init; }
 }

@@ -27,6 +27,15 @@ public class PaneHintsTests
     }
 
     [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.Detail)]
+    public void GivenAHistoryPane_WhenAskingForHints_ThenTheyShowHowToOpenTheWorkingTree(PaneKind pane)
+    {
+        Assert.Contains(PaneHints.For(pane), hint => hint.Keys == "<space>s" && hint.Description == "working tree");
+    }
+
+    [Theory]
     [MemberData(nameof(Panes))]
     public void GivenAPane_WhenAskingForHints_ThenEveryHintHasKeysAndADescription(PaneKind pane)
     {
