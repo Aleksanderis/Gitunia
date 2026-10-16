@@ -190,6 +190,21 @@ public class DiscardActionsTests
     }
 
     [Fact]
+    public async Task GivenGitFailsOnARange_WhenConfirmed_ThenTheErrorMentionsTheTrackedFiles()
+    {
+        using var harness = new Harness(Modified("a.txt"), Modified("b.txt"));
+        harness.Discarder.Failure = new InvalidOperationException("index.lock exists");
+        Assert.Empty(harness.ExecuteRange(0, 1));
+
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("index.lock exists", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains("may already be restored", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenARangeWithAnUntrackedDirectory_WhenDiscarding_ThenTheDialogSaysEverythingInItIsDeleted()
     {
         using var harness = new Harness(Modified("a.txt"), Untracked("build/"), Modified("b.txt"));

@@ -166,8 +166,9 @@ public sealed class ListRangeFlowTests : IDisposable
         _flow.Press(new Key('y'));
         await _flow.WaitAsync();
 
-        Assert.Equal([["a.txt"], ["b.txt"]], _flow.Discarder.Restored);
+        Assert.Equal([["a.txt", "b.txt"]], _flow.Discarder.Restored);
         Assert.Equal([["new.txt"]], _flow.Discarder.Deleted);
+        Assert.Equal(2, _flow.Discarder.CallCount);
         Assert.Equal("Discarded 3 files (1 untracked deleted)", _flow.Statuses.Log.Latest!.Text);
         Assert.False(_flow.Visual.IsActive);
     }
