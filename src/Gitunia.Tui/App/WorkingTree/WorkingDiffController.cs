@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -38,6 +39,7 @@ public sealed class WorkingDiffController : IPromptHandler
     private TabSession? _hooked;
     private bool _isRestoring;
     private bool _isSyncing;
+    private int? _hunkAfterReload;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -97,10 +99,70 @@ public sealed class WorkingDiffController : IPromptHandler
 
         SyncWidth();
         Sync();
-        return diff.Search.Phase == DiffSearchPhase.Editing
+        var isHandled = diff.Search.Phase == DiffSearchPhase.Editing
             ? ExecuteInSearchBox(diff, action)
             : ExecuteInDiff(tab, diff, action, count);
+        if (isHandled)
+        {
+            // Any other key of the diff is the user moving on: the cursor no longer waits to jump to a hunk.
+            _hunkAfterReload = null;
+        }
+
+        return isHandled;
     }
+
+    /// <summary>
+    /// Reads what to stage or unstage from the shown diff: the Visual range when there is one, else the hunk under the cursor (a
+    /// file without hunks, such as a binary one, goes whole). Refuses while the diff is loading or cut short, for a conflicted
+    /// file and for a diff that holds no file.
+    /// </summary>
+    /// <param name="range">The Visual range in list lines, null for the hunk under the cursor.</param>
+    public DiffStagingCapture CaptureStaging(RowRange? range)
+    {
+        if (_activeSession()?.WorkingDiff is not { } diff || diff.Store.Request is not { } target)
+        {
+            return DiffStagingCapture.Refused("There is no diff to stage from");
+        }
+
+        var document = diff.Source.Document;
+        if (diff.Store.Status != DiffStatus.Loaded)
+        {
+            return DiffStagingCapture.Refused("The diff is still loading");
+        }
+
+        if (diff.Store.IsCut)
+        {
+            return DiffStagingCapture.Refused("The diff is cut short: press L to load all of it first");
+        }
+
+        if (target.Entry.Kind == StatusEntryKind.Unmerged)
+        {
+            return DiffStagingCapture.Refused($"{WorkingTreeRowRenderer.Printable(target.Entry.Path)} is conflicted: resolve it first");
+        }
+
+        if (document.FileRows.Count == 0)
+        {
+            return DiffStagingCapture.Refused("There is nothing to stage here");
+        }
+
+        var row = CursorRow(diff);
+        var hunkIndex = DiffSelection.HunkIndexAt(document, row);
+        if (range is { } selected)
+        {
+            var lines = DiffSelection.OfRows(document, diff.Source.RowOf(selected.First), diff.Source.LastRowOf(selected.Last));
+            return lines.Count == 0
+                ? DiffStagingCapture.Refused("No added or removed line is selected")
+                : new DiffStagingCapture(new DiffStagingRequest(target, lines, true), hunkIndex, string.Empty);
+        }
+
+        var hunkLines = DiffSelection.OfHunk(document, row);
+        return hunkIndex >= 0 && hunkLines.Count == 0
+            ? DiffStagingCapture.Refused("The hunk has no added or removed line")
+            : new DiffStagingCapture(new DiffStagingRequest(target, hunkLines, false), hunkIndex, string.Empty);
+    }
+
+    /// <summary>After the next reload of the same file the cursor goes to the hunk at <paramref name="hunkIndex"/> (the next one when that hunk was staged).</summary>
+    public void MoveToHunkAfterReload(int hunkIndex) => _hunkAfterReload = hunkIndex;
 
     public bool HandleTextKey(KeyEvent key)
     {
@@ -433,24 +495,54 @@ public sealed class WorkingDiffController : IPromptHandler
 
             diff.Search = DiffSearchState.Idle;
             diff.Source.Highlight = null;
-            var isSameFile = diff.Store.Request is { } request && request == diff.ShownRequest;
+            var previous = diff.ShownRequest;
+            var isSameFile = diff.Store.Request is { } request && request == previous;
             var cursor = _diffList.SelectedItem ?? 0;
             var top = _diffList.Viewport.Y;
             diff.Source.Update(document);
             diff.ShownRequest = diff.Store.Request;
             if (isSameFile)
             {
-                // The same file read again (a refresh): the cursor stays where it was.
+                // The same file read again (a refresh): the cursor stays where it was, or goes to the hunk that follows a staged one.
                 Restore(diff, cursor, top);
+                MoveToPendingHunk(diff);
             }
             else
             {
                 Select(diff, 0, atTop: true);
+
+                // Staging changes the file's status letters, so it reads as another request while it loads: the jump waits for the same path.
+                if (IsSamePath(diff.Store.Request, previous))
+                {
+                    MoveToPendingHunk(diff);
+                }
+                else
+                {
+                    _hunkAfterReload = null;
+                }
             }
         }
 
         _diffList.SetNeedsDraw();
         _refreshChrome();
+    }
+
+    private static bool IsSamePath(WorkingDiffRequest? request, WorkingDiffRequest? other) =>
+        request is not null && other is not null && request.Side == other.Side && request.Entry.Path == other.Entry.Path;
+
+    private void MoveToPendingHunk(WorkingDiffSession diff)
+    {
+        if (_hunkAfterReload is not { } index || diff.Store.Status != DiffStatus.Loaded)
+        {
+            return;
+        }
+
+        _hunkAfterReload = null;
+        var anchors = diff.Source.Document.HunkRows;
+        if (anchors.Count > 0)
+        {
+            Select(diff, anchors[Math.Min(index, anchors.Count - 1)], atTop: true);
+        }
     }
 
     private void Restore(WorkingDiffSession diff, int cursor, int top)

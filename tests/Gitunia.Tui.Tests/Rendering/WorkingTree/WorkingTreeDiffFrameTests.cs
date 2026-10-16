@@ -108,7 +108,7 @@ public class WorkingTreeDiffFrameTests
                 "│                                                          │",
                 "│                                                          │",
                 "╰──────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q quit  j/k scroll  ]c/[c…"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k scroll  <spac…"),
             frame);
     }
 

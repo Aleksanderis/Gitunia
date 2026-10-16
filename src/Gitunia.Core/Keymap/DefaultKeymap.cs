@@ -215,6 +215,10 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
         }
+
+        // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
+        Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
+        Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
     }
 
     // The message box: Normal mode is its own view of the keymap, Insert mode types into the editor (its editing keys are not in

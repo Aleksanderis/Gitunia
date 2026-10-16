@@ -209,3 +209,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** `q` quits from the working-tree view too (#333 rule applied to #29/#30, which left `q` unbound there): `h`/`Esc` leave it.
 
 **UI:** Working-tree diff (#330): `q` quits in the diff as everywhere (#333), `h`/`Esc` go back; a conflicted file shows git's combined diff folded into one old/new pair (the per-parent columns are dropped), so it does not literally equal `git diff`; a path that is not valid UTF-8 shows a note because `git diff` reads no pathspec file (#344); a failed read is retried only when the status is read again or the options change.
+
+**Git layer:** Hunk and line staging (#31): the patch is never built from the rows on screen; the file's diff is re-read with default context, the picked lines are found by number and text and applied with `git apply --cached` (`-R` to unstage). Binary, new, deleted and copied files go whole for a hunk and refuse a line range; mode lines stay out of partial patches; a renamed file with edits is cut as an edit of its new path.
+
+**UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.

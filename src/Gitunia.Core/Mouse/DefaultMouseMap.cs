@@ -95,6 +95,8 @@ public static class DefaultMouseMap
         new(MessageNoVerifyButton, MouseGesture.Click, ActionIds.WorkingTreeToggleNoVerify),
         new(MessageAmendButton, MouseGesture.Click, ActionIds.WorkingTreeToggleAmend),
         new(MessageCommitButton, MouseGesture.Click, ActionIds.WorkingTreeCommit),
+        new(DefaultKeymap.WorkingUnstagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
+        new(DefaultKeymap.WorkingStagedDiffView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),

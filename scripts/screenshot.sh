@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,working,working-narrow,working-diff,working-diff-narrow,working-stage,working-commit,working-hook] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,working,working-narrow,working-diff,working-diff-narrow,working-stage,working-hunk,working-lines,working-commit,working-hook] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -14,7 +14,7 @@
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
 # Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background),
-# working, working-narrow, working-stage (after <space>a twice), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo),
+# working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -185,7 +185,7 @@ render() {
 
   local scenario
   for scenario in ${scenarios//,/ }; do
-    local columns=120 rows=36 theme=dark keys=""
+    local columns=120 rows=36 theme=dark keys="" keys_after=""
     case "$scenario" in
       default) ;;
       diff) keys="Enter Enter" ;;
@@ -197,6 +197,8 @@ render() {
       working-diff) keys="Space s j Enter j" ;;
       working-diff-narrow) columns=64 rows=30 keys="Space s j Enter" ;;
       working-stage) keys="Space s Space a Space a" ;;
+      working-hunk) keys="Space s j Enter" keys_after="Space a" ;;
+      working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
@@ -224,6 +226,13 @@ render() {
       type_message
       if [ "$scenario" = "working-hook" ]; then tmux_cmd send-keys -t shot M-Enter; fi
       sleep 1
+      wait_stable "$socket"
+    fi
+    if [ -n "$keys_after" ]; then
+      # The keys that need the loaded diff go after the first frame settled.
+      # shellcheck disable=SC2086
+      tmux_cmd send-keys -t shot $keys_after
+      sleep 0.5
       wait_stable "$socket"
     fi
     if [ "$(tmux_cmd display-message -p -t shot '#{pane_dead}')" = "1" ]; then
