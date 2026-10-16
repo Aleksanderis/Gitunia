@@ -72,7 +72,7 @@ public static class HelpFrameBuilder
         Math.Max(1, OverlayBox.InnerWidth(width) - KeysWidth(sections) - KeysIndent.Length - ColumnSeparatorWidth);
 
     // Greedy word wrap by display width; a word longer than a line is cut between runes, keeping combining marks with their base.
-    private static List<string> WrapText(string text, int columns)
+    public static List<string> WrapText(string text, int columns)
     {
         var lines = new List<string>();
         var current = string.Empty;

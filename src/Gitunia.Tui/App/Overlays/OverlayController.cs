@@ -29,6 +29,7 @@ public sealed class OverlayController
     private readonly Func<string> _baseView;
     private readonly StatusChannel _statuses;
     private IReadOnlyList<HelpSection> _helpSections = [];
+    private Action? _onConfirmed;
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
     /// <param name="keys">The key controller whose mode this controller switches.</param>
@@ -72,6 +73,7 @@ public sealed class OverlayController
         OverlayKind.Help => DefaultKeymap.HelpView,
         OverlayKind.Messages or OverlayKind.Output => DefaultKeymap.MessagesView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
+        OverlayKind.Confirm => DefaultKeymap.ConfirmView,
         _ => _baseView(),
     };
 
@@ -93,7 +95,11 @@ public sealed class OverlayController
             return OpenFor(action);
         }
 
-        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
+        if (State.Kind == OverlayKind.Confirm)
+        {
+            HandleConfirm(action);
+        }
+        else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
         {
             Close();
         }
@@ -122,6 +128,33 @@ public sealed class OverlayController
         _helpSections = [new HelpSection(heading, [.. lines.Select(line => new HelpRow(string.Empty, line))])];
         Open(OverlayState.OpenOutput(title, returnMode), KeyMode.Normal);
     }
+
+    /// <summary>
+    /// Asks the user before a destructive action: shows the dialog and switches to Confirm mode, where only <c>y</c> runs
+    /// <paramref name="onConfirmed"/>; <c>n</c> and <c>Esc</c> drop it. Returns false (and shows nothing) when the dialog does not fit
+    /// the screen: the caller must then not start the action. An open overlay is replaced.
+    /// </summary>
+    /// <param name="prompt">What the dialog says.</param>
+    /// <param name="onConfirmed">Runs after the dialog is closed, on <c>y</c> only.</param>
+    public bool ShowConfirm(ConfirmPrompt prompt, Action onConfirmed)
+    {
+        var size = _screenSize();
+        if (ConfirmFrameBuilder.Build(prompt, size.Width, size.Height, _glyphs) is null)
+        {
+            return false;
+        }
+
+        var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
+        _onConfirmed = onConfirmed;
+        Open(OverlayState.OpenConfirm(prompt, returnMode), KeyMode.Confirm);
+        return true;
+    }
+
+    /// <summary>The answer drawn on a frame line of the open confirm dialog (a mouse click); null when the line is none or no dialog is open.</summary>
+    public ConfirmAnswer? ConfirmAnswerAt(int frameLine) =>
+        State.Kind == OverlayKind.Confirm && CurrentFrame() is { } frame
+            ? ConfirmFrameBuilder.AnswerAt(frameLine, frame.Height)
+            : null;
 
     /// <summary>Highlights the palette entry drawn on a line of the overlay frame (a mouse click); false when the line is not an entry.</summary>
     public bool SelectPaletteEntryAt(int frameLine)
@@ -180,6 +213,20 @@ public sealed class OverlayController
         }
 
         return new HelpSection("Newest first", rows);
+    }
+
+    // Only the answers act; every other action is swallowed so nothing behind the dialog moves, and Enter never confirms.
+    private void HandleConfirm(ActionId action)
+    {
+        if (action != ActionIds.ConfirmYes && action != ActionIds.ConfirmNo && action != ActionIds.Cancel)
+        {
+            return;
+        }
+
+        var onConfirmed = action == ActionIds.ConfirmYes ? _onConfirmed : null;
+        _onConfirmed = null;
+        Close();
+        onConfirmed?.Invoke();
     }
 
     private void Open(OverlayState state, KeyMode mode)

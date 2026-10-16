@@ -21,6 +21,7 @@ public sealed class OverlayControllerTests : IDisposable
     private readonly OverlayController _overlays;
     private readonly WhichKeyTimer _timer;
     private readonly StatusChannel _statuses = new();
+    private ScreenSize _screen = new(80, 24);
     private int _changes;
 
     public OverlayControllerTests()
@@ -38,7 +39,7 @@ public sealed class OverlayControllerTests : IDisposable
             _keys,
             _timer,
             RouteAction,
-            () => new ScreenSize(80, 24),
+            () => _screen,
             GraphGlyphSet.Unicode,
             () => DefaultKeymap.GraphView,
             _statuses);
@@ -68,6 +69,98 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     private bool Press(Key key) => _keys.Handle(key, _overlays.ViewName);
+
+    private static ConfirmPrompt Prompt() =>
+        new("Discard changes", ["Discard all unstaged changes to a.txt?"], "This cannot be undone.", "Discard changes");
+
+    [Fact]
+    public void GivenAConfirmDialog_WhenPressingY_ThenItClosesAndThenRunsTheCallbackOnce()
+    {
+        var calls = 0;
+        var stateWhenCalled = OverlayKind.Confirm;
+        _overlays.ShowConfirm(Prompt(), () =>
+        {
+            calls++;
+            stateWhenCalled = _overlays.State.Kind;
+        });
+        Assert.Equal(KeyMode.Confirm, _keys.Mode);
+        Assert.Equal(OverlayKind.Confirm, _overlays.State.Kind);
+
+        Press(new Key('y'));
+
+        Assert.Equal(1, calls);
+        Assert.Equal(OverlayKind.None, stateWhenCalled);
+        Assert.Equal(OverlayKind.None, _overlays.State.Kind);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+    }
+
+    [Fact]
+    public void GivenAConfirmDialog_WhenAnsweringNoOrEscape_ThenTheCallbackNeverRuns()
+    {
+        var calls = 0;
+        foreach (var answer in new[] { new Key('n'), Key.Esc })
+        {
+            _overlays.ShowConfirm(Prompt(), () => calls++);
+
+            Press(answer);
+
+            Assert.Equal(OverlayKind.None, _overlays.State.Kind);
+            Assert.Equal(KeyMode.Normal, _keys.Mode);
+        }
+
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void GivenAConfirmDialog_WhenOtherKeysArrive_ThenTheyAreSwallowedAndNothingConfirms()
+    {
+        var calls = 0;
+        _overlays.ShowConfirm(Prompt(), () => calls++);
+
+        foreach (var key in new[] { Key.Enter, new Key('j'), new Key('q'), Key.CursorDown, new Key(' ') })
+        {
+            Assert.True(Press(key));
+        }
+
+        Assert.Equal(0, calls);
+        Assert.Equal(OverlayKind.Confirm, _overlays.State.Kind);
+        Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenAVisualRange_WhenAConfirmDialogCloses_ThenVisualModeIsRestored()
+    {
+        _keys.SetMode(KeyMode.Visual);
+        _overlays.ShowConfirm(Prompt(), () => { });
+
+        Press(new Key('n'));
+
+        Assert.Equal(KeyMode.Visual, _keys.Mode);
+    }
+
+    [Fact]
+    public void GivenAScreenTooSmallForTheDialog_WhenAsking_ThenNothingOpensAndTheCallerIsTold()
+    {
+        _screen = new ScreenSize(14, 24);
+
+        var shown = _overlays.ShowConfirm(Prompt(), () => { });
+
+        Assert.False(shown);
+        Assert.Equal(OverlayKind.None, _overlays.State.Kind);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+    }
+
+    [Fact]
+    public void GivenAConfirmDialog_WhenTheYesAndNoRowsAreClicked_ThenTheyAnswerLikeTheKeys()
+    {
+        _overlays.ShowConfirm(Prompt(), () => { });
+        var height = _overlays.CurrentFrame()!.Height;
+
+        Assert.Equal(ConfirmAnswer.Yes, _overlays.ConfirmAnswerAt(height - 3));
+        Assert.Equal(ConfirmAnswer.No, _overlays.ConfirmAnswerAt(height - 2));
+        Assert.Null(_overlays.ConfirmAnswerAt(0));
+        Assert.Null(_overlays.ConfirmAnswerAt(height - 1));
+    }
 
     [Fact]
     public void GivenGraphView_WhenPressingQuestionMark_ThenHelpOpensForTheGraphViewAndNormalModeStays()

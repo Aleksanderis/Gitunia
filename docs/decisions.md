@@ -213,3 +213,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** Hunk and line staging (#31): the patch is never built from the rows on screen; the file's diff is re-read with default context, the picked lines are found by number and text and applied with `git apply --cached` (`-R` to unstage). Binary, new, deleted and copied files go whole for a hunk and refuse a line range; mode lines stay out of partial patches; a renamed file with edits is cut as an edit of its new path.
 
 **UI:** A double-click on a row of the working-tree diff stages or unstages its hunk (#31); lines are picked with `v` or a drag and staged with `<space>a` / `<space>u` or the palette.
+
+**UI:** Discard (#33): always behind a Confirm dialog (reusable `OverlayController.ShowConfirm`; `y`/`n`/`Esc` only, swallows every other key) that states what is lost; no dangling stash is saved (the dialog says "cannot be undone"). Untracked files are deleted without a copy, hunks and lines are applied backwards to the working tree only, and discarding is one file at a time (no discard-all, no file-list ranges yet).

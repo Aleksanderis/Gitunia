@@ -124,6 +124,7 @@ public static class ActionCatalog
         ["working-tree.stage-all"] = "Stage all files",
         ["working-tree.unstage"] = "Unstage the file, hunk or selected lines",
         ["working-tree.unstage-all"] = "Unstage all files",
+        ["working-tree.discard"] = "Discard the file's changes, the hunk or the selected lines (asks first)",
         ["working-tree.write-message"] = "Write the commit message",
         ["working-tree.edit-message"] = "Edit the commit message",
         ["working-tree.message-new-line"] = "Start a new line in the commit message",

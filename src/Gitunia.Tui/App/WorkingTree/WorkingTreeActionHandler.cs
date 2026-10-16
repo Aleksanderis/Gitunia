@@ -43,6 +43,9 @@ public sealed class WorkingTreeActionHandler(
     /// <summary>Visual mode, which the diff box uses for line ranges; null in tests that do not need it.</summary>
     public VisualRangeController? Visual { get; set; }
 
+    /// <summary>Discards files, hunks and lines after a confirm dialog; null in tests that do not need it.</summary>
+    public DiscardActions? Discard { get; set; }
+
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
 
@@ -90,7 +93,7 @@ public sealed class WorkingTreeActionHandler(
         {
             Send(tab, new LeaveWorkingTreeCommand());
         }
-        else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action))
+        else if (!TryFocus(tab, action) && !TryOpenDiff(tab, action) && !TryMove(tab, action, count) && !TryCopy(tab, action) && !TryStage(tab, action) && !TryDiscard(tab, action))
         {
             Message = $"{ActionCatalog.Describe(action)}: not available in the working-tree view";
         }
@@ -296,6 +299,45 @@ public sealed class WorkingTreeActionHandler(
         }
 
         return notice;
+    }
+
+    private bool TryDiscard(RepositoryState tab, ActionId action)
+    {
+        if (action != ActionIds.WorkingTreeDiscard)
+        {
+            return false;
+        }
+
+        Message = Discard is null
+            ? "Discard is not available"
+            : WorkingPanes.IsDiff(tab.View.FocusedPane) ? DiscardFromDiff(tab, Discard) : Discard.Execute(tab);
+        return true;
+    }
+
+    // In the diff the key acts on the hunk under the cursor, or on the Visual lines; the range ends once the user confirmed.
+    private string DiscardFromDiff(RepositoryState tab, DiscardActions discard)
+    {
+        if (tab.View.FocusedPane != PaneKind.WorkingUnstagedDiff)
+        {
+            return "Discard works in the Unstaged diff: unstage the changes first";
+        }
+
+        if (Diff is not { } diff)
+        {
+            return "The diff is not available";
+        }
+
+        var capture = diff.CaptureStaging(Visual?.Range);
+        if (capture.Request is not { } request)
+        {
+            return capture.Notice;
+        }
+
+        return discard.ExecuteSelection(
+            tab,
+            request,
+            () => Visual?.End(),
+            () => diff.MoveToHunkAfterReload(capture.HunkIndex));
     }
 
     private static bool IsInFocusedList(RepositoryState tab, WorkingTreeSelection selection) =>

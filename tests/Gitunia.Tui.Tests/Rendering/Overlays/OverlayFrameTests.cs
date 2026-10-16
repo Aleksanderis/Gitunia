@@ -19,6 +19,94 @@ public class OverlayFrameTests
 
     private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
+    private static ConfirmPrompt DiscardPrompt() => new(
+        "Discard changes",
+        ["Discard all unstaged changes to src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?", "Its staged changes are kept."],
+        "The changes are removed from the file on disk. Nothing keeps a copy: this cannot be undone.",
+        "Discard changes");
+
+    [Fact]
+    public void GivenConfirmDialog_WhenRenderingAt80x24_ThenItIsCentredAndNamesWhatIsLost()
+    {
+        var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 80, 24, GraphGlyphSet.Unicode);
+
+        Assert.Equal(
+            string.Join(
+                '\n',
+                " Discard changes".PadRight(64),
+                "│ Discard all unstaged changes to                              │",
+                "│ src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?           │",
+                "│ Its staged changes are kept.                                 │",
+                "│                                                              │",
+                "│ The changes are removed from the file on disk. Nothing keeps │",
+                "│ a copy: this cannot be undone.                               │",
+                "│                                                              │",
+                "│ y  Discard changes                                           │",
+                "│ n  Cancel (Esc does the same)                                │",
+                "╰──────────────────────────────────────────────────────────────╯"),
+            Text(frame));
+        Assert.Equal(8, frame!.Column);
+        Assert.Equal(6, frame.Row);
+    }
+
+    [Fact]
+    public void GivenConfirmDialog_WhenRenderingInAscii_ThenTheBoxUsesPlainCharacters()
+    {
+        var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 60, 20, GraphGlyphSet.Ascii);
+
+        Assert.Equal(
+            string.Join(
+                '\n',
+                " Discard changes".PadRight(58),
+                "| Discard all unstaged changes to                        |",
+                "| src/Gitunia.Tui/App/WorkingTree/DiscardActions.cs?     |",
+                "| Its staged changes are kept.                           |",
+                "|                                                        |",
+                "| The changes are removed from the file on disk. Nothing |",
+                "| keeps a copy: this cannot be undone.                   |",
+                "|                                                        |",
+                "| y  Discard changes                                     |",
+                "| n  Cancel (Esc does the same)                          |",
+                "+--------------------------------------------------------+"),
+            Text(frame));
+    }
+
+    [Theory]
+    [InlineData(18, 14)]
+    [InlineData(30, 16)]
+    [InlineData(40, 10)]
+    [InlineData(200, 50)]
+    public void GivenConfirmDialog_WhenRenderingAtOtherSizes_ThenEveryRowHasTheSameWidthAndFitsTheScreen(int width, int height)
+    {
+        var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], width, height, GraphGlyphSet.Unicode);
+
+        if (frame is null)
+        {
+            return;
+        }
+
+        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+        Assert.True(frame.Row + frame.Height <= height);
+        Assert.True(frame.Column + frame.Width <= width);
+        Assert.Contains(" y  Discard changes", Text(frame), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(10, 24)]
+    [InlineData(80, 5)]
+    public void GivenConfirmDialog_WhenTheScreenIsTooSmall_ThenThereIsNoFrame(int width, int height)
+    {
+        var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
+
+        Assert.Null(OverlayFrameFactory.Create(state, [], string.Empty, [], width, height, GraphGlyphSet.Unicode));
+    }
+
     [Fact]
     public void GivenMessagesOverlay_WhenRendering_ThenItListsSeverityAndTextWithTheMessagesTitle()
     {
@@ -125,7 +213,7 @@ public class OverlayFrameTests
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
                 "│ Show the Changes tab                                              gc │",
-                "│ 1/95  Up/Down choose  Enter run  Esc close                           │",
+                "│ 1/96  Up/Down choose  Enter run  Esc close                           │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);

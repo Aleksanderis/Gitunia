@@ -79,6 +79,7 @@ public static class PaneHints
         .. Pinned,
         new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage hunk", [ActionIds.WorkingTreeStage]),
+        new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("v", "select lines", [ActionIds.VisualToggle]),
         .. WorkingDiffCommon,
     ];
@@ -99,6 +100,7 @@ public static class PaneHints
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
         new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         new("Tab", "next pane", [ActionIds.PaneNext]),
         new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),

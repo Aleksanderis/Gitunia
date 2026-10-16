@@ -3,12 +3,14 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff.Models;
+using Gitunia.Git.Discard;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
 using Gitunia.Git.Tests.Fixtures;
@@ -422,6 +424,125 @@ public class WorkingDiffControllerTests
         Assert.Contains("is conflicted", harness.Handler.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GivenTwoHunks_WhenDiscardingTheFirstAndTheDialogIsDropped_ThenNothingChanges()
+    {
+        var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
+        repository.WriteFile("long.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal(["Discard this hunk (2 lines) of long.txt?"], prompt.Lines);
+        harness.DropDialog();
+        Assert.Equal(changed, File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
+        Assert.Null(harness.Statuses.Log.Latest);
+    }
+
+    [Fact]
+    public async Task GivenTwoHunks_WhenDiscardingTheFirstAndConfirming_ThenOnlyTheSecondEditRemainsAndTheIndexIsUntouched()
+    {
+        var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));
+        using var repository = TestRepository.Create().Commit("base", new TestFile("long.txt", original));
+        var changed = original.Replace("line 2\n", "two\n", StringComparison.Ordinal).Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal);
+        repository.WriteFile("long.txt", changed);
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        await harness.ConfirmAsync();
+
+        Assert.Equal(original.Replace("line 38\n", "thirty-eight\n", StringComparison.Ordinal), File.ReadAllText(Path.Combine(repository.WorkingTreePath, "long.txt")));
+        Assert.Equal(original, harness.Git("show", ":long.txt"));
+        Assert.Equal("Discarded hunk (2 lines) of long.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.Single(harness.Document().HunkRows);
+    }
+
+    [Fact]
+    public async Task GivenAVisualRangeOverOneAddedLine_WhenDiscarding_ThenTheRangeSurvivesTheDialogAndEndsOnYes()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("f.txt", "a\nb\nc\n"));
+        repository.WriteFile("f.txt", "a\nB1\nB2\nc\n");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        var addedRow = harness.Document().Rows.ToList().FindIndex(row => row is { Kind: DiffRowKind.Added, Text: "B1" });
+        await harness.ExecuteAsync(ActionIds.ListDown, addedRow);
+        await harness.ExecuteAsync(ActionIds.VisualToggle);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        Assert.Equal(["Discard the 1 selected line of f.txt?"], Assert.Single(harness.Prompts).Lines);
+        Assert.True(harness.Visual.IsActive);
+        await harness.ConfirmAsync();
+
+        Assert.Equal("a\nB2\nc\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "f.txt")));
+        Assert.Equal("Discarded 1 line of f.txt", harness.Statuses.Log.Latest!.Text);
+        Assert.False(harness.Visual.IsActive);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAModifiedFileInTheList_WhenDiscardingAndConfirming_ThenItIsRestoredAndItsStagedChangesStay()
+    {
+        using var repository = TestRepository.Create().Commit("base", new TestFile("a.txt", "one\n"));
+        repository.WriteFile("a.txt", "staged\n");
+        repository.Git("add", "a.txt");
+        repository.WriteFile("a.txt", "staged and more\n");
+        using var harness = await Harness.OpenAsync(repository);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        Assert.Contains("Its staged changes are kept.", Assert.Single(harness.Prompts).Lines);
+        await harness.ConfirmAsync();
+
+        Assert.Equal("staged\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
+        Assert.Equal("staged\n", harness.Git("show", ":a.txt"));
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedFileInTheList_WhenDiscardingAndConfirming_ThenItIsDeletedAndTrackedFilesStay()
+    {
+        using var repository = DefaultRepository();
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.ListDown);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        Assert.Equal("Delete untracked file", Assert.Single(harness.Prompts).Title);
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "new.txt")));
+        await harness.ConfirmAsync();
+
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "new.txt")));
+        Assert.Equal("one\nTWO\nthree\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "a.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAnUntrackedFileInTheList_WhenDiscardingAndDroppingTheDialog_ThenTheFileStays()
+    {
+        using var repository = DefaultRepository();
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.ListDown);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+        harness.DropDialog();
+
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "new.txt")));
+    }
+
+    [Fact]
+    public async Task GivenTheStagedDiff_WhenDiscarding_ThenItIsRefusedWithAHint()
+    {
+        using var harness = await Harness.OpenAsync(DefaultRepository());
+        await harness.ExecuteAsync(ActionIds.PaneNext);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+
+        Handle(harness, ActionIds.WorkingTreeDiscard);
+
+        Assert.Contains("unstage", harness.Handler.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(harness.Prompts);
+    }
+
     private static void Handle(Harness harness, ActionId action) => harness.Handler.TryExecute(action, null);
 
     private static TestRepository DefaultRepository()
@@ -441,6 +562,7 @@ public class WorkingDiffControllerTests
     {
         private readonly UiPump _pump;
         private readonly TestRepository _repository;
+        private readonly List<Action> _pendingAnswers = [];
         private KeyMode _mode = KeyMode.Normal;
 
         private Harness(TestRepository repository, WorkspaceHost host, TabSession session, UiPump pump)
@@ -467,12 +589,31 @@ public class WorkingDiffControllerTests
                     pump.Post(done);
                     return true;
                 },
-                _ => Token);
+                _ => Token,
+                Gate);
             Visual = new VisualRangeController(() => Tab.View.FocusedPane, _ => DiffList, () => _mode, mode => _mode = mode);
             Handler = new WorkingTreeActionHandler(host, () => 10, copier, Staging, TestCommitActions.Create(host, Statuses)) { Diff = Controller, Visual = Visual };
+            Handler.Discard = new DiscardActions(
+                host,
+                new PatchDiscarder(TestGit.Services.Diff, TestGit.Services.Discarder),
+                Statuses,
+                pump.Post,
+                (_, done) =>
+                {
+                    pump.Post(done);
+                    return true;
+                },
+                _ => Token,
+                AskConfirm,
+                Gate);
         }
 
         public StagingActions Staging { get; }
+
+        public TabOperationGate Gate { get; } = new();
+
+        /// <summary>The confirm dialogs the actions asked for, oldest first.</summary>
+        public List<ConfirmPrompt> Prompts { get; } = [];
 
         public VisualRangeController Visual { get; }
 
@@ -530,6 +671,19 @@ public class WorkingDiffControllerTests
             await RefreshStatusAsync();
         }
 
+        /// <summary>Answers <c>y</c> in the open dialog, waits for the discard, then re-reads the status like the tab refresher does.</summary>
+        public async Task ConfirmAsync()
+        {
+            var answer = Assert.Single(_pendingAnswers);
+            _pendingAnswers.Clear();
+            answer();
+            await _pump.RunUntilAsync(() => !Gate.IsAnyBusy);
+            await RefreshStatusAsync();
+        }
+
+        /// <summary>Answers <c>n</c> or <c>Esc</c>: the callback is dropped, as the overlay does.</summary>
+        public void DropDialog() => _pendingAnswers.Clear();
+
         public string Git(params string[] arguments) => _repository.Git(arguments);
 
         public void Type(string text)
@@ -559,6 +713,13 @@ public class WorkingDiffControllerTests
         {
             Session.Dispose();
             _repository.Dispose();
+        }
+
+        private bool AskConfirm(ConfirmPrompt prompt, Action onYes)
+        {
+            Prompts.Add(prompt);
+            _pendingAnswers.Add(onYes);
+            return true;
         }
 
         private async Task LoadStatusAsync()

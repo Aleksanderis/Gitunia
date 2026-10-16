@@ -22,6 +22,7 @@ public static class DefaultKeymap
     public const string PaletteView = "Palette";
     public const string HelpView = "Help";
     public const string MessagesView = "Messages";
+    public const string ConfirmView = "Confirm";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
     private static readonly KeyMode[] NormalOnly = [KeyMode.Normal];
@@ -43,6 +44,7 @@ public static class DefaultKeymap
         [PaletteView] = KeyBindingTable.GlobalView,
         [HelpView] = ListsView,
         [MessagesView] = ListsView,
+        [ConfirmView] = KeyBindingTable.GlobalView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -167,7 +169,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
     }
 
-    // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard comes with its issue.
+    // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
     private static void AddWorkingTreeLists(List<KeyBinding> bindings)
     {
         foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView])
@@ -184,11 +186,12 @@ public static class DefaultKeymap
 
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);
     }
 
-    // The two sides of the working-tree diff share the keys of the history diff; the side-specific ones (stage, unstage, discard) come with their issues.
+    // The two sides of the working-tree diff share the keys of the history diff; the side-specific ones (stage, unstage, discard) are added below.
     private static void AddWorkingTreeDiffs(List<KeyBinding> bindings)
     {
         foreach (var view in (string[])[WorkingUnstagedDiffView, WorkingStagedDiffView])
@@ -218,6 +221,7 @@ public static class DefaultKeymap
 
         // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
+        Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
     }
 

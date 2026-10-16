@@ -1,5 +1,6 @@
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
+using Gitunia.Git.Discard;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
@@ -22,6 +23,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
 /// <param name="IndexWriter">Stages and unstages files.</param>
+/// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
@@ -36,6 +38,7 @@ public sealed record GitServices(
     IRefReader Refs,
     IStatusReader Status,
     IIndexWriter IndexWriter,
+    IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
     IStashReader Stashes,
     IRepositoryRefresher Refresher,
@@ -59,6 +62,7 @@ public sealed record GitServices(
             refs,
             status,
             new IndexWriter(runner),
+            new WorkingTreeDiscarder(runner),
             new CommitWriter(runner),
             stashes,
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
