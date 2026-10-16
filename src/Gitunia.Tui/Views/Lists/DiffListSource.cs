@@ -207,8 +207,11 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     {
     }
 
-    // Not while a Visual range is open: the range is then the unit the keys act on.
-    private bool IsInCursorGroup(ListView listView, int item)
+    /// <summary>
+    /// Whether screen line <paramref name="item"/> is in the change group under the cursor; never while a Visual range is open
+    /// (the range is then what the keys act on) or when <see cref="HighlightsGroup"/> is off.
+    /// </summary>
+    public bool IsInCursorGroup(ListView listView, int item)
     {
         if (!HighlightsGroup || Range is not null || Count == 0 || item < 0 || item >= Count)
         {

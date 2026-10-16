@@ -69,6 +69,7 @@ public static class Palette
             return colors.GroupBackground;
         }
 
+        // The group tint above wins over the panel background when both apply.
         return segment.OnPanel ? colors.PanelBackground : background;
     }
 

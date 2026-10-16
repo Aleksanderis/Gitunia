@@ -6,11 +6,11 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <summary>Marks a padded diff line as part of the change group under the cursor: a bar in the left margin and the group tint.</summary>
 public static class ChangeGroupMarker
 {
-    /// <param name="line">The line with its padding (<see cref="Panes.PanePadding.Wrap"/>), whose first segment is the left margin.</param>
+    /// <param name="line">The line with its padding (<see cref="Panes.PanePadding.Wrap"/>), whose first segment is the left margin of at least one column; a line without one is returned as it is.</param>
     /// <param name="glyphs">Supplies the bar.</param>
     public static StyledLine Mark(StyledLine line, GraphGlyphSet glyphs)
     {
-        if (line.Segments.Count == 0)
+        if (line.Segments.Count == 0 || line.Segments[0].Text.Length == 0)
         {
             return line;
         }

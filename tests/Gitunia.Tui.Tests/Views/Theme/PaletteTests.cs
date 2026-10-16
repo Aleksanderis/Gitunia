@@ -57,6 +57,23 @@ public class PaletteTests
     }
 
     [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenTintingTheCursorGroup_ThenTheTintIsApartFromTheSelectionTints(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var terminalBackground = isLight ? LightBackground : DarkBackground;
+
+        var group = ToRgb(colors.GroupBackground);
+
+        Assert.NotEqual(terminalBackground, group);
+        Assert.NotEqual(ToRgb(colors.SelectionDim), group);
+        Assert.NotEqual(ToRgb(colors.SelectionFocused), group);
+        // Between the terminal background and the quieter selection tint, so a selected row inside the group stays visible.
+        Assert.True(Luminance(group) > Luminance(terminalBackground) != isLight);
+        Assert.True(Math.Abs(Luminance(ToRgb(colors.SelectionDim)) - Luminance(terminalBackground)) > Math.Abs(Luminance(group) - Luminance(terminalBackground)));
+    }
+
+    [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
     public void GivenAColourlessScheme_WhenColouringTheCursorGroup_ThenTheBackgroundIsLeftToTheTerminal(ColorDepth depth)
