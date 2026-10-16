@@ -24,6 +24,27 @@ public class SwitchCandidatesTests
     }
 
     [Fact]
+    public void GivenMixedRefs_WhenBuildingRemote_ThenOnlyMatchingRemoteBranchesAreListedBestFirst()
+    {
+        var refs = new[]
+        {
+            Branch("topic", RefKind.LocalBranch),
+            Branch("v1", RefKind.Tag),
+            Branch("origin/HEAD", RefKind.RemoteBranch) with { SymbolicTarget = "refs/remotes/origin/main" },
+            Branch("origin/xtopicx", RefKind.RemoteBranch),
+            Branch("origin/topic", RefKind.RemoteBranch),
+        };
+
+        var all = SwitchCandidates.BuildRemote(refs, string.Empty).Select(candidate => candidate.Label).ToList();
+        var filtered = SwitchCandidates.BuildRemote(refs, "topic").Select(candidate => candidate.Label).ToList();
+
+        Assert.Equal(["origin/xtopicx", "origin/topic"], all.OrderByDescending(label => label));
+        Assert.Equal(2, all.Count);
+        Assert.Equal("origin/topic", filtered[0]);
+        Assert.DoesNotContain("origin/HEAD", filtered);
+    }
+
+    [Fact]
     public void GivenARemoteHeadAlias_WhenBuilding_ThenItIsLeftOut()
     {
         var alias = Branch("origin/HEAD", RefKind.RemoteBranch) with { SymbolicTarget = "refs/remotes/origin/main" };
