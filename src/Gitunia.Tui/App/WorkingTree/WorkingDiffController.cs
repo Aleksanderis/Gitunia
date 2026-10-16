@@ -142,7 +142,7 @@ public sealed class WorkingDiffController : IPromptHandler
 
         if (diff.Store.IsCut)
         {
-            return DiffStagingCapture.Refused("The diff is cut short: press L to load all of it first");
+            return DiffStagingCapture.Refused("The diff is cut short: press <space>vl to load all of it first");
         }
 
         if (target.Entry.Kind == StatusEntryKind.Unmerged)

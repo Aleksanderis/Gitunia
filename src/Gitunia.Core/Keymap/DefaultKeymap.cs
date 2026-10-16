@@ -125,8 +125,8 @@ public static class DefaultKeymap
 
     private static void AddViews(List<KeyBinding> bindings)
     {
-        Add(bindings, NormalOnly, GraphView, "@", ActionIds.GraphJumpToHead);
-        Add(bindings, NormalOnly, GraphView, "gr", ActionIds.GraphJumpToRef);
+        Add(bindings, NormalOnly, GraphView, "<space>h", ActionIds.GraphJumpToHead);
+        Add(bindings, NormalOnly, GraphView, "<space>f", ActionIds.GraphJumpToRef);
         Add(bindings, NormalOnly, GraphView, "<space>j", ActionIds.QuickJump);
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
@@ -156,13 +156,13 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "[f", ActionIds.DiffPreviousFile);
         Add(bindings, NormalOnly, DiffView, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
-        Add(bindings, NormalOnly, DiffView, "w", ActionIds.DiffToggleWrap);
-        Add(bindings, NormalOnly, DiffView, "L", ActionIds.DiffLoadAnyway);
+        Add(bindings, NormalOnly, DiffView, "<space>vw", ActionIds.DiffToggleWrap);
+        Add(bindings, NormalOnly, DiffView, "<space>vl", ActionIds.DiffLoadAnyway);
         Add(bindings, NormalOnly, DiffView, "+", ActionIds.DiffMoreContext);
         Add(bindings, NormalOnly, DiffView, "-", ActionIds.DiffLessContext);
-        Add(bindings, NormalOnly, DiffView, "F", ActionIds.DiffToggleWholeFile);
-        Add(bindings, NormalOnly, DiffView, "W", ActionIds.DiffToggleIgnoreWhitespace);
-        Add(bindings, NormalOnly, DiffView, "S", ActionIds.DiffToggleSideBySide);
+        Add(bindings, NormalOnly, DiffView, "<space>vf", ActionIds.DiffToggleWholeFile);
+        Add(bindings, NormalOnly, DiffView, "<space>vi", ActionIds.DiffToggleIgnoreWhitespace);
+        Add(bindings, NormalOnly, DiffView, "<space>vs", ActionIds.DiffToggleSideBySide);
         Add(bindings, NormalOnly, DiffView, "/", ActionIds.DiffSearchOpen);
         Add(bindings, NormalOnly, DiffView, "n", ActionIds.DiffSearchNext);
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
@@ -207,13 +207,13 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "[f", ActionIds.DiffPreviousFile);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
-            Add(bindings, NormalOnly, view, "w", ActionIds.DiffToggleWrap);
-            Add(bindings, NormalOnly, view, "L", ActionIds.DiffLoadAnyway);
+            Add(bindings, NormalOnly, view, "<space>vw", ActionIds.DiffToggleWrap);
+            Add(bindings, NormalOnly, view, "<space>vl", ActionIds.DiffLoadAnyway);
             Add(bindings, NormalOnly, view, "+", ActionIds.DiffMoreContext);
             Add(bindings, NormalOnly, view, "-", ActionIds.DiffLessContext);
-            Add(bindings, NormalOnly, view, "F", ActionIds.DiffToggleWholeFile);
-            Add(bindings, NormalOnly, view, "W", ActionIds.DiffToggleIgnoreWhitespace);
-            Add(bindings, NormalOnly, view, "S", ActionIds.DiffToggleSideBySide);
+            Add(bindings, NormalOnly, view, "<space>vf", ActionIds.DiffToggleWholeFile);
+            Add(bindings, NormalOnly, view, "<space>vi", ActionIds.DiffToggleIgnoreWhitespace);
+            Add(bindings, NormalOnly, view, "<space>vs", ActionIds.DiffToggleSideBySide);
             Add(bindings, NormalOnly, view, "/", ActionIds.DiffSearchOpen);
             Add(bindings, NormalOnly, view, "n", ActionIds.DiffSearchNext);
             Add(bindings, NormalOnly, view, "N", ActionIds.DiffSearchPrevious);

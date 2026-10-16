@@ -9,7 +9,7 @@ using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Search;
 
-/// <summary>The <c>gr</c> prompt: type to filter refs (fuzzy) or a hash prefix, <c>Up</c>/<c>Down</c> or <c>Tab</c> to choose, <c>Enter</c> to select that commit.</summary>
+/// <summary>The ref jump prompt (<c>&lt;space&gt;f</c>): type to filter refs (fuzzy) or a hash prefix, <c>Up</c>/<c>Down</c> or <c>Tab</c> to choose, <c>Enter</c> to select that commit.</summary>
 public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<GitRef>> refs) : IPromptHandler
 {
     private RefJumpState? _prompt;
@@ -26,7 +26,7 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
                 return string.Empty;
             }
 
-            var line = $"gr {_prompt.Text}_  ";
+            var line = $"ref {_prompt.Text}_  ";
             return _prompt.Selected is { } selected
                 ? $"{line}{selected.Label} ({(_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture)}/{_prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture)})"
                 : $"{line}no matching ref or commit";
