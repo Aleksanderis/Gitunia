@@ -62,8 +62,8 @@ public static class SwitchCandidates
     }
 
     /// <summary>
-    /// The local name git gives a tracking branch made from <paramref name="remoteBranch"/>: <c>origin/topic</c> becomes
-    /// <c>topic</c>.
+    /// The local name git gives a tracking branch made from <paramref name="remoteBranch"/>:
+    /// <c>origin/topic</c> becomes <c>topic</c>.
     /// </summary>
     public static string LocalNameOf(string remoteBranch)
     {

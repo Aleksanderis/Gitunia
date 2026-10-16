@@ -17,10 +17,11 @@ namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
 /// Create, switch, rename and delete branches (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt,
-/// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one when
-/// the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch held by
-/// another worktree, a name in use) are decided from the tab's refs and run nothing; everything else runs off the UI
-/// thread, one operation per tab, and the tab is refreshed afterwards. What the action acts on is fixed when the prompt opens.
+/// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one
+/// when the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch
+/// held by another worktree, a name in use) are decided from the tab refs and run nothing; everything else runs off
+/// the UI thread, one operation per tab, and the tab is refreshed afterwards. What the action acts on is fixed when
+/// the prompt opens.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Runs the git commands.</param>
