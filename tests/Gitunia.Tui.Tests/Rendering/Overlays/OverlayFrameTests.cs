@@ -313,7 +313,8 @@ public class OverlayFrameTests
         var lines = Text(frame).Split('\n');
 
         Assert.True(frame.Row + lines.Length <= screenHeight - 1, "The frame must end above the status row.");
-        Assert.Contains("106/106", lines[^2]);
+        var total = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView).Count;
+        Assert.Contains($"{total}/{total}", lines[^2]);
         Assert.True(frame.Lines[^3].IsSelected, "The last entry must be the selected row, directly above the footer.");
     }
 
@@ -392,7 +393,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("<space>s", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("Cancel", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 

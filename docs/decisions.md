@@ -250,4 +250,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.
 
+**UI:** Stash keys are `<space>S` chords (`Ss` `Su` push without/with untracked; sidebar `Sa` `Sp` `Sd`), not the bare `a` `p` `d` of the first draft, which clash with vim. Apply, pop and drop refuse outside a stash row instead of opening a picker; only drop asks.
+
 **UI:** Branch operations (#35): `<space>bc` `bC` `bs` `br` `bd` in the graph and the sidebar; no sidebar `d`/`r` shortcuts (vim-clash rule, supersedes workflow 3 item 5). Deleting an unmerged branch (not on HEAD or its upstream) asks a second Confirm. Why: chords keep vim keys intact and the unmerged case is the one that loses commits.
