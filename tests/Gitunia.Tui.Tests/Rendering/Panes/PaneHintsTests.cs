@@ -96,6 +96,12 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheMessageEditingHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheMessageViewInInsertMode()
+    {
+        AssertKeysTriggerActions(PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);

@@ -71,6 +71,18 @@ public sealed class CommitActions(
     /// <summary>The draft of the tab; null while the tab never had one.</summary>
     public CommitDraft? DraftOf(TabId tabId) => _drafts.GetValueOrDefault(tabId);
 
+    /// <summary>The draft of the tab, created empty when the tab has none yet.</summary>
+    public CommitDraft DraftFor(TabId tabId)
+    {
+        if (!_drafts.TryGetValue(tabId, out var draft))
+        {
+            draft = new CommitDraft();
+            _drafts[tabId] = draft;
+        }
+
+        return draft;
+    }
+
     /// <summary>True while the message box of the active tab takes typed keys.</summary>
     public bool IsEditing =>
         _ownsInsert && keyMode() == KeyMode.Insert && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.WorkingMessage;
@@ -138,7 +150,7 @@ public sealed class CommitActions(
 
     private string Run(RepositoryState tab, ActionId action)
     {
-        var draft = GetOrCreate(tab.Id);
+        var draft = DraftFor(tab.Id);
         if (draft.IsCommitting && action != ActionIds.WorkingTreeMessageNewLine)
         {
             return "A commit is running: Esc cancels it";
@@ -216,7 +228,7 @@ public sealed class CommitActions(
             return string.Empty;
         }
 
-        draft.Editor.Apply(new KeyEvent(KeyNames.Enter, KeyModifiers.None));
+        draft.Editor.Apply(new KeyEvent(KeyNames.Enter));
         return string.Empty;
     }
 
@@ -420,17 +432,6 @@ public sealed class CommitActions(
         {
             _ownsInsert = false;
         }
-    }
-
-    private CommitDraft GetOrCreate(TabId tabId)
-    {
-        if (!_drafts.TryGetValue(tabId, out var draft))
-        {
-            draft = new CommitDraft();
-            _drafts[tabId] = draft;
-        }
-
-        return draft;
     }
 
     private static PaneKind ListPaneOf(RepositoryState tab) =>

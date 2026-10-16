@@ -504,7 +504,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         with
         {
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
-            Hints = PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
+            Hints = _commits.IsEditing
+                ? PaneHints.ForMessageEditing()
+                : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
         };
 

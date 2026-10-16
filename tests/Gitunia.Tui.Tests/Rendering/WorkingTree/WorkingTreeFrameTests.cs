@@ -51,7 +51,7 @@ public class WorkingTreeFrameTests
                 "│                             │                                                          │",
                 "│                             │ [ ] SignOff  [ ] No-Verify  [ ] Amend            Commit  │",
                 "╰─────────────────────────────┴──────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q back  j/k move  <space>a stage  <space>A stage all  <…"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  <…"),
             frame);
     }
 
@@ -74,7 +74,7 @@ public class WorkingTreeFrameTests
                 "│                                                              │",
                 "│                                                              │",
                 "╰──────────────────────────────────────────────────────────────╯",
-                " NORMAL  1/1  ? help  : commands  q back  j/k move  <space>u un…"),
+                " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>u un…"),
             frame);
     }
 

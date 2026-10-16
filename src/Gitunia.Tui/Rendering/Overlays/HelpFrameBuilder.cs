@@ -159,6 +159,12 @@ public static class HelpFrameBuilder
     private static StyledLine KeysAndDescription(string keys, string description, int width, GraphGlyphSet glyphs)
     {
         var inner = OverlayBox.InnerWidth(width);
+        if (keys.Length == 0)
+        {
+            // Plain text rows (the output of a failed command) have no keys column and no separator.
+            return OverlayBox.Wrap(new LineBuilder(inner, glyphs.Ellipsis).Append($"{KeysIndent}{description}", SegmentRole.Plain).Build(), glyphs);
+        }
+
         var builder = new LineBuilder(inner, glyphs.Ellipsis)
             .Append($"{KeysIndent}{keys}", SegmentRole.OverlayKey)
             .Append($"{ColumnPadding}{glyphs.For(LineDirections.Up | LineDirections.Down)}{ColumnPadding}", SegmentRole.Faint)

@@ -35,6 +35,7 @@ public sealed class WorkingTreeActionHandler(
         ActionIds.Cancel,
         ActionIds.RepositoryRefresh,
         ActionIds.ToolCommitEditor,
+        ActionIds.AppQuit,
     ];
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>

@@ -35,6 +35,21 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenOutputOverlay_WhenRendering_ThenItShowsItsTitleAndTheOutputLines()
+    {
+        var sections = new List<HelpSection> { new("Output of git commit", [new HelpRow(string.Empty, "pre-commit: forbidden word"), new HelpRow(string.Empty, "  indented")]) };
+        var state = OverlayState.OpenOutput("Commit failed", KeyMode.Insert);
+
+        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 70, 12, GraphGlyphSet.Unicode);
+
+        var text = Text(frame);
+        Assert.Contains("Commit failed", text, StringComparison.Ordinal);
+        Assert.Contains("pre-commit: forbidden word", text, StringComparison.Ordinal);
+        Assert.Contains("Esc close", text, StringComparison.Ordinal);
+        Assert.Equal(KeyMode.Insert, state.ReturnMode);
+    }
+
+    [Fact]
     public void GivenLongMessage_WhenRenderingMessages_ThenItWrapsAndEveryWordIsReadable()
     {
         const string message = "fatal: unable to access the repository because the object database is corrupt and cannot be read";

@@ -14,14 +14,6 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
-    // In the working-tree view q goes back to the history instead of quitting.
-    private static readonly ImmutableArray<KeyHint> PinnedWorking =
-    [
-        new("?", "help", [ActionIds.HelpShow]),
-        new(":", "commands", [ActionIds.PaletteOpen]),
-        new("q", "back", [ActionIds.NavigateBack]),
-    ];
-
     private static readonly ImmutableArray<KeyHint> Graph =
     [
         .. Pinned,
@@ -69,7 +61,7 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstaged =
     [
-        .. PinnedWorking,
+        .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
@@ -81,7 +73,7 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
-        .. PinnedWorking,
+        .. Pinned,
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
@@ -93,11 +85,19 @@ public static class PaneHints
 
     private static readonly ImmutableArray<KeyHint> WorkingMessage =
     [
-        .. PinnedWorking,
+        .. Pinned,
         new("i", "write", [ActionIds.WorkingTreeEditMessage]),
         new("<space>c", "commit", [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
         new("<space>te", "$EDITOR", [ActionIds.ToolCommitEditor]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> MessageEditing =
+    [
+        new("Esc", "stop writing", [ActionIds.Cancel]),
+        new("Alt-Enter", "commit", [ActionIds.WorkingTreeCommit]),
+        new("Ctrl-g", "commit", [ActionIds.WorkingTreeCommit]),
+        new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Picker =
@@ -119,6 +119,9 @@ public static class PaneHints
         PaneKind.WorkingMessage => WorkingMessage,
         _ => Graph,
     };
+
+    /// <summary>The hints while the commit message box is in Insert mode (typed keys are text, so only these act).</summary>
+    public static IReadOnlyList<KeyHint> ForMessageEditing() => MessageEditing;
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;

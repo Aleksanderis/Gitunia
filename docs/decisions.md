@@ -203,3 +203,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Vim-safe keys (#335, owner): standard vim/neovim keys keep their vim meaning; Gitunia-specific actions use `<space>` leader chords or `Ctrl-`/`Alt-` keys, never a bare vim command. Supersedes the bare keys of the earlier working-tree and external-tool entries; mapping in `docs/ux.md` ("Key rule"); `<space>j` is reserved for the quick jump (#334).
 
 **UI:** Stage and unstage (#30): stage all takes everything in Unstaged except conflicted files (skipped and counted), untracked files included; one index operation per tab, and the next action waits for the status re-read so the cursor keeps its index. Paths are always literal (--literal-pathspecs). Open: Visual ranges #340, resolve a conflicted file #341.
+
+**UI:** Commit (#32): the message goes to `git commit -F -` on stdin, so comment lines are kept (a commit through `$EDITOR` strips them); stdin is closed for hooks and signing, so one that prompts fails with its output and a hint to use `<space>te`, which runs in the real terminal. Quitting with an unsent message needs a second `q` (guard), because Confirm mode is for destructive actions and a draft is not yet saved with the session.
+
+**UI:** `q` quits from the working-tree view too (#333 rule applied to #29/#30, which left `q` unbound there): `h`/`Esc` leave it.

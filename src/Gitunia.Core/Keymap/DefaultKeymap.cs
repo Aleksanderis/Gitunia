@@ -171,7 +171,6 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
-            Add(bindings, NormalOnly, view, "q", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
         }
@@ -192,7 +191,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, message, "<space>c", ActionIds.WorkingTreeCommit);
         Add(bindings, NormalOnly, message, "<space>te", ActionIds.ToolCommitEditor);
         Add(bindings, NormalOnly, message, "<space>r", ActionIds.RepositoryRefresh);
-        Add(bindings, NormalOnly, message, "q", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, message, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, message, "h", ActionIds.NavigateBack);
         Add(bindings, [KeyMode.Insert], message, "Enter", ActionIds.WorkingTreeMessageNewLine);
