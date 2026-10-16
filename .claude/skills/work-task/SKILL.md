@@ -36,6 +36,14 @@ effort: medium
 ## 4. Deliver
 
 - Build, test and (if relevant) AOT-publish; report real output, including failures.
+- Before the reviewer runs, run `scripts/check-diff.sh` (added lines over 120 columns, fully qualified `System.*`, over-long `docs/decisions.md` entries, agent author name and `Agent:` trailer on every commit) and fix what it prints, then walk the self-review list below. These are the findings reviewers raised again and again; every one you fix here is one round of review saved.
+- Self-review list (each item answered before review, not after):
+  - **Sweep after a rename, key move or behaviour change.** Grep the old term, key and wording across `src/`, `tests/`, `docs/` (`ux.md`, `git-layer.md`, `architecture.md`), status hints, `ActionCatalog` titles, XML docs, test names and the bodies of related open issues. Stale text in docs, hints and comments was the most common should-fix.
+  - **`docs/decisions.md`.** A PR that makes a design choice, changes a key or a user-visible behaviour, or supersedes an older entry adds a 1-2 line entry (detail goes in the area doc) and marks the superseded entry. Skipping it was the second most common finding.
+  - **Tests prove the Acceptance line.** Through the real path (controller or action plus real git on a temp repo), not only the helper; fail-if-wrong, not just green. Cover the edge cases the code branches on (empty, zero or tiny size, wide or combining characters, wrapped rows, several hunks, cancel and race, other tab or session active while an overlay is open). New caches, list sources, views and event wiring each get a test. A test name says what it asserts.
+  - **Destructive or ambiguous targets.** The confirm dialog names exactly what will be changed, and a fallback never widens the scope beyond it (hunk to whole file, range to everything). Texts that count things are pluralised and say what was not done on failure.
+  - **Claims are true.** "Two git calls", "pure function", "no allocation", "stays within N ms" in code comments, docs or the PR body are checked against the code or a measurement.
+  - **UI PRs.** Attach the capture or say in the PR body why none (hints, key labels, logic only).
 - Run the `reviewer` subagent on the branch with the issue number. Fix every `blocker` and `should-fix`, or justify why not in the PR.
 - Make the review visible on GitHub: after opening the PR, post the reviewer's findings (verdict, then findings by severity) as a PR comment with `gh pr comment <n> --body-file <file>`, and after fixing, post a second comment saying which findings were fixed (with the commit) and which were skipped and why. The PR body carries only the one-line verdict. The owner reads reviews on the PR, not in the session. Reviewing the work-task's own PR with no reviewer run is not allowed, including for style or docs-only changes.
 - Everything you write on GitHub or in git carries the agent identity (see "Agent identity" below).
