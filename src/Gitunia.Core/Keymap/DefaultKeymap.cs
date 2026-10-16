@@ -135,6 +135,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
         AddBottomTabKeys(bindings, GraphView);
+        AddBranchKeys(bindings, GraphView);
+        AddBranchKeys(bindings, SidebarView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
@@ -170,6 +172,16 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "y", ActionIds.DiffCopyLine);
         Add(bindings, NormalOnly, DiffView, "Y", ActionIds.DiffCopyFile);
         Add(bindings, NormalOnly, DiffView, "<space>j", ActionIds.QuickJump);
+    }
+
+    // The branch operations act on the selected commit (graph) or the selected row (sidebar).
+    private static void AddBranchKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>bc", ActionIds.BranchCreate);
+        Add(bindings, NormalOnly, view, "<space>bC", ActionIds.BranchCreateOnly);
+        Add(bindings, NormalOnly, view, "<space>bs", ActionIds.BranchSwitch);
+        Add(bindings, NormalOnly, view, "<space>br", ActionIds.BranchRename);
+        Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
     }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.

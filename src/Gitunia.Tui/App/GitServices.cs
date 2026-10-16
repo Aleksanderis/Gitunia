@@ -1,3 +1,4 @@
+using Gitunia.Git.Branches;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
@@ -26,6 +27,7 @@ namespace Gitunia.Tui.App;
 /// <param name="IndexWriter">Stages and unstages files.</param>
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
+/// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
@@ -41,6 +43,7 @@ public sealed record GitServices(
     IIndexWriter IndexWriter,
     IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
+    IBranchWriter Branches,
     IStashReader Stashes,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
@@ -65,6 +68,7 @@ public sealed record GitServices(
             new IndexWriter(runner),
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
+            new BranchWriter(runner),
             stashes,
             new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
             graphLoader,

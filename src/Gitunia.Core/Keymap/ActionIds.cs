@@ -123,6 +123,16 @@ public static class ActionIds
 
     public static ActionId PickerAccept { get; } = new("picker.accept");
 
+    public static ActionId BranchCreate { get; } = new("branch.create");
+
+    public static ActionId BranchCreateOnly { get; } = new("branch.create-only");
+
+    public static ActionId BranchDelete { get; } = new("branch.delete");
+
+    public static ActionId BranchRename { get; } = new("branch.rename");
+
+    public static ActionId BranchSwitch { get; } = new("branch.switch");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");

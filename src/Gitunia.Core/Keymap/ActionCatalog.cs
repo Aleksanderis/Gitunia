@@ -30,6 +30,11 @@ public static class ActionCatalog
 
     private static readonly Dictionary<string, string> Titles = new()
     {
+        ["branch.create"] = "Create a branch and check it out",
+        ["branch.create-only"] = "Create a branch without checking out",
+        ["branch.delete"] = "Delete the branch (asks first)",
+        ["branch.rename"] = "Rename the branch",
+        ["branch.switch"] = "Switch to a branch (check out)",
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",
         ["confirm.no"] = "Answer no",

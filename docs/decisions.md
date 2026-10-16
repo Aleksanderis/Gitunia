@@ -249,3 +249,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** M3 key flows (ux.md workflows 3-7): prefixes `<space>b` branches, `<space>g` commit operations and continue/abort/skip, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes; reset is `<space>gx` (no single letter, no vim clash); `<space>t` stays the tools prefix. Planned keys live in prose; table rows arrive with each implementing issue.
 
 **Git layer:** M3 calls that could open an editor pass `--no-edit` or `-c core.editor=true`. Pull is fast-forward only, fetch prunes, force push is `--force-with-lease` only. Cancel of fetch/pull/push is `Esc`, never `<space>x`.
+
+**UI:** Branch operations (#35): `<space>bc` `bC` `bs` `br` `bd` in the graph and the sidebar; no sidebar `d`/`r` shortcuts (vim-clash rule, supersedes workflow 3 item 5). Deleting an unmerged branch (not on HEAD or its upstream) asks a second Confirm. Why: chords keep vim keys intact and the unmerged case is the one that loses commits.

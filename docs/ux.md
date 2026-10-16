@@ -207,12 +207,12 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 - **No editor, no prompts.** Every call that could open an editor passes `--no-edit` or `-c core.editor=true`; stdin is closed, so a hook that prompts fails with git's output shown in an overlay like a failed commit. Messages are edited in the commit box or with `<space>te`.
 - **Result.** Success posts a status message with the new state; a failure shows git's message. An operation that stops on conflicts is not a failure: it becomes an in-progress operation (workflow 4). All lists refresh from the tab's status afterwards and the cursor follows the new HEAD or the created ref.
 
-**Branches** (`<space>b` + key):
-1. `bc` create: prompt for the name, start point the selected commit (graph) or branch (sidebar); the new branch is checked out. `bC` creates without checking out. Name clashes and invalid names are refused before git runs.
-2. `bs` switch (checkout): picker of local branches, remote branches (creates a tracking branch) and, from a graph commit, a detached checkout. In the sidebar `Enter` still only selects, so `bs` is the explicit checkout. A dirty tree that conflicts with the target is refused with git's list of files; nothing is stashed behind the user's back.
-3. `br` rename the selected branch (prompt prefilled with its name). `bd` delete: Confirm; an unmerged branch needs a second, explicit Confirm that says its commits become unreachable and prints the tip hash for `git branch <name> <hash>`. The current branch and one held by another worktree are refused.
-4. `bu` set upstream (picker of remote branches), `bU` unset. Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
-5. Sidebar shortcuts on a branch row: `d` delete, `r` rename.
+**Branches** (`<space>b` + key; implemented in #35 except `bu`/`bU`):
+1. `bc` create: prompt for the name, start point the selected commit (graph) or branch (sidebar); the new branch is checked out. `bC` creates without checking out. A name in use is refused before git runs; an invalid name is refused by `git check-ref-format` and shown as an error.
+2. `bs` switch (checkout): a type-to-filter prompt (`Up`/`Down`/`Tab` choose, `Enter` runs) listing local branches, remote branches that have no local twin (a tracking branch is created) and, from a graph commit, a detached checkout there. In the sidebar `Enter` still only selects, so `bs` is the explicit checkout. The current branch and one held by another worktree are refused (the message names the worktree path and points to `<space>ws`). A dirty tree that conflicts with the target fails with git's message; nothing is stashed behind the user's back.
+3. `br` rename the selected branch (prompt prefilled with its name). `bd` delete: Confirm naming the branch and its tip with the undo command; when the branch has commits that neither HEAD nor its upstream reach, a second, explicit Confirm says its commits become unreachable and prints `git branch <name> <hash>`. The current branch and one held by another worktree are refused. From the graph, `br` and `bd` act on the one local branch at the selected commit (several: pick one in the sidebar).
+4. `bu` set upstream (picker of remote branches), `bU` unset: not built yet. Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
+5. No single-letter sidebar shortcuts (`d`, `r`): they are vim operator and replace keys (vim-clash rule), so the sidebar uses the same `<space>b` chords on the selected row. Every action is in the command palette.
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
 1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`).
@@ -343,6 +343,11 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>td` | Open the selected commit (against its first parent) in the configured difftool |
 | Graph | `<space>tm` | Resolve conflicts in the configured mergetool |
 | Graph | `<space>te` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `<space>te` does the same) |
+| Graph | `<space>bc` | Create a branch at the selected commit and check it out (status bar prompt) |
+| Graph | `<space>bC` | Create a branch at the selected commit without checking it out |
+| Graph | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch; the selected commit can be checked out detached) |
+| Graph | `<space>br` | Rename the local branch at the selected commit (prefilled prompt) |
+| Graph | `<space>bd` | Delete the local branch at the selected commit after a Confirm (a second one when it is unmerged) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
@@ -434,6 +439,11 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `Enter` | Expand section; on a ref, select it in graph (focus stays) |
 | Sidebar | `h` | Collapse section / parent |
 | Sidebar | `/` | Filter entries |
+| Sidebar | `<space>bc` | Create a branch starting at the selected branch and check it out (status bar prompt) |
+| Sidebar | `<space>bC` | Create a branch starting at the selected branch without checking it out |
+| Sidebar | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch) |
+| Sidebar | `<space>br` | Rename the selected local branch (prefilled prompt) |
+| Sidebar | `<space>bd` | Delete the selected local branch after a Confirm (a second one when it is unmerged) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Diff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Diff | `]c` `[c` | Next / previous hunk |
