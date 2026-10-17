@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
@@ -604,6 +605,78 @@ public class BranchActionsTests
         Assert.Equal(0, harness.Refreshes);
     }
 
+    [Fact]
+    public async Task GivenAGraphCommit_WhenCreatingWithoutCheckout_ThenTheGraphCursorMovesToThatCommit()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchCreateOnly);
+        harness.Type("old");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(ObjectIdOf(first), harness.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenABranchOnAnotherCommit_WhenSwitchingToIt_ThenTheGraphCursorMovesToItsCommit()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("old");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(ObjectIdOf(first), harness.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenABranch_WhenRenamingIt_ThenTheGraphCursorMovesToItsCommit()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "old", first));
+
+        harness.Run(ActionIds.BranchRename);
+        harness.Type("2");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(ObjectIdOf(first), harness.SelectedCommit);
+    }
+
+    [Fact]
+    public async Task GivenAMergedBranch_WhenDeletingIt_ThenTheGraphCursorMovesToTheCommitOfHead()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "old", first));
+
+        harness.Run(ActionIds.BranchDelete);
+        harness.Answer();
+        await harness.FinishAsync();
+
+        Assert.Equal(ObjectIdOf(repository.Head), harness.SelectedCommit);
+    }
+
+    private static ObjectId ObjectIdOf(string hash)
+    {
+        Assert.True(ObjectId.TryParse(hash, out var id));
+        return id;
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
@@ -672,6 +745,8 @@ public class BranchActionsTests
                 InlineUi.Post,
                 session.Cancellation.Token);
         }
+
+        public ObjectId? SelectedCommit => _host.Workspace.ActiveTab!.View.SelectedCommit;
 
         public TabId TabId => _host.Workspace.ActiveTabId!.Value;
 

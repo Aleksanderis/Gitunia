@@ -95,6 +95,20 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
         LinePainter.Paint(listView, PanePadding.Wrap(line), col, row, listView.HasFocus);
     }
 
+    /// <summary>The view of the header button at <paramref name="column"/>, <paramref name="row"/>.</summary>
+    public string? ButtonAt(ListView listView, int column, int row)
+    {
+        var item = listView.Viewport.Y + row;
+        if (item < 0 || item >= Rows.Length)
+        {
+            return null;
+        }
+
+        var width = PanePadding.TextWidth(listView.Viewport.Width);
+        var buttons = SidebarRowRenderer.ButtonsOf(Rows[item], width, glyphs);
+        return TitleButton.ViewAt(buttons, column - PanePadding.Columns);
+    }
+
     public void Dispose()
     {
     }

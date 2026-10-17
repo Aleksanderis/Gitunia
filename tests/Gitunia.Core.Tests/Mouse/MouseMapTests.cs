@@ -143,6 +143,20 @@ public class MouseMapTests
     }
 
     [Theory]
+    [InlineData(DefaultMouseMap.SidebarBranchNewButton, "<space>bc")]
+    [InlineData(DefaultMouseMap.SidebarBranchNewOnlyButton, "<space>bC")]
+    [InlineData(DefaultMouseMap.SidebarBranchSwitchButton, "<space>bs")]
+    [InlineData(DefaultMouseMap.SidebarBranchRenameButton, "<space>br")]
+    [InlineData(DefaultMouseMap.SidebarBranchDeleteButton, "<space>bd")]
+    public void GivenASidebarBranchButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
+    {
+        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
+        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
+
+        Assert.Equal(key.Action, binding?.Action);
+    }
+
+    [Theory]
     [InlineData(DefaultMouseMap.DiffStageButton, DefaultKeymap.WorkingUnstagedDiffView, "<space>a")]
     [InlineData(DefaultMouseMap.DiffDiscardButton, DefaultKeymap.WorkingUnstagedDiffView, "<space>d")]
     [InlineData(DefaultMouseMap.DiffUnstageButton, DefaultKeymap.WorkingStagedDiffView, "<space>u")]
