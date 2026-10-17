@@ -41,25 +41,27 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
         var before = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
-        var message = MessageFor(target);
+        var chosen = await ChooseRevisionAsync(location, target, cancellationToken).ConfigureAwait(false);
+        var revision = chosen.Revision;
+        var message = chosen.Message;
         string[] messageArguments = message is null ? [] : ["-m", message];
         string[] arguments = mode switch
         {
             MergeMode.NoFastForward =>
-                [Merge, NoEdit, NoFastForward, .. messageArguments, target, GitOptions.EndOfOptions],
-            MergeMode.Squash => [Merge, NoEdit, SquashOption, target, GitOptions.EndOfOptions],
-            _ => [Merge, NoEdit, .. messageArguments, target, GitOptions.EndOfOptions],
+                [Merge, NoEdit, NoFastForward, .. messageArguments, revision, GitOptions.EndOfOptions],
+            MergeMode.Squash => [Merge, NoEdit, SquashOption, revision, GitOptions.EndOfOptions],
+            _ => [Merge, NoEdit, .. messageArguments, revision, GitOptions.EndOfOptions],
         };
 
         if (mode == MergeMode.Squash)
         {
-            return await SquashAsync(location, arguments, target, before, cancellationToken).ConfigureAwait(false);
+            return await SquashAsync(location, arguments, revision, before, cancellationToken).ConfigureAwait(false);
         }
 
         var resolved = await runner
             .RunAsync(
                 location.CommandPath,
-                ["rev-parse", "--quiet", "--verify", $"{target}{CommitSuffix}"],
+                ["rev-parse", "--quiet", "--verify", $"{revision}{CommitSuffix}"],
                 NoMatchOptions,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -69,19 +71,51 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     }
 
     /// <summary>
-    /// Git names a full ref in its message (<c>Merge branch 'refs/heads/x'</c>); the text git writes for the short
-    /// name is given instead. Null for a hash or any other revision, which keeps git's own message.
+    /// A full branch ref is only needed when the short name would resolve to something else (a tag of the same
+    /// name): then it is passed with <c>-m</c>, because git would write the full ref into the message. Otherwise
+    /// the short name goes through and git writes its own message (<c>into &lt;branch&gt;</c>, merge.log and
+    /// merge.suppressDest included). A hash or any other revision is passed as is.
     /// </summary>
-    private static string? MessageFor(string target)
+    private async Task<MergeRevision> ChooseRevisionAsync(
+        RepositoryLocation location,
+        string target,
+        CancellationToken cancellationToken)
     {
+        string? label;
+        string shortName;
         if (target.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
         {
-            return $"Merge branch '{target[GitRefPrefixes.Heads.Length..]}'";
+            shortName = target[GitRefPrefixes.Heads.Length..];
+            label = $"Merge branch '{shortName}'";
+        }
+        else if (target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
+        {
+            shortName = target[GitRefPrefixes.Remotes.Length..];
+            label = $"Merge remote-tracking branch '{shortName}'";
+        }
+        else
+        {
+            return new MergeRevision(target, null);
         }
 
-        return target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
-            ? $"Merge remote-tracking branch '{target[GitRefPrefixes.Remotes.Length..]}'"
-            : null;
+        var full = await ResolveCommitAsync(location, target, cancellationToken).ConfigureAwait(false);
+        var named = await ResolveCommitAsync(location, shortName, cancellationToken).ConfigureAwait(false);
+        return full is not null && full == named ? new MergeRevision(shortName, null) : new MergeRevision(target, label);
+    }
+
+    private async Task<string?> ResolveCommitAsync(
+        RepositoryLocation location,
+        string revision,
+        CancellationToken cancellationToken)
+    {
+        var result = await runner
+            .RunAsync(
+                location.CommandPath,
+                ["rev-parse", "--quiet", "--verify", $"{revision}{CommitSuffix}"],
+                NoMatchOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return result.ExitCode == 0 ? result.StandardOutputText.Trim() : null;
     }
 
     private async Task<MergeResult> MergeOperationAsync(

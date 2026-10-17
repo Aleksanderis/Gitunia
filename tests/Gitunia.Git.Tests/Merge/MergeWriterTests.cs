@@ -56,6 +56,18 @@ public class MergeWriterTests
     }
 
     [Fact]
+    public async Task GivenAFullRefAndNoTag_WhenMergingIntoAFeatureBranch_ThenGitsOwnIntoMessageIsKept()
+    {
+        using var repository = AheadBranch();
+        repository.CheckoutNewBranch("feat");
+        var (writer, location) = await CreateAsync(repository);
+
+        await writer.MergeAsync(location, "refs/heads/topic", MergeMode.NoFastForward, Token);
+
+        Assert.Equal("Merge branch 'topic' into feat", repository.Git("log", "-1", "--format=%s").Trim());
+    }
+
+    [Fact]
     public async Task GivenARemoteTrackingRef_WhenMergingTheFullRef_ThenTheMessageNamesTheRemoteBranch()
     {
         using var repository = AheadBranch();
