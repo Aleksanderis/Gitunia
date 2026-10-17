@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Branches;
@@ -44,8 +45,6 @@ public sealed class RebaseActions(
     TabOperationGate gate)
 {
     private const int ShortHashLength = 7;
-    private const string RemotesPrefix = "refs/remotes/";
-    private const string HeadsPrefix = "refs/heads/";
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
     private const string SelectNotice = "Select a commit (graph) or a branch or tag (sidebar) to rebase onto";
@@ -75,8 +74,8 @@ public sealed class RebaseActions(
         entry.Kind is not (StatusEntryKind.Untracked or StatusEntryKind.Ignored);
 
     private static string ShortRef(string fullName) =>
-        fullName.StartsWith(RemotesPrefix, StringComparison.Ordinal) ? fullName[RemotesPrefix.Length..]
-        : fullName.StartsWith(HeadsPrefix, StringComparison.Ordinal) ? fullName[HeadsPrefix.Length..]
+        fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Remotes.Length..]
+        : fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Heads.Length..]
         : fullName;
 
     private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current)
@@ -162,9 +161,12 @@ public sealed class RebaseActions(
 
         if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null, CommitHash: not null })
         {
-            return tab.Head?.Kind == HeadKind.Unborn
-                ? "The branch has no commits yet: nothing to rebase"
-                : "HEAD is detached: switch to a branch first";
+            return tab.Head?.Kind switch
+            {
+                null => "The repository is still loading: try again in a moment",
+                HeadKind.Unborn => "The branch has no commits yet: nothing to rebase",
+                _ => "HEAD is detached: switch to a branch first",
+            };
         }
 
         if (string.Equals(tab.Head.CommitHash, targetHash, StringComparison.Ordinal))

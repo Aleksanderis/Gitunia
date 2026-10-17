@@ -137,11 +137,11 @@ public class RebaseWriterTests
             .Checkout("topic");
 
     private static OperationRunner CreateOperationRunner(TestRepository repository) =>
-        new(repository.CreateIsolatedRunner(null), new RepositoryOperationDetector());
+        new(repository.CreateIsolatedRunner(), new RepositoryOperationDetector());
 
     private static async Task<Harness> CreateAsync(TestRepository repository)
     {
-        var runner = repository.CreateIsolatedRunner(null);
+        var runner = repository.CreateIsolatedRunner();
         var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
         return new Harness(new RebaseWriter(new OperationRunner(runner, new RepositoryOperationDetector())), location);
     }
