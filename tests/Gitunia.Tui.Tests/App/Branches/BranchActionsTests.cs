@@ -4,6 +4,10 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Operations;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
@@ -21,6 +25,122 @@ public class BranchActionsTests
             .Commit("one", new TestFile("a.txt", "1"))
             .Commit("two", new TestFile("a.txt", "2"))
             .Branch("topic");
+
+    public static TheoryData<string> OperationRepositories =>
+    [
+        nameof(TestRepositories.Conflicted),
+        nameof(TestRepositories.RebaseConflicted),
+        nameof(TestRepositories.CherryPickConflicted),
+        nameof(TestRepositories.RevertConflicted),
+    ];
+
+    [Theory]
+    [MemberData(nameof(OperationRepositories))]
+    public async Task GivenAnOperationInProgress_WhenSwitchingFromTheSidebar_ThenItIsRefusedAndNoGitRuns(string kind)
+    {
+        using var repository = OperationRepository(kind);
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.LoadOperationAsync();
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "other", head));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        AssertRefused(harness, kind);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Theory]
+    [MemberData(nameof(OperationRepositories))]
+    public async Task GivenAnOperationInProgress_WhenCreatingWithCheckoutFromTheGraph_ThenItIsRefusedAndNoPromptOpens(
+        string kind)
+    {
+        using var repository = OperationRepository(kind);
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.LoadOperationAsync();
+        harness.Select(new BranchSelection(null, null, repository.Head));
+
+        harness.Run(ActionIds.BranchCreate);
+
+        AssertRefused(harness, kind);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Theory]
+    [MemberData(nameof(OperationRepositories))]
+    public async Task GivenAnOperationInProgress_WhenCheckingOutADetachedCommit_ThenItIsRefusedAndNoGitRuns(string kind)
+    {
+        using var repository = OperationRepository(kind);
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.LoadOperationAsync();
+
+        var refusal = harness.Branches.CheckoutDetached(harness.TabId, head);
+        var creation = harness.Branches.BeginCreate(harness.TabId, head, checkout: true);
+
+        Assert.Contains("finish or abort the", refusal, StringComparison.Ordinal);
+        Assert.Contains("<space>gc", refusal, StringComparison.Ordinal);
+        Assert.Equal(refusal, creation);
+        Assert.Equal(0, harness.Refreshes);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenAnOperationStartingWhileTheSwitchPromptIsOpen_WhenAccepting_ThenNothingIsCheckedOut()
+    {
+        using var repository = TestRepositories.Conflicted();
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, head));
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("other");
+        await harness.LoadOperationAsync();
+
+        harness.Run(ActionIds.InputAccept);
+
+        Assert.Contains("finish or abort the merge first", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Equal(0, harness.Refreshes);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenAMergeInProgress_WhenCreatingWithoutCheckout_ThenThePromptStillOpens()
+    {
+        using var repository = OperationRepository(nameof(TestRepositories.Conflicted));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.LoadOperationAsync();
+        harness.Select(new BranchSelection(null, null, repository.Head));
+
+        harness.Run(ActionIds.BranchCreateOnly);
+
+        Assert.Equal(string.Empty, harness.Branches.Notice);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+    }
+
+    private static TestRepository OperationRepository(string kind) => kind switch
+    {
+        nameof(TestRepositories.Conflicted) => TestRepositories.Conflicted(),
+        nameof(TestRepositories.RebaseConflicted) => TestRepositories.RebaseConflicted(),
+        nameof(TestRepositories.CherryPickConflicted) => TestRepositories.CherryPickConflicted(),
+        _ => TestRepositories.RevertConflicted(),
+    };
+
+    private static void AssertRefused(Harness harness, string kind)
+    {
+        var name = kind switch
+        {
+            nameof(TestRepositories.Conflicted) => "merge",
+            nameof(TestRepositories.RebaseConflicted) => "rebase",
+            nameof(TestRepositories.CherryPickConflicted) => "cherry-pick",
+            _ => "revert",
+        };
+        Assert.Contains($"finish or abort the {name} first", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Contains("<space>gc", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Contains("<space>ga", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(0, harness.Refreshes);
+    }
 
     [Fact]
     public async Task GivenABranchRow_WhenCreatingWithCheckout_ThenTheBranchStartsThereAndIsCheckedOut()
@@ -551,6 +671,17 @@ public class BranchActionsTests
                 new StatusChannel(),
                 InlineUi.Post,
                 session.Cancellation.Token);
+        }
+
+        public TabId TabId => _host.Workspace.ActiveTabId!.Value;
+
+        public async Task LoadOperationAsync()
+        {
+            var token = TestContext.Current.CancellationToken;
+            var location = _host.Workspace.ActiveTab!.Location;
+            var operation = new RepositoryOperationDetector().Detect(location);
+            var info = await new OperationInfoReader().ReadAsync(location, operation, token);
+            _host.Dispatch(new TabCommand(TabId, new OperationLoadedCommand(info)));
         }
 
         public void Select(BranchSelection selection) => _selection = selection;

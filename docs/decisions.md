@@ -272,3 +272,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Merge (#38): `<space>gm` (ff when possible), `<space>gM` (`--no-ff`), `<space>gs` (squash) act on the selected commit or sidebar ref and run at once, no Confirm. Why: a merge loses nothing and the status line prints the `reset --hard <old>` undo; a squash that conflicts leaves unmerged files but no operation, so the message says to resolve and commit.
 
 **UI:** Rebase onto (#39) is `<space>gr` with a Confirm naming the old tip for the undo; a dirty tracked tree, a detached HEAD or a running operation is refused with no git call. Why: git would refuse or leave a half-state; a stop on conflicts reuses the #37 banner and continue/abort/skip.
+
+**UI:** Checkout (`<space>bs`, `<space>bc`, reflog detached checkout) is refused while an operation is in progress, no git call (#419). Create-only (`<space>bC`) stays allowed. Why: git would switch under a half-done merge or rebase.

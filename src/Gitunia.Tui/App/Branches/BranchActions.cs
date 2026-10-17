@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
@@ -96,11 +97,12 @@ public sealed class BranchActions(
 
         if (action == ActionIds.BranchCreate || action == ActionIds.BranchCreateOnly)
         {
-            Notice = BeginOperation(tab) ?? OpenCreate(tab, action == ActionIds.BranchCreate);
+            var checkout = action == ActionIds.BranchCreate;
+            Notice = BeginOperation(tab) ?? (checkout ? OperationRefusal(tab) : null) ?? OpenCreate(tab, checkout);
         }
         else if (action == ActionIds.BranchSwitch)
         {
-            Notice = BeginOperation(tab) ?? OpenSwitch(tab);
+            Notice = BeginOperation(tab) ?? OperationRefusal(tab) ?? OpenSwitch(tab);
         }
         else if (action == ActionIds.BranchRename)
         {
@@ -167,7 +169,7 @@ public sealed class BranchActions(
             return string.Empty;
         }
 
-        if (BeginOperation(tab) is { } busy)
+        if ((BeginOperation(tab) ?? (checkout ? OperationRefusal(tab) : null)) is { } busy)
         {
             return busy;
         }
@@ -191,7 +193,7 @@ public sealed class BranchActions(
             return string.Empty;
         }
 
-        if (BeginOperation(tab) is { } busy)
+        if ((BeginOperation(tab) ?? OperationRefusal(tab)) is { } busy)
         {
             return busy;
         }
@@ -241,6 +243,18 @@ public sealed class BranchActions(
 
         redraw();
         return true;
+    }
+
+    // A checkout must not run while a merge, rebase, cherry-pick or revert is unfinished. No git runs.
+    private static string? OperationRefusal(RepositoryState tab)
+    {
+        if (tab.Operation is not { } operation)
+        {
+            return null;
+        }
+
+        var name = OperationBannerBuilder.NameOf(operation.Kind);
+        return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
     }
 
     private string? BeginOperation(RepositoryState tab) => _busy.Contains(tab.Id) ? BusyNotice : null;
@@ -434,6 +448,13 @@ public sealed class BranchActions(
         if (host.Workspace.FindTab(tabId) is not { } tab)
         {
             return string.Empty;
+        }
+
+        // An operation may have started while the prompt was open (the refresh updates it).
+        var checksOut = kind == BranchPromptKind.Switch || kind == BranchPromptKind.Create && _checkout;
+        if (checksOut && OperationRefusal(tab) is { } refusal)
+        {
+            return refusal;
         }
 
         var text = _text.Trim();
