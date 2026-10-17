@@ -264,4 +264,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The in-progress operation banner (#37) is drawn on the frame's bottom edge, not as a row under the tab bar. Why: a new row shifts every pane coordinate (views, mouse, layouts) for a rare state, and the edge line carries no information. Under 10 rows the status bar carries its text. Supersedes the "row under the tab bar" wording of workflow 4.
 
+**UI:** Merge (#38): `<space>gm` (ff when possible), `<space>gM` (`--no-ff`), `<space>gs` (squash) act on the selected commit or sidebar ref and run at once, no Confirm. Why: a merge loses nothing and the status line prints the `reset --hard <old>` undo; a squash that conflicts leaves unmerged files but no operation, so the message says to resolve and commit.
+
 **Git layer:** A call that runs or advances a merge, rebase, pick or revert returns `OperationResult` (`Completed` or `Conflicted`), decided in one place (`OperationRunner`); editor-capable calls pass `-c core.editor=true`. Why: #38-#40 and the interactive rebase reuse it instead of each guessing "did it stop?".
