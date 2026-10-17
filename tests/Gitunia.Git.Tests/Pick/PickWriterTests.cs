@@ -119,7 +119,8 @@ public class PickWriterTests
         Assert.Equal(PickOutcome.Completed, result.Outcome);
         Assert.Equal(tip, result.OldHead);
         Assert.NotEqual(tip, repository.Head);
-        Assert.StartsWith("Revert \"main two\"", repository.Git("log", "-1", "--format=%s").Trim(), StringComparison.Ordinal);
+        var subject = repository.Git("log", "-1", "--format=%s").Trim();
+        Assert.StartsWith("Revert \"main two\"", subject, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "m.txt")));
     }
 

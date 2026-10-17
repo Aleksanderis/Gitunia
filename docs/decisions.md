@@ -273,4 +273,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Rebase onto (#39) is `<space>gr` with a Confirm naming the old tip for the undo; a dirty tracked tree, a detached HEAD or a running operation is refused with no git call. Why: git would refuse or leave a half-state; a stop on conflicts reuses the #37 banner and continue/abort/skip.
 
-**UI:** Cherry-pick and revert (#40): `<space>gp` and `<space>gv` act on the cursor commit, a graph Visual range or a sidebar ref tip and run at once, no Confirm. A pick applies a range oldest first, a revert newest first; a cherry-pick passes `--empty=drop` so an already-applied commit does not stop the sequence; a detached HEAD is allowed. Why: nothing is lost (the status prints the `reset --hard <old>` undo), and a stop on conflicts is the shared in-progress operation.
+**UI:** Cherry-pick and revert (#40): `<space>gp`/`<space>gv` act on the cursor commit, a Visual range or a sidebar ref tip and run at once, no Confirm (the status prints the `reset --hard <old>` undo). A pick applies oldest first, a revert newest first; a detached HEAD is allowed. Detail: ux.md workflow 3.
