@@ -41,6 +41,46 @@ public class MergeWriterTests
     }
 
     [Fact]
+    public async Task GivenASameNamedTag_WhenMergingTheFullRef_ThenTheBranchIsMergedByShortName()
+    {
+        using var repository = AheadBranch();
+        var topic = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        repository.Git("tag", "topic", repository.Head);
+        var (writer, location) = await CreateAsync(repository);
+
+        var result = await writer.MergeAsync(location, "refs/heads/topic", MergeMode.NoFastForward, Token);
+
+        Assert.Equal(MergeKind.MergeCommit, result.Kind);
+        Assert.Equal(topic, repository.Git("rev-parse", "HEAD^2").Trim());
+        Assert.Equal("Merge branch 'topic'", repository.Git("log", "-1", "--format=%s").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAFullRefAndNoTag_WhenMergingIntoAFeatureBranch_ThenGitsOwnIntoMessageIsKept()
+    {
+        using var repository = AheadBranch();
+        repository.CheckoutNewBranch("feat");
+        var (writer, location) = await CreateAsync(repository);
+
+        await writer.MergeAsync(location, "refs/heads/topic", MergeMode.NoFastForward, Token);
+
+        Assert.Equal("Merge branch 'topic' into feat", repository.Git("log", "-1", "--format=%s").Trim());
+    }
+
+    [Fact]
+    public async Task GivenARemoteTrackingRef_WhenMergingTheFullRef_ThenTheMessageNamesTheRemoteBranch()
+    {
+        using var repository = AheadBranch();
+        repository.Git("update-ref", "refs/remotes/origin/topic", "refs/heads/topic");
+        var (writer, location) = await CreateAsync(repository);
+
+        await writer.MergeAsync(location, "refs/remotes/origin/topic", MergeMode.NoFastForward, Token);
+
+        var subject = repository.Git("log", "-1", "--format=%s").Trim();
+        Assert.Equal("Merge remote-tracking branch 'origin/topic'", subject);
+    }
+
+    [Fact]
     public async Task GivenDivergedBranches_WhenMergingByHash_ThenAMergeCommitIsMade()
     {
         using var repository = AheadBranch().Commit("three", new TestFile("c.txt", "3"));

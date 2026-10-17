@@ -190,6 +190,24 @@ public class MergeActionsTests
     }
 
     [Fact]
+    public async Task GivenATagWithTheNameOfTheBranch_WhenMergingTheBranchRow_ThenTheBranchIsMergedWithItsName()
+    {
+        using var repository = AheadBranch();
+        var old = repository.Head;
+        var topic = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        repository.Git("tag", "topic", old);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", topic);
+
+        harness.Run(ActionIds.MergeBranchNoFastForward);
+        await harness.FinishAsync();
+
+        Assert.Equal(2, repository.Git("rev-list", "--parents", "-n", "1", "HEAD").Trim().Split(' ').Length - 1);
+        Assert.Equal("Merge branch 'topic'", repository.Git("log", "-1", "--format=%s").Trim());
+        Assert.StartsWith("Merged topic into main", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenAnotherOperationOfTheTab_WhenMerging_ThenItIsBusyAndTheGateIsKept()
     {
         using var repository = AheadBranch();
