@@ -2,6 +2,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Merge;
@@ -20,8 +21,6 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     private const string SquashOption = "--squash";
     private const string MergeBase = "merge-base";
     private const string IsAncestor = "--is-ancestor";
-    private const string LocalPrefix = "refs/heads/";
-    private const string RemotePrefix = "refs/remotes/";
     private const string CommitSuffix = "^{commit}";
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
@@ -75,13 +74,13 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     /// </summary>
     private static string? MessageFor(string target)
     {
-        if (target.StartsWith(LocalPrefix, StringComparison.Ordinal) && target.Length > LocalPrefix.Length)
+        if (target.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) && target.Length > GitRefPrefixes.Heads.Length)
         {
-            return $"Merge branch '{target[LocalPrefix.Length..]}'";
+            return $"Merge branch '{target[GitRefPrefixes.Heads.Length..]}'";
         }
 
-        return target.StartsWith(RemotePrefix, StringComparison.Ordinal) && target.Length > RemotePrefix.Length
-            ? $"Merge remote-tracking branch '{target[RemotePrefix.Length..]}'"
+        return target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) && target.Length > GitRefPrefixes.Remotes.Length
+            ? $"Merge remote-tracking branch '{target[GitRefPrefixes.Remotes.Length..]}'"
             : null;
     }
 

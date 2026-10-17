@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Merge;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Operations;
@@ -107,8 +108,8 @@ public sealed class MergeActions(
         return chosen.RowKind switch
         {
             null => new MergeTarget(hash, shortHash),
-            SidebarRowKind.LocalBranch => new MergeTarget($"refs/heads/{chosen.Name}", chosen.Name!),
-            SidebarRowKind.RemoteBranch => new MergeTarget($"refs/remotes/{chosen.Name}", chosen.Name!),
+            SidebarRowKind.LocalBranch => new MergeTarget($"{GitRefPrefixes.Heads}{chosen.Name}", chosen.Name!),
+            SidebarRowKind.RemoteBranch => new MergeTarget($"{GitRefPrefixes.Remotes}{chosen.Name}", chosen.Name!),
             SidebarRowKind.Tag => new MergeTarget(hash, chosen.Name ?? shortHash),
             _ => null,
         };

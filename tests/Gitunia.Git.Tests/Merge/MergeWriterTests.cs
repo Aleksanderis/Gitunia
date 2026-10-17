@@ -41,7 +41,7 @@ public class MergeWriterTests
     }
 
     [Fact]
-    public async Task GivenATagWithTheNameOfTheBranch_WhenMergingTheFullRef_ThenTheBranchIsMergedWithTheShortNameMessage()
+    public async Task GivenASameNamedTag_WhenMergingTheFullRef_ThenTheBranchIsMergedByShortName()
     {
         using var repository = AheadBranch();
         var topic = repository.Git("rev-parse", "refs/heads/topic").Trim();
@@ -64,7 +64,8 @@ public class MergeWriterTests
 
         await writer.MergeAsync(location, "refs/remotes/origin/topic", MergeMode.NoFastForward, Token);
 
-        Assert.Equal("Merge remote-tracking branch 'origin/topic'", repository.Git("log", "-1", "--format=%s").Trim());
+        var subject = repository.Git("log", "-1", "--format=%s").Trim();
+        Assert.Equal("Merge remote-tracking branch 'origin/topic'", subject);
     }
 
     [Fact]
