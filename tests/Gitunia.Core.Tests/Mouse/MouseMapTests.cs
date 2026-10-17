@@ -153,7 +153,12 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarBranchSwitchButton, "<space>bs")]
     [InlineData(DefaultMouseMap.SidebarBranchRenameButton, "<space>br")]
     [InlineData(DefaultMouseMap.SidebarBranchDeleteButton, "<space>bd")]
-    public void GivenASidebarBranchButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
+    [InlineData(DefaultMouseMap.SidebarWorktreeAddButton, "<space>wa")]
+    [InlineData(DefaultMouseMap.SidebarWorktreeRemoveButton, "<space>wd")]
+    [InlineData(DefaultMouseMap.SidebarWorktreeLockButton, "<space>wl")]
+    [InlineData(DefaultMouseMap.SidebarWorktreeUnlockButton, "<space>wu")]
+    [InlineData(DefaultMouseMap.SidebarWorktreePruneButton, "<space>wp")]
+    public void GivenASidebarHeaderButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
         var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);

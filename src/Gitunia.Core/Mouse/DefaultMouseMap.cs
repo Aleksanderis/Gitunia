@@ -93,7 +93,18 @@ public static class DefaultMouseMap
     /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428).</summary>
     public const string SidebarRebaseButton = "SidebarButton.Rebase";
 
+
     public const string SidebarResetButton = "SidebarButton.Reset";
+    /// <summary>The buttons in the Worktrees header of the sidebar (#412): each acts on the selected row.</summary>
+    public const string SidebarWorktreeAddButton = "SidebarButton.WorktreeAdd";
+
+    public const string SidebarWorktreeRemoveButton = "SidebarButton.WorktreeRemove";
+
+    public const string SidebarWorktreeLockButton = "SidebarButton.WorktreeLock";
+
+    public const string SidebarWorktreeUnlockButton = "SidebarButton.WorktreeUnlock";
+
+    public const string SidebarWorktreePruneButton = "SidebarButton.WorktreePrune";
 
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
@@ -162,6 +173,11 @@ public static class DefaultMouseMap
         new(SidebarRebaseButton, MouseGesture.Click, ActionIds.RebaseOnto),
         new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
         new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
+        new(SidebarWorktreeAddButton, MouseGesture.Click, ActionIds.WorktreeAdd),
+        new(SidebarWorktreeRemoveButton, MouseGesture.Click, ActionIds.WorktreeRemove),
+        new(SidebarWorktreeLockButton, MouseGesture.Click, ActionIds.WorktreeLock),
+        new(SidebarWorktreeUnlockButton, MouseGesture.Click, ActionIds.WorktreeUnlock),
+        new(SidebarWorktreePruneButton, MouseGesture.Click, ActionIds.WorktreePrune),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),

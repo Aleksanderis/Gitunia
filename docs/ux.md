@@ -243,13 +243,14 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 
 `<space>F` fetch the current branch's remote with `--prune` (`<space>F` again from the picker it opens chooses all remotes), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch. Chips in the tab bar and the sidebar header carry the same three actions. Each runs in the background with a progress line in the status bar (git's `--progress` output), `Esc` cancels while it runs (a Confirm is not needed; the status bar says "cancelled"), and the tab stays usable. `<space>x` stays the status message dismiss. `<space>Pd` deletes a remote branch (`push --delete`, remote picker then branch picker, Confirm naming both; the undo hint is the branch's old tip). A push to a branch without an upstream prompts for the remote (default `origin`) and sets the upstream. A force push is only ever `--force-with-lease`, behind a Confirm that names the remote branch it will overwrite. The capitals `F` `L` `P` `S` `T` are not "all" variants of the lowercase keys; they are chosen because the lowercase leader keys are taken, and the palette shows the full sequences. When the graph or the sidebar has no suitable row selected for a stash or tag key, a picker opens. Credential prompts and the generalised tag push are handled by #44.
 
-### 6. Worktrees (M3; done except the mouse paths, #412)
+### 6. Worktrees (M3)
 
 `<space>w` + key. The sidebar's Worktrees section shows each worktree with branch, dirty counts, ahead/behind and `locked`/`prunable` flags, so dirty state across all worktrees is visible at a glance without switching. The counts read `S2 M3 U1` (staged, changed incl. untracked, conflicted; a zero is left out and a clean worktree shows none) and `↑n↓m` is the worktree branch against its upstream, both from `git status` run in that worktree. The tab's own worktree follows its live status; the others are read when the tab or its worktree list changes and then every 30 s, so a change made elsewhere shows up within that interval.
 1. `wa` add: prompt for a branch name, then for the path (default a sibling directory named after the branch). An existing branch is checked out (one held by another worktree is refused); a new name (also one that exists only as a remote branch: no tracking branch is made) creates the branch at the selected sidebar row's or graph commit, else HEAD. The tab stays where it is.
 2. `ws` switch (on a worktree row): the tab's active worktree changes in place and keeps its view state (selected commit, scroll, pane layout, filters, sidebar); HEAD, status and graph are read again for the new worktree, and the tab bar title and the sidebar `*` follow. `<space>wt` opens it as its own tab instead (or focuses the tab that already shows it). Refused without running git: no worktree row selected, the bare entry, a prunable one (its directory is gone), the worktree the tab is on, a worktree another tab shows (the message points to `wt`), and while an operation of the tab is still running. Switching never changes the process working directory.
 3. `wd` remove: Confirm naming the path; a dirty worktree needs a second Confirm that lists what is lost and says there is no undo (`--force`); a locked one is refused until unlocked; the main worktree and the one the tab is on are refused.
 4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
+5. Mouse: the Worktrees section header carries chips `[add]` `[remove]` `[lock]` `[unlock]` `[prune]` (`wa` `wd` `wl` `wu` `wp`), as many as fit after the title. They act on the selected row, so click the worktree row, then the chip. `ws`/`wt` have no chip (palette).
 
 ### 7. Stashes (M3; done except the mouse paths, #413)
 
@@ -542,6 +543,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.Rebase | Click | `rebase.onto` | Chip `[rebase]` in the Branches and Tags section headers (the last to fit), same as `<space>gr` on the selected row |
 | SidebarButton.Reset | Click | `reset.branch` | Chip `[reset]` in the same headers, same as `<space>gx` |
 | Graph | Right-click | `palette.open-for-row` | Selects the row under the pointer and opens the command popup (the palette) narrowed to the actions on a commit: branch, tag, merge, rebase, reset, cherry-pick, revert, copy hash. Typing filters further, `Esc` closes |
+| SidebarButton.WorktreeAdd | Click | `worktree.add` | Chip `[add]` in the Worktrees section header, same as `<space>wa` |
+| SidebarButton.WorktreeRemove | Click | `worktree.remove` | Chip `[remove]`, same as `<space>wd`; opens the Confirm first |
+| SidebarButton.WorktreeLock | Click | `worktree.lock` | Chip `[lock]`, same as `<space>wl` |
+| SidebarButton.WorktreeUnlock | Click | `worktree.unlock` | Chip `[unlock]`, same as `<space>wu` |
+| SidebarButton.WorktreePrune | Click | `worktree.prune` | Chip `[prune]`, same as `<space>wp`; the Confirm lists the entries |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |
