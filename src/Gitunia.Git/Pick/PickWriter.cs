@@ -3,6 +3,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
+using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Pick;
@@ -13,12 +14,25 @@ namespace Gitunia.Git.Pick;
 /// commit whose changes HEAD has already is skipped instead of stopping the sequence for a decision (when all of them
 /// are, the result is <see cref="PickOutcome.NothingToApply"/>); a git too old to know the option (usage error, before
 /// anything ran) gets the call again without it, and an empty pick then stops like git's default. The commits are
-/// hashes from the UI; the end-of-options marker follows them.
+/// hashes from the UI; the end-of-options marker follows them. A call that fails without a conflict stop but leaves
+/// its own operation behind (a range whose later commit turns empty or is refused) is aborted, so a git failure never
+/// leaves a pick or revert in progress; an operation that was already in progress is never touched.
 /// </summary>
-public sealed class PickWriter(GitRunner runner, OperationRunner operations) : IPickWriter
+/// <param name="runner">Runs the read-only calls.</param>
+/// <param name="operations">Runs the pick and revert calls.</param>
+/// <param name="detector">Tells whether an operation is in progress.</param>
+/// <param name="dropEmptyOption">Skips empty picks; tests pass an unknown one to force the old-git path.</param>
+public sealed class PickWriter(
+    GitRunner runner,
+    OperationRunner operations,
+    IRepositoryOperationDetector detector,
+    string dropEmptyOption = PickWriter.DropEmpty) : IPickWriter
 {
+    /// <summary>The option that makes a cherry-pick skip commits HEAD already has (git 2.45 and newer).</summary>
+    public const string DropEmpty = "--empty=drop";
+
     private const string NoEdit = "--no-edit";
-    private const string DropEmpty = "--empty=drop";
+    private const string AbortOption = "--abort";
     private const string MainlineOption = "-m";
     private const int UsageExitCode = 129;
 
@@ -38,7 +52,18 @@ public sealed class PickWriter(GitRunner runner, OperationRunner operations) : I
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
         var before = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
-        var result = await RunAsync(location, kind, commits, mainline, cancellationToken).ConfigureAwait(false);
+        var wasInProgress = detector.Detect(location) != RepositoryOperation.None;
+        OperationResult result;
+        try
+        {
+            result = await RunAsync(location, kind, commits, mainline, cancellationToken).ConfigureAwait(false);
+        }
+        catch (GitCommandFailedException) when (!wasInProgress && detector.Detect(location) != RepositoryOperation.None)
+        {
+            await AbortLeftoverAsync(location, kind).ConfigureAwait(false);
+            throw;
+        }
+
         if (result.Outcome == OperationOutcome.Conflicted)
         {
             return new PickResult(PickOutcome.Conflicted, result.Head, before);
@@ -48,10 +73,10 @@ public sealed class PickWriter(GitRunner runner, OperationRunner operations) : I
         return new PickResult(outcome, result.Head, before);
     }
 
-    private static List<string> ArgumentsOf(PickKind kind, IReadOnlyList<string> commits, int? mainline, bool dropEmpty)
+    private List<string> ArgumentsOf(PickKind kind, IReadOnlyList<string> commits, int? mainline, bool dropEmpty)
     {
         List<string> arguments = kind == PickKind.CherryPick
-            ? dropEmpty ? ["cherry-pick", NoEdit, DropEmpty] : ["cherry-pick", NoEdit]
+            ? dropEmpty ? ["cherry-pick", NoEdit, dropEmptyOption] : ["cherry-pick", NoEdit]
             : ["revert", NoEdit];
         if (mainline is { } parent)
         {
@@ -84,6 +109,21 @@ public sealed class PickWriter(GitRunner runner, OperationRunner operations) : I
             return await operations
                 .RunAsync(location, ArgumentsOf(kind, commits, mainline, false), cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    // Not cancellable: a half-run sequence must be cleaned up even when the caller gave up. Git's own error is kept.
+    private async Task AbortLeftoverAsync(RepositoryLocation location, PickKind kind)
+    {
+        var command = kind == PickKind.CherryPick ? "cherry-pick" : "revert";
+        try
+        {
+            await operations.RunToCompletionAsync(location, [command, AbortOption], CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch (GitCommandFailedException)
+        {
+            // The original failure is the one to report.
         }
     }
 
