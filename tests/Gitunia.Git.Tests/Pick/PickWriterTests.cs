@@ -212,7 +212,7 @@ public class PickWriterTests
     }
 
     [Fact]
-    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentTwo_ThenGitFailsPartwayAndLeavesTheRevertInProgress()
+    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentTwo_ThenTheRevertIsLeftInProgress()
     {
         using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
         var (writer, location) = await CreateAsync(repository);

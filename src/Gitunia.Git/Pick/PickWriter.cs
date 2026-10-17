@@ -12,8 +12,8 @@ namespace Gitunia.Git.Pick;
 /// <c>--no-edit</c> keeps git from opening an editor for the message. A cherry-pick passes <c>--empty=drop</c>: a
 /// commit whose changes HEAD has already is skipped instead of stopping the sequence for a decision (when all of them
 /// are, the result is <see cref="PickOutcome.NothingToApply"/>); a git too old to know the option (usage error, before
-/// anything ran) gets the call again without it, and an empty pick then stops like git's default. The commits are hashes from the UI; the end-of-options
-/// marker follows them.
+/// anything ran) gets the call again without it, and an empty pick then stops like git's default. The commits are
+/// hashes from the UI; the end-of-options marker follows them.
 /// </summary>
 public sealed class PickWriter(GitRunner runner, OperationRunner operations) : IPickWriter
 {
