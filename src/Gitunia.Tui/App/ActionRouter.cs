@@ -11,6 +11,7 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
@@ -70,6 +71,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }
+
+    /// <summary>Cherry-picking or reverting the selected commits onto the current branch.</summary>
+    public PickActions? Pick { get; set; }
 
     /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
     public ResetActions? Reset { get; set; }
@@ -147,6 +151,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Merge?.TryExecute(action, count) == true)
         {
             Message = Merge.Notice;
+            return;
+        }
+
+        if (Pick?.TryExecute(action, count) == true)
+        {
+            Message = Pick.Notice;
             return;
         }
 

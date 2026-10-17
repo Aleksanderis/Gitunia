@@ -153,6 +153,8 @@ public static class DefaultKeymap
         AddResetKeys(bindings, SidebarView);
         AddMergeKeys(bindings, GraphView);
         AddMergeKeys(bindings, SidebarView);
+        AddPickKeys(bindings, GraphView, Navigation);
+        AddPickKeys(bindings, SidebarView, NormalOnly);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
@@ -227,6 +229,13 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>gm", ActionIds.MergeBranch);
         Add(bindings, NormalOnly, view, "<space>gM", ActionIds.MergeBranchNoFastForward);
         Add(bindings, NormalOnly, view, "<space>gs", ActionIds.MergeBranchSquash);
+    }
+
+    // Cherry-pick and revert act on the selected commit; in the graph also on a Visual range.
+    private static void AddPickKeys(List<KeyBinding> bindings, string view, KeyMode[] modes)
+    {
+        Add(bindings, modes, view, "<space>gp", ActionIds.PickCherry);
+        Add(bindings, modes, view, "<space>gv", ActionIds.PickRevert);
     }
 
     // Reset moves the current branch to the selected commit, branch or tag.

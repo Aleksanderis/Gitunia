@@ -22,6 +22,7 @@ using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Merge;
+using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
@@ -94,6 +95,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
+    private PickActions _pick = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
     private SessionPersistence? _persistence;
@@ -200,6 +202,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
         _router.Rebase = CreateRebase(operationGate);
+        _pick = CreatePick(operationGate);
+        _router.Pick = _pick;
         _reflog = CreateReflog(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -561,6 +565,42 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         BranchSelectionNow,
         gate);
 
+    private PickActions CreatePick(TabOperationGate gate) => new(
+        _host,
+        services.Pick,
+        services.PickCommits,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        tabId => _effects.Refresh(tabId, false),
+        _keys.SetMode,
+        _view.RefreshChrome,
+        _visual.End,
+        PickSelectionNow,
+        gate);
+
+    // A focused sidebar acts on its ref, the graph on the Visual range when one is active, else the selected commit.
+    private PickSelection PickSelectionNow()
+    {
+        var chosen = BranchSelectionNow();
+        if (chosen.RowKind is not null)
+        {
+            return new PickSelection(chosen.RowKind, chosen.Name, chosen.CommitHash is { } hash ? [hash] : []);
+        }
+
+        var graph = ActiveSession()?.Graph;
+        if (graph is null || _visual is not { IsActive: true, Range: { } range }
+            || _host.Workspace.ActiveTab?.View.FocusedPane != PaneKind.Graph)
+        {
+            return new PickSelection(null, null, chosen.CommitHash is { } selected ? [selected] : []);
+        }
+
+        var first = Math.Max(0, GraphListSource.CommitIndexOf(range.First));
+        var last = Math.Min(graph.Count - 1, GraphListSource.CommitIndexOf(range.Last));
+        return new PickSelection(null, null, [.. Enumerable.Range(first, Math.Max(0, last - first + 1))
+            .Select(index => graph[index].Id.ToString())]);
+    }
+
     private ResetActions CreateReset(TabOperationGate gate) => new(
         _host,
         services.Reset,
@@ -907,6 +947,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _branches,
             _tags,
             _reset,
+            _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),
