@@ -1,10 +1,10 @@
-using Gitunia.Git.Repositories.Models;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -40,6 +40,23 @@ public class TabRefresherTests
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status!.IsDirty);
 
         Assert.Equal(0, replaced);
+    }
+
+    [Fact]
+    public async Task GivenAStoppedRebase_WhenTheTabIsRefreshed_ThenItsOperationIsReadAndClearsWhenAborted()
+    {
+        using var repository = TestRepositories.RebaseConflicted();
+        using var harness = await Harness.LoadAsync(repository, start: false);
+        harness.Refresher.Start();
+
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Operation is not null);
+
+        var info = harness.Tab.Operation!;
+        Assert.Equal(RepositoryOperation.Rebase, info.Kind);
+        Assert.Equal("other", info.Target);
+        Assert.Equal(1, info.Step);
+        repository.Git("rebase", "--abort");
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Operation is null);
     }
 
     [Fact]

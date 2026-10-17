@@ -152,6 +152,9 @@ public class MouseControllerTests
     }
 
     [Theory]
+    [InlineData(DefaultMouseMap.BannerContinueButton, "operation.continue")]
+    [InlineData(DefaultMouseMap.BannerAbortButton, "operation.abort")]
+    [InlineData(DefaultMouseMap.BannerSkipButton, "operation.skip")]
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, "diff.previous-hunk")]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, "diff.next-hunk")]
     [InlineData(DefaultMouseMap.DiffWrapButton, "diff.toggle-wrap")]

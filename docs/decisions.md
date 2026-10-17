@@ -261,3 +261,14 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Worktree switch (#42) re-points the tab at the other worktree in place: same tab id and view state, new location, session and watcher (a new load). `wt` opens a tab instead. The sidebar overview runs `git status` in each other worktree (on change and every 30 s) because their changes raise no event for this tab. Details in ux.md workflow 6.
 
 **UI:** Tags (#397): `<space>Tc` `Td` `Tp` `TD` in the graph and the sidebar, no sidebar `d` (vim-clash rule, supersedes workflow 3 "Tags"). A tag push is a plain one-ref push with no progress and no prompts; #44 generalizes it. Why: tags are usable before the full push flow.
+**UI:** Reset (#392) is a one-key prompt (`s`/`m`/`h`) after `<space>gx`; soft and a mixed reset with nothing staged run at once, the rest opens a Confirm with the files lost and the old hash. Why: ux.md reset flow; the undo for commits is the printed old hash (ORIG_HEAD, reflog).
+
+**UI:** The in-progress operation banner (#37) is drawn on the frame's bottom edge, not as a row under the tab bar. Why: a new row shifts every pane coordinate (views, mouse, layouts) for a rare state, and the edge line carries no information. Under 10 rows the status bar carries its text. Supersedes the "row under the tab bar" wording of workflow 4.
+
+**Git layer:** A call that runs or advances a merge, rebase, pick or revert returns `OperationResult` (`Completed` or `Conflicted`), decided in one place (`OperationRunner`); editor-capable calls pass `-c core.editor=true`. Why: #38-#40 and the interactive rebase reuse it instead of each guessing "did it stop?".
+
+**UI:** The reflog (#398) is a modal list overlay with its own keymap view, not a tab view: reset, branch and detached checkout close it first and reuse the status bar prompts and Confirm. Why: keeps tab state unchanged and reuses #392 and #35; the ref picker, `/` search and entry mouse actions are #424.
+
+**UI:** Merge (#38): `<space>gm` (ff when possible), `<space>gM` (`--no-ff`), `<space>gs` (squash) act on the selected commit or sidebar ref and run at once, no Confirm. Why: a merge loses nothing and the status line prints the `reset --hard <old>` undo; a squash that conflicts leaves unmerged files but no operation, so the message says to resolve and commit.
+
+**UI:** Rebase onto (#39) is `<space>gr` with a Confirm naming the old tip for the undo; a dirty tracked tree, a detached HEAD or a running operation is refused with no git call. Why: git would refuse or leave a half-state; a stop on conflicts reuses the #37 banner and continue/abort/skip.

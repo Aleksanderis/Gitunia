@@ -9,12 +9,16 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
+using Gitunia.Tui.App.Merge;
+using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Screen;
@@ -64,6 +68,15 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
     public TagActions? Tags { get; set; }
 
+    /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
+    public MergeActions? Merge { get; set; }
+
+    /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
+    public ResetActions? Reset { get; set; }
+
+    /// <summary>Rebasing the current branch onto the selected commit or ref (#39).</summary>
+    public RebaseActions? Rebase { get; set; }
+
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
 
@@ -72,6 +85,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Switching to a worktree and opening one as a tab, next to the worktree operations.</summary>
     public WorktreeSwitchActions? WorktreeSwitch { get; set; }
+
+    /// <summary>Continue, abort and skip of the operation in progress (works in every view).</summary>
+    public OperationController? Operations { get; set; }
 
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
@@ -128,6 +144,24 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             return;
         }
 
+        if (Merge?.TryExecute(action, count) == true)
+        {
+            Message = Merge.Notice;
+            return;
+        }
+
+        if (Reset?.TryExecute(action, count) == true)
+        {
+            Message = Reset.Notice;
+            return;
+        }
+
+        if (Rebase?.TryExecute(action, count) == true)
+        {
+            Message = Rebase.Notice;
+            return;
+        }
+
         if (WorkingTree?.TryExecute(action, count) == true)
         {
             Message = WorkingTree.Message;
@@ -160,6 +194,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (WorktreeSwitch?.TryExecute(action) == true)
         {
             Message = WorktreeSwitch.Notice;
+            return;
+        }
+
+        if (Operations?.TryExecute(action, count) == true)
+        {
+            Message = Operations.Notice;
             return;
         }
 

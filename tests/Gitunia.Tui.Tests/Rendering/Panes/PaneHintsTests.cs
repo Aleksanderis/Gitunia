@@ -132,6 +132,12 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheReflogHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheReflogView()
+    {
+        AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);

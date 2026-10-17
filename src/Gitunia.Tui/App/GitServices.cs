@@ -1,9 +1,14 @@
 using Gitunia.Git.Branches;
+using Gitunia.Git.Merge;
+using Gitunia.Git.Rebase;
+using Gitunia.Git.Reset;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Operations;
+using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
@@ -30,8 +35,14 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="Merge">Merges a branch or commit into the current branch.</param>
+/// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
+/// <param name="Rebase">Rebases the current branch onto a commit (non-interactive).</param>
+/// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
+/// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
+/// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
 /// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
@@ -48,9 +59,15 @@ public sealed record GitServices(
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
     ITagWriter Tags,
+    IMergeWriter Merge,
+    IResetWriter Reset,
+    IRebaseWriter Rebase,
+    IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
     IWorktreeWriter Worktrees,
+    IOperationWriter OperationWriter,
+    IOperationInfoReader OperationInfo,
     IRepositoryRefresher Refresher,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
@@ -64,6 +81,8 @@ public sealed record GitServices(
         var status = new StatusReader(runner);
         var stashes = new StashReader(runner);
         var graphLoader = new GraphLoader(commitLog);
+        var operationDetector = new RepositoryOperationDetector();
+        var operationRunner = new OperationRunner(runner, operationDetector);
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
@@ -76,10 +95,16 @@ public sealed record GitServices(
             new CommitWriter(runner),
             new BranchWriter(runner),
             new TagWriter(runner),
+            new MergeWriter(runner, operationRunner),
+            new ResetWriter(runner),
+            new RebaseWriter(operationRunner),
+            new ReflogReader(runner),
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),
-            new RepositoryRefresher(refs, status, new RepositoryOperationDetector()),
+            new OperationWriter(operationRunner),
+            new OperationInfoReader(),
+            new RepositoryRefresher(refs, status, operationDetector),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),
             new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));

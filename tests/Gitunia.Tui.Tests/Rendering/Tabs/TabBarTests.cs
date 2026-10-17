@@ -56,6 +56,20 @@ public class TabBarTests
     }
 
     [Fact]
+    public void GivenATabWithAnOperationInProgress_WhenRendering_ThenABangMarkerFollowsTheDirtyMarkerWithoutMovingIt()
+    {
+        var label = Label(1, "alpha", isActive: true, branch: null, dirty: true) with { HasOperation = true };
+
+        var text = TabBarLayout.Layout([label], 80, GraphGlyphSet.Unicode)[0];
+
+        Assert.StartsWith("  1 alpha *!", text.Text, StringComparison.Ordinal);
+        Assert.Equal('*', text.Text[text.DirtyOffset!.Value]);
+        var clean = Label(1, "alpha", isActive: true, branch: null) with { HasOperation = true };
+        var cleanText = TabBarLayout.Layout([clean], 80, GraphGlyphSet.Unicode)[0].Text;
+        Assert.StartsWith("  1 alpha !", cleanText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenLoadingTab_WhenRendering_ThenTheBackgroundActivityMarkerIsShown()
     {
         var row = Row(80, GraphGlyphSet.Unicode, Label(1, "alpha", isActive: true, branch: null, loading: true));

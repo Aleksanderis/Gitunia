@@ -131,6 +131,7 @@ public static class TabBarLayout
 
         var markers = string.Empty;
         markers += label.IsDirty ? "*" : string.Empty;
+        markers += label.HasOperation ? "!" : string.Empty;
         markers += label.Ahead > 0 ? $"{(!glyphs.IsAscii ? "↑" : "+")}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
         markers += label.Behind > 0 ? $"{(!glyphs.IsAscii ? "↓" : "-")}{label.Behind.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
         markers += label.IsLoading ? glyphs.Ellipsis : string.Empty;

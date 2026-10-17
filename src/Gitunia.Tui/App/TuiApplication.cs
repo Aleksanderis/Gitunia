@@ -12,6 +12,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
@@ -20,12 +21,17 @@ using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
+using Gitunia.Tui.App.Merge;
+using Gitunia.Tui.App.Reflog;
+using Gitunia.Tui.App.Rebase;
+using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
@@ -57,6 +63,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
     private const long OverlayDoubleClickGuardMilliseconds = 600;
+    private const int ShortHashLength = 7;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
     private IApplication _application = null!;
@@ -87,6 +94,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
+    private ResetActions _reset = null!;
+    private ReflogController _reflog = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -187,9 +196,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        _reset = CreateReset(operationGate);
+        _router.Reset = _reset;
+        _router.Merge = CreateMerge(operationGate);
+        _router.Rebase = CreateRebase(operationGate);
+        _reflog = CreateReflog(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
+        _router.Operations = CreateOperations(operationGate);
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -262,8 +277,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.WorkingStaged.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingStaged, PaneKind.WorkingStaged);
         _view.WorkingDiff.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingDiff, SelectedWorkingDiffPane());
         _view.WorkingMessage.HasFocusChanged += (_, _) => OnPaneFocused(_view.WorkingMessage, PaneKind.WorkingMessage);
-        _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, () => _overlays.State.IsOpen);
-        _view.SuppressMouseWhen(() => _overlays.State.IsOpen);
+        _mouse = new MouseController(DefaultMouseMap.Create(), RouteAction, IsAnyOverlayOpen);
+        _view.SuppressMouseWhen(IsAnyOverlayOpen);
         _view.Gestured += OnGestured;
         _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
@@ -351,6 +366,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RouteAction(ActionId action, int? count)
     {
+        if (_reflog.TryExecute(action, count))
+        {
+            return;
+        }
+
         if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
@@ -373,13 +393,13 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
-        if (_overlays.State.IsOpen && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
+        if (IsAnyOverlayOpen() && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {
-            viewName = _overlays.ViewName;
+            viewName = OverlayViewName();
         }
 
         // A click anywhere outside an open overlay closes it, like Esc.
-        if (_overlays.State.IsOpen && gesture == MouseGesture.Click)
+        if (IsAnyOverlayOpen() && gesture == MouseGesture.Click)
         {
             viewName = DefaultMouseMap.BackdropView;
             _overlayClickTicks = Environment.TickCount64;
@@ -414,7 +434,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void OnEdgeDragged(PaneEdge edge, int column, int row)
     {
-        if (_overlays.State.IsOpen || _picker.IsOpen || ActiveSession()?.Diff is null || _diffPane.Arrangement().Zoomed is not null)
+        if (IsAnyOverlayOpen()
+            || _picker.IsOpen
+            || ActiveSession()?.Diff is null
+            || _diffPane.Arrangement().Zoomed is not null)
         {
             return;
         }
@@ -434,7 +457,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
-        if (_overlays.SelectPaletteEntryAt(line))
+        if (_reflog.SelectEntryAt(line))
+        {
+            _overlayClickTicks = Environment.TickCount64;
+        }
+        else if (_overlays.SelectPaletteEntryAt(line))
         {
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
@@ -448,7 +475,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RefreshOverlay()
     {
-        _view.Overlay.Show(_overlays.CurrentFrame());
+        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame());
         _view.RefreshChrome();
     }
 
@@ -524,6 +551,42 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         BranchSelectionNow);
 
+    private MergeActions CreateMerge(TabOperationGate gate) => new(
+        _host,
+        services.Merge,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        tabId => _effects.Refresh(tabId, false),
+        BranchSelectionNow,
+        gate);
+
+    private ResetActions CreateReset(TabOperationGate gate) => new(
+        _host,
+        services.Reset,
+        services.Status,
+        new RepositoryOperationDetector(),
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow,
+        gate);
+
+    private RebaseActions CreateRebase(TabOperationGate gate) => new(
+        _host,
+        services.Rebase,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        BranchSelectionNow,
+        gate);
+
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
@@ -542,6 +605,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _statuses,
         InvokeOnUi,
         _effects.RefreshStatus,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        gate);
+
+    private OperationController CreateOperations(TabOperationGate gate) => new(
+        _host,
+        services.OperationWriter,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.Refresh(tabId, false),
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         ShowConfirm,
         gate);
@@ -668,7 +741,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
             Hints = _overlays.State.Kind == OverlayKind.Confirm
                 ? PaneHints.ForConfirm()
-                : _commits.IsEditing
+                : _reflog.IsOpen
+                    ? PaneHints.ForReflog()
+                    : _commits.IsEditing
                     ? PaneHints.ForMessageEditing()
                     : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
@@ -722,6 +797,46 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             _effects.Refresh(tabId, announce: false);
         }
+    }
+
+    private bool IsAnyOverlayOpen() => _overlays.State.IsOpen || _reflog.IsOpen;
+
+    private string OverlayViewName() => _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+
+    private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(
+        _host,
+        services.Reflog,
+        _reset,
+        _branches,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        SelectCommitInGraph,
+        BranchSelectionNow,
+        () => _view.ScreenSize,
+        glyphs,
+        RefreshOverlay);
+
+    // Moves the graph cursor to a commit; the reason it cannot is returned (empty on success).
+    private string SelectCommitInGraph(TabId tabId, string hash)
+    {
+        var graph = _effects.SessionOf(tabId)?.Graph;
+        if (graph is null || !ObjectId.TryParse(hash, out var id))
+        {
+            return "The graph is not loaded";
+        }
+
+        var index = graph.IndexOf(id);
+        if (index < 0)
+        {
+            var shortHash = hash[..Math.Min(ShortHashLength, hash.Length)];
+            return _effects.SessionOf(tabId)?.IsLoading == true
+                ? $"{shortHash} is not loaded yet"
+                : $"{shortHash} is not in the graph (it may be on no branch)";
+        }
+
+        SelectGraphItem(index + ScreenLayout.ReservedLeadingRows);
+        return string.Empty;
     }
 
     private string? SelectedCommitHash()
@@ -791,6 +906,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
             _tags,
+            _reset,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
             new CommitMessageInput(_commits),
@@ -914,8 +1030,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private bool HandleKey(Key key)
     {
-        var view = _picker.IsOpen && !_overlays.State.IsOpen ? DefaultKeymap.PickerView : _overlays.ViewName;
-        return _keys.Handle(key, view) || (_picker.IsOpen && !_overlays.State.IsOpen);
+        var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
+        var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
+        return _keys.Handle(key, view) || isPickerShowing;
     }
 
     private void OnTextKey(KeyEvent keyEvent)

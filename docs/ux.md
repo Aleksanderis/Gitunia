@@ -195,7 +195,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 
 **Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens keep `Enter`/`l`). The discard itself is reached from the palette, not a list button.
 
-### 3. Branches, tags, merge, reset and the reflog (M3, planned)
+### 3. Branches, tags, merge, reset and the reflog (M3; branches, merge and reset done)
 
 Planned keys, written here and not yet in the keymap table: each implementing issue adds its table rows with its bindings (`KeymapDocumentationTests` fails on a documented binding that is not registered). `<space>t` is the tools prefix (`td` `tm` `te`), so these use other prefixes: `<space>b` branches, `<space>g` operations on the selected commit, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes. Every action is also a palette entry and has a mouse path (a button in the sidebar section header, or a click on the row and then the same key).
 
@@ -215,27 +215,27 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 5. No single-letter sidebar shortcuts (`d`, `r`): they are vim operator and replace keys (vim-clash rule), so the sidebar uses the same `<space>b` chords on the selected row. Every action is in the command palette.
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
-1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`).
-2. `gr` rebase the current branch onto the selection. A Confirm warns when the branch is already on its upstream (history rewrite, force push needed).
+1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`). It runs at once, no Confirm (nothing is lost); the status line names the old tip and the undo (`git reset --hard <old>`, also `ORIG_HEAD`). A stop on conflicts becomes the in-progress merge (banner, `<space>gc`, `<space>ga`); a conflicting squash leaves the files marked `!` but no operation and says to resolve and commit. A branch row merges that branch, a tag row or a graph commit that commit. Refused during any in-progress operation and on a detached or unborn HEAD.
+2. `gr` rebase the current branch onto the selection (implemented in #39; non-interactive with `-c core.editor=true`, interactive is #399). The Confirm names both sides and the undo (`git reset --hard <old tip>`, also `ORIG_HEAD` and the reflog) and warns when the branch has an upstream (history rewrite, force push needed; the text is stronger when every commit is already on it). Refused with no git run when an operation is in progress ("finish or abort the <operation> first"), HEAD is detached or unborn, the target is the current commit, or tracked files have uncommitted changes (untracked files are fine). A rebase that stops on conflicts is the in-progress rebase of workflow 4 (banner, `<space>gc`, `<space>ga`, `<space>gk`); the status line warns and names the keys. No mouse path yet, the palette lists it, as for reset.
 3. `gp` cherry-pick the selection (a Visual range in the graph picks every commit, oldest first; a range that mixes lanes is applied in graph order and a range with a merge commit asks for the mainline once). `gv` revert it the same way (`--no-edit`).
 4. A merge commit asked to cherry-pick or revert gets a mainline prompt (parent 1 or 2, parent subjects shown).
 5. A dirty tree is refused for rebase; for the others git decides and its message is shown.
 
-**Reset** (`<space>gx`, not a single letter, so it cannot clash with vim motions or `g` chords): the current branch moves to the selected commit. A small dialog offers `s` soft (keeps index and files), `m` mixed (keeps files, clears the index), `h` hard. Soft runs at once and shows the old tip in the status ("Reset to abc1234, was def5678"). Mixed runs at once when the index equals HEAD; otherwise it opens a Confirm saying the staged state (including partially staged hunks) is dropped and cannot be recovered from the reflog. Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files are untouched, and it says so) and the old tip for the undo (the reflog restores commits, never uncommitted changes, and the Confirm says so). Refused during an in-progress operation and on a detached HEAD. The reflog view offers the same key on an entry.
+**Reset** (`<space>gx`, not a single letter, so it cannot clash with vim motions or `g` chords): the current branch moves to the selected commit. A small dialog offers `s` soft (keeps index and files), `m` mixed (keeps files, clears the index), `h` hard. Soft runs at once and shows the old tip in the status ("Reset to abc1234, was def5678"). Mixed runs at once when the index equals HEAD; otherwise it opens a Confirm saying the staged state (including partially staged hunks) is dropped and cannot be recovered from the reflog. Hard opens a Confirm that lists the tracked files and the count of changes that will be lost (untracked files stay unless the target commit tracks a file at the same path, and it says so) and the old tip for the undo (the reflog restores commits, never uncommitted changes, and the Confirm says so). Refused during an in-progress operation and on a detached or unborn HEAD. The status after a reset names the old tip and the undo (`reset [--hard] <old hash>`, also `ORIG_HEAD` and the reflog). Implemented in #392 (`ResetActions.Begin(tab, commit)` is the entry the reflog view calls). The reflog view offers the same key on an entry.
 
 **Tags** (`<space>T` + key; implemented in #397): `Tc` create at the selected commit, or the commit of the selected sidebar row: a name prompt, then a message prompt (empty makes a lightweight tag, text an annotated one, so no editor is needed; the call also passes `-c core.editor=true`). A name in use is refused before git runs, an invalid one by `git check-ref-format`. `Td` delete the local tag: Confirm with the tag's target hash and the undo command (`git tag <name> <hash>`; for an annotated tag the hash is the tag object, so the message survives); a copy on a remote is not touched. `Tp` push the selected tag to a remote: a type-to-filter remote prompt, then one ref (`git push --no-progress <remote> refs/tags/<name>`), no progress, no prompts, git's first error line shown; the push of workflow 5 generalises it. `TD` deletes the tag on a remote (`git push <remote> --delete refs/tags/<name>`): remote prompt, then a Confirm naming the remote and the tag and saying the local tag stays; no undo besides re-pushing the tag. From the graph the tag actions act on the one tag at the selected commit (several: pick one in the sidebar). No sidebar `d` shortcut: it is a vim operator (vim-clash rule), so the sidebar uses the same `<space>T` chords on the selected row.
 
-**Reflog** (`<space>l`, graph and sidebar): opens a list view of the reflog of `HEAD`, or of another branch chosen in the ref picker `<space>l` offers first (`Enter` on `HEAD`; on a sidebar branch row it opens that branch's reflog). Newest first: short hash, `HEAD@{n}`, action and message, relative time). `j`/`k`/`gg`/`G`/`/` as in any list; `Enter` selects the commit in the graph (a commit outside the loaded graph says so); `<space>gx` resets the current branch to the entry (the reset rules above); `<space>bc` creates a branch there and `<space>bs` checks it out detached. `Esc` or `h` returns. The view is read from git on open and on `<space>r`.
+**Reflog** (`<space>l`, graph and sidebar; implemented in #398): a modal list of the reflog of `HEAD`, or, from a local branch row under the sidebar cursor, of that branch (`refs/heads/<name>`). Newest first (the last 1000 entries): short hash, `HEAD@{n}`, action and message, relative time. `j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` move; `Enter` selects the entry's commit in the graph and keeps the list open (a commit outside the loaded graph says so in the status bar); `<space>gx` resets the current branch to the entry (the reset rules above, via `ResetActions.Begin`); `<space>bc` opens the new-branch prompt at the entry; `<space>bs` checks the entry out with a detached HEAD (git refuses a conflicting dirty tree, nothing is stashed). The last three close the list first, because their prompt and Confirm live in the status bar and the confirm overlay. `Esc` or `h` returns. The list is read from git on open and on `<space>r`. Not done yet: a ref picker for the reflog of any branch from the graph, `/` search and mouse paths for selecting an entry's commit, reset, branch and checkout (#424).
 
-### 4. In-progress operations: banner, continue, abort, skip (M3, planned)
+### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase of M4 (#399) reuses it. `RepositoryOperationDetector` names the operation from the git directory.
 
-1. **Banner.** While an operation is in progress the tab shows a banner row under the tab bar: `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows its step count). `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved). On a terminal under 10 rows the banner is dropped and the status bar carries the same text. It is read from the repository, so it survives a restart of the app, and the tab bar shows a marker.
+1. **Banner.** While an operation is in progress the tab shows a banner on the frame's bottom edge (the line under the panes, in the status bar's colours): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows how many commits are left, `3 commits left`). The title names the merged branch (read from git's default merge message, so a custom message gives just `MERGING`), the rebased branch, or the short hash of the picked or reverted commit. Each key group is also a clickable chip (mouse views `BannerButton.*`). `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved). On a terminal under 10 rows the banner is dropped and an empty status message shows the same text. It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
 2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` opens the configured mergetool. Resolving inside Gitunia (a conflict editor) stays post-MVP.
-3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (git's prepared message). A rebase may stop again at the next commit: the banner updates.
+3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (`-c core.editor=true`, so git's prepared message is used). A rebase may stop again at the next commit: the status line warns and the banner updates. A continue that fails without a new conflict (a dirty tree, a hook) shows git's reason and leaves the operation as it was.
 4. **Abort** (`<space>ga`): Confirm that says the work of the operation is undone and resolutions are lost, with the old tip. **Skip** (`<space>gk`; rebase, cherry-pick and revert only): Confirm naming the commit that is dropped.
-5. **Other actions are blocked.** While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
+5. **Other actions are blocked** (each blocked feature adds its own refusal: #38 merge (done), #39 rebase, #40 cherry-pick and revert, #392 reset, #419 branch switch). While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
 6. **Completion.** A continue that finishes the operation posts "Merged feature/x into main (abc1234)" or the equivalent and removes the banner.
 
 ### 5. Fetch, pull and push (M4, keys planned here)
@@ -331,6 +331,9 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
 | Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
+| Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
+| Global | `<space>ga` | Abort the operation in progress (Confirm; the work of the operation is undone) |
+| Global | `<space>gk` | Skip the commit a rebase, cherry-pick or revert stopped on (Confirm; not for a merge) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -356,6 +359,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>Td` | Delete the local tag at the selected commit after a Confirm |
 | Graph | `<space>Tp` | Push the tag at the selected commit to a remote (type-to-filter picker; one ref, no progress) |
 | Graph | `<space>TD` | Delete the tag at the selected commit on a remote (picker, then a Confirm) |
+| Graph | `<space>gm` `<space>gM` `<space>gs` | Merge the selected commit into the current branch: fast-forward when possible / always a merge commit (`--no-ff`) / squash (changes staged, no commit; workflow 3) |
+| Graph | `<space>gx` | Reset the current branch to the selected commit: `s`/`m`/`h` picks soft, mixed or hard; Confirm where work is lost |
+| Graph | `<space>gr` | Rebase the current branch onto the selected commit (Confirm; non-interactive; refused with an operation in progress, tracked changes or a detached HEAD) |
+| Graph | `<space>l` | Open the reflog of HEAD (a list of its entries; see the Reflog flow) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
@@ -458,6 +465,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>Td` | Delete the selected local tag after a Confirm |
 | Sidebar | `<space>Tp` | Push the selected tag to a remote (type-to-filter picker; one ref, no progress) |
 | Sidebar | `<space>TD` | Delete the selected tag on a remote (picker, then a Confirm) |
+| Sidebar | `<space>gm` `<space>gM` `<space>gs` | Merge the selected branch or tag into the current branch (as in the graph) |
+| Sidebar | `<space>gx` | Reset the current branch to the selected branch or tag (`s`/`m`/`h`; Confirm where work is lost) |
+| Sidebar | `<space>gr` | Rebase the current branch onto the selected branch or tag (Confirm; same refusals as in the graph) |
+| Sidebar | `<space>l` | Open the reflog of the local branch under the cursor (HEAD's on any other row) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
 | Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |
@@ -481,6 +492,12 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Diff | `<space>vi` | Toggle ignoring whitespace-only changes (title `[-w]`) |
 | Diff | `<space>vs` | Toggle the side-by-side view (title `[split]`; needs a pane of 80 text columns) |
 | Diff | `<space>vl` | Load anyway: reload the commit without the row and per-file limits |
+| Reflog | `Enter` | Select the entry's commit in the graph (the list stays open) |
+| Reflog | `h` `Esc` | Close the list |
+| Reflog | `<space>r` | Read the reflog again |
+| Reflog | `<space>gx` | Reset the current branch to the entry (`s`/`m`/`h`; Confirm where work is lost) |
+| Reflog | `<space>bc` | Create a branch at the entry and check it out (status bar prompt) |
+| Reflog | `<space>bs` | Check out the entry with a detached HEAD |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` `Ctrl-l` | Open repository (new tab or focus existing); `Ctrl-l` is the home-row alias of `Enter`, `Ctrl-w l` is a chord and unaffected |
@@ -495,7 +512,7 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -511,6 +528,9 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
+| BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
+| BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
+| BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |
@@ -521,6 +541,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Help | Wheel down | `list.down` | Scroll the help down 3 lines |
 | Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
 | Messages | Wheel down | `list.down` | Scroll the status history down 3 lines |
+| Reflog | Wheel up | `list.up` | Scroll the reflog list up 3 entries |
+| Reflog | Wheel down | `list.down` | Scroll the reflog list down 3 entries |
 | DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
 | DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |
 | DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `wrap`, same as `<space>vw` |

@@ -91,6 +91,12 @@ public static class ActionIds
 
     public static ActionId NavigateBack { get; } = new("navigate.back");
 
+    public static ActionId OperationContinue { get; } = new("operation.continue");
+
+    public static ActionId OperationAbort { get; } = new("operation.abort");
+
+    public static ActionId OperationSkip { get; } = new("operation.skip");
+
     public static ActionId PaletteNext { get; } = new("palette.next");
 
     public static ActionId PaletteOpen { get; } = new("palette.open");
@@ -144,6 +150,19 @@ public static class ActionIds
     public static ActionId TagDeleteRemote { get; } = new("tag.delete-remote");
 
     public static ActionId TagPush { get; } = new("tag.push");
+    public static ActionId MergeBranch { get; } = new("merge.branch");
+
+    public static ActionId MergeBranchNoFastForward { get; } = new("merge.branch-no-ff");
+
+    public static ActionId MergeBranchSquash { get; } = new("merge.branch-squash");
+
+    public static ActionId ResetBranch { get; } = new("reset.branch");
+
+    public static ActionId RebaseOnto { get; } = new("rebase.onto");
+
+    public static ActionId ReflogOpen { get; } = new("reflog.open");
+
+    public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
 
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 

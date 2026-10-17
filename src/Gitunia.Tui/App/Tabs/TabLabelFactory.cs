@@ -32,7 +32,8 @@ public static class TabLabelFactory
                 tab.Status?.Ahead ?? 0,
                 tab.Status?.Behind ?? 0,
                 tab.IsMissing,
-                !tab.IsMissing && isLoading(tab.Id)));
+                !tab.IsMissing && isLoading(tab.Id),
+                tab.Operation is not null));
         }
 
         return labels;
