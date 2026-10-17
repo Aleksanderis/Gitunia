@@ -213,7 +213,7 @@ public class OverlayFrameTests
                 "│ Next bottom pane tab                                               ] │",
                 "│ Previous bottom pane tab                                           [ │",
                 "│ Show the Details tab                                              gd │",
-                "│ 1/121 Ctrl-j/k move  Enter run  Esc close                            │",
+                "│ 1/124 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -252,7 +252,7 @@ public class OverlayFrameTests
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
                 "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
-                "│ 2/28 Ctrl-j/k move  Enter run  Esc close               │",
+                "│ 2/30 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
@@ -380,7 +380,7 @@ public class OverlayFrameTests
                 "│  <space>bC            │ Create a branch without checking out │",
                 "│  <space>bs            │ Switch to a branch (check out)       │",
                 "│  <space>br            │ Rename the branch                    │",
-                "│ 1-19/77  list keys scroll  Esc close                         │",
+                "│ 1-19/83  list keys scroll  Esc close                         │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

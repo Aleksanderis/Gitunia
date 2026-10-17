@@ -2,6 +2,8 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Operations;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
@@ -27,6 +29,7 @@ public sealed class TabRefresher : IDisposable
 
     private readonly IRepositoryRefresher _refresher;
     private readonly IStashReader _stashes;
+    private readonly IOperationInfoReader _operations;
     private readonly IncrementalGraphLoader _graphLoader;
     private readonly WorkspaceHost _host;
     private readonly TabSession _session;
@@ -47,8 +50,21 @@ public sealed class TabRefresher : IDisposable
     private List<Action> _waiting = [];
     private List<Action> _inFlight = [];
 
-    public TabRefresher(IRepositoryRefresher refresher, IStashReader stashes, IncrementalGraphLoader graphLoader, WorkspaceHost host, TabSession session, RepositoryLocation location, StatusChannel statuses, Action<Action> postToUi, WatchBudget budget, RepositoryWatcherOptions options, Action<GraphReload>? graphReloaded = null)
+    public TabRefresher(
+        IRepositoryRefresher refresher,
+        IStashReader stashes,
+        IncrementalGraphLoader graphLoader,
+        WorkspaceHost host,
+        TabSession session,
+        RepositoryLocation location,
+        StatusChannel statuses,
+        Action<Action> postToUi,
+        WatchBudget budget,
+        RepositoryWatcherOptions options,
+        Action<GraphReload>? graphReloaded = null,
+        IOperationInfoReader? operations = null)
     {
+        _operations = operations ?? new OperationInfoReader();
         _graphReloaded = graphReloaded;
         _refresher = refresher;
         _stashes = stashes;
@@ -157,6 +173,9 @@ public sealed class TabRefresher : IDisposable
             var result = await _refresher.RefreshAsync(_location, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await _stashes.ReadStashesAsync(_location, token).ConfigureAwait(false)).Items : null;
+            var operation = await _operations
+                .ReadAsync(_location, result.Snapshot.Operation, token)
+                .ConfigureAwait(false);
             GraphReload? reload = null;
 
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
@@ -169,7 +188,7 @@ public sealed class TabRefresher : IDisposable
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, token).ConfigureAwait(false);
             }
 
-            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds)));
+            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation));
         }
         catch (OperationCanceledException)
         {
@@ -181,7 +200,14 @@ public sealed class TabRefresher : IDisposable
         }
     }
 
-    private void Apply(bool isBaseline, bool isManual, RepositoryRefreshResult result, IReadOnlyList<StashEntry>? stashes, GraphReload? reload, bool readStatus)
+    private void Apply(
+        bool isBaseline,
+        bool isManual,
+        RepositoryRefreshResult result,
+        IReadOnlyList<StashEntry>? stashes,
+        GraphReload? reload,
+        bool readStatus,
+        OperationInfo? operation)
     {
         _isRunning = false;
         var applied = TakeInFlight();
@@ -218,6 +244,11 @@ public sealed class TabRefresher : IDisposable
             {
                 // The letters did not change, but a file may have (a second edit of a modified file): its diff reads again.
                 _session.NotifyStatusRead();
+            }
+
+            if (_host.Workspace.FindTab(tabId) is { } operationTab && operationTab.Operation != operation)
+            {
+                _host.Dispatch(new TabCommand(tabId, new OperationLoadedCommand(operation)));
             }
 
             if (stashes is not null && _host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))

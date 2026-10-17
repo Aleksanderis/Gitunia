@@ -208,34 +208,40 @@ public sealed class TestRepository : IDisposable
     /// A runner with the same isolated environment as <see cref="Git(string[])"/> (empty global and system config, fixed author and
     /// committer, no signing), for code under test that spawns git itself. Its commits get the next minute of the fake clock.
     /// </summary>
-    public GitRunner CreateIsolatedRunner() => CreateRunner(Epoch.AddMinutes(_commitCounter++));
+    public GitRunner CreateIsolatedRunner(IReadOnlyDictionary<string, string?>? extraEnvironment = null) =>
+        CreateRunner(Epoch.AddMinutes(_commitCounter++), extraEnvironment);
 
-    private GitRunner CreateRunner(DateTimeOffset moment)
+    private GitRunner CreateRunner(DateTimeOffset moment, IReadOnlyDictionary<string, string?>? extraEnvironment = null)
     {
         var stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        return new GitRunner(new GitRunnerOptions(
-            EnvironmentOverrides: new Dictionary<string, string?>
-            {
-                ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
-                ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
-                ["GIT_CONFIG_NOSYSTEM"] = "1",
-                ["GIT_CONFIG_COUNT"] = "2",
-                ["GIT_CONFIG_KEY_0"] = "commit.gpgsign",
-                ["GIT_CONFIG_VALUE_0"] = "false",
-                ["GIT_CONFIG_KEY_1"] = "core.autocrlf",
-                ["GIT_CONFIG_VALUE_1"] = "false",
-                ["GIT_AUTHOR_NAME"] = "Test",
-                ["GIT_AUTHOR_EMAIL"] = "test@example.com",
-                ["GIT_COMMITTER_NAME"] = "Test",
-                ["GIT_COMMITTER_EMAIL"] = "test@example.com",
-                ["GIT_DIR"] = null,
-                ["GIT_WORK_TREE"] = null,
-                ["GIT_INDEX_FILE"] = null,
-                ["GIT_OBJECT_DIRECTORY"] = null,
-                ["GIT_COMMON_DIR"] = null,
-                ["GIT_AUTHOR_DATE"] = stamp,
-                ["GIT_COMMITTER_DATE"] = stamp,
-            }));
+        var environment = new Dictionary<string, string?>
+        {
+            ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
+            ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
+            ["GIT_CONFIG_NOSYSTEM"] = "1",
+            ["GIT_CONFIG_COUNT"] = "2",
+            ["GIT_CONFIG_KEY_0"] = "commit.gpgsign",
+            ["GIT_CONFIG_VALUE_0"] = "false",
+            ["GIT_CONFIG_KEY_1"] = "core.autocrlf",
+            ["GIT_CONFIG_VALUE_1"] = "false",
+            ["GIT_AUTHOR_NAME"] = "Test",
+            ["GIT_AUTHOR_EMAIL"] = "test@example.com",
+            ["GIT_COMMITTER_NAME"] = "Test",
+            ["GIT_COMMITTER_EMAIL"] = "test@example.com",
+            ["GIT_DIR"] = null,
+            ["GIT_WORK_TREE"] = null,
+            ["GIT_INDEX_FILE"] = null,
+            ["GIT_OBJECT_DIRECTORY"] = null,
+            ["GIT_COMMON_DIR"] = null,
+            ["GIT_AUTHOR_DATE"] = stamp,
+            ["GIT_COMMITTER_DATE"] = stamp,
+        };
+        foreach (var (name, value) in extraEnvironment ?? new Dictionary<string, string?>())
+        {
+            environment[name] = value;
+        }
+
+        return new GitRunner(new GitRunnerOptions(EnvironmentOverrides: environment));
     }
 
     public void Dispose()

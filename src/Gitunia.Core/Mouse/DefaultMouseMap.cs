@@ -16,6 +16,14 @@ public static class DefaultMouseMap
     /// <summary>The "+" button after the last tab; a click opens the repository picker for a new tab, like <c>Ctrl-t</c>.</summary>
     public const string NewTabButton = "NewTabButton";
 
+    /// <summary>The chips of the in-progress operation banner (#37): each is a view of its own, a click runs the
+    /// action its keys run.</summary>
+    public const string BannerContinueButton = "BannerButton.Continue";
+
+    public const string BannerAbortButton = "BannerButton.Abort";
+
+    public const string BannerSkipButton = "BannerButton.Skip";
+
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
     public const string BackdropView = "Backdrop";
 
@@ -123,6 +131,9 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
+        new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),
+        new(BannerAbortButton, MouseGesture.Click, ActionIds.OperationAbort),
+        new(BannerSkipButton, MouseGesture.Click, ActionIds.OperationSkip),
         new(DefaultKeymap.HelpView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.HelpView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),

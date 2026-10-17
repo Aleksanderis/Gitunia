@@ -227,15 +227,15 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Reflog** (`<space>l`, graph and sidebar): opens a list view of the reflog of `HEAD`, or of another branch chosen in the ref picker `<space>l` offers first (`Enter` on `HEAD`; on a sidebar branch row it opens that branch's reflog). Newest first: short hash, `HEAD@{n}`, action and message, relative time). `j`/`k`/`gg`/`G`/`/` as in any list; `Enter` selects the commit in the graph (a commit outside the loaded graph says so); `<space>gx` resets the current branch to the entry (the reset rules above); `<space>bc` creates a branch there and `<space>bs` checks it out detached. `Esc` or `h` returns. The view is read from git on open and on `<space>r`.
 
-### 4. In-progress operations: banner, continue, abort, skip (M3, planned)
+### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase of M4 (#399) reuses it. `RepositoryOperationDetector` names the operation from the git directory.
 
-1. **Banner.** While an operation is in progress the tab shows a banner row under the tab bar: `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows its step count). `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved). On a terminal under 10 rows the banner is dropped and the status bar carries the same text. It is read from the repository, so it survives a restart of the app, and the tab bar shows a marker.
+1. **Banner.** While an operation is in progress the tab shows a banner on the frame's bottom edge (the line under the panes, in the status bar's colours): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows how many commits are left, `3 commits left`). The title names the merged branch (read from git's default merge message, so a custom message gives just `MERGING`), the rebased branch, or the short hash of the picked or reverted commit. Each key group is also a clickable chip (mouse views `BannerButton.*`). `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved). On a terminal under 10 rows the banner is dropped and an empty status message shows the same text. It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
 2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` opens the configured mergetool. Resolving inside Gitunia (a conflict editor) stays post-MVP.
-3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (git's prepared message). A rebase may stop again at the next commit: the banner updates.
+3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (`-c core.editor=true`, so git's prepared message is used). A rebase may stop again at the next commit: the status line warns and the banner updates. A continue that fails without a new conflict (a dirty tree, a hook) shows git's reason and leaves the operation as it was.
 4. **Abort** (`<space>ga`): Confirm that says the work of the operation is undone and resolutions are lost, with the old tip. **Skip** (`<space>gk`; rebase, cherry-pick and revert only): Confirm naming the commit that is dropped.
-5. **Other actions are blocked.** While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
+5. **Other actions are blocked** (each blocked feature adds its own refusal: #38 merge, #39 rebase, #40 cherry-pick and revert, #392 reset, #419 branch switch). While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
 6. **Completion.** A continue that finishes the operation posts "Merged feature/x into main (abc1234)" or the equivalent and removes the banner.
 
 ### 5. Fetch, pull and push (M4, keys planned here)
@@ -331,6 +331,9 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
 | Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
+| Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
+| Global | `<space>ga` | Abort the operation in progress (Confirm; the work of the operation is undone) |
+| Global | `<space>gk` | Skip the commit a rebase, cherry-pick or revert stopped on (Confirm; not for a merge) |
 | Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
@@ -489,7 +492,7 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -505,6 +508,9 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
+| BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
+| BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
+| BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |

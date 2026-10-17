@@ -261,3 +261,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Worktree switch (#42) re-points the tab at the other worktree in place: same tab id and view state, new location, session and watcher (a new load). `wt` opens a tab instead. The sidebar overview runs `git status` in each other worktree (on change and every 30 s) because their changes raise no event for this tab. Details in ux.md workflow 6.
 
 **UI:** Reset (#392) is a one-key prompt (`s`/`m`/`h`) after `<space>gx`; soft and a mixed reset with nothing staged run at once, the rest opens a Confirm with the files lost and the old hash. Why: ux.md reset flow; the undo for commits is the printed old hash (ORIG_HEAD, reflog).
+
+**UI:** The in-progress operation banner (#37) is drawn on the frame's bottom edge, not as a row under the tab bar. Why: a new row shifts every pane coordinate (views, mouse, layouts) for a rare state, and the edge line carries no information. Under 10 rows the status bar carries its text. Supersedes the "row under the tab bar" wording of workflow 4.
+
+**Git layer:** A call that runs or advances a merge, rebase, pick or revert returns `OperationResult` (`Completed` or `Conflicted`), decided in one place (`OperationRunner`); editor-capable calls pass `-c core.editor=true`. Why: #38-#40 and the interactive rebase reuse it instead of each guessing "did it stop?".

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Worktrees;
@@ -23,6 +24,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="CustomName">The name the user gave the tab (#219), null to show the repository name.</param>
 /// <param name="WorktreeStatuses">The last status read of the other worktrees by path (sidebar overview), null until
 /// read.</param>
+/// <param name="Operation">The merge, rebase, cherry-pick or revert that is stopped in this tab, null when none
+/// (#37).</param>
 public sealed record RepositoryState(
     TabId Id,
     RepositoryLocation Location,
@@ -36,7 +39,8 @@ public sealed record RepositoryState(
     RepositoryStatusSummary? Status = null,
     string? CustomName = null,
     WorkingTreeState? WorkingTree = null,
-    ImmutableDictionary<string, WorktreeStatus>? WorktreeStatuses = null)
+    ImmutableDictionary<string, WorktreeStatus>? WorktreeStatuses = null,
+    OperationInfo? Operation = null)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;
