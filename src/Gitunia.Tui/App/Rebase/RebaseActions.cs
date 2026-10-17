@@ -74,9 +74,11 @@ public sealed class RebaseActions(
         entry.Kind is not (StatusEntryKind.Untracked or StatusEntryKind.Ignored);
 
     private static string ShortRef(string fullName) =>
-        fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Remotes.Length..]
-        : fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) ? fullName[GitRefPrefixes.Heads.Length..]
-        : fullName;
+        fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
+            ? fullName[GitRefPrefixes.Remotes.Length..]
+            : fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
+                ? fullName[GitRefPrefixes.Heads.Length..]
+                : fullName;
 
     private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current)
     {
