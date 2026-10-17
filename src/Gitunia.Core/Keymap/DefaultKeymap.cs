@@ -23,6 +23,7 @@ public static class DefaultKeymap
     public const string HelpView = "Help";
     public const string MessagesView = "Messages";
     public const string ConfirmView = "Confirm";
+    public const string ReflogView = "Reflog";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
     private static readonly KeyMode[] NormalOnly = [KeyMode.Normal];
@@ -45,6 +46,7 @@ public static class DefaultKeymap
         [HelpView] = ListsView,
         [MessagesView] = ListsView,
         [ConfirmView] = KeyBindingTable.GlobalView,
+        [ReflogView] = ListsView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -143,6 +145,9 @@ public static class DefaultKeymap
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
         AddResetKeys(bindings, GraphView);
+        Add(bindings, NormalOnly, GraphView, "<space>l", ActionIds.ReflogOpen);
+        Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
+        AddReflogKeys(bindings);
         AddResetKeys(bindings, SidebarView);
         AddMergeKeys(bindings, GraphView);
         AddMergeKeys(bindings, SidebarView);
@@ -216,6 +221,18 @@ public static class DefaultKeymap
     // Reset moves the current branch to the selected commit, branch or tag.
     private static void AddResetKeys(List<KeyBinding> bindings, string view) =>
         Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
+
+    // The reflog list acts on the entry under the cursor; the actions are the graph's, the controller aims them.
+    private static void AddReflogKeys(List<KeyBinding> bindings)
+    {
+        Add(bindings, NormalOnly, ReflogView, "Enter", ActionIds.ReflogSelectCommit);
+        Add(bindings, NormalOnly, ReflogView, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, ReflogView, "Esc", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, ReflogView, "<space>r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, ReflogView, "<space>gx", ActionIds.ResetBranch);
+        Add(bindings, NormalOnly, ReflogView, "<space>bc", ActionIds.BranchCreate);
+        Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
+    }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
     private static void AddWorkingTreeLists(List<KeyBinding> bindings)

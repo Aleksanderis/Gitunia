@@ -151,6 +151,10 @@ public static class ActionIds
 
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
+    public static ActionId ReflogOpen { get; } = new("reflog.open");
+
+    public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");

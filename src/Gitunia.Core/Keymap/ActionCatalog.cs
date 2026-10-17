@@ -13,6 +13,7 @@ public static class ActionCatalog
     private static readonly HashSet<ActionId> ModalOnly =
     [
         ActionIds.Cancel,
+        ActionIds.ReflogSelectCommit,
         ActionIds.CommandExecute,
         ActionIds.ConfirmNo,
         ActionIds.ConfirmYes,
@@ -39,9 +40,11 @@ public static class ActionCatalog
         ["branch.switch"] = "Switch to a branch (check out)",
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",
-        ["merge.branch"] = "Merge the selection into the current branch (fast-forward when possible)",
-        ["merge.branch-no-ff"] = "Merge the selection into the current branch with a merge commit",
-        ["merge.branch-squash"] = "Squash-merge the selection into the current branch (changes are staged)",
+        ["merge.branch"] = "Merge the selection (fast-forward if possible)",
+        ["merge.branch-no-ff"] = "Merge the selection with a merge commit",
+        ["merge.branch-squash"] = "Squash-merge the selection (stages changes)",
+        ["reflog.open"] = "Open the reflog of HEAD (of the branch under the sidebar cursor)",
+        ["reflog.select-commit"] = "Select the reflog entry's commit in the graph",
         ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",

@@ -7,6 +7,7 @@ using Gitunia.Git.Discard;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Operations;
+using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
@@ -34,6 +35,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
+/// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
 /// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
@@ -55,6 +57,7 @@ public sealed record GitServices(
     IBranchWriter Branches,
     IMergeWriter Merge,
     IResetWriter Reset,
+    IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
     IWorktreeWriter Worktrees,
@@ -88,6 +91,7 @@ public sealed record GitServices(
             new BranchWriter(runner),
             new MergeWriter(runner, operationRunner),
             new ResetWriter(runner),
+            new ReflogReader(runner),
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),
