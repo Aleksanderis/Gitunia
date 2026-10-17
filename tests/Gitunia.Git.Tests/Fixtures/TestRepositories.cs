@@ -129,7 +129,8 @@ public static class TestRepositories
     /// <summary>Linear repository with one stash holding a tracked and an untracked change.</summary>
     public static TestRepository WithStash() => Linear(2).StashWithUntracked();
 
-    private static TestRepository ConflictingBranches()
+    /// <summary>Main and other both changed conflict.txt after their fork; main is checked out.</summary>
+    public static TestRepository ConflictingBranches()
     {
         return TestRepository.Create()
             .Commit("Initial", new TestFile("conflict.txt", "original\n"))

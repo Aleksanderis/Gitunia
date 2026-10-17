@@ -1,4 +1,5 @@
 using Gitunia.Git.Branches;
+using Gitunia.Git.Merge;
 using Gitunia.Git.Reset;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
@@ -32,6 +33,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
@@ -53,6 +55,7 @@ public sealed record GitServices(
     IWorkingTreeDiscarder Discarder,
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
+    IMergeWriter Merge,
     IResetWriter Reset,
     IReflogReader Reflog,
     IStashReader Stashes,
@@ -74,6 +77,7 @@ public sealed record GitServices(
         var stashes = new StashReader(runner);
         var graphLoader = new GraphLoader(commitLog);
         var operationDetector = new RepositoryOperationDetector();
+        var operationRunner = new OperationRunner(runner, operationDetector);
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
@@ -85,12 +89,13 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             new BranchWriter(runner),
+            new MergeWriter(runner, operationRunner),
             new ResetWriter(runner),
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),
             new WorktreeWriter(runner),
-            new OperationWriter(new OperationRunner(runner, operationDetector)),
+            new OperationWriter(operationRunner),
             new OperationInfoReader(),
             new RepositoryRefresher(refs, status, operationDetector),
             graphLoader,

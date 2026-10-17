@@ -20,6 +20,7 @@ using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
@@ -192,6 +193,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Branches = _branches;
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
+        _router.Merge = CreateMerge(operationGate);
         _reflog = CreateReflog(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -530,6 +532,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         SetMode,
         _view.RefreshChrome,
         BranchSelectionNow);
+
+    private MergeActions CreateMerge(TabOperationGate gate) => new(
+        _host,
+        services.Merge,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        tabId => _effects.Refresh(tabId, false),
+        BranchSelectionNow,
+        gate);
 
     private ResetActions CreateReset(TabOperationGate gate) => new(
         _host,

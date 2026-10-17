@@ -149,6 +149,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
         AddReflogKeys(bindings);
         AddResetKeys(bindings, SidebarView);
+        AddMergeKeys(bindings, GraphView);
+        AddMergeKeys(bindings, SidebarView);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
         Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
@@ -206,6 +208,14 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
+    }
+
+    // Merge integrates the selected commit, branch or tag into the current branch.
+    private static void AddMergeKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>gm", ActionIds.MergeBranch);
+        Add(bindings, NormalOnly, view, "<space>gM", ActionIds.MergeBranchNoFastForward);
+        Add(bindings, NormalOnly, view, "<space>gs", ActionIds.MergeBranchSquash);
     }
 
     // Reset moves the current branch to the selected commit, branch or tag.

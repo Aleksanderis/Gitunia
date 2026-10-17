@@ -195,7 +195,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 
 **Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens keep `Enter`/`l`). The discard itself is reached from the palette, not a list button.
 
-### 3. Branches, tags, merge, reset and the reflog (M3, planned)
+### 3. Branches, tags, merge, reset and the reflog (M3; branches, merge and reset done)
 
 Planned keys, written here and not yet in the keymap table: each implementing issue adds its table rows with its bindings (`KeymapDocumentationTests` fails on a documented binding that is not registered). `<space>t` is the tools prefix (`td` `tm` `te`), so these use other prefixes: `<space>b` branches, `<space>g` operations on the selected commit, `<space>T` tags, `<space>w` worktrees, `<space>S` stashes. Every action is also a palette entry and has a mouse path (a button in the sidebar section header, or a click on the row and then the same key).
 
@@ -215,7 +215,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 5. No single-letter sidebar shortcuts (`d`, `r`): they are vim operator and replace keys (vim-clash rule), so the sidebar uses the same `<space>b` chords on the selected row. Every action is in the command palette.
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
-1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`).
+1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`). It runs at once, no Confirm (nothing is lost); the status line names the old tip and the undo (`git reset --hard <old>`, also `ORIG_HEAD`). A stop on conflicts becomes the in-progress merge (banner, `<space>gc`, `<space>ga`); a conflicting squash leaves the files marked `!` but no operation and says to resolve and commit. A branch row merges that branch, a tag row or a graph commit that commit. Refused during any in-progress operation and on a detached or unborn HEAD.
 2. `gr` rebase the current branch onto the selection. A Confirm warns when the branch is already on its upstream (history rewrite, force push needed).
 3. `gp` cherry-pick the selection (a Visual range in the graph picks every commit, oldest first; a range that mixes lanes is applied in graph order and a range with a merge commit asks for the mainline once). `gv` revert it the same way (`--no-edit`).
 4. A merge commit asked to cherry-pick or revert gets a mainline prompt (parent 1 or 2, parent subjects shown).
@@ -235,7 +235,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` opens the configured mergetool. Resolving inside Gitunia (a conflict editor) stays post-MVP.
 3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (`-c core.editor=true`, so git's prepared message is used). A rebase may stop again at the next commit: the status line warns and the banner updates. A continue that fails without a new conflict (a dirty tree, a hook) shows git's reason and leaves the operation as it was.
 4. **Abort** (`<space>ga`): Confirm that says the work of the operation is undone and resolutions are lost, with the old tip. **Skip** (`<space>gk`; rebase, cherry-pick and revert only): Confirm naming the commit that is dropped.
-5. **Other actions are blocked** (each blocked feature adds its own refusal: #38 merge, #39 rebase, #40 cherry-pick and revert, #392 reset, #419 branch switch). While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
+5. **Other actions are blocked** (each blocked feature adds its own refusal: #38 merge (done), #39 rebase, #40 cherry-pick and revert, #392 reset, #419 branch switch). While an operation is in progress branch switch, merge, rebase, reset and new cherry-picks are refused with "finish or abort the <operation> first". Staging, committing (as the continue step) and viewing keep working.
 6. **Completion.** A continue that finishes the operation posts "Merged feature/x into main (abc1234)" or the equivalent and removes the banner.
 
 ### 5. Fetch, pull and push (M4, keys planned here)
@@ -355,6 +355,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>bd` | Delete the local branch at the selected commit after a Confirm (a second one when it is unmerged) |
 | Graph | `<space>bu` | Set the upstream of the local branch at the selected commit (type-to-filter picker of remote branches) |
 | Graph | `<space>bU` | Unset the upstream of the local branch at the selected commit |
+| Graph | `<space>gm` `<space>gM` `<space>gs` | Merge the selected commit into the current branch: fast-forward when possible / always a merge commit (`--no-ff`) / squash (changes staged, no commit; workflow 3) |
 | Graph | `<space>gx` | Reset the current branch to the selected commit: `s`/`m`/`h` picks soft, mixed or hard; Confirm where work is lost |
 | Graph | `<space>l` | Open the reflog of HEAD (a list of its entries; see the Reflog flow) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
@@ -455,6 +456,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>bd` | Delete the selected local branch after a Confirm (a second one when it is unmerged) |
 | Sidebar | `<space>bu` | Set the upstream of the selected local branch (type-to-filter picker of remote branches) |
 | Sidebar | `<space>bU` | Unset the upstream of the selected local branch |
+| Sidebar | `<space>gm` `<space>gM` `<space>gs` | Merge the selected branch or tag into the current branch (as in the graph) |
 | Sidebar | `<space>gx` | Reset the current branch to the selected branch or tag (`s`/`m`/`h`; Confirm where work is lost) |
 | Sidebar | `<space>l` | Open the reflog of the local branch under the cursor (HEAD's on any other row) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |

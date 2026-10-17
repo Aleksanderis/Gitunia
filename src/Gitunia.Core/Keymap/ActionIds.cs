@@ -143,6 +143,12 @@ public static class ActionIds
 
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
+    public static ActionId MergeBranch { get; } = new("merge.branch");
+
+    public static ActionId MergeBranchNoFastForward { get; } = new("merge.branch-no-ff");
+
+    public static ActionId MergeBranchSquash { get; } = new("merge.branch-squash");
+
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
     public static ActionId ReflogOpen { get; } = new("reflog.open");
