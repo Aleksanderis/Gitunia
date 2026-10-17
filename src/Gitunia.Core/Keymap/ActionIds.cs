@@ -143,6 +143,13 @@ public static class ActionIds
 
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
+    public static ActionId TagCreate { get; } = new("tag.create");
+
+    public static ActionId TagDelete { get; } = new("tag.delete");
+
+    public static ActionId TagDeleteRemote { get; } = new("tag.delete-remote");
+
+    public static ActionId TagPush { get; } = new("tag.push");
     public static ActionId MergeBranch { get; } = new("merge.branch");
 
     public static ActionId MergeBranchNoFastForward { get; } = new("merge.branch-no-ff");

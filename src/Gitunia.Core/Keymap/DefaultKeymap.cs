@@ -144,6 +144,8 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
+        AddTagKeys(bindings, GraphView);
+        AddTagKeys(bindings, SidebarView);
         AddResetKeys(bindings, GraphView);
         Add(bindings, NormalOnly, GraphView, "<space>l", ActionIds.ReflogOpen);
         Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
@@ -208,6 +210,15 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
+    }
+
+    // The tag operations act on the selected commit (graph) or the selected row (sidebar).
+    private static void AddTagKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>Tc", ActionIds.TagCreate);
+        Add(bindings, NormalOnly, view, "<space>Td", ActionIds.TagDelete);
+        Add(bindings, NormalOnly, view, "<space>Tp", ActionIds.TagPush);
+        Add(bindings, NormalOnly, view, "<space>TD", ActionIds.TagDeleteRemote);
     }
 
     // Merge integrates the selected commit, branch or tag into the current branch.

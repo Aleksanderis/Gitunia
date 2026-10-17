@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
@@ -63,6 +64,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>The branch actions (create, switch, rename, delete), which own their prompts in every pane.</summary>
     public BranchActions? Branches { get; set; }
+
+    /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
+    public TagActions? Tags { get; set; }
 
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }
@@ -131,6 +135,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Branches?.TryExecute(action, count) == true)
         {
             Message = Branches.Notice;
+            return;
+        }
+
+        if (Tags?.TryExecute(action, count) == true)
+        {
+            Message = Tags.Notice;
             return;
         }
 

@@ -20,6 +20,7 @@ using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Rebase;
@@ -92,6 +93,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private readonly StatusChannel _statuses = new();
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
+    private TagActions _tags = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
     private SessionPersistence? _persistence;
@@ -142,6 +144,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _commits = CreateCommits();
         _branches = CreateBranches();
+        _tags = CreateTags();
         _view.ActiveDraft = () => _host.Workspace.ActiveTabId is { } tabId ? _commits.DraftOf(tabId) : null;
         _view.IsEditingMessage = () => _commits.IsEditing;
         _router = new ActionRouter(
@@ -192,6 +195,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Discard = CreateDiscard(operationGate),
         };
         _router.Branches = _branches;
+        _router.Tags = _tags;
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
@@ -526,6 +530,18 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions CreateBranches() => new(
         _host,
         services.Branches,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow);
+
+    private TagActions CreateTags() => new(
+        _host,
+        services.Tags,
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
@@ -889,6 +905,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
+            _tags,
             _reset,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
             new SearchController(handle, DeferToNextIteration),
