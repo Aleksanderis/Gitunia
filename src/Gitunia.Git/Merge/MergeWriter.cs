@@ -74,12 +74,12 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     /// </summary>
     private static string? MessageFor(string target)
     {
-        if (target.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal) && target.Length > GitRefPrefixes.Heads.Length)
+        if (target.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
         {
             return $"Merge branch '{target[GitRefPrefixes.Heads.Length..]}'";
         }
 
-        return target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal) && target.Length > GitRefPrefixes.Remotes.Length
+        return target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
             ? $"Merge remote-tracking branch '{target[GitRefPrefixes.Remotes.Length..]}'"
             : null;
     }
