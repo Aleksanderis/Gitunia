@@ -35,7 +35,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(mainTip);
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         var prompt = Assert.Single(harness.Prompts);
         Assert.Equal("Rebase", prompt.Title);
@@ -63,7 +63,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
         harness.Decline();
 
         Assert.Equal(oldTip, repository.Head);
@@ -79,7 +79,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
         harness.Answer();
         await harness.WaitAsync();
 
@@ -106,7 +106,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("finish or abort the rebase first", harness.Notice, StringComparison.Ordinal);
         Assert.Contains("<space>gc", harness.Notice, StringComparison.Ordinal);
@@ -121,7 +121,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "HEAD~1").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("finish or abort the merge first", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -136,7 +136,7 @@ public class RebaseActionsTests
         using var untracked = await Harness.CreateAsync(repository);
         untracked.Select(mainTip);
 
-        untracked.Execute();
+        await untracked.ExecuteAsync();
 
         Assert.Single(untracked.Prompts);
         Assert.Equal(string.Empty, untracked.Notice);
@@ -144,7 +144,7 @@ public class RebaseActionsTests
         repository.WriteFile("topic.txt", "edited");
         await untracked.ReloadAsync();
         untracked.Prompts.Clear();
-        untracked.Execute();
+        await untracked.ExecuteAsync();
 
         Assert.Equal(
             "1 file with uncommitted changes: commit or stash them before a rebase",
@@ -161,7 +161,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(mainTip);
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("HEAD is detached", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -174,7 +174,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Head);
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("already at that commit", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -190,7 +190,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.SelectRow(kind, repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("Select a commit", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -203,7 +203,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(null);
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("Select a commit", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -216,7 +216,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.SelectRow(SidebarRowKind.LocalBranch, repository.Git("rev-parse", "main").Trim(), "main");
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("Rebase topic onto main?", Assert.Single(harness.Prompts).Lines);
     }
@@ -231,7 +231,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         var lines = string.Join('\n', Assert.Single(harness.Prompts).Lines);
         Assert.Contains("All of its commits are already on origin/topic", lines, StringComparison.Ordinal);
@@ -246,7 +246,7 @@ public class RebaseActionsTests
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.DoesNotContain(
             "force push",
@@ -263,7 +263,7 @@ public class RebaseActionsTests
         harness.Select(repository.Git("rev-parse", "main").Trim());
         harness.Gate.Begin(harness.TabId);
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
         Assert.Contains("Busy", harness.Notice, StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
@@ -277,7 +277,7 @@ public class RebaseActionsTests
         var oldTip = repository.Head;
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
-        harness.Execute();
+        await harness.ExecuteAsync();
         harness.Gate.Begin(harness.TabId);
 
         harness.Answer();
@@ -294,9 +294,9 @@ public class RebaseActionsTests
         harness.Select(repository.Git("rev-parse", "main").Trim());
         harness.CanShowDialog = false;
 
-        harness.Execute();
+        await harness.ExecuteAsync();
 
-        Assert.Contains("too small", harness.Notice, StringComparison.Ordinal);
+        Assert.Contains("too small", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class RebaseActionsTests
         var oldTip = repository.Head;
         using var harness = await Harness.CreateAsync(repository);
         harness.Select(repository.Git("rev-parse", "main").Trim());
-        harness.Execute();
+        await harness.ExecuteAsync();
         repository.WriteFile("topic.txt", "edited after the tab loaded");
 
         harness.Answer();
@@ -317,6 +317,63 @@ public class RebaseActionsTests
         Assert.Equal(oldTip, repository.Head);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
     }
+
+    [Fact]
+    public async Task GivenAMergeInTheReplayedRange_WhenRebasing_ThenTheConfirmWarnsThatItIsFlattened()
+    {
+        using var repository = WithMergeOnTopic();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(repository.Git("rev-parse", "main").Trim());
+
+        await harness.ExecuteAsync();
+
+        var lines = string.Join('\n', Assert.Single(harness.Prompts).Lines);
+        Assert.Contains("1 merge commit in that range will be flattened", lines, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAMergeInTheReplayedRange_WhenConfirming_ThenTheRebaseIsLinear()
+    {
+        using var repository = WithMergeOnTopic();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(repository.Git("rev-parse", "main").Trim());
+        await harness.ExecuteAsync();
+
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(string.Empty, repository.Git("rev-list", "--merges", "main..HEAD").Trim());
+    }
+
+    [Fact]
+    public async Task GivenNoMergeInTheRange_WhenRebasing_ThenTheConfirmDoesNotMentionFlattening()
+    {
+        using var repository = Diverged();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(repository.Git("rev-parse", "main").Trim());
+
+        await harness.ExecuteAsync();
+
+        Assert.DoesNotContain(
+            "flattened",
+            string.Join('\n', Assert.Single(harness.Prompts).Lines),
+            StringComparison.Ordinal);
+    }
+
+    // topic has a side branch merged into it, and main has moved on.
+    private static TestRepository WithMergeOnTopic() =>
+        TestRepository.Create()
+            .Commit("Initial", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("topic")
+            .Commit("Topic change", new TestFile("topic.txt", "topic\n"))
+            .CheckoutNewBranch("side")
+            .Commit("Side change", new TestFile("side.txt", "side\n"))
+            .Checkout("topic")
+            .Commit("Topic again", new TestFile("topic2.txt", "topic2\n"))
+            .Merge("side")
+            .Checkout("main")
+            .Commit("Main change", new TestFile("main.txt", "main\n"))
+            .Checkout("topic");
 
     private static TestRepository Diverged() =>
         TestRepository.Create()
@@ -341,7 +398,7 @@ public class RebaseActionsTests
             _host.Dispatch(new OpenRepositoryCommand(location));
             _tabId = _host.Workspace.ActiveTabId!.Value;
             Pump = new UiPump(TestContext.Current.CancellationToken);
-            var writer = new RebaseWriter(new OperationRunner(Runner, new RepositoryOperationDetector()));
+            var writer = new RebaseWriter(new OperationRunner(Runner, new RepositoryOperationDetector()), Runner);
             Actions = new RebaseActions(
                 _host,
                 writer,
@@ -413,7 +470,15 @@ public class RebaseActionsTests
         public void SelectRow(SidebarRowKind kind, string commitHash, string name = "row") =>
             _selection = new BranchSelection(kind, name, commitHash);
 
-        public void Execute() => Assert.True(Actions.TryExecute(ActionIds.RebaseOnto, null));
+        // The Confirm opens once the merge count is read, so wait for it unless the action refused at once.
+        public async Task ExecuteAsync()
+        {
+            Assert.True(Actions.TryExecute(ActionIds.RebaseOnto, null));
+            if (Notice.Length == 0)
+            {
+                await Pump.RunUntilAsync(() => Prompts.Count > 0 || Statuses.Log.Latest is not null);
+            }
+        }
 
         public void Answer()
         {

@@ -218,6 +218,13 @@ public sealed class OverlayController
             return true;
         }
 
+        if (action == ActionIds.PaletteOpenForRow)
+        {
+            var palette = new PaletteState(PaletteEntryBuilder.BuildFor(_engine.Table, _baseView(), RowActions.OfGraphRow));
+            Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
+            return true;
+        }
+
         return false;
     }
 

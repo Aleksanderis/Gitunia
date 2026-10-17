@@ -10,6 +10,7 @@ using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Operations;
@@ -80,7 +81,7 @@ public sealed class RebaseActions(
                 ? fullName[GitRefPrefixes.Heads.Length..]
                 : fullName;
 
-    private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current)
+    private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current, int merges)
     {
         List<string> lines =
         [
@@ -88,6 +89,13 @@ public sealed class RebaseActions(
             $"Its commits that {target.Label} does not have are replayed on top of {target.Label}; " +
             "they get new hashes.",
         ];
+        if (merges > 0)
+        {
+            lines.Add(
+                $"{OperationText.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
+                "is dropped and its side's commits are replayed as one line.");
+        }
+
         if (current is { UpstreamFullName: { } upstream, IsUpstreamGone: false })
         {
             var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
@@ -149,7 +157,55 @@ public sealed class RebaseActions(
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
-        return confirm(PromptFor(target, current), () => Start(target)) ? string.Empty : TooSmallNotice;
+        var location = tab.Location;
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => AskAsync(location, target, current, token), CancellationToken.None);
+        return string.Empty;
+    }
+
+    // The merge count is a git call, so the Confirm opens when it is answered; the state is checked again then.
+    private async Task AskAsync(
+        RepositoryLocation location,
+        RebaseTarget target,
+        GitRef? current,
+        CancellationToken token)
+    {
+        int merges;
+        try
+        {
+            merges = await writer.CountMergesAsync(location, target.CommitHash, token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // The count only decides on a warning; the rebase itself reports git's reason if the range is bad.
+            postToUi(() => Ask(target, current, 0));
+            return;
+        }
+
+        postToUi(() => Ask(target, current, merges));
+    }
+
+    private void Ask(RebaseTarget target, GitRef? current, int merges)
+    {
+        if (host.Workspace.FindTab(target.TabId) is not { } tab)
+        {
+            return;
+        }
+
+        if (gate.IsBusy(tab.Id) || Refusal(tab, target.CommitHash) is not null)
+        {
+            statuses.Warning("The tab changed while asking: nothing was rebased");
+            return;
+        }
+
+        if (!confirm(PromptFor(target, current, merges), () => Start(target)))
+        {
+            statuses.Warning(TooSmallNotice);
+        }
     }
 
     // Why a rebase must not start in this tab, or null. No git runs for any of these.

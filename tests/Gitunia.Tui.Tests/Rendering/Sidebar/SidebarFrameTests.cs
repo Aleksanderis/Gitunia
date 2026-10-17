@@ -95,7 +95,7 @@ public class SidebarFrameTests
 
         Assert.StartsWith("|  v Branches 1      | *  second", frame[2], StringComparison.Ordinal);
         Assert.StartsWith("|   * main +1-3      | *  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("|  > Tags 2          |", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("|  > Tags 2 [rebase] |", frame[4], StringComparison.Ordinal);
     }
 
     [Fact]

@@ -360,6 +360,18 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenGraphView_WhenOpeningTheRowCommands_ThenThePaletteListsOnlyTheRowActions()
+    {
+        Assert.True(_overlays.Handle(ActionIds.PaletteOpenForRow, null));
+
+        Assert.Equal(OverlayKind.Palette, _overlays.State.Kind);
+        var actions = _overlays.State.Palette!.Entries.Select(entry => entry.Action).ToList();
+        Assert.Equal(RowActions.OfGraphRow, actions);
+        Assert.Contains(ActionIds.RebaseOnto, actions);
+        Assert.Contains(ActionIds.ResetBranch, actions);
+    }
+
+    [Fact]
     public void GivenInsertMode_WhenPressingCtrlP_ThenThePaletteOpensAndEscRestoresInsertMode()
     {
         _keys.SetMode(KeyMode.Insert);

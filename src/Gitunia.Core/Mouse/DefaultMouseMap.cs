@@ -90,6 +90,11 @@ public static class DefaultMouseMap
 
     public const string SidebarBranchDeleteButton = "SidebarButton.BranchDelete";
 
+    /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428): each acts on the selected row.</summary>
+    public const string SidebarRebaseButton = "SidebarButton.Rebase";
+
+    public const string SidebarResetButton = "SidebarButton.Reset";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -154,6 +159,9 @@ public static class DefaultMouseMap
         new(SidebarBranchSwitchButton, MouseGesture.Click, ActionIds.BranchSwitch),
         new(SidebarBranchRenameButton, MouseGesture.Click, ActionIds.BranchRename),
         new(SidebarBranchDeleteButton, MouseGesture.Click, ActionIds.BranchDelete),
+        new(SidebarRebaseButton, MouseGesture.Click, ActionIds.RebaseOnto),
+        new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
+        new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),

@@ -13,6 +13,19 @@ public static class PaletteEntryBuilder
     public static IReadOnlyList<PaletteEntry> Build(KeyBindingTable table, string view) =>
         Build(table, view, ActionCatalog.Unimplemented);
 
+    /// <summary>
+    /// The entries for the actions in <paramref name="actions"/> only, in that order (the right-click menu of a row):
+    /// actions without a binding in the view's chain are left out, since the palette runs them like the keys.
+    /// </summary>
+    public static IReadOnlyList<PaletteEntry> BuildFor(
+        KeyBindingTable table,
+        string view,
+        IReadOnlyList<ActionId> actions)
+    {
+        var all = Build(table, view);
+        return [.. actions.Select(action => all.FirstOrDefault(entry => entry.Action == action)).OfType<PaletteEntry>()];
+    }
+
     /// <summary>Like <see cref="Build(KeyBindingTable, string)"/> with an explicit set of actions that have no behaviour yet (shown greyed out); modal-only actions are left out.</summary>
     /// <param name="table">The bindings.</param>
     /// <param name="view">The focused view.</param>

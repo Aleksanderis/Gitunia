@@ -23,6 +23,10 @@ public static class SidebarHeaderButtons
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchRenameButton, "[rename]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchDeleteButton, "[delete]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewOnlyButton, "[new-only]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarRebaseButton, "[rebase]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarResetButton, "[reset]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarRebaseButton, "[rebase]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarResetButton, "[reset]"),
     ];
 
     /// <summary>

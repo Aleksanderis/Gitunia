@@ -282,3 +282,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Sidebar header buttons (#414) are chips drawn on the section header row and hit-tested by the sidebar list (`SidebarHeaderButtons`); they act on the selected row, no row is chosen by the click. After a branch operation the graph cursor follows by saving the target commit as the tab's selection before the refresh.
 
 **Git:** Merge (#425): the UI passes a branch as its full ref; the writer uses the short name unless a tag of the same name would win, then the full ref with `-m` (git would write the full ref into the message).
+
+**UI:** Rebase and reset by mouse (#428): `[rebase]` and `[reset]` chips on the Branches and Tags headers (last to fit, so they drop first) and a right-click on a graph row (selects it, opens the palette narrowed to `RowActions.OfGraphRow`). A plain rebase's Confirm counts the merge commits in `onto..HEAD` (`rev-list --merges`) and warns they are flattened; `--rebase-merges` stays with #399. The Confirm now opens after that git call (async), not at the key.
