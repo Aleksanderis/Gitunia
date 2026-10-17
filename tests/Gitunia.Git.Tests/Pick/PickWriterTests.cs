@@ -212,17 +212,19 @@ public class PickWriterTests
     }
 
     [Fact]
-    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentTwo_ThenTheRevertIsLeftInProgress()
+    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentTwo_ThenTheRevertIsAbortedAndTheTipKept()
     {
         using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
         var (writer, location) = await CreateAsync(repository);
         var hashes = new[] { Hash(repository, "HEAD"), Hash(repository, "HEAD~1") };
+        var tip = repository.Head;
 
         await Assert.ThrowsAsync<GitCommandFailedException>(
             () => writer.PickAsync(location, PickKind.Revert, hashes, 2, Token));
 
-        // Why the UI accepts only parent 1 for such a range: the call fails after the first commit was reverted.
-        Assert.Equal(RepositoryOperation.Revert, new RepositoryOperationDetector().Detect(location));
+        // The call fails after the first commit was reverted: the sequence is rolled back, not left in progress.
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.Equal(tip, repository.Head);
     }
 
     [Fact]
@@ -259,6 +261,70 @@ public class PickWriterTests
 
         await Assert.ThrowsAsync<GitCommandFailedException>(
             () => writer.PickAsync(location, PickKind.CherryPick, [new string('a', 40)], null, Token));
+    }
+
+    [Fact]
+    public async Task GivenARevertRangeThatTurnsEmptyMidway_WhenReverting_ThenItIsRolledBackAndNotLeftInProgress()
+    {
+        // The second revert undoes a change that is already gone, so it is empty and git refuses it after the first.
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .Commit("add b", new TestFile("b.txt", "2"))
+            .Delete("b.txt")
+            .Commit("remove b")
+            .Commit("add c", new TestFile("c.txt", "3"));
+        var tip = repository.Head;
+        var (writer, location) = await CreateAsync(repository);
+        var hashes = new[] { Hash(repository, "HEAD"), Hash(repository, "HEAD~2") };
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.PickAsync(location, PickKind.Revert, hashes, null, Token));
+
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.Equal(tip, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenARevertAlreadyInProgress_WhenARevertFails_ThenTheOldOperationIsNotAborted()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile("conflict.txt", "original\n"))
+            .Commit("First change", new TestFile("conflict.txt", "first\n"))
+            .Commit("Second change", new TestFile("conflict.txt", "second\n"));
+        var (writer, location) = await CreateAsync(repository);
+        await writer.PickAsync(location, PickKind.Revert, [Hash(repository, "HEAD~1")], null, Token);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.PickAsync(location, PickKind.Revert, [Hash(repository, "HEAD")], null, Token));
+
+        Assert.Equal(RepositoryOperation.Revert, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenAGitThatDoesNotKnowTheEmptyOption_WhenCherryPicking_ThenTheCallIsRepeatedWithoutIt()
+    {
+        using var repository = Diverged();
+        var (writer, location) = await CreateAsync(repository, "--option-an-old-git-does-not-know");
+
+        var result = await writer.PickAsync(location, PickKind.CherryPick, [Hash(repository, "topic")], null, Token);
+
+        Assert.Equal(PickOutcome.Completed, result.Outcome);
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAnOldGitAndACommitHeadAlreadyHas_WhenCherryPicking_ThenGitsEmptyStopIsThrownAndNothingStays()
+    {
+        using var repository = Diverged();
+        var (writer, location) = await CreateAsync(repository, "--option-an-old-git-does-not-know");
+        await writer.PickAsync(location, PickKind.CherryPick, [Hash(repository, "topic")], null, Token);
+        var after = repository.Head;
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.PickAsync(location, PickKind.CherryPick, [Hash(repository, "topic")], null, Token));
+
+        Assert.Equal(after, repository.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
     }
 
     [Fact]
@@ -299,11 +365,14 @@ public class PickWriterTests
     private static string Hash(TestRepository repository, string revision) =>
         repository.Git("rev-parse", revision).Trim();
 
-    private static async Task<(PickWriter Writer, RepositoryLocation Location)> CreateAsync(TestRepository repository)
+    private static async Task<(PickWriter Writer, RepositoryLocation Location)> CreateAsync(
+        TestRepository repository,
+        string dropEmptyOption = PickWriter.DropEmpty)
     {
         var runner = repository.CreateIsolatedRunner();
         var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
-        var operations = new OperationRunner(runner, new RepositoryOperationDetector());
-        return (new PickWriter(runner, operations), location);
+        var detector = new RepositoryOperationDetector();
+        var operations = new OperationRunner(runner, detector);
+        return (new PickWriter(runner, operations, detector, dropEmptyOption), location);
     }
 }
