@@ -9,7 +9,8 @@ namespace Gitunia.Git.Merge;
 /// <summary>
 /// Merges with the git CLI. <c>--no-edit</c> keeps git from opening an editor for the message. A normal merge goes
 /// through <see cref="OperationRunner"/> (so a stop on conflicts is a result); a squash leaves no <c>MERGE_HEAD</c>,
-/// so its conflicts are recognised here from the unmerged files.
+/// so its conflicts are recognised here from the unmerged files. The end-of-options marker follows the target
+/// because <c>merge</c> does not accept it before the revision; targets are branch names or hashes from the UI.
 /// </summary>
 public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : IMergeWriter
 {
@@ -17,11 +18,12 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     private const string NoEdit = "--no-edit";
     private const string NoFastForward = "--no-ff";
     private const string SquashOption = "--squash";
+    private const string MergeBase = "merge-base";
+    private const string IsAncestor = "--is-ancestor";
+    private const string CommitSuffix = "^{commit}";
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
     private static readonly string[] UnmergedArguments = ["ls-files", "--unmerged"];
-    private static readonly string[] ParentsArguments = ["rev-list", "--parents", "-n", "1", GitOptions.HeadRevision];
-    private static readonly string[] StagedArguments = ["diff", "--cached", "--quiet"];
 
     private static readonly GitRunOptions WriteOptions = new(Timeout: TimeSpan.FromMinutes(10));
 
@@ -45,15 +47,29 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
             _ => [Merge, NoEdit, target, GitOptions.EndOfOptions],
         };
 
-        return mode == MergeMode.Squash
-            ? await SquashAsync(location, arguments, before, cancellationToken).ConfigureAwait(false)
-            : await MergeOperationAsync(location, arguments, before, cancellationToken).ConfigureAwait(false);
+        if (mode == MergeMode.Squash)
+        {
+            return await SquashAsync(location, arguments, target, before, cancellationToken).ConfigureAwait(false);
+        }
+
+        var resolved = await runner
+            .RunAsync(
+                location.CommandPath,
+                ["rev-parse", "--quiet", "--verify", $"{target}{CommitSuffix}"],
+                NoMatchOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var resolvedTarget = resolved.ExitCode == 0 ? resolved.StandardOutputText.Trim() : null;
+        return await MergeOperationAsync(location, arguments, before, resolvedTarget, mode, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<MergeResult> MergeOperationAsync(
         RepositoryLocation location,
         string[] arguments,
         string? before,
+        string? resolvedTarget,
+        MergeMode mode,
         CancellationToken cancellationToken)
     {
         var result = await operations.RunAsync(location, arguments, cancellationToken).ConfigureAwait(false);
@@ -67,19 +83,26 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
             return new MergeResult(MergeKind.UpToDate, result.Head, before);
         }
 
-        var parents = await runner
-            .RunAsync(location.CommandPath, ParentsArguments, GitRunOptions.ReadOnlyRun, cancellationToken)
-            .ConfigureAwait(false);
-        var isMergeCommit = parents.StandardOutputText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > 2;
-        return new MergeResult(isMergeCommit ? MergeKind.MergeCommit : MergeKind.FastForward, result.Head, before);
+        // A fast-forward leaves HEAD exactly on the target, even when the target is itself a merge commit.
+        var isFastForward = mode == MergeMode.Default && result.Head == resolvedTarget;
+        return new MergeResult(isFastForward ? MergeKind.FastForward : MergeKind.MergeCommit, result.Head, before);
     }
 
     private async Task<MergeResult> SquashAsync(
         RepositoryLocation location,
         string[] arguments,
+        string target,
         string? before,
         CancellationToken cancellationToken)
     {
+        // Decided before the call: what is staged already (the user's own work) must not read as a squash result.
+        var contained = await runner
+            .RunAsync(
+                location.CommandPath,
+                [MergeBase, IsAncestor, $"{target}{CommitSuffix}", GitOptions.HeadRevision],
+                NoMatchOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
         var unmergedBefore = await ReadUnmergedAsync(location, cancellationToken).ConfigureAwait(false);
         try
         {
@@ -97,10 +120,7 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
             return new MergeResult(MergeKind.Conflicted, before, before);
         }
 
-        var staged = await runner
-            .RunAsync(location.CommandPath, StagedArguments, NoMatchOptions, cancellationToken)
-            .ConfigureAwait(false);
-        return new MergeResult(staged.ExitCode == 0 ? MergeKind.UpToDate : MergeKind.Squashed, before, before);
+        return new MergeResult(contained.ExitCode == 0 ? MergeKind.UpToDate : MergeKind.Squashed, before, before);
     }
 
     private async Task<string?> ReadHeadAsync(RepositoryLocation location, CancellationToken cancellationToken)

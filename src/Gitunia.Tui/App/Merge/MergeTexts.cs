@@ -11,7 +11,7 @@ public static class MergeTexts
     {
         var tip = OperationTexts.ShortHash(result.Head);
         var was = OperationTexts.ShortHash(result.OldHead);
-        var undo = $"undo: git reset --hard {result.OldHead} (or ORIG_HEAD, the reflog)";
+        var undo = $"undo: git reset --hard {was} (or ORIG_HEAD, the reflog)";
         return result.Kind switch
         {
             MergeKind.UpToDate => new OperationReport(

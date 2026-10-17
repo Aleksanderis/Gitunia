@@ -173,6 +173,77 @@ public class MergeWriterTests
         Assert.Equal(before, repository.Head);
     }
 
+    [Fact]
+    public async Task GivenATargetThatIsAMergeCommitAheadOfHead_WhenMerging_ThenItIsAFastForward()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .CheckoutNewBranch("topic")
+            .Commit("two", new TestFile("b.txt", "2"))
+            .Checkout("main")
+            .Commit("three", new TestFile("c.txt", "3"))
+            .Checkout("topic")
+            .Merge("main")
+            .Checkout("main");
+        var (writer, location) = await CreateAsync(repository);
+
+        var result = await writer.MergeAsync(location, "topic", MergeMode.Default, Token);
+
+        Assert.Equal(MergeKind.FastForward, result.Kind);
+        Assert.Equal(repository.Git("rev-parse", "topic").Trim(), repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenSomethingStagedAndAContainedTarget_WhenSquashing_ThenItIsUpToDateNotSquashed()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .Branch("topic")
+            .Commit("two", new TestFile("a.txt", "2"))
+            .WriteFile("staged.txt", "mine");
+        repository.Git("add", "staged.txt");
+        var (writer, location) = await CreateAsync(repository);
+
+        var result = await writer.MergeAsync(location, "topic", MergeMode.Squash, Token);
+
+        Assert.Equal(MergeKind.UpToDate, result.Kind);
+    }
+
+    [Fact]
+    public async Task GivenAConflictedMerge_WhenResolvedAndContinued_ThenAMergeCommitWithTwoParentsIsMade()
+    {
+        using var repository = TestRepositories.ConflictingBranches();
+        var (writer, location) = await CreateAsync(repository);
+        await writer.MergeAsync(location, "other", MergeMode.Default, Token);
+        repository.WriteFile("conflict.txt", "resolved\n");
+        repository.Git("add", "conflict.txt");
+        var operationWriter = new OperationWriter(new OperationRunner(
+            repository.CreateIsolatedRunner(),
+            new RepositoryOperationDetector()));
+
+        await operationWriter.ContinueAsync(location, RepositoryOperation.Merge, Token);
+
+        Assert.Equal(2, ParentCount(repository));
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenAConflictedMerge_WhenAborted_ThenTheOldTipReturns()
+    {
+        using var repository = TestRepositories.ConflictingBranches();
+        var before = repository.Head;
+        var (writer, location) = await CreateAsync(repository);
+        await writer.MergeAsync(location, "other", MergeMode.Default, Token);
+        var operationWriter = new OperationWriter(new OperationRunner(
+            repository.CreateIsolatedRunner(),
+            new RepositoryOperationDetector()));
+
+        await operationWriter.AbortAsync(location, RepositoryOperation.Merge, Token);
+
+        Assert.Equal(before, repository.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
     private static TestRepository AheadBranch() =>
         TestRepository.Create()
             .Commit("one", new TestFile("a.txt", "1"))

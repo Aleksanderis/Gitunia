@@ -35,7 +35,7 @@ public class MergeActionsTests
         Assert.Equal(topic, repository.Head);
         var text = harness.Statuses.Log.Latest!.Text;
         Assert.StartsWith("Fast-forwarded main", text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {old}", text, StringComparison.Ordinal);
+        Assert.Contains($"git reset --hard {old[..7]}", text, StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
     }
@@ -142,6 +142,19 @@ public class MergeActionsTests
         harness.Run(ActionIds.MergeBranch);
 
         Assert.Contains("detached", harness.Merge.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAnUnbornBranch_WhenMerging_ThenItIsRefused()
+    {
+        using var repository = TestRepository.Create();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new string('a', 40));
+
+        harness.Run(ActionIds.MergeBranch);
+
+        Assert.Contains("no commits yet", harness.Merge.Notice, StringComparison.Ordinal);
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
     }
 
     [Theory]
