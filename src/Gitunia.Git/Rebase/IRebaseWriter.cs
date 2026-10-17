@@ -11,9 +11,9 @@ namespace Gitunia.Git.Rebase;
 public interface IRebaseWriter
 {
     /// <summary>
-    /// Runs <c>git rebase &lt;onto&gt;</c> with no editor. <paramref name="onto"/> is a commit hash or ref name that does
-    /// not start with <c>-</c>. Returns <see cref="OperationOutcome.Conflicted"/> when the rebase stopped on conflicts;
-    /// any other failure (a dirty tree, an unknown commit, a refusing hook) throws the typed exception.
+    /// Runs <c>git rebase &lt;onto&gt;</c> with no editor. <paramref name="onto"/> is a commit hash or ref name that
+    /// does not start with <c>-</c>. Returns <see cref="OperationOutcome.Conflicted"/> when the rebase stopped on
+    /// conflicts; any other failure (a dirty tree, an unknown commit, a refusing hook) throws the typed exception.
     /// </summary>
     Task<OperationResult> RebaseAsync(RepositoryLocation location, string onto, CancellationToken cancellationToken);
 }

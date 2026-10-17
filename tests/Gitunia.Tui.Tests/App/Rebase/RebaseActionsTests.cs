@@ -385,7 +385,8 @@ public class RebaseActionsTests
         public static async Task<Harness> CreateAsync(TestRepository repository)
         {
             var discovery = new RepositoryDiscovery(repository.CreateIsolatedRunner());
-            var location = await discovery.DiscoverAsync(repository.WorkingTreePath, TestContext.Current.CancellationToken);
+            var token = TestContext.Current.CancellationToken;
+            var location = await discovery.DiscoverAsync(repository.WorkingTreePath, token);
             var harness = new Harness(repository, location);
             await harness.ReloadAsync();
             return harness;

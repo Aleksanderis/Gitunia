@@ -57,7 +57,8 @@ public class RebaseWriterTests
 
         Assert.Equal(OperationOutcome.Conflicted, result.Outcome);
         Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
-        Assert.Contains("conflict.txt", repository.Git("diff", "--name-only", "--diff-filter=U"), StringComparison.Ordinal);
+        var unmerged = repository.Git("diff", "--name-only", "--diff-filter=U");
+        Assert.Contains("conflict.txt", unmerged, StringComparison.Ordinal);
 
         var aborted = await new OperationWriter(CreateOperationRunner(repository))
             .AbortAsync(location, RepositoryOperation.Rebase, Token);

@@ -90,7 +90,8 @@ public sealed class RebaseActions(
         if (current is { UpstreamFullName: { } upstream, IsUpstreamGone: false })
         {
             var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
-            lines.Add($"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.");
+            lines.Add(
+                $"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.");
         }
 
         return new ConfirmPrompt(
@@ -145,7 +146,8 @@ public sealed class RebaseActions(
 
         var label = chosen.Name ?? ShortHash(hash);
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
-        var current = tab.Refs.FirstOrDefault(candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
+        var current = tab.Refs.FirstOrDefault(
+            candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
         return confirm(PromptFor(target, current), () => Start(target)) ? string.Empty : TooSmallNotice;
     }
 
@@ -215,7 +217,8 @@ public sealed class RebaseActions(
         }
         catch (Exception exception)
         {
-            var failure = $"Could not rebase {target.BranchName} onto {target.Label}: {OperationText.Reason(exception)}";
+            var reason = OperationText.Reason(exception);
+            var failure = $"Could not rebase {target.BranchName} onto {target.Label}: {reason}";
             postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error));
         }
     }
