@@ -156,6 +156,10 @@ public static class ActionIds
 
     public static ActionId MergeBranchSquash { get; } = new("merge.branch-squash");
 
+    public static ActionId PickCherry { get; } = new("pick.cherry-pick");
+
+    public static ActionId PickRevert { get; } = new("pick.revert");
+
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
     public static ActionId RebaseOnto { get; } = new("rebase.onto");

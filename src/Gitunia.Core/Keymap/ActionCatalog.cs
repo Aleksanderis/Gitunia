@@ -43,6 +43,8 @@ public static class ActionCatalog
         ["merge.branch"] = "Merge the selection (fast-forward if possible)",
         ["merge.branch-no-ff"] = "Merge the selection with a merge commit",
         ["merge.branch-squash"] = "Squash-merge the selection (stages changes)",
+        ["pick.cherry-pick"] = "Cherry-pick the selected commit or Visual range onto the current branch",
+        ["pick.revert"] = "Revert the selected commit or Visual range with new commits",
         ["reflog.open"] = "Open the reflog of HEAD (of the branch under the sidebar cursor)",
         ["reflog.select-commit"] = "Select the reflog entry's commit in the graph",
         ["rebase.onto"] = "Rebase the current branch onto the selected commit, branch or tag",

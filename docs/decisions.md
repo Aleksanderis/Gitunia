@@ -273,4 +273,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Rebase onto (#39) is `<space>gr` with a Confirm naming the old tip for the undo; a dirty tracked tree, a detached HEAD or a running operation is refused with no git call. Why: git would refuse or leave a half-state; a stop on conflicts reuses the #37 banner and continue/abort/skip.
 
+**UI:** Cherry-pick and revert (#40): `<space>gp`/`<space>gv` act on the cursor commit, a Visual range or a sidebar ref tip and run at once, no Confirm (the status prints the `reset --hard <old>` undo). A pick applies oldest first, a revert newest first; a detached HEAD is allowed. Detail: ux.md workflow 3.
+
 **UI:** Checkout (`<space>bs`, `<space>bc`, reflog detached checkout) is refused while an operation is in progress, no git call (#419). Create-only (`<space>bC`) stays allowed. Why: git would switch under a half-done merge or rebase.

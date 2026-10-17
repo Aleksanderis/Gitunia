@@ -1,6 +1,7 @@
 using Gitunia.Git.Branches;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Rebase;
+using Gitunia.Git.Pick;
 using Gitunia.Git.Reset;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
@@ -36,6 +37,8 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
+/// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
+/// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Rebase">Rebases the current branch onto a commit (non-interactive).</param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
@@ -60,6 +63,8 @@ public sealed record GitServices(
     IBranchWriter Branches,
     ITagWriter Tags,
     IMergeWriter Merge,
+    IPickWriter Pick,
+    IPickCommitReader PickCommits,
     IResetWriter Reset,
     IRebaseWriter Rebase,
     IReflogReader Reflog,
@@ -96,6 +101,8 @@ public sealed record GitServices(
             new BranchWriter(runner),
             new TagWriter(runner),
             new MergeWriter(runner, operationRunner),
+            new PickWriter(runner, operationRunner),
+            new PickCommitReader(runner),
             new ResetWriter(runner),
             new RebaseWriter(operationRunner),
             new ReflogReader(runner),
