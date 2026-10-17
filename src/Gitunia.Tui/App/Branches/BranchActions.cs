@@ -450,6 +450,13 @@ public sealed class BranchActions(
             return string.Empty;
         }
 
+        // An operation may have started while the prompt was open (the refresh updates it).
+        var checksOut = kind == BranchPromptKind.Switch || kind == BranchPromptKind.Create && _checkout;
+        if (checksOut && OperationRefusal(tab) is { } refusal)
+        {
+            return refusal;
+        }
+
         var text = _text.Trim();
         return kind switch
         {

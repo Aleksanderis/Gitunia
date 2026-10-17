@@ -86,6 +86,24 @@ public class BranchActionsTests
     }
 
     [Fact]
+    public async Task GivenAnOperationStartingWhileTheSwitchPromptIsOpen_WhenAccepting_ThenNothingIsCheckedOut()
+    {
+        using var repository = TestRepositories.Conflicted();
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, head));
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("other");
+        await harness.LoadOperationAsync();
+
+        harness.Run(ActionIds.InputAccept);
+
+        Assert.Contains("finish or abort the merge first", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Equal(0, harness.Refreshes);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Fact]
     public async Task GivenAMergeInProgress_WhenCreatingWithoutCheckout_ThenThePromptStillOpens()
     {
         using var repository = OperationRepository(nameof(TestRepositories.Conflicted));
