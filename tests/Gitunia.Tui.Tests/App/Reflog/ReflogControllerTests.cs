@@ -254,6 +254,178 @@ public class ReflogControllerTests
     }
 
     [Fact]
+    public async Task GivenTypedText_WhenSearching_ThenTheHighlightFollowsAndTheKeysWork()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.SearchOpen);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.True(harness.Reflog.HandleTextKey(new KeyEvent("i")));
+        Assert.True(harness.Reflog.HandleTextKey(new KeyEvent("n")));
+        Assert.True(harness.Reflog.HandleTextKey(new KeyEvent("i")));
+        Assert.Equal(1, harness.Reflog.State!.SelectedIndex);
+        Assert.Contains("/ini_", harness.Reflog.CurrentFrame()!.Lines[^2].Text, StringComparison.Ordinal);
+
+        harness.Run(ActionIds.InputAccept);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Reflog.State!.IsEditingSearch);
+        harness.Run(ActionIds.SearchNext);
+        Assert.Equal(1, harness.Reflog.State.SelectedIndex);
+
+        harness.Run(ActionIds.Cancel);
+        Assert.True(harness.Reflog.IsOpen);
+        Assert.False(harness.Reflog.State!.HasSearch);
+        harness.Run(ActionIds.Cancel);
+        Assert.False(harness.Reflog.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenNoMatch_WhenSteppingTheSearch_ThenTheStatusSaysSo()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.SearchOpen);
+        harness.Reflog.HandleTextKey(new KeyEvent("z"));
+        harness.Run(ActionIds.InputAccept);
+
+        harness.Run(ActionIds.SearchNext);
+
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Equal(0, harness.Reflog.State!.SelectedIndex);
+    }
+
+    [Fact]
+    public async Task GivenTheSearchBox_WhenEscapeIsPressed_ThenTheSearchIsDroppedAndTheListStaysOpen()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.SearchOpen);
+        harness.Reflog.HandleTextKey(new KeyEvent("c"));
+
+        harness.Run(ActionIds.Cancel);
+
+        Assert.True(harness.Reflog.IsOpen);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Reflog.State!.HasSearch);
+    }
+
+    [Fact]
+    public async Task GivenBranches_WhenPickingARefFromTheList_ThenThatBranchReflogOpens()
+    {
+        using var repository = TwoCommits();
+        repository.CheckoutNewBranch("topic");
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        Assert.Equal("HEAD", harness.Reflog.State!.Title);
+
+        harness.Run(ActionIds.ReflogOpen);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.Equal("HEAD", harness.Reflog.State!.Picker!.Candidates[0]);
+        Assert.Contains("topic", harness.Reflog.State.Picker.Candidates);
+        harness.Reflog.HandleTextKey(new KeyEvent("t"));
+        harness.Reflog.HandleTextKey(new KeyEvent("o"));
+        Assert.Equal("topic", harness.Reflog.State.Picker!.Selected);
+        harness.Run(ActionIds.InputAccept);
+        await harness.PumpUntilAsync(() => harness.Reflog.State is { Picker: null, Title: "topic" });
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("refs/heads/topic", harness.Reflog.State!.ReferenceName);
+        Assert.NotEmpty(harness.Reflog.State.Entries);
+    }
+
+    [Fact]
+    public async Task GivenTheRefPicker_WhenEscapeIsPressed_ThenTheListComesBack()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ReflogOpen);
+
+        harness.Run(ActionIds.Cancel);
+
+        Assert.Null(harness.Reflog.State!.Picker);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.True(harness.Reflog.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenTheRefPicker_WhenClickingARow_ThenThatReflogOpens()
+    {
+        using var repository = TwoCommits();
+        repository.CheckoutNewBranch("topic");
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ReflogOpen);
+        var row = harness.Reflog.State!.Picker!.Candidates.ToList().IndexOf("topic");
+
+        Assert.True(harness.Reflog.ActivateLine(row + 1));
+        await harness.PumpUntilAsync(() => harness.Reflog.State is { Picker: null, Title: "topic" });
+    }
+
+    [Fact]
+    public async Task GivenAnEntry_WhenClickingTheSelectRow_ThenTheGraphIsAskedForItsCommit()
+    {
+        using var repository = TwoCommits();
+        var first = FirstCommit(repository);
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        Assert.True(harness.Reflog.SelectEntryAt(2));
+
+        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(0)));
+
+        Assert.Equal([first], harness.SelectedCommits);
+        Assert.True(harness.Reflog.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenAnEntry_WhenClickingTheResetRow_ThenTheResetPromptOpensAtIt()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        Assert.True(harness.Reflog.SelectEntryAt(2));
+
+        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(1)));
+
+        Assert.False(harness.Reflog.IsOpen);
+        await harness.PumpUntilAsync(() => harness.Mode == KeyMode.Insert);
+    }
+
+    [Fact]
+    public async Task GivenAnEntry_WhenClickingTheBranchRow_ThenTheBranchPromptOpens()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+
+        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(2)));
+
+        Assert.False(harness.Reflog.IsOpen);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAnEntry_WhenClickingTheCheckoutRow_ThenHeadIsDetachedAtIt()
+    {
+        using var repository = TwoCommits();
+        var first = FirstCommit(repository);
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        Assert.True(harness.Reflog.SelectEntryAt(2));
+
+        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(3)));
+        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
+
+        Assert.False(harness.Reflog.IsOpen);
+        Assert.Equal(first, repository.Head);
+        Assert.False(harness.Reflog.ActivateLine(0));
+    }
+
+    [Fact]
     public async Task GivenAnotherAction_WhenTheListIsClosed_ThenItIsNotConsumed()
     {
         using var repository = TwoCommits();
@@ -335,6 +507,7 @@ public class ReflogControllerTests
                 () => Selection,
                 () => new ScreenSize(100, 30),
                 GraphGlyphSet.Unicode,
+                mode => Mode = mode,
                 () => { });
         }
 
@@ -391,6 +564,9 @@ public class ReflogControllerTests
             Assert.True(index >= 0);
             Reflog.TryExecute(ActionIds.ListTop, index + 1);
         }
+
+        // The frame line of the nth action row under the entries.
+        public int ActionLine(int index) => 1 + Reflog.State!.Entries.Count + index;
 
         public void Run(ActionId action) => Assert.True(Reflog.TryExecute(action, null), action.Value);
 

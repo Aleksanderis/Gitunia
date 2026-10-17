@@ -282,3 +282,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Sidebar header buttons (#414) are chips drawn on the section header row and hit-tested by the sidebar list (`SidebarHeaderButtons`); they act on the selected row, no row is chosen by the click. After a branch operation the graph cursor follows by saving the target commit as the tab's selection before the refresh.
 
 **Git:** Merge (#425): the UI passes a branch as its full ref; the writer uses the short name unless a tag of the same name would win, then the full ref with `-m` (git would write the full ref into the message).
+
+**UI:** Reflog follow-ups (#424): the ref picker opens with `<space>l` inside the list (the graph key keeps opening HEAD in one step), `/` search lives in the list footer, and the mouse paths of an entry are action rows under the list (no right-click or header button: the overlay is modal and has no pane header).

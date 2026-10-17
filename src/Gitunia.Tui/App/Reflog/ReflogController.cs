@@ -2,10 +2,12 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Reflog;
+using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Branches;
@@ -34,6 +36,7 @@ namespace Gitunia.Tui.App.Reflog;
 /// <param name="selection">What the sidebar cursor is on, to pick the branch whose reflog opens.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the list is drawn with.</param>
+/// <param name="setMode">Switches the keymap mode (Insert while the search box or the ref picker takes text).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 public sealed class ReflogController(
     WorkspaceHost host,
@@ -47,6 +50,7 @@ public sealed class ReflogController(
     Func<BranchSelection> selection,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
+    Action<KeyMode> setMode,
     Action redraw)
 {
     /// <summary>Entries read per open; older ones are not listed.</summary>
@@ -93,9 +97,43 @@ public sealed class ReflogController(
             return false;
         }
 
-        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit)
+        if (state.Picker is { } picker)
+        {
+            ExecuteInPicker(state, picker, action);
+        }
+        else if (state.IsEditingSearch)
+        {
+            ExecuteInSearchBox(state, action);
+        }
+        else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
+        {
+            if (state.HasSearch)
+            {
+                State = state.ClearSearch();
+                redraw();
+            }
+            else
+            {
+                Close();
+            }
+        }
+        else if (action == ActionIds.AppQuit)
         {
             Close();
+        }
+        else if (action == ActionIds.SearchOpen)
+        {
+            State = state.OpenSearch();
+            setMode(KeyMode.Insert);
+            redraw();
+        }
+        else if (action == ActionIds.SearchNext || action == ActionIds.SearchPrevious)
+        {
+            StepMatch(state, action == ActionIds.SearchNext, count);
+        }
+        else if (action == ActionIds.ReflogOpen)
+        {
+            OpenPicker(state);
         }
         else if (action == ActionIds.ReflogSelectCommit)
         {
@@ -133,10 +171,161 @@ public sealed class ReflogController(
         return true;
     }
 
+    /// <summary>Runs the action drawn on a frame line (a click on one of the entry actions); false when none.</summary>
+    public bool ActivateLine(int frameLine)
+    {
+        if (State is not { } state)
+        {
+            return false;
+        }
+
+        if (state.Picker is { } picker)
+        {
+            if (ReflogFrameBuilder.PickerIndexAt(picker, frameLine, screenSize().Height) is not { } index)
+            {
+                return false;
+            }
+
+            var moved = picker.MoveTo(index);
+            State = state with { Picker = moved };
+            Accept(moved);
+            return true;
+        }
+
+        if (ReflogFrameBuilder.ActionAt(state, frameLine, screenSize().Height) is not { } action)
+        {
+            return false;
+        }
+
+        return TryExecute(action, null);
+    }
+
+    /// <summary>Handles a key typed while the search box or the ref picker is open; false when neither is.</summary>
+    public bool HandleTextKey(KeyEvent key)
+    {
+        if (State is not { } state || host.Workspace.ActiveTabId != state.TabId)
+        {
+            return false;
+        }
+
+        if (state.Picker is { } picker)
+        {
+            var normalized = key.Normalize();
+            if (normalized is { Name: KeyNames.Up or KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
+            {
+                State = state with { Picker = picker.Move(normalized.Name == KeyNames.Up ? -1 : 1) };
+            }
+            else if (PromptTextEditor.Apply(picker.Text, key) is { } text && text != picker.Text)
+            {
+                State = state with { Picker = picker.WithText(text) };
+            }
+
+            redraw();
+            return true;
+        }
+
+        if (!state.IsEditingSearch)
+        {
+            return false;
+        }
+
+        if (PromptTextEditor.Apply(state.SearchText, key) is { } edited && edited != state.SearchText)
+        {
+            State = state.EditSearch(edited);
+            redraw();
+        }
+
+        return true;
+    }
+
     public void Close()
     {
         _generation++;
+        if (State is { IsEditingSearch: true } or { Picker: not null })
+        {
+            setMode(KeyMode.Normal);
+        }
+
         State = null;
+        redraw();
+    }
+
+    private void ExecuteInPicker(ReflogState state, ReflogRefPicker picker, ActionId action)
+    {
+        if (action == ActionIds.InputAccept)
+        {
+            Accept(picker);
+        }
+        else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
+        {
+            State = state with { Picker = null };
+            setMode(KeyMode.Normal);
+            redraw();
+        }
+        else if (action == ActionIds.AppQuit)
+        {
+            Close();
+        }
+    }
+
+    private void ExecuteInSearchBox(ReflogState state, ActionId action)
+    {
+        if (action == ActionIds.InputAccept)
+        {
+            State = state.AcceptSearch();
+            setMode(KeyMode.Normal);
+            redraw();
+        }
+        else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack)
+        {
+            State = state.ClearSearch();
+            setMode(KeyMode.Normal);
+            redraw();
+        }
+        else if (action == ActionIds.AppQuit)
+        {
+            Close();
+        }
+    }
+
+    private void StepMatch(ReflogState state, bool forward, int? count)
+    {
+        if (state.MatchIndexes.Count == 0)
+        {
+            statuses.Warning(state.HasSearch ? $"No match for {state.SearchText}" : "No search: press / first");
+            return;
+        }
+
+        State = state.StepMatch(forward, count ?? 1);
+        redraw();
+    }
+
+    private void OpenPicker(ReflogState state)
+    {
+        var names = new List<string> { HeadName };
+        if (host.Workspace.FindTab(state.TabId) is { } tab)
+        {
+            names.AddRange(tab.Refs
+                .Where(reference => reference.Kind == RefKind.LocalBranch && reference.SymbolicTarget is null)
+                .Select(reference => reference.Name));
+        }
+
+        State = state with { Picker = new ReflogRefPicker(names) };
+        setMode(KeyMode.Insert);
+        redraw();
+    }
+
+    private void Accept(ReflogRefPicker picker)
+    {
+        if (State is not { } state || picker.Selected is not { } name)
+        {
+            return;
+        }
+
+        setMode(KeyMode.Normal);
+        State = state with { Picker = null };
+        var isHead = name == HeadName;
+        Read(state.TabId, isHead ? HeadName : $"{GitRefPrefixes.Heads}{name}", name, null);
         redraw();
     }
 
