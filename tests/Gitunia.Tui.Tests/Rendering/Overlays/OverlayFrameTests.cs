@@ -380,7 +380,7 @@ public class OverlayFrameTests
                 "│  <space>bC            │ Create a branch without checking out │",
                 "│  <space>bs            │ Switch to a branch (check out)       │",
                 "│  <space>br            │ Rename the branch                    │",
-                "│ 1-19/102  list keys scroll  Esc close                         │",
+                "│ 1-19/102  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
