@@ -156,6 +156,54 @@ public sealed class BranchActions(
     {
     }
 
+    /// <summary>
+    /// Opens the new-branch prompt with <paramref name="commitHash"/> as the start point (the reflog view starts a
+    /// branch at an entry). Returns why nothing opened, or an empty string when the prompt is open.
+    /// </summary>
+    public string BeginCreate(TabId tabId, string commitHash, bool checkout)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab)
+        {
+            return string.Empty;
+        }
+
+        if (BeginOperation(tab) is { } busy)
+        {
+            return busy;
+        }
+
+        _startPoint = commitHash;
+        _label = ShortHash(commitHash);
+        _checkout = checkout;
+        Open(BranchPromptKind.Create, tab, string.Empty);
+        redraw();
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Checks out <paramref name="commitHash"/> with a detached HEAD (the reflog view checks out an entry). Returns why
+    /// nothing started, or an empty string when the checkout runs in the background.
+    /// </summary>
+    public string CheckoutDetached(TabId tabId, string commitHash)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab)
+        {
+            return string.Empty;
+        }
+
+        if (BeginOperation(tab) is { } busy)
+        {
+            return busy;
+        }
+
+        Start(tab, "Could not check out", async token =>
+        {
+            await writer.SwitchDetachedAsync(tab.Location, commitHash, token).ConfigureAwait(false);
+            return $"HEAD is detached at {ShortHash(commitHash)}";
+        });
+        return string.Empty;
+    }
+
     private static bool IsMove(KeyEvent key, out int step)
     {
         step = 0;

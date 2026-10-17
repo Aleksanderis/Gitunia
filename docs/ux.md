@@ -225,7 +225,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Tags** (`<space>T` + key): `Tc` create at the selected commit (prompt for the name, then an optional message: empty makes a lightweight tag, text an annotated one, so no editor is needed). `Td` delete: Confirm with the tag's target hash. `Tp` push the selected tag to a remote: one ref, no progress, no prompts, git's error shown; the push of workflow 5 generalises it. `TD` deletes the tag on a remote (`git push <remote> --delete refs/tags/<name>`): remote picker, then a Confirm naming the remote and the tag; no undo besides re-pushing the tag. Sidebar shortcut on a tag row: `d`.
 
-**Reflog** (`<space>l`, graph and sidebar): opens a list view of the reflog of `HEAD`, or of another branch chosen in the ref picker `<space>l` offers first (`Enter` on `HEAD`; on a sidebar branch row it opens that branch's reflog). Newest first: short hash, `HEAD@{n}`, action and message, relative time). `j`/`k`/`gg`/`G`/`/` as in any list; `Enter` selects the commit in the graph (a commit outside the loaded graph says so); `<space>gx` resets the current branch to the entry (the reset rules above); `<space>bc` creates a branch there and `<space>bs` checks it out detached. `Esc` or `h` returns. The view is read from git on open and on `<space>r`.
+**Reflog** (`<space>l`, graph and sidebar; implemented in #398): a modal list of the reflog of `HEAD`, or, from a local branch row under the sidebar cursor, of that branch (`refs/heads/<name>`). Newest first (the last 1000 entries): short hash, `HEAD@{n}`, action and message, relative time. `j`/`k`/`gg`/`G`/`Ctrl-d`/`Ctrl-u` move; `Enter` selects the entry's commit in the graph and keeps the list open (a commit outside the loaded graph says so in the status bar); `<space>gx` resets the current branch to the entry (the reset rules above, via `ResetActions.Begin`); `<space>bc` opens the new-branch prompt at the entry; `<space>bs` checks the entry out with a detached HEAD (git refuses a conflicting dirty tree, nothing is stashed). The last three close the list first, because their prompt and Confirm live in the status bar and the confirm overlay. `Esc` or `h` returns. The list is read from git on open and on `<space>r`. Not done yet: a ref picker for the reflog of any branch from the graph, `/` search and mouse paths for selecting an entry's commit, reset, branch and checkout (#424).
 
 ### 4. In-progress operations: banner, continue, abort, skip (M3; banner, continue, abort and skip done, the blocking of item 5 comes with each blocked feature)
 
@@ -356,6 +356,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>bu` | Set the upstream of the local branch at the selected commit (type-to-filter picker of remote branches) |
 | Graph | `<space>bU` | Unset the upstream of the local branch at the selected commit |
 | Graph | `<space>gx` | Reset the current branch to the selected commit: `s`/`m`/`h` picks soft, mixed or hard; Confirm where work is lost |
+| Graph | `<space>l` | Open the reflog of HEAD (a list of its entries; see the Reflog flow) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
 | Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
@@ -455,6 +456,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>bu` | Set the upstream of the selected local branch (type-to-filter picker of remote branches) |
 | Sidebar | `<space>bU` | Unset the upstream of the selected local branch |
 | Sidebar | `<space>gx` | Reset the current branch to the selected branch or tag (`s`/`m`/`h`; Confirm where work is lost) |
+| Sidebar | `<space>l` | Open the reflog of the local branch under the cursor (HEAD's on any other row) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |
 | Sidebar | `<space>Sp` | Pop the stash under the cursor (apply, then drop it) |
@@ -478,6 +480,12 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Diff | `<space>vi` | Toggle ignoring whitespace-only changes (title `[-w]`) |
 | Diff | `<space>vs` | Toggle the side-by-side view (title `[split]`; needs a pane of 80 text columns) |
 | Diff | `<space>vl` | Load anyway: reload the commit without the row and per-file limits |
+| Reflog | `Enter` | Select the entry's commit in the graph (the list stays open) |
+| Reflog | `h` `Esc` | Close the list |
+| Reflog | `<space>r` | Read the reflog again |
+| Reflog | `<space>gx` | Reset the current branch to the entry (`s`/`m`/`h`; Confirm where work is lost) |
+| Reflog | `<space>bc` | Create a branch at the entry and check it out (status bar prompt) |
+| Reflog | `<space>bs` | Check out the entry with a detached HEAD |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` `Ctrl-l` | Open repository (new tab or focus existing); `Ctrl-l` is the home-row alias of `Enter`, `Ctrl-w l` is a chord and unaffected |
@@ -521,6 +529,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Help | Wheel down | `list.down` | Scroll the help down 3 lines |
 | Messages | Wheel up | `list.up` | Scroll the status history up 3 lines |
 | Messages | Wheel down | `list.down` | Scroll the status history down 3 lines |
+| Reflog | Wheel up | `list.up` | Scroll the reflog list up 3 entries |
+| Reflog | Wheel down | `list.down` | Scroll the reflog list down 3 entries |
 | DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
 | DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |
 | DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `wrap`, same as `<space>vw` |

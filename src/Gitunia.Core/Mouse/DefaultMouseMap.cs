@@ -101,7 +101,16 @@ public static class DefaultMouseMap
     };
 
     /// <summary>The views of the overlays: their gestures run even though an open overlay otherwise suppresses the panes behind it.</summary>
-    public static IReadOnlyList<string> OverlayViews { get; } = [DefaultKeymap.HelpView, DefaultKeymap.MessagesView, DefaultKeymap.PaletteView, BackdropView, ConfirmYesButton, ConfirmNoButton];
+    public static IReadOnlyList<string> OverlayViews { get; } =
+    [
+        DefaultKeymap.HelpView,
+        DefaultKeymap.MessagesView,
+        DefaultKeymap.ReflogView,
+        DefaultKeymap.PaletteView,
+        BackdropView,
+        ConfirmYesButton,
+        ConfirmNoButton,
+    ];
 
     public static MouseMap Create() => new(CreateBindings(), ViewParents);
 
@@ -138,6 +147,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.HelpView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
