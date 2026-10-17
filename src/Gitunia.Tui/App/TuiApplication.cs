@@ -22,6 +22,7 @@ using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Reflog;
+using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Details;
@@ -194,6 +195,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
+        _router.Rebase = CreateRebase(operationGate);
         _reflog = CreateReflog(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -555,6 +557,17 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.Refresh(tabId, false),
         SetMode,
         _view.RefreshChrome,
+        BranchSelectionNow,
+        gate);
+
+    private RebaseActions CreateRebase(TabOperationGate gate) => new(
+        _host,
+        services.Rebase,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
         BranchSelectionNow,
         gate);
 

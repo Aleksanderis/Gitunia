@@ -151,6 +151,8 @@ public static class ActionIds
 
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
+    public static ActionId RebaseOnto { get; } = new("rebase.onto");
+
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");

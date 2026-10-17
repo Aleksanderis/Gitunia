@@ -219,8 +219,11 @@ public static class DefaultKeymap
     }
 
     // Reset moves the current branch to the selected commit, branch or tag.
-    private static void AddResetKeys(List<KeyBinding> bindings, string view) =>
+    private static void AddResetKeys(List<KeyBinding> bindings, string view)
+    {
         Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
+        Add(bindings, NormalOnly, view, "<space>gr", ActionIds.RebaseOnto);
+    }
 
     // The reflog list acts on the entry under the cursor; the actions are the graph's, the controller aims them.
     private static void AddReflogKeys(List<KeyBinding> bindings)

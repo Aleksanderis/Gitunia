@@ -267,4 +267,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git layer:** A call that runs or advances a merge, rebase, pick or revert returns `OperationResult` (`Completed` or `Conflicted`), decided in one place (`OperationRunner`); editor-capable calls pass `-c core.editor=true`. Why: #38-#40 and the interactive rebase reuse it instead of each guessing "did it stop?".
 
 **UI:** The reflog (#398) is a modal list overlay with its own keymap view, not a tab view: reset, branch and detached checkout close it first and reuse the status bar prompts and Confirm. Why: keeps tab state unchanged and reuses #392 and #35; the ref picker, `/` search and entry mouse actions are #424.
+
 **UI:** Merge (#38): `<space>gm` (ff when possible), `<space>gM` (`--no-ff`), `<space>gs` (squash) act on the selected commit or sidebar ref and run at once, no Confirm. Why: a merge loses nothing and the status line prints the `reset --hard <old>` undo; a squash that conflicts leaves unmerged files but no operation, so the message says to resolve and commit.
+
+**UI:** Rebase onto (#39) is `<space>gr` with a Confirm naming the old tip for the undo; a dirty tracked tree, a detached HEAD or a running operation is refused with no git call. Why: git would refuse or leave a half-state; a stop on conflicts reuses the #37 banner and continue/abort/skip.
