@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Merge;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Operations;
@@ -101,12 +102,14 @@ public sealed class MergeActions(
             return null;
         }
 
-        // A branch is passed by name so git's message and the banner read "Merge branch 'x'"; a commit by hash.
+        // A branch is passed by its full ref, so a tag of the same name cannot win; the writer keeps the message
+        // "Merge branch 'x'". A commit is passed by hash.
         var shortHash = OperationTexts.ShortHash(hash);
         return chosen.RowKind switch
         {
             null => new MergeTarget(hash, shortHash),
-            SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch => new MergeTarget(chosen.Name!, chosen.Name!),
+            SidebarRowKind.LocalBranch => new MergeTarget($"{GitRefPrefixes.Heads}{chosen.Name}", chosen.Name!),
+            SidebarRowKind.RemoteBranch => new MergeTarget($"{GitRefPrefixes.Remotes}{chosen.Name}", chosen.Name!),
             SidebarRowKind.Tag => new MergeTarget(hash, chosen.Name ?? shortHash),
             _ => null,
         };

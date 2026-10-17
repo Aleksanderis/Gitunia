@@ -2,6 +2,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Merge;
@@ -40,28 +41,81 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
         var before = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
+        var chosen = await ChooseRevisionAsync(location, target, cancellationToken).ConfigureAwait(false);
+        var revision = chosen.Revision;
+        var message = chosen.Message;
+        string[] messageArguments = message is null ? [] : ["-m", message];
         string[] arguments = mode switch
         {
-            MergeMode.NoFastForward => [Merge, NoEdit, NoFastForward, target, GitOptions.EndOfOptions],
-            MergeMode.Squash => [Merge, NoEdit, SquashOption, target, GitOptions.EndOfOptions],
-            _ => [Merge, NoEdit, target, GitOptions.EndOfOptions],
+            MergeMode.NoFastForward =>
+                [Merge, NoEdit, NoFastForward, .. messageArguments, revision, GitOptions.EndOfOptions],
+            MergeMode.Squash => [Merge, NoEdit, SquashOption, revision, GitOptions.EndOfOptions],
+            _ => [Merge, NoEdit, .. messageArguments, revision, GitOptions.EndOfOptions],
         };
 
         if (mode == MergeMode.Squash)
         {
-            return await SquashAsync(location, arguments, target, before, cancellationToken).ConfigureAwait(false);
+            return await SquashAsync(location, arguments, revision, before, cancellationToken).ConfigureAwait(false);
         }
 
         var resolved = await runner
             .RunAsync(
                 location.CommandPath,
-                ["rev-parse", "--quiet", "--verify", $"{target}{CommitSuffix}"],
+                ["rev-parse", "--quiet", "--verify", $"{revision}{CommitSuffix}"],
                 NoMatchOptions,
                 cancellationToken)
             .ConfigureAwait(false);
         var resolvedTarget = resolved.ExitCode == 0 ? resolved.StandardOutputText.Trim() : null;
         return await MergeOperationAsync(location, arguments, before, resolvedTarget, mode, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// A full branch ref is only needed when the short name would resolve to something else (a tag of the same
+    /// name): then it is passed with <c>-m</c>, because git would write the full ref into the message. Otherwise
+    /// the short name goes through and git writes its own message (<c>into &lt;branch&gt;</c>, merge.log and
+    /// merge.suppressDest included). A hash or any other revision is passed as is.
+    /// </summary>
+    private async Task<MergeRevision> ChooseRevisionAsync(
+        RepositoryLocation location,
+        string target,
+        CancellationToken cancellationToken)
+    {
+        string? label;
+        string shortName;
+        if (target.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal))
+        {
+            shortName = target[GitRefPrefixes.Heads.Length..];
+            label = $"Merge branch '{shortName}'";
+        }
+        else if (target.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal))
+        {
+            shortName = target[GitRefPrefixes.Remotes.Length..];
+            label = $"Merge remote-tracking branch '{shortName}'";
+        }
+        else
+        {
+            return new MergeRevision(target, null);
+        }
+
+        var full = await ResolveCommitAsync(location, target, cancellationToken).ConfigureAwait(false);
+        var named = await ResolveCommitAsync(location, shortName, cancellationToken).ConfigureAwait(false);
+        return full is not null && full == named ? new MergeRevision(shortName, null) : new MergeRevision(target, label);
+    }
+
+    private async Task<string?> ResolveCommitAsync(
+        RepositoryLocation location,
+        string revision,
+        CancellationToken cancellationToken)
+    {
+        var result = await runner
+            .RunAsync(
+                location.CommandPath,
+                ["rev-parse", "--quiet", "--verify", $"{revision}{CommitSuffix}"],
+                NoMatchOptions,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return result.ExitCode == 0 ? result.StandardOutputText.Trim() : null;
     }
 
     private async Task<MergeResult> MergeOperationAsync(

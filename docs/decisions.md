@@ -278,3 +278,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Checkout (`<space>bs`, `<space>bc`, reflog detached checkout) is refused while an operation is in progress, no git call (#419). Create-only (`<space>bC`) stays allowed. Why: git would switch under a half-done merge or rebase.
 
 **UI:** Mouse follow-ups of M3 (owner accepted the defaults, 2026-10-17): sidebar actions (branches, worktrees, stashes, tags) get buttons in the section header; graph commit operations (merge, rebase, reset, cherry-pick, revert) open from a right-click that selects the row and shows the command popup filtered to that row's actions. A plain rebase warns in its Confirm that merge commits are flattened (`--rebase-merges` stays with #399). A branch merge passes the full ref and fixes the message when a tag has the same name (#425).
+
+**Git:** Merge (#425): the UI passes a branch as its full ref; the writer uses the short name unless a tag of the same name would win, then the full ref with `-m` (git would write the full ref into the message).
