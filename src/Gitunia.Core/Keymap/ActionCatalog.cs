@@ -13,6 +13,7 @@ public static class ActionCatalog
     private static readonly HashSet<ActionId> ModalOnly =
     [
         ActionIds.Cancel,
+        ActionIds.ReflogSelectCommit,
         ActionIds.CommandExecute,
         ActionIds.ConfirmNo,
         ActionIds.ConfirmYes,

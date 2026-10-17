@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -214,6 +215,30 @@ public class ReflogControllerTests
         Assert.Null(harness.Reflog.State!.Selected);
         Assert.Equal("No reflog entry selected", harness.Statuses.Log.Latest!.Text);
         Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenADetachedHead_WhenResettingToAnEntry_ThenTheRefusalIsShownAndTheListStaysOpen()
+    {
+        using var repository = TwoCommits();
+        repository.Checkout(FirstCommit(repository));
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ResetBranch);
+
+        Assert.True(harness.Reflog.IsOpen);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public void GivenTheReflogSelectAction_WhenBuildingThePaletteForTheGraph_ThenItIsNotListed()
+    {
+        var entries = PaletteEntryBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView);
+
+        Assert.DoesNotContain(entries, entry => entry.Action == ActionIds.ReflogSelectCommit);
+        Assert.Contains(entries, entry => entry.Action == ActionIds.ReflogOpen);
     }
 
     [Fact]

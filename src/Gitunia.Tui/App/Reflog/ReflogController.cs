@@ -249,7 +249,6 @@ public sealed class ReflogController(
             return;
         }
 
-        Close();
         var refusal = action == ActionIds.ResetBranch
             ? reset.Begin(state.TabId, entry.Hash)
             : action == ActionIds.BranchCreate
@@ -257,9 +256,12 @@ public sealed class ReflogController(
                 : branches.CheckoutDetached(state.TabId, entry.Hash);
         if (refusal.Length > 0)
         {
+            // A refusal keeps the list, so the user does not lose the position.
             statuses.Warning(refusal);
+            redraw();
+            return;
         }
 
-        redraw();
+        Close();
     }
 }

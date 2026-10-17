@@ -13,7 +13,7 @@ public static class ReflogFrameBuilder
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
     private const int ShortHashLength = 7;
-    private const string Footer = "Enter select  <space>gx reset  <space>bc branch  <space>bs checkout  Esc close";
+    private const string Footer = "Esc close";
 
     /// <summary>The reflog frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(ReflogState state, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
