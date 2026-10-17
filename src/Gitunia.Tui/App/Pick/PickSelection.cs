@@ -7,6 +7,5 @@ namespace Gitunia.Tui.App.Pick;
 /// newest first as the graph shows them), or the commit of the selected sidebar branch or tag.
 /// </summary>
 /// <param name="RowKind">The kind of the sidebar row, null when the graph is the target.</param>
-/// <param name="Name">The branch or tag name of the sidebar row, null when the graph is the target.</param>
 /// <param name="Hashes">The commit hashes, in graph order (newest first); empty when nothing is selected.</param>
-public sealed record PickSelection(SidebarRowKind? RowKind, string? Name, IReadOnlyList<string> Hashes);
+public sealed record PickSelection(SidebarRowKind? RowKind, IReadOnlyList<string> Hashes);

@@ -585,19 +585,19 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var chosen = BranchSelectionNow();
         if (chosen.RowKind is not null)
         {
-            return new PickSelection(chosen.RowKind, chosen.Name, chosen.CommitHash is { } hash ? [hash] : []);
+            return new PickSelection(chosen.RowKind, chosen.CommitHash is { } hash ? [hash] : []);
         }
 
         var graph = ActiveSession()?.Graph;
         if (graph is null || _visual is not { IsActive: true, Range: { } range }
             || _host.Workspace.ActiveTab?.View.FocusedPane != PaneKind.Graph)
         {
-            return new PickSelection(null, null, chosen.CommitHash is { } selected ? [selected] : []);
+            return new PickSelection(null, chosen.CommitHash is { } selected ? [selected] : []);
         }
 
         var first = Math.Max(0, GraphListSource.CommitIndexOf(range.First));
         var last = Math.Min(graph.Count - 1, GraphListSource.CommitIndexOf(range.Last));
-        return new PickSelection(null, null, [.. Enumerable.Range(first, Math.Max(0, last - first + 1))
+        return new PickSelection(null, [.. Enumerable.Range(first, Math.Max(0, last - first + 1))
             .Select(index => graph[index].Id.ToString())]);
     }
 

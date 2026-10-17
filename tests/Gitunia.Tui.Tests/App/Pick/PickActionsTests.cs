@@ -373,7 +373,7 @@ public class PickActionsTests
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<TabSession> _sessions = [];
-        private PickSelection _selection = new(null, null, []);
+        private PickSelection _selection = new(null, []);
 
         private Harness(GitServices services)
         {
@@ -447,10 +447,10 @@ public class PickActionsTests
             return harness;
         }
 
-        public void SelectCommits(params string[] hashes) => _selection = new PickSelection(null, null, hashes);
+        public void SelectCommits(params string[] hashes) => _selection = new PickSelection(null, hashes);
 
         public void SelectRow(SidebarRowKind kind, string name, string commitHash) =>
-            _selection = new PickSelection(kind, name, [commitHash]);
+            _selection = new PickSelection(kind, [commitHash]);
 
         public void Run(ActionId action) => Assert.True(Pick.TryExecute(action, null), action.Value);
 
