@@ -573,7 +573,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
-        _keys.SetMode,
+#pragma warning disable IDE0200 // _keys is assigned after this runs; a method group would capture null
+        mode => _keys.SetMode(mode),
+#pragma warning restore IDE0200
         _view.RefreshChrome,
         _visual.End,
         PickSelectionNow,
