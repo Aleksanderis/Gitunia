@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
@@ -116,6 +117,45 @@ public class SidebarFrameTests
 
         Assert.StartsWith("│     branch6", lines[2].Text, StringComparison.Ordinal);
         Assert.StartsWith("│     branch8", lines[4].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheBranchesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
+    {
+        var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
+
+        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
+
+        Assert.Equal(60, TextWidth.Of(line.Text));
+        Assert.EndsWith("[new] [switch] [rename] [delete] [new-only]", line.Text.TrimEnd(), StringComparison.Ordinal);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
+        Assert.Equal(5, buttons.Count);
+        var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
+    }
+
+    [Fact]
+    public void GivenTheBranchesHeaderInANarrowSidebar_WhenRendering_ThenLastButtonsAreDroppedAndTheTitleStays()
+    {
+        var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
+
+        var line = SidebarRowRenderer.Render(row, 30, isSelected: false, GraphGlyphSet.Unicode);
+
+        Assert.Equal(30, TextWidth.Of(line.Text));
+        Assert.StartsWith(" ", line.Text, StringComparison.Ordinal);
+        Assert.Contains("Branches 3", line.Text, StringComparison.Ordinal);
+        Assert.Contains("[new]", line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[new-only]", line.Text, StringComparison.Ordinal);
+        var tooNarrow = Section(SidebarSection.Branches, "Branches", 3, true);
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(tooNarrow, 14, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenOtherSectionsAndRows_WhenRendering_ThenTheyHaveNoButtons()
+    {
+        var stashes = Section(SidebarSection.Stashes, "Stashes", 1, true);
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(stashes, 60, GraphGlyphSet.Unicode));
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(Branch("main"), 60, GraphGlyphSet.Unicode));
     }
 
     [Fact]

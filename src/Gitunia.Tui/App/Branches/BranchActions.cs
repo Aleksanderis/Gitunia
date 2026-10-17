@@ -7,8 +7,10 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
@@ -202,7 +204,7 @@ public sealed class BranchActions(
         {
             await writer.SwitchDetachedAsync(tab.Location, commitHash, token).ConfigureAwait(false);
             return $"HEAD is detached at {ShortHash(commitHash)}";
-        });
+        }, CommitOf(tab, commitHash));
         return string.Empty;
     }
 
@@ -487,7 +489,7 @@ public sealed class BranchActions(
             await EnsureValidAsync(tab, name, token).ConfigureAwait(false);
             await writer.CreateAsync(tab.Location, name, start, checkout, token).ConfigureAwait(false);
             return done;
-        });
+        }, CommitOf(tab, start));
         return string.Empty;
     }
 
@@ -509,7 +511,7 @@ public sealed class BranchActions(
             await EnsureValidAsync(tab, name, token).ConfigureAwait(false);
             await writer.RenameAsync(tab.Location, from, name, token).ConfigureAwait(false);
             return $"Renamed {from} to {name}";
-        });
+        }, CommitOf(tab, $"{GitRefPrefixes.Heads}{from}"));
         return string.Empty;
     }
 
@@ -539,21 +541,21 @@ public sealed class BranchActions(
                 {
                     await writer.SwitchAsync(tab.Location, target, token).ConfigureAwait(false);
                     return $"Switched to {target}";
-                });
+                }, CommitOf(tab, $"{GitRefPrefixes.Heads}{target}"));
                 break;
             case SwitchTargetKind.RemoteBranch:
                 Start(tab, "Could not switch", async token =>
                 {
                     await writer.SwitchToRemoteAsync(tab.Location, target, token).ConfigureAwait(false);
                     return $"Switched to new branch {SwitchCandidates.LocalNameOf(target)} tracking {target}";
-                });
+                }, CommitOf(tab, $"{GitRefPrefixes.Remotes}{target}"));
                 break;
             default:
                 Start(tab, "Could not check out", async token =>
                 {
                     await writer.SwitchDetachedAsync(tab.Location, target, token).ConfigureAwait(false);
                     return $"HEAD is detached at {ShortHash(target)}";
-                });
+                }, CommitOf(tab, target));
                 break;
         }
 
@@ -621,7 +623,7 @@ public sealed class BranchActions(
             }
 
             await writer.DeleteAsync(tab.Location, branch.Name, false, token).ConfigureAwait(false);
-            postToUi(() => Finish(tab.Id, DeletedText(branch), StatusSeverity.Info));
+            postToUi(() => Finish(tab.Id, DeletedText(branch), StatusSeverity.Info, HeadCommit(tab.Id)));
         }
         catch (OperationCanceledException)
         {
@@ -669,7 +671,7 @@ public sealed class BranchActions(
         try
         {
             await writer.DeleteAsync(tab.Location, branch.Name, true, token).ConfigureAwait(false);
-            postToUi(() => Finish(tab.Id, DeletedText(branch), StatusSeverity.Info));
+            postToUi(() => Finish(tab.Id, DeletedText(branch), StatusSeverity.Info, HeadCommit(tab.Id)));
         }
         catch (OperationCanceledException)
         {
@@ -686,23 +688,43 @@ public sealed class BranchActions(
         $"Deleted branch {branch.Name} (was {ShortHash(branch.CommitHash)}; restore: " +
         $"git branch {branch.Name} {branch.CommitHash})";
 
-    private void Start(RepositoryState tab, string failure, Func<CancellationToken, Task<string>> work)
+    private void Start(
+        RepositoryState tab,
+        string failure,
+        Func<CancellationToken, Task<string>> work,
+        ObjectId? follow = null)
     {
         _busy.Add(tab.Id);
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab.Id, failure, work, token), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab.Id, failure, work, follow, token), CancellationToken.None);
     }
+
+    // The commit a ref or a hash names, for the graph cursor to land on; null when it is not known.
+    private static ObjectId? CommitOf(RepositoryState tab, string refOrHash)
+    {
+        var reference = tab.Refs.FirstOrDefault(candidate => candidate.FullName == refOrHash);
+        return ObjectId.TryParse(reference?.CommitHash ?? refOrHash, out var id) ? id : null;
+    }
+
+    // The commit HEAD is on now (the branch checked out, read from the tab's refs).
+    private ObjectId? HeadCommit(TabId tabId) =>
+        host.Workspace.FindTab(tabId) is { } tab
+        && tab.Refs.FirstOrDefault(item => item is { Kind: RefKind.LocalBranch, IsCurrent: true }) is { } current
+        && ObjectId.TryParse(current.CommitHash, out var id)
+            ? id
+            : null;
 
     private async Task RunAsync(
         TabId tabId,
         string failure,
         Func<CancellationToken, Task<string>> work,
+        ObjectId? follow,
         CancellationToken token)
     {
         try
         {
             var done = await work(token).ConfigureAwait(false);
-            postToUi(() => Finish(tabId, done, StatusSeverity.Info));
+            postToUi(() => Finish(tabId, done, StatusSeverity.Info, follow));
         }
         catch (OperationCanceledException)
         {
@@ -714,10 +736,16 @@ public sealed class BranchActions(
         }
     }
 
-    private void Finish(TabId tabId, string text, StatusSeverity severity)
+    // After a success the graph cursor follows: the saved selection is the commit the refreshed graph then selects.
+    private void Finish(TabId tabId, string text, StatusSeverity severity, ObjectId? follow = null)
     {
         _busy.Remove(tabId);
         statuses.Post(text, severity);
+        if (follow is { } commit && severity == StatusSeverity.Info)
+        {
+            host.Dispatch(new TabCommand(tabId, new SelectCommitCommand(commit)));
+        }
+
         refresh(tabId);
     }
 }

@@ -279,4 +279,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Mouse follow-ups of M3 (owner accepted the defaults, 2026-10-17): sidebar actions (branches, worktrees, stashes, tags) get buttons in the section header; graph commit operations (merge, rebase, reset, cherry-pick, revert) open from a right-click that selects the row and shows the command popup filtered to that row's actions. A plain rebase warns in its Confirm that merge commits are flattened (`--rebase-merges` stays with #399). A branch merge passes the full ref and fixes the message when a tag has the same name (#425).
 
+**UI:** Sidebar header buttons (#414) are chips drawn on the section header row and hit-tested by the sidebar list (`SidebarHeaderButtons`); they act on the selected row, no row is chosen by the click. After a branch operation the graph cursor follows by saving the target commit as the tab's selection before the refresh.
+
 **Git:** Merge (#425): the UI passes a branch as its full ref; the writer uses the short name unless a tag of the same name would win, then the full ref with `-m` (git would write the full ref into the message).

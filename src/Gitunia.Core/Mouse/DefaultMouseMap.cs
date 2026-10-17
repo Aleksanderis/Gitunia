@@ -79,6 +79,17 @@ public static class DefaultMouseMap
 
     public const string UnstageAllButton = "ListButton.UnstageAll";
 
+    /// <summary>The buttons in the Branches header of the sidebar (#414): each acts on the selected row.</summary>
+    public const string SidebarBranchNewButton = "SidebarButton.BranchNew";
+
+    public const string SidebarBranchNewOnlyButton = "SidebarButton.BranchNewOnly";
+
+    public const string SidebarBranchSwitchButton = "SidebarButton.BranchSwitch";
+
+    public const string SidebarBranchRenameButton = "SidebarButton.BranchRename";
+
+    public const string SidebarBranchDeleteButton = "SidebarButton.BranchDelete";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -138,6 +149,11 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
+        new(SidebarBranchNewButton, MouseGesture.Click, ActionIds.BranchCreate),
+        new(SidebarBranchNewOnlyButton, MouseGesture.Click, ActionIds.BranchCreateOnly),
+        new(SidebarBranchSwitchButton, MouseGesture.Click, ActionIds.BranchSwitch),
+        new(SidebarBranchRenameButton, MouseGesture.Click, ActionIds.BranchRename),
+        new(SidebarBranchDeleteButton, MouseGesture.Click, ActionIds.BranchDelete),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),
