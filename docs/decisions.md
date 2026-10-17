@@ -276,3 +276,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Cherry-pick and revert (#40): `<space>gp`/`<space>gv` act on the cursor commit, a Visual range or a sidebar ref tip and run at once, no Confirm (the status prints the `reset --hard <old>` undo). A pick applies oldest first, a revert newest first; a detached HEAD is allowed. Detail: ux.md workflow 3.
 
 **UI:** Checkout (`<space>bs`, `<space>bc`, reflog detached checkout) is refused while an operation is in progress, no git call (#419). Create-only (`<space>bC`) stays allowed. Why: git would switch under a half-done merge or rebase.
+
+**UI:** Mouse follow-ups of M3 (owner accepted the defaults, 2026-10-17): sidebar actions (branches, worktrees, stashes, tags) get buttons in the section header; graph commit operations (merge, rebase, reset, cherry-pick, revert) open from a right-click that selects the row and shows the command popup filtered to that row's actions. A plain rebase warns in its Confirm that merge commits are flattened (`--rebase-merges` stays with #399). A branch merge passes the full ref and fixes the message when a tag has the same name (#425).
