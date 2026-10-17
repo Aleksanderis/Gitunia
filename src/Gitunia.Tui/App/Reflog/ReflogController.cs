@@ -160,7 +160,7 @@ public sealed class ReflogController(
     /// <summary>Highlights the entry drawn on a frame line (a mouse click); false when none.</summary>
     public bool SelectEntryAt(int frameLine)
     {
-        if (State is not { } state
+        if (State is not { Picker: null } state
             || ReflogFrameBuilder.EntryIndexAt(state, frameLine, screenSize().Height) is not { } index)
         {
             return false;
@@ -170,6 +170,9 @@ public sealed class ReflogController(
         redraw();
         return true;
     }
+
+    /// <summary>A click on a frame line: highlights an entry, picks a ref or runs an action; false when none.</summary>
+    public bool OnLineClicked(int frameLine) => SelectEntryAt(frameLine) || ActivateLine(frameLine);
 
     /// <summary>Runs the action drawn on a frame line (a click on one of the entry actions); false when none.</summary>
     public bool ActivateLine(int frameLine)
@@ -192,7 +195,8 @@ public sealed class ReflogController(
             return true;
         }
 
-        if (ReflogFrameBuilder.ActionAt(state, frameLine, screenSize().Height) is not { } action)
+        if (state.IsEditingSearch
+            || ReflogFrameBuilder.ActionAt(state, frameLine, screenSize().Height) is not { } action)
         {
             return false;
         }
@@ -322,6 +326,12 @@ public sealed class ReflogController(
             return;
         }
 
+        if (_isReading)
+        {
+            statuses.Warning("The reflog is still being read: choose again in a moment");
+            return;
+        }
+
         setMode(KeyMode.Normal);
         State = state with { Picker = null };
         var isHead = name == HeadName;
@@ -373,7 +383,7 @@ public sealed class ReflogController(
             var result = await reader.ReadAsync(location, reference, EntryLimit, token).ConfigureAwait(false);
             postToUi(() => Show(generation, current is null
                 ? new ReflogState(tabId, reference, title, result.Items)
-                : current.WithEntries(result.Items)));
+                : (State ?? current).WithEntries(result.Items)));
         }
         catch (OperationCanceledException)
         {

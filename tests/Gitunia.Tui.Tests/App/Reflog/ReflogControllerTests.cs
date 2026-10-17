@@ -362,8 +362,40 @@ public class ReflogControllerTests
         harness.Run(ActionIds.ReflogOpen);
         var row = harness.Reflog.State!.Picker!.Candidates.ToList().IndexOf("topic");
 
-        Assert.True(harness.Reflog.ActivateLine(row + 1));
+        Assert.True(harness.Reflog.OnLineClicked(row + 1));
         await harness.PumpUntilAsync(() => harness.Reflog.State is { Picker: null, Title: "topic" });
+    }
+
+    [Fact]
+    public async Task GivenTheRefPicker_WhenClickingAnActionRowOrTypingNavigationKeys_ThenOnlyThePickerActs()
+    {
+        using var repository = TwoCommits();
+        repository.CheckoutNewBranch("topic");
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ReflogOpen);
+
+        Assert.False(harness.Reflog.OnLineClicked(harness.ActionLine(0) + 5));
+        harness.Reflog.HandleTextKey(new KeyEvent("Down"));
+        var moved = harness.Reflog.State!.Picker!.Selected;
+        harness.Reflog.HandleTextKey(new KeyEvent("Up"));
+
+        Assert.NotEqual(moved, harness.Reflog.State.Picker!.Selected);
+        Assert.Equal(0, harness.Reflog.State.SelectedIndex);
+        harness.Run(ActionIds.AppQuit);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAReadInFlight_WhenAcceptingTheSearchBoxClick_ThenNothingRuns()
+    {
+        using var repository = TwoCommits();
+        using var harness = await Harness.LoadAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.SearchOpen);
+
+        Assert.False(harness.Reflog.OnLineClicked(harness.ActionLine(1)));
+        Assert.True(harness.Reflog.State!.IsEditingSearch);
     }
 
     [Fact]
