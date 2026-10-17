@@ -250,12 +250,12 @@ public class MergeActionsTests
         private readonly List<TabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
-        private Harness()
+        private Harness(GitServices services)
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Merge = new MergeActions(
                 _host,
-                TestGit.Services.Merge,
+                services.Merge,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
@@ -282,17 +282,18 @@ public class MergeActionsTests
 
         public static async Task<Harness> LoadAsync(TestRepository repository)
         {
-            var harness = new Harness();
-            var location = await TestGit.Services.Discovery.DiscoverAsync(
+            var services = GitServices.Create(repository.CreateIsolatedRunner());
+            var harness = new Harness(services);
+            var location = await services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
             harness._host.Dispatch(new OpenRepositoryCommand(location));
             var session = new TabSession(
                 harness.TabId,
                 GraphGlyphSet.Unicode,
-                new CommitDetailsStore(TestGit.Services.CommitDetails, location, action => action(), TimeSpan.Zero));
+                new CommitDetailsStore(services.CommitDetails, location, action => action(), TimeSpan.Zero));
             harness._sessions.Add(session);
-            await TestGit.Services.RepositoryLoader.RunAsync(
+            await services.RepositoryLoader.RunAsync(
                 location,
                 session,
                 harness._host,
@@ -302,7 +303,7 @@ public class MergeActionsTests
 
             // What the tab refresher does for the banner: read the stopped operation, if any.
             var operation = new RepositoryOperationDetector().Detect(location);
-            var info = await TestGit.Services.OperationInfo.ReadAsync(
+            var info = await services.OperationInfo.ReadAsync(
                 location,
                 operation,
                 TestContext.Current.CancellationToken);
