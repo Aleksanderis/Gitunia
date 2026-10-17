@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 /// The buttons at the right end of a sidebar section header: the mouse path of the section's actions. A section lists
 /// its buttons in <see cref="Specifications"/> (most important first); the row keeps as many as fit after the header
 /// text and drops the rest from the end. A button acts on what the keys act on: the selected row, so a click on a row
-/// selects it first. Other sections add their rows here (worktrees, stashes, tags).
+/// selects it first. Other sections add their rows here (stashes, tags).
 /// </summary>
 public static class SidebarHeaderButtons
 {
@@ -23,6 +23,11 @@ public static class SidebarHeaderButtons
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchRenameButton, "[rename]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchDeleteButton, "[delete]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewOnlyButton, "[new-only]"),
+        new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeAddButton, "[add]"),
+        new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeRemoveButton, "[remove]"),
+        new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeLockButton, "[lock]"),
+        new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeUnlockButton, "[unlock]"),
+        new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreePruneButton, "[prune]"),
     ];
 
     /// <summary>
