@@ -180,6 +180,15 @@ public static class PaneHints
         new("n/Esc", "cancel", [ActionIds.ConfirmNo, ActionIds.Cancel]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Reflog =
+    [
+        new("Enter", "select", [ActionIds.ReflogSelectCommit]),
+        new("<space>gx", "reset", [ActionIds.ResetBranch]),
+        new("<space>bc", "branch", [ActionIds.BranchCreate]),
+        new("<space>bs", "checkout", [ActionIds.BranchSwitch]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => Sidebar,
@@ -198,6 +207,9 @@ public static class PaneHints
 
     /// <summary>The hints while a confirm dialog is open (only its answers act).</summary>
     public static IReadOnlyList<KeyHint> ForConfirm() => Confirm;
+
+    /// <summary>The hints while the reflog list is open.</summary>
+    public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;

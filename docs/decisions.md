@@ -265,3 +265,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The in-progress operation banner (#37) is drawn on the frame's bottom edge, not as a row under the tab bar. Why: a new row shifts every pane coordinate (views, mouse, layouts) for a rare state, and the edge line carries no information. Under 10 rows the status bar carries its text. Supersedes the "row under the tab bar" wording of workflow 4.
 
 **Git layer:** A call that runs or advances a merge, rebase, pick or revert returns `OperationResult` (`Completed` or `Conflicted`), decided in one place (`OperationRunner`); editor-capable calls pass `-c core.editor=true`. Why: #38-#40 and the interactive rebase reuse it instead of each guessing "did it stop?".
+
+**UI:** The reflog (#398) is a modal list overlay with its own keymap view, not a tab view: reset, branch and detached checkout close it first and reuse the status bar prompts and Confirm. Why: keeps tab state unchanged and reuses #392 and #35; the ref picker, `/` search and entry mouse actions are #424.

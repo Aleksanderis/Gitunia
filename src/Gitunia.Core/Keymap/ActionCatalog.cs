@@ -39,6 +39,8 @@ public static class ActionCatalog
         ["branch.switch"] = "Switch to a branch (check out)",
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",
+        ["reflog.open"] = "Open the reflog of HEAD (of the branch under the sidebar cursor)",
+        ["reflog.select-commit"] = "Select the reflog entry's commit in the graph",
         ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",
