@@ -135,6 +135,20 @@ public class SidebarFrameTests
     }
 
     [Fact]
+    public void GivenTheWorktreesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
+    {
+        var row = Section(SidebarSection.Worktrees, "Worktrees", 2, isExpanded: true);
+
+        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
+
+        Assert.EndsWith("[add] [remove] [lock] [unlock] [prune]", line.Text.TrimEnd(), StringComparison.Ordinal);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
+        Assert.Equal(5, buttons.Count);
+        var pruneColumn = line.Text.IndexOf("[prune]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SidebarWorktreePruneButton, TitleButton.ViewAt(buttons, pruneColumn));
+    }
+
+    [Fact]
     public void GivenTheBranchesHeaderInANarrowSidebar_WhenRendering_ThenLastButtonsAreDroppedAndTheTitleStays()
     {
         var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
