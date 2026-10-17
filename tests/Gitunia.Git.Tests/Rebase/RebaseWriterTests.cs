@@ -173,7 +173,8 @@ public class RebaseWriterTests
     {
         var runner = repository.CreateIsolatedRunner();
         var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
-        return new Harness(new RebaseWriter(new OperationRunner(runner, new RepositoryOperationDetector()), runner), location);
+        var operations = new OperationRunner(runner, new RepositoryOperationDetector());
+        return new Harness(new RebaseWriter(operations, runner), location);
     }
 
     private sealed record Harness(RebaseWriter Writer, RepositoryLocation Location);

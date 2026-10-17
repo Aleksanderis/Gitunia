@@ -90,7 +90,7 @@ public static class DefaultMouseMap
 
     public const string SidebarBranchDeleteButton = "SidebarButton.BranchDelete";
 
-    /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428): each acts on the selected row.</summary>
+    /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428).</summary>
     public const string SidebarRebaseButton = "SidebarButton.Rebase";
 
     public const string SidebarResetButton = "SidebarButton.Reset";

@@ -23,7 +23,12 @@ public static class PaletteEntryBuilder
         IReadOnlyList<ActionId> actions)
     {
         var all = Build(table, view);
-        return [.. actions.Select(action => all.FirstOrDefault(entry => entry.Action == action)).OfType<PaletteEntry>()];
+        return
+        [
+            .. actions
+                .Select(action => all.FirstOrDefault(entry => entry.Action == action))
+                .OfType<PaletteEntry>(),
+        ];
     }
 
     /// <summary>Like <see cref="Build(KeyBindingTable, string)"/> with an explicit set of actions that have no behaviour yet (shown greyed out); modal-only actions are left out.</summary>

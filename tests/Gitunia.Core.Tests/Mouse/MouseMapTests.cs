@@ -164,7 +164,7 @@ public class MouseMapTests
     [Theory]
     [InlineData(DefaultMouseMap.SidebarRebaseButton, "<space>gr")]
     [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
-    public void GivenASidebarRebaseOrResetButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
+    public void GivenARebaseOrResetButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
         var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
@@ -177,7 +177,9 @@ public class MouseMapTests
     {
         var map = DefaultMouseMap.Create();
 
-        Assert.Equal(ActionIds.PaletteOpenForRow, map.Resolve(DefaultKeymap.GraphView, MouseGesture.RightClick)?.Action);
+        var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.RightClick);
+
+        Assert.Equal(ActionIds.PaletteOpenForRow, binding?.Action);
         Assert.Null(map.Resolve(DefaultKeymap.DiffView, MouseGesture.RightClick));
     }
 
