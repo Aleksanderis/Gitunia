@@ -20,6 +20,8 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
     private const string SquashOption = "--squash";
     private const string MergeBase = "merge-base";
     private const string IsAncestor = "--is-ancestor";
+    private const string LocalPrefix = "refs/heads/";
+    private const string RemotePrefix = "refs/remotes/";
     private const string CommitSuffix = "^{commit}";
 
     private static readonly string[] HeadArguments = ["rev-parse", "--quiet", "--verify", GitOptions.HeadRevision];
@@ -40,11 +42,14 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
         // A cancel before the start must not run a write that a short-lived process would finish before it is noticed.
         cancellationToken.ThrowIfCancellationRequested();
         var before = await ReadHeadAsync(location, cancellationToken).ConfigureAwait(false);
+        var message = MessageFor(target);
+        string[] messageArguments = message is null ? [] : ["-m", message];
         string[] arguments = mode switch
         {
-            MergeMode.NoFastForward => [Merge, NoEdit, NoFastForward, target, GitOptions.EndOfOptions],
+            MergeMode.NoFastForward =>
+                [Merge, NoEdit, NoFastForward, .. messageArguments, target, GitOptions.EndOfOptions],
             MergeMode.Squash => [Merge, NoEdit, SquashOption, target, GitOptions.EndOfOptions],
-            _ => [Merge, NoEdit, target, GitOptions.EndOfOptions],
+            _ => [Merge, NoEdit, .. messageArguments, target, GitOptions.EndOfOptions],
         };
 
         if (mode == MergeMode.Squash)
@@ -62,6 +67,22 @@ public sealed class MergeWriter(GitRunner runner, OperationRunner operations) : 
         var resolvedTarget = resolved.ExitCode == 0 ? resolved.StandardOutputText.Trim() : null;
         return await MergeOperationAsync(location, arguments, before, resolvedTarget, mode, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Git names a full ref in its message (<c>Merge branch 'refs/heads/x'</c>); the text git writes for the short
+    /// name is given instead. Null for a hash or any other revision, which keeps git's own message.
+    /// </summary>
+    private static string? MessageFor(string target)
+    {
+        if (target.StartsWith(LocalPrefix, StringComparison.Ordinal) && target.Length > LocalPrefix.Length)
+        {
+            return $"Merge branch '{target[LocalPrefix.Length..]}'";
+        }
+
+        return target.StartsWith(RemotePrefix, StringComparison.Ordinal) && target.Length > RemotePrefix.Length
+            ? $"Merge remote-tracking branch '{target[RemotePrefix.Length..]}'"
+            : null;
     }
 
     private async Task<MergeResult> MergeOperationAsync(
