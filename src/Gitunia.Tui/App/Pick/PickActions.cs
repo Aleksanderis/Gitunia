@@ -106,10 +106,16 @@ public sealed class PickActions(
             {
                 Notice = $"Choose a parent from 1 to {_mainlineCount} (Esc cancels)";
             }
+            else if (parent > 1 && _commits.Any(commit => !commit.IsMerge))
+            {
+                Notice = "Parent 2 or higher only fits when every commit is a merge: press 1 or Esc";
+            }
             else
             {
                 Close();
-                Notice = Start(_tabId, _kind, _commits, parent);
+                Notice = host.Workspace.FindTab(_tabId) is { } tab && Refusal(tab) is { } refusal
+                    ? refusal
+                    : Start(_tabId, _kind, _commits, parent);
             }
         }
 

@@ -80,7 +80,7 @@ public class PickActionsTests
     {
         using var repository = Diverged();
         using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(SidebarRowKind.LocalBranch, "topic", Hash(repository, "topic"));
+        harness.SelectRow(SidebarRowKind.LocalBranch, Hash(repository, "topic"));
 
         harness.Run(ActionIds.PickCherry);
         await harness.FinishAsync();
@@ -249,6 +249,40 @@ public class PickActionsTests
     }
 
     [Fact]
+    public async Task GivenAMergeAndAPlainCommit_WhenParentTwoIsPressed_ThenItIsRefusedAndNothingRuns()
+    {
+        using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(Hash(repository, "HEAD"), Hash(repository, "HEAD~1"));
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.StatusLine.Length > 0);
+
+        harness.Press("2");
+
+        Assert.Contains("every commit is a merge", harness.Pick.Notice, StringComparison.Ordinal);
+        Assert.NotEqual(string.Empty, harness.Pick.StatusLine);
+        Assert.Equal(head, repository.Head);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenAMergeCommit_WhenParentTwoIsPressed_ThenTheOtherSideIsReverted()
+    {
+        using var repository = MergedTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(repository.Head);
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.StatusLine.Length > 0);
+
+        harness.Press("2");
+        await harness.FinishAsync();
+
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "m.txt")));
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
+    }
+
+    [Fact]
     public async Task GivenADetachedHead_WhenCherryPicking_ThenItIsAllowedAndNamesTheDetachedHead()
     {
         using var repository = Diverged();
@@ -285,7 +319,7 @@ public class PickActionsTests
         using var repository = Diverged();
         var old = repository.Head;
         using var harness = await Harness.LoadAsync(repository);
-        harness.SelectRow(kind, "row", Hash(repository, "topic"));
+        harness.SelectRow(kind, Hash(repository, "topic"));
 
         harness.Run(ActionIds.PickCherry);
 
@@ -449,7 +483,7 @@ public class PickActionsTests
 
         public void SelectCommits(params string[] hashes) => _selection = new PickSelection(null, hashes);
 
-        public void SelectRow(SidebarRowKind kind, string name, string commitHash) =>
+        public void SelectRow(SidebarRowKind kind, string commitHash) =>
             _selection = new PickSelection(kind, [commitHash]);
 
         public void Run(ActionId action) => Assert.True(Pick.TryExecute(action, null), action.Value);

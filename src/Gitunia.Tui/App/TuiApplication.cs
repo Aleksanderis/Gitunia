@@ -595,10 +595,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return new PickSelection(null, chosen.CommitHash is { } selected ? [selected] : []);
         }
 
-        var first = Math.Max(0, GraphListSource.CommitIndexOf(range.First));
-        var last = Math.Min(graph.Count - 1, GraphListSource.CommitIndexOf(range.Last));
-        return new PickSelection(null, [.. Enumerable.Range(first, Math.Max(0, last - first + 1))
-            .Select(index => graph[index].Id.ToString())]);
+        return new PickSelection(null, PickRange.Hashes(graph, range));
     }
 
     private ResetActions CreateReset(TabOperationGate gate) => new(

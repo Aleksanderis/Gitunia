@@ -198,6 +198,50 @@ public class PickWriterTests
     }
 
     [Fact]
+    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentOne_ThenBothAreApplied()
+    {
+        using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
+        var (writer, location) = await CreateAsync(repository);
+        var hashes = new[] { Hash(repository, "HEAD"), Hash(repository, "HEAD~1") };
+
+        var result = await writer.PickAsync(location, PickKind.Revert, hashes, 1, Token);
+
+        Assert.Equal(PickOutcome.Completed, result.Outcome);
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "d.txt")));
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAMergeAndAPlainCommit_WhenPickingWithParentTwo_ThenGitFailsPartwayAndLeavesTheRevertInProgress()
+    {
+        using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
+        var (writer, location) = await CreateAsync(repository);
+        var hashes = new[] { Hash(repository, "HEAD"), Hash(repository, "HEAD~1") };
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.PickAsync(location, PickKind.Revert, hashes, 2, Token));
+
+        // Why the UI accepts only parent 1 for such a range: the call fails after the first commit was reverted.
+        Assert.Equal(RepositoryOperation.Revert, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenACommitAlreadyReverted_WhenRevertingAgain_ThenGitsErrorIsThrownAndNoOperationRemains()
+    {
+        using var repository = Diverged();
+        var tip = repository.Head;
+        var (writer, location) = await CreateAsync(repository);
+        await writer.PickAsync(location, PickKind.Revert, [tip], null, Token);
+        var after = repository.Head;
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => writer.PickAsync(location, PickKind.Revert, [tip], null, Token));
+
+        Assert.Equal(after, repository.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
     public async Task GivenADirtyTreeGitCannotPickOver_WhenCherryPicking_ThenGitsErrorIsThrown()
     {
         using var repository = Diverged().WriteFile("b.txt", "dirty");
