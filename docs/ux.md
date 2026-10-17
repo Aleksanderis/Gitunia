@@ -216,7 +216,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
 1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`). It runs at once, no Confirm (nothing is lost); the status line names the old tip and the undo (`git reset --hard <old>`, also `ORIG_HEAD`). A stop on conflicts becomes the in-progress merge (banner, `<space>gc`, `<space>ga`); a conflicting squash leaves the files marked `!` but no operation and says to resolve and commit. A branch row merges that branch, a tag row or a graph commit that commit. Refused during any in-progress operation and on a detached or unborn HEAD.
-2. `gr` rebase the current branch onto the selection. A Confirm warns when the branch is already on its upstream (history rewrite, force push needed).
+2. `gr` rebase the current branch onto the selection (implemented in #39; non-interactive with `-c core.editor=true`, interactive is #399). The Confirm names both sides and the undo (`git reset --hard <old tip>`, also `ORIG_HEAD` and the reflog) and warns when the branch has an upstream (history rewrite, force push needed; the text is stronger when every commit is already on it). Refused with no git run when an operation is in progress ("finish or abort the <operation> first"), HEAD is detached or unborn, the target is the current commit, or tracked files have uncommitted changes (untracked files are fine). A rebase that stops on conflicts is the in-progress rebase of workflow 4 (banner, `<space>gc`, `<space>ga`, `<space>gk`); the status line warns and names the keys. No mouse path yet, the palette lists it, as for reset.
 3. `gp` cherry-pick the selection (a Visual range in the graph picks every commit, oldest first; a range that mixes lanes is applied in graph order and a range with a merge commit asks for the mainline once). `gv` revert it the same way (`--no-edit`).
 4. A merge commit asked to cherry-pick or revert gets a mainline prompt (parent 1 or 2, parent subjects shown).
 5. A dirty tree is refused for rebase; for the others git decides and its message is shown.
@@ -357,6 +357,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>bU` | Unset the upstream of the local branch at the selected commit |
 | Graph | `<space>gm` `<space>gM` `<space>gs` | Merge the selected commit into the current branch: fast-forward when possible / always a merge commit (`--no-ff`) / squash (changes staged, no commit; workflow 3) |
 | Graph | `<space>gx` | Reset the current branch to the selected commit: `s`/`m`/`h` picks soft, mixed or hard; Confirm where work is lost |
+| Graph | `<space>gr` | Rebase the current branch onto the selected commit (Confirm; non-interactive; refused with an operation in progress, tracked changes or a detached HEAD) |
 | Graph | `<space>l` | Open the reflog of HEAD (a list of its entries; see the Reflog flow) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
@@ -458,6 +459,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `<space>bU` | Unset the upstream of the selected local branch |
 | Sidebar | `<space>gm` `<space>gM` `<space>gs` | Merge the selected branch or tag into the current branch (as in the graph) |
 | Sidebar | `<space>gx` | Reset the current branch to the selected branch or tag (`s`/`m`/`h`; Confirm where work is lost) |
+| Sidebar | `<space>gr` | Rebase the current branch onto the selected branch or tag (Confirm; same refusals as in the graph) |
 | Sidebar | `<space>l` | Open the reflog of the local branch under the cursor (HEAD's on any other row) |
 | Sidebar | `y` | Copy the branch, tag or stash name, or the worktree path (OSC 52) |
 | Sidebar | `<space>Sa` | Apply the stash under the cursor and keep it |

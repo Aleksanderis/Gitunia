@@ -9,6 +9,7 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Merge;
+using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
@@ -68,6 +69,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
     public ResetActions? Reset { get; set; }
+
+    /// <summary>Rebasing the current branch onto the selected commit or ref (#39).</summary>
+    public RebaseActions? Rebase { get; set; }
 
     /// <summary>The working-tree view's actions, which see the actions before every history pane handler.</summary>
     public WorkingTreeActionHandler? WorkingTree { get; set; }
@@ -139,6 +143,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Reset?.TryExecute(action, count) == true)
         {
             Message = Reset.Notice;
+            return;
+        }
+
+        if (Rebase?.TryExecute(action, count) == true)
+        {
+            Message = Rebase.Notice;
             return;
         }
 

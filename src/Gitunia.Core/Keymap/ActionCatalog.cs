@@ -45,6 +45,7 @@ public static class ActionCatalog
         ["merge.branch-squash"] = "Squash-merge the selection (stages changes)",
         ["reflog.open"] = "Open the reflog of HEAD (of the branch under the sidebar cursor)",
         ["reflog.select-commit"] = "Select the reflog entry's commit in the graph",
+        ["rebase.onto"] = "Rebase the current branch onto the selected commit, branch or tag",
         ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",
