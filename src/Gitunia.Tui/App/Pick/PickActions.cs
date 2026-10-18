@@ -56,6 +56,7 @@ public sealed class PickActions(
     private PickKind _kind;
     private IReadOnlyList<PickCommit> _commits = [];
     private int _mainlineCount;
+    private int _usableParents;
     private bool _isOpen;
 
     public string Notice { get; private set; } = string.Empty;
@@ -75,7 +76,9 @@ public sealed class PickActions(
             }
 
             var merge = _commits.First(commit => commit.IsMerge);
-            return new MainlinePrompt(PickTexts.MainlineTitle(_kind, merge), PickTexts.MainlineRows(merge));
+            var rows = PickTexts.MainlineRows(merge);
+
+            return new MainlinePrompt(PickTexts.MainlineTitle(_kind, merge), rows, _usableParents);
         }
     }
 
@@ -131,7 +134,7 @@ public sealed class PickActions(
         {
             Notice = $"Choose a parent from 1 to {_mainlineCount} (Esc cancels)";
         }
-        else if (parent > 1 && _commits.Any(commit => !commit.IsMerge))
+        else if (parent > _usableParents)
         {
             Notice = "Parent 2 or higher only fits when every commit is a merge: press 1 or Esc";
         }
@@ -287,6 +290,8 @@ public sealed class PickActions(
             _kind = kind;
             _commits = commits;
             _mainlineCount = commits.Where(commit => commit.IsMerge).Min(commit => commit.Parents.Count);
+            // The call fails as a whole on -m 2 or higher when a plain commit is among the commits.
+            _usableParents = commits.Any(commit => !commit.IsMerge) ? 1 : _mainlineCount;
             _isOpen = true;
             setMode(KeyMode.Insert);
         }
