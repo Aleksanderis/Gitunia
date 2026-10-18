@@ -380,7 +380,7 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Watches one directory. False when the tab fell back to polling (limit hit or watching failed).</summary>
+    /// <summary>Watches one directory. False when the tab fell back to polling (limit or failure).</summary>
     private bool TryWatchDirectoryLocked(string path)
     {
         if (_directoryWatchers.ContainsKey(path))
