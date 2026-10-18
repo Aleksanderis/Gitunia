@@ -30,6 +30,55 @@ public static class ActionCatalog
         ActionIds.WorkingTreeMessageNewLine,
     ];
 
+    private static readonly HashSet<ActionId> CopyActions =
+    [
+        ActionIds.GraphCopyHash,
+        ActionIds.DetailCopyPath,
+        ActionIds.DiffCopyFile,
+        ActionIds.DiffCopyLine,
+        ActionIds.VisualCopy,
+        ActionIds.SidebarCopy,
+        ActionIds.WorkingTreeCopyPath,
+    ];
+
+    private static readonly Dictionary<string, ActionGroup> GroupByPrefix = new(StringComparer.Ordinal)
+    {
+        ["branch"] = ActionGroups.Branch,
+        ["merge"] = ActionGroups.Merge,
+        ["pick"] = ActionGroups.Merge,
+        ["rebase"] = ActionGroups.Merge,
+        ["reset"] = ActionGroups.Merge,
+        ["operation"] = ActionGroups.Merge,
+        ["tag"] = ActionGroups.Tag,
+        ["worktree"] = ActionGroups.Worktree,
+        ["stash"] = ActionGroups.Stash,
+        ["tool"] = ActionGroups.Tools,
+        ["diff"] = ActionGroups.Diff,
+        ["detail"] = ActionGroups.Details,
+        ["working-tree"] = ActionGroups.WorkingTree,
+        ["list"] = ActionGroups.Navigate,
+        ["graph"] = ActionGroups.Navigate,
+        ["navigate"] = ActionGroups.Navigate,
+        ["search"] = ActionGroups.Navigate,
+        ["sidebar"] = ActionGroups.Navigate,
+        ["reflog"] = ActionGroups.Navigate,
+        ["view"] = ActionGroups.Navigate,
+        ["visual"] = ActionGroups.Navigate,
+        ["pane"] = ActionGroups.View,
+        ["tab"] = ActionGroups.Tabs,
+        ["palette"] = ActionGroups.General,
+        ["help"] = ActionGroups.General,
+        ["status"] = ActionGroups.General,
+        ["app"] = ActionGroups.General,
+        ["repo"] = ActionGroups.General,
+        ["picker"] = ActionGroups.General,
+        ["menu"] = ActionGroups.General,
+        ["command"] = ActionGroups.General,
+        ["confirm"] = ActionGroups.General,
+        ["input"] = ActionGroups.General,
+        ["cancel"] = ActionGroups.General,
+    };
+
     private static readonly Dictionary<string, string> Titles = new()
     {
         ["branch.create"] = "Create a branch and check it out",
@@ -199,6 +248,23 @@ public static class ActionCatalog
 
         var number = action.Value[TabGoToPrefix.Length..];
         return $"Go to tab {number} (same as {number}{TabNextChord})";
+    }
+
+    /// <summary>
+    /// The group the palette and the row menu list <paramref name="action"/> under, or null when it has none (a
+    /// test keeps every bound action covered). Derived from the id: the part before the first dot picks the group,
+    /// a few copy actions are lifted into the Copy group.
+    /// </summary>
+    public static ActionGroup? GroupOf(ActionId action)
+    {
+        if (CopyActions.Contains(action))
+        {
+            return ActionGroups.Copy;
+        }
+
+        var dot = action.Value.IndexOf('.', StringComparison.Ordinal);
+        var prefix = dot < 0 ? action.Value : action.Value[..dot];
+        return GroupByPrefix.GetValueOrDefault(prefix);
     }
 
     /// <summary>True when <paramref name="action"/> has a real title.</summary>

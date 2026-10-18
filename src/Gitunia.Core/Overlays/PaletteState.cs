@@ -24,10 +24,18 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
             return Entries;
         }
 
-        return [.. Entries
+        // Groups stay together: the group holding the best match comes first, and groups without a match disappear.
+        var scored = Entries
             .Select(entry => new ScoredPaletteEntry(entry, BestScore(entry)))
             .Where(item => item.Score is not null)
-            .OrderByDescending(item => item.Score)
+            .ToList();
+        var groupBest = scored
+            .GroupBy(item => item.Entry.Group)
+            .ToDictionary(group => group.Key ?? string.Empty, group => group.Max(item => item.Score));
+        return [.. scored
+            .OrderByDescending(item => groupBest[item.Entry.Group ?? string.Empty])
+            .ThenBy(item => item.Entry.Group, StringComparer.Ordinal)
+            .ThenByDescending(item => item.Score)
             .Select(item => item.Entry)];
     }
 

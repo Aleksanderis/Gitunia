@@ -60,4 +60,35 @@ public class ContextMenuBuilderTests
     {
         Assert.Empty(RowActions.OfSidebarRow(Row(SidebarRowKind.Section, SidebarSection.Remotes)));
     }
+
+    [Fact]
+    public void GivenTheGraphRowActions_WhenBuilding_ThenEntriesCarryTheirGroupInContiguousRuns()
+    {
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
+
+        Assert.Equal(["Branch", "Tag", "Merge and rebase", "Copy"], entries.Select(entry => entry.Group).Distinct());
+        Assert.All(entries, entry => Assert.NotNull(entry.Group));
+    }
+
+    [Fact]
+    public void GivenAShortMenu_WhenBuilding_ThenThereAreNoGroups()
+    {
+        var actions = RowActions.OfSidebarRow(Row(SidebarRowKind.Stash, SidebarSection.Stashes));
+
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.SidebarView, actions);
+
+        Assert.True(entries.Count <= ContextMenuBuilder.UngroupedMaximum);
+        Assert.All(entries, entry => Assert.Null(entry.Group));
+    }
+
+    [Fact]
+    public void GivenALongMenuOfOneGroup_WhenBuilding_ThenThereAreNoGroups()
+    {
+        var actions = RowActions.OfSidebarRow(Row(SidebarRowKind.Worktree, SidebarSection.Worktrees));
+
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.SidebarView, actions);
+
+        Assert.True(entries.Count > ContextMenuBuilder.UngroupedMaximum);
+        Assert.All(entries, entry => Assert.Null(entry.Group));
+    }
 }

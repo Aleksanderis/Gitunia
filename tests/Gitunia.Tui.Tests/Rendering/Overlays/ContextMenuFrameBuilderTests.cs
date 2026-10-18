@@ -10,6 +10,8 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
 public class ContextMenuFrameBuilderTests
 {
+    private const int GraphMenuGroups = 4;
+
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
     private static PaletteState Menu(int selected = 0) => new(
@@ -22,14 +24,15 @@ public class ContextMenuFrameBuilderTests
     [Fact]
     public void GivenAnAnchor_WhenBuilding_ThenTheMenuHangsUnderTheRowWithTitleAndKeysAtTheRight()
     {
-        var frame = Frame(Menu(), new MenuAnchor(4, 3));
+        var frame = Frame(Menu(), new MenuAnchor(4, 1));
 
         Assert.Equal(6, frame.Column);
-        Assert.Equal(4, frame.Row);
+        Assert.Equal(2, frame.Row);
         Assert.Equal(" Actions".PadRight(frame.Width), frame.Lines[0].Text);
-        Assert.Contains("Switch", frame.Lines[3].Text, StringComparison.Ordinal);
-        Assert.EndsWith("<space>bs │", frame.Lines[3].Text, StringComparison.Ordinal);
-        Assert.Equal(RowActions.OfGraphRow.Count + 2, frame.Height);
+        Assert.Contains("Branch", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("Switch", frame.Lines[4].Text, StringComparison.Ordinal);
+        Assert.EndsWith("<space>bs │", frame.Lines[4].Text, StringComparison.Ordinal);
+        Assert.Equal(RowActions.OfGraphRow.Count + GraphMenuGroups + 2, frame.Height);
         Assert.All(frame.Lines, line => Assert.Equal(frame.Width, line.Text.Length));
     }
 
@@ -74,8 +77,9 @@ public class ContextMenuFrameBuilderTests
         var menu = Menu();
 
         Assert.Null(ContextMenuFrameBuilder.EntryIndexAt(menu, 0, 24));
-        Assert.Equal(0, ContextMenuFrameBuilder.EntryIndexAt(menu, 1, 24));
-        Assert.Null(ContextMenuFrameBuilder.EntryIndexAt(menu, RowActions.OfGraphRow.Count + 1, 24));
+        Assert.Null(ContextMenuFrameBuilder.EntryIndexAt(menu, 1, 24));
+        Assert.Equal(0, ContextMenuFrameBuilder.EntryIndexAt(menu, 2, 24));
+        Assert.Null(ContextMenuFrameBuilder.EntryIndexAt(menu, RowActions.OfGraphRow.Count + GraphMenuGroups + 1, 24));
     }
 
     [Theory]

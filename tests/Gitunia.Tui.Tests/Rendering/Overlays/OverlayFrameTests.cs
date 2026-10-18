@@ -201,22 +201,51 @@ public class OverlayFrameTests
             string.Join(
                 '\n',
                 " : _                                                                    ",
-                "│ Jump to HEAD                                                <space>h │",
-                "│ Jump to a ref or hash                                       <space>f │",
-                "│ Quick jump to a visible row                                 <space>j │",
-                "│ Focus the commit details                                       Enter │",
-                "│ Copy the commit hash                                               y │",
-                "│ Refresh the repository                                      <space>r │",
-                "│ Open the commit in the difftool                            <space>td │",
-                "│ Resolve conflicts in the mergetool                         <space>tm │",
-                "│ Commit the staged changes in $EDITOR                       <space>te │",
-                "│ Next bottom pane tab                                               ] │",
-                "│ Previous bottom pane tab                                           [ │",
-                "│ Show the Details tab                                              gd │",
+                "│ Branch                                                               │",
+                "│ Create a branch and check it out                           <space>bc │",
+                "│ Create a branch without checking out                       <space>bC │",
+                "│ Switch to a branch (check out)                             <space>bs │",
+                "│ Rename the branch                                          <space>br │",
+                "│ Delete the branch (asks first)                             <space>bd │",
+                "│ Set the branch upstream                                    <space>bu │",
+                "│ Unset the branch upstream                                  <space>bU │",
+                "│ Merge and rebase                                                     │",
+                "│ Reset the current branch to the selected commit (soft, m…  <space>gx │",
+                "│ Rebase the current branch onto the selected commit, bran…  <space>gr │",
+                "│ Merge the selection (fast-forward if possible)             <space>gm │",
                 "│ 1/136 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
+    }
+
+    [Fact]
+    public void GivenGroupedEntries_WhenRenderingAtTinyAsciiSize_ThenSubheadersShowAndFitTheWidth()
+    {
+        var frame = PaletteFrameBuilder.Build(Palette(), 40, 8, GraphGlyphSet.Ascii)!;
+
+        Assert.Equal(
+            string.Join(
+                '\n',
+                " : _                                  ",
+                "| Branch                             |",
+                "| Create a branch and ch~  <space>bc |",
+                "| Create a branch withou~  <space>bC |",
+                "| 1/136 Ctrl-j/k move  Enter run  Esc|",
+                "+------------------------------------+"),
+            Text(frame));
+        Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
+    }
+
+    [Fact]
+    public void GivenAFilterMatchingOneGroup_WhenRenderingThePalette_ThenOtherGroupsAreHidden()
+    {
+        var frame = PaletteFrameBuilder.Build(Palette().Type("stash"), 80, 24, GraphGlyphSet.Unicode)!;
+        var text = Text(frame);
+
+        Assert.Contains("Stash", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tabs", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Navigate", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -245,17 +274,17 @@ public class OverlayFrameTests
             string.Join(
                 '\n',
                 " : tab_                                                   ",
+                "│ Tabs                                                   │",
                 "│ Next tab                                            gt │",
                 "│ Previous tab                                        gT │",
                 "│ Go to tab 1 (same as 1gt)                        Alt-1 │",
                 "│ Go to tab 2 (same as 2gt)                        Alt-2 │",
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
-                "│ Go to tab 5 (same as 5gt)                        Alt-5 │",
                 "│ 2/34 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal([false, true, false], [.. frame!.Lines.Skip(1).Take(3).Select(line => line.IsSelected)]);
+        Assert.Equal([false, false, true, false], [.. frame!.Lines.Skip(1).Take(4).Select(line => line.IsSelected)]);
     }
 
     [Fact]
@@ -277,10 +306,11 @@ public class OverlayFrameTests
 
         // Line 0 is the query bar, the entries follow, the last two lines are the footer and the bottom border.
         Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, 0, 24));
-        Assert.Equal(0, PaletteFrameBuilder.EntryIndexAt(palette, 1, 24));
-        Assert.Equal(3, PaletteFrameBuilder.EntryIndexAt(palette, 4, 24));
+        Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, 1, 24));
+        Assert.Equal(0, PaletteFrameBuilder.EntryIndexAt(palette, 2, 24));
+        Assert.Equal(2, PaletteFrameBuilder.EntryIndexAt(palette, 4, 24));
         Assert.Null(PaletteFrameBuilder.EntryIndexAt(palette, frame.Height - 2, 24));
-        Assert.Contains(visible[3].Title, frame.Lines[4].Text, StringComparison.Ordinal);
+        Assert.Contains(visible[2].Title, frame.Lines[4].Text, StringComparison.Ordinal);
     }
 
     [Fact]

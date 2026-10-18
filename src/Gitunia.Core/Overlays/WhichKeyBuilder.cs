@@ -6,16 +6,16 @@ namespace Gitunia.Core.Overlays;
 /// <summary>Turns the engine's continuations of a pending chord into popup rows.</summary>
 public static class WhichKeyBuilder
 {
-    /// <summary>Group names by formatted prefix; hand-written, the keymap has no group metadata (#443).</summary>
+    /// <summary>Group names by formatted prefix, taken from the action groups (#483): one vocabulary.</summary>
     private static readonly Dictionary<string, string> GroupNames = new(StringComparer.Ordinal)
     {
-        ["<space>b"] = "branch operations",
-        ["<space>g"] = "merge, rebase, reset, pick",
-        ["<space>T"] = "tag operations",
-        ["<space>w"] = "worktree operations",
-        ["<space>S"] = "stash operations",
-        ["<space>t"] = "external tools",
-        ["<space>v"] = "diff view options",
+        ["<space>b"] = ActionGroups.Branch.WhichKeyName!,
+        ["<space>g"] = ActionGroups.Merge.WhichKeyName!,
+        ["<space>T"] = ActionGroups.Tag.WhichKeyName!,
+        ["<space>w"] = ActionGroups.Worktree.WhichKeyName!,
+        ["<space>S"] = ActionGroups.Stash.WhichKeyName!,
+        ["<space>t"] = ActionGroups.Tools.WhichKeyName!,
+        ["<space>v"] = ActionGroups.Diff.WhichKeyName!,
     };
 
     /// <summary>Rows for the continuations of <paramref name="pending"/>; a group row names its contents.</summary>

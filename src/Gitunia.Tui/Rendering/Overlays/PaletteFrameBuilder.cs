@@ -26,9 +26,10 @@ public static class PaletteFrameBuilder
         }
 
         var visible = palette.Visible();
-        var window = Window(palette, visible.Count, maximumRows);
+        var rows = GroupedRows.Of(visible);
+        var selectedEntry = visible.Count == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visible.Count - 1);
+        var window = rows.Window(selectedEntry, maximumRows);
         var rowCount = window.RowCount;
-        var selected = window.Selected;
         var top = window.Top;
 
         var lines = new List<StyledLine> { OverlayBox.Title($": {palette.Query}_", width, glyphs) };
@@ -37,10 +38,21 @@ public static class PaletteFrameBuilder
             lines.Add(OverlayBox.Text("no matching action", width, glyphs, SegmentRole.Faint));
         }
 
-        for (var offset = 0; offset < rowCount && top + offset < visible.Count; offset++)
+        for (var offset = 0; offset < rowCount && top + offset < rows.Lines.Count; offset++)
         {
-            var entry = visible[top + offset];
-            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint, entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint, top + offset == selected));
+            var line = rows.Lines[top + offset];
+            if (line.Header is { } header)
+            {
+                lines.Add(OverlayBox.Text(header, width, glyphs, SegmentRole.SectionTitle));
+                continue;
+            }
+
+            var index = line.Entry!.Value;
+            var entry = visible[index];
+            var role = entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint;
+            var keyRole = entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint;
+            var isSelected = index == selectedEntry;
+            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, role, keyRole, isSelected));
         }
 
         while (lines.Count < rowCount + 1)
@@ -48,7 +60,7 @@ public static class PaletteFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(Footer(selected, visible.Count, width, glyphs));
+        lines.Add(Footer(selectedEntry, visible.Count, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
@@ -62,21 +74,17 @@ public static class PaletteFrameBuilder
         return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
     }
 
-    /// <summary>The index into <see cref="PaletteState.Visible"/> of the entry drawn on <paramref name="frameLine"/> of the frame, or null for the title, the footer or an empty row.</summary>
+    /// <summary>
+    /// The index into <see cref="PaletteState.Visible"/> of the entry drawn on <paramref name="frameLine"/>, or null
+    /// for the title, a subheader, the footer or an empty row.
+    /// </summary>
     public static int? EntryIndexAt(PaletteState palette, int frameLine, int screenHeight)
     {
-        var visibleCount = palette.Visible().Count;
-        var window = Window(palette, visibleCount, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
-        var rowCount = window.RowCount;
-        var top = window.Top;
+        var visible = palette.Visible();
+        var rows = GroupedRows.Of(visible);
+        var selectedEntry = visible.Count == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visible.Count - 1);
+        var window = rows.Window(selectedEntry, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
         var offset = frameLine - 1;
-        return offset >= 0 && offset < rowCount && top + offset < visibleCount ? top + offset : null;
-    }
-
-    private static PaletteWindow Window(PaletteState palette, int visibleCount, int maximumRows)
-    {
-        var rowCount = Math.Max(1, Math.Min(maximumRows, visibleCount));
-        var selected = visibleCount == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visibleCount - 1);
-        return new PaletteWindow(rowCount, selected, Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, visibleCount - rowCount)));
+        return offset >= 0 && offset < window.RowCount ? rows.EntryAt(window.Top + offset) : null;
     }
 }

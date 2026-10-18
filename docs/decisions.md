@@ -321,3 +321,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Graph row menu opens on double-click, the graph `...` marker is gone (#482, owner): double-click on a graph row runs `menu.open-for-row`; the details pane is reached by clicking it, `Enter` or `l`. The sidebar keeps its marker. Supersedes the graph part of the #479 entry. An "Open details" menu row was considered and not added (keeps the menu to keyed actions; #483 reshapes it). Why: the marker cost columns on every graph row.
 
 **UI:** Graph double-click on blank space below the last row is ignored (#484): it would open the menu of the still-selected row. The "Open details" route for a hidden details pane (under 14 rows) is registered as #486.
+
+**UI:** Palette and row menu list actions under subheaders (#483, owner), groups from `ActionCatalog.GroupOf` (shared with which-key, superseding the hand-written table of #443); the menu groups only above 5 actions and 2+ groups, help and which-key stay flat. The palette orders by group first, superseding view-first.

@@ -36,10 +36,22 @@ public static class PaletteEntryBuilder
                 .Select(binding => KeyFormatter.Format(binding.Sequence))
                 .Distinct()
                 .Take(MaximumShownBindings);
-            var entry = new PaletteEntry(group.Key, ActionCatalog.Describe(group.Key), string.Join(" / ", keys), !unimplemented.Contains(group.Key));
+            var entry = new PaletteEntry(
+                group.Key,
+                ActionCatalog.Describe(group.Key),
+                string.Join(" / ", keys),
+                !unimplemented.Contains(group.Key),
+                ActionCatalog.GroupOf(group.Key)?.Header);
             entries.Add(new RankedPaletteEntry(entry, rankByAction.GetValueOrDefault(group.Key, chain.Count), order++));
         }
 
-        return [.. entries.OrderBy(item => item.Rank).ThenBy(item => item.Order).Select(item => item.Entry)];
+        // Grouped (#483): the groups in their fixed order; inside a group the focused view's own actions first.
+        return [.. entries
+            .OrderBy(item => GroupOrder(item.Entry.Action))
+            .ThenBy(item => item.Rank)
+            .ThenBy(item => item.Order)
+            .Select(item => item.Entry)];
     }
+
+    private static int GroupOrder(ActionId action) => ActionCatalog.GroupOf(action)?.Order ?? int.MaxValue;
 }
