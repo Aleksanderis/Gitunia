@@ -24,7 +24,10 @@ public static class DefaultMouseMap
 
     public const string BannerSkipButton = "BannerButton.Skip";
 
-    /// <summary>The <c>...</c> marker at the right edge of the selected graph or sidebar row; a click opens the row's actions menu (#479).</summary>
+    /// <summary>
+    /// The <c>...</c> marker at the right edge of the selected graph or sidebar row;
+    /// a click opens the row's actions menu (#479).
+    /// </summary>
     public const string RowMenuButton = "RowMenuButton";
 
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>

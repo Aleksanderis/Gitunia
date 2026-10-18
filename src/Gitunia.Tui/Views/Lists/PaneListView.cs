@@ -19,7 +19,10 @@ public sealed class PaneListView : ListView
     private int _lastPointerRow;
     private bool _isAutoScrolling;
 
-    /// <summary>The rows of this pane have an actions menu: the selected row shows a <c>...</c> marker at its right edge and a click on it opens it (#479).</summary>
+    /// <summary>
+    /// The rows of this pane have an actions menu: the selected row shows a <c>...</c> marker
+    /// at its right edge and a click on it opens the menu (#479).
+    /// </summary>
     public bool OpensRowMenu { get; set; }
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>

@@ -1,7 +1,8 @@
 namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>
-/// The <c>...</c> marker at the right edge of the selected graph or sidebar row (#479): the mouse path to the row's actions menu.
+/// The <c>...</c> marker at the right edge of the selected graph or sidebar row (#479):
+/// the mouse path to the row's actions menu.
 /// Rendering puts it there, the pane treats a click on those columns as a button click.
 /// </summary>
 public static class RowMenuMarker
@@ -15,7 +16,10 @@ public static class RowMenuMarker
 
     public static bool IsShown(int paneWidth) => paneWidth >= MinimumPaneWidth;
 
-    /// <summary>Replaces the last columns of the cursor row's full-width line with the marker; other lines are returned as they are.</summary>
+    /// <summary>
+    /// Replaces the last columns of the cursor row's full-width line with the marker;
+    /// other lines are returned as they are.
+    /// </summary>
     public static StyledLine Apply(StyledLine line, int width, bool isCursor)
     {
         if (!isCursor || !IsShown(width))

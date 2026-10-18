@@ -172,7 +172,9 @@ public class MouseMapTests
     [Fact]
     public void GivenAClickOnTheRowMenuMarker_WhenResolving_ThenTheRowMenuOpens()
     {
-        Assert.Equal(ActionIds.MenuOpenForRow, DefaultMouseMap.Create().Resolve(DefaultMouseMap.RowMenuButton, MouseGesture.Click)?.Action);
+        var binding = DefaultMouseMap.Create().Resolve(DefaultMouseMap.RowMenuButton, MouseGesture.Click);
+
+        Assert.Equal(ActionIds.MenuOpenForRow, binding?.Action);
     }
 
     [Fact]

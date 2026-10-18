@@ -215,7 +215,8 @@ public static class ScreenComposer
                         ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
                         : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0),
                     paddingColumns);
-                graphLines.Add(RowMenuMarker.Apply(graphLine, rects.Graph.Width, item == selectedItem && commitIndex >= 0 && commitIndex < graph.Count));
+                var isCursorCommit = item == selectedItem && commitIndex >= 0 && commitIndex < graph.Count;
+                graphLines.Add(RowMenuMarker.Apply(graphLine, rects.Graph.Width, isCursorCommit));
             }
 
             overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
@@ -224,7 +225,12 @@ public static class ScreenComposer
         if (sidebar is not null && !rects.Sidebar.IsEmpty)
         {
             var sidebarLines = SidebarPane.Compose(sidebar, PanePadding.TextWidth(rects.Sidebar.Width), rects.Sidebar.Height + rects.SidebarFilter.Height, glyphs);
-            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. sidebarLines.Select((line, offset) => RowMenuMarker.Apply(PanePadding.Wrap(line), rects.Sidebar.Width, sidebar.TopRow + offset == sidebar.Cursor && sidebar.Cursor < sidebar.Rows.Length))], sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
+            var markedLines = sidebarLines.Select((line, offset) => RowMenuMarker.Apply(
+                PanePadding.Wrap(line),
+                rects.Sidebar.Width,
+                sidebar.TopRow + offset == sidebar.Cursor && sidebar.Cursor < sidebar.Rows.Length));
+            var sidebarSelection = sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim;
+            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. markedLines], sidebarSelection));
         }
 
         if (showDetail)
