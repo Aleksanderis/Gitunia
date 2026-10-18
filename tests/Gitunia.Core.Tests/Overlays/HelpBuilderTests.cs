@@ -115,6 +115,67 @@ public class HelpBuilderTests
     }
 
     [Fact]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenActionsComeBeforeGroupsEachSorted()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+
+        AssertOrdered(rows);
+        Assert.Contains(rows, row => row.Description.StartsWith("+more", StringComparison.Ordinal));
+        Assert.StartsWith("+more", rows[^1].Description, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenANestedPrefix_WhenBuildingWhichKeyRows_ThenActionsComeBeforeGroupsEachSorted()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>g");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+
+        Assert.True(rows.Count > 1);
+        AssertOrdered(rows);
+    }
+
+    [Fact]
+    public void GivenMixedCaseKeys_WhenBuildingWhichKeyRows_ThenLowercaseComesFirst()
+    {
+        KeyEvent Key(string name) => new(name, KeyModifiers.None);
+        var rows = WhichKeyBuilder.Build(
+            [
+                new Continuation(Key("B"), new ActionId("x.y"), false),
+                new Continuation(Key("a"), new ActionId("x.y"), false),
+                new Continuation(Key("b"), new ActionId("x.y"), false),
+                new Continuation(Key("A"), null, true),
+                new Continuation(Key("c"), null, true),
+            ],
+            new KeySequence([]));
+
+        Assert.Equal(["a", "b", "B", "A", "c"], rows.Select(row => row.Key));
+    }
+
+    private static void AssertOrdered(IReadOnlyList<WhichKeyRow> rows)
+    {
+        var groupStart = rows.ToList().FindIndex(row => row.Description.StartsWith("+more", StringComparison.Ordinal));
+        groupStart = groupStart < 0 ? rows.Count : groupStart;
+        Assert.All(rows.Skip(groupStart), row => Assert.StartsWith("+more", row.Description, StringComparison.Ordinal));
+        foreach (var part in (List<WhichKeyRow>[])[[.. rows.Take(groupStart)], [.. rows.Skip(groupStart)]])
+        {
+            var expected = part.OrderBy(row => row.Key.ToLowerInvariant(), StringComparer.Ordinal)
+                .ThenByDescending(row => row.Key, StringComparer.Ordinal).Select(row => row.Key);
+            Assert.Equal(expected, part.Select(row => row.Key));
+        }
+    }
+
+    [Fact]
     public void GivenAGroupWithoutAName_WhenBuildingWhichKeyRows_ThenItStaysPlainMore()
     {
         var engine = new KeymapEngine(Table);
