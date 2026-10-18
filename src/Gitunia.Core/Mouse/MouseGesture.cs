@@ -9,15 +9,6 @@ public enum MouseGesture
     /// <summary>A left double-click (the first click of it was already reported as a <see cref="Click"/>).</summary>
     DoubleClick,
 
-    /// <summary>A right click: opens the actions menu of the row under the pointer.</summary>
-    RightClick,
-
-    /// <summary>A middle-button click: the same menu as <see cref="RightClick"/> where that button is kept.</summary>
-    MiddleClick,
-
-    /// <summary>A left click with Ctrl held: a second right-click alternative.</summary>
-    CtrlClick,
-
     /// <summary>One wheel notch away from the user (the selection moves up).</summary>
     WheelUp,
 

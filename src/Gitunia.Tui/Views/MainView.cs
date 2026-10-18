@@ -248,6 +248,8 @@ public sealed class MainView : IDisposable
         _picker.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         Graph.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.GraphView, gesture, target);
         Sidebar.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.SidebarView, gesture, target);
+        Graph.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
+        Sidebar.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
         Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
         WorkingUnstaged.GestureRaised +=

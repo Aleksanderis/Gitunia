@@ -24,6 +24,9 @@ public static class DefaultMouseMap
 
     public const string BannerSkipButton = "BannerButton.Skip";
 
+    /// <summary>The <c>...</c> marker at the right edge of the selected graph or sidebar row; a click opens the row's actions menu (#479).</summary>
+    public const string RowMenuButton = "RowMenuButton";
+
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
     public const string BackdropView = "Backdrop";
 
@@ -161,12 +164,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
-        new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.MenuOpenForRow),
-        new(DefaultKeymap.GraphView, MouseGesture.MiddleClick, ActionIds.MenuOpenForRow),
-        new(DefaultKeymap.GraphView, MouseGesture.CtrlClick, ActionIds.MenuOpenForRow),
-        new(DefaultKeymap.SidebarView, MouseGesture.RightClick, ActionIds.MenuOpenForRow),
-        new(DefaultKeymap.SidebarView, MouseGesture.MiddleClick, ActionIds.MenuOpenForRow),
-        new(DefaultKeymap.SidebarView, MouseGesture.CtrlClick, ActionIds.MenuOpenForRow),
+        new(RowMenuButton, MouseGesture.Click, ActionIds.MenuOpenForRow),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),

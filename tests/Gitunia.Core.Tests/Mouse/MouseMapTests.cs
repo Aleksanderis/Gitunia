@@ -169,17 +169,18 @@ public class MouseMapTests
         Assert.Equal(key.Action, binding?.Action);
     }
 
-    [Theory]
-    [InlineData(MouseGesture.RightClick)]
-    [InlineData(MouseGesture.MiddleClick)]
-    [InlineData(MouseGesture.CtrlClick)]
-    public void GivenAnOpenGestureOnAGraphOrSidebarRow_WhenResolving_ThenTheRowMenuOpens(MouseGesture gesture)
+    [Fact]
+    public void GivenAClickOnTheRowMenuMarker_WhenResolving_ThenTheRowMenuOpens()
     {
-        var map = DefaultMouseMap.Create();
+        Assert.Equal(ActionIds.MenuOpenForRow, DefaultMouseMap.Create().Resolve(DefaultMouseMap.RowMenuButton, MouseGesture.Click)?.Action);
+    }
 
-        Assert.Equal(ActionIds.MenuOpenForRow, map.Resolve(DefaultKeymap.GraphView, gesture)?.Action);
-        Assert.Equal(ActionIds.MenuOpenForRow, map.Resolve(DefaultKeymap.SidebarView, gesture)?.Action);
-        Assert.Null(map.Resolve(DefaultKeymap.DiffView, gesture));
+    [Fact]
+    public void GivenTheMouseGestures_WhenListingThem_ThenNoRightMiddleOrCtrlGestureExists()
+    {
+        Assert.DoesNotContain(
+            Enum.GetNames<MouseGesture>(),
+            name => name.Contains("Right") || name.Contains("Middle") || name.Contains("Ctrl"));
     }
 
     [Theory]

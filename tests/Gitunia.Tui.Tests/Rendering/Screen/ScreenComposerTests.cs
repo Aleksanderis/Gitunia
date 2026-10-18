@@ -42,7 +42,7 @@ public class ScreenComposerTests
                 '\n',
                 "   1 repo",
                 "╭─ History ────────────────────────────╮",
-                "│ ○─╮  merge side                      │",
+                "│ ○─╮  merge side                   ...│",
                 "│ ├ │  main work                       │",
                 "│ ├─●  side work                       │",
                 "│ ●  root                              │",
@@ -61,7 +61,7 @@ public class ScreenComposerTests
                 '\n',
                 "   1 repo",
                 "+- History ----------------------------+",
-                "| o-\\  merge side                      |",
+                "| o-\\  merge side                   ...|",
                 "| | |  main work                       |",
                 "| |-*  side work                       |",
                 "| *  root                              |",
@@ -154,7 +154,7 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(1, 2), graph, 0, 0, 30, 7, GraphGlyphSet.Unicode);
 
-        Assert.Equal("│ ●  修正バグ                │", lines[2].Text);
+        Assert.Equal("│ ●  修正バグ             ...│", lines[2].Text);
         Assert.Equal("│ ●  emoji 🎉 ok             │", lines[3].Text);
         Assert.All(lines, line => Assert.Equal(30, TextWidth.Of(line.Text)));
     }

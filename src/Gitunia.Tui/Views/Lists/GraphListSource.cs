@@ -7,6 +7,7 @@ using Gitunia.Core.Search.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
 
@@ -93,7 +94,12 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var line = commitIndex >= 0 && commitIndex < graph.Count
             ? GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex))
             : GraphRowRenderer.RenderEmpty(options, selected);
-        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
+        LinePainter.Paint(
+            listView,
+            RowMenuMarker.Apply(PanePadding.Wrap(line, columns), width, item == listView.SelectedItem),
+            col,
+            row,
+            listView.HasFocus);
     }
 
     public void Dispose()

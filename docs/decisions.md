@@ -312,6 +312,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.
 
-**UI:** Row actions are a real popup menu, not the palette (#471, owner): `<space>.` or right-click, middle-click or Ctrl-click (right-click may not reach the app under a multiplexer) opens a menu under the row listing that row's actions with their keys; replaces the narrowed palette of #428. It covers every action of the sidebar header chips, which #469 drops. Details in ux.md, "Actions menu".
+**UI:** Row actions are a real popup menu, not the palette (#471, owner): `<space>.` or a click on the `...` marker of the selected row (#479) opens a menu under the row listing that row's actions with their keys; replaces the narrowed palette of #428. It covers every action of the sidebar header chips, which #469 drops. Details in ux.md, "Actions menu".
 
 **UI:** Sidebar header chips removed (#469, owner): the actions menu (#471) is the mouse path of every sidebar action, so the section headers are plain again. Why: chips were dropped at narrow widths and duplicated the menu. Supersedes the chip entries of #414, #428, #432, #434, #436.
+
+**UI:** No right-, middle- or Ctrl-click bindings (#479, owner): they feel like a desktop app and multiplexers may swallow them. The mouse path of the row actions menu is a `...` marker at the right edge of the selected graph or sidebar row, chosen over click-on-selected-row because that would clash with the sidebar click (activate) and the graph double-click (details). Supersedes the right/middle/Ctrl-click parts of the #471 entry and the right-click mentions above; #477 is moot.
