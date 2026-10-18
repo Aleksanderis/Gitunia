@@ -184,12 +184,16 @@ public class KeymapEngineTests
     }
 
     [Theory]
-    [InlineData("Alt-h")]
-    [InlineData("Alt-l")]
-    public void GivenInsertMode_WhenPressingAltDirection_ThenNoFocusActionFires(string key)
+    [InlineData("Alt-h", KeyMode.Insert)]
+    [InlineData("Alt-j", KeyMode.Insert)]
+    [InlineData("Alt-k", KeyMode.Insert)]
+    [InlineData("Alt-l", KeyMode.Insert)]
+    [InlineData("Alt-h", KeyMode.Visual)]
+    [InlineData("Alt-l", KeyMode.Visual)]
+    public void GivenTextEntryOrVisualMode_WhenPressingAltDirection_ThenNoFocusActionFires(string key, KeyMode mode)
     {
         var feeder = CreateFeeder();
-        feeder.State = feeder.State.WithMode(KeyMode.Insert);
+        feeder.State = feeder.State.WithMode(mode);
 
         Assert.NotEqual(KeyOutcome.Action, feeder.Feed(key).Outcome);
     }

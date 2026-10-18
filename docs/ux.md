@@ -323,7 +323,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>p` | Pin the repository to the top of the picker / unpin it |
 | Global | `Ctrl-w r` | Rename the tab (status bar prompt, `Enter` saves, an empty name restores the repository name) |
 | Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
-| Global | `Alt-h` `Alt-j` `Alt-k` `Alt-l` | Same as `Ctrl-w h/j/k/l` without the prefix (Normal mode only, never in Insert; terminal multiplexers may take `Alt-` keys) |
+| Global | `Alt-h` `Alt-j` `Alt-k` `Alt-l` | Same as `Ctrl-w h/j/k/l` without the prefix (Normal mode only, never in Insert; terminal multiplexers may take `Alt-` keys; Alt arrives as a modifier in tmux on Linux like `Alt-s`, Windows and macOS unverified, macOS terminals need Option-as-Meta) |
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
