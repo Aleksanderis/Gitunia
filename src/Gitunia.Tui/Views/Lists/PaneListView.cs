@@ -93,6 +93,14 @@ public sealed class PaneListView : ListView
         }
 
         FocusPane();
+        if (gesture == MouseGesture.DoubleClick
+            && OpensRowMenu
+            && mouse.Position is { } blank
+            && IsBelowLastRow(blank.Y))
+        {
+            return true;
+        }
+
         if (gesture == MouseGesture.Click && mouse.Position is { } clicked)
         {
             ClickPositioned?.Invoke(clicked.X, clicked.Y);
@@ -198,6 +206,9 @@ public sealed class PaneListView : ListView
         && SelectedItem is { } selected
         && selected < (Source?.Count ?? 0)
         && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
+
+    // Blank space under the last row (#484): a double-click there must not open the menu of the selected row.
+    private bool IsBelowLastRow(int row) => Viewport.Y + row >= (Source?.Count ?? 0);
 
     private void SelectItem(int pointerRow)
     {
