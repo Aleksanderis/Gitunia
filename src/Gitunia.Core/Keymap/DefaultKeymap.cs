@@ -252,6 +252,10 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ReflogView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, ReflogView, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, ReflogView, "<space>r", ActionIds.RepositoryRefresh);
+        Add(bindings, NormalOnly, ReflogView, "<space>l", ActionIds.ReflogOpen);
+        Add(bindings, NormalOnly, ReflogView, "/", ActionIds.SearchOpen);
+        Add(bindings, NormalOnly, ReflogView, "n", ActionIds.SearchNext);
+        Add(bindings, NormalOnly, ReflogView, "N", ActionIds.SearchPrevious);
         Add(bindings, NormalOnly, ReflogView, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, ReflogView, "<space>bc", ActionIds.BranchCreate);
         Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
