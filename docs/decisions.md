@@ -286,3 +286,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Rebase and reset by mouse (#428): header chips plus a right-click menu on graph and sidebar rows. A plain rebase's Confirm warns that merge commits are flattened (`--rebase-merges` stays with #399); details in ux.md workflow 3.
 
 **UI:** Reflog follow-ups (#424): the ref picker opens with `<space>l` inside the list (the graph key keeps opening HEAD in one step), `/` search lives in the list footer, and the mouse paths of an entry are action rows under the list (no right-click or header button: the overlay is modal and has no pane header).
+
+**UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#434).

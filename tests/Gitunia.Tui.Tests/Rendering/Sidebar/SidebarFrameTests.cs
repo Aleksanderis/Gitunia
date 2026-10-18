@@ -98,6 +98,33 @@ public class SidebarFrameTests
         Assert.StartsWith("|  > Tags 2 [rebase] |", frame[4], StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(SidebarSection.Branches)]
+    [InlineData(SidebarSection.Tags)]
+    public void GivenWideHeader_WhenLayingOutButtons_ThenRebaseResetPickRevertAreAllPresentInOrder(SidebarSection section)
+    {
+        var buttons = SidebarHeaderButtons.Layout(Section(section, "Header", 1, isExpanded: true), 8, 200);
+
+        var views = buttons.Select(button => button.View).Where(view => view is
+            DefaultMouseMap.SidebarRebaseButton or DefaultMouseMap.SidebarResetButton
+            or DefaultMouseMap.SidebarPickButton or DefaultMouseMap.SidebarRevertButton);
+        Assert.Equal(
+            [DefaultMouseMap.SidebarRebaseButton, DefaultMouseMap.SidebarResetButton, DefaultMouseMap.SidebarPickButton, DefaultMouseMap.SidebarRevertButton],
+            views);
+    }
+
+    [Fact]
+    public void GivenNarrowTagsHeader_WhenLayingOutButtons_ThenRevertDropsFirst()
+    {
+        var wide = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, 200);
+        var width = 200 - wide.Min(button => button.Start) + 8 + 1 - 1 - 1;
+
+        var narrow = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, width);
+
+        Assert.DoesNotContain(narrow, button => button.View == DefaultMouseMap.SidebarRevertButton);
+        Assert.Contains(narrow, button => button.View == DefaultMouseMap.SidebarPickButton);
+    }
+
     [Fact]
     public void GivenActiveFilter_WhenComposing_ThenFilterLineIsTheLastSidebarRow()
     {
