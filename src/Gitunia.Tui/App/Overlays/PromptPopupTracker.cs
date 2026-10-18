@@ -5,7 +5,7 @@ namespace Gitunia.Tui.App.Overlays;
 
 /// <summary>
 /// Keeps the prompt popup in step with the prompts: asks for a redraw when the popup opens, closes, changes its text
-/// or when the screen size changed since it was last drawn (a resize places it again).
+/// or, while it is open, when the screen size changed since it was last drawn (a resize places it again).
 /// </summary>
 /// <param name="current">The popup of the open prompt, null when none is open.</param>
 /// <param name="size">The screen size.</param>
@@ -27,7 +27,7 @@ public sealed class PromptPopupTracker(Func<PromptPopup?> current, Func<ScreenSi
     {
         var popup = current();
         var same = popup is null ? _shown is null : popup.SameText(_shown);
-        if (!same || _shownSize != size())
+        if (!same || (popup is not null && _shownSize != size()))
         {
             show();
         }
