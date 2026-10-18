@@ -598,7 +598,6 @@ public class ReflogControllerTests
             Reflog.TryExecute(ActionIds.ListTop, index + 1);
         }
 
-        // The frame line of the nth action row under the entries.
         /// <summary>A click through the real path: the controller names the view, the mouse map the action.</summary>
         public bool Click(int frameLine)
         {
@@ -613,6 +612,7 @@ public class ReflogControllerTests
             return handled;
         }
 
+        // The frame line of the nth action row under the entries.
         public int ActionLine(int index) => 1 + Reflog.State!.Entries.Count + index;
 
         public void Run(ActionId action) => Assert.True(Reflog.TryExecute(action, null), action.Value);
