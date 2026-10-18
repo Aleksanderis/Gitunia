@@ -68,10 +68,12 @@ public class ContextMenuFrameBuilderTests
     public void GivenGaps_WhenAskingForAnEntry_ThenAGapLineIsNoEntry()
     {
         var menu = Menu();
-        var hits = Enumerable.Range(0, 60).Select(line => ContextMenuFrameBuilder.EntryIndexAt(menu, line, 60)).ToList();
+        var hits = Enumerable.Range(0, 60)
+            .Select(line => ContextMenuFrameBuilder.EntryIndexAt(menu, line, 60)).ToList();
 
         Assert.Equal(RowActions.OfGraphRow.Count, hits.Count(hit => hit is not null));
-        Assert.Equal(Enumerable.Range(0, RowActions.OfGraphRow.Count), hits.Where(hit => hit is not null).Select(hit => hit!.Value));
+        var found = hits.Where(hit => hit is not null).Select(hit => hit!.Value);
+        Assert.Equal(Enumerable.Range(0, RowActions.OfGraphRow.Count), found);
     }
 
     [Fact]
