@@ -49,7 +49,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         private set => _message = value;
     }
 
-    /// <summary>The screen height in rows; the details pane is hidden below <see cref="DetailLayout.MinimumScreenHeight"/>. Null: no limit.</summary>
+    /// <summary>The screen height in rows; null means no limit. Screens under 14 rows have no details pane.</summary>
     public Func<int>? ScreenHeight { get; set; }
 
     /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
