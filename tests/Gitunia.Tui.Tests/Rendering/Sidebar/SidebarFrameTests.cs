@@ -1,5 +1,4 @@
 using Gitunia.Core.Graph;
-using Gitunia.Core.Mouse;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
@@ -98,65 +97,6 @@ public class SidebarFrameTests
         Assert.StartsWith("|  > Tags 2", frame[4], StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(SidebarSection.Branches)]
-    [InlineData(SidebarSection.Tags)]
-    public void GivenWideHeader_WhenLayingOutButtons_ThenPickAndRevertFollowRebaseAndReset(SidebarSection section)
-    {
-        var buttons = SidebarHeaderButtons.Layout(Section(section, "Header", 1, isExpanded: true), 8, 200);
-
-        var views = buttons.Select(button => button.View).Where(view => view is
-            DefaultMouseMap.SidebarRebaseButton or DefaultMouseMap.SidebarResetButton
-            or DefaultMouseMap.SidebarPickButton or DefaultMouseMap.SidebarRevertButton);
-        Assert.Equal(
-            [
-                DefaultMouseMap.SidebarRebaseButton,
-                DefaultMouseMap.SidebarResetButton,
-                DefaultMouseMap.SidebarPickButton,
-                DefaultMouseMap.SidebarRevertButton,
-            ],
-            views);
-    }
-
-    [Fact]
-    public void GivenWideBranchesHeader_WhenLayingOutButtons_ThenUpstreamChipsComeLastAndTagsHaveNone()
-    {
-        var branches = SidebarHeaderButtons.Layout(Section(SidebarSection.Branches, "Branches", 1, true), 8, 300);
-        var tags = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, true), 8, 300);
-
-        Assert.Equal(DefaultMouseMap.SidebarBranchSetUpstreamButton, branches[^2].View);
-        Assert.Equal(DefaultMouseMap.SidebarBranchUnsetUpstreamButton, branches[^1].View);
-        Assert.DoesNotContain(tags, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
-    }
-
-    [Fact]
-    public void GivenNarrowBranchesHeader_WhenLayingOutButtons_ThenUnsetUpstreamDropsFirstThenUpstreamThenRevert()
-    {
-        var row = Section(SidebarSection.Branches, "Branches", 1, isExpanded: true);
-        var wide = SidebarHeaderButtons.Layout(row, 8, 300);
-        var start = 300 - wide.Min(button => button.Start);
-
-        var dropOne = SidebarHeaderButtons.Layout(row, 8, 8 + 1 + start - 1);
-        var dropTwo = SidebarHeaderButtons.Layout(row, 8, 8 + 1 + start - 1 - TextWidth.Of("[upstream]") - 1);
-
-        Assert.DoesNotContain(dropOne, button => button.View == DefaultMouseMap.SidebarBranchUnsetUpstreamButton);
-        Assert.Contains(dropOne, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
-        Assert.DoesNotContain(dropTwo, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
-        Assert.Contains(dropTwo, button => button.View == DefaultMouseMap.SidebarRevertButton);
-    }
-
-    [Fact]
-    public void GivenNarrowTagsHeader_WhenLayingOutButtons_ThenRevertDropsFirst()
-    {
-        var wide = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, 200);
-        var width = 200 - wide.Min(button => button.Start) + 8 + 1 - 1 - 1;
-
-        var narrow = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, width);
-
-        Assert.DoesNotContain(narrow, button => button.View == DefaultMouseMap.SidebarRevertButton);
-        Assert.Contains(narrow, button => button.View == DefaultMouseMap.SidebarPickButton);
-    }
-
     [Fact]
     public void GivenActiveFilter_WhenComposing_ThenFilterLineIsTheLastSidebarRow()
     {
@@ -178,94 +118,23 @@ public class SidebarFrameTests
         Assert.StartsWith("│     branch8", lines[4].Text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void GivenTheBranchesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
+    [Theory]
+    [InlineData(SidebarSection.Branches, "Branches", 3)]
+    [InlineData(SidebarSection.Tags, "Tags", 2)]
+    [InlineData(SidebarSection.Worktrees, "Worktrees", 2)]
+    [InlineData(SidebarSection.Stashes, "Stashes", 2)]
+    public void GivenASectionHeaderInAWideSidebar_WhenRendering_ThenOnlyTitleAndCountAreDrawn(
+        SidebarSection section,
+        string title,
+        int count)
     {
-        var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
+        var row = Section(section, title, count, isExpanded: true);
 
         var line = SidebarRowRenderer.Render(row, 160, isSelected: false, GraphGlyphSet.Unicode);
 
         Assert.Equal(160, TextWidth.Of(line.Text));
-        Assert.EndsWith(
-            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset] [pick] "
-            + "[revert] [upstream] [unset-up]",
-            line.Text.TrimEnd(),
-            StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 160, GraphGlyphSet.Unicode);
-        Assert.Equal(14, buttons.Count);
-        var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
-    }
-
-    [Fact]
-    public void GivenTheTagsHeaderInAWideSidebar_WhenRendering_ThenTagAndMergeButtonsSitAtTheRightEnd()
-    {
-        var row = Section(SidebarSection.Tags, "Tags", 2, isExpanded: true);
-
-        var line = SidebarRowRenderer.Render(row, 145, isSelected: false, GraphGlyphSet.Unicode);
-
-        Assert.EndsWith(
-            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
-            line.Text.TrimEnd(),
-            StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 145, GraphGlyphSet.Unicode);
-        Assert.Equal(11, buttons.Count);
-        var pushColumn = line.Text.IndexOf("[push]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.SidebarTagPushButton, TitleButton.ViewAt(buttons, pushColumn));
-        var squashColumn = line.Text.IndexOf("[squash]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.SidebarMergeSquashButton, TitleButton.ViewAt(buttons, squashColumn));
-    }
-
-    [Fact]
-    public void GivenTheWorktreesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
-    {
-        var row = Section(SidebarSection.Worktrees, "Worktrees", 2, isExpanded: true);
-
-        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
-
-        Assert.EndsWith("[add] [remove] [lock] [unlock] [prune]", line.Text.TrimEnd(), StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
-        Assert.Equal(5, buttons.Count);
-        var pruneColumn = line.Text.IndexOf("[prune]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.SidebarWorktreePruneButton, TitleButton.ViewAt(buttons, pruneColumn));
-    }
-
-    [Fact]
-    public void GivenTheStashesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
-    {
-        var row = Section(SidebarSection.Stashes, "Stashes", 2, isExpanded: true);
-
-        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
-
-        Assert.EndsWith("[push] [apply] [pop] [drop] [push-all]", line.Text.TrimEnd(), StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
-        Assert.Equal(5, buttons.Count);
-        var dropColumn = line.Text.IndexOf("[drop]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.SidebarStashDropButton, TitleButton.ViewAt(buttons, dropColumn));
-    }
-
-    [Fact]
-    public void GivenTheBranchesHeaderInANarrowSidebar_WhenRendering_ThenLastButtonsAreDroppedAndTheTitleStays()
-    {
-        var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
-
-        var line = SidebarRowRenderer.Render(row, 30, isSelected: false, GraphGlyphSet.Unicode);
-
-        Assert.Equal(30, TextWidth.Of(line.Text));
-        Assert.StartsWith(" ", line.Text, StringComparison.Ordinal);
-        Assert.Contains("Branches 3", line.Text, StringComparison.Ordinal);
-        Assert.Contains("[new]", line.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("[new-only]", line.Text, StringComparison.Ordinal);
-        var tooNarrow = Section(SidebarSection.Branches, "Branches", 3, true);
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(tooNarrow, 14, GraphGlyphSet.Unicode));
-    }
-
-    [Fact]
-    public void GivenRemotesAndBranchRows_WhenRendering_ThenTheyHaveNoButtons()
-    {
-        var remotes = Section(SidebarSection.Remotes, "Remotes", 1, true);
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(remotes, 60, GraphGlyphSet.Unicode));
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(Branch("main"), 60, GraphGlyphSet.Unicode));
+        Assert.EndsWith($"{title} {count}", line.Text.TrimEnd(), StringComparison.Ordinal);
+        Assert.DoesNotContain("[", line.Text, StringComparison.Ordinal);
     }
 
     [Fact]

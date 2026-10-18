@@ -79,69 +79,6 @@ public static class DefaultMouseMap
 
     public const string UnstageAllButton = "ListButton.UnstageAll";
 
-    /// <summary>The buttons in the Branches header of the sidebar (#414): each acts on the selected row.</summary>
-    public const string SidebarBranchNewButton = "SidebarButton.BranchNew";
-
-    public const string SidebarBranchNewOnlyButton = "SidebarButton.BranchNewOnly";
-
-    public const string SidebarBranchSwitchButton = "SidebarButton.BranchSwitch";
-
-    public const string SidebarBranchRenameButton = "SidebarButton.BranchRename";
-
-    public const string SidebarBranchDeleteButton = "SidebarButton.BranchDelete";
-
-    /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428).</summary>
-    public const string SidebarRebaseButton = "SidebarButton.Rebase";
-
-    public const string SidebarResetButton = "SidebarButton.Reset";
-
-    /// <summary>The cherry-pick and revert buttons of the same headers (#432).</summary>
-    public const string SidebarPickButton = "SidebarButton.CherryPick";
-
-    public const string SidebarRevertButton = "SidebarButton.Revert";
-
-    /// <summary>The set and unset upstream buttons of the Branches header (#436).</summary>
-    public const string SidebarBranchSetUpstreamButton = "SidebarButton.BranchSetUpstream";
-
-    public const string SidebarBranchUnsetUpstreamButton = "SidebarButton.BranchUnsetUpstream";
-
-    /// <summary>The buttons in the Worktrees header of the sidebar (#412): each acts on the selected row.</summary>
-    public const string SidebarWorktreeAddButton = "SidebarButton.WorktreeAdd";
-
-    public const string SidebarWorktreeRemoveButton = "SidebarButton.WorktreeRemove";
-
-    public const string SidebarWorktreeLockButton = "SidebarButton.WorktreeLock";
-
-    public const string SidebarWorktreeUnlockButton = "SidebarButton.WorktreeUnlock";
-
-    public const string SidebarWorktreePruneButton = "SidebarButton.WorktreePrune";
-
-    /// <summary>The buttons in the Tags header (#434): tag actions and the merge of the selected tag.</summary>
-    public const string SidebarTagCreateButton = "SidebarButton.TagCreate";
-
-    public const string SidebarTagDeleteButton = "SidebarButton.TagDelete";
-
-    public const string SidebarTagPushButton = "SidebarButton.TagPush";
-
-    public const string SidebarTagDeleteRemoteButton = "SidebarButton.TagDeleteRemote";
-
-    /// <summary>Merge chips of the Branches and Tags headers (#434): merge the selected row.</summary>
-    public const string SidebarMergeButton = "SidebarButton.Merge";
-
-    public const string SidebarMergeNoFastForwardButton = "SidebarButton.MergeNoFastForward";
-
-    public const string SidebarMergeSquashButton = "SidebarButton.MergeSquash";
-    /// <summary>The Stashes header buttons (#413): apply, pop and drop act on the selected row.</summary>
-    public const string SidebarStashPushButton = "SidebarButton.StashPush";
-
-    public const string SidebarStashPushUntrackedButton = "SidebarButton.StashPushUntracked";
-
-    public const string SidebarStashApplyButton = "SidebarButton.StashApply";
-
-    public const string SidebarStashPopButton = "SidebarButton.StashPop";
-
-    public const string SidebarStashDropButton = "SidebarButton.StashDrop";
-
     /// <summary>The action rows under the reflog list (#442) and a row of its ref picker (#441): each is a view of
     /// its own, a click runs the action its key runs on the highlighted entry.</summary>
     public const string ReflogSelectButton = "ReflogButton.Select";
@@ -224,40 +161,12 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.DragStart, ActionIds.VisualToggle),
         new(DefaultKeymap.ListsView, MouseGesture.DragUp, ActionIds.ListUp, UsesTarget: true),
         new(DefaultKeymap.ListsView, MouseGesture.DragDown, ActionIds.ListDown, UsesTarget: true),
-        new(SidebarBranchNewButton, MouseGesture.Click, ActionIds.BranchCreate),
-        new(SidebarBranchNewOnlyButton, MouseGesture.Click, ActionIds.BranchCreateOnly),
-        new(SidebarBranchSwitchButton, MouseGesture.Click, ActionIds.BranchSwitch),
-        new(SidebarBranchRenameButton, MouseGesture.Click, ActionIds.BranchRename),
-        new(SidebarBranchDeleteButton, MouseGesture.Click, ActionIds.BranchDelete),
-        new(SidebarRebaseButton, MouseGesture.Click, ActionIds.RebaseOnto),
-        new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
-        new(SidebarPickButton, MouseGesture.Click, ActionIds.PickCherry),
-        new(SidebarRevertButton, MouseGesture.Click, ActionIds.PickRevert),
-        new(SidebarBranchSetUpstreamButton, MouseGesture.Click, ActionIds.BranchSetUpstream),
-        new(SidebarBranchUnsetUpstreamButton, MouseGesture.Click, ActionIds.BranchUnsetUpstream),
         new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.GraphView, MouseGesture.MiddleClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.GraphView, MouseGesture.CtrlClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.SidebarView, MouseGesture.RightClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.SidebarView, MouseGesture.MiddleClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.SidebarView, MouseGesture.CtrlClick, ActionIds.MenuOpenForRow),
-        new(SidebarWorktreeAddButton, MouseGesture.Click, ActionIds.WorktreeAdd),
-        new(SidebarWorktreeRemoveButton, MouseGesture.Click, ActionIds.WorktreeRemove),
-        new(SidebarWorktreeLockButton, MouseGesture.Click, ActionIds.WorktreeLock),
-        new(SidebarWorktreeUnlockButton, MouseGesture.Click, ActionIds.WorktreeUnlock),
-        new(SidebarWorktreePruneButton, MouseGesture.Click, ActionIds.WorktreePrune),
-        new(SidebarTagCreateButton, MouseGesture.Click, ActionIds.TagCreate),
-        new(SidebarTagDeleteButton, MouseGesture.Click, ActionIds.TagDelete),
-        new(SidebarTagPushButton, MouseGesture.Click, ActionIds.TagPush),
-        new(SidebarTagDeleteRemoteButton, MouseGesture.Click, ActionIds.TagDeleteRemote),
-        new(SidebarMergeButton, MouseGesture.Click, ActionIds.MergeBranch),
-        new(SidebarMergeNoFastForwardButton, MouseGesture.Click, ActionIds.MergeBranchNoFastForward),
-        new(SidebarMergeSquashButton, MouseGesture.Click, ActionIds.MergeBranchSquash),
-        new(SidebarStashPushButton, MouseGesture.Click, ActionIds.StashPush),
-        new(SidebarStashPushUntrackedButton, MouseGesture.Click, ActionIds.StashPushUntracked),
-        new(SidebarStashApplyButton, MouseGesture.Click, ActionIds.StashApply),
-        new(SidebarStashPopButton, MouseGesture.Click, ActionIds.StashPop),
-        new(SidebarStashDropButton, MouseGesture.Click, ActionIds.StashDrop),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),

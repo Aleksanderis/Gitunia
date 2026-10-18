@@ -279,19 +279,19 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Mouse follow-ups of M3 (owner accepted the defaults, 2026-10-17): sidebar actions (branches, worktrees, stashes, tags) get buttons in the section header; graph commit operations (merge, rebase, reset, cherry-pick, revert) open from a right-click that selects the row and shows the command popup filtered to that row's actions. A plain rebase warns in its Confirm that merge commits are flattened (`--rebase-merges` stays with #399). A branch merge passes the full ref and fixes the message when a tag has the same name (#425).
 
-**UI:** Tag and merge mouse paths (#434): chips in the Tags header (`[tag]` `[delete]` `[push]` `[remote-del]`) and merge chips in the Branches and Tags headers; graph-commit merge rides on the right-click popup of #428.
+**UI:** Tag and merge mouse paths (#434): chips in the Tags header (`[tag]` `[delete]` `[push]` `[remote-del]`) and merge chips in the Branches and Tags headers; graph-commit merge rides on the right-click popup of #428. Header chips superseded by #469.
 
-**UI:** Sidebar header buttons (#414) are chips drawn on the section header row and hit-tested by the sidebar list (`SidebarHeaderButtons`); they act on the selected row, no row is chosen by the click. After a branch operation the graph cursor follows by saving the target commit as the tab's selection before the refresh.
+**UI:** Sidebar header buttons (#414) are chips drawn on the section header row and hit-tested by the sidebar list (`SidebarHeaderButtons`); they act on the selected row, no row is chosen by the click. After a branch operation the graph cursor follows by saving the target commit as the tab's selection before the refresh. Header chips superseded by #469.
 
 **Git:** Merge (#425): the UI passes a branch as its full ref; the writer uses the short name unless a tag of the same name would win, then the full ref with `-m` (git would write the full ref into the message).
 
-**UI:** Rebase and reset by mouse (#428): header chips plus a right-click menu on graph and sidebar rows. A plain rebase's Confirm warns that merge commits are flattened (`--rebase-merges` stays with #399); details in ux.md workflow 3.
+**UI:** Rebase and reset by mouse (#428): header chips plus a right-click menu on graph and sidebar rows. A plain rebase's Confirm warns that merge commits are flattened (`--rebase-merges` stays with #399); details in ux.md workflow 3. Header chips superseded by #469.
 
 **UI:** Reflog follow-ups (#424): the ref picker opens with `<space>l` inside the list (the graph key keeps opening HEAD in one step), `/` search lives in the list footer, and the mouse paths of an entry are action rows under the list (no right-click or header button: the overlay is modal and has no pane header).
 
-**UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449).
+**UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449). Header chips superseded by #469.
 
-**UI:** Upstream by mouse (#436): `[upstream]` and `[unset-up]` chips close the Branches header, after `[revert]`, so narrow sidebars drop them first (right-click menu is the path); not on Tags.
+**UI:** Upstream by mouse (#436): `[upstream]` and `[unset-up]` chips close the Branches header, after `[revert]`, so narrow sidebars drop them first (right-click menu is the path); not on Tags. Header chips superseded by #469.
 
 **Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
 
@@ -313,3 +313,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.
 
 **UI:** Row actions are a real popup menu, not the palette (#471, owner): `<space>.` or right-click, middle-click or Ctrl-click (right-click may not reach the app under a multiplexer) opens a menu under the row listing that row's actions with their keys; replaces the narrowed palette of #428. It covers every action of the sidebar header chips, which #469 drops. Details in ux.md, "Actions menu".
+
+**UI:** Sidebar header chips removed (#469, owner): the actions menu (#471) is the mouse path of every sidebar action, so the section headers are plain again. Why: chips were dropped at narrow widths and duplicated the menu. Supersedes the chip entries of #414, #428, #432, #434, #436.
