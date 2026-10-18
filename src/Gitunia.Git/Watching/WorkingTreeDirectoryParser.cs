@@ -8,7 +8,9 @@ public static class WorkingTreeDirectoryParser
     private const char GitSeparator = '/';
     private const byte Nul = 0;
 
-    /// <summary>Turns NUL-separated repository-relative file paths into the absolute directories above them (the root excluded).</summary>
+    /// <summary>
+    /// Turns NUL-separated repository-relative file paths into the absolute directories above them (the root excluded).
+    /// </summary>
     public static IReadOnlyList<string> Parse(string workingTreePath, ReadOnlySpan<byte> output)
     {
         var directories = new HashSet<string>(StringComparer.Ordinal);

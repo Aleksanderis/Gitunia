@@ -1,6 +1,7 @@
 using System.Text;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -90,7 +91,7 @@ public class IgnoreAwareWatchingTests
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record, directoryLister: Lister);
+        using var watcher = CreateWatcher(location, recorder.Record);
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
@@ -100,12 +101,12 @@ public class IgnoreAwareWatchingTests
     }
 
     [Fact]
-    public async Task GivenNewNestedDirectories_WhenFileIsCreatedDeepInside_ThenItIsReportedAndIgnoredDirectoriesAreDropped()
+    public async Task GivenNewNestedDirectories_WhenFileIsCreatedDeepInside_ThenItIsReported()
     {
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, recorder.Record, directoryLister: Lister);
+        using var watcher = CreateWatcher(location, recorder.Record);
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
@@ -123,7 +124,7 @@ public class IgnoreAwareWatchingTests
     {
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, _ => { }, directoryLister: Lister);
+        using var watcher = CreateWatcher(location, _ => { });
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
@@ -144,7 +145,7 @@ public class IgnoreAwareWatchingTests
     {
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
-        using var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, _ => { }, directoryLister: Lister);
+        using var watcher = CreateWatcher(location, _ => { });
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
@@ -179,7 +180,12 @@ public class IgnoreAwareWatchingTests
         var recorder = new ChangeRecorder();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var budget = new WatchBudget();
-        using var watcher = new RepositoryWatcher(location, budget, FastOptions, recorder.Record, directoryLister: new FailingLister());
+        using var watcher = new RepositoryWatcher(
+            location,
+            budget,
+            FastOptions,
+            recorder.Record,
+            directoryLister: new FailingLister());
         watcher.Start();
         var watchersBefore = watcher.WatcherCount;
         await WaitForAsync(() => watcher.WatcherCount > watchersBefore);
@@ -189,6 +195,9 @@ public class IgnoreAwareWatchingTests
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
         Assert.Equal(0, watcher.WorkingTreeDirectoryCount);
     }
+
+    private static RepositoryWatcher CreateWatcher(RepositoryLocation location, Action<RepositoryChangeKinds> onChanged) =>
+        new(location, new WatchBudget(), FastOptions, onChanged, directoryLister: Lister);
 
     private static TestRepository CreateRepositoryWithIgnoredTree()
     {

@@ -2,7 +2,10 @@ using Gitunia.Git.Execution;
 
 namespace Gitunia.Git.Watching;
 
-/// <summary>Finds the directories to watch with one <c>git ls-files</c> call, so ignored trees (build output, dependencies) cost nothing.</summary>
+/// <summary>
+/// Finds the directories to watch with one <c>git ls-files</c> call, so ignored trees (build output, dependencies)
+/// cost nothing.
+/// </summary>
 public sealed class WorkingTreeDirectoryLister : IWorkingTreeDirectoryLister
 {
     private static readonly string[] Arguments =

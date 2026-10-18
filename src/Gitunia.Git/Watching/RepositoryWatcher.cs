@@ -110,7 +110,9 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Number of non-ignored working tree directories watched one by one (zero when the working tree is watched recursively).</summary>
+    /// <summary>
+    /// Number of non-ignored working tree directories watched one by one (zero when the working tree is watched recursively).
+    /// </summary>
     public int WorkingTreeDirectoryCount
     {
         get
@@ -320,7 +322,9 @@ public sealed class RepositoryWatcher : IDisposable
             && !fullPath.StartsWith(gitDirectory, comparison);
     }
 
-    /// <summary>A new directory is watched at once (it may be empty and so unknown to git); a vanished one triggers a rescan.</summary>
+    /// <summary>
+    /// A new directory is watched at once (it may be empty and so unknown to git); a vanished one triggers a rescan.
+    /// </summary>
     private void OnWorkingTreePathChanged(string fullPath, bool isCreation)
     {
         if (isCreation && Directory.Exists(fullPath))
@@ -395,7 +399,7 @@ public sealed class RepositoryWatcher : IDisposable
 
             return true;
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
+        catch (Exception exception) when (IsWatchFailure(exception))
         {
             if (!Directory.Exists(path))
             {
@@ -508,7 +512,13 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>A watched directory that git does not list is dropped when it is gone or holds files (ignored); an empty one stays.</summary>
+    /// <summary>
+    /// A watched directory that git does not list is dropped when it is gone or holds files (ignored); an empty one stays.
+    /// </summary>
+    private static bool IsWatchFailure(Exception exception) =>
+        exception is IOException or ArgumentException or UnauthorizedAccessException
+            or PlatformNotSupportedException or InvalidOperationException;
+
     private static bool ShouldDrop(string path)
     {
         try
@@ -549,7 +559,7 @@ public sealed class RepositoryWatcher : IDisposable
         {
             _watchers.Add(CreateWatcher(_location.WorkingTreePath, isRecursive: true));
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
+        catch (Exception exception) when (IsWatchFailure(exception))
         {
             FallBackToPollingLocked();
         }
@@ -583,7 +593,7 @@ public sealed class RepositoryWatcher : IDisposable
                 _watchers.Add(CreateWatcher(path, isRecursive: true));
                 _watchedPaths.Add(path);
             }
-            catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
+            catch (Exception exception) when (IsWatchFailure(exception))
             {
                 FallBackToPollingLocked();
             }

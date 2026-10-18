@@ -5,7 +5,8 @@ namespace Gitunia.Git.Watching.Models;
 /// <param name="MaximumDelay">A continuous stream of events is reported at least this often.</param>
 /// <param name="PollInterval">How often a polling watcher looks at the repository.</param>
 /// <param name="MaximumWorkingTreeDirectories">
-/// Most non-ignored working tree directories one tab watches (one inotify watch each on Linux); a bigger tree polls instead.
+/// Most non-ignored working tree directories one tab watches (one inotify watch each on Linux);
+/// a bigger tree polls instead.
 /// </param>
 public sealed record RepositoryWatcherOptions(
     TimeSpan Debounce,
@@ -13,7 +14,9 @@ public sealed record RepositoryWatcherOptions(
     TimeSpan PollInterval,
     int MaximumWorkingTreeDirectories = RepositoryWatcherOptions.DefaultMaximumWorkingTreeDirectories)
 {
-    /// <summary>Linux defaults to at least 8192 watches per user, shared by every process, so a tab takes at most a quarter.</summary>
+    /// <summary>
+    /// Linux defaults to at least 8192 watches per user, shared by every process, so a tab takes at most a quarter.
+    /// </summary>
     public const int DefaultMaximumWorkingTreeDirectories = 2048;
 
     /// <summary>
