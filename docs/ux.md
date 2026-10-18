@@ -249,7 +249,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 
 ### 5. Fetch, pull and push (M4, keys planned here)
 
-`<space>F` fetch the current branch's remote with `--prune` (`<space>F` again from the picker it opens chooses all remotes), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch. Chips in the tab bar and the sidebar header carry the same three actions. Each runs in the background with a progress line in the status bar (git's `--progress` output), `Esc` cancels while it runs (a Confirm is not needed; the status bar says "cancelled"), and the tab stays usable. `<space>x` stays the status message dismiss. `<space>Pd` deletes a remote branch (`push --delete`, remote picker then branch picker, Confirm naming both; the undo hint is the branch's old tip). A push to a branch without an upstream prompts for the remote (default `origin`) and sets the upstream. A force push is only ever `--force-with-lease`, behind a Confirm that names the remote branch it will overwrite. The capitals `F` `L` `P` `S` `T` are not "all" variants of the lowercase keys; they are chosen because the lowercase leader keys are taken, and the palette shows the full sequences. When the graph or the sidebar has no suitable row selected for a stash or tag key, a picker opens. The runner and progress are #44 (the tag push already uses it; background calls never prompt, ssh runs in batch mode); the real-terminal credential retry is #45.
+`<space>F` fetch the current branch's remote with `--prune` (all remotes: `remote.fetch-all` from the palette or the Remotes header menu; no second key, #456), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch. Chips in the tab bar (` fetch `, ` pull `, ` push `, rows of 100 columns or more; ` Esc cancel ` replaces them while one runs) and the actions menu of the sidebar's Remotes header (the sidebar has no header chips since #469) carry the same actions. A pull also takes the tab's operation gate (it moves the working tree); only one remote operation runs per tab, other tabs are unaffected, and the tab is read again afterwards. Each runs in the background with a progress line in the status bar (git's `--progress` output), `Esc` in the graph (or the cancel chip) cancels while it runs, only when nothing else claims it first (a Confirm is not needed; the status bar says "Fetch cancelled"), and the tab stays usable. `<space>x` stays the status message dismiss. `<space>Pd` deletes a remote branch (`push --delete`, remote picker then branch picker, Confirm naming both; the undo hint is the branch's old tip). A push to a branch without an upstream prompts for the remote (default `origin`) and sets the upstream. A force push is only ever `--force-with-lease`, behind a Confirm that names the remote branch it will overwrite. The capitals `F` `L` `P` `S` `T` are not "all" variants of the lowercase keys; they are chosen because the lowercase leader keys are taken, and the palette shows the full sequences. When the graph or the sidebar has no suitable row selected for a stash or tag key, a picker opens. The runner and progress are #44, the keys, chips and mouse #456 (the push to a branch without an upstream and `<space>Pd` are not part of it; the tag push already uses the runner; background calls never prompt, ssh runs in batch mode); the real-terminal credential retry is #45.
 
 ### 6. Worktrees (M3)
 
@@ -341,12 +341,15 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
+| Global | `<space>F` | Fetch the remote of the current branch with `--prune`, in the background with a progress line (workflow 5) |
+| Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |
+| Global | `<space>P` | Push the current branch the way git is configured; never forces |
 | Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
 | Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
 | Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
 | Global | `<space>ga` | Abort the operation in progress (Confirm; the work of the operation is undone) |
 | Global | `<space>gk` | Skip the commit a rebase, cherry-pick or revert stopped on (Confirm; not for a merge) |
-| Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also dismiss the status message |
+| Global | `Esc` | Cancel pending chord, clear search highlight, leave Insert mode; in the graph also cancel a running fetch, pull or push, else dismiss the status message |
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
 | Lists | `v` | Start / end range selection (Visual mode: motions move the far end, `Esc` / `q` / `v` end it; graph, detail, diff and the working-tree lists) |
@@ -535,7 +538,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 - Sidebar tag: tag create, delete, push, remote delete, new branch, new-only, merge (three kinds), rebase, reset, cherry-pick, revert.
 - Sidebar worktree: switch, open, add, remove, lock, unlock, prune.
 - Sidebar stash: apply, pop, drop, push, push-all.
-- Section headers: Branches new, new-only; Tags create; Worktrees add, prune; Stashes push, push-all. Remotes has none (the status bar says so).
+- Section headers: Branches new, new-only; Tags create; Worktrees add, prune; Stashes push, push-all. Remotes fetch, fetch all, pull, push.
 
 The menu is the mouse path of every sidebar action; the header chips it replaced are gone (#469).
 
@@ -561,6 +564,10 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
 | NewTabButton | Click | `picker.open` | The ` + ` button right after the last tab: open the repository picker for a new tab, same as `Ctrl-t` |
 | CommandsButton | Click | `palette.open` | The ` : commands ` button at the right end of the tab row (rows of 44 columns or more; there is no header bar): open the command palette, the menu of the actions of the focused pane and the global ones, each with its keys |
+| RemoteButton.Fetch | Click | `remote.fetch` | The ` fetch ` chip of the tab row (rows of 100 columns or more), left of the commands button: same as `<space>F` |
+| RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>L` |
+| RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>P` |
+| RemoteButton.Cancel | Click | `cancel` | The ` Esc cancel ` chip that replaces the three chips while one of them runs on the active tab: same as `Esc` |
 | BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
 | BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
 | BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |

@@ -20,6 +20,9 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     /// <summary>Raised when the commands button at the right end of the row is clicked.</summary>
     public event Action? CommandsClicked;
 
+    /// <summary>Raised with the mouse view name of a fetch, pull, push or cancel chip that was clicked.</summary>
+    public event Action<string>? RemoteChipClicked;
+
     /// <summary>Raised when the "+" button after the last tab is clicked.</summary>
     public event Action? NewTabClicked;
 
@@ -45,6 +48,12 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
         if (TabBarLayout.IsOnCommands(Viewport.Width, position.X))
         {
             CommandsClicked?.Invoke();
+            return true;
+        }
+
+        if (RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X) is { } chipView)
+        {
+            RemoteChipClicked?.Invoke(chipView);
             return true;
         }
 

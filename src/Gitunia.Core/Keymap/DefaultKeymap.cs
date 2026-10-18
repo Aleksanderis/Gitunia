@@ -111,6 +111,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
         Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);
         Add(bindings, NormalOnly, global, "<space>s", ActionIds.WorkingTreeToggle);
+        Add(bindings, NormalOnly, global, "<space>F", ActionIds.RemoteFetch);
+        Add(bindings, NormalOnly, global, "<space>L", ActionIds.RemotePull);
+        Add(bindings, NormalOnly, global, "<space>P", ActionIds.RemotePush);
         Add(bindings, NormalOnly, global, "<space>Ss", ActionIds.StashPush);
         Add(bindings, NormalOnly, global, "<space>Su", ActionIds.StashPushUntracked);
         Add(bindings, NormalOnly, global, "<space>gc", ActionIds.OperationContinue);

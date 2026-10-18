@@ -25,6 +25,8 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="Banner">The in-progress operation of the tab (ux.md, workflow 4), null when none. Drawn on the
 /// frame's bottom edge; a terminal under <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows shows its text in
 /// the status bar instead.</param>
+/// <param name="RemoteBusy">A fetch, pull or push of the active tab runs; the tab row shows a cancel chip instead of
+/// the three chips.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -43,4 +45,5 @@ public sealed record ScreenModel(
     string HomeDirectory = "",
     StatusSeverity MessageSeverity = StatusSeverity.Info,
     IReadOnlyList<KeyHint>? Hints = null,
-    OperationBanner? Banner = null);
+    OperationBanner? Banner = null,
+    bool RemoteBusy = false);
