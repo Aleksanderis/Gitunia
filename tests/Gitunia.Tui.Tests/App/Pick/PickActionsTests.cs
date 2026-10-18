@@ -285,6 +285,35 @@ public class PickActionsTests
     }
 
     [Fact]
+    public async Task GivenAPlainCommitInTheRange_WhenThePromptOpens_ThenOnlyParentOneIsUsableAndTwoIsRefused()
+    {
+        using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(Hash(repository, "HEAD"), Hash(repository, "HEAD~1"));
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.Prompt is not null);
+
+        Assert.Equal(1, harness.Pick.Prompt!.UsableParents);
+        Assert.True(harness.Pick.TryExecute(ActionIds.PickMainline, 2));
+
+        Assert.NotNull(harness.Pick.Prompt);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenOnlyMergeCommits_WhenThePromptOpens_ThenEveryParentIsUsable()
+    {
+        using var repository = MergedTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(repository.Head);
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.Prompt is not null);
+
+        Assert.Equal(2, harness.Pick.Prompt!.UsableParents);
+    }
+
+    [Fact]
     public async Task GivenAMergeCommitInARange_WhenReverting_ThenTheMainlineIsAskedOnceForTheWholeRange()
     {
         using var repository = MergedTopic().Commit("after", new TestFile("d.txt", "4"));
