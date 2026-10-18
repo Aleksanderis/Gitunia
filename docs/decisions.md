@@ -293,4 +293,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Upstream by mouse (#436): `[upstream]` and `[unset-up]` chips close the Branches header, after `[revert]`, so narrow sidebars drop them first (right-click menu is the path); not on Tags.
 
+**Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
+
 **UI:** Reflog mouse paths (#441): the four action rows and a ref picker row are mouse views in `DefaultMouseMap` (overlay views), so ux.md lists them; an entry click only highlights (a position, no action). Why: one table for every gesture.
