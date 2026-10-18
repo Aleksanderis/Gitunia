@@ -31,6 +31,19 @@ public class RemoteManagerTests
     }
 
     [Fact]
+    public async Task GivenAnInsteadOfAlias_WhenListing_ThenTheRawConfiguredUrlIsReturned()
+    {
+        using var repository = TestRepositories.Linear();
+        repository.Git("config", "url.https://host/.insteadOf", "gh:");
+        repository.Git("remote", "add", "aliased", "gh:x.git");
+        var location = await LocateAsync(repository);
+
+        var remotes = await ManagerFor(repository).ListAsync(location, Token);
+
+        Assert.Equal("gh:x.git", Assert.Single(remotes).Url);
+    }
+
+    [Fact]
     public async Task GivenNoRemote_WhenListing_ThenTheListIsEmpty()
     {
         using var repository = TestRepositories.Linear();

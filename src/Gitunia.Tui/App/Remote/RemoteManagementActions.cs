@@ -36,6 +36,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
+/// <param name="remoteOperationRuns">Whether a fetch, pull or push runs on the tab; remotes are not changed then.</param>
 public sealed class RemoteManagementActions(
     WorkspaceHost host,
     IRemoteManager manager,
@@ -46,10 +47,12 @@ public sealed class RemoteManagementActions(
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
     Action redraw,
-    Func<BranchSelection> selection) : IPromptHandler
+    Func<BranchSelection> selection,
+    Func<TabId, bool> remoteOperationRuns) : IPromptHandler
 {
     private const int ListedBranches = 5;
     private const string BusyNotice = "Busy: the last remote change is still running";
+    private const string FetchRunsNotice = "Busy: a fetch, pull or push of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was changed";
     private const string NoRemoteNotice = "There is no remote: add one first";
     private const char RemoteSeparator = '/';
@@ -218,7 +221,8 @@ public sealed class RemoteManagementActions(
         return true;
     }
 
-    private string? BeginOperation(RepositoryState tab) => _busy.Contains(tab.Id) ? BusyNotice : null;
+    private string? BeginOperation(RepositoryState tab) =>
+        _busy.Contains(tab.Id) ? BusyNotice : remoteOperationRuns(tab.Id) ? FetchRunsNotice : null;
 
     private string Begin(RepositoryState tab, ActionId action)
     {
@@ -499,7 +503,7 @@ public sealed class RemoteManagementActions(
 
     private void StartRemove(TabId tabId, RemoteInfo remote)
     {
-        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId))
+        if (host.Workspace.FindTab(tabId) is not { } tab || _busy.Contains(tabId) || remoteOperationRuns(tabId))
         {
             statuses.Warning($"{BusyNotice}; nothing was removed");
             return;
@@ -533,6 +537,7 @@ public sealed class RemoteManagementActions(
         }
         catch (OperationCanceledException)
         {
+            // Only the closing of the tab cancels; there is nothing left to refresh or report.
             postToUi(() => _busy.Remove(tabId));
         }
         catch (Exception exception)

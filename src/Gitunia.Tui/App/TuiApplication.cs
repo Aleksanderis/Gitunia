@@ -756,7 +756,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.Refresh(tabId, false),
         SetMode,
         _view.RefreshChrome,
-        BranchSelectionNow);
+        BranchSelectionNow,
+        _remote.IsRunning);
 
     private RemoteActions CreateRemote(TabOperationGate gate) => new(
         _host,

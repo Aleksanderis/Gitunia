@@ -8,42 +8,63 @@ namespace Gitunia.Git.Remotes;
 public sealed class RemoteManager(GitRunner runner) : IRemoteManager
 {
     private const string Remote = "remote";
-    private const string VerboseOption = "-v";
+    private const string Config = "config";
+    private const string GetRegexpOption = "--get-regexp";
+    private const string UrlPattern = "^remote\\..*\\.url$";
+    private const string UrlKeyPrefix = "remote.";
+    private const string UrlKeySuffix = ".url";
     private const string AddCommand = "add";
     private const string RemoveCommand = "remove";
     private const string RenameCommand = "rename";
     private const string SetUrlCommand = "set-url";
     private const string EndOfOptions = "--";
-    private const string FetchSuffix = " (fetch)";
     private const char LineSeparator = '\n';
-    private const char FieldSeparator = '\t';
 
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(30);
 
     private static readonly GitRunOptions ReadOptions = new(Timeout: ReadTimeout, ReadOnly: true);
+    // Exit code 1 means no remote has a URL, which is an answer.
+    private static readonly GitRunOptions UrlOptions = new(
+        Timeout: ReadTimeout,
+        ReadOnly: true,
+        AcceptedExitCodes: [1]);
+
     private static readonly GitRunOptions WriteOptions = new(Timeout: WriteTimeout);
 
     public async Task<IReadOnlyList<RemoteInfo>> ListAsync(
         RepositoryLocation location,
         CancellationToken cancellationToken)
     {
-        var result = await runner
-            .RunAsync(location.CommandPath, [Remote, VerboseOption], ReadOptions, cancellationToken)
+        var names = await runner
+            .RunAsync(location.CommandPath, [Remote], ReadOptions, cancellationToken)
             .ConfigureAwait(false);
-        var remotes = new List<RemoteInfo>();
-        foreach (var line in result.StandardOutputText.Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var separator = line.IndexOf(FieldSeparator, StringComparison.Ordinal);
-            if (separator <= 0 || !line.EndsWith(FetchSuffix, StringComparison.Ordinal))
-            {
-                continue;
-            }
 
-            remotes.Add(new RemoteInfo(line[..separator], line[(separator + 1)..^FetchSuffix.Length].Trim()));
+        // The raw configured URLs: "remote -v" would show them after url.<base>.insteadOf rewriting.
+        var configured = await runner
+            .RunAsync(location.CommandPath, [Config, GetRegexpOption, UrlPattern], UrlOptions, cancellationToken)
+            .ConfigureAwait(false);
+        var urls = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var line in configured.StandardOutputText.Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separator = line.IndexOf(' ', StringComparison.Ordinal);
+            if (separator > UrlKeyPrefix.Length + UrlKeySuffix.Length
+                && line.StartsWith(UrlKeyPrefix, StringComparison.Ordinal))
+            {
+                var key = line[..separator];
+                if (key.EndsWith(UrlKeySuffix, StringComparison.Ordinal))
+                {
+                    urls.TryAdd(key[UrlKeyPrefix.Length..^UrlKeySuffix.Length], line[(separator + 1)..].Trim());
+                }
+            }
         }
 
-        return remotes;
+        return
+        [
+            .. names.StandardOutputText
+                .Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(name => new RemoteInfo(name, urls.GetValueOrDefault(name, string.Empty))),
+        ];
     }
 
     public Task AddAsync(RepositoryLocation location, string name, string url, CancellationToken cancellationToken) =>

@@ -219,6 +219,55 @@ public class RemoteManagementActionsTests
     }
 
     [Fact]
+    public async Task GivenAFetchRuns_WhenManagingRemotes_ThenItIsRefusedAndNothingChanges()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.RemoteRuns = true;
+
+        harness.Run(ActionIds.RemoteRemove);
+
+        Assert.Contains("still running", harness.Actions.Notice, StringComparison.Ordinal);
+        Assert.False(harness.HasPopup);
+        Assert.Equal("origin", repository.Git("remote").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAnOpenPrompt_WhenEscIsPressed_ThenItClosesAndNothingChanges()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        using var harness = await Harness.LoadAsync(repository);
+
+        harness.Run(ActionIds.RemoteAdd);
+        await harness.PumpUntilAsync(() => harness.HasPopup);
+        harness.Type("x");
+        harness.Run(ActionIds.Cancel);
+
+        Assert.False(harness.HasPopup);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("origin", repository.Git("remote").Trim());
+    }
+
+    [Fact]
+    public async Task GivenGitRefusesTheName_WhenAdding_ThenTheFailureIsReportedAndTheTabRefreshed()
+    {
+        using var repository = TestRepositories.Linear();
+        using var harness = await Harness.LoadAsync(repository);
+
+        harness.Run(ActionIds.RemoteAdd);
+        await harness.PumpUntilAsync(() => harness.HasPopup);
+        harness.Type("bad name");
+        harness.Run(ActionIds.InputAccept);
+        harness.Type("x");
+        harness.Run(ActionIds.InputAccept);
+        await harness.PumpUntilAsync(() => harness.Statuses.Log.Latest is not null);
+
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("Could not add the remote", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, repository.Git("remote").Trim());
+    }
+
+    [Fact]
     public async Task GivenAnotherAction_WhenNoPromptIsOpen_ThenTheManagementActionsDoNotHandleIt()
     {
         using var repository = TestRepositories.Linear();
@@ -252,7 +301,8 @@ public class RemoteManagementActionsTests
                 },
                 mode => Mode = mode,
                 () => { },
-                () => _selection);
+                () => _selection,
+                _ => RemoteRuns);
         }
 
         public RemoteManagementActions Actions { get; }
@@ -260,6 +310,8 @@ public class RemoteManagementActionsTests
         public StatusChannel Statuses { get; } = new();
 
         public List<ConfirmPrompt> Prompts { get; } = [];
+
+        public bool RemoteRuns { get; set; }
 
         public int Refreshes { get; private set; }
 
