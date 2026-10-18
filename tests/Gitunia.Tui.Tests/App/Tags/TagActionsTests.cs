@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -25,11 +26,11 @@ public class TagActionsTests
         harness.Select(new BranchSelection(null, null, repository.Head));
 
         harness.Run(ActionIds.TagCreate);
-        Assert.Contains("new tag at", harness.Tags.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("New tag", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("v1");
         harness.Run(ActionIds.InputAccept);
-        Assert.Contains("message for v1", harness.Tags.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("v1: empty makes a lightweight tag", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -110,7 +111,7 @@ public class TagActionsTests
         harness.Run(ActionIds.InputAccept);
         harness.Run(ActionIds.Cancel);
 
-        Assert.Equal(string.Empty, harness.Tags.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Tags));
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(string.Empty, repository.Git("tag", "--list").Trim());
     }
@@ -225,8 +226,8 @@ public class TagActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
 
         harness.Run(ActionIds.TagPush);
-        await harness.PumpUntilAsync(() => harness.Tags.StatusLine.Length > 0);
-        Assert.Contains("origin (1/1)", harness.Tags.StatusLine, StringComparison.Ordinal);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        Assert.Contains("origin (1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -245,7 +246,7 @@ public class TagActionsTests
         await harness.PumpUntilAsync(() => harness.Statuses.Log.Latest is not null);
 
         Assert.Contains("no remote", harness.Statuses.Log.Latest!.Text, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(string.Empty, harness.Tags.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Tags));
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 
@@ -258,13 +259,13 @@ public class TagActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
 
         harness.Run(ActionIds.TagPush);
-        await harness.PumpUntilAsync(() => harness.Tags.StatusLine.Length > 0);
-        Assert.Contains("(1/2)", harness.Tags.StatusLine, StringComparison.Ordinal);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        Assert.Contains("(1/2)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Type("back");
 
-        Assert.Contains("backup (1/1)", harness.Tags.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("backup (1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Type("zzz");
-        Assert.Contains("no matching remote", harness.Tags.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("No matching remote", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         Assert.Equal("No matching remote", harness.Tags.Notice);
     }
@@ -279,7 +280,7 @@ public class TagActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Git("rev-parse", "HEAD~1").Trim()));
 
         harness.Run(ActionIds.TagPush);
-        await harness.PumpUntilAsync(() => harness.Tags.StatusLine.Length > 0);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -296,8 +297,8 @@ public class TagActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
 
         harness.Run(ActionIds.TagDeleteRemote);
-        await harness.PumpUntilAsync(() => harness.Tags.StatusLine.Length > 0);
-        Assert.Contains("delete from tag v1", harness.Tags.StatusLine, StringComparison.Ordinal);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        Assert.Contains("Remote to delete v1 from", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
 
         var prompt = Assert.Single(harness.Prompts);

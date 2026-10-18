@@ -20,7 +20,7 @@ namespace Gitunia.Tui.App.Tags;
 
 /// <summary>
 /// Create, delete and push tags, and delete one on a remote (ux.md, workflow 3, "Tags"). A name and an optional
-/// message are typed in status bar prompts (an empty message makes a lightweight tag), a remote is chosen in a
+/// message are typed in prompt popups (an empty message makes a lightweight tag), a remote is chosen in a
 /// type-to-filter prompt, and both deletes go through the Confirm dialog. A push is one ref with no progress and no
 /// prompts; git's first error line is the failure text. Refusals that need no git are decided from the tab refs.
 /// Everything else runs off the UI thread, one operation per tab, and the tab is refreshed afterwards. What the
@@ -67,14 +67,17 @@ public sealed class TagActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _kind == TagPromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? string.Empty
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => _kind == TagPromptKind.None || host.Workspace.ActiveTabId != _tabId
+        ? null
         : _kind switch
         {
-            TagPromptKind.CreateName => $"new tag at {_label}: {_text}_",
-            TagPromptKind.CreateMessage => $"message for {_newName} (empty: lightweight): {_text}_",
-            TagPromptKind.PushRemote => RemoteLine("push", _tagName),
-            _ => RemoteLine("delete from", _tagName),
+            TagPromptKind.CreateName => PromptPopup.ForText("New tag", $"At {_label}", _text, "next"),
+            TagPromptKind.CreateMessage => PromptPopup.ForText(
+                "Tag message", $"{_newName}: empty makes a lightweight tag", _text, "create"),
+            TagPromptKind.PushRemote => RemotePopup("Push tag", $"Remote to push {_tagName} to"),
+            _ => RemotePopup("Delete tag on remote", $"Remote to delete {_tagName} from"),
         };
 
     public bool TryExecute(ActionId action, int? count)
@@ -402,17 +405,17 @@ public sealed class TagActions(
         _index = 0;
     }
 
-    private string RemoteLine(string verb, string tag)
+    private PromptPopup RemotePopup(string title, string context)
     {
-        var line = $"{verb} tag {tag} on remote: {_text}_  ";
-        if (_index >= _candidates.Count)
+        var detail = "No matching remote";
+        if (_index < _candidates.Count)
         {
-            return $"{line}no matching remote";
+            var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
+            var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
+            detail = $"{_candidates[_index]} ({position}/{total})";
         }
 
-        var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-        var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-        return $"{line}{_candidates[_index]} ({position}/{total})";
+        return PromptPopup.ForFilter(title, context, _text, detail, "choose");
     }
 
     private string AcceptRemote(RepositoryState tab, TagPromptKind kind)

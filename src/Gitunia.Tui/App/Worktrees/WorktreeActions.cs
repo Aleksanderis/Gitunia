@@ -73,12 +73,17 @@ public sealed class WorktreeActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _stage switch
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => _stage switch
     {
-        PromptStage.Branch => $"worktree for branch (existing, or a new name): {_text}_",
-        PromptStage.Path => $"worktree path for {_branch}{StartText()}: {_text}_",
-        PromptStage.LockReason => $"lock reason (optional) for {_target}: {_text}_",
-        _ => string.Empty,
+        PromptStage.Branch => PromptPopup.ForText(
+            "New worktree", "Branch: an existing one, or a new name", _text, "next"),
+        PromptStage.Path => PromptPopup.ForText(
+            "Worktree path", $"Directory for {_branch}{StartText()}", _text, "add"),
+        PromptStage.LockReason => PromptPopup.ForText(
+            "Lock worktree", $"Reason for locking {_target}, optional", _text, "lock"),
+        _ => null,
     };
 
     /// <summary>True while a prompt of this controller owns Insert mode.</summary>

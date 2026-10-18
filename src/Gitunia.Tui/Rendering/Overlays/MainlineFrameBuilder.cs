@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// Lays out the mainline overlay of a cherry-pick or revert of a merge commit: the question, one row per parent
 /// (a click answers it like its digit key; rows git would refuse are dimmed and marked unavailable in the key
 /// column, where the text fit cannot cut the mark) and a hint. Parent n is on frame line n. There is no overlay (null)
-/// when it does not fit; the one-key prompt in the status bar still works then.
+/// when it does not fit; the one-key prompt in the status bar answers then.
 /// </summary>
 public static class MainlineFrameBuilder
 {

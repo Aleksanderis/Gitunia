@@ -15,7 +15,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Stash;
 
 /// <summary>
-/// The stash actions (ux.md, workflow 7): push with a message prompt in the status bar (untracked files only through
+/// The stash actions (ux.md, workflow 7): push with a message prompt popup (untracked files only through
 /// their own key), apply, pop and drop on the stash row under the sidebar cursor. Drop asks first and names the undo
 /// command. The target is fixed when the action starts and travels as the stash commit, so a stack that changed
 /// meanwhile never redirects it. The git call runs off the UI thread; afterwards the tab reads everything again (stash
@@ -56,9 +56,15 @@ public sealed class StashController(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _pushing is null
-        ? string.Empty
-        : $"stash {(_includeUntracked ? "with untracked files" : "tracked changes")} (message, optional): {_text}_";
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => _pushing is null
+        ? null
+        : PromptPopup.ForText(
+            "Stash changes",
+            $"{(_includeUntracked ? "Tracked and untracked files" : "Tracked changes")}, message optional",
+            _text,
+            "stash");
 
     public bool TryExecute(ActionId action, int? count)
     {

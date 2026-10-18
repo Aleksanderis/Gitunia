@@ -19,7 +19,7 @@ namespace Gitunia.Tui.App.Reset;
 
 /// <summary>
 /// Moves the current branch to a commit with a soft, mixed or hard reset (ux.md, workflow 3, "Reset"). A one-key
-/// status bar prompt picks the mode; soft runs at once, mixed runs at once when nothing is staged, and everything
+/// prompt popup picks the mode; soft runs at once, mixed runs at once when nothing is staged, and everything
 /// that loses work opens the Confirm dialog, which names the target, the files and the old tip for the undo. Refused
 /// on a detached or unborn HEAD and while an operation (merge, rebase, ...) is in progress. The reflog view starts
 /// the same flow with <see cref="Begin"/>.
@@ -66,9 +66,18 @@ public sealed class ResetActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => !_isOpen || host.Workspace.ActiveTabId != _tabId
-        ? string.Empty
-        : $"reset {_branchName} to {ShortHash(_targetHash)}: [s]oft  [m]ixed  [h]ard  (Esc cancels)";
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => !_isOpen || host.Workspace.ActiveTabId != _tabId
+        ? null
+        : PromptPopup.ForChoice(
+            "Reset",
+            $"Move {_branchName} to {ShortHash(_targetHash)}",
+            [
+                "s  soft: keep the index and the files",
+                "m  mixed: keep the files, clear the index",
+                "h  hard: discard the changes",
+            ]);
 
     public bool TryExecute(ActionId action, int? count)
     {

@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 
 namespace Gitunia.Tui.Input;
 
@@ -10,6 +11,12 @@ public interface IPromptHandler
 {
     /// <summary>What the prompt shows in the status bar while it is open, empty when it is not.</summary>
     string StatusLine { get; }
+
+    /// <summary>
+    /// The prompt as a centred popup (title, text field, answering keys) while it asks for text or a choice, null when
+    /// it is closed or is a find-as-you-type bar that stays in the status bar (search, jump).
+    /// </summary>
+    PromptPopup? Popup => null;
 
     /// <summary>A short message about the last action (for example "No match"), empty when none.</summary>
     string Notice { get; }

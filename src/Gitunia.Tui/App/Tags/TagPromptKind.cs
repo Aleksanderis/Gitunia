@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.App.Tags;
 
-/// <summary>Which status bar prompt of the tag actions is open.</summary>
+/// <summary>Which prompt popup of the tag actions is open.</summary>
 public enum TagPromptKind
 {
     None,

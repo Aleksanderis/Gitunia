@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
@@ -108,7 +109,7 @@ public class ReflogControllerTests
         harness.Run(ActionIds.BranchCreate);
         Assert.False(harness.Reflog.IsOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains(first[..7], harness.Branches.StatusLine, StringComparison.Ordinal);
+        Assert.Contains(first[..7], PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Branches.HandleTextKey(new KeyEvent("r"));
         harness.Branches.HandleTextKey(new KeyEvent("x"));
         Assert.True(harness.Branches.TryExecute(ActionIds.InputAccept, null));

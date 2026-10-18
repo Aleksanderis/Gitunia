@@ -308,4 +308,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Which-key rows (#472) list plain actions first, then `+more` groups, each alphabetical by key label (lowercase before uppercase), instead of keymap declaration order. Why: stable, scannable rows.
 
+**UI:** Prompts that ask for text or a choice are centred popups (#470): one `PromptPopup` record and frame builder, exposed by prompt handlers; the status bar keeps transient messages and find-as-you-type bars (search, jump, filters). Why: a status-bar input is not evident, especially for mouse-started actions. Supersedes the status bar prompts of the reflog entry.
+
 **UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.
