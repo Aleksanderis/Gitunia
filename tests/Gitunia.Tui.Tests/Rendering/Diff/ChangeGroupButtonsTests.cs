@@ -62,7 +62,7 @@ public class ChangeGroupButtonsTests
     {
         const int textWidth = 61;
         var text = string.Concat(Enumerable.Repeat("漢", textWidth / 2)) + "x";
-        var line = PanePadding.Wrap(new StyledLine([new StyledSegment(text, SegmentRole.Plain)]), Padding);
+        var line = PanePadding.Wrap(new StyledLine([new StyledSegment(text, SegmentRole.Plain)]));
         var buttons = ChangeGroupButtons.Layout(textWidth, Padding, WorkingTreeButtons.Unstaged);
 
         var result = ChangeGroupButtons.Overlay(line, buttons, Padding, GraphGlyphSet.Unicode);
@@ -78,7 +78,7 @@ public class ChangeGroupButtonsTests
     {
         const int textWidth = 60;
         var text = string.Concat(Enumerable.Repeat("漢", textWidth / 2));
-        var line = PanePadding.Wrap(new StyledLine([new StyledSegment(text, SegmentRole.Plain)]), Padding);
+        var line = PanePadding.Wrap(new StyledLine([new StyledSegment(text, SegmentRole.Plain)]));
         var buttons = ChangeGroupButtons.Layout(textWidth, Padding, WorkingTreeButtons.Staged);
 
         var result = ChangeGroupButtons.Overlay(line, buttons, Padding, GraphGlyphSet.Unicode);
@@ -91,7 +91,7 @@ public class ChangeGroupButtonsTests
     public void GivenAnAsciiTier_WhenOverlayingButtons_ThenTheChipsUseBrackets()
     {
         var plain = new StyledLine([new StyledSegment(new string('x', 60), SegmentRole.Plain)]);
-        var line = PanePadding.Wrap(plain, Padding);
+        var line = PanePadding.Wrap(plain);
         var buttons = ChangeGroupButtons.Layout(60, Padding, WorkingTreeButtons.Staged);
 
         var result = ChangeGroupButtons.Overlay(line, buttons, Padding, GraphGlyphSet.Ascii);

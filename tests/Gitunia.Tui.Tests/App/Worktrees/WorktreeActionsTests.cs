@@ -231,7 +231,7 @@ public sealed class WorktreeActionsTests
     [Fact]
     public async Task GivenNewBranchName_WhenAddingWithDefaultPath_ThenSiblingWorktreeStartsAtSelectedCommit()
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
         var start = repository.Git("rev-parse", "HEAD~1").Trim();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath, null, start);
         var expected = WorktreeTexts.DefaultPath(repository.WorkingTreePath, "feature/x");

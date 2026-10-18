@@ -154,7 +154,7 @@ public sealed class WorktreeOverviewPoller : IDisposable
     private void OnHostChanged()
     {
         var tab = _host.Workspace.ActiveTab;
-        if (tab?.Id == _watchedTabId && tab?.Worktrees == _watchedWorktrees && tab?.CommandPath == _watchedPath)
+        if (tab?.Id == _watchedTabId && tab?.Worktrees == _watchedWorktrees && tab.CommandPath == _watchedPath)
         {
             return;
         }

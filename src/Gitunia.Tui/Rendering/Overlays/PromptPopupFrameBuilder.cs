@@ -38,7 +38,7 @@ public static class PromptPopupFrameBuilder
             lines.Add(InputRow(input, textWidth, width, glyphs));
         }
 
-        lines.AddRange(prompt.Details.Select(detail => OverlayBox.Text(detail, width, glyphs, SegmentRole.Plain)));
+        lines.AddRange(prompt.Details.Select(detail => OverlayBox.Text(detail, width, glyphs)));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         lines.Add(OverlayBox.Text(prompt.Hint, width, glyphs, SegmentRole.Faint));
         lines.Add(OverlayBox.Bottom(width, glyphs));

@@ -14,7 +14,10 @@ public class MainlineOverlayTrackerTests
     [Fact]
     public void GivenTheOverlayIsOpen_WhenTheWindowIsResized_ThenItIsLaidOutAgain()
     {
-        using var window = new View { Width = Dim.Fill(), Height = Dim.Fill() };
+        using var window = new View();
+        window.Width = Dim.Fill();
+        window.Height = Dim.Fill();
+
         var tracker = Tracker();
         tracker.Attach(window);
         window.Layout(new Size(80, 24));
@@ -29,8 +32,11 @@ public class MainlineOverlayTrackerTests
     [Fact]
     public void GivenNoPrompt_WhenTheWindowIsResized_ThenNothingIsShown()
     {
-        using var window = new View { Width = Dim.Fill(), Height = Dim.Fill() };
+        using var window = new View();
+        window.Width = Dim.Fill();
+        window.Height = Dim.Fill();
         _prompt = false;
+
         var tracker = Tracker();
         tracker.Attach(window);
         tracker.Sync();

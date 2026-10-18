@@ -22,7 +22,7 @@ public class WorktreeWriterTests
     [Fact]
     public async Task GivenStartPoint_WhenAddingNewBranch_ThenWorktreeHasBranchAtThatCommit()
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
         var location = await Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
         var path = NewPath(repository, "added");
         var start = repository.Git("rev-parse", "HEAD~1").Trim();
