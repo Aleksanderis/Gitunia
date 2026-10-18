@@ -7,6 +7,7 @@ using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Loading;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -41,6 +42,36 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(handler.TryHandleFallback(ActionIds.Cancel));
 
         Assert.Null(statuses.Log.Latest);
+    }
+
+    [Fact]
+    public void GivenAnExpiredMessage_WhenEscapeFallsThrough_ThenNothingIsDismissedOrRedrawn()
+    {
+        var clock = new ManualTimeProvider();
+        var statuses = new StatusChannel(clock);
+        statuses.Post("done");
+        clock.Advance(StatusLifetime.Of(StatusSeverity.Info));
+        var changes = 0;
+        statuses.Changed += () => changes++;
+        var handler = new StatusActionHandler(statuses, () => null);
+
+        handler.TryHandleFallback(ActionIds.Cancel);
+
+        Assert.Equal(0, changes);
+    }
+
+    [Fact]
+    public void GivenAShowingMessage_WhenEscapeFallsThrough_ThenItIsDismissedBeforeItExpires()
+    {
+        var clock = new ManualTimeProvider();
+        var statuses = new StatusChannel(clock);
+        statuses.Error("boom");
+        clock.Advance(TimeSpan.FromSeconds(10));
+        var handler = new StatusActionHandler(statuses, () => null);
+
+        handler.TryHandleFallback(ActionIds.Cancel);
+
+        Assert.Null(statuses.Current);
     }
 
     [Fact]

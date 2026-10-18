@@ -151,6 +151,14 @@ public static class ActionIds
 
     public static ActionId TagPush { get; } = new("tag.push");
 
+    public static ActionId RemoteAdd { get; } = new("remote.add");
+
+    public static ActionId RemoteRemove { get; } = new("remote.remove");
+
+    public static ActionId RemoteRename { get; } = new("remote.rename");
+
+    public static ActionId RemoteSetUrl { get; } = new("remote.set-url");
+
     public static ActionId RemoteFetch { get; } = new("remote.fetch");
 
     public static ActionId RemoteCancel { get; } = new("remote.cancel");

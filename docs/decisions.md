@@ -342,4 +342,12 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** CI also runs on `v*` tags and weekly (Monday), besides dispatch (owner, 2026-10-18; supersedes the manual-dispatch-only entry above). The Windows leg (#155) is a second job in `ci.yml` on the same triggers, never per PR. Why: minutes are scarce but a Windows break must surface before release.
 
-**UI:** Force push is `<space>Rf`, remote branch delete `<space>Rd` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.
+**UI:** `DisplayWidth` treats East Asian Width W/F (Unicode 16.0) as two columns, from a constant sorted range table with binary search (#99). Regional indicators and text-presentation symbols stay one column; sequences (flags, ZWJ) are not joined.
+
+**Process:** The weekly CI schedule is dropped; CI runs on `v*` tags and manual dispatch only (owner, 2026-10-18; supersedes the weekly part of the entry above). The Windows test step is disabled (`if: false`) until #494 fixes its 43 failures; build, AOT publish and smoke still run. Why: a Windows run takes 10-11 min (about 20 billed) against 3 on Linux and minutes are scarce.
+
+**UI:** Remote management (#400): `<space>Ra` `Rd` `Rn` `Ru` (global) add, remove, rename and re-point a remote; only remove asks (Confirm naming the tracking branches that vanish), rename and set URL are reversible config edits. Why: `<space>R` was free, and `git remote` keeps tracking branches consistent itself.
+
+**UI:** Status messages (#500) are coloured by kind (success/info green, warning, error), drawn as a filled chip for 1.5 s, and expire: info 5 s, warning 15 s, error 30 s, by an injected clock in the state layer. Then the hints return; `<space>m` history keeps them. Why: a stale result must not look current.
+
+**UI:** Force push is `<space>Rf`, remote branch delete `<space>RD` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.

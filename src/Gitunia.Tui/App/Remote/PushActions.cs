@@ -419,8 +419,10 @@ public sealed class PushActions(
         var name = target.Name;
         try
         {
-            await writer.DeleteRemoteBranchAsync(tab.Location, name.Remote, name.Branch, target.CommitHash, token).ConfigureAwait(false);
             var tip = target.CommitHash;
+            await writer
+                .DeleteRemoteBranchAsync(tab.Location, name.Remote, name.Branch, tip, token)
+                .ConfigureAwait(false);
             var restore = $"git push {name.Remote} {tip}:{GitRefPrefixes.Heads}{name.Branch}";
             var done = $"Deleted {name.Branch} on {name.Remote} (restore: {restore})";
             postToUi(() => Finish(tab.Id, done, StatusSeverity.Info, true));

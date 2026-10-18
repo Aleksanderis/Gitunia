@@ -79,6 +79,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private KeyController _keys = null!;
     private MouseController _mouse = null!;
     private long _overlayClickTicks = long.MinValue / 2;
+    private long _statusAgingGeneration;
     private VisualRangeController _visual = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarActionHandler _sidebar = null!;
@@ -99,6 +100,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
     private PushActions _push = null!;
+    private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
@@ -207,6 +209,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        _remoteManagement = CreateRemoteManagement();
+        _router.RemoteManagement = _remoteManagement;
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
@@ -278,6 +282,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _ = new WorkingTreePresenter(_host, _view);
 
         _statuses.Changed += _view.RefreshChrome;
+        _statuses.Changed += ScheduleStatusAging;
         _host.Changed += _view.RefreshChrome;
         _host.Changed += _mainline.Sync;
         _host.Changed += _binder.Sync;
@@ -746,6 +751,19 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         ShowConfirm,
         gate);
 
+    private RemoteManagementActions CreateRemoteManagement() => new(
+        _host,
+        services.RemoteManager,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow,
+        _remote.IsRunning);
+
     private RemoteActions CreateRemote(TabOperationGate gate) => new(
         _host,
         services.Remote,
@@ -919,7 +937,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 _workspaceActions.Message,
                 _router.Message,
                 RemoteProgressNow(),
-                _statuses.Log.Latest?.Text ?? string.Empty),
+                _statuses.Current?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
             TabLabelFactory.Create(_host.Workspace, tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
             _picker.State,
@@ -928,8 +946,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             RemoteBusy = RemoteIsBusy(),
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
-                ? StatusSeverity.Info
-                : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
+                ? null
+                : _statuses.Current?.Severity,
+            MessageIsFresh = _statuses.IsFresh,
             Hints = _overlays.State.Kind == OverlayKind.Confirm
                 ? PaneHints.ForConfirm()
                 : _reflog.IsOpen
@@ -1046,6 +1065,32 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
     }
 
+    // Added to the wait for a message to age, so the clock is surely past the threshold when the timeout fires.
+    private static readonly TimeSpan StatusAgingMargin = TimeSpan.FromMilliseconds(20);
+
+    // A message loses its highlight and then expires with no key pressed, so the bar is drawn again at those moments.
+    // Each change of the channel replaces the earlier wait; a stale timeout does nothing.
+    private void ScheduleStatusAging()
+    {
+        var generation = ++_statusAgingGeneration;
+        if (_statuses.UntilNextChange is not { } wait)
+        {
+            return;
+        }
+
+        _application.AddTimeout(
+            wait + StatusAgingMargin,
+            () =>
+            {
+                if (generation == _statusAgingGeneration)
+                {
+                    _statuses.Tick();
+                }
+
+                return false;
+            });
+    }
+
     private void InvokeOnUi(Action action) => _uiInvoker.Invoke(action);
 
     private void RequestStop() => _application.RequestStop();
@@ -1106,6 +1151,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _branches,
             _tags,
             _push,
+            _remoteManagement,
             _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),

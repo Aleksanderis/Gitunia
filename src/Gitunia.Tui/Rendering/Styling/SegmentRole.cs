@@ -36,6 +36,21 @@ public enum SegmentRole
     /// <summary>A failure notice in the status bar (the bar's own background).</summary>
     StatusError,
 
+    /// <summary>A success or info notice in the status bar.</summary>
+    StatusNotice,
+
+    /// <summary>A warning notice in the status bar.</summary>
+    StatusWarning,
+
+    /// <summary>A success or info notice when new: a filled chip, then <see cref="StatusNotice"/>.</summary>
+    StatusNoticeFresh,
+
+    /// <summary>A warning in its first moments, settling to <see cref="StatusWarning"/>.</summary>
+    StatusWarningFresh,
+
+    /// <summary>A failure in its first moments, settling to <see cref="StatusError"/>.</summary>
+    StatusErrorFresh,
+
     /// <summary>A sidebar section title.</summary>
     SectionTitle,
 

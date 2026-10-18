@@ -81,7 +81,7 @@ Static versus instance rules: `.claude/rules/csharp-style.md`. `Program.Main` cr
 
 ## Cross-platform
 
-- Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first; CI has a Windows leg (tags, weekly, on demand), macOS comes in M5.
+- Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first; CI has a Windows leg (tags, on demand), macOS comes in M5.
 - Platform-specific code lives behind a small abstraction in one place (console setup: raw mode and VT input/output; resize notification: SIGWINCH vs console events; process spawning and signals; file watching quirks). Every abstraction has an implementation or an explicit "unsupported" result for each OS.
 - Config and state locations follow terminal-app convention on every OS, not the OS-native dirs: config in `$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, state in `$XDG_STATE_HOME/gitunia` or `~/.local/state/gitunia`. So the config folder can live in a dotfiles repository, and config stays apart from machine-local state.
 - Never hardcode path separators, `/tmp`, `/dev/null` or line endings; handle case-insensitive file systems, long Windows paths and CRLF in diffs.
