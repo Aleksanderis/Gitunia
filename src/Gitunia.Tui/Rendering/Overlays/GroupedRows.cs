@@ -57,7 +57,7 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
         return new MenuWindow(rowCount, selectedLine, top);
     }
 
-    /// <summary>The entry on the list line <paramref name="line"/>, null for a subheader, gap or past the end.</summary>
+    /// <summary>The entry on list line <paramref name="line"/>, null for a subheader, gap or past the end.</summary>
     public int? EntryAt(int line) => line >= 0 && line < Lines.Count ? Lines[line].Entry : null;
 
     private int IndexOfLine(int entry)
