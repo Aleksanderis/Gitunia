@@ -28,10 +28,24 @@ public interface IRemoteWriter
         IProgress<RemoteProgress>? progress,
         CancellationToken cancellationToken);
 
-    /// <summary>Pushes the current branch the way git's configuration says; never forces.</summary>
+    /// <summary>
+    /// Pushes the current branch the way git's configuration says, or what the request names. It forces only with a
+    /// <see cref="PushLease"/>, never plainly.
+    /// </summary>
     Task PushAsync(
         RepositoryLocation location,
         PushRequest request,
         IProgress<RemoteProgress>? progress,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes <c>refs/heads/&lt;branch&gt;</c> on <paramref name="remote"/> only while it still is at
+    /// <paramref name="expectedHash"/> (a lease); local refs stay.
+    /// </summary>
+    Task DeleteRemoteBranchAsync(
+        RepositoryLocation location,
+        string remote,
+        string branch,
+        string expectedHash,
         CancellationToken cancellationToken);
 }

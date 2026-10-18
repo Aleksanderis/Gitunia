@@ -114,6 +114,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>F", ActionIds.RemoteFetch);
         Add(bindings, NormalOnly, global, "<space>L", ActionIds.RemotePull);
         Add(bindings, NormalOnly, global, "<space>P", ActionIds.RemotePush);
+        Add(bindings, NormalOnly, global, "<space>Rf", ActionIds.RemotePushForce);
+        Add(bindings, NormalOnly, global, "<space>RD", ActionIds.RemoteDeleteBranch);
         Add(bindings, NormalOnly, global, "<space>C", ActionIds.RemoteCancel);
         Add(bindings, NormalOnly, global, "<space>Ra", ActionIds.RemoteAdd);
         Add(bindings, NormalOnly, global, "<space>Rd", ActionIds.RemoteRemove);

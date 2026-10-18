@@ -82,6 +82,8 @@ public class ContextMenuBuilderTests
                 ActionIds.RemoteFetchAll,
                 ActionIds.RemotePull,
                 ActionIds.RemotePush,
+                ActionIds.RemotePushForce,
+                ActionIds.RemoteDeleteBranch,
                 ActionIds.RemoteAdd,
                 ActionIds.RemoteRemove,
                 ActionIds.RemoteRename,

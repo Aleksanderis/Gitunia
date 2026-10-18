@@ -57,8 +57,21 @@ public sealed class FakeRemoteWriter : IRemoteWriter
         RepositoryLocation location,
         PushRequest request,
         IProgress<RemoteProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var remote = request.Remote ?? "(default)";
+        var lease = $"{request.Lease?.RemoteBranch}:{request.Lease?.ExpectedHash}";
+        var target = $"remote={remote}|branch={request.Branch}|upstream={request.SetUpstream}|lease={lease}";
+        return RunAsync($"push|{location.RootPath}|{target}", progress, cancellationToken);
+    }
+
+    public Task DeleteRemoteBranchAsync(
+        RepositoryLocation location,
+        string remote,
+        string branch,
+        string expectedHash,
         CancellationToken cancellationToken) =>
-        RunAsync($"push|{location.RootPath}|remote={request.Remote ?? "(default)"}", progress, cancellationToken);
+        RunAsync($"delete|{location.RootPath}|{remote}|{branch}|{expectedHash}", null, cancellationToken);
 
     private async Task RunAsync(string call, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken)
     {

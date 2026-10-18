@@ -92,7 +92,9 @@ public class RemoteActionsTests
         harness.Execute(ActionIds.RemotePush);
         await harness.WaitAsync();
 
-        Assert.Equal([$"push|{harness.Root}|remote=(default)"], harness.Writer.Calls);
+        Assert.Equal(
+            [$"push|{harness.Root}|remote=(default)|branch=|upstream=False|lease=:"],
+            harness.Writer.Calls);
         Assert.Equal("Push failed: ! [rejected] main -> main", harness.Statuses.Log.Latest!.Text);
         Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest.Severity);
     }

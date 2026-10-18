@@ -99,6 +99,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
+    private PushActions _push = null!;
     private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
@@ -227,6 +228,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Operations = CreateOperations(operationGate);
         _remote = CreateRemote(operationGate);
         _router.Remote = _remote;
+        _push = CreatePush();
+        _router.Push = _push;
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -771,6 +774,19 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         gate);
 
+    private PushActions CreatePush() => new(
+        _host,
+        _remote,
+        services.Remote,
+        services.Tags.ListRemotesAsync,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome);
+
     private OperationController CreateOperations(TabOperationGate gate) => new(
         _host,
         services.OperationWriter,
@@ -1134,6 +1150,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
             _tags,
+            _push,
             _remoteManagement,
             _reset,
             _pick,
