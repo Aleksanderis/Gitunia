@@ -107,12 +107,23 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
-    public void GivenTheWhichKeyGroups_WhenComparingVocabulary_ThenEachNamesAnActionGroup()
+    public void GivenTheWhichKeyGroups_WhenComparingVocabulary_ThenEachPrefixHoldsOneActionGroupWithThatName()
     {
-        Assert.Equal("branch operations", ActionGroups.Branch.WhichKeyName);
-        Assert.Equal("tag operations", ActionGroups.Tag.WhichKeyName);
-        Assert.Equal("worktree operations", ActionGroups.Worktree.WhichKeyName);
-        Assert.Equal("stash operations", ActionGroups.Stash.WhichKeyName);
-        Assert.Equal(7, WhichKeyBuilder.GroupPrefixes.Count);
+        var used = new List<ActionGroup>();
+        foreach (var prefix in WhichKeyBuilder.GroupPrefixes)
+        {
+            var groups = Table.Bindings
+                .Where(binding => KeyFormatter.Format(binding.Sequence).StartsWith(prefix, StringComparison.Ordinal))
+                .Select(binding => ActionCatalog.GroupOf(binding.Action))
+                .Distinct()
+                .ToList();
+
+            var group = Assert.Single(groups);
+            Assert.NotNull(group!.WhichKeyName);
+            used.Add(group);
+        }
+
+        var named = typeof(ActionGroups).GetProperties().Select(property => (ActionGroup)property.GetValue(null)!);
+        Assert.Equal(used.OrderBy(group => group.Order), named.Where(group => group.WhichKeyName is not null).OrderBy(group => group.Order));
     }
 }

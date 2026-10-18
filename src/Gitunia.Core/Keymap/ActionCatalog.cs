@@ -30,15 +30,15 @@ public static class ActionCatalog
         ActionIds.WorkingTreeMessageNewLine,
     ];
 
-    private static readonly HashSet<string> CopyActions =
+    private static readonly HashSet<ActionId> CopyActions =
     [
-        "graph.copy-hash",
-        "detail.copy-path",
-        "diff.copy-file",
-        "diff.copy-line",
-        "visual.copy",
-        "sidebar.copy",
-        "working-tree.copy-path",
+        ActionIds.GraphCopyHash,
+        ActionIds.DetailCopyPath,
+        ActionIds.DiffCopyFile,
+        ActionIds.DiffCopyLine,
+        ActionIds.VisualCopy,
+        ActionIds.SidebarCopy,
+        ActionIds.WorkingTreeCopyPath,
     ];
 
     private static readonly Dictionary<string, ActionGroup> GroupByPrefix = new(StringComparer.Ordinal)
@@ -257,7 +257,7 @@ public static class ActionCatalog
     /// </summary>
     public static ActionGroup? GroupOf(ActionId action)
     {
-        if (CopyActions.Contains(action.Value))
+        if (CopyActions.Contains(action))
         {
             return ActionGroups.Copy;
         }
