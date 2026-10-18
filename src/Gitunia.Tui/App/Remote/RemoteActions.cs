@@ -85,11 +85,19 @@ public sealed class RemoteActions(
 
         if (host.Workspace.ActiveTab is { } tab)
         {
-            Notice = Start(tab, action);
+            Notice = Start(tab, action, null);
         }
 
         return true;
     }
+
+    /// <summary>
+    /// Starts a push with an explicit request (set the upstream, force with a lease) as the tab's one remote
+    /// operation; returns the notice when it cannot start, empty otherwise. <paramref name="done"/> is the status text
+    /// of a success.
+    /// </summary>
+    public string StartPush(RepositoryState tab, PushRequest request, string done) =>
+        Start(tab, ActionIds.RemotePush, new PushPlan(request, done));
 
     private static Wording WordsOf(ActionId action)
     {
@@ -110,7 +118,7 @@ public sealed class RemoteActions(
         return true;
     }
 
-    private string Start(RepositoryState tab, ActionId action)
+    private string Start(RepositoryState tab, ActionId action, PushPlan? plan)
     {
         if (_running.ContainsKey(tab.Id))
         {
@@ -124,7 +132,7 @@ public sealed class RemoteActions(
         }
 
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
-        var running = new Running(WordsOf(action), linked);
+        var running = new Running(WordsOf(action), linked, plan);
         _running[tab.Id] = running;
         if (isPull)
         {
@@ -151,7 +159,7 @@ public sealed class RemoteActions(
         var severity = StatusSeverity.Info;
         try
         {
-            text = await RunGitAsync(action, location, progress, token).ConfigureAwait(false);
+            text = await RunGitAsync(action, running.Plan, location, progress, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -170,6 +178,7 @@ public sealed class RemoteActions(
 
     private async Task<string> RunGitAsync(
         ActionId action,
+        PushPlan? plan,
         RepositoryLocation location,
         IProgress<RemoteProgress> progress,
         CancellationToken token)
@@ -182,8 +191,9 @@ public sealed class RemoteActions(
 
         if (action == ActionIds.RemotePush)
         {
-            await writer.PushAsync(location, new PushRequest(null), progress, token).ConfigureAwait(false);
-            return "Pushed the current branch";
+            var request = plan?.Request ?? new PushRequest(null);
+            await writer.PushAsync(location, request, progress, token).ConfigureAwait(false);
+            return plan?.Done ?? "Pushed the current branch";
         }
 
         var all = action == ActionIds.RemoteFetchAll;
@@ -224,8 +234,12 @@ public sealed class RemoteActions(
 
     private sealed record Wording(string Activity, string Noun);
 
-    private sealed class Running(Wording words, CancellationTokenSource cancellation)
+    private sealed record PushPlan(PushRequest Request, string Done);
+
+    private sealed class Running(Wording words, CancellationTokenSource cancellation, PushPlan? plan)
     {
+        public PushPlan? Plan { get; } = plan;
+
         public Wording Words { get; } = words;
 
         public CancellationTokenSource Cancellation { get; } = cancellation;

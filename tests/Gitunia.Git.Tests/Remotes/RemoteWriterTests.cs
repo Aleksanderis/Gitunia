@@ -134,6 +134,105 @@ public class RemoteWriterTests
     }
 
     [Fact]
+    public async Task GivenABranchWithoutUpstream_WhenPushingWithSetUpstream_ThenTheRemoteHasItAndItTracksIt()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var head = repository.Head;
+        Assert.Equal(string.Empty, repository.Git(["config", "--get", "branch.lonely.remote"], [0, 1]).Trim());
+
+        await WriterFor(repository).PushAsync(
+            await LocateAsync(repository),
+            new PushRequest("origin", "lonely", true),
+            null,
+            Token);
+
+        Assert.Equal(head, repository.GitIn(repository.OriginPath, ["rev-parse", "lonely"]).Trim());
+        Assert.Equal("origin/lonely", repository.Git("rev-parse", "--abbrev-ref", "lonely@{upstream}").Trim());
+    }
+
+    [Fact]
+    public async Task GivenARewrittenBranch_WhenPushingWithTheLeaseOfTheTrackingBranch_ThenTheRemoteIsOverwritten()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
+        var rewritten = repository.Head;
+        Assert.NotEqual(seen, rewritten);
+
+        await WriterFor(repository).PushAsync(
+            await LocateAsync(repository),
+            new PushRequest("origin", "topic", false, new PushLease("topic", seen)),
+            null,
+            Token);
+
+        Assert.Equal(rewritten, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenTheRemoteMoved_WhenForcePushingWithALease_ThenItIsRejectedAndNothingChanges()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        var seen = repository.Git("rev-parse", "origin/main").Trim();
+        var theirs = CommitOnOriginWithoutFetching(repository);
+        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
+        var location = await LocateAsync(repository);
+
+        var failure = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).PushAsync(
+                location,
+                new PushRequest("origin", "main", false, new PushLease("main", seen)),
+                null,
+                Token));
+
+        Assert.Contains("stale info", failure.StandardError, StringComparison.Ordinal);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "main"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenABranchOnTheRemote_WhenDeletingIt_ThenItIsGoneThereAndTheLocalBranchStays()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var head = repository.Head;
+
+        await WriterFor(repository).DeleteRemoteBranchAsync(
+            await LocateAsync(repository),
+            "origin",
+            "topic",
+            repository.Git("rev-parse", "origin/topic").Trim(),
+            Token);
+
+        Assert.DoesNotContain("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
+        Assert.DoesNotContain("origin/topic", repository.Git("branch", "-r"), StringComparison.Ordinal);
+        Assert.Equal(head, repository.Git("rev-parse", "topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenTheBranchMovedOnTheRemote_WhenDeletingIt_ThenTheLeaseRejectsAndTheirCommitSurvives()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        var theirs = CommitOnOriginWithoutFetching(repository, "topic");
+        var location = await LocateAsync(repository);
+
+        var failure = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).DeleteRemoteBranchAsync(location, "origin", "topic", seen, Token));
+
+        Assert.Contains("stale info", failure.StandardError, StringComparison.Ordinal);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenAnUnknownRemote_WhenDeletingABranch_ThenGitsErrorIsThrown()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        var head = repository.Head;
+        var location = await LocateAsync(repository);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).DeleteRemoteBranchAsync(location, "nowhere", "topic", head, Token));
+    }
+
+    [Fact]
     public async Task GivenACancelledToken_WhenFetching_ThenGitNeverRuns()
     {
         using var repository = TestRepositories.WithOrigin();
@@ -208,15 +307,15 @@ public class RemoteWriterTests
     }
 
     // The new commit's objects exist only on the remote, so a fetch has to transfer a pack.
-    private static string CommitOnOriginWithoutFetching(TestRepository repository)
+    private static string CommitOnOriginWithoutFetching(TestRepository repository, string branch = "main")
     {
         var root = Path.GetDirectoryName(repository.OriginPath)!;
         var clone = Path.Combine(root, "other-clone");
-        repository.GitIn(root, ["clone", "-q", "--branch", "main", repository.OriginPath, clone]);
+        repository.GitIn(root, ["clone", "-q", "--branch", branch, repository.OriginPath, clone]);
         File.WriteAllText(Path.Combine(clone, "remote.txt"), "r\n");
         repository.GitIn(clone, ["add", "-A"]);
         repository.GitIn(clone, ["commit", "-q", "-m", "Remote only"]);
-        repository.GitIn(clone, ["push", "-q", "origin", "main"]);
+        repository.GitIn(clone, ["push", "-q", "origin", branch]);
         return repository.GitIn(clone, ["rev-parse", "HEAD"]).Trim();
     }
 

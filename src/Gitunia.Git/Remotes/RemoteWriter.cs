@@ -1,4 +1,5 @@
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -11,6 +12,10 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
     private const string Merge = "merge";
     private const string UpstreamRevision = "@{upstream}";
     private const string Push = "push";
+    private const string SetUpstreamOption = "--set-upstream";
+    private const string LeaseOption = "--force-with-lease";
+    private const string DeleteOption = "--delete";
+    private const string NoProgressOption = "--no-progress";
     private const string AllOption = "--all";
     private const string PruneOption = "--prune";
     private const string FastForwardOnly = "--ff-only";
@@ -76,12 +81,55 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         CancellationToken cancellationToken)
     {
         var arguments = new List<string> { Push, RemoteRunner.ProgressOption };
+        if (request.SetUpstream)
+        {
+            arguments.Add(SetUpstreamOption);
+        }
+
+        if (request.Lease is { } lease)
+        {
+            arguments.Add($"{LeaseOption}={GitRefPrefixes.Heads}{lease.RemoteBranch}:{lease.ExpectedHash}");
+        }
+
         if (request.Remote is not null)
         {
             arguments.Add(GitOptions.EndOfOptions);
             arguments.Add(request.Remote);
+            if (request.Branch is not null)
+            {
+                var target = request.Lease is { } leased
+                    ? $"{request.Branch}:{GitRefPrefixes.Heads}{leased.RemoteBranch}"
+                    : request.Branch;
+                arguments.Add(target);
+            }
         }
 
         await remoteRunner.RunAsync(location, arguments, progress, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task DeleteRemoteBranchAsync(
+        RepositoryLocation location,
+        string remote,
+        string branch,
+        string expectedHash,
+        CancellationToken cancellationToken)
+    {
+        // The lease makes git refuse the delete when the branch moved since the tip the user confirmed.
+        var reference = GitRefPrefixes.Heads + branch;
+        await remoteRunner
+            .RunAsync(
+                location,
+                [
+                    Push,
+                    NoProgressOption,
+                    DeleteOption,
+                    $"{LeaseOption}={reference}:{expectedHash}",
+                    GitOptions.EndOfOptions,
+                    remote,
+                    reference,
+                ],
+                null,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 }
