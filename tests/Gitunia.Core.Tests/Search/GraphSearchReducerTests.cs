@@ -370,7 +370,9 @@ public class GraphSearchReducerTests
         var older = Editing("body:clo");
         var newer = Apply(older, new EditSearchTextCommand("body:closes"));
 
-        var update = GraphSearchReducer.Reduce(newer, new BodyHitsCommand(older.Generation, new HashSet<ObjectId>(), string.Empty));
+        var stale = new BodyHitsCommand(older.Generation, new HashSet<ObjectId>(), string.Empty);
+
+        var update = GraphSearchReducer.Reduce(newer, stale);
 
         Assert.Equal(newer, update.State);
         Assert.Empty(update.Effects);

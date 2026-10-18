@@ -22,7 +22,10 @@ public sealed class FakeCommitMessageSearcher : ICommitMessageSearcher
 
     public string? LastText { get; private set; }
 
-    public async Task<IReadOnlySet<ObjectId>> SearchAsync(RepositoryLocation location, string text, CancellationToken cancellationToken)
+    public async Task<IReadOnlySet<ObjectId>> SearchAsync(
+        RepositoryLocation location,
+        string text,
+        CancellationToken cancellationToken)
     {
         LastText = text;
         Interlocked.Increment(ref _callCount);

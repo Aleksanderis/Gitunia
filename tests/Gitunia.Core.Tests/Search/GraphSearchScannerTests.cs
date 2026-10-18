@@ -21,7 +21,10 @@ public class GraphSearchScannerTests
     [Fact]
     public void GivenBodyQuery_WhenScanning_ThenOnlyRowsInTheHitsMatchAndNoneBeforeTheAnswer()
     {
-        var graph = SearchTestGraph.Build(new SearchTestRow("one", "Bob"), new SearchTestRow("two", "Bob"), new SearchTestRow("three", "Bob"));
+        var graph = SearchTestGraph.Build(
+            new SearchTestRow("one", "Bob"),
+            new SearchTestRow("two", "Bob"),
+            new SearchTestRow("three", "Bob"));
         Assert.True(ObjectId.TryParse("0000000000000000000000000000000000000002", out var second));
 
         var answered = new SearchQuery(SearchField.Body, "closes", new HashSet<ObjectId> { second });

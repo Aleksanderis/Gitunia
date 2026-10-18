@@ -14,10 +14,14 @@ public static class GraphSearchMatcher
         _ => entry.Id.ToString().StartsWith(query.Text, StringComparison.OrdinalIgnoreCase),
     };
 
-    /// <summary>Where the query text sits in the subject, for highlighting. False when the query is not a message or body query or does not occur.</summary>
+    /// <summary>
+    /// Where the query text sits in the subject, for highlighting. False when the query is not a message or body
+    /// query or does not occur.
+    /// </summary>
     public static bool TryFindInSubject(SearchQuery query, string subject, out int start, out int length)
     {
-        start = query.Field is SearchField.Message or SearchField.Body ? subject.IndexOf(query.Text, StringComparison.OrdinalIgnoreCase) : -1;
+        var searchesSubject = query.Field is SearchField.Message or SearchField.Body;
+        start = searchesSubject ? subject.IndexOf(query.Text, StringComparison.OrdinalIgnoreCase) : -1;
         length = query.Text.Length;
         return start >= 0;
     }

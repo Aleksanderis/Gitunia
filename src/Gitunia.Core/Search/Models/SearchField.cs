@@ -12,6 +12,8 @@ public enum SearchField
     /// <summary>The start of the commit hash (<c>hash:</c> prefix).</summary>
     Hash,
 
-    /// <summary>The whole commit message, subject and body (<c>body:</c> prefix); answered by git, not by the loaded rows.</summary>
+    /// <summary>
+    /// The whole commit message, subject and body (<c>body:</c> prefix); answered by git, not by the loaded rows.
+    /// </summary>
     Body,
 }

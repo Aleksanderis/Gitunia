@@ -4,7 +4,7 @@ using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Commits;
 
-/// <summary>Searches commit messages with <c>git log --grep</c>, so the bodies never have to be kept in memory.</summary>
+/// <summary>Searches commit messages with <c>git log --grep</c>, so bodies never have to be kept in memory.</summary>
 public sealed class CommitMessageSearcher : ICommitMessageSearcher
 {
     private static readonly GitRunOptions Options = new(Timeout: TimeSpan.FromSeconds(60), ReadOnly: true);
@@ -16,7 +16,10 @@ public sealed class CommitMessageSearcher : ICommitMessageSearcher
         _runner = runner;
     }
 
-    public async Task<IReadOnlySet<ObjectId>> SearchAsync(RepositoryLocation location, string text, CancellationToken cancellationToken)
+    public async Task<IReadOnlySet<ObjectId>> SearchAsync(
+        RepositoryLocation location,
+        string text,
+        CancellationToken cancellationToken)
     {
         List<string> arguments =
         [
@@ -30,7 +33,9 @@ public sealed class CommitMessageSearcher : ICommitMessageSearcher
             "--all",
             GitOptions.EndOfOptions,
         ];
-        var result = await _runner.RunAsync(location.CommandPath, arguments, Options, cancellationToken).ConfigureAwait(false);
+        var result = await _runner
+            .RunAsync(location.CommandPath, arguments, Options, cancellationToken)
+            .ConfigureAwait(false);
         var hits = new HashSet<ObjectId>();
         foreach (var field in result.StandardOutputText.Split('\0', StringSplitOptions.RemoveEmptyEntries))
         {

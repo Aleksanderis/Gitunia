@@ -246,6 +246,8 @@ public class SearchControllerTests
         Assert.StartsWith("/fix", harness.StatusLine, StringComparison.Ordinal);
     }
 
+    private static TaskCompletionSource NewGate() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private static void WaitUntil(PromptHarness harness, Func<PromptHarness, bool> condition)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);
@@ -267,7 +269,7 @@ public class SearchControllerTests
 
         harness.Press(new Key('/'));
         harness.Type("body:closes #4");
-        WaitUntil(harness, h => h.Session.Search.Query is { IsAwaitingBodyHits: false } && !h.Session.Search.IsScanning);
+        WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
         Assert.Equal("/body:closes #4_  2 found", harness.StatusLine);
         harness.Press(Key.Enter);
 
@@ -282,7 +284,7 @@ public class SearchControllerTests
     [Fact]
     public void GivenSlowGit_WhenAcceptingBeforeTheAnswer_ThenTheJumpHappensWhenTheAnswerArrives()
     {
-        var searcher = new FakeCommitMessageSearcher { Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
         searcher.Hits.Add(CommitFactory.Id(2));
         using var harness = new PromptHarness(Graph(), messages: searcher);
         harness.Press(new Key('/'));
@@ -314,7 +316,7 @@ public class SearchControllerTests
     [Fact]
     public void GivenTextTypedAfterBodyPrefix_WhenTheAnswerOfTheOlderQueryArrives_ThenItIsDropped()
     {
-        var searcher = new FakeCommitMessageSearcher { Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
         searcher.Hits.Add(CommitFactory.Id(2));
         using var harness = new PromptHarness(Graph(), messages: searcher);
         harness.Press(new Key('/'));

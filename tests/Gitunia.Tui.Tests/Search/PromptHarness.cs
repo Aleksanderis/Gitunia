@@ -26,7 +26,12 @@ public sealed class PromptHarness : IDisposable
     private readonly KeyController _keys;
     private readonly List<IPromptHandler> _prompts = [];
 
-    public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null, Queue<Action>? deferred = null, ICommitMessageSearcher? messages = null)
+    public PromptHarness(
+        CommitGraph graph,
+        bool isLoading = false,
+        IEnumerable<GitRef>? refs = null,
+        Queue<Action>? deferred = null,
+        ICommitMessageSearcher? messages = null)
     {
         // Search never selects a commit, so the details store never runs a process in these tests.
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
