@@ -16,6 +16,8 @@ public static class RowActions
         ActionIds.BranchCreate,
         ActionIds.BranchRename,
         ActionIds.BranchDelete,
+        ActionIds.BranchSetUpstream,
+        ActionIds.BranchUnsetUpstream,
         ActionIds.TagCreate,
         ActionIds.TagDelete,
         ActionIds.TagPush,

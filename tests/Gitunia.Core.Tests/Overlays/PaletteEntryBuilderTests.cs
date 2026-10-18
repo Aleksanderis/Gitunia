@@ -37,6 +37,15 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
+    public void GivenTheSidebarRowActions_WhenBuildingRowEntries_ThenSetAndUnsetUpstreamAreOffered()
+    {
+        var sidebar = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.SidebarView, RowActions.OfSidebarRow);
+
+        Assert.Contains(sidebar, entry => entry.Action == ActionIds.BranchSetUpstream);
+        Assert.Contains(sidebar, entry => entry.Action == ActionIds.BranchUnsetUpstream);
+    }
+
+    [Fact]
     public void GivenTheGraphRowActions_WhenBuildingRowEntries_ThenOnlyThoseComeBackInOrderIncludingRebaseAndReset()
     {
         var entries = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);

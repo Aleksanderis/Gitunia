@@ -207,7 +207,9 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
     [InlineData(DefaultMouseMap.SidebarPickButton, "<space>gp")]
     [InlineData(DefaultMouseMap.SidebarRevertButton, "<space>gv")]
-    public void GivenARebaseResetPickOrRevertButton_WhenClicking_ThenItRunsItsKeyAction(string buttonView, string keys)
+    [InlineData(DefaultMouseMap.SidebarBranchSetUpstreamButton, "<space>bu")]
+    [InlineData(DefaultMouseMap.SidebarBranchUnsetUpstreamButton, "<space>bU")]
+    public void GivenAKeyBackedSidebarButton_WhenClicking_ThenItRunsItsKeyAction(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
         var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
