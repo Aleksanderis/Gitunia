@@ -10,7 +10,8 @@ namespace Gitunia.Tui.App.Tabs;
 
 /// <summary>
 /// The tab rename prompt (#219, <c>Ctrl-w r</c>): a prompt popup that starts with the tab's current name;
-/// <c>Enter</c> saves it (the name is stored in the session), an empty name goes back to the repository name, <c>Esc</c> leaves the name alone.
+/// <c>Enter</c> saves it (the name is stored in the session), an empty name goes back to the repository name,
+/// <c>Esc</c> leaves the name alone.
 /// </summary>
 public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
 {
