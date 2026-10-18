@@ -104,7 +104,7 @@ public sealed record GitServices(
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),
             new ResetWriter(runner),
-            new RebaseWriter(operationRunner),
+            new RebaseWriter(operationRunner, runner),
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),

@@ -218,6 +218,16 @@ public sealed class OverlayController
             return true;
         }
 
+        if (action == ActionIds.PaletteOpenForRow)
+        {
+            var view = _baseView();
+            var actions = view == DefaultKeymap.SidebarView ? RowActions.OfSidebarRow : RowActions.OfGraphRow;
+            var entries = PaletteEntryBuilder.BuildFor(_engine.Table, view, actions);
+            var palette = new PaletteState(entries);
+            Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
+            return true;
+        }
+
         return false;
     }
 

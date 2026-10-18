@@ -126,6 +126,36 @@ public class RebaseWriterTests
         Assert.Equal(oldTip, repository.Head);
     }
 
+    [Fact]
+    public async Task GivenAMergeAmongTheReplayedCommits_WhenCountingMerges_ThenItIsCounted()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("topic")
+            .CheckoutNewBranch("side")
+            .Commit("Side change", new TestFile("side.txt", "side\n"))
+            .Checkout("topic")
+            .Commit("Topic change", new TestFile("topic.txt", "topic\n"))
+            .Merge("side")
+            .Checkout("main")
+            .Commit("Main change", new TestFile("main.txt", "main\n"))
+            .Checkout("topic");
+        var (writer, location) = await CreateAsync(repository);
+
+        var merges = await writer.CountMergesAsync(location, "main", Token);
+
+        Assert.Equal(1, merges);
+    }
+
+    [Fact]
+    public async Task GivenALinearRange_WhenCountingMerges_ThenItIsZero()
+    {
+        using var repository = Diverged();
+        var (writer, location) = await CreateAsync(repository);
+
+        Assert.Equal(0, await writer.CountMergesAsync(location, "main", Token));
+    }
+
     // Main and topic both moved past the first commit, in different files, so the rebase is clean.
     private static TestRepository Diverged() =>
         TestRepository.Create()
@@ -143,7 +173,8 @@ public class RebaseWriterTests
     {
         var runner = repository.CreateIsolatedRunner();
         var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
-        return new Harness(new RebaseWriter(new OperationRunner(runner, new RepositoryOperationDetector())), location);
+        var operations = new OperationRunner(runner, new RepositoryOperationDetector());
+        return new Harness(new RebaseWriter(operations, runner), location);
     }
 
     private sealed record Harness(RebaseWriter Writer, RepositoryLocation Location);

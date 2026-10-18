@@ -10,6 +10,7 @@ public class MouseFlagTranslatorTests
     [Theory]
     [InlineData(MouseFlags.LeftButtonClicked, MouseGesture.Click)]
     [InlineData(MouseFlags.LeftButtonDoubleClicked, MouseGesture.DoubleClick)]
+    [InlineData(MouseFlags.RightButtonClicked, MouseGesture.RightClick)]
     [InlineData(MouseFlags.WheeledUp, MouseGesture.WheelUp)]
     [InlineData(MouseFlags.WheeledDown, MouseGesture.WheelDown)]
     public void GivenAMappedFlag_WhenTranslating_ThenTheGestureIsReturned(MouseFlags flags, MouseGesture expected)

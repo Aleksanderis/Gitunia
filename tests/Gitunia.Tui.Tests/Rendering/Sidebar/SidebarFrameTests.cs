@@ -124,15 +124,15 @@ public class SidebarFrameTests
     {
         var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
 
-        var line = SidebarRowRenderer.Render(row, 120, isSelected: false, GraphGlyphSet.Unicode);
+        var line = SidebarRowRenderer.Render(row, 140, isSelected: false, GraphGlyphSet.Unicode);
 
-        Assert.Equal(120, TextWidth.Of(line.Text));
+        Assert.Equal(140, TextWidth.Of(line.Text));
         Assert.EndsWith(
-            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash]",
+            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 120, GraphGlyphSet.Unicode);
-        Assert.Equal(8, buttons.Count);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 140, GraphGlyphSet.Unicode);
+        Assert.Equal(10, buttons.Count);
         var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
     }
@@ -142,14 +142,14 @@ public class SidebarFrameTests
     {
         var row = Section(SidebarSection.Tags, "Tags", 2, isExpanded: true);
 
-        var line = SidebarRowRenderer.Render(row, 90, isSelected: false, GraphGlyphSet.Unicode);
+        var line = SidebarRowRenderer.Render(row, 120, isSelected: false, GraphGlyphSet.Unicode);
 
         Assert.EndsWith(
-            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash]",
+            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash] [rebase] [reset]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 90, GraphGlyphSet.Unicode);
-        Assert.Equal(7, buttons.Count);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 120, GraphGlyphSet.Unicode);
+        Assert.Equal(9, buttons.Count);
         var pushColumn = line.Text.IndexOf("[push]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarTagPushButton, TitleButton.ViewAt(buttons, pushColumn));
         var squashColumn = line.Text.IndexOf("[squash]", StringComparison.Ordinal);
@@ -201,7 +201,7 @@ public class SidebarFrameTests
     }
 
     [Fact]
-    public void GivenOtherSectionsAndRows_WhenRendering_ThenTheyHaveNoButtons()
+    public void GivenRemotesAndBranchRows_WhenRendering_ThenTheyHaveNoButtons()
     {
         var remotes = Section(SidebarSection.Remotes, "Remotes", 1, true);
         Assert.Empty(SidebarRowRenderer.ButtonsOf(remotes, 60, GraphGlyphSet.Unicode));
