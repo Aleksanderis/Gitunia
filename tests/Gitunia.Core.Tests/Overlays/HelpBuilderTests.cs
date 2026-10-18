@@ -76,7 +76,9 @@ public class HelpBuilderTests
         var feeder = new KeyFeeder(engine);
         feeder.Feed("g");
 
-        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView), feeder.State.PendingSequence);
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
 
         Assert.Contains(new WhichKeyRow("g", "Go to the top"), rows);
         Assert.Contains(new WhichKeyRow("t", "Next tab"), rows);
@@ -87,7 +89,7 @@ public class HelpBuilderTests
     [InlineData("g", "+more (merge, rebase, reset, pick)")]
     [InlineData("T", "+more (tag operations)")]
     [InlineData("t", "+more (external tools)")]
-    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenGroupRowsNameTheirContents(string key, string expected)
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenGroupRowsNameContents(string key, string expected)
     {
         var engine = new KeymapEngine(Table);
         var feeder = new KeyFeeder(engine);
@@ -132,7 +134,9 @@ public class HelpBuilderTests
         var feeder = new KeyFeeder(engine);
         feeder.Feed("Ctrl-w");
 
-        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView), feeder.State.PendingSequence);
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
 
         Assert.Contains(new WhichKeyRow("c", "Close the tab"), rows);
     }

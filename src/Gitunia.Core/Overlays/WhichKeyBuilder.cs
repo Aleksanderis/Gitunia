@@ -6,7 +6,7 @@ namespace Gitunia.Core.Overlays;
 /// <summary>Turns the engine's continuations of a pending chord into popup rows.</summary>
 public static class WhichKeyBuilder
 {
-    /// <summary>Group names by formatted prefix; hand-written because the keymap has no group metadata (#443).</summary>
+    /// <summary>Group names by formatted prefix; hand-written, the keymap has no group metadata (#443).</summary>
     private static readonly Dictionary<string, string> GroupNames = new(StringComparer.Ordinal)
     {
         ["<space>b"] = "branch operations",
@@ -18,7 +18,7 @@ public static class WhichKeyBuilder
         ["<space>v"] = "diff view options",
     };
 
-    /// <summary>Rows for <paramref name="continuations"/> of <paramref name="pending"/>; a group row names its contents.</summary>
+    /// <summary>Rows for the continuations of <paramref name="pending"/>; a group row names its contents.</summary>
     public static IReadOnlyList<WhichKeyRow> Build(
         IReadOnlyList<Continuation> continuations,
         KeySequence pending)
