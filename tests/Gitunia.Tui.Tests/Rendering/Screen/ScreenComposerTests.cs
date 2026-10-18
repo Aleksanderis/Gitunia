@@ -154,7 +154,8 @@ public class ScreenComposerTests
 
         Assert.Contains(
             lines[^1].Segments,
-            segment => segment.Role == SegmentRole.Status && segment.Text.Contains("retrying", StringComparison.Ordinal));
+            segment => segment.Role == SegmentRole.Status
+                && segment.Text.Contains("retrying", StringComparison.Ordinal));
     }
 
     [Fact]
