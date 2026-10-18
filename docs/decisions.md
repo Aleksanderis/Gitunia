@@ -324,4 +324,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Palette and row menu list actions under subheaders (#483, owner), groups from `ActionCatalog.GroupOf` (shared with which-key, superseding the hand-written table of #443); the menu groups only above 5 actions and 2+ groups, help and which-key stay flat. The palette orders by group first, superseding view-first.
 
-**UI:** The graph row menu ends with "Open details" (`Enter`, #486): the mouse route to the details pane, which is hidden under 14 rows and no longer reached by a double-click. Always listed, not only when hidden, so the menu does not change shape with the screen size.
+**UI:** The graph row menu ends with "Open details" (`Enter`, #486): the mouse route to the details pane, which is hidden under 14 rows and no longer reached by a double-click. Always listed, not only when hidden, so the menu does not change shape with the screen size. Supersedes the "Open details" sentence of the #482 entry.
