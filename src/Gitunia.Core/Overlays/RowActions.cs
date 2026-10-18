@@ -106,6 +106,8 @@ public static class RowActions
             ActionIds.RemoteFetchAll,
             ActionIds.RemotePull,
             ActionIds.RemotePush,
+            ActionIds.RemotePushForce,
+            ActionIds.RemoteDeleteBranch,
         ],
         SidebarSection.Tags => [ActionIds.TagCreate],
         SidebarSection.Worktrees => [ActionIds.WorktreeAdd, ActionIds.WorktreePrune],

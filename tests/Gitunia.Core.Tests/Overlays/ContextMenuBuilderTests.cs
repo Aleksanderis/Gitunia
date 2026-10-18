@@ -77,7 +77,14 @@ public class ContextMenuBuilderTests
         var actions = RowActions.OfSidebarRow(Row(SidebarRowKind.Section, SidebarSection.Remotes));
 
         Assert.Equal(
-            [ActionIds.RemoteFetch, ActionIds.RemoteFetchAll, ActionIds.RemotePull, ActionIds.RemotePush],
+            [
+                ActionIds.RemoteFetch,
+                ActionIds.RemoteFetchAll,
+                ActionIds.RemotePull,
+                ActionIds.RemotePush,
+                ActionIds.RemotePushForce,
+                ActionIds.RemoteDeleteBranch,
+            ],
             actions);
     }
 

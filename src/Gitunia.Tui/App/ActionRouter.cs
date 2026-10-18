@@ -77,6 +77,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>Fetch, pull, push and the cancel of the running one; Esc is only its once the prompts passed.</summary>
     public RemoteActions? Remote { get; set; }
 
+    /// <summary>The push cases that ask first (first push, force with lease, delete a remote branch).</summary>
+    public PushActions? Push { get; set; }
+
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }
 
@@ -153,6 +156,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Tags?.TryExecute(action, count) == true)
         {
             Message = Tags.Notice;
+            return;
+        }
+
+        if (Push?.TryExecute(action, count) == true)
+        {
+            Message = Push.Notice;
             return;
         }
 

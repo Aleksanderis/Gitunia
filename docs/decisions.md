@@ -341,3 +341,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Fetch, pull and push (#456): `<space>F`/`L`/`P` global, tab-row chips (100+ columns) and the Remotes header menu; progress is one live status-bar line, not history messages; `Esc` in the graph or `<space>C` (any pane, also the cancel chip) cancels. All-remotes fetch is the palette action `remote.fetch-all`, not a second key press.
 
 **Process:** CI also runs on `v*` tags and weekly (Monday), besides dispatch (owner, 2026-10-18; supersedes the manual-dispatch-only entry above). The Windows leg (#155) is a second job in `ci.yml` on the same triggers, never per PR. Why: minutes are scarce but a Windows break must surface before release.
+
+**UI:** Force push is `<space>Rf`, remote branch delete `<space>Rd` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.

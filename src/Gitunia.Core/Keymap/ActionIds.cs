@@ -161,6 +161,10 @@ public static class ActionIds
 
     public static ActionId RemotePush { get; } = new("remote.push");
 
+    public static ActionId RemotePushForce { get; } = new("remote.push-force");
+
+    public static ActionId RemoteDeleteBranch { get; } = new("remote.delete-branch");
+
     public static ActionId MenuOpenForRow { get; } = new("menu.open-for-row");
 
     public static ActionId MergeBranch { get; } = new("merge.branch");

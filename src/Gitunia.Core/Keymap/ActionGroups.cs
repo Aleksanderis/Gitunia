@@ -9,7 +9,7 @@ public static class ActionGroups
 
     public static ActionGroup Tag { get; } = new("Tag", 3, "tag operations");
 
-    public static ActionGroup Remote { get; } = new("Remote", 4);
+    public static ActionGroup Remote { get; } = new("Remote", 4, "remote operations");
 
     public static ActionGroup Worktree { get; } = new("Worktree", 5, "worktree operations");
 

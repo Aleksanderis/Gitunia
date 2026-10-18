@@ -12,6 +12,7 @@ public static class WhichKeyBuilder
         ["<space>b"] = ActionGroups.Branch.WhichKeyName!,
         ["<space>g"] = ActionGroups.Merge.WhichKeyName!,
         ["<space>T"] = ActionGroups.Tag.WhichKeyName!,
+        ["<space>R"] = ActionGroups.Remote.WhichKeyName!,
         ["<space>w"] = ActionGroups.Worktree.WhichKeyName!,
         ["<space>S"] = ActionGroups.Stash.WhichKeyName!,
         ["<space>t"] = ActionGroups.Tools.WhichKeyName!,
