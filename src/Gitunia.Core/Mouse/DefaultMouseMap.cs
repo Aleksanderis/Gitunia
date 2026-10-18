@@ -111,6 +111,21 @@ public static class DefaultMouseMap
 
     public const string SidebarWorktreePruneButton = "SidebarButton.WorktreePrune";
 
+    /// <summary>The buttons in the Tags header (#434): tag actions and the merge of the selected tag.</summary>
+    public const string SidebarTagCreateButton = "SidebarButton.TagCreate";
+
+    public const string SidebarTagDeleteButton = "SidebarButton.TagDelete";
+
+    public const string SidebarTagPushButton = "SidebarButton.TagPush";
+
+    public const string SidebarTagDeleteRemoteButton = "SidebarButton.TagDeleteRemote";
+
+    /// <summary>Merge chips of the Branches and Tags headers (#434): merge the selected row.</summary>
+    public const string SidebarMergeButton = "SidebarButton.Merge";
+
+    public const string SidebarMergeNoFastForwardButton = "SidebarButton.MergeNoFastForward";
+
+    public const string SidebarMergeSquashButton = "SidebarButton.MergeSquash";
     /// <summary>The Stashes header buttons (#413): apply, pop and drop act on the selected row.</summary>
     public const string SidebarStashPushButton = "SidebarButton.StashPush";
 
@@ -197,6 +212,13 @@ public static class DefaultMouseMap
         new(SidebarWorktreeLockButton, MouseGesture.Click, ActionIds.WorktreeLock),
         new(SidebarWorktreeUnlockButton, MouseGesture.Click, ActionIds.WorktreeUnlock),
         new(SidebarWorktreePruneButton, MouseGesture.Click, ActionIds.WorktreePrune),
+        new(SidebarTagCreateButton, MouseGesture.Click, ActionIds.TagCreate),
+        new(SidebarTagDeleteButton, MouseGesture.Click, ActionIds.TagDelete),
+        new(SidebarTagPushButton, MouseGesture.Click, ActionIds.TagPush),
+        new(SidebarTagDeleteRemoteButton, MouseGesture.Click, ActionIds.TagDeleteRemote),
+        new(SidebarMergeButton, MouseGesture.Click, ActionIds.MergeBranch),
+        new(SidebarMergeNoFastForwardButton, MouseGesture.Click, ActionIds.MergeBranchNoFastForward),
+        new(SidebarMergeSquashButton, MouseGesture.Click, ActionIds.MergeBranchSquash),
         new(SidebarStashPushButton, MouseGesture.Click, ActionIds.StashPush),
         new(SidebarStashPushUntrackedButton, MouseGesture.Click, ActionIds.StashPushUntracked),
         new(SidebarStashApplyButton, MouseGesture.Click, ActionIds.StashApply),

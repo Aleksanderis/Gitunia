@@ -76,7 +76,7 @@ public class SidebarFrameTests
         Assert.StartsWith("│   * main ↑2↓1 wt:… │ ●  first", frame[3], StringComparison.Ordinal);
         Assert.StartsWith("│     feature… wt:w… │", frame[4], StringComparison.Ordinal);
         Assert.StartsWith("│     old            │", frame[5], StringComparison.Ordinal);
-        Assert.StartsWith("│  ▸ Tags 12         │", frame[6], StringComparison.Ordinal);
+        Assert.StartsWith("│  ▸ Tags 12", frame[6], StringComparison.Ordinal);
         Assert.StartsWith("│                    │", frame[7], StringComparison.Ordinal);
         Assert.StartsWith("╰────────────────────┴───", frame[8], StringComparison.Ordinal);
         Assert.EndsWith("╮", frame[1], StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public class SidebarFrameTests
 
         Assert.StartsWith("|  v Branches 1      | *  second", frame[2], StringComparison.Ordinal);
         Assert.StartsWith("|   * main +1-3      | *  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("|  > Tags 2 [rebase] |", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("|  > Tags 2", frame[4], StringComparison.Ordinal);
     }
 
     [Theory]
@@ -156,14 +156,36 @@ public class SidebarFrameTests
     {
         var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
 
-        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
+        var line = SidebarRowRenderer.Render(row, 160, isSelected: false, GraphGlyphSet.Unicode);
 
-        Assert.Equal(60, TextWidth.Of(line.Text));
-        Assert.EndsWith("[new] [switch] [rename] [delete] [new-only]", line.Text.TrimEnd(), StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
-        Assert.Equal(5, buttons.Count);
+        Assert.Equal(160, TextWidth.Of(line.Text));
+        Assert.EndsWith(
+            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
+            line.Text.TrimEnd(),
+            StringComparison.Ordinal);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 160, GraphGlyphSet.Unicode);
+        Assert.Equal(12, buttons.Count);
         var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
+    }
+
+    [Fact]
+    public void GivenTheTagsHeaderInAWideSidebar_WhenRendering_ThenTagAndMergeButtonsSitAtTheRightEnd()
+    {
+        var row = Section(SidebarSection.Tags, "Tags", 2, isExpanded: true);
+
+        var line = SidebarRowRenderer.Render(row, 145, isSelected: false, GraphGlyphSet.Unicode);
+
+        Assert.EndsWith(
+            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
+            line.Text.TrimEnd(),
+            StringComparison.Ordinal);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 145, GraphGlyphSet.Unicode);
+        Assert.Equal(11, buttons.Count);
+        var pushColumn = line.Text.IndexOf("[push]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SidebarTagPushButton, TitleButton.ViewAt(buttons, pushColumn));
+        var squashColumn = line.Text.IndexOf("[squash]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SidebarMergeSquashButton, TitleButton.ViewAt(buttons, squashColumn));
     }
 
     [Fact]

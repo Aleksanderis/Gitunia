@@ -23,6 +23,20 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
+    public void GivenTheSidebarAndGraphRowActions_WhenBuildingRowEntries_ThenEveryTagActionIsOffered()
+    {
+        ActionId[] tagActions = [ActionIds.TagCreate, ActionIds.TagDelete, ActionIds.TagPush, ActionIds.TagDeleteRemote];
+        var sidebar = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.SidebarView, RowActions.OfSidebarRow);
+        var graph = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
+
+        foreach (var action in tagActions)
+        {
+            Assert.Contains(sidebar, entry => entry.Action == action);
+            Assert.Contains(graph, entry => entry.Action == action);
+        }
+    }
+
+    [Fact]
     public void GivenTheGraphRowActions_WhenBuildingRowEntries_ThenOnlyThoseComeBackInOrderIncludingRebaseAndReset()
     {
         var entries = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
