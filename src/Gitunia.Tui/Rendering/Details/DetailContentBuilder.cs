@@ -74,7 +74,8 @@ public static class DetailContentBuilder
             return [Status(entry, state)];
         }
 
-        var rows = new List<DetailRow> { new([new StyledSegment(FilesHeading(details.Files.Count), SegmentRole.Faint)]) };
+        var heading = FilesHeading(details.Files.Count) + MergeNote(details);
+        var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
         AddFiles(rows, details.Files);
         return rows;
     }
@@ -168,6 +169,10 @@ public static class DetailContentBuilder
             ]));
         }
     }
+
+    /// <summary>A merge commit lists its changes against the first parent, like the diff pane; say so.</summary>
+    private static string MergeNote(CommitDetails details) =>
+        details.Parents.Count > 1 ? $" (merge: against first parent {ShortHash(details.Parents[0])})" : string.Empty;
 
     private static string FilesHeading(int count) => count switch
     {
