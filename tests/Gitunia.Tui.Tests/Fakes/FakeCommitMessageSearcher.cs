@@ -18,7 +18,7 @@ public sealed class FakeCommitMessageSearcher : ICommitMessageSearcher
     /// <summary>Thrown by the search, to play a failing git.</summary>
     public GitException? Failure { get; set; }
 
-    /// <summary>When set, the search does not react to cancellation, like a process that finished just as it was killed.</summary>
+    /// <summary>When set, the search ignores cancellation, like a process that ended just as it was killed.</summary>
     public bool IgnoreCancellation { get; set; }
 
     /// <summary>Completes when the search returned or threw.</summary>
@@ -37,7 +37,8 @@ public sealed class FakeCommitMessageSearcher : ICommitMessageSearcher
         Interlocked.Increment(ref _callCount);
         if (Gate is { } gate)
         {
-            await gate.Task.WaitAsync(IgnoreCancellation ? CancellationToken.None : cancellationToken).ConfigureAwait(false);
+            var token = IgnoreCancellation ? CancellationToken.None : cancellationToken;
+            await gate.Task.WaitAsync(token).ConfigureAwait(false);
         }
 
         Finished.TrySetResult();

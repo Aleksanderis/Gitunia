@@ -234,7 +234,9 @@ public class GraphRowRendererTests
     [Fact]
     public void GivenBodyHitWithTextOnlyInTheBody_WhenRendering_ThenTheWholeSubjectIsMarked()
     {
-        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "Fix typo", []), CommitFactory.Commit(2, "Other", []));
+        var graph = CommitFactory.Graph(
+            CommitFactory.Commit(1, "Fix typo", []),
+            CommitFactory.Commit(2, "Other", []));
         var hits = new HashSet<ObjectId> { graph[0].Id };
         var options = new GraphRowOptions(60, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Body, "closes", hits));
 
