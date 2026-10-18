@@ -62,7 +62,8 @@ public sealed class TabRefresher : IDisposable
         WatchBudget budget,
         RepositoryWatcherOptions options,
         Action<GraphReload>? graphReloaded = null,
-        IOperationInfoReader? operations = null)
+        IOperationInfoReader? operations = null,
+        IWorkingTreeDirectoryLister? directoryLister = null)
     {
         _operations = operations ?? new OperationInfoReader();
         _graphReloaded = graphReloaded;
@@ -74,7 +75,8 @@ public sealed class TabRefresher : IDisposable
         _location = location;
         _statuses = statuses;
         _postToUi = postToUi;
-        _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)));
+        _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)),
+            directoryLister: directoryLister);
     }
 
     /// <summary>A refresh is being read or applied right now.</summary>
