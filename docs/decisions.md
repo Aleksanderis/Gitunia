@@ -329,3 +329,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Settings (owner, 2026-10-18): one general settings screen (#465), no separate theme picker (#464 folded in); it writes the config file by a minimal text edit of the changed key (comments kept) and refuses to save a file that does not parse. **Stack:** config format stays JSON with comments and trailing commas (source-generated, AOT-safe); TOML and YAML rejected for now.
 
 **UI:** Subheaders in the row menu and palette get a blank line before each but the first (#489, owner), like the help overlay sections. On a short screen the gaps go before any row: the menu drops them when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows. Refines #483.
+
+**UI:** Below 14 rows (no details pane) the graph row menu omits "Open details" and `Enter` shows a notice instead of moving focus (#490). Zooming was rejected: the pane is hidden by design and the graph is the useful view there. Supersedes the "always listed" sentence of the #486 entry.

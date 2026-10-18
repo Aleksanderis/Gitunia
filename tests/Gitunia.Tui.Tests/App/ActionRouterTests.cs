@@ -44,6 +44,28 @@ public class ActionRouterTests
     }
 
     [Fact]
+    public void GivenAScreenUnder14Rows_WhenOpeningDetails_ThenTheNoticeSaysTheScreenIsTooShort()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+        harness.Router.ScreenHeight = () => 13;
+
+        harness.Router.Execute(ActionIds.GraphOpenDetails, null);
+
+        Assert.Equal("The details pane needs a taller screen", harness.Router.Message);
+    }
+
+    [Fact]
+    public void GivenAScreenOf14Rows_WhenOpeningDetails_ThenThereIsNoNotice()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+        harness.Router.ScreenHeight = () => 14;
+
+        harness.Router.Execute(ActionIds.GraphOpenDetails, null);
+
+        Assert.Equal(string.Empty, harness.Router.Message);
+    }
+
+    [Fact]
     public void GivenTheLogIsStillLoading_WhenMovingDown_ThenThereIsNoHint()
     {
         using var harness = new RouterHarness(isLoading: true);

@@ -40,6 +40,10 @@ public static class RowActions
         ActionIds.GraphOpenDetails,
     ];
 
+    /// <summary>The graph row actions; Open details is left out while the details pane is hidden (#490).</summary>
+    public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible) =>
+        detailsVisible ? OfGraphRow : [.. OfGraphRow.Where(action => action != ActionIds.GraphOpenDetails)];
+
     /// <summary>The actions on a sidebar row: a section header, a branch, a tag, a worktree or a stash.</summary>
     public static IReadOnlyList<ActionId> OfSidebarRow(SidebarRow row) => row.Kind switch
     {

@@ -22,6 +22,7 @@ using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
@@ -47,6 +48,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         get => _message == StillLoadingNotice && activeSession()?.IsLoading != true ? string.Empty : _message;
         private set => _message = value;
     }
+
+    /// <summary>The screen height in rows; null means no limit. Screens under 14 rows have no details pane.</summary>
+    public Func<int>? ScreenHeight { get; set; }
 
     /// <summary>Refreshes the active tab; false when it cannot be refreshed yet (still loading). Set by the host.</summary>
     public Func<bool>? Refresh { get; set; }
@@ -268,6 +272,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         }
         else if (action == ActionIds.GraphOpenDetails)
         {
+            if (ScreenHeight?.Invoke() is { } height && DetailLayout.PaneHeight(height) == 0)
+            {
+                Message = "The details pane needs a taller screen";
+                return;
+            }
+
             FocusPane(PaneKind.Detail, detailList);
         }
         else if (action == ActionIds.AppQuit)

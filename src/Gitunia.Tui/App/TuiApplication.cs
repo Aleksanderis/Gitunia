@@ -163,6 +163,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _sidebar,
             _statuses,
             clipboard);
+        _router.ScreenHeight = () => _view.ScreenSize.Height;
         _diffPane = new DiffPaneController(
             _host,
             ActiveSession,
@@ -782,7 +783,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
-            ? new RowMenuTarget(RowActions.OfGraphRow, AnchorOf(_view.Graph))
+            ? new RowMenuTarget(
+                RowActions.OfGraphRowFor(DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0),
+                AnchorOf(_view.Graph))
             : null;
     }
 
