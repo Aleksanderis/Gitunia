@@ -153,6 +153,8 @@ public static class ActionIds
 
     public static ActionId RemoteFetch { get; } = new("remote.fetch");
 
+    public static ActionId RemoteCancel { get; } = new("remote.cancel");
+
     public static ActionId RemoteFetchAll { get; } = new("remote.fetch-all");
 
     public static ActionId RemotePull { get; } = new("remote.pull");

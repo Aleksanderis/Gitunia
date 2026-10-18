@@ -215,6 +215,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             return;
         }
 
+        if (action != ActionIds.Cancel && Remote?.TryExecute(action, count) == true)
+        {
+            Message = Remote.Notice;
+            return;
+        }
+
         if (Operations?.TryExecute(action, count) == true)
         {
             Message = Operations.Notice;

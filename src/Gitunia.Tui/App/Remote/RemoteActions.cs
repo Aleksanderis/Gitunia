@@ -70,6 +70,13 @@ public sealed class RemoteActions(
             return host.Workspace.ActiveTabId is { } active && _running.ContainsKey(active) && Cancel(active);
         }
 
+        if (action == ActionIds.RemoteCancel)
+        {
+            var cancelled = host.Workspace.ActiveTabId is { } tabId && _running.ContainsKey(tabId) && Cancel(tabId);
+            Notice = cancelled ? string.Empty : "No fetch, pull or push is running";
+            return true;
+        }
+
         if (action != ActionIds.RemoteFetch && action != ActionIds.RemoteFetchAll
             && action != ActionIds.RemotePull && action != ActionIds.RemotePush)
         {
@@ -154,7 +161,7 @@ public sealed class RemoteActions(
         }
         catch (Exception exception)
         {
-            text = $"{running.Words.Noun} failed: {OperationText.Reason(exception)}";
+            text = $"{running.Words.Noun} failed: {RemoteFailureText.Reason(exception)}";
             severity = StatusSeverity.Error;
         }
 

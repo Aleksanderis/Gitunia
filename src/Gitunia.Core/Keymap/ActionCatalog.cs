@@ -174,6 +174,7 @@ public static class ActionCatalog
         ["search.previous"] = "Previous search match",
         ["sidebar.activate"] = "Activate the sidebar entry",
         ["sidebar.collapse"] = "Collapse the sidebar entry",
+        ["remote.cancel"] = "Cancel the running fetch, pull or push",
         ["remote.fetch"] = "Fetch the remote of the current branch (prunes)",
         ["remote.fetch-all"] = "Fetch all remotes (prunes)",
         ["remote.pull"] = "Pull the current branch (fast-forward only)",

@@ -25,7 +25,7 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.RemoteFetchButton, "remote.fetch")]
     [InlineData(DefaultMouseMap.RemotePullButton, "remote.pull")]
     [InlineData(DefaultMouseMap.RemotePushButton, "remote.push")]
-    [InlineData(DefaultMouseMap.RemoteCancelButton, "cancel")]
+    [InlineData(DefaultMouseMap.RemoteCancelButton, "remote.cancel")]
     public void GivenARemoteChip_WhenClicked_ThenItRunsTheActionTheKeyRuns(string view, string action)
     {
         Assert.Equal(action, DefaultMouseMap.Create().Resolve(view, MouseGesture.Click)?.Action.Value);

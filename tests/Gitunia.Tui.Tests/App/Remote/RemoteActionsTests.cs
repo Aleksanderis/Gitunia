@@ -140,6 +140,30 @@ public class RemoteActionsTests
     }
 
     [Fact]
+    public async Task GivenARunningFetch_WhenTheCancelActionRuns_ThenItIsCancelledFromAnyPane()
+    {
+        using var harness = new Harness();
+        harness.Writer.Blocks = true;
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.Writer.Started;
+
+        harness.Execute(ActionIds.RemoteCancel);
+        await harness.WaitAsync();
+
+        Assert.Equal("Fetch cancelled", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public void GivenNothingRunning_WhenTheCancelActionRuns_ThenItSaysSo()
+    {
+        using var harness = new Harness();
+
+        harness.Execute(ActionIds.RemoteCancel);
+
+        Assert.Equal("No fetch, pull or push is running", harness.Actions.Notice);
+    }
+
+    [Fact]
     public async Task GivenARunningPull_WhenCancelling_ThenTheGateIsReleased()
     {
         using var harness = new Harness();

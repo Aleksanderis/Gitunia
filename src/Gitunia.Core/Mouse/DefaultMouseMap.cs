@@ -184,7 +184,7 @@ public static class DefaultMouseMap
         new(RemoteFetchButton, MouseGesture.Click, ActionIds.RemoteFetch),
         new(RemotePullButton, MouseGesture.Click, ActionIds.RemotePull),
         new(RemotePushButton, MouseGesture.Click, ActionIds.RemotePush),
-        new(RemoteCancelButton, MouseGesture.Click, ActionIds.Cancel),
+        new(RemoteCancelButton, MouseGesture.Click, ActionIds.RemoteCancel),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),
         new(BannerAbortButton, MouseGesture.Click, ActionIds.OperationAbort),
         new(BannerSkipButton, MouseGesture.Click, ActionIds.OperationSkip),

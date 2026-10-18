@@ -344,6 +344,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>F` | Fetch the remote of the current branch with `--prune`, in the background with a progress line (workflow 5) |
 | Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |
 | Global | `<space>P` | Push the current branch the way git is configured; never forces |
+| Global | `<space>C` | Cancel the running fetch, pull or push of the tab (works from every pane; `Esc` does it only in the graph) |
 | Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
 | Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
 | Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
@@ -567,7 +568,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | RemoteButton.Fetch | Click | `remote.fetch` | The ` fetch ` chip of the tab row (rows of 100 columns or more), left of the commands button: same as `<space>F` |
 | RemoteButton.Pull | Click | `remote.pull` | The ` pull ` chip: same as `<space>L` |
 | RemoteButton.Push | Click | `remote.push` | The ` push ` chip: same as `<space>P` |
-| RemoteButton.Cancel | Click | `cancel` | The ` Esc cancel ` chip that replaces the three chips while one of them runs on the active tab: same as `Esc` |
+| RemoteButton.Cancel | Click | `remote.cancel` | The ` Esc cancel ` chip that replaces the three chips while one of them runs on the active tab: same as `<space>C` |
 | BannerButton.Continue | Click | `operation.continue` | The `continue` chip of the in-progress operation banner: same as `<space>gc` |
 | BannerButton.Abort | Click | `operation.abort` | The `abort` chip of the banner: same as `<space>ga` (asks first) |
 | BannerButton.Skip | Click | `operation.skip` | The `skip` chip of the banner (not shown for a merge): same as `<space>gk` (asks first) |
