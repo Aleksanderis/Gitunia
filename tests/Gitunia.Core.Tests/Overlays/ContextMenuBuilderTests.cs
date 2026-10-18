@@ -24,6 +24,14 @@ public class ContextMenuBuilderTests
     }
 
     [Fact]
+    public void GivenTheDetailsPaneIsHidden_WhenAskingForTheGraphRowActions_ThenOpenDetailsIsLeftOut()
+    {
+        Assert.DoesNotContain(ActionIds.GraphOpenDetails, RowActions.OfGraphRowFor(detailsVisible: false));
+        Assert.Contains(ActionIds.GraphOpenDetails, RowActions.OfGraphRowFor(detailsVisible: true));
+        Assert.Equal(RowActions.OfGraphRow.Count - 1, RowActions.OfGraphRowFor(detailsVisible: false).Count);
+    }
+
+    [Fact]
     public void GivenTheGraphRowActions_WhenBuilding_ThenOpenDetailsIsOfferedWithEnterAsItsKey()
     {
         var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);

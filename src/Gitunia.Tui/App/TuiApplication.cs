@@ -784,9 +784,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
             ? new RowMenuTarget(
-                DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0
-                    ? RowActions.OfGraphRow
-                    : [.. RowActions.OfGraphRow.Where(action => action != ActionIds.GraphOpenDetails)],
+                RowActions.OfGraphRowFor(DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0),
                 AnchorOf(_view.Graph))
             : null;
     }

@@ -44,7 +44,7 @@ public class ActionRouterTests
     }
 
     [Fact]
-    public void GivenAScreenUnder14Rows_WhenOpeningDetails_ThenFocusStaysOnTheGraphAndTheNoticeSaysWhy()
+    public void GivenAScreenUnder14Rows_WhenOpeningDetails_ThenTheNoticeSaysTheScreenIsTooShort()
     {
         using var harness = new RouterHarness(isLoading: false);
         harness.Router.ScreenHeight = () => 13;
