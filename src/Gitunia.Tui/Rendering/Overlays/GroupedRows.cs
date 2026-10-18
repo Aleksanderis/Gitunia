@@ -17,7 +17,7 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
     /// The gaps are dropped before any row is: when the list does not fit in <paramref name="maximumRows"/> with them
     /// they are left out (a list that scrolls anyway keeps them while it has <see cref="MinimumRowsForGaps"/> rows).
     /// </summary>
-    public static GroupedRows Of(IReadOnlyList<PaletteEntry> entries, int maximumRows, bool scrolls = false)
+    public static GroupedRows Of(IReadOnlyList<PaletteEntry> entries, int maximumRows, bool scrolls)
     {
         var withGaps = Build(entries, true);
         var fits = withGaps.Lines.Count <= maximumRows || (scrolls && maximumRows >= MinimumRowsForGaps);
@@ -54,6 +54,11 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
         var rowCount = Math.Max(1, Math.Min(maximumRows, Lines.Count));
         var selectedLine = Lines.Count == 0 ? 0 : Math.Max(0, IndexOfLine(selectedEntry));
         var top = Math.Clamp(selectedLine - (rowCount / 2), 0, Math.Max(0, Lines.Count - rowCount));
+        if (top < selectedLine && top < Lines.Count && Lines[top] is { Header: null, Entry: null })
+        {
+            top++;
+        }
+
         return new MenuWindow(rowCount, selectedLine, top);
     }
 

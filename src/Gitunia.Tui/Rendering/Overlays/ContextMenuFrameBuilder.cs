@@ -33,7 +33,7 @@ public static class ContextMenuFrameBuilder
             return null;
         }
 
-        var rows = GroupedRows.Of(entries, maximumRows);
+        var rows = GroupedRows.Of(entries, maximumRows, scrolls: false);
         var selectedEntry = Math.Clamp(menu.SelectedIndex, 0, entries.Count - 1);
         var window = rows.Window(selectedEntry, Math.Min(rows.Lines.Count, maximumRows));
         var lines = new List<StyledLine> { OverlayBox.Title(Title, width, glyphs) };
@@ -72,7 +72,7 @@ public static class ContextMenuFrameBuilder
     public static int? EntryIndexAt(PaletteState menu, int frameLine, int screenHeight)
     {
         var maximumRows = screenHeight - ChromeRows - ScreenMargin;
-        var rows = GroupedRows.Of(menu.Entries, maximumRows);
+        var rows = GroupedRows.Of(menu.Entries, maximumRows, scrolls: false);
         var rowCount = Math.Min(rows.Lines.Count, maximumRows);
         var offset = frameLine - 1;
         if (rowCount < 1 || offset < 0 || offset >= rowCount)
