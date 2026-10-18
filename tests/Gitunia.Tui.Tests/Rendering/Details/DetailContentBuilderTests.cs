@@ -34,6 +34,18 @@ public class DetailContentBuilderTests
         [.. content.Rows.Select(row => string.Concat(row.Segments.Select(segment => segment.Text)))];
 
     [Fact]
+    public void GivenMergeCommit_WhenBuildingChanges_ThenHeadingNamesTheFirstParent()
+    {
+        var entry = Entry();
+        var merge = Details("merge") with { Parents = [CommitFactory.Id(1), CommitFactory.Id(3)] };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, merge, string.Empty);
+
+        var lines = Lines(DetailContentBuilder.Build(entry, state, BottomTab.Changes));
+
+        Assert.Equal($"no files changed (merge: against first parent {CommitFactory.Id(1).ToString()[..7]})", lines[0]);
+    }
+
+    [Fact]
     public void GivenNoSelection_WhenBuilding_ThenContentIsEmpty()
     {
         var content = DetailContentBuilder.Build(null, CommitDetailsState.Empty, BottomTab.Files);
