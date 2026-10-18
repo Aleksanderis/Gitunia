@@ -5,6 +5,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
@@ -25,7 +26,12 @@ public sealed class PromptHarness : IDisposable
     private readonly KeyController _keys;
     private readonly List<IPromptHandler> _prompts = [];
 
-    public PromptHarness(CommitGraph graph, bool isLoading = false, IEnumerable<GitRef>? refs = null, Queue<Action>? deferred = null)
+    public PromptHarness(
+        CommitGraph graph,
+        bool isLoading = false,
+        IEnumerable<GitRef>? refs = null,
+        Queue<Action>? deferred = null,
+        ICommitMessageSearcher? messages = null)
     {
         // Search never selects a commit, so the details store never runs a process in these tests.
         var location = new RepositoryLocation(Path.GetTempPath(), Path.GetTempPath(), Path.GetTempPath(), false, false);
@@ -57,7 +63,13 @@ public sealed class PromptHarness : IDisposable
             mode => _keys!.SetMode(mode),
             () => Redraws++)));
         _prompts.Add(new RefJumpController(handle, () => references));
-        _prompts.Add(new SearchController(handle, action => (deferred is null ? action : () => deferred.Enqueue(action))()));
+        _prompts.Add(new SearchController(
+            handle,
+            action => (deferred is null ? action : () => deferred.Enqueue(action))(),
+            messages,
+            _ => location,
+            action => action(),
+            TimeSpan.Zero));
         Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());
         _keys = new KeyController(
             new KeymapEngine(DefaultKeymap.Create()),

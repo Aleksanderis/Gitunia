@@ -2,6 +2,10 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 
@@ -12,9 +16,22 @@ namespace Gitunia.Tui.Search;
 /// out its effects. Scanning happens in slices on the UI thread, queued one by one, so input stays responsive even
 /// on a 100k-commit log and a newer query simply makes the older slices stop.
 /// </summary>
-public sealed class SearchController(GraphViewHandle view, Action<Action> postToUi) : IPromptHandler
+public sealed class SearchController(
+    GraphViewHandle view,
+    Action<Action> postToUi,
+    ICommitMessageSearcher? messages = null,
+    Func<TabId, RepositoryLocation?>? locationOf = null,
+    Action<Action>? invokeOnUi = null,
+    TimeSpan? bodyDebounce = null) : IPromptHandler
 {
     private const int SliceSize = 5000;
+
+    private const string FailureText = "git returned an error";
+
+    // A body query starts the search only once typing paused, so a fast typist starts no process per key.
+    private static readonly TimeSpan DefaultBodyDebounce = TimeSpan.FromMilliseconds(250);
+
+    private readonly Dictionary<TabSession, CancellationTokenSource> _bodySearches = [];
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -124,13 +141,77 @@ public sealed class SearchController(GraphViewHandle view, Action<Action> postTo
                 case ScanSearchEffect scan:
                     postToUi(() => ScanSlice(session, scan.Generation));
                     break;
+                case SearchBodiesEffect bodies:
+                    StartBodySearch(session, bodies);
+                    break;
                 case RevealMatchEffect reveal:
                     view.SelectRow(reveal.Index);
                     break;
             }
         }
 
+        if (update.State.Query is not { IsAwaitingBodyHits: true })
+        {
+            CancelBodySearch(session);
+        }
+
         view.Redraw();
+    }
+
+    // Cancels the earlier question of this tab (a newer query, or a refresh) and asks again off the UI thread.
+    private void StartBodySearch(TabSession session, SearchBodiesEffect effect)
+    {
+        CancelBodySearch(session);
+        var location = locationOf?.Invoke(session.TabId);
+        if (messages is null || location is null)
+        {
+            postToUi(() => Dispatch(session, new BodyHitsCommand(effect.Generation, null, FailureText)));
+            return;
+        }
+
+        var source = CancellationTokenSource.CreateLinkedTokenSource(session.Cancellation.Token);
+        _bodySearches[session] = source;
+        _ = RunBodySearchAsync(session, location, effect, source.Token);
+    }
+
+    private void CancelBodySearch(TabSession session)
+    {
+        if (_bodySearches.Remove(session, out var running))
+        {
+            running.Cancel();
+            running.Dispose();
+        }
+    }
+
+    private async Task RunBodySearchAsync(
+        TabSession session,
+        RepositoryLocation location,
+        SearchBodiesEffect effect,
+        CancellationToken token)
+    {
+        BodyHitsCommand command;
+        try
+        {
+            await Task.Delay(bodyDebounce ?? DefaultBodyDebounce, token).ConfigureAwait(false);
+            var hits = await messages!.SearchAsync(location, effect.Text, token).ConfigureAwait(false);
+            command = new BodyHitsCommand(effect.Generation, hits, string.Empty);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception exception) when (exception is GitException or IOException)
+        {
+            command = new BodyHitsCommand(effect.Generation, null, FailureText);
+        }
+
+        (invokeOnUi ?? postToUi)(() =>
+        {
+            if (!token.IsCancellationRequested)
+            {
+                Dispatch(session, command);
+            }
+        });
     }
 
     private void ScanSlice(TabSession session, int generation)

@@ -1155,7 +1155,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),
-            new SearchController(handle, DeferToNextIteration),
+            new SearchController(
+                handle,
+                DeferToNextIteration,
+                services.CommitMessages,
+                tabId => _host.Workspace.FindTab(tabId)?.Location,
+                InvokeOnUi),
             new CommitMessageInput(_commits),
             new StashController(
                 _host,
