@@ -1,7 +1,7 @@
 namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>
-/// The <c>...</c> marker at the right edge of the selected graph or sidebar row (#479):
+/// The <c>...</c> marker at the right edge of the selected sidebar row (#479; the graph dropped it in #482):
 /// the mouse path to the row's actions menu. Every row of the pane keeps the marker's columns free
 /// (the pane padding plus <see cref="ReservedColumns"/>), so the marker never covers text.
 /// </summary>
