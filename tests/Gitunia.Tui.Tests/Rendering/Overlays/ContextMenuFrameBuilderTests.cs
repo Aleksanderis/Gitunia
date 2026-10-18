@@ -1,10 +1,9 @@
 using Gitunia.Core.Keymap;
-using Gitunia.Core.Mouse;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
-using Gitunia.Tui.Rendering.Sidebar;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -93,7 +92,6 @@ public class ContextMenuFrameBuilderTests
         SidebarSection section)
     {
         // The chips are dropped (#469): every action a chip ran must be in the menu of the section's rows.
-        var map = DefaultMouseMap.Create();
         var itemKind = section switch
         {
             SidebarSection.Branches => SidebarRowKind.LocalBranch,
@@ -105,15 +103,39 @@ public class ContextMenuFrameBuilderTests
             .SelectMany(rowKind => RowActions.OfSidebarRow(Row(rowKind, section)))
             .ToHashSet();
 
-        var missing = SidebarHeaderButtons.Specifications
-            .Where(specification => specification.Section == section)
-            .Select(specification => map.Resolve(specification.View, MouseGesture.Click)!.Action)
-            .Where(action => !offered.Contains(action))
-            .ToList();
+        var missing = ChipActions[section].Where(action => !offered.Contains(action)).ToList();
 
         Assert.Empty(missing);
         Assert.NotEmpty(RowActions.OfSidebarRow(Row(kind, section)));
     }
+
+    // The actions the dropped header chips ran, per section.
+    private static readonly Dictionary<SidebarSection, ActionId[]> ChipActions = new()
+    {
+        [SidebarSection.Branches] =
+        [
+            ActionIds.BranchCreate, ActionIds.BranchSwitch, ActionIds.MergeBranch, ActionIds.BranchRename,
+            ActionIds.BranchDelete, ActionIds.BranchCreateOnly, ActionIds.MergeBranchNoFastForward,
+            ActionIds.MergeBranchSquash, ActionIds.RebaseOnto, ActionIds.ResetBranch, ActionIds.PickCherry,
+            ActionIds.PickRevert, ActionIds.BranchSetUpstream, ActionIds.BranchUnsetUpstream,
+        ],
+        [SidebarSection.Tags] =
+        [
+            ActionIds.TagCreate, ActionIds.MergeBranch, ActionIds.TagDelete, ActionIds.TagPush,
+            ActionIds.TagDeleteRemote, ActionIds.MergeBranchNoFastForward, ActionIds.MergeBranchSquash,
+            ActionIds.RebaseOnto, ActionIds.ResetBranch, ActionIds.PickCherry, ActionIds.PickRevert,
+        ],
+        [SidebarSection.Worktrees] =
+        [
+            ActionIds.WorktreeAdd, ActionIds.WorktreeRemove, ActionIds.WorktreeLock, ActionIds.WorktreeUnlock,
+            ActionIds.WorktreePrune,
+        ],
+        [SidebarSection.Stashes] =
+        [
+            ActionIds.StashPush, ActionIds.StashApply, ActionIds.StashPop, ActionIds.StashDrop,
+            ActionIds.StashPushUntracked,
+        ],
+    };
 
     private static SidebarRow Row(SidebarRowKind kind, SidebarSection section) =>
         new(kind, section, "x", string.Empty, null, false, false, 0, null, null);

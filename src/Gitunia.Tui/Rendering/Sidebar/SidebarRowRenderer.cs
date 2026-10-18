@@ -24,21 +24,10 @@ public static class SidebarRowRenderer
         {
             var count = $" {row.Count.ToString(CultureInfo.InvariantCulture)}";
             var header = $" {(row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed)} ";
-            var buttons = ButtonsOf(row, width, glyphs);
             builder
                 .Append(header, SegmentRole.SectionTitle)
                 .Append(row.Label, SegmentRole.SectionTitle)
                 .Append(count, SegmentRole.Faint);
-            if (buttons.Count > 0)
-            {
-                var gap = Math.Max(0, buttons[0].Start - (width - builder.Remaining));
-                builder.Append(new string(' ', gap), SegmentRole.Plain);
-                foreach (var button in buttons)
-                {
-                    builder.Append(button.Label, SegmentRole.Button);
-                    builder.Append(" ", SegmentRole.Plain);
-                }
-            }
 
             return builder.Build(isSelected: isSelected);
         }
@@ -58,15 +47,6 @@ public static class SidebarRowRenderer
         }
 
         return builder.Build(isSelected: isSelected);
-    }
-
-    /// <summary>The buttons drawn on a header row of <paramref name="width"/> columns (none for other rows).</summary>
-    public static IReadOnlyList<TitleButton> ButtonsOf(SidebarRow row, int width, GraphGlyphSet glyphs)
-    {
-        var sidebarGlyphs = SidebarGlyphs.For(glyphs);
-        var marker = row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed;
-        var headerWidth = TextWidth.Of($" {marker} {row.Label} {row.Count.ToString(CultureInfo.InvariantCulture)}");
-        return SidebarHeaderButtons.Layout(row, headerWidth, width);
     }
 
     /// <summary>The last row of the sidebar: the filter being typed or the active one, blank otherwise.</summary>

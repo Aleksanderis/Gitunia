@@ -170,52 +170,6 @@ public class MouseMapTests
     }
 
     [Theory]
-    [InlineData(DefaultMouseMap.SidebarBranchNewButton, "<space>bc")]
-    [InlineData(DefaultMouseMap.SidebarBranchNewOnlyButton, "<space>bC")]
-    [InlineData(DefaultMouseMap.SidebarBranchSwitchButton, "<space>bs")]
-    [InlineData(DefaultMouseMap.SidebarBranchRenameButton, "<space>br")]
-    [InlineData(DefaultMouseMap.SidebarBranchDeleteButton, "<space>bd")]
-    [InlineData(DefaultMouseMap.SidebarWorktreeAddButton, "<space>wa")]
-    [InlineData(DefaultMouseMap.SidebarWorktreeRemoveButton, "<space>wd")]
-    [InlineData(DefaultMouseMap.SidebarWorktreeLockButton, "<space>wl")]
-    [InlineData(DefaultMouseMap.SidebarWorktreeUnlockButton, "<space>wu")]
-    [InlineData(DefaultMouseMap.SidebarWorktreePruneButton, "<space>wp")]
-    [InlineData(DefaultMouseMap.SidebarTagCreateButton, "<space>Tc")]
-    [InlineData(DefaultMouseMap.SidebarTagDeleteButton, "<space>Td")]
-    [InlineData(DefaultMouseMap.SidebarTagPushButton, "<space>Tp")]
-    [InlineData(DefaultMouseMap.SidebarTagDeleteRemoteButton, "<space>TD")]
-    [InlineData(DefaultMouseMap.SidebarMergeButton, "<space>gm")]
-    [InlineData(DefaultMouseMap.SidebarMergeNoFastForwardButton, "<space>gM")]
-    [InlineData(DefaultMouseMap.SidebarMergeSquashButton, "<space>gs")]
-    [InlineData(DefaultMouseMap.SidebarStashPushButton, "<space>Ss")]
-    [InlineData(DefaultMouseMap.SidebarStashPushUntrackedButton, "<space>Su")]
-    [InlineData(DefaultMouseMap.SidebarStashApplyButton, "<space>Sa")]
-    [InlineData(DefaultMouseMap.SidebarStashPopButton, "<space>Sp")]
-    [InlineData(DefaultMouseMap.SidebarStashDropButton, "<space>Sd")]
-    public void GivenASidebarHeaderButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
-    {
-        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
-        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
-
-        Assert.Equal(key.Action, binding?.Action);
-    }
-
-    [Theory]
-    [InlineData(DefaultMouseMap.SidebarRebaseButton, "<space>gr")]
-    [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
-    [InlineData(DefaultMouseMap.SidebarPickButton, "<space>gp")]
-    [InlineData(DefaultMouseMap.SidebarRevertButton, "<space>gv")]
-    [InlineData(DefaultMouseMap.SidebarBranchSetUpstreamButton, "<space>bu")]
-    [InlineData(DefaultMouseMap.SidebarBranchUnsetUpstreamButton, "<space>bU")]
-    public void GivenAKeyBackedSidebarButton_WhenClicking_ThenItRunsItsKeyAction(string buttonView, string keys)
-    {
-        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
-        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
-
-        Assert.Equal(key.Action, binding?.Action);
-    }
-
-    [Theory]
     [InlineData(MouseGesture.RightClick)]
     [InlineData(MouseGesture.MiddleClick)]
     [InlineData(MouseGesture.CtrlClick)]
