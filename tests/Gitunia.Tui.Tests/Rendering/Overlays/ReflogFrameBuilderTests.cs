@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;
@@ -52,7 +53,7 @@ public class ReflogFrameBuilderTests
 
         var frame = ReflogFrameBuilder.Build(state, 80, 12, GraphGlyphSet.Unicode);
 
-        Assert.Equal(7, ReflogFrameBuilder.VisibleRows(state, 12));
+        Assert.Equal(3, ReflogFrameBuilder.VisibleRows(state, 12));
         Assert.Single(frame!.Lines, line => line.IsSelected);
         Assert.Contains("HEAD@{60}", frame.Lines.Single(line => line.IsSelected).Text, StringComparison.Ordinal);
         var selectedLine = Array.FindIndex([.. frame.Lines], line => line.IsSelected);
@@ -84,6 +85,47 @@ public class ReflogFrameBuilderTests
         Assert.Null(ReflogFrameBuilder.EntryIndexAt(state, 0, 24));
         Assert.Null(ReflogFrameBuilder.EntryIndexAt(state, 4, 24));
         Assert.Equal(2, ReflogFrameBuilder.EntryIndexAt(state, 3, 24));
+    }
+
+    [Fact]
+    public void GivenEntries_WhenAskingForTheActionUnderALine_ThenTheRowsBelowTheEntriesMapToTheirActions()
+    {
+        var state = State(3);
+        var frame = ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(ActionIds.ReflogSelectCommit, ReflogFrameBuilder.ActionAt(state, 4, 24));
+        Assert.Equal(ActionIds.BranchSwitch, ReflogFrameBuilder.ActionAt(state, 7, 24));
+        Assert.Contains("<space>gx", frame.Lines[5].Text, StringComparison.Ordinal);
+        Assert.Null(ReflogFrameBuilder.ActionAt(state, 3, 24));
+        Assert.Null(ReflogFrameBuilder.ActionAt(state, 8, 24));
+    }
+
+    [Fact]
+    public void GivenAnActiveSearch_WhenRendering_ThenTheFooterShowsTheBoxAndTheMatchCount()
+    {
+        var state = State(5).OpenSearch().EditSearch("message 3");
+
+        var editing = ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
+        var accepted = ReflogFrameBuilder.Build(state.AcceptSearch(), 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("/message 3_  1/1 matches", editing.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Contains("/message 3  1/1 matches  Esc clear", accepted.Lines[^2].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheRefPicker_WhenRendering_ThenItListsTheChoicesAndMapsClicksToThem()
+    {
+        var picker = new ReflogRefPicker(["HEAD", "main"]);
+        var state = State(3) with { Picker = picker };
+
+        var frame = ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("choose a ref", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("main", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("> _", frame.Lines[^2].Text, StringComparison.Ordinal);
+        Assert.Equal(1, ReflogFrameBuilder.PickerIndexAt(picker, 2, 24));
+        Assert.Null(ReflogFrameBuilder.PickerIndexAt(picker, 3, 24));
+        Assert.Null(ReflogFrameBuilder.ActionAt(state, 4, 24));
     }
 
     private static ReflogState State(int count) => new(

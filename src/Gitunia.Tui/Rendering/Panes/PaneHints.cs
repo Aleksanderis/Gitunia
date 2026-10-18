@@ -183,6 +183,8 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> Reflog =
     [
         new("Enter", "select", [ActionIds.ReflogSelectCommit]),
+        new("/", "search", [ActionIds.SearchOpen]),
+        new("<space>l", "ref", [ActionIds.ReflogOpen]),
         new("<space>gx", "reset", [ActionIds.ResetBranch]),
         new("<space>bc", "branch", [ActionIds.BranchCreate]),
         new("<space>bs", "checkout", [ActionIds.BranchSwitch]),
