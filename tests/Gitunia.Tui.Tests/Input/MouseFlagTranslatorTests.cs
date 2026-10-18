@@ -11,14 +11,36 @@ public class MouseFlagTranslatorTests
     [InlineData(MouseFlags.LeftButtonClicked, MouseGesture.Click)]
     [InlineData(MouseFlags.LeftButtonDoubleClicked, MouseGesture.DoubleClick)]
     [InlineData(MouseFlags.RightButtonClicked, MouseGesture.RightClick)]
-    [InlineData(MouseFlags.MiddleButtonClicked, MouseGesture.MiddleClick)]
-    [InlineData(MouseFlags.LeftButtonClicked | MouseFlags.Ctrl, MouseGesture.CtrlClick)]
     [InlineData(MouseFlags.WheeledUp, MouseGesture.WheelUp)]
     [InlineData(MouseFlags.WheeledDown, MouseGesture.WheelDown)]
     public void GivenAMappedFlag_WhenTranslating_ThenTheGestureIsReturned(MouseFlags flags, MouseGesture expected)
     {
         Assert.True(MouseFlagTranslator.TryTranslate(flags, out var gesture));
         Assert.Equal(expected, gesture);
+    }
+
+    [Theory]
+    [InlineData(MouseFlags.MiddleButtonClicked, MouseGesture.MiddleClick)]
+    [InlineData(MouseFlags.LeftButtonClicked | MouseFlags.Ctrl, MouseGesture.CtrlClick)]
+    public void GivenAPaneWithARowMenu_WhenTranslatingMiddleOrCtrlClick_ThenTheMenuGestureIsReturned(
+        MouseFlags flags,
+        MouseGesture expected)
+    {
+        Assert.True(MouseFlagTranslator.TryTranslate(flags, out var gesture, opensRowMenu: true));
+        Assert.Equal(expected, gesture);
+    }
+
+    [Fact]
+    public void GivenAPaneWithoutARowMenu_WhenTranslatingCtrlClick_ThenItStaysAPlainClick()
+    {
+        Assert.True(MouseFlagTranslator.TryTranslate(MouseFlags.LeftButtonClicked | MouseFlags.Ctrl, out var gesture));
+        Assert.Equal(MouseGesture.Click, gesture);
+    }
+
+    [Fact]
+    public void GivenAPaneWithoutARowMenu_WhenTranslatingMiddleClick_ThenItIsIgnored()
+    {
+        Assert.False(MouseFlagTranslator.TryTranslate(MouseFlags.MiddleButtonClicked, out _));
     }
 
     [Theory]

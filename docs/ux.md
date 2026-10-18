@@ -528,7 +528,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | ContextMenu | `j` `k` `Down` `Up` `Ctrl-j` `Ctrl-k` | Move the highlight down / up (`Esc` closes; typed text does nothing, there is no filter) |
 | ContextMenu | `Enter` `Ctrl-l` | Run the highlighted action |
 
-**Actions menu** (`<space>.` in the graph or sidebar, or a right-click, middle-click or Ctrl-click on a row; #471). A small popup that hangs under the row (above it near the bottom of the screen), titled `Actions`, one line per action of that row with its key at the right edge, so the menu teaches the keyboard path. It is not the command palette (`:`): no text field, no filter. `j`/`k`/`Down`/`Up` move, `Enter` or a click runs the highlighted action, `Esc` or a click outside closes it; the action runs after the menu closes, exactly as its key would, so its prompt popup or Confirm opens as usual. A resize closes it. Right-click does not always reach the app (some multiplexers keep it), which is why every other path exists. Actions without a key in the pane are not listed. The list depends on the row:
+**Actions menu** (`<space>.` in the graph or sidebar, or a right-click, middle-click or Ctrl-click on a row; #471). A small popup that hangs under the row (above it near the bottom of the screen), titled `Actions`, one line per action of that row with its key at the right edge, so the menu teaches the keyboard path. It is not the command palette (`:`): no text field, no filter. `j`/`k`/`Down`/`Up` move, `Enter` or a click runs the highlighted action, `Esc` or a click outside closes it; the action runs after the menu closes, exactly as its key would, so its prompt popup or Confirm opens as usual. A resize closes it. Right-click does not always reach the app (some multiplexers keep it), which is why the key is the dependable path; middle-click and Ctrl-click are tried alternatives (which one reaches the app under a multiplexer is a manual check, #477), and they act only in the graph and sidebar (elsewhere a Ctrl-click is a plain click and a middle click does nothing). Actions without a key in the pane are not listed. The list depends on the row:
 
 - Graph commit: new branch (`bc`, `bC`), switch, tag create, delete, push, remote delete, merge, merge-commit, squash, rebase, reset, cherry-pick, revert, copy hash.
 - Sidebar local branch: switch, new branch, new-only, rename, delete, set and unset upstream, merge (three kinds), rebase, reset, cherry-pick, revert. Remote branch: the same without rename, delete and upstream.
@@ -574,7 +574,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.BranchSetUpstream | Click | `branch.set-upstream` | Chip `[upstream]` in the Branches header (second-to-last; dropped after `[unset-up]`), same as `<space>bu` |
 | SidebarButton.BranchUnsetUpstream | Click | `branch.unset-upstream` | Chip `[unset-up]`, last chip of the Branches header, same as `<space>bU` |
 | Graph | Right-click | `menu.open-for-row` | Selects the row under the pointer and opens the actions menu of the commit (below): branch, tag (create, delete, push, remote delete), merge, rebase, reset, cherry-pick, revert, copy hash, each with its key |
-| Graph | Middle-click | `menu.open-for-row` | Same menu, for terminals or multiplexers that keep the right button |
+| Graph | Middle-click | `menu.open-for-row` | Same menu, for terminals or multiplexers that keep the right button (whether the gesture reaches the app depends on the multiplexer, #477) |
 | Graph | Ctrl-click | `menu.open-for-row` | Same menu: a left click with Ctrl held |
 | SidebarButton.WorktreeAdd | Click | `worktree.add` | Chip `[add]` in the Worktrees section header, same as `<space>wa` |
 | SidebarButton.WorktreeRemove | Click | `worktree.remove` | Chip `[remove]`, same as `<space>wd`; opens the Confirm first |
@@ -589,7 +589,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.MergeNoFastForward | Click | `merge.branch-no-ff` | Chip `[merge-commit]`, same as `<space>gM` |
 | SidebarButton.MergeSquash | Click | `merge.branch-squash` | Chip `[squash]`, same as `<space>gs` |
 | Sidebar | Right-click | `menu.open-for-row` | Selects the row under the pointer and opens the actions menu of that row (a section header, branch, tag, worktree or stash; see Actions menu); a click below the last row does nothing |
-| Sidebar | Middle-click | `menu.open-for-row` | Same menu, for terminals or multiplexers that keep the right button |
+| Sidebar | Middle-click | `menu.open-for-row` | Same menu, for terminals or multiplexers that keep the right button (whether the gesture reaches the app depends on the multiplexer, #477) |
 | Sidebar | Ctrl-click | `menu.open-for-row` | Same menu: a left click with Ctrl held |
 | SidebarButton.StashPush | Click | `stash.push` | Chip `[push]` in the Stashes section header, same as `<space>Ss` |
 | SidebarButton.StashApply | Click | `stash.apply` | Chip `[apply]`, same as `<space>Sa` (acts on the selected row) |

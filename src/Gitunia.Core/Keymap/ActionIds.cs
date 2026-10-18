@@ -150,6 +150,7 @@ public static class ActionIds
     public static ActionId TagDeleteRemote { get; } = new("tag.delete-remote");
 
     public static ActionId TagPush { get; } = new("tag.push");
+
     public static ActionId MenuOpenForRow { get; } = new("menu.open-for-row");
 
     public static ActionId MergeBranch { get; } = new("merge.branch");
