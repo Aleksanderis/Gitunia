@@ -203,18 +203,20 @@ public static class ScreenComposer
         if (!rects.Graph.IsEmpty)
         {
             var graphHeight = rects.Graph.Height;
-            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns);
+            var reserved = RowMenuMarker.ReservedColumns(rects.Graph.Width, paddingColumns);
+            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns) - reserved;
             var options = new GraphRowOptions(textWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth), glyphs, highlight);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
             {
                 var item = topItem + offset;
                 var commitIndex = item - ScreenLayout.ReservedLeadingRows;
-                graphLines.Add(PanePadding.Wrap(
-                    commitIndex >= 0 && commitIndex < graph.Count
-                        ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
-                        : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0),
-                    paddingColumns));
+                var graphRow = commitIndex >= 0 && commitIndex < graph.Count
+                    ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
+                    : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
+                var graphLine = PanePadding.Wrap(RowMenuMarker.WithReserve(graphRow, reserved), paddingColumns);
+                var isCursorCommit = item == selectedItem && commitIndex >= 0 && commitIndex < graph.Count;
+                graphLines.Add(RowMenuMarker.Apply(graphLine, rects.Graph.Width, isCursorCommit));
             }
 
             overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
@@ -222,8 +224,18 @@ public static class ScreenComposer
 
         if (sidebar is not null && !rects.Sidebar.IsEmpty)
         {
-            var sidebarLines = SidebarPane.Compose(sidebar, PanePadding.TextWidth(rects.Sidebar.Width), rects.Sidebar.Height + rects.SidebarFilter.Height, glyphs);
-            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. sidebarLines.Select(line => PanePadding.Wrap(line))], sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim));
+            var sidebarLines = SidebarPane.Compose(
+                sidebar,
+                PanePadding.TextWidth(rects.Sidebar.Width),
+                rects.Sidebar.Height + rects.SidebarFilter.Height,
+                glyphs,
+                RowMenuMarker.ReservedColumns(rects.Sidebar.Width, PanePadding.Columns));
+            var markedLines = sidebarLines.Select((line, offset) => RowMenuMarker.Apply(
+                PanePadding.Wrap(line),
+                rects.Sidebar.Width,
+                sidebar.TopRow + offset == sidebar.Cursor && sidebar.Cursor < sidebar.Rows.Length));
+            var sidebarSelection = sidebar.IsFocused ? SegmentSelection.Focused : SegmentSelection.Dim;
+            overlays.Add(new PaneLines(rects.Sidebar.X, rects.Sidebar.Y, [.. markedLines], sidebarSelection));
         }
 
         if (showDetail)

@@ -1,6 +1,7 @@
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Input.Drag;
+using Gitunia.Tui.Rendering.Styling;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
@@ -18,7 +19,10 @@ public sealed class PaneListView : ListView
     private int _lastPointerRow;
     private bool _isAutoScrolling;
 
-    /// <summary>The rows of this pane have an actions menu: a middle click and a Ctrl-click open it (#471).</summary>
+    /// <summary>
+    /// The rows of this pane have an actions menu: the selected row shows a <c>...</c> marker
+    /// at its right edge and a click on it opens the menu (#479).
+    /// </summary>
     public bool OpensRowMenu { get; set; }
 
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
@@ -65,14 +69,23 @@ public sealed class PaneListView : ListView
             return HandleDrag(phase, mouse);
         }
 
-        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture, OpensRowMenu))
+        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
         }
 
         if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
             && mouse.Position is { } at
-            && ButtonAt?.Invoke(at.X, at.Y) is { } buttonView)
+            && IsOnRowMenuMarker(at.X, at.Y))
+        {
+            FocusPane();
+            ButtonClicked?.Invoke(DefaultMouseMap.RowMenuButton);
+            return true;
+        }
+
+        if (gesture is MouseGesture.Click or MouseGesture.DoubleClick
+            && mouse.Position is { } buttonAt
+            && ButtonAt?.Invoke(buttonAt.X, buttonAt.Y) is { } buttonView)
         {
             FocusPane();
             ButtonClicked?.Invoke(buttonView);
@@ -80,18 +93,6 @@ public sealed class PaneListView : ListView
         }
 
         FocusPane();
-        if (gesture is MouseGesture.RightClick or MouseGesture.MiddleClick or MouseGesture.CtrlClick
-            && mouse.Position is { } rightClicked)
-        {
-            // The row under the pointer is selected so the menu aims at it; below the last row nothing opens.
-            if (Viewport.Y + rightClicked.Y >= (Source?.Count ?? 0))
-            {
-                return true;
-            }
-
-            SelectItem(rightClicked.Y);
-        }
-
         if (gesture == MouseGesture.Click && mouse.Position is { } clicked)
         {
             ClickPositioned?.Invoke(clicked.X, clicked.Y);
@@ -190,6 +191,13 @@ public sealed class PaneListView : ListView
             GestureRaised?.Invoke(delta < 0 ? MouseGesture.DragUp : MouseGesture.DragDown, Math.Abs(delta));
         }
     }
+
+    // The marker sits on the selected row only (#479); a click on it is a button click, the cursor does not move.
+    private bool IsOnRowMenuMarker(int column, int row) =>
+        OpensRowMenu
+        && SelectedItem is { } selected
+        && selected < (Source?.Count ?? 0)
+        && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
 
     private void SelectItem(int pointerRow)
     {
