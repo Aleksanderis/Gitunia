@@ -342,6 +342,46 @@ public class PickWriterTests
         Assert.Equal(before, repository.Head);
     }
 
+    [Fact]
+    public async Task GivenACancelMidwayOfTwoCommits_WhenCherryPicking_ThenItIsRolledBackAndNotLeftInProgress()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .CheckoutNewBranch("topic")
+            .Commit("topic two", new TestFile("b.txt", "2"))
+            .Commit("topic three", new TestFile("c.txt", "3"))
+            .Checkout("main");
+        var tip = repository.Head;
+        var hashes = new[] { Hash(repository, "topic~1"), Hash(repository, "topic") };
+        var (writer, location) = await CreateAsync(repository);
+        var marker = Path.Combine(repository.WorkingTreePath, ".git", "hook-ran");
+        InstallSlowPostCommitHook(repository, marker);
+        using var source = CancellationTokenSource.CreateLinkedTokenSource(Token);
+
+        var pick = writer.PickAsync(location, PickKind.CherryPick, hashes, null, source.Token);
+        while (!File.Exists(marker))
+        {
+            await Task.Delay(20, Token);
+        }
+
+        await source.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pick);
+
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.Equal(tip, repository.Head);
+    }
+
+    private static void InstallSlowPostCommitHook(TestRepository repository, string marker)
+    {
+        var hook = Path.Combine(repository.WorkingTreePath, ".git", "hooks", "post-commit");
+        Directory.CreateDirectory(Path.GetDirectoryName(hook)!);
+        File.WriteAllText(hook, $"#!/bin/sh\ntouch \"{marker.Replace('\\', '/')}\"\nsleep 30\n");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(hook, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+    }
+
     // Main has "main two" (m.txt), topic has "topic two" (b.txt), both forked from "one".
     private static TestRepository Diverged() =>
         TestRepository.Create()

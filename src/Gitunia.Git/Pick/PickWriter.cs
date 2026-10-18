@@ -16,7 +16,9 @@ namespace Gitunia.Git.Pick;
 /// anything ran) gets the call again without it, and an empty pick then stops like git's default. The commits are
 /// hashes from the UI; the end-of-options marker follows them. A call that fails without a conflict stop but leaves
 /// its own operation behind (a range whose later commit turns empty or is refused) is aborted, so a git failure never
-/// leaves a pick or revert in progress; an operation that was already in progress is never touched.
+/// leaves a pick or revert in progress. A cancel or timeout midway of a multi-commit sequence is rolled back the same
+/// way (the earlier commits are undone, the old tip stays in the reflog); an operation that was already in progress is
+/// never touched.
 /// </summary>
 /// <param name="runner">Runs the read-only calls.</param>
 /// <param name="operations">Runs the pick and revert calls.</param>
@@ -33,6 +35,8 @@ public sealed class PickWriter(
 
     private const string NoEdit = "--no-edit";
     private const string AbortOption = "--abort";
+    private const string ResetCommand = "reset";
+    private const string MergeOption = "--merge";
     private const string MainlineOption = "-m";
     private const int UsageExitCode = 129;
 
@@ -58,9 +62,12 @@ public sealed class PickWriter(
         {
             result = await RunAsync(location, kind, commits, mainline, cancellationToken).ConfigureAwait(false);
         }
-        catch (GitCommandFailedException) when (!wasInProgress && detector.Detect(location) != RepositoryOperation.None)
+        catch (Exception exception) when (
+            exception is GitCommandFailedException or GitTimeoutException or OperationCanceledException
+            && !wasInProgress
+            && detector.Detect(location) != RepositoryOperation.None)
         {
-            await AbortLeftoverAsync(location, kind).ConfigureAwait(false);
+            await AbortLeftoverAsync(location, kind, before).ConfigureAwait(false);
             throw;
         }
 
@@ -112,18 +119,28 @@ public sealed class PickWriter(
         }
     }
 
-    // Not cancellable: a half-run sequence must be cleaned up even when the caller gave up. Git's own error is kept.
-    private async Task AbortLeftoverAsync(RepositoryLocation location, PickKind kind)
+    // Not cancellable: a half-run sequence must be cleaned up even when the caller gave up. The original error is kept.
+    private async Task AbortLeftoverAsync(RepositoryLocation location, PickKind kind, string? before)
     {
         var command = kind == PickKind.CherryPick ? "cherry-pick" : "revert";
         try
         {
             await operations.RunToCompletionAsync(location, [command, AbortOption], CancellationToken.None)
                 .ConfigureAwait(false);
+
+            // A call killed while committing makes the abort skip the rewind ("you seem to have moved HEAD"): put the
+            // tip back where the pick started, which also clears the pick marker.
+            var head = await ReadHeadAsync(location, CancellationToken.None).ConfigureAwait(false);
+            if (before is not null && head != before)
+            {
+                await operations
+                    .RunToCompletionAsync(location, [ResetCommand, MergeOption, before], CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
         }
-        catch (GitCommandFailedException)
+        catch (GitException)
         {
-            // The original failure is the one to report.
+            // The original failure is the one to report (a stale lock or a hanging hook can leave the sequence).
         }
     }
 
