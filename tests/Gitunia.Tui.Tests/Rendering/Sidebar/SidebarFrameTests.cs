@@ -179,10 +179,10 @@ public class SidebarFrameTests
     }
 
     [Fact]
-    public void GivenOtherSectionsAndRows_WhenRendering_ThenTheyHaveNoButtons()
+    public void GivenRemotesAndBranchRows_WhenRendering_ThenTheyHaveNoButtons()
     {
-        var tags = Section(SidebarSection.Tags, "Tags", 1, true);
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(tags, 60, GraphGlyphSet.Unicode));
+        var remotes = Section(SidebarSection.Remotes, "Remotes", 1, true);
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(remotes, 60, GraphGlyphSet.Unicode));
         Assert.Empty(SidebarRowRenderer.ButtonsOf(Branch("main"), 60, GraphGlyphSet.Unicode));
     }
 
