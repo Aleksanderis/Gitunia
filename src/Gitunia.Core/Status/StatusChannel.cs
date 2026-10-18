@@ -2,9 +2,10 @@ namespace Gitunia.Core.Status;
 
 /// <summary>
 /// The window's status-message channel: anything that fails or finishes in the background reports through
-/// <see cref="Post"/>, and the status bar shows <see cref="Current"/>. Messages expire (see <see cref="StatusLifetime"/>)
-/// by the injected clock; the host calls <see cref="Tick"/> after <see cref="UntilNextChange"/> to redraw. Not
-/// thread-safe by design: background code posts through the UI-thread dispatcher it already uses for results.
+/// <see cref="Post"/>, and the status bar shows <see cref="Current"/>. Messages expire (see
+/// <see cref="StatusLifetime"/>) by the injected clock; the host calls <see cref="Tick"/> after
+/// <see cref="UntilNextChange"/> to redraw. Not thread-safe by design: background code posts through the UI-thread
+/// dispatcher it already uses for results.
 /// </summary>
 public sealed class StatusChannel(TimeProvider? clock = null)
 {
@@ -18,7 +19,7 @@ public sealed class StatusChannel(TimeProvider? clock = null)
     /// <summary>Whether <see cref="Current"/> was posted so recently that it is drawn to catch the eye.</summary>
     public bool IsFresh => Current is { } message && StatusLifetime.IsFresh(message, _clock.GetUtcNow());
 
-    /// <summary>The time until the status bar must be drawn again because the message ages; null when none is showing.</summary>
+    /// <summary>The time until the bar must be drawn again because the message ages; null when none shows.</summary>
     public TimeSpan? UntilNextChange
     {
         get
@@ -49,7 +50,7 @@ public sealed class StatusChannel(TimeProvider? clock = null)
 
     public void Warning(string text) => Post(text, StatusSeverity.Warning);
 
-    /// <summary>Hides the current message. Returns false when none was showing (an expired one counts as gone).</summary>
+    /// <summary>Hides the current message. Returns false when none was showing (expired counts as gone).</summary>
     public bool Dismiss()
     {
         if (Current is null)

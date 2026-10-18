@@ -140,7 +140,9 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
 
-        Assert.Contains(lines[^1].Segments, segment => segment.Role == expected && segment.Text.Contains("Pushed tag", StringComparison.Ordinal));
+        Assert.Contains(
+            lines[^1].Segments,
+            segment => segment.Role == expected && segment.Text.Contains("Pushed tag", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -150,7 +152,9 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
 
-        Assert.Contains(lines[^1].Segments, segment => segment.Role == SegmentRole.Status && segment.Text.Contains("retrying", StringComparison.Ordinal));
+        Assert.Contains(
+            lines[^1].Segments,
+            segment => segment.Role == SegmentRole.Status && segment.Text.Contains("retrying", StringComparison.Ordinal));
     }
 
     [Fact]

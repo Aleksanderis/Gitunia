@@ -35,7 +35,10 @@ public class StatusLogTests
     [Fact]
     public void GivenDismissedMessage_WhenPostingAnother_ThenTheNewOneShows()
     {
-        var log = StatusLog.Empty.Post("old", StatusSeverity.Info, Start).Dismiss().Post("new", StatusSeverity.Warning, Start);
+        var log = StatusLog.Empty
+            .Post("old", StatusSeverity.Info, Start)
+            .Dismiss()
+            .Post("new", StatusSeverity.Warning, Start);
 
         Assert.Equal("new", log.Latest?.Text);
         Assert.Equal(2, log.Latest?.Sequence);
@@ -124,7 +127,9 @@ public class StatusLogTests
         var message = StatusLog.Empty.Post("done", StatusSeverity.Info, Start).Latest!;
 
         Assert.Equal(Start + StatusLifetime.Fresh, StatusLifetime.NextChange(message, Start));
-        Assert.Equal(Start + StatusLifetime.Of(StatusSeverity.Info), StatusLifetime.NextChange(message, Start + StatusLifetime.Fresh));
+        Assert.Equal(
+            Start + StatusLifetime.Of(StatusSeverity.Info),
+            StatusLifetime.NextChange(message, Start + StatusLifetime.Fresh));
         Assert.Null(StatusLifetime.NextChange(message, Start.AddMinutes(1)));
     }
 }

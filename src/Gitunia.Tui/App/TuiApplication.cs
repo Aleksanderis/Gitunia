@@ -66,9 +66,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
     private const long OverlayDoubleClickGuardMilliseconds = 600;
-
-    // Added to the wait for a message to age, so the clock is surely past the threshold when the timeout fires.
-    private static readonly TimeSpan StatusAgingMargin = TimeSpan.FromMilliseconds(20);
     private const int ShortHashLength = 7;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
@@ -1035,6 +1032,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
     }
+
+    // Added to the wait for a message to age, so the clock is surely past the threshold when the timeout fires.
+    private static readonly TimeSpan StatusAgingMargin = TimeSpan.FromMilliseconds(20);
 
     // A message loses its highlight and then expires with no key pressed, so the bar is drawn again at those moments.
     // Each change of the channel replaces the earlier wait; a stale timeout does nothing.

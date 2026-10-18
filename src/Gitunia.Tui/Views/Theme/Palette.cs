@@ -92,9 +92,12 @@ public static class Palette
             SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusNotice => new RoleAppearance(colors.Good, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusWarning => new RoleAppearance(colors.Warn, colors.BarBackground, TextStyle.Bold, true),
-            SegmentRole.StatusNoticeFresh => new RoleAppearance(colors.ChipForeground, colors.Good, colors.ChipStyle, true),
-            SegmentRole.StatusWarningFresh => new RoleAppearance(colors.ChipForeground, colors.Warn, colors.ChipStyle, true),
-            SegmentRole.StatusErrorFresh => new RoleAppearance(colors.ChipForeground, colors.Bad, colors.ChipStyle, true),
+            SegmentRole.StatusNoticeFresh =>
+                new RoleAppearance(colors.ChipForeground, colors.Good, colors.ChipStyle, true),
+            SegmentRole.StatusWarningFresh =>
+                new RoleAppearance(colors.ChipForeground, colors.Warn, colors.ChipStyle, true),
+            SegmentRole.StatusErrorFresh =>
+                new RoleAppearance(colors.ChipForeground, colors.Bad, colors.ChipStyle, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle or SegmentRole.Cursor or SegmentRole.JumpLabel => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
             SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle, true),
             SegmentRole.InactiveTab => new RoleAppearance(Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),

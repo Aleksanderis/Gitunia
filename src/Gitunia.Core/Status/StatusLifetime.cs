@@ -6,7 +6,7 @@ namespace Gitunia.Core.Status;
 /// </summary>
 public static class StatusLifetime
 {
-    /// <summary>How long a message is drawn as a filled chip to catch the eye before it settles to coloured text.</summary>
+    /// <summary>How long a message is a filled chip to catch the eye before it settles to coloured text.</summary>
     public static readonly TimeSpan Fresh = TimeSpan.FromMilliseconds(1500);
 
     private static readonly TimeSpan InfoLifetime = TimeSpan.FromSeconds(5);
@@ -26,7 +26,7 @@ public static class StatusLifetime
 
     public static bool IsFresh(StatusMessage message, DateTimeOffset now) => now - message.PostedAt < Fresh;
 
-    /// <summary>The next moment the message's look changes (fresh ends, then it expires), null once it is expired.</summary>
+    /// <summary>The next moment the look changes (fresh ends, then it expires); null once expired.</summary>
     public static DateTimeOffset? NextChange(StatusMessage message, DateTimeOffset now)
     {
         if (IsExpired(message, now))

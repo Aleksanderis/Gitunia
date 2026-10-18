@@ -42,7 +42,7 @@ public enum SegmentRole
     /// <summary>A warning notice in the status bar.</summary>
     StatusWarning,
 
-    /// <summary>A success or info notice in its first moments: a filled chip that then settles to <see cref="StatusNotice"/>.</summary>
+    /// <summary>A success or info notice in its first moments: a filled chip, then <see cref="StatusNotice"/>.</summary>
     StatusNoticeFresh,
 
     /// <summary>A warning in its first moments, settling to <see cref="StatusWarning"/>.</summary>
