@@ -1,8 +1,12 @@
 name: CI
 
-# Minutes are limited on the free plan (decision 2026-10-18): CI never runs automatically. Local builds are
-# the gate; run this on demand (`gh workflow run ci.yml`), e.g. before closing a milestone or cutting a release.
+# Minutes are limited on the free plan (decision 2026-10-18): CI never runs on PRs or pushes. Local builds are
+# the gate. It runs on release tags, weekly, and on demand (`gh workflow run ci.yml`).
 on:
+  push:
+    tags: ["v*"]
+  schedule:
+    - cron: "0 5 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -59,6 +63,40 @@ jobs:
         if: steps.aot.outputs.run == 'true'
         run: |
           frame="$(./out/gitunia "$GITHUB_WORKSPACE" --print-frame 100x12)"
+          echo "$frame"
+          echo "$frame" | grep -q "Gitunia"
+          echo "$frame" | grep -q "NORMAL"
+
+  windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build (warnings, including IL*, are errors)
+        run: dotnet build -c Release
+      - name: Test
+        run: dotnet test -c Release --no-build
+      - name: AOT publish (any IL* warning fails)
+        run: |
+          dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log
+          test "${PIPESTATUS[0]}" -eq 0
+          if grep -E "warning IL[0-9]+" publish.log; then echo "::error::trim/AOT warnings found"; exit 1; fi
+      - name: Smoke run
+        run: |
+          out="$(./out/gitunia.exe)"
+          echo "$out"
+          echo "$out" | grep -q "gitunia"
+      - name: Smoke run (graph frame of this repository)
+        run: |
+          frame="$(./out/gitunia.exe "$GITHUB_WORKSPACE" --print-frame 100x12)"
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
