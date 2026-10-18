@@ -305,3 +305,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Which-key group rows (#443) read `+more (branch operations)` etc. for the named `<space>` leader groups; other prefixes stay plain `+more`. The table is hand-written (the keymap has no group metadata); a test checks every prefix exists. Why: the owner wants to see what a group holds before opening it.
 
 **Process:** CI is manual-dispatch only (supersedes the 2026-10-16 CI cost entry): no PR, push or scheduled runs. Why: the free-plan minutes still ran out; local `dotnet build`/`dotnet test` are the gate. Dispatch CI (`gh workflow run ci.yml`) before closing a milestone or cutting a release. Revisit at v1.0.
+
+**UI:** Which-key rows (#472) list plain actions first, then `+more` groups, each alphabetical by key label (lowercase before uppercase), instead of keymap declaration order. Why: stable, scannable rows.

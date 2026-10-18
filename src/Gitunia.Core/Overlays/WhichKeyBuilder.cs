@@ -23,11 +23,16 @@ public static class WhichKeyBuilder
         IReadOnlyList<Continuation> continuations,
         KeySequence pending)
     {
-        return [.. continuations.Select(continuation => new WhichKeyRow(
-            KeyFormatter.Format(continuation.Key),
-            continuation is { Action: { } action }
-                ? ActionCatalog.Describe(action) + (continuation.HasMore ? " (+more)" : string.Empty)
-                : MoreText(pending, continuation.Key)))];
+        return [.. continuations
+            .Select(continuation => (Continuation: continuation, Label: KeyFormatter.Format(continuation.Key)))
+            .OrderBy(item => item.Continuation.Action is null)
+            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(item => item.Label, StringComparer.Ordinal)
+            .Select(item => new WhichKeyRow(
+                item.Label,
+                item.Continuation is { Action: { } action }
+                    ? ActionCatalog.Describe(action) + (item.Continuation.HasMore ? " (+more)" : string.Empty)
+                    : MoreText(pending, item.Continuation.Key)))];
     }
 
     /// <summary>The formatted prefixes that carry a group name.</summary>

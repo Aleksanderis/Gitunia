@@ -410,8 +410,8 @@ public class OverlayFrameTests
             string.Join(
                 '\n',
                 " g-                         ",
-                "│ d  Show the Details tab  │",
                 "│ c  Show the Changes tab  │",
+                "│ d  Show the Details tab  │",
                 "│ f  Show the Files tab    │",
                 "│ g  Go to the top         │",
                 "│ t  Next tab              │",
