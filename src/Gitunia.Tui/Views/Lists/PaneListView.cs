@@ -25,6 +25,12 @@ public sealed class PaneListView : ListView
     /// </summary>
     public bool OpensRowMenu { get; set; }
 
+    /// <summary>
+    /// A double-click on blank space below the last row is dropped: the double-click acts on the selected row
+    /// (the graph opens its menu) and the pointer is not on it (#484).
+    /// </summary>
+    public bool IgnoresBlankDoubleClick { get; set; }
+
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public Func<bool> IsSuppressed { get; set; } = () => false;
 
@@ -94,7 +100,7 @@ public sealed class PaneListView : ListView
 
         FocusPane();
         if (gesture == MouseGesture.DoubleClick
-            && OpensRowMenu
+            && IgnoresBlankDoubleClick
             && mouse.Position is { } blank
             && IsBelowLastRow(blank.Y))
         {

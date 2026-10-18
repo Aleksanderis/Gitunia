@@ -124,6 +124,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().Graph.Width),
             Height = Dim.Func(_ => Rects().Graph.Height),
             CanFocus = true,
+            IgnoresBlankDoubleClick = true,
         };
         _detailTitle = new LineView(width => CurrentGrid().ResolveRules(detailTitleLine(width), Rects().DetailTitle.Y, Rects().DetailTitle.X))
         {
