@@ -101,7 +101,7 @@ public static class DefaultMouseMap
 
     public const string SidebarWorktreePruneButton = "SidebarButton.WorktreePrune";
 
-    /// <summary>The buttons in the Stashes header of the sidebar (#413): apply, pop and drop act on the selected row.</summary>
+    /// <summary>The Stashes header buttons of the sidebar (#413): apply, pop and drop act on the selected row.</summary>
     public const string SidebarStashPushButton = "SidebarButton.StashPush";
 
     public const string SidebarStashPushUntrackedButton = "SidebarButton.StashPushUntracked";
