@@ -26,11 +26,15 @@ public sealed record StatusLog
     /// <summary>The message to show in the status bar: the newest one unless it was dismissed.</summary>
     public StatusMessage? Latest => History.Count > 0 && History[^1].Sequence > DismissedThrough ? History[^1] : null;
 
-    public StatusLog Post(string text, StatusSeverity severity)
+    /// <summary>The message to show at <paramref name="now"/>: <see cref="Latest"/> unless it has expired.</summary>
+    public StatusMessage? Current(DateTimeOffset now) =>
+        Latest is { } latest && !StatusLifetime.IsExpired(latest, now) ? latest : null;
+
+    public StatusLog Post(string text, StatusSeverity severity, DateTimeOffset postedAt)
     {
         text = string.Join(' ', text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         var sequence = History.Count > 0 ? History[^1].Sequence + 1 : DismissedThrough + 1;
-        var history = new List<StatusMessage>(History) { new(sequence, text, severity) };
+        var history = new List<StatusMessage>(History) { new(sequence, text, severity, postedAt) };
         if (history.Count > HistoryCapacity)
         {
             history.RemoveRange(0, history.Count - HistoryCapacity);

@@ -36,7 +36,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
-/// <param name="remoteOperationRuns">Whether a fetch, pull or push runs on the tab; remotes are not changed then.</param>
+/// <param name="remoteOperationRuns">Whether a fetch, pull or push runs on the tab; remotes stay then.</param>
 public sealed class RemoteManagementActions(
     WorkspaceHost host,
     IRemoteManager manager,

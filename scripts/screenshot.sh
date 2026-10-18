@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -214,6 +214,8 @@ render() {
       working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
       working-discard) keys="Space s j" keys_after="Space d" ;;
       working-resolve) keys="Space s" keys_after="Space a" ;;
+      status-fresh) keys="Space F" ;;
+      status-settled) keys="Space F" keys_after="Space F" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
