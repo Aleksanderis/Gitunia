@@ -171,6 +171,20 @@ public class SidebarFrameTests
     }
 
     [Fact]
+    public void GivenTheStashesHeaderInAWideSidebar_WhenRendering_ThenItsButtonsSitAtTheRightEnd()
+    {
+        var row = Section(SidebarSection.Stashes, "Stashes", 2, isExpanded: true);
+
+        var line = SidebarRowRenderer.Render(row, 60, isSelected: false, GraphGlyphSet.Unicode);
+
+        Assert.EndsWith("[push] [apply] [pop] [drop] [push-all]", line.Text.TrimEnd(), StringComparison.Ordinal);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 60, GraphGlyphSet.Unicode);
+        Assert.Equal(5, buttons.Count);
+        var dropColumn = line.Text.IndexOf("[drop]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SidebarStashDropButton, TitleButton.ViewAt(buttons, dropColumn));
+    }
+
+    [Fact]
     public void GivenTheBranchesHeaderInANarrowSidebar_WhenRendering_ThenLastButtonsAreDroppedAndTheTitleStays()
     {
         var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
@@ -189,8 +203,8 @@ public class SidebarFrameTests
     [Fact]
     public void GivenOtherSectionsAndRows_WhenRendering_ThenTheyHaveNoButtons()
     {
-        var stashes = Section(SidebarSection.Stashes, "Stashes", 1, true);
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(stashes, 60, GraphGlyphSet.Unicode));
+        var remotes = Section(SidebarSection.Remotes, "Remotes", 1, true);
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(remotes, 60, GraphGlyphSet.Unicode));
         Assert.Empty(SidebarRowRenderer.ButtonsOf(Branch("main"), 60, GraphGlyphSet.Unicode));
     }
 

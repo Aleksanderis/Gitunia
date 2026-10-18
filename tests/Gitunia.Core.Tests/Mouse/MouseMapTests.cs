@@ -160,6 +160,11 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarMergeButton, "<space>gm")]
     [InlineData(DefaultMouseMap.SidebarMergeNoFastForwardButton, "<space>gM")]
     [InlineData(DefaultMouseMap.SidebarMergeSquashButton, "<space>gs")]
+    [InlineData(DefaultMouseMap.SidebarStashPushButton, "<space>Ss")]
+    [InlineData(DefaultMouseMap.SidebarStashPushUntrackedButton, "<space>Su")]
+    [InlineData(DefaultMouseMap.SidebarStashApplyButton, "<space>Sa")]
+    [InlineData(DefaultMouseMap.SidebarStashPopButton, "<space>Sp")]
+    [InlineData(DefaultMouseMap.SidebarStashDropButton, "<space>Sd")]
     public void GivenASidebarHeaderButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
