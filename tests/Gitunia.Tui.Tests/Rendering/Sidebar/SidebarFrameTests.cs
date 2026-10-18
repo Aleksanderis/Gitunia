@@ -130,6 +130,22 @@ public class SidebarFrameTests
     }
 
     [Fact]
+    public void GivenNarrowBranchesHeader_WhenLayingOutButtons_ThenUnsetUpstreamDropsFirstThenUpstreamThenRevert()
+    {
+        var row = Section(SidebarSection.Branches, "Branches", 1, isExpanded: true);
+        var wide = SidebarHeaderButtons.Layout(row, 8, 300);
+        var start = 300 - wide.Min(button => button.Start);
+
+        var dropOne = SidebarHeaderButtons.Layout(row, 8, 8 + 1 + start - 1);
+        var dropTwo = SidebarHeaderButtons.Layout(row, 8, 8 + 1 + start - 1 - TextWidth.Of("[upstream]") - 1);
+
+        Assert.DoesNotContain(dropOne, button => button.View == DefaultMouseMap.SidebarBranchUnsetUpstreamButton);
+        Assert.Contains(dropOne, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
+        Assert.DoesNotContain(dropTwo, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
+        Assert.Contains(dropTwo, button => button.View == DefaultMouseMap.SidebarRevertButton);
+    }
+
+    [Fact]
     public void GivenNarrowTagsHeader_WhenLayingOutButtons_ThenRevertDropsFirst()
     {
         var wide = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, 200);

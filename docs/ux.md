@@ -547,7 +547,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.Reset | Click | `reset.branch` | Chip `[reset]` in the same headers, same as `<space>gx` |
 | SidebarButton.CherryPick | Click | `pick.cherry-pick` | Chip `[pick]` in the Branches and Tags headers, same as `<space>gp` on the selected row |
 | SidebarButton.Revert | Click | `pick.revert` | Chip `[revert]` in the same headers, same as `<space>gv` |
-| SidebarButton.BranchSetUpstream | Click | `branch.set-upstream` | Chip `[upstream]` in the Branches header (last-but-one, dropped early), same as `<space>bu` |
+| SidebarButton.BranchSetUpstream | Click | `branch.set-upstream` | Chip `[upstream]` in the Branches header (second-to-last; dropped after `[unset-up]`), same as `<space>bu` |
 | SidebarButton.BranchUnsetUpstream | Click | `branch.unset-upstream` | Chip `[unset-up]`, last chip of the Branches header, same as `<space>bU` |
 | Graph | Right-click | `palette.open-for-row` | Selects the row under the pointer and opens the command popup (the palette) narrowed to the actions on a commit: branch, tag (create, delete, push, remote delete), merge, rebase, reset, cherry-pick, revert, copy hash. Typing filters further, `Esc` closes |
 | SidebarButton.WorktreeAdd | Click | `worktree.add` | Chip `[add]` in the Worktrees section header, same as `<space>wa` |
@@ -562,7 +562,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.Merge | Click | `merge.branch` | Chip `[merge]` in the Branches and Tags headers, same as `<space>gm` |
 | SidebarButton.MergeNoFastForward | Click | `merge.branch-no-ff` | Chip `[merge-commit]`, same as `<space>gM` |
 | SidebarButton.MergeSquash | Click | `merge.branch-squash` | Chip `[squash]`, same as `<space>gs` |
-| Sidebar | Right-click | `palette.open-for-row` | Selects the row under the pointer and opens the command popup narrowed to the actions on a branch or tag (switch, create, rename, delete, tag actions, merge, rebase, reset, cherry-pick, revert); a click below the last row does nothing |
+| Sidebar | Right-click | `palette.open-for-row` | Selects the row under the pointer and opens the command popup narrowed to the actions on a branch or tag (switch, create, rename, delete, set and unset upstream, tag actions, merge, rebase, reset, cherry-pick, revert); a click below the last row does nothing |
 | SidebarButton.StashPush | Click | `stash.push` | Chip `[push]` in the Stashes section header, same as `<space>Ss` |
 | SidebarButton.StashApply | Click | `stash.apply` | Chip `[apply]`, same as `<space>Sa` (acts on the selected row) |
 | SidebarButton.StashPop | Click | `stash.pop` | Chip `[pop]`, same as `<space>Sp` |
