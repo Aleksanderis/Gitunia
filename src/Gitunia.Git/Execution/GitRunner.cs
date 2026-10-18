@@ -15,6 +15,8 @@ public sealed class GitRunner
 {
     private const int ReadBufferSize = 64 * 1024;
     private const int ErrorBufferSize = 4096;
+    private const char LineFeed = '\n';
+    private const char CarriageReturn = '\r';
 
     private readonly GitRunnerOptions _options;
 
@@ -129,7 +131,7 @@ public sealed class GitRunner
             all.Append(buffer, 0, count);
             for (var index = 0; index < count; index++)
             {
-                if (buffer[index] is '\n' or '\r')
+                if (buffer[index] is LineFeed or CarriageReturn)
                 {
                     FlushSegment(segment, onLine);
                 }

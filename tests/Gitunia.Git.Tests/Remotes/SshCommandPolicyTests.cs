@@ -33,6 +33,14 @@ public class SshCommandPolicyTests
         Assert.Equal("ssh -o BatchMode=yes", SshCommandPolicy.BatchCommand("ssh -o BatchMode=yes", null, null));
     }
 
+    [Fact]
+    public void GivenAProgramAndAConfiguredSsh_WhenAsked_ThenTheConfigWinsAndGetsBatchMode()
+    {
+        Assert.Equal(
+            "ssh -F cfg -o BatchMode=yes",
+            SshCommandPolicy.BatchCommand(null, "/opt/wrapper", "ssh -F cfg"));
+    }
+
     [Theory]
     [InlineData("plink -batch", null)]
     [InlineData(null, "/opt/wrapper")]

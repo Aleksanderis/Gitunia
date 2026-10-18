@@ -24,20 +24,26 @@ public static class SshCommandPolicy
         string? sshProgramVariable,
         string? configuredCommand)
     {
-        if (string.IsNullOrWhiteSpace(sshCommandVariable) && !string.IsNullOrWhiteSpace(sshProgramVariable))
+        var configuredOrVariable = FirstNonEmpty(sshCommandVariable, configuredCommand);
+        if (configuredOrVariable is null && !string.IsNullOrWhiteSpace(sshProgramVariable))
         {
             return null;
         }
 
-        var command = FirstNonEmpty(sshCommandVariable, configuredCommand) ?? DefaultCommand;
+        var command = configuredOrVariable ?? DefaultCommand;
         var program = command.Split(WordSeparator, StringSplitOptions.RemoveEmptyEntries)[0];
         var isSsh = string.Equals(
             Path.GetFileNameWithoutExtension(program),
             DefaultCommand,
             StringComparison.OrdinalIgnoreCase);
-        if (!isSsh || command.Contains(BatchModeOption, StringComparison.Ordinal))
+        if (!isSsh)
         {
-            return isSsh ? command : null;
+            return null;
+        }
+
+        if (command.Contains(BatchModeOption, StringComparison.Ordinal))
+        {
+            return command;
         }
 
         return $"{command.Trim()} {BatchModeOption}";

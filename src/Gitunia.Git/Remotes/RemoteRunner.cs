@@ -64,7 +64,9 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         var sshCommand = environmentLookup(SshCommandVariable);
         var sshProgram = environmentLookup(SshProgramVariable);
         string? configured = null;
-        if (string.IsNullOrWhiteSpace(sshCommand) && string.IsNullOrWhiteSpace(sshProgram))
+
+        // Git's order is the variable, then core.sshCommand, then GIT_SSH.
+        if (string.IsNullOrWhiteSpace(sshCommand))
         {
             var result = await runner
                 .RunAsync(

@@ -8,12 +8,12 @@ namespace Gitunia.Git.Remotes;
 public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
 {
     private const string Fetch = "fetch";
-    private const string Pull = "pull";
+    private const string Merge = "merge";
+    private const string UpstreamRevision = "@{upstream}";
     private const string Push = "push";
     private const string AllOption = "--all";
     private const string PruneOption = "--prune";
     private const string FastForwardOnly = "--ff-only";
-    private const string NoRebase = "--no-rebase";
     private const string UpToDateText = "Already up to date";
     private const string CannotFastForwardText = "Not possible to fast-forward";
 
@@ -47,14 +47,16 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         IProgress<RemoteProgress>? progress,
         CancellationToken cancellationToken)
     {
+        // Fetch (cancellable, leaves only complete objects and updated refs) then a local fast-forward merge. The merge
+        // rewrites the index and working tree, so it is never killed halfway: a cancel is honoured between the steps.
+        await remoteRunner
+            .RunAsync(location, [Fetch, RemoteRunner.ProgressOption], progress, cancellationToken)
+            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             var result = await remoteRunner
-                .RunAsync(
-                    location,
-                    [Pull, RemoteRunner.ProgressOption, NoRebase, FastForwardOnly],
-                    progress,
-                    cancellationToken)
+                .RunAsync(location, [Merge, FastForwardOnly, UpstreamRevision], null, CancellationToken.None)
                 .ConfigureAwait(false);
             return result.StandardOutputText.Contains(UpToDateText, StringComparison.Ordinal)
                 ? PullOutcome.UpToDate

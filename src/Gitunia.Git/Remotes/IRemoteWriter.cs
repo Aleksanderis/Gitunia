@@ -19,7 +19,8 @@ public interface IRemoteWriter
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Pulls the current branch with <c>--ff-only</c>, so it never creates a merge commit or rebases.
+    /// Pulls the current branch: a cancellable fetch, then <c>merge --ff-only @{upstream}</c>, so it never creates a
+    /// merge commit or rebases. A cancel is honoured between the steps; the merge itself is not interrupted.
     /// </summary>
     /// <exception cref="PullDivergedException">The branches diverged; nothing was changed.</exception>
     Task<PullOutcome> PullAsync(
