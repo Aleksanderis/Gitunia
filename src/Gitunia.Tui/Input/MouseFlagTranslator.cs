@@ -32,6 +32,10 @@ public static class MouseFlagTranslator
         {
             gesture = MouseGesture.WheelDown;
         }
+        else if (flags.HasFlag(MouseFlags.RightButtonClicked))
+        {
+            gesture = MouseGesture.RightClick;
+        }
         else if (flags.HasFlag(MouseFlags.LeftButtonDoubleClicked))
         {
             gesture = MouseGesture.DoubleClick;

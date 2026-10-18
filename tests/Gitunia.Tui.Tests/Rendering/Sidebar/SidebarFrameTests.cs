@@ -95,7 +95,7 @@ public class SidebarFrameTests
 
         Assert.StartsWith("|  v Branches 1      | *  second", frame[2], StringComparison.Ordinal);
         Assert.StartsWith("|   * main +1-3      | *  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("|  > Tags 2          |", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("|  > Tags 2 [rebase] |", frame[4], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -179,10 +179,10 @@ public class SidebarFrameTests
     }
 
     [Fact]
-    public void GivenOtherSectionsAndRows_WhenRendering_ThenTheyHaveNoButtons()
+    public void GivenRemotesAndBranchRows_WhenRendering_ThenTheyHaveNoButtons()
     {
-        var tags = Section(SidebarSection.Tags, "Tags", 1, true);
-        Assert.Empty(SidebarRowRenderer.ButtonsOf(tags, 60, GraphGlyphSet.Unicode));
+        var remotes = Section(SidebarSection.Remotes, "Remotes", 1, true);
+        Assert.Empty(SidebarRowRenderer.ButtonsOf(remotes, 60, GraphGlyphSet.Unicode));
         Assert.Empty(SidebarRowRenderer.ButtonsOf(Branch("main"), 60, GraphGlyphSet.Unicode));
     }
 

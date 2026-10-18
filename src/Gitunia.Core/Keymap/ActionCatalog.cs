@@ -94,6 +94,7 @@ public static class ActionCatalog
         ["operation.skip"] = "Skip the commit a rebase, cherry-pick or revert stopped on (asks first)",
         ["palette.next"] = "Next palette entry",
         ["palette.open"] = "Open the command palette",
+        ["palette.open-for-row"] = "Open the commands of the selected row (right click)",
         ["palette.previous"] = "Previous palette entry",
         ["pane.focus-down"] = "Focus the pane below",
         ["pane.focus-left"] = "Focus the pane to the left",

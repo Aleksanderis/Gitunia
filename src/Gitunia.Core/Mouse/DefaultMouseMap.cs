@@ -90,6 +90,11 @@ public static class DefaultMouseMap
 
     public const string SidebarBranchDeleteButton = "SidebarButton.BranchDelete";
 
+    /// <summary>The rebase and reset buttons of the Branches and Tags headers (#428).</summary>
+    public const string SidebarRebaseButton = "SidebarButton.Rebase";
+
+    public const string SidebarResetButton = "SidebarButton.Reset";
+
     /// <summary>The buttons in the Worktrees header of the sidebar (#412): each acts on the selected row.</summary>
     public const string SidebarWorktreeAddButton = "SidebarButton.WorktreeAdd";
 
@@ -176,6 +181,10 @@ public static class DefaultMouseMap
         new(SidebarBranchSwitchButton, MouseGesture.Click, ActionIds.BranchSwitch),
         new(SidebarBranchRenameButton, MouseGesture.Click, ActionIds.BranchRename),
         new(SidebarBranchDeleteButton, MouseGesture.Click, ActionIds.BranchDelete),
+        new(SidebarRebaseButton, MouseGesture.Click, ActionIds.RebaseOnto),
+        new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
+        new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
+        new(DefaultKeymap.SidebarView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(SidebarWorktreeAddButton, MouseGesture.Click, ActionIds.WorktreeAdd),
         new(SidebarWorktreeRemoveButton, MouseGesture.Click, ActionIds.WorktreeRemove),
         new(SidebarWorktreeLockButton, MouseGesture.Click, ActionIds.WorktreeLock),

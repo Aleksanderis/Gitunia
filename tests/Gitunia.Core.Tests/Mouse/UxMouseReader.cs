@@ -45,6 +45,7 @@ public static class UxMouseReader
         "Drag start" => MouseGesture.DragStart,
         "Drag up" => MouseGesture.DragUp,
         "Drag down" => MouseGesture.DragDown,
+        "Right-click" => MouseGesture.RightClick,
         _ => throw new InvalidDataException($"Unknown mouse gesture in docs/ux.md: {text}"),
     };
 }

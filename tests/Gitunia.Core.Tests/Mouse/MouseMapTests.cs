@@ -119,7 +119,12 @@ public class MouseMapTests
     public void GivenTheDefaultMap_WhenListingBindings_ThenEveryActionIsReachableByAKeyToo()
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
-        var keyed = DefaultKeymap.CreateBindings().Select(binding => binding.Action).Append(ActionIds.WorkingTreeOpen).ToHashSet();
+        // The right-click row menu (#428) is the palette (':') narrowed to the row's actions: its keys are theirs.
+        var keyed = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action)
+            .Append(ActionIds.WorkingTreeOpen)
+            .Append(ActionIds.PaletteOpenForRow)
+            .ToHashSet();
 
         var mouseOnly = DefaultMouseMap.CreateBindings()
             .Where(binding => !keyed.Contains(binding.Action))
@@ -164,6 +169,31 @@ public class MouseMapTests
         var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
 
         Assert.Equal(key.Action, binding?.Action);
+    }
+
+    [Theory]
+    [InlineData(DefaultMouseMap.SidebarRebaseButton, "<space>gr")]
+    [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
+    public void GivenARebaseOrResetButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
+    {
+        var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
+        var key = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SidebarView).Feed(keys);
+
+        Assert.Equal(key.Action, binding?.Action);
+    }
+
+    [Fact]
+    public void GivenARightClickOnAGraphRow_WhenResolving_ThenTheRowCommandsOpen()
+    {
+        var map = DefaultMouseMap.Create();
+
+        var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.RightClick);
+
+        Assert.Equal(ActionIds.PaletteOpenForRow, binding?.Action);
+        Assert.Equal(
+            ActionIds.PaletteOpenForRow,
+            map.Resolve(DefaultKeymap.SidebarView, MouseGesture.RightClick)?.Action);
+        Assert.Null(map.Resolve(DefaultKeymap.DiffView, MouseGesture.RightClick));
     }
 
     [Theory]

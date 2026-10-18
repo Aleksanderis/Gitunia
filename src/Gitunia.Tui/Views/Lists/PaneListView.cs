@@ -77,6 +77,17 @@ public sealed class PaneListView : ListView
         }
 
         FocusPane();
+        if (gesture == MouseGesture.RightClick && mouse.Position is { } rightClicked)
+        {
+            // The row under the pointer is selected so the popup aims at it; below the last row nothing opens.
+            if (Viewport.Y + rightClicked.Y >= (Source?.Count ?? 0))
+            {
+                return true;
+            }
+
+            SelectItem(rightClicked.Y);
+        }
+
         if (gesture == MouseGesture.Click && mouse.Position is { } clicked)
         {
             ClickPositioned?.Invoke(clicked.X, clicked.Y);
