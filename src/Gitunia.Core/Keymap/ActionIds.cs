@@ -162,6 +162,8 @@ public static class ActionIds
 
     public static ActionId PickRevert { get; } = new("pick.revert");
 
+    public static ActionId PickMainline { get; } = new("pick.mainline");
+
     public static ActionId ResetBranch { get; } = new("reset.branch");
 
     public static ActionId RebaseOnto { get; } = new("rebase.onto");

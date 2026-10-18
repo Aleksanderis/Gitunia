@@ -197,6 +197,59 @@ public class PickActionsTests
     }
 
     [Fact]
+    public async Task GivenTheMainlinePrompt_WhenAParentRowIsClicked_ThenItRunsWithThatParentLikeTheKey()
+    {
+        using var repository = MergedTopic();
+        var merge = repository.Head;
+        repository.Checkout("base");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(merge);
+        harness.Run(ActionIds.PickCherry);
+        await harness.PumpUntilAsync(() => harness.Pick.Prompt is not null);
+
+        Assert.Equal(2, harness.Pick.Prompt!.Parents.Count);
+        Assert.Contains("topic two", harness.Pick.Prompt.Parents[1], StringComparison.Ordinal);
+        Assert.True(harness.Pick.TryExecute(ActionIds.PickMainline, 1));
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Pick.Prompt);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.StartsWith("Cherry-picked ", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheMainlinePrompt_WhenAnOutOfRangeRowIsClicked_ThenItStaysOpenAndNothingRuns()
+    {
+        using var repository = MergedTopic();
+        var head = repository.Head;
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(head);
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.Prompt is not null);
+
+        Assert.True(harness.Pick.TryExecute(ActionIds.PickMainline, 3));
+
+        Assert.NotNull(harness.Pick.Prompt);
+        Assert.Contains("Choose a parent from 1 to 2", harness.Pick.Notice, StringComparison.Ordinal);
+        Assert.Equal(head, repository.Head);
+    }
+
+    [Fact]
+    public async Task GivenTheMainlinePrompt_WhenTheBackdropCancels_ThenThePromptCloses()
+    {
+        using var repository = MergedTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.SelectCommits(repository.Head);
+        harness.Run(ActionIds.PickRevert);
+        await harness.PumpUntilAsync(() => harness.Pick.Prompt is not null);
+
+        Assert.True(harness.Pick.TryExecute(ActionIds.Cancel, null));
+
+        Assert.Null(harness.Pick.Prompt);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
     public async Task GivenTheMainlinePrompt_WhenEscapeIsPressed_ThenNothingRunsAndTheModeReturns()
     {
         using var repository = MergedTopic();

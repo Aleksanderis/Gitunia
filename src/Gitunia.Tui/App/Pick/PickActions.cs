@@ -64,6 +64,21 @@ public sealed class PickActions(
         ? string.Empty
         : PickTexts.MainlinePrompt(_kind, _commits.First(commit => commit.IsMerge));
 
+    /// <summary>The mainline prompt as an overlay (title and one row per parent); null while none is open here.</summary>
+    public MainlinePrompt? Prompt
+    {
+        get
+        {
+            if (!_isOpen || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            var merge = _commits.First(commit => commit.IsMerge);
+            return new MainlinePrompt(PickTexts.MainlineTitle(_kind, merge), PickTexts.MainlineRows(merge));
+        }
+    }
+
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
@@ -75,7 +90,7 @@ public sealed class PickActions(
 
         if (_isOpen)
         {
-            return TryHandleOpenPrompt(action);
+            return TryHandleOpenPrompt(action, count);
         }
 
         var kind = KindOf(action);
@@ -102,25 +117,31 @@ public sealed class PickActions(
 
         if (key.Normalize() is { Modifiers: KeyModifiers.None } normalized && MainlineOf(normalized.Name) is { } parent)
         {
-            if (parent < 1 || parent > _mainlineCount)
-            {
-                Notice = $"Choose a parent from 1 to {_mainlineCount} (Esc cancels)";
-            }
-            else if (parent > 1 && _commits.Any(commit => !commit.IsMerge))
-            {
-                Notice = "Parent 2 or higher only fits when every commit is a merge: press 1 or Esc";
-            }
-            else
-            {
-                Close();
-                Notice = host.Workspace.FindTab(_tabId) is { } tab && Refusal(tab) is { } refusal
-                    ? refusal
-                    : Start(_tabId, _kind, _commits, parent);
-            }
+            Choose(parent);
         }
 
         redraw();
         return true;
+    }
+
+    // The answer of a key or of a click on a parent row: the same checks either way.
+    private void Choose(int parent)
+    {
+        if (parent < 1 || parent > _mainlineCount)
+        {
+            Notice = $"Choose a parent from 1 to {_mainlineCount} (Esc cancels)";
+        }
+        else if (parent > 1 && _commits.Any(commit => !commit.IsMerge))
+        {
+            Notice = "Parent 2 or higher only fits when every commit is a merge: press 1 or Esc";
+        }
+        else
+        {
+            Close();
+            Notice = host.Workspace.FindTab(_tabId) is { } tab && Refusal(tab) is { } refusal
+                ? refusal
+                : Start(_tabId, _kind, _commits, parent);
+        }
     }
 
     public void OnGraphChanged()
@@ -170,11 +191,15 @@ public sealed class PickActions(
     private static int? MainlineOf(string name) =>
         name.Length == 1 && char.IsAsciiDigit(name[0]) ? name[0] - '0' : null;
 
-    private bool TryHandleOpenPrompt(ActionId action)
+    private bool TryHandleOpenPrompt(ActionId action, int? count)
     {
         if (action == ActionIds.Cancel)
         {
             Close();
+        }
+        else if (action == ActionIds.PickMainline)
+        {
+            Choose(count ?? 0);
         }
         else if (action != ActionIds.InputAccept)
         {

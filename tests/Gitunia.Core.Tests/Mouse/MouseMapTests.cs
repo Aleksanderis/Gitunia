@@ -14,10 +14,20 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.ReflogBranchButton)]
     [InlineData(DefaultMouseMap.ReflogCheckoutButton)]
     [InlineData(DefaultMouseMap.ReflogPickerRow)]
+    [InlineData(DefaultMouseMap.MainlineParentRow)]
     public void GivenAReflogOverlayView_WhenClicked_ThenItIsBoundAndRunsWhileAnOverlayIsOpen(string view)
     {
         Assert.Contains(view, DefaultMouseMap.OverlayViews);
         Assert.NotNull(DefaultMouseMap.Create().Resolve(view, MouseGesture.Click));
+    }
+
+    [Fact]
+    public void GivenAMainlineParentRow_WhenClicked_ThenTheClickTargetIsTheParentNumber()
+    {
+        var binding = DefaultMouseMap.Create().Resolve(DefaultMouseMap.MainlineParentRow, MouseGesture.Click);
+
+        Assert.Equal(ActionIds.PickMainline, binding?.Action);
+        Assert.True(binding?.UsesTarget);
     }
 
     [Theory]
@@ -132,10 +142,12 @@ public class MouseMapTests
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
         // The right-click row menu (#428) is the palette (':') narrowed to the row's actions: its keys are theirs.
+        // The mainline parent row (#449) is the digit key, which the open prompt reads as typed text in Insert mode.
         var keyed = DefaultKeymap.CreateBindings()
             .Select(binding => binding.Action)
             .Append(ActionIds.WorkingTreeOpen)
             .Append(ActionIds.PaletteOpenForRow)
+            .Append(ActionIds.PickMainline)
             .ToHashSet();
 
         var mouseOnly = DefaultMouseMap.CreateBindings()
