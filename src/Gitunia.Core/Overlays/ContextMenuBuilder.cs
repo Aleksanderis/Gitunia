@@ -3,7 +3,7 @@ using Gitunia.Core.Keymap.Models;
 
 namespace Gitunia.Core.Overlays;
 
-/// <summary>Builds the entries of an actions menu (#471): a title and the key that runs the action from the view.</summary>
+/// <summary>Builds the entries of an actions menu (#471): a title and the key that runs the action in a view.</summary>
 public static class ContextMenuBuilder
 {
     /// <summary>

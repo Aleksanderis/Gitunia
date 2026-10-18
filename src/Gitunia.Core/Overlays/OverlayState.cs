@@ -41,7 +41,7 @@ public sealed record OverlayState(
     public static OverlayState OpenPalette(PaletteState palette, KeyMode returnMode) =>
         new(OverlayKind.Palette, string.Empty, 0, palette, null, returnMode, false);
 
-    /// <summary>Opens the actions menu of a row; its entries are the <paramref name="menu"/>'s (the query stays empty).</summary>
+    /// <summary>Opens the actions menu of a row; its entries are those of <paramref name="menu"/>.</summary>
     public static OverlayState OpenContextMenu(PaletteState menu, MenuAnchor anchor, KeyMode returnMode) =>
         new(OverlayKind.ContextMenu, string.Empty, 0, menu, null, returnMode, false, anchor);
 

@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Xunit;
@@ -25,7 +26,9 @@ public class ContextMenuBuilderTests
     [Fact]
     public void GivenAnActionWithoutAKeyInTheView_WhenBuilding_ThenItIsLeftOut()
     {
-        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, [ActionIds.BranchSwitch, ActionIds.StashApply]);
+        ActionId[] actions = [ActionIds.BranchSwitch, ActionIds.StashApply];
+
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, actions);
 
         Assert.Equal([ActionIds.BranchSwitch], entries.Select(entry => entry.Action));
     }

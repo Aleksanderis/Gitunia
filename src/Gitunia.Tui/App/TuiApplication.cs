@@ -788,7 +788,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private static MenuAnchor AnchorOf(PaneListView list)
     {
-        var visibleRow = Math.Clamp((list.SelectedItem ?? 0) - list.Viewport.Y, 0, Math.Max(0, list.Viewport.Height - 1));
+        var lastRow = Math.Max(0, list.Viewport.Height - 1);
+        var visibleRow = Math.Clamp((list.SelectedItem ?? 0) - list.Viewport.Y, 0, lastRow);
         return new MenuAnchor(list.Frame.X, list.Frame.Y + visibleRow);
     }
 

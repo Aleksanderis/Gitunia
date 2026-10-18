@@ -68,7 +68,7 @@ public sealed class OverlayController
     public OverlayState State { get; private set; } = OverlayState.None;
 
     /// <summary>
-    /// What the actions menu of the focused row offers: asked with the keymap view the menu opens from (the graph or the
+    /// What the actions menu of the focused row offers: asked with the keymap view it opens from (the graph or the
     /// sidebar), it returns the row's actions and where the row is on screen, or null when there is no row to act on.
     /// </summary>
     public Func<string, RowMenuTarget?> MenuTarget { get; set; } = _ => null;
@@ -263,7 +263,8 @@ public sealed class OverlayController
         }
 
         var menu = new PaletteState(entries);
-        if (ContextMenuFrameBuilder.Build(menu, target.Anchor, _screenSize().Width, _screenSize().Height, _glyphs) is null)
+        var size = _screenSize();
+        if (ContextMenuFrameBuilder.Build(menu, target.Anchor, size.Width, size.Height, _glyphs) is null)
         {
             _statuses.Warning("The screen is too small for the actions menu");
             return;
@@ -272,7 +273,7 @@ public sealed class OverlayController
         Open(OverlayState.OpenContextMenu(menu, target.Anchor, _keys.Mode), KeyMode.Normal);
     }
 
-    /// <summary>Highlights the menu entry drawn on a line of the overlay frame (a mouse click); false when the line is not an entry.</summary>
+    /// <summary>Highlights the menu entry drawn on a frame line (a click); false for any other line.</summary>
     public bool SelectMenuEntryAt(int frameLine)
     {
         if (State is not { Kind: OverlayKind.ContextMenu, Palette: { } menu })

@@ -41,7 +41,8 @@ public static class ContextMenuFrameBuilder
             var entry = entries[index];
             var role = entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint;
             var keyRole = entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint;
-            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, role, keyRole, index == window.Selected));
+            var isSelected = index == window.Selected;
+            lines.Add(OverlayBox.TwoColumns(entry.Title, entry.Keys, width, glyphs, role, keyRole, isSelected));
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));
@@ -52,7 +53,7 @@ public static class ContextMenuFrameBuilder
         return new OverlayFrame(column, row, lines);
     }
 
-    /// <summary>The index into the menu's entries of the entry drawn on <paramref name="frameLine"/>, or null for the border.</summary>
+    /// <summary>The index of the entry drawn on <paramref name="frameLine"/>, or null for the border.</summary>
     public static int? EntryIndexAt(PaletteState menu, int frameLine, int screenHeight)
     {
         var rowCount = Math.Min(menu.Entries.Count, screenHeight - ChromeRows - ScreenMargin);
@@ -76,6 +77,7 @@ public static class ContextMenuFrameBuilder
     {
         var count = menu.Entries.Count;
         var selected = Math.Clamp(menu.SelectedIndex, 0, count - 1);
-        return new MenuWindow(rowCount, selected, Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, count - rowCount)));
+        var top = Math.Clamp(selected - (rowCount / 2), 0, Math.Max(0, count - rowCount));
+        return new MenuWindow(rowCount, selected, top);
     }
 }

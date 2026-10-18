@@ -5,7 +5,7 @@ using Gitunia.Core.Sidebar;
 namespace Gitunia.Core.Overlays;
 
 /// <summary>
-/// The actions the actions menu of a row offers (#428, #471), in this order. They take the selected row as their target,
+/// The actions the menu of a row offers (#428, #471), in this order. They take the selected row as their target,
 /// so opening the menu selects the row first. Together they cover everything the sidebar header chips offered, so the
 /// menu is the mouse path of an action and its keys are shown beside it.
 /// </summary>

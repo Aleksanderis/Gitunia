@@ -12,7 +12,7 @@ public enum MouseGesture
     /// <summary>A right click: opens the actions menu of the row under the pointer.</summary>
     RightClick,
 
-    /// <summary>A middle-button click: the same menu as <see cref="RightClick"/>, for terminals or multiplexers that keep the right button.</summary>
+    /// <summary>A middle-button click: the same menu as <see cref="RightClick"/> where that button is kept.</summary>
     MiddleClick,
 
     /// <summary>A left click with Ctrl held: a second right-click alternative.</summary>
