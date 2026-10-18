@@ -112,7 +112,7 @@ public sealed class InteractiveRebaseWriter(
     {
         if (!string.IsNullOrEmpty(environment(SequenceEditorVariable)))
         {
-            throw new RebaseRangeException(
+            throw new RebaseEnvironmentException(
                 $"{SequenceEditorVariable} is set and would replace Gitunia's todo; unset it to rebase interactively");
         }
 
@@ -129,18 +129,18 @@ public sealed class InteractiveRebaseWriter(
         }
 
         var todoPath = await WriteFilesAsync(directory, entries, cancellationToken).ConfigureAwait(false);
-        var succeeded = false;
         try
         {
             var result = await operations.RunAsync(location, BuildArguments(rebaseBase, todoPath), cancellationToken)
                 .ConfigureAwait(false);
-            succeeded = true;
             return new InteractiveRebaseResult(result.Outcome, result.Head, originalHead);
         }
         finally
         {
-            // A refused start (dirty tree) and a finished rebase need no files; a stopped one still does.
-            if (!succeeded || detector.Detect(location) == RepositoryOperation.None)
+            // A refused start (dirty tree) and a finished rebase leave no operation and need no files. Any rebase
+            // still in progress (a conflict stop, a hook that rejected an exec line, a cancel) keeps them, because
+            // the exec lines of the rest of the todo run on continue.
+            if (detector.Detect(location) == RepositoryOperation.None)
             {
                 DeleteQuietly(directory);
             }
@@ -171,8 +171,6 @@ public sealed class InteractiveRebaseWriter(
         }
     }
 
-    private static string ToGitPath(string path) => path.Replace(Path.DirectorySeparatorChar, '/');
-
     private static async Task<string> WriteFilesAsync(
         string directory,
         IReadOnlyList<RebaseTodoEntry> entries,
@@ -189,7 +187,7 @@ public sealed class InteractiveRebaseWriter(
 
             var path = Path.Combine(directory, $"reword-{index.ToString(CultureInfo.InvariantCulture)}.txt");
             await File.WriteAllTextAsync(path, entries[index].Message, Utf8, cancellationToken).ConfigureAwait(false);
-            messageFiles[index] = ToGitPath(path);
+            messageFiles[index] = SequenceEditorCommand.ToGitPath(path);
         }
 
         var todoPath = Path.Combine(directory, TodoFileName);
@@ -200,16 +198,12 @@ public sealed class InteractiveRebaseWriter(
 
     private List<string> BuildArguments(RebaseBase rebaseBase, string todoPath)
     {
-        var words = editor.Arguments
-            .Select(ToGitPath)
-            .Append(ToGitPath(todoPath))
-            .Select(RebaseTodoFormatter.ShellQuote);
         var arguments = new List<string>
         {
             "-c",
             "core.editor=true",
             "-c",
-            $"sequence.editor={string.Join(' ', words)}",
+            $"sequence.editor={editor.ToConfigValue(todoPath)}",
             "rebase",
             "--interactive",
             "--no-update-refs",

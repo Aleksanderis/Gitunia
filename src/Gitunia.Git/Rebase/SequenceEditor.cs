@@ -9,6 +9,8 @@ public static class SequenceEditor
 
     private const int UsageError = 2;
 
+    private const int CopyFailed = 1;
+
     private const int ArgumentCount = 2;
 
     /// <summary>
@@ -21,7 +23,16 @@ public static class SequenceEditor
             return UsageError;
         }
 
-        File.Copy(arguments[0], arguments[1], overwrite: true);
+        try
+        {
+            File.Copy(arguments[0], arguments[1], overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"gitunia: cannot write the rebase todo: {exception.Message}");
+            return CopyFailed;
+        }
+
         return Success;
     }
 }

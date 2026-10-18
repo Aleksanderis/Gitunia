@@ -325,13 +325,116 @@ public class InteractiveRebaseWriterTests
         var (writer, location) = await CreateAsync(repository, name => name == "GIT_SEQUENCE_EDITOR" ? "true" : null);
         var range = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit("HEAD~1"), Token);
 
-        var exception = await Assert.ThrowsAsync<RebaseRangeException>(() => writer.RebaseAsync(
+        var exception = await Assert.ThrowsAsync<RebaseEnvironmentException>(() => writer.RebaseAsync(
             location,
             RebaseBase.OntoCommit("HEAD~1"),
             [Entry(range[0], RebaseTodoAction.Drop)],
             Token));
 
         Assert.Contains("GIT_SEQUENCE_EDITOR", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenARewordFollowedByASquash_WhenRebasing_ThenTheNewSubjectAndTheSquashedMessageAreKept()
+    {
+        using var repository = Linear();
+        var (writer, location) = await CreateAsync(repository);
+        var range = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit("HEAD~2"), Token);
+
+        await writer.RebaseAsync(
+            location,
+            RebaseBase.OntoCommit("HEAD~2"),
+            [Entry(range[0], RebaseTodoAction.Reword, "Renamed"), Entry(range[1], RebaseTodoAction.Squash)],
+            Token);
+
+        Assert.Equal(["One", "Two", "Renamed"], Subjects(repository));
+        Assert.Contains("Four", repository.Git("log", "-1", "--format=%B"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAConflictStop_WhenTheCommitIsSkipped_ThenTheRebaseCompletesWithoutIt()
+    {
+        using var repository = Conflicting();
+        var (writer, location) = await CreateAsync(repository);
+        var range = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit("HEAD~3"), Token);
+        await writer.RebaseAsync(
+            location,
+            RebaseBase.OntoCommit("HEAD~3"),
+            [
+                Entry(range[1], RebaseTodoAction.Pick),
+                Entry(range[0], RebaseTodoAction.Pick),
+                Entry(range[2], RebaseTodoAction.Pick),
+            ],
+            Token);
+
+        var skipped = await CreateOperationWriter(repository)
+            .SkipAsync(location, RepositoryOperation.Rebase, Token);
+
+        Assert.Equal(OperationOutcome.Completed, skipped.Outcome);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.DoesNotContain("Three", Subjects(repository));
+    }
+
+    [Fact]
+    public async Task GivenARejectedReword_WhenTheHookIsFixedAndTheRebaseContinued_ThenTheLaterRewordStillApplies()
+    {
+        using var repository = Linear();
+        var hook = Path.Combine(repository.WorkingTreePath, ".git", "hooks", "commit-msg");
+        Directory.CreateDirectory(Path.GetDirectoryName(hook)!);
+        File.WriteAllText(hook, "#!/bin/sh\ngrep -q REJECT \"$1\" && exit 1\nexit 0\n");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(hook, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        var (writer, location) = await CreateAsync(repository);
+        var range = await writer.ReadRangeAsync(location, RebaseBase.Root, Token);
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(() => writer.RebaseAsync(
+            location,
+            RebaseBase.Root,
+            [
+                Entry(range[0], RebaseTodoAction.Pick),
+                Entry(range[1], RebaseTodoAction.Reword, "REJECT me"),
+                Entry(range[2], RebaseTodoAction.Reword, "Three, reworded"),
+                Entry(range[3], RebaseTodoAction.Pick),
+            ],
+            Token));
+
+        Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
+        Assert.True(Directory.Exists(Path.Combine(location.GitDirectory, "gitunia-rebase")));
+        File.Delete(hook);
+        var continued = await CreateOperationWriter(repository)
+            .ContinueAsync(location, RepositoryOperation.Rebase, Token);
+
+        Assert.Equal(OperationOutcome.Completed, continued.Outcome);
+        Assert.Contains("Three, reworded", Subjects(repository));
+    }
+
+    [Fact]
+    public async Task GivenAnEditorPathWithSpaceAndApostrophe_WhenRebasing_ThenGitFindsTheEditorAndTheTodoApplies()
+    {
+        using var repository = Linear();
+        var directory = Directory.CreateTempSubdirectory("gitunia it's here ");
+        try
+        {
+            var script = Path.Combine(directory.FullName, "editor.sh");
+            File.WriteAllText(script, "#!/bin/sh\ncp \"$1\" \"$2\"\n");
+            var (writer, location) = await CreateAsync(repository, command: new SequenceEditorCommand(["sh", script]));
+            var range = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit("HEAD~2"), Token);
+
+            await writer.RebaseAsync(
+                location,
+                RebaseBase.OntoCommit("HEAD~2"),
+                [Entry(range[1], RebaseTodoAction.Pick), Entry(range[0], RebaseTodoAction.Pick)],
+                Token);
+
+            Assert.Equal(["One", "Two", "Four", "Three"], Subjects(repository));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -400,7 +503,8 @@ public class InteractiveRebaseWriterTests
 
     private static async Task<Harness> CreateAsync(
         TestRepository repository,
-        Func<string, string?>? environment = null)
+        Func<string, string?>? environment = null,
+        SequenceEditorCommand? command = null)
     {
         var runner = repository.CreateIsolatedRunner();
         var location = await new RepositoryDiscovery(runner).DiscoverAsync(repository.WorkingTreePath, Token);
@@ -412,7 +516,7 @@ public class InteractiveRebaseWriterTests
             operations,
             runner,
             detector,
-            new SequenceEditorCommand(["cp"]),
+            command ?? new SequenceEditorCommand(["cp"]),
             environment ?? (_ => null));
         return new Harness(writer, location);
     }

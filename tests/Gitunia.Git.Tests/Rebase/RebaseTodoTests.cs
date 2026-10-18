@@ -124,6 +124,33 @@ public class RebaseTodoTests
     }
 
     [Fact]
+    public void GivenAMissingPreparedTodo_WhenTheEditorModeRuns_ThenItFailsWithANonZeroExitCode()
+    {
+        var directory = Directory.CreateTempSubdirectory("gitunia-sequence-editor");
+        try
+        {
+            var missing = Path.Combine(directory.FullName, "missing");
+            var exitCode = SequenceEditor.Copy([missing, Path.Combine(directory.FullName, "todo")]);
+
+            Assert.Equal(1, exitCode);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GivenSpacesAndApostrophes_WhenBuildingTheConfigValue_ThenEveryWordIsQuotedForTheShell()
+    {
+        var command = new SequenceEditorCommand(["/opt/my apps/gitunia", "--sequence-editor"]);
+
+        Assert.Equal(
+            "'/opt/my apps/gitunia' '--sequence-editor' '/tmp/it'\\''s/todo'",
+            command.ToConfigValue("/tmp/it's/todo"));
+    }
+
+    [Fact]
     public void GivenTheWrongNumberOfArguments_WhenTheEditorModeRuns_ThenItFailsWithUsageError()
     {
         Assert.Equal(2, SequenceEditor.Copy(["only-one"]));
