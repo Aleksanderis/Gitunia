@@ -124,6 +124,7 @@ public class PaletteEntryBuilderTests
         }
 
         var named = typeof(ActionGroups).GetProperties().Select(property => (ActionGroup)property.GetValue(null)!);
-        Assert.Equal(used.OrderBy(group => group.Order), named.Where(group => group.WhichKeyName is not null).OrderBy(group => group.Order));
+        var withName = named.Where(group => group.WhichKeyName is not null);
+        Assert.Equal(used.OrderBy(group => group.Order), withName.OrderBy(group => group.Order));
     }
 }
