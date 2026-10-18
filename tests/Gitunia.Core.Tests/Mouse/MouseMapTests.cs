@@ -141,12 +141,10 @@ public class MouseMapTests
     public void GivenTheDefaultMap_WhenListingBindings_ThenEveryActionIsReachableByAKeyToo()
     {
         // Opening the working tree (the dirty marker, #331) is the one-way half of the key toggle <space>s.
-        // The right-click row menu (#428) is the palette (':') narrowed to the row's actions: its keys are theirs.
         // The mainline parent row (#449) is the digit key, which the open prompt reads as typed text in Insert mode.
         var keyed = DefaultKeymap.CreateBindings()
             .Select(binding => binding.Action)
             .Append(ActionIds.WorkingTreeOpen)
-            .Append(ActionIds.PaletteOpenForRow)
             .Append(ActionIds.PickMainline)
             .ToHashSet();
 
@@ -217,18 +215,17 @@ public class MouseMapTests
         Assert.Equal(key.Action, binding?.Action);
     }
 
-    [Fact]
-    public void GivenARightClickOnAGraphRow_WhenResolving_ThenTheRowCommandsOpen()
+    [Theory]
+    [InlineData(MouseGesture.RightClick)]
+    [InlineData(MouseGesture.MiddleClick)]
+    [InlineData(MouseGesture.CtrlClick)]
+    public void GivenAnOpenGestureOnAGraphOrSidebarRow_WhenResolving_ThenTheRowMenuOpens(MouseGesture gesture)
     {
         var map = DefaultMouseMap.Create();
 
-        var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.RightClick);
-
-        Assert.Equal(ActionIds.PaletteOpenForRow, binding?.Action);
-        Assert.Equal(
-            ActionIds.PaletteOpenForRow,
-            map.Resolve(DefaultKeymap.SidebarView, MouseGesture.RightClick)?.Action);
-        Assert.Null(map.Resolve(DefaultKeymap.DiffView, MouseGesture.RightClick));
+        Assert.Equal(ActionIds.MenuOpenForRow, map.Resolve(DefaultKeymap.GraphView, gesture)?.Action);
+        Assert.Equal(ActionIds.MenuOpenForRow, map.Resolve(DefaultKeymap.SidebarView, gesture)?.Action);
+        Assert.Null(map.Resolve(DefaultKeymap.DiffView, gesture));
     }
 
     [Theory]

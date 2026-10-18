@@ -29,6 +29,8 @@ public static class OverlayFrameFactory
             OverlayKind.Output => HelpFrameBuilder.Build(helpSections, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, state.HelpView),
             OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
+            OverlayKind.ContextMenu when state is { Palette: { } menu, MenuAnchor: { } anchor } =>
+                ContextMenuFrameBuilder.Build(menu, anchor, screenWidth, screenHeight, glyphs),
             _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(pendingKeys, whichKeyRows, screenWidth, screenHeight, glyphs),
             _ => null,
         };

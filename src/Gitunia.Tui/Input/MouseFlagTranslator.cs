@@ -36,6 +36,14 @@ public static class MouseFlagTranslator
         {
             gesture = MouseGesture.RightClick;
         }
+        else if (flags.HasFlag(MouseFlags.MiddleButtonClicked))
+        {
+            gesture = MouseGesture.MiddleClick;
+        }
+        else if (flags.HasFlag(MouseFlags.LeftButtonClicked) && flags.HasFlag(MouseFlags.Ctrl))
+        {
+            gesture = MouseGesture.CtrlClick;
+        }
         else if (flags.HasFlag(MouseFlags.LeftButtonDoubleClicked))
         {
             gesture = MouseGesture.DoubleClick;

@@ -311,3 +311,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Prompts that ask for text or a choice are centred popups (#470): one `PromptPopup` record and frame builder, exposed by prompt handlers; the status bar keeps transient messages and find-as-you-type bars (search, jump, filters). Why: a status-bar input is not evident, especially for mouse-started actions. Supersedes the status bar prompts of the reflog entry.
 
 **UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.
+
+**UI:** Row actions are a real popup menu, not the palette (#471, owner): `<space>.` or right-click, middle-click or Ctrl-click (right-click may not reach the app under a multiplexer) opens a menu under the row listing that row's actions with their keys; replaces the narrowed palette of #428. It covers every action of the sidebar header chips, which #469 drops. Details in ux.md, "Actions menu".

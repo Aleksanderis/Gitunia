@@ -13,6 +13,7 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Confirm">The question while a confirm dialog is open.</param>
 /// <param name="ReturnMode">The input mode to restore when the overlay closes.</param>
 /// <param name="WhichKeyVisible">The popup for a pending chord is showing.</param>
+/// <param name="MenuAnchor">Where the actions menu hangs while it is open (the row it was opened on).</param>
 public sealed record OverlayState(
     OverlayKind Kind,
     string HelpView,
@@ -20,7 +21,8 @@ public sealed record OverlayState(
     PaletteState? Palette,
     ConfirmPrompt? Confirm,
     KeyMode ReturnMode,
-    bool WhichKeyVisible)
+    bool WhichKeyVisible,
+    MenuAnchor? MenuAnchor = null)
 {
     public static OverlayState None { get; } = new(OverlayKind.None, string.Empty, 0, null, null, KeyMode.Normal, false);
 
@@ -38,6 +40,10 @@ public sealed record OverlayState(
 
     public static OverlayState OpenPalette(PaletteState palette, KeyMode returnMode) =>
         new(OverlayKind.Palette, string.Empty, 0, palette, null, returnMode, false);
+
+    /// <summary>Opens the actions menu of a row; its entries are the <paramref name="menu"/>'s (the query stays empty).</summary>
+    public static OverlayState OpenContextMenu(PaletteState menu, MenuAnchor anchor, KeyMode returnMode) =>
+        new(OverlayKind.ContextMenu, string.Empty, 0, menu, null, returnMode, false, anchor);
 
     /// <summary>Opens a confirm dialog; the keys are <c>y</c>, <c>n</c> and <c>Esc</c> only.</summary>
     public static OverlayState OpenConfirm(ConfirmPrompt prompt, KeyMode returnMode) =>

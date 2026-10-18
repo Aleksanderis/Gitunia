@@ -20,6 +20,7 @@ public static class DefaultKeymap
     public const string WorkingMessageView = "WorkingMessage";
     public const string PickerView = "Picker";
     public const string PaletteView = "Palette";
+    public const string ContextMenuView = "ContextMenu";
     public const string HelpView = "Help";
     public const string MessagesView = "Messages";
     public const string ConfirmView = "Confirm";
@@ -43,6 +44,7 @@ public static class DefaultKeymap
         [ListsView] = KeyBindingTable.GlobalView,
         [PickerView] = KeyBindingTable.GlobalView,
         [PaletteView] = KeyBindingTable.GlobalView,
+        [ContextMenuView] = KeyBindingTable.GlobalView,
         [HelpView] = ListsView,
         [MessagesView] = ListsView,
         [ConfirmView] = KeyBindingTable.GlobalView,
@@ -62,6 +64,7 @@ public static class DefaultKeymap
         AddWorkingMessage(bindings);
         AddPicker(bindings);
         AddPalette(bindings);
+        AddContextMenu(bindings);
         AddModals(bindings);
         return bindings;
     }
@@ -153,6 +156,8 @@ public static class DefaultKeymap
         AddTagKeys(bindings, SidebarView);
         AddResetKeys(bindings, GraphView);
         Add(bindings, NormalOnly, GraphView, "<space>l", ActionIds.ReflogOpen);
+        Add(bindings, NormalOnly, GraphView, "<space>.", ActionIds.MenuOpenForRow);
+        Add(bindings, NormalOnly, SidebarView, "<space>.", ActionIds.MenuOpenForRow);
         Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
         AddReflogKeys(bindings);
         AddResetKeys(bindings, SidebarView);
@@ -383,6 +388,24 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-j", ActionIds.PaletteNext);
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-k", ActionIds.PalettePrevious);
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-l", ActionIds.CommandExecute);
+    }
+
+    private static void AddContextMenu(List<KeyBinding> bindings)
+    {
+        foreach (var (keys, action) in new[]
+        {
+            ("j", ActionIds.PaletteNext),
+            ("Down", ActionIds.PaletteNext),
+            ("Ctrl-j", ActionIds.PaletteNext),
+            ("k", ActionIds.PalettePrevious),
+            ("Up", ActionIds.PalettePrevious),
+            ("Ctrl-k", ActionIds.PalettePrevious),
+            ("Enter", ActionIds.CommandExecute),
+            ("Ctrl-l", ActionIds.CommandExecute),
+        })
+        {
+            Add(bindings, NormalOnly, ContextMenuView, keys, action);
+        }
     }
 
     private static void AddModals(List<KeyBinding> bindings)
