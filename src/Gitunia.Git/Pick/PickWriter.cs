@@ -128,14 +128,8 @@ public sealed class PickWriter(
             await operations.RunToCompletionAsync(location, [command, AbortOption], CancellationToken.None)
                 .ConfigureAwait(false);
 
-            // A call killed while committing leaves the pick marker behind and makes the abort skip the rewind ("you
-            // seem to have moved HEAD"): clear the marker, then put the tip back where the pick started.
-            if (detector.Detect(location) != RepositoryOperation.None)
-            {
-                await operations.RunToCompletionAsync(location, [command, AbortOption], CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-
+            // A call killed while committing makes the abort skip the rewind ("you seem to have moved HEAD"): put the
+            // tip back where the pick started, which also clears the pick marker.
             var head = await ReadHeadAsync(location, CancellationToken.None).ConfigureAwait(false);
             if (before is not null && head != before)
             {
@@ -144,9 +138,9 @@ public sealed class PickWriter(
                     .ConfigureAwait(false);
             }
         }
-        catch (GitCommandFailedException)
+        catch (GitException)
         {
-            // The original failure is the one to report.
+            // The original failure is the one to report (a stale lock or a hanging hook can leave the sequence).
         }
     }
 
