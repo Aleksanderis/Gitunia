@@ -119,6 +119,17 @@ public class SidebarFrameTests
     }
 
     [Fact]
+    public void GivenWideBranchesHeader_WhenLayingOutButtons_ThenUpstreamChipsComeLastAndTagsHaveNone()
+    {
+        var branches = SidebarHeaderButtons.Layout(Section(SidebarSection.Branches, "Branches", 1, true), 8, 300);
+        var tags = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, true), 8, 300);
+
+        Assert.Equal(DefaultMouseMap.SidebarBranchSetUpstreamButton, branches[^2].View);
+        Assert.Equal(DefaultMouseMap.SidebarBranchUnsetUpstreamButton, branches[^1].View);
+        Assert.DoesNotContain(tags, button => button.View == DefaultMouseMap.SidebarBranchSetUpstreamButton);
+    }
+
+    [Fact]
     public void GivenNarrowTagsHeader_WhenLayingOutButtons_ThenRevertDropsFirst()
     {
         var wide = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, 200);
@@ -160,11 +171,12 @@ public class SidebarFrameTests
 
         Assert.Equal(160, TextWidth.Of(line.Text));
         Assert.EndsWith(
-            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
+            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset] [pick] "
+            + "[revert] [upstream] [unset-up]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
         var buttons = SidebarRowRenderer.ButtonsOf(row, 160, GraphGlyphSet.Unicode);
-        Assert.Equal(12, buttons.Count);
+        Assert.Equal(14, buttons.Count);
         var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
     }

@@ -100,6 +100,11 @@ public static class DefaultMouseMap
 
     public const string SidebarRevertButton = "SidebarButton.Revert";
 
+    /// <summary>The set and unset upstream buttons of the Branches header (#436).</summary>
+    public const string SidebarBranchSetUpstreamButton = "SidebarButton.BranchSetUpstream";
+
+    public const string SidebarBranchUnsetUpstreamButton = "SidebarButton.BranchUnsetUpstream";
+
     /// <summary>The buttons in the Worktrees header of the sidebar (#412): each acts on the selected row.</summary>
     public const string SidebarWorktreeAddButton = "SidebarButton.WorktreeAdd";
 
@@ -205,6 +210,8 @@ public static class DefaultMouseMap
         new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
         new(SidebarPickButton, MouseGesture.Click, ActionIds.PickCherry),
         new(SidebarRevertButton, MouseGesture.Click, ActionIds.PickRevert),
+        new(SidebarBranchSetUpstreamButton, MouseGesture.Click, ActionIds.BranchSetUpstream),
+        new(SidebarBranchUnsetUpstreamButton, MouseGesture.Click, ActionIds.BranchUnsetUpstream),
         new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(DefaultKeymap.SidebarView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(SidebarWorktreeAddButton, MouseGesture.Click, ActionIds.WorktreeAdd),

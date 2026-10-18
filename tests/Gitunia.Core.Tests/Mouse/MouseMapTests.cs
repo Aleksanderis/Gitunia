@@ -183,6 +183,8 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
     [InlineData(DefaultMouseMap.SidebarPickButton, "<space>gp")]
     [InlineData(DefaultMouseMap.SidebarRevertButton, "<space>gv")]
+    [InlineData(DefaultMouseMap.SidebarBranchSetUpstreamButton, "<space>bu")]
+    [InlineData(DefaultMouseMap.SidebarBranchUnsetUpstreamButton, "<space>bU")]
     public void GivenARebaseResetPickOrRevertButton_WhenClicking_ThenItRunsItsKeyAction(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);

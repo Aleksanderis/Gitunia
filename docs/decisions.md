@@ -290,3 +290,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Reflog follow-ups (#424): the ref picker opens with `<space>l` inside the list (the graph key keeps opening HEAD in one step), `/` search lives in the list footer, and the mouse paths of an entry are action rows under the list (no right-click or header button: the overlay is modal and has no pane header).
 
 **UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449).
+
+**UI:** Upstream by mouse (#436): `[upstream]` and `[unset-up]` chips close the Branches header, after `[revert]`, so narrow sidebars drop them first (right-click menu is the path); not on Tags.
