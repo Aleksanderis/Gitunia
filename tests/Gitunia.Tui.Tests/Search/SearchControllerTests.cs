@@ -309,14 +309,14 @@ public class SearchControllerTests
         harness.Type("body:x");
         WaitUntil(harness, h => h.Session.Search.IsComplete);
 
-        Assert.Contains("Message search failed: bad pattern", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("Message search failed: git returned an error", harness.StatusLine, StringComparison.Ordinal);
         Assert.Contains("0 found", harness.StatusLine, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void GivenTextTypedAfterBodyPrefix_WhenTheAnswerOfTheOlderQueryArrives_ThenItIsDropped()
+    public async Task GivenTextTypedAfterBodyPrefix_WhenTheAnswerOfTheOlderQueryArrives_ThenItIsDropped()
     {
-        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate(), IgnoreCancellation = true };
         searcher.Hits.Add(CommitFactory.Id(2));
         using var harness = new PromptHarness(Graph(), messages: searcher);
         harness.Press(new Key('/'));
@@ -330,6 +330,8 @@ public class SearchControllerTests
         harness.Press(Key.Backspace);
         harness.Type("fix");
         searcher.Gate.SetResult();
+        await searcher.Finished.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal(SearchField.Message, harness.Session.Search.Query!.Field);
         Assert.Equal("/fix_  1/3", harness.StatusLine);

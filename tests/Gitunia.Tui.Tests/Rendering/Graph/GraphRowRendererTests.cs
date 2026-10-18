@@ -1,4 +1,6 @@
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Search.Models;
+using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Graph;
@@ -227,6 +229,20 @@ public class GraphRowRendererTests
 
         Assert.True(GraphRowRenderer.Render(graph[0], options, true).IsSelected);
         Assert.False(GraphRowRenderer.Render(graph[0], options, false).IsSelected);
+    }
+
+    [Fact]
+    public void GivenBodyHitWithTextOnlyInTheBody_WhenRendering_ThenTheWholeSubjectIsMarked()
+    {
+        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "Fix typo", []), CommitFactory.Commit(2, "Other", []));
+        var hits = new HashSet<ObjectId> { graph[0].Id };
+        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Body, "closes", hits));
+
+        var hit = GraphRowRenderer.Render(graph[0], options, false);
+        var miss = GraphRowRenderer.Render(graph[1], options, false);
+
+        Assert.Contains(hit.Segments, segment => segment.Role == SegmentRole.SearchMatch && segment.Text == "Fix typo");
+        Assert.DoesNotContain(miss.Segments, segment => segment.Role == SegmentRole.SearchMatch);
     }
 
     [Fact]

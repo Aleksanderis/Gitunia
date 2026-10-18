@@ -118,7 +118,9 @@ public static class GraphRowRenderer
     {
         if (highlight is null || !GraphSearchMatcher.TryFindInSubject(highlight, subject, out var start, out var length))
         {
-            builder.Append(subject, SegmentRole.Plain);
+            // A message hit whose text sits in the body only has nothing to underline, so the whole subject is marked.
+            var role = highlight?.Field == SearchField.Body ? SegmentRole.SearchMatch : SegmentRole.Plain;
+            builder.Append(subject, role);
             return;
         }
 

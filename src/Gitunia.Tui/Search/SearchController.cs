@@ -26,6 +26,8 @@ public sealed class SearchController(
 {
     private const int SliceSize = 5000;
 
+    private const string FailureText = "git returned an error";
+
     // A body query starts the search only once typing paused, so a fast typist starts no process per key.
     private static readonly TimeSpan DefaultBodyDebounce = TimeSpan.FromMilliseconds(250);
 
@@ -163,7 +165,7 @@ public sealed class SearchController(
         var location = locationOf?.Invoke(session.TabId);
         if (messages is null || location is null)
         {
-            postToUi(() => Dispatch(session, new BodyHitsCommand(effect.Generation, null, "not available")));
+            postToUi(() => Dispatch(session, new BodyHitsCommand(effect.Generation, null, FailureText)));
             return;
         }
 
@@ -198,9 +200,9 @@ public sealed class SearchController(
         {
             return;
         }
-        catch (GitException exception)
+        catch (Exception exception) when (exception is GitException or IOException)
         {
-            command = new BodyHitsCommand(effect.Generation, null, exception.Message);
+            command = new BodyHitsCommand(effect.Generation, null, FailureText);
         }
 
         (invokeOnUi ?? postToUi)(() =>
