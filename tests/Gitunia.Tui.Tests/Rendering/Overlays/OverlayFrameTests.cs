@@ -209,10 +209,10 @@ public class OverlayFrameTests
                 "│ Delete the branch (asks first)                             <space>bd │",
                 "│ Set the branch upstream                                    <space>bu │",
                 "│ Unset the branch upstream                                  <space>bU │",
+                "│                                                                      │",
                 "│ Merge and rebase                                                     │",
                 "│ Reset the current branch to the selected commit (soft, m…  <space>gx │",
                 "│ Rebase the current branch onto the selected commit, bran…  <space>gr │",
-                "│ Merge the selection (fast-forward if possible)             <space>gm │",
                 "│ 1/136 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));

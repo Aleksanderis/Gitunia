@@ -4,6 +4,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -32,8 +33,45 @@ public class ContextMenuFrameBuilderTests
         Assert.Contains("Branch", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Contains("Switch", frame.Lines[4].Text, StringComparison.Ordinal);
         Assert.EndsWith("<space>bs │", frame.Lines[4].Text, StringComparison.Ordinal);
-        Assert.Equal(RowActions.OfGraphRow.Count + GraphMenuGroups + 2, frame.Height);
+        Assert.Equal(RowActions.OfGraphRow.Count + GraphMenuGroups + (GraphMenuGroups - 1) + 2, frame.Height);
         Assert.All(frame.Lines, line => Assert.Equal(frame.Width, line.Text.Length));
+    }
+
+    [Fact]
+    public void GivenTheGraphMenu_WhenBuilding_ThenABlankLinePrecedesEachSubheaderButTheFirst()
+    {
+        var frame = Frame(Menu(), new MenuAnchor(0, 0), height: 60);
+        var texts = frame.Lines.Select(line => line.Text).ToList();
+        var headers = frame.Lines.Select((line, index) => (line, index))
+            .Where(pair => pair.line.Segments.Any(segment => segment.Role == SegmentRole.SectionTitle))
+            .Select(pair => pair.index).ToList();
+
+        Assert.Equal(GraphMenuGroups, headers.Count);
+        Assert.Equal(1, headers[0]);
+        Assert.All(headers.Skip(1), index => Assert.Equal(string.Empty, texts[index - 1].Trim('│', ' ')));
+        Assert.Contains("Navigate", texts[headers[^1]], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAScreenTooShortForTheGaps_WhenBuilding_ThenGapsGoBeforeRows()
+    {
+        var entries = RowActions.OfGraphRow.Count + GraphMenuGroups;
+        var height = entries + 2 + 1;
+
+        var frame = Frame(Menu(), new MenuAnchor(0, 0), height: height);
+
+        Assert.Equal(entries + 2, frame.Height);
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Trim('│', ' ').Length == 0);
+    }
+
+    [Fact]
+    public void GivenGaps_WhenAskingForAnEntry_ThenAGapLineIsNoEntry()
+    {
+        var menu = Menu();
+        var hits = Enumerable.Range(0, 60).Select(line => ContextMenuFrameBuilder.EntryIndexAt(menu, line, 60)).ToList();
+
+        Assert.Equal(RowActions.OfGraphRow.Count, hits.Count(hit => hit is not null));
+        Assert.Equal(Enumerable.Range(0, RowActions.OfGraphRow.Count), hits.Where(hit => hit is not null).Select(hit => hit!.Value));
     }
 
     [Fact]

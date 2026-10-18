@@ -26,7 +26,7 @@ public static class PaletteFrameBuilder
         }
 
         var visible = palette.Visible();
-        var rows = GroupedRows.Of(visible);
+        var rows = GroupedRows.Of(visible, maximumRows, scrolls: true);
         var selectedEntry = visible.Count == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visible.Count - 1);
         var window = rows.Window(selectedEntry, maximumRows);
         var rowCount = window.RowCount;
@@ -47,7 +47,13 @@ public static class PaletteFrameBuilder
                 continue;
             }
 
-            var index = line.Entry!.Value;
+            if (line.Entry is null)
+            {
+                lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
+                continue;
+            }
+
+            var index = line.Entry.Value;
             var entry = visible[index];
             var role = entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint;
             var keyRole = entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint;
@@ -81,9 +87,10 @@ public static class PaletteFrameBuilder
     public static int? EntryIndexAt(PaletteState palette, int frameLine, int screenHeight)
     {
         var visible = palette.Visible();
-        var rows = GroupedRows.Of(visible);
+        var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows);
+        var rows = GroupedRows.Of(visible, maximumRows, scrolls: true);
         var selectedEntry = visible.Count == 0 ? 0 : Math.Clamp(palette.SelectedIndex, 0, visible.Count - 1);
-        var window = rows.Window(selectedEntry, Math.Min(MaximumRows, screenHeight - ScreenMargin - ChromeRows));
+        var window = rows.Window(selectedEntry, maximumRows);
         var offset = frameLine - 1;
         return offset >= 0 && offset < window.RowCount ? rows.EntryAt(window.Top + offset) : null;
     }
