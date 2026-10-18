@@ -26,7 +26,7 @@ Invoke as `/work-readiness <milestone>` (for example `M<n>`; `<n>` is a placehol
 6. **Docs:** design issues still to be written (flows in `docs/ux.md`), docs that are stale for this area, keymap rows that will be needed, and `docs/decisions.md` entries longer than 3 lines or holding implementation detail (move the detail to the area doc).
 7. **Size and cost:** issues too big for one agent run (propose a split), and which large docs agents will have to load (suggest the sections to name in their prompts).
 8. **Loose ends:** known limits, deferred work and manual checks from earlier milestones that exist only in `docs/decisions.md`, PR comments or code comments (grep `docs/*.md` and `docs/history/*.md` for 'known limit', 'follow-up', 'not wired', 'TODO'); each must be an issue or part of one. Register missing ones (new issue or edit an existing one) and list them in the report.
-9. **Environment:** the build, tests and AOT publish are green on `main`; local build and tests are green (CI is dispatch-only, run it if the last run is stale); nothing from the previous milestone is half-merged (stray worktrees, branches, open PRs awaiting the owner).
+9. **Environment:** the build, tests and AOT publish are green on `main`; local build and tests are green (CI runs on tags, weekly and by dispatch; run it if the last run is stale); nothing from the previous milestone is half-merged (stray worktrees, branches, open PRs awaiting the owner).
 
 ## 3. Report
 
