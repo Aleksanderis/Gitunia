@@ -1,18 +1,8 @@
 name: CI
 
-# Minutes are limited on the free plan (decision 2026-10-16, revisit at v1.0): CI runs once per
-# ready PR, not on merges to main (the PR run is the gate), plus weekly on main and on demand.
+# Minutes are limited on the free plan (decision 2026-10-18): CI never runs automatically. Local builds are
+# the gate; run this on demand (`gh workflow run ci.yml`), e.g. before closing a milestone or cutting a release.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-    branches-ignore:
-      - 'review/**'
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - '.claude/**'
-  schedule:
-    - cron: '0 5 * * 1'
   workflow_dispatch:
 
 permissions:

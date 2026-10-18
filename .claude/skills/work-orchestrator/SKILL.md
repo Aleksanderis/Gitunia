@@ -47,7 +47,7 @@ If a worktree or feature branch exists for an issue with no merged PR, that issu
 - Delegate chores instead of doing them in the session: anything that needs more than two commands or reading more than a few lines of output (resolving a conflict between two finished PRs, investigating a failed CI run, registering several loose ends, the hand-over status comment) goes to a short-lived subagent with a three-line prompt and a one-line report.
 - Keep your own messages to the owner to one or two lines per event; no recaps of reports.
 - Do not read PR diffs or agent output files yourself; trust the PR comments and CI. Open the PR only if an agent reports a problem.
-- CI minutes are scarce (decision 2026-10-16): tell agents to verify locally, open the PR ready, push once, skip screenshots without a visual change, and never push empty commits or comment-only nits. Merge when the single CI run is green; do not re-trigger CI.
+- CI minutes are scarce (decision 2026-10-18): CI never runs automatically, local build and tests are the gate. Tell agents to verify locally, open the PR ready, push once, skip screenshots without a visual change, and never push empty commits or comment-only nits. Dispatch CI (`gh workflow run ci.yml --ref main`) once before closing a milestone and report the result.
 
 ## 3. Rate limits and failures
 
