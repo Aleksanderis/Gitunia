@@ -41,6 +41,7 @@ using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
@@ -96,6 +97,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private PickActions _pick = null!;
+    private bool _mainlineShown;
+    private GraphGlyphSet _glyphs = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
     private SessionPersistence? _persistence;
@@ -109,6 +112,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     public int Run(RepositoryLocation? location)
     {
         var glyphs = GraphGlyphSet.For(capabilities.Unicode);
+        _glyphs = glyphs;
         _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -261,6 +265,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _statuses.Changed += _view.RefreshChrome;
         _host.Changed += _view.RefreshChrome;
+        _host.Changed += RefreshMainlineOverlay;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
         _host.Changed += _commits.ForgetClosedTabs;
@@ -475,6 +480,14 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
         }
+        else if (_pick.Prompt is { } prompt && !_overlays.State.IsOpen && !_reflog.IsOpen)
+        {
+            if (MainlineFrameBuilder.ParentAt(line, prompt.Parents.Count) is { } parent)
+            {
+                _overlayClickTicks = Environment.TickCount64;
+                _mouse.Handle(DefaultMouseMap.MainlineParentRow, MouseGesture.Click, parent);
+            }
+        }
         else if (_overlays.ConfirmAnswerAt(line) is { } answer)
         {
             _overlayClickTicks = Environment.TickCount64;
@@ -484,8 +497,30 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RefreshOverlay()
     {
-        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame());
+        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame());
         _view.RefreshChrome();
+    }
+
+    // The mainline question of a cherry-pick or revert of a merge commit, when no other overlay is open.
+    private OverlayFrame? MainlineFrame()
+    {
+        if (_pick.Prompt is not { } prompt)
+        {
+            return null;
+        }
+
+        var size = _view.ScreenSize;
+        return MainlineFrameBuilder.Build(prompt.Title, prompt.Parents, size.Width, size.Height, _glyphs);
+    }
+
+    // Opening or closing the prompt, and leaving its tab, show or hide the overlay.
+    private void RefreshMainlineOverlay()
+    {
+        if ((_pick.Prompt is not null) != _mainlineShown)
+        {
+            _mainlineShown = _pick.Prompt is not null;
+            RefreshOverlay();
+        }
     }
 
     private PaneRects CurrentPaneRects()
@@ -581,10 +616,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 #pragma warning disable IDE0200 // _keys is assigned after this runs; a method group would capture null
         mode => _keys.SetMode(mode),
 #pragma warning restore IDE0200
-        _view.RefreshChrome,
+        RefreshMainlineAndChrome,
         _visual.End,
         PickSelectionNow,
         gate);
+
+    private void RefreshMainlineAndChrome()
+    {
+        RefreshMainlineOverlay();
+        _view.RefreshChrome();
+    }
 
     // A focused sidebar acts on its ref, the graph on the Visual range when one is active, else the selected commit.
     private PickSelection PickSelectionNow()
@@ -844,7 +885,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
     }
 
-    private bool IsAnyOverlayOpen() => _overlays.State.IsOpen || _reflog.IsOpen;
+    private bool IsAnyOverlayOpen() => _overlays.State.IsOpen || _reflog.IsOpen || _pick.Prompt is not null;
 
     private string OverlayViewName() => _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
 

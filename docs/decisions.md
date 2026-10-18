@@ -294,3 +294,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
 
 **UI:** Reflog mouse paths (#441): the four action rows and a ref picker row are mouse views in `DefaultMouseMap` (overlay views), so ux.md lists them; an entry click only highlights (a position, no action). Why: one table for every gesture.
+
+**UI:** Mainline prompt by mouse (#449): a small overlay beside the status-line keys; a click on a parent row answers, any other click cancels. Supersedes the key-only note of #432.

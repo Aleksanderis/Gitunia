@@ -32,6 +32,13 @@ public static class PickTexts
             $"{string.Join("  ", parents)}  (Esc cancels)";
     }
 
+    /// <summary>The title of the mainline overlay.</summary>
+    public static string MainlineTitle(PickKind kind, PickCommit merge) =>
+        $"{Verb(kind)} merge commit {OperationTexts.ShortHash(merge.Hash)}: keep the mainline of";
+
+    /// <summary>The rows of the mainline overlay, one per parent of the merge commit.</summary>
+    public static IReadOnlyList<string> MainlineRows(PickCommit merge) => merge.Parents.Select(Parent).ToList();
+
     public static OperationReport Report(PickResult result, PickKind kind, string target, string what)
     {
         var tip = OperationTexts.ShortHash(result.Head);

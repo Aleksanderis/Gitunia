@@ -149,6 +149,10 @@ public static class DefaultMouseMap
 
     public const string ReflogPickerRow = "ReflogPicker";
 
+    /// <summary>A parent row of the mainline overlay of a cherry-pick or revert of a merge commit (#449); the click
+    /// target is the parent's number.</summary>
+    public const string MainlineParentRow = "MainlineParent";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -183,6 +187,7 @@ public static class DefaultMouseMap
         ReflogBranchButton,
         ReflogCheckoutButton,
         ReflogPickerRow,
+        MainlineParentRow,
         ConfirmYesButton,
         ConfirmNoButton,
     ];
@@ -257,6 +262,7 @@ public static class DefaultMouseMap
         new(ReflogBranchButton, MouseGesture.Click, ActionIds.BranchCreate),
         new(ReflogCheckoutButton, MouseGesture.Click, ActionIds.BranchSwitch),
         new(ReflogPickerRow, MouseGesture.Click, ActionIds.InputAccept),
+        new(MainlineParentRow, MouseGesture.Click, ActionIds.PickMainline, UsesTarget: true),
         new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
