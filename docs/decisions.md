@@ -301,8 +301,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-18
 
 **Process:** M4 plan (owner): themes in M4 are light, dark and auto only, named themes are M5 (#61); the Windows CI leg (#155) is M4 and blocks release packaging (#48), the macOS leg and anything costly in CI minutes is M5 and runs on release tags only; interactive rebase refuses ranges with merge commits (`--rebase-merges` post-MVP) and supports `--root`; background remote calls never prompt, a credential failure offers a retry on the real terminal (#45); #399, #45 and #48 are `needs-review`.
-**CI:** The Windows leg (#155) is a `windows-x64` job in `ci.yml`, run on `v*` tags, weekly and on dispatch like the Linux job, never per PR (free-plan minutes); steps mirror Linux with bash as shell.
 
+**CI:** The Windows leg (#155) is a `windows-x64` job in `ci.yml`, run on `v*` tags, weekly and on dispatch like the Linux job, never per PR (free-plan minutes); steps mirror Linux with bash as shell.
 
 **UI:** Which-key group rows (#443) read `+more (branch operations)` etc. for the named `<space>` leader groups; other prefixes stay plain `+more`. The table is hand-written (the keymap has no group metadata); a test checks every prefix exists. Why: the owner wants to see what a group holds before opening it.
 
