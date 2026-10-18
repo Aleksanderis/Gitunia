@@ -511,7 +511,13 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         var size = _view.ScreenSize;
-        return MainlineFrameBuilder.Build(prompt.Title, prompt.Parents, size.Width, size.Height, _glyphs, prompt.UsableParents);
+        return MainlineFrameBuilder.Build(
+            prompt.Title,
+            prompt.Parents,
+            size.Width,
+            size.Height,
+            _glyphs,
+            prompt.UsableParents);
     }
 
     // The open mainline overlay is placed again for the new screen size.

@@ -14,7 +14,7 @@ public class MainlineFrameBuilderTests
     [Fact]
     public void GivenTwoParents_WhenBuilding_ThenEachRowShowsItsParentAndDigit()
     {
-        var frame = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode);
+        var frame = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode, 2);
 
         Assert.NotNull(frame);
         Assert.Equal(5, frame.Lines.Count);
@@ -35,11 +35,11 @@ public class MainlineFrameBuilderTests
     }
 
     [Fact]
-    public void GivenAResize_WhenBuildingAgain_ThenTheFrameIsCenteredOnTheNewSizeOrDropped()
+    public void GivenDifferentScreenSizes_WhenBuilding_ThenTheFrameIsCenteredOnEach()
     {
-        var before = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode);
-        var wider = MainlineFrameBuilder.Build(Title, Parents, 120, 40, GraphGlyphSet.Unicode);
-        var narrow = MainlineFrameBuilder.Build(Title, Parents, 40, 24, GraphGlyphSet.Unicode);
+        var before = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode, 2);
+        var wider = MainlineFrameBuilder.Build(Title, Parents, 120, 40, GraphGlyphSet.Unicode, 2);
+        var narrow = MainlineFrameBuilder.Build(Title, Parents, 40, 24, GraphGlyphSet.Unicode, 2);
 
         Assert.NotNull(before);
         Assert.NotNull(wider);
@@ -57,15 +57,26 @@ public class MainlineFrameBuilderTests
 
         Assert.NotNull(frame);
         Assert.DoesNotContain("unavailable", frame.Lines[1].Text, StringComparison.Ordinal);
-        Assert.Contains("(unavailable)", frame.Lines[2].Text, StringComparison.Ordinal);
-        Assert.Contains("[2]", frame.Lines[2].Text, StringComparison.Ordinal);
-        Assert.All(frame.Lines[2].Segments.Where(s => s.Text.Contains("unavailable", StringComparison.Ordinal) || s.Text.Contains("[2]", StringComparison.Ordinal)), s => Assert.Equal(SegmentRole.Faint, s.Role));
+        Assert.Contains("[2] unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
+        var marked = frame.Lines[2].Segments.Where(s => s.Text.Contains("[2]", StringComparison.Ordinal));
+        Assert.All(marked, s => Assert.Equal(SegmentRole.Faint, s.Role));
+    }
+
+    [Fact]
+    public void GivenALongSubjectOnANarrowScreen_WhenBuilding_ThenTheUnavailableMarkSurvives()
+    {
+        string[] parents = ["aaaaaaa main two", "bbbbbbb " + new string('x', 120)];
+
+        var frame = MainlineFrameBuilder.Build(Title, parents, 50, 24, GraphGlyphSet.Unicode, 1);
+
+        Assert.NotNull(frame);
+        Assert.Contains("[2] unavailable", frame.Lines[2].Text, StringComparison.Ordinal);
     }
 
     [Fact]
     public void GivenATinyScreen_WhenBuilding_ThenThereIsNoOverlay()
     {
-        Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 10, 24, GraphGlyphSet.Unicode));
-        Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 80, 6, GraphGlyphSet.Unicode));
+        Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 10, 24, GraphGlyphSet.Unicode, 2));
+        Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 80, 6, GraphGlyphSet.Unicode, 2));
     }
 }
