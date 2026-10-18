@@ -252,13 +252,14 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 4. `wl` lock (prompt for an optional reason), `wu` unlock, `wp` prune: lists the prunable entries in a Confirm and runs `git worktree prune` on `y`.
 5. Mouse: the Worktrees section header carries chips `[add]` `[remove]` `[lock]` `[unlock]` `[prune]` (`wa` `wd` `wl` `wu` `wp`), as many as fit after the title. They act on the selected row, so click the worktree row, then the chip. `ws`/`wt` have no chip (palette).
 
-### 7. Stashes (M3; done except the mouse paths, #413)
+### 7. Stashes (M3)
 
 Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see the key rule). `Ss` `Su` work from every view; `Sa` `Sp` `Sd` act on the stash row under the sidebar cursor and say "Select a stash in the sidebar first" elsewhere (no picker: a destructive key never guesses a target).
 1. `Ss` push the tracked changes, `Su` push them plus the untracked files (ignored ones never): a status-bar prompt for an optional message (`Enter` runs, `Esc` cancels). "Nothing to stash" is a warning and points at `Su`.
 2. `Sa` apply, `Sp` pop: no Confirm (nothing is lost; git refuses when local changes would be overwritten and the status bar shows why). A conflict made by the call keeps the stash, starts no operation, marks the files `!` and says so in the status bar; if files were already conflicted (a stopped merge) git refuses and its message is shown. A pop that succeeds drops the entry and the message carries the restore command.
 3. `Sd` drop: Confirm with the stash name and subject; the hint is `git stash store -m "<subject>" <hash>`, and the same command with the full hash is in the status message after the drop. The target travels as its commit hash and is looked up again right before the call, so a stack that changed meanwhile does not redirect it ("no longer in the stash list", nothing happens). The restore command is written for a POSIX shell.
 4. `Enter` on a stash row shows its diff in the detail pane (a stash is not a graph node).
+5. Mouse: the Stashes section header carries chips `[push]` `[apply]` `[pop]` `[drop]` `[push-all]` (`Ss` `Sa` `Sp` `Sd` `Su`), as many as fit after the title. `apply`, `pop` and `drop` act on the selected row, so click the stash row, then the chip; `drop` keeps its Confirm.
 
 ## Look and colours
 
@@ -547,6 +548,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | SidebarButton.WorktreeLock | Click | `worktree.lock` | Chip `[lock]`, same as `<space>wl` |
 | SidebarButton.WorktreeUnlock | Click | `worktree.unlock` | Chip `[unlock]`, same as `<space>wu` |
 | SidebarButton.WorktreePrune | Click | `worktree.prune` | Chip `[prune]`, same as `<space>wp`; the Confirm lists the entries |
+| SidebarButton.StashPush | Click | `stash.push` | Chip `[push]` in the Stashes section header, same as `<space>Ss` |
+| SidebarButton.StashApply | Click | `stash.apply` | Chip `[apply]`, same as `<space>Sa` (acts on the selected row) |
+| SidebarButton.StashPop | Click | `stash.pop` | Chip `[pop]`, same as `<space>Sp` |
+| SidebarButton.StashDrop | Click | `stash.drop` | Chip `[drop]`, same as `<space>Sd`; opens the Confirm first |
+| SidebarButton.StashPushUntracked | Click | `stash.push-untracked` | Chip `[push-all]`, same as `<space>Su` (tracked plus untracked) |
 | Backdrop | Click | `cancel` | While the help, palette or status history is open, a click on a pane or the tab row outside it closes it (like `Esc`); the double-click that follows is ignored |
 | Palette | Click | `command.execute` | Run the clicked entry (it is highlighted first) |
 | Palette | Wheel up | `palette.previous` | Move the highlight up one row |
