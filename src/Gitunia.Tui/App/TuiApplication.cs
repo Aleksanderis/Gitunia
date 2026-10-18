@@ -21,6 +21,7 @@ using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
+using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reflog;
@@ -96,6 +97,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
+    private RemoteActions _remote = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
@@ -219,6 +221,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _router.Operations = CreateOperations(operationGate);
+        _remote = CreateRemote(operationGate);
+        _router.Remote = _remote;
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
@@ -739,6 +743,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         ShowConfirm,
         gate);
 
+    private RemoteActions CreateRemote(TabOperationGate gate) => new(
+        _host,
+        services.Remote,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        tabId => _effects.Refresh(tabId, false),
+        _view.RefreshChrome,
+        gate);
+
     private OperationController CreateOperations(TabOperationGate gate) => new(
         _host,
         services.OperationWriter,
@@ -885,14 +899,21 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             ActiveSession(),
             _keys.Mode,
             _keys.PendingText,
-            FirstNotEmpty(_workspaceActions.Message, _router.Message, _statuses.Log.Latest?.Text ?? string.Empty),
+            FirstNotEmpty(
+                _workspaceActions.Message,
+                _router.Message,
+                RemoteProgressNow(),
+                _statuses.Log.Latest?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
             TabLabelFactory.Create(_host.Workspace, tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
             _picker.State,
             _homeDirectory)
         with
         {
-            MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 ? StatusSeverity.Info : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
+            RemoteBusy = RemoteIsBusy(),
+            MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
+                ? StatusSeverity.Info
+                : _statuses.Log.Latest?.Severity ?? StatusSeverity.Info,
             Hints = _overlays.State.Kind == OverlayKind.Confirm
                 ? PaneHints.ForConfirm()
                 : _reflog.IsOpen
@@ -903,6 +924,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };
+
+    private string RemoteProgressNow() =>
+        _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty;
+
+    private bool RemoteIsBusy() => _host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId);
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 

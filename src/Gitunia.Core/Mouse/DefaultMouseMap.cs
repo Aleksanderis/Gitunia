@@ -30,6 +30,17 @@ public static class DefaultMouseMap
     /// </summary>
     public const string RowMenuButton = "RowMenuButton";
 
+    /// <summary>
+    /// The fetch, pull and push chips of the tab row, and the cancel chip that replaces them while one runs (#456).
+    /// </summary>
+    public const string RemoteFetchButton = "RemoteButton.Fetch";
+
+    public const string RemotePullButton = "RemoteButton.Pull";
+
+    public const string RemotePushButton = "RemoteButton.Push";
+
+    public const string RemoteCancelButton = "RemoteButton.Cancel";
+
     /// <summary>The view of everything outside an open overlay: a click there closes the overlay.</summary>
     public const string BackdropView = "Backdrop";
 
@@ -170,6 +181,10 @@ public static class DefaultMouseMap
         new(RowMenuButton, MouseGesture.Click, ActionIds.MenuOpenForRow),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
+        new(RemoteFetchButton, MouseGesture.Click, ActionIds.RemoteFetch),
+        new(RemotePullButton, MouseGesture.Click, ActionIds.RemotePull),
+        new(RemotePushButton, MouseGesture.Click, ActionIds.RemotePush),
+        new(RemoteCancelButton, MouseGesture.Click, ActionIds.RemoteCancel),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),
         new(BannerAbortButton, MouseGesture.Click, ActionIds.OperationAbort),
         new(BannerSkipButton, MouseGesture.Click, ActionIds.OperationSkip),

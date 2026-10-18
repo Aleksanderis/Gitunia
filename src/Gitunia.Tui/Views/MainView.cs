@@ -242,6 +242,7 @@ public sealed class MainView : IDisposable
         Overlay = new OverlayView();
         _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
         _tabs.DirtyMarkerClicked += number => Gestured?.Invoke(DefaultMouseMap.TabDirtyMarker, MouseGesture.Click, number);
+        _tabs.RemoteChipClicked += view => Gestured?.Invoke(view, MouseGesture.Click, null);
         _tabs.NewTabClicked += () => Gestured?.Invoke(DefaultMouseMap.NewTabButton, MouseGesture.Click, null);
         _tabs.CommandsClicked += () => Gestured?.Invoke(DefaultMouseMap.CommandsButton, MouseGesture.Click, null);
         _picker.GestureRaised += gesture => Gestured?.Invoke(DefaultKeymap.PickerView, gesture, null);
