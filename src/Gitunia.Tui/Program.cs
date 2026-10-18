@@ -1,6 +1,7 @@
 using Gitunia.Core;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Rebase;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App;
@@ -14,6 +15,12 @@ public static class Program
 {
     public static int Main(string[] arguments)
     {
+        if (arguments is [SequenceEditorCommand.ModeArgument, .. var editorArguments])
+        {
+            // Git calls this executable as its sequence editor during an interactive rebase: no UI, no discovery.
+            return SequenceEditor.Copy(editorArguments);
+        }
+
         var options = CommandLineParser.Parse(arguments);
         if (options.Error is not null)
         {

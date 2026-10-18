@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Rebase;
@@ -41,6 +42,9 @@ namespace Gitunia.Tui.App;
 /// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Rebase">Rebases the current branch onto a commit (non-interactive).</param>
+/// <param name="InteractiveRebase">
+/// Rebases with a todo (pick, reword, squash, fixup, drop, reorder) prepared by the app.
+/// </param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
@@ -67,6 +71,7 @@ public sealed record GitServices(
     IPickCommitReader PickCommits,
     IResetWriter Reset,
     IRebaseWriter Rebase,
+    IInteractiveRebaseWriter InteractiveRebase,
     IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
@@ -105,6 +110,13 @@ public sealed record GitServices(
             new PickCommitReader(runner),
             new ResetWriter(runner),
             new RebaseWriter(operationRunner, runner),
+            new InteractiveRebaseWriter(
+                operationRunner,
+                runner,
+                operationDetector,
+                new SequenceEditorCommand(
+                    [Environment.ProcessPath ?? AppInfo.Name, SequenceEditorCommand.ModeArgument]),
+                Environment.GetEnvironmentVariable),
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),
