@@ -120,6 +120,44 @@ public class ScreenComposerTests
         Assert.Contains(status.Segments, segment => segment.Role == SegmentRole.StatusError && segment.Text.Contains("stashes", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData(StatusSeverity.Info, false, SegmentRole.StatusNotice)]
+    [InlineData(StatusSeverity.Info, true, SegmentRole.StatusNoticeFresh)]
+    [InlineData(StatusSeverity.Warning, false, SegmentRole.StatusWarning)]
+    [InlineData(StatusSeverity.Warning, true, SegmentRole.StatusWarningFresh)]
+    [InlineData(StatusSeverity.Error, false, SegmentRole.StatusError)]
+    [InlineData(StatusSeverity.Error, true, SegmentRole.StatusErrorFresh)]
+    public void GivenStatusMessage_WhenComposing_ThenItsRoleFollowsSeverityAndFreshness(
+        StatusSeverity severity,
+        bool isFresh,
+        SegmentRole expected)
+    {
+        var model = Model(1, 4, message: "Pushed tag M3 to origin") with
+        {
+            MessageSeverity = severity,
+            MessageIsFresh = isFresh,
+        };
+
+        var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
+
+        Assert.Contains(
+            lines[^1].Segments,
+            segment => segment.Role == expected && segment.Text.Contains("Pushed tag", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenMessageWithoutSeverity_WhenComposing_ThenItKeepsThePlainBarStyle()
+    {
+        var model = Model(1, 4, message: "retrying...") with { MessageIsFresh = true };
+
+        var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, 80, 4, GraphGlyphSet.Unicode);
+
+        Assert.Contains(
+            lines[^1].Segments,
+            segment => segment.Role == SegmentRole.Status
+                && segment.Text.Contains("retrying", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void GivenEmptyGraph_WhenComposing_ThenFrameIsStillCompleteAndNothingIsSelected()
     {

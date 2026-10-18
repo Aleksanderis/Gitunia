@@ -345,3 +345,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** `DisplayWidth` treats East Asian Width W/F (Unicode 16.0) as two columns, from a constant sorted range table with binary search (#99). Regional indicators and text-presentation symbols stay one column; sequences (flags, ZWJ) are not joined.
 
 **Process:** The weekly CI schedule is dropped; CI runs on `v*` tags and manual dispatch only (owner, 2026-10-18; supersedes the weekly part of the entry above). The Windows test step is disabled (`if: false`) until #494 fixes its 43 failures; build, AOT publish and smoke still run. Why: a Windows run takes 10-11 min (about 20 billed) against 3 on Linux and minutes are scarce.
+
+**UI:** Status messages (#500) are coloured by kind (success/info green, warning, error), drawn as a filled chip for 1.5 s, and expire: info 5 s, warning 15 s, error 30 s, by an injected clock in the state layer. Then the hints return; `<space>m` history keeps them. Why: a stale result must not look current.
