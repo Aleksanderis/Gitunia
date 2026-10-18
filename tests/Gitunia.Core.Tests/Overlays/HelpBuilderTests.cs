@@ -82,6 +82,33 @@ public class HelpBuilderTests
         Assert.Contains(new WhichKeyRow("t", "Next tab"), rows);
     }
 
+    [Theory]
+    [InlineData("b", "+more (branch operations)")]
+    [InlineData("g", "+more (commit operations)")]
+    [InlineData("T", "+more (tag operations)")]
+    [InlineData("t", "+more (external tools)")]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenGroupRowsNameTheirContents(string key, string expected)
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView), feeder.State.PendingSequence);
+
+        Assert.Contains(new WhichKeyRow(key, expected), rows);
+    }
+
+    [Fact]
+    public void GivenAGroupWithoutAName_WhenBuildingWhichKeyRows_ThenItStaysPlainMore()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+
+        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView), feeder.State.PendingSequence);
+
+        Assert.Contains(new WhichKeyRow("Ctrl-w", "+more"), rows);
+    }
+
     [Fact]
     public void GivenAChordPrefix_WhenBuildingWhichKeyRows_ThenTheLastKeysAreDescribed()
     {

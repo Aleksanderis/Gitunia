@@ -83,7 +83,7 @@ public sealed class OverlayController
         var size = _screenSize();
         var width = size.Width;
         var height = size.Height;
-        var rows = State.WhichKeyVisible ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName)) : [];
+        var rows = State.WhichKeyVisible ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), _keys.State.PendingSequence) : [];
         return OverlayFrameFactory.Create(State, _helpSections, _keys.PendingText, rows, width, height, _glyphs);
     }
 
