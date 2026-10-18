@@ -624,6 +624,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         BranchSelectionNow,
+        IsAnyOverlayOpen,
         gate);
 
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.

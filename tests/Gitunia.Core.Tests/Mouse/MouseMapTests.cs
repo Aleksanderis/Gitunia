@@ -185,6 +185,9 @@ public class MouseMapTests
         var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.RightClick);
 
         Assert.Equal(ActionIds.PaletteOpenForRow, binding?.Action);
+        Assert.Equal(
+            ActionIds.PaletteOpenForRow,
+            map.Resolve(DefaultKeymap.SidebarView, MouseGesture.RightClick)?.Action);
         Assert.Null(map.Resolve(DefaultKeymap.DiffView, MouseGesture.RightClick));
     }
 

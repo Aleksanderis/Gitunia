@@ -9,6 +9,23 @@ namespace Gitunia.Core.Overlays;
 /// </summary>
 public static class RowActions
 {
+    /// <summary>The actions on a branch or tag row of the sidebar.</summary>
+    public static IReadOnlyList<ActionId> OfSidebarRow { get; } =
+    [
+        ActionIds.BranchSwitch,
+        ActionIds.BranchCreate,
+        ActionIds.BranchRename,
+        ActionIds.BranchDelete,
+        ActionIds.TagCreate,
+        ActionIds.MergeBranch,
+        ActionIds.MergeBranchNoFastForward,
+        ActionIds.MergeBranchSquash,
+        ActionIds.RebaseOnto,
+        ActionIds.ResetBranch,
+        ActionIds.PickCherry,
+        ActionIds.PickRevert,
+    ];
+
     /// <summary>The actions on the commit of a graph row.</summary>
     public static IReadOnlyList<ActionId> OfGraphRow { get; } =
     [

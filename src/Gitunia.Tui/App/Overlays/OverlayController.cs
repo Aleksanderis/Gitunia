@@ -220,7 +220,9 @@ public sealed class OverlayController
 
         if (action == ActionIds.PaletteOpenForRow)
         {
-            var entries = PaletteEntryBuilder.BuildFor(_engine.Table, _baseView(), RowActions.OfGraphRow);
+            var view = _baseView();
+            var actions = view == DefaultKeymap.SidebarView ? RowActions.OfSidebarRow : RowActions.OfGraphRow;
+            var entries = PaletteEntryBuilder.BuildFor(_engine.Table, view, actions);
             var palette = new PaletteState(entries);
             Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
             return true;

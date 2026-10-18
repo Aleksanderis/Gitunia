@@ -319,6 +319,34 @@ public class RebaseActionsTests
     }
 
     [Fact]
+    public async Task GivenAnOverlayOpenedWhileAsking_WhenTheCountArrives_ThenNoConfirmReplacesIt()
+    {
+        using var repository = Diverged();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(repository.Git("rev-parse", "main").Trim());
+        Assert.True(harness.Actions.TryExecute(ActionIds.RebaseOnto, null));
+        harness.IsOverlayOpen = true;
+
+        await harness.WaitForStatusAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("nothing was rebased", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAQuestionStillPending_WhenRebasingAgain_ThenItIsRefusedAsAlreadyAsking()
+    {
+        using var repository = Diverged();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(repository.Git("rev-parse", "main").Trim());
+        Assert.True(harness.Actions.TryExecute(ActionIds.RebaseOnto, null));
+
+        Assert.True(harness.Actions.TryExecute(ActionIds.RebaseOnto, null));
+
+        Assert.Contains("Already asking", harness.Notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenAMergeInTheReplayedRange_WhenRebasing_ThenTheConfirmWarnsThatItIsFlattened()
     {
         using var repository = WithMergeOnTopic();
@@ -412,6 +440,7 @@ public class RebaseActionsTests
                     return true;
                 },
                 () => _selection,
+                () => IsOverlayOpen,
                 Gate);
         }
 
@@ -430,6 +459,8 @@ public class RebaseActionsTests
         public int Refreshes { get; private set; }
 
         public bool CanShowDialog { get; set; } = true;
+
+        public bool IsOverlayOpen { get; set; }
 
         public string Notice => Actions.Notice;
 
@@ -469,6 +500,8 @@ public class RebaseActionsTests
 
         public void SelectRow(SidebarRowKind kind, string commitHash, string name = "row") =>
             _selection = new BranchSelection(kind, name, commitHash);
+
+        public Task WaitForStatusAsync() => Pump.RunUntilAsync(() => Statuses.Log.Latest is not null);
 
         // The Confirm opens once the merge count is read, so wait for it unless the action refused at once.
         public async Task ExecuteAsync()

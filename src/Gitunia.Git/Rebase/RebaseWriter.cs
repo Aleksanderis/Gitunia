@@ -13,9 +13,11 @@ namespace Gitunia.Git.Rebase;
 /// </summary>
 public sealed class RebaseWriter(OperationRunner runner, GitRunner git) : IRebaseWriter
 {
-    private static readonly GitRunOptions CountOptions = new(Timeout: TimeSpan.FromSeconds(30), ReadOnly: true);
-
     private const string CommitSuffix = "^{commit}";
+
+    private static readonly TimeSpan CountTimeout = TimeSpan.FromSeconds(30);
+
+    private static readonly GitRunOptions CountOptions = new(Timeout: CountTimeout, ReadOnly: true);
 
     public Task<OperationResult> RebaseAsync(
         RepositoryLocation location,

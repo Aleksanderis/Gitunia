@@ -33,6 +33,7 @@ namespace Gitunia.Tui.App.Rebase;
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
+/// <param name="isOverlayOpen">True while an overlay is open; a late Confirm must not replace it.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 public sealed class RebaseActions(
     WorkspaceHost host,
@@ -43,11 +44,15 @@ public sealed class RebaseActions(
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Func<BranchSelection> selection,
+    Func<bool> isOverlayOpen,
     TabOperationGate gate)
 {
+    private readonly HashSet<TabId> _asking = [];
+
     private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
+    private const string AskingNotice = "Already asking: answer or cancel the rebase question first";
     private const string SelectNotice = "Select a commit (graph) or a branch or tag (sidebar) to rebase onto";
 
     /// <summary>The notice for the status bar after the last <see cref="TryExecute"/>, empty when none.</summary>
@@ -93,7 +98,7 @@ public sealed class RebaseActions(
         {
             lines.Add(
                 $"{OperationText.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
-                "is dropped and its side's commits are replayed as one line.");
+                "itself is dropped and the commits are replayed as one line.");
         }
 
         if (current is { UpstreamFullName: { } upstream, IsUpstreamGone: false })
@@ -157,6 +162,11 @@ public sealed class RebaseActions(
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
+        if (!_asking.Add(tab.Id))
+        {
+            return AskingNotice;
+        }
+
         var location = tab.Location;
         var token = cancellationOf(tab.Id);
         _ = Task.Run(() => AskAsync(location, target, current, token), CancellationToken.None);
@@ -177,6 +187,7 @@ public sealed class RebaseActions(
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
+            postToUi(() => _asking.Remove(target.TabId));
             return;
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -196,9 +207,11 @@ public sealed class RebaseActions(
             return;
         }
 
-        if (gate.IsBusy(tab.Id) || Refusal(tab, target.CommitHash) is not null)
+        _asking.Remove(tab.Id);
+        var moved = !string.Equals(tab.Head?.CommitHash, target.OldTip, StringComparison.Ordinal);
+        if (gate.IsBusy(tab.Id) || Refusal(tab, target.CommitHash) is not null || moved || isOverlayOpen())
         {
-            statuses.Warning("The tab changed while asking: nothing was rebased");
+            statuses.Warning("The tab or the screen changed while asking: nothing was rebased");
             return;
         }
 
