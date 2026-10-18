@@ -40,7 +40,7 @@ public static class RowActions
         ActionIds.GraphOpenDetails,
     ];
 
-    /// <summary>The graph row actions for a screen; Open details has nowhere to go while the details pane is hidden (#490).</summary>
+    /// <summary>The graph row actions; Open details is left out while the details pane is hidden (#490).</summary>
     public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible) =>
         detailsVisible ? OfGraphRow : [.. OfGraphRow.Where(action => action != ActionIds.GraphOpenDetails)];
 
