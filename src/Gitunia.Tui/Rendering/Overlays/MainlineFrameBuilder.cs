@@ -6,7 +6,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
 /// Lays out the mainline overlay of a cherry-pick or revert of a merge commit: the question, one row per parent
-/// (a click answers it like its digit key) and a hint. Parent n is on frame line n. There is no overlay (null)
+/// (a click answers it like its digit key; rows git would refuse are dimmed and marked unavailable) and a hint. Parent n is on frame line n. There is no overlay (null)
 /// when it does not fit; the one-key prompt in the status bar still works then.
 /// </summary>
 public static class MainlineFrameBuilder
@@ -21,7 +21,8 @@ public static class MainlineFrameBuilder
         IReadOnlyList<string> parents,
         int screenWidth,
         int screenHeight,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        int? usableParents = null)
     {
         var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
         var height = parents.Count + 3;
@@ -33,13 +34,14 @@ public static class MainlineFrameBuilder
         var lines = new List<StyledLine> { OverlayBox.Title(title, width, glyphs) };
         for (var index = 0; index < parents.Count; index++)
         {
+            var isUsable = index < (usableParents ?? parents.Count);
             lines.Add(OverlayBox.TwoColumns(
-                parents[index],
+                isUsable ? parents[index] : $"{parents[index]} (unavailable)",
                 $"[{(index + 1).ToString(CultureInfo.InvariantCulture)}]",
                 width,
                 glyphs,
-                SegmentRole.Plain,
-                SegmentRole.OverlayKey));
+                isUsable ? SegmentRole.Plain : SegmentRole.Faint,
+                isUsable ? SegmentRole.OverlayKey : SegmentRole.Faint));
         }
 
         lines.Add(OverlayBox.Text(Hint, width, glyphs, SegmentRole.Faint));

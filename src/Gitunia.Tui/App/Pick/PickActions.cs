@@ -75,7 +75,11 @@ public sealed class PickActions(
             }
 
             var merge = _commits.First(commit => commit.IsMerge);
-            return new MainlinePrompt(PickTexts.MainlineTitle(_kind, merge), PickTexts.MainlineRows(merge));
+            var rows = PickTexts.MainlineRows(merge);
+
+            // The call fails as a whole on -m 2 or higher when a plain commit is among the commits.
+            var usable = _commits.Any(commit => !commit.IsMerge) ? 1 : rows.Count;
+            return new MainlinePrompt(PickTexts.MainlineTitle(_kind, merge), rows, usable);
         }
     }
 

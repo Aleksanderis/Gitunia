@@ -292,6 +292,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
+        _view.Window.ViewportChanged += (_, _) => RefreshMainlineOnResize();
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -510,7 +511,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
 
         var size = _view.ScreenSize;
-        return MainlineFrameBuilder.Build(prompt.Title, prompt.Parents, size.Width, size.Height, _glyphs);
+        return MainlineFrameBuilder.Build(prompt.Title, prompt.Parents, size.Width, size.Height, _glyphs, prompt.UsableParents);
+    }
+
+    // The open mainline overlay is placed again for the new screen size.
+    private void RefreshMainlineOnResize()
+    {
+        if (_mainlineShown && !_overlays.State.IsOpen && !_reflog.IsOpen)
+        {
+            RefreshOverlay();
+        }
     }
 
     // Opening or closing the prompt, and leaving its tab, show or hide the overlay.

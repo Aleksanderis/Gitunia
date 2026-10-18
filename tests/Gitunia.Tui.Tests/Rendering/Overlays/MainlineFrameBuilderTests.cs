@@ -1,5 +1,6 @@
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
@@ -31,6 +32,34 @@ public class MainlineFrameBuilderTests
     public void GivenTwoParents_WhenAskingForAFrameLine_ThenOnlyTheParentRowsAnswer(int line, int? expected)
     {
         Assert.Equal(expected, MainlineFrameBuilder.ParentAt(line, 2));
+    }
+
+    [Fact]
+    public void GivenAResize_WhenBuildingAgain_ThenTheFrameIsCenteredOnTheNewSizeOrDropped()
+    {
+        var before = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode);
+        var wider = MainlineFrameBuilder.Build(Title, Parents, 120, 40, GraphGlyphSet.Unicode);
+        var narrow = MainlineFrameBuilder.Build(Title, Parents, 40, 24, GraphGlyphSet.Unicode);
+
+        Assert.NotNull(before);
+        Assert.NotNull(wider);
+        Assert.NotNull(narrow);
+        Assert.Equal((80 - 72) / 2, before.Column);
+        Assert.Equal((120 - 72) / 2, wider.Column);
+        Assert.Equal((40 - 38) / 2, narrow.Column);
+        Assert.Equal((40 - 5) / 2, wider.Row);
+    }
+
+    [Fact]
+    public void GivenAnUnavailableParent_WhenBuilding_ThenItsRowIsMarkedAndDimmed()
+    {
+        var frame = MainlineFrameBuilder.Build(Title, Parents, 80, 24, GraphGlyphSet.Unicode, 1);
+
+        Assert.NotNull(frame);
+        Assert.DoesNotContain("unavailable", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("(unavailable)", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("[2]", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.All(frame.Lines[2].Segments.Where(s => s.Text.Contains("unavailable", StringComparison.Ordinal) || s.Text.Contains("[2]", StringComparison.Ordinal)), s => Assert.Equal(SegmentRole.Faint, s.Role));
     }
 
     [Fact]
