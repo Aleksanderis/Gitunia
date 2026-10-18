@@ -337,3 +337,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
 
 **Process:** CI also runs on `v*` tags and weekly (Monday), besides dispatch (owner, 2026-10-18; supersedes the manual-dispatch-only entry above). The Windows leg (#155) is a second job in `ci.yml` on the same triggers, never per PR. Why: minutes are scarce but a Windows break must surface before release.
+
+**UI:** `DisplayWidth` treats East Asian Width W/F (Unicode 16.0) as two columns, from a constant sorted range table with binary search (#99). Regional indicators and text-presentation symbols stay one column; sequences (flags, ZWJ) are not joined.
