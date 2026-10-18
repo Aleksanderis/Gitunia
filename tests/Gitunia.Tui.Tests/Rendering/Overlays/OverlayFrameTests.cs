@@ -402,7 +402,7 @@ public class OverlayFrameTests
     {
         var engine = new KeymapEngine(Table);
         var state = engine.Process(KeymapState.Initial, new KeyEvent("g"), DefaultKeymap.GraphView).State;
-        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView));
+        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
 
         var frame = WhichKeyFrameBuilder.Build("g", rows, 60, 12, GraphGlyphSet.Unicode);
 

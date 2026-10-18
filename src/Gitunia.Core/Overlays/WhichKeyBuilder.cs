@@ -6,11 +6,11 @@ namespace Gitunia.Core.Overlays;
 /// <summary>Turns the engine's continuations of a pending chord into popup rows.</summary>
 public static class WhichKeyBuilder
 {
-    /// <summary>What each leader prefix groups, keyed by the formatted full prefix (documented in docs/ux.md).</summary>
+    /// <summary>Group names by formatted prefix; hand-written because the keymap has no group metadata (#443).</summary>
     private static readonly Dictionary<string, string> GroupNames = new(StringComparer.Ordinal)
     {
         ["<space>b"] = "branch operations",
-        ["<space>g"] = "commit operations",
+        ["<space>g"] = "merge, rebase, reset, pick",
         ["<space>T"] = "tag operations",
         ["<space>w"] = "worktree operations",
         ["<space>S"] = "stash operations",
@@ -18,11 +18,10 @@ public static class WhichKeyBuilder
         ["<space>v"] = "diff view options",
     };
 
-    public static IReadOnlyList<WhichKeyRow> Build(IReadOnlyList<Continuation> continuations)
-        => Build(continuations, new KeySequence([]));
-
     /// <summary>Rows for <paramref name="continuations"/> of <paramref name="pending"/>; a group row names its contents.</summary>
-    public static IReadOnlyList<WhichKeyRow> Build(IReadOnlyList<Continuation> continuations, KeySequence pending)
+    public static IReadOnlyList<WhichKeyRow> Build(
+        IReadOnlyList<Continuation> continuations,
+        KeySequence pending)
     {
         return [.. continuations.Select(continuation => new WhichKeyRow(
             KeyFormatter.Format(continuation.Key),
@@ -30,6 +29,9 @@ public static class WhichKeyBuilder
                 ? ActionCatalog.Describe(action) + (continuation.HasMore ? " (+more)" : string.Empty)
                 : MoreText(pending, continuation.Key)))];
     }
+
+    /// <summary>The formatted prefixes that carry a group name.</summary>
+    public static IReadOnlyCollection<string> GroupPrefixes => GroupNames.Keys;
 
     private static string MoreText(KeySequence pending, KeyEvent next)
     {
