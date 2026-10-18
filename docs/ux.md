@@ -251,6 +251,8 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 
 `<space>F` fetch the current branch's remote with `--prune` (all remotes: `remote.fetch-all` from the palette or the Remotes header menu; no second key, #456), `<space>L` pull of the current branch (fast-forward only by default; a diverged branch says so instead of creating a merge commit), `<space>P` push of the current branch. Chips in the tab bar (` fetch `, ` pull `, ` push `, rows of 100 columns or more; ` Esc cancel ` replaces them while one runs) and the actions menu of the sidebar's Remotes header (the sidebar has no header chips since #469) carry the same actions. A pull also takes the tab's operation gate (it moves the working tree); only one remote operation runs per tab, other tabs are unaffected, and the tab is read again afterwards. Each runs in the background with a progress line in the status bar (git's `--progress` output), `Esc` in the graph (or the cancel chip) cancels while it runs, only when nothing else claims it first (a Confirm is not needed; the status bar says "Fetch cancelled"), and the tab stays usable. `<space>x` stays the status message dismiss. `<space>Pd` deletes a remote branch (`push --delete`, remote picker then branch picker, Confirm naming both; the undo hint is the branch's old tip). A push to a branch without an upstream prompts for the remote (default `origin`) and sets the upstream. A force push is only ever `--force-with-lease`, behind a Confirm that names the remote branch it will overwrite. The capitals `F` `L` `P` `S` `T` are not "all" variants of the lowercase keys; they are chosen because the lowercase leader keys are taken, and the palette shows the full sequences. When the graph or the sidebar has no suitable row selected for a stash or tag key, a picker opens. The runner and progress are #44, the keys, chips and mouse #456 (the push to a branch without an upstream and `<space>Pd` are not part of it; the tag push already uses the runner; background calls never prompt, ssh runs in batch mode); the real-terminal credential retry is #45.
 
+**Managing remotes** (`<space>R` + key; implemented in #400, config only, nothing is fetched): `Ra` add (name prompt, then URL prompt; a name in use is refused before git runs; the status line suggests a fetch). `Rd` remove: a type-to-filter remote picker, or no picker when a remote branch row is selected in the sidebar (its remote is used), then a Confirm naming the remote, its URL and the remote-tracking branches that disappear (the first five, then a count), saying that branches tracking it lose their upstream and the remote itself is untouched; the undo line is `git remote add <name> <url>` and a fetch. `Rn` rename: picker, then a name prompt; git renames the remote-tracking branches and upstream settings, so no Confirm. `Ru` set URL: picker, then a URL prompt filled with the current URL. The keys work from every pane; the Remotes header menu lists the four actions; the sidebar and graph labels follow after the refresh that every success triggers.
+
 ### 6. Worktrees (M3)
 
 `<space>w` + key. The sidebar's Worktrees section shows each worktree with branch, dirty counts, ahead/behind and `locked`/`prunable` flags, so dirty state across all worktrees is visible at a glance without switching. The counts read `S2 M3 U1` (staged, changed incl. untracked, conflicted; a zero is left out and a clean worktree shows none) and `↑n↓m` is the worktree branch against its upstream, both from `git status` run in that worktree. The tab's own worktree follows its live status; the others are read when the tab or its worktree list changes and then every 30 s, so a change made elsewhere shows up within that interval.
@@ -345,6 +347,10 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |
 | Global | `<space>P` | Push the current branch the way git is configured; never forces |
 | Global | `<space>C` | Cancel the running fetch, pull or push of the tab (works from every pane; `Esc` does it only in the graph) |
+| Global | `<space>Ra` | Add a remote: name prompt, then URL prompt; nothing is fetched |
+| Global | `<space>Rd` | Remove a remote (picker, or the selected remote branch's remote) after a Confirm naming the tracking branches that disappear |
+| Global | `<space>Rn` | Rename a remote (picker, then a name prompt); git moves its tracking branches and upstream settings |
+| Global | `<space>Ru` | Change the URL of a remote (picker, then a URL prompt filled with the current one) |
 | Global | `<space>Ss` | Stash the tracked changes (prompts for a message; `Enter` runs, `Esc` cancels) |
 | Global | `<space>Su` | Stash the tracked and the untracked changes (prompts for a message) |
 | Global | `<space>gc` | Continue the merge, rebase, cherry-pick or revert in progress (refused while conflicted files remain; workflow 4) |
@@ -539,7 +545,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 - Sidebar tag: tag create, delete, push, remote delete, new branch, new-only, merge (three kinds), rebase, reset, cherry-pick, revert.
 - Sidebar worktree: switch, open, add, remove, lock, unlock, prune.
 - Sidebar stash: apply, pop, drop, push, push-all.
-- Section headers: Branches new, new-only; Tags create; Worktrees add, prune; Stashes push, push-all. Remotes fetch, fetch all, pull, push.
+- Section headers: Branches new, new-only; Tags create; Worktrees add, prune; Stashes push, push-all. Remotes fetch, fetch all, pull, push, add, remove, rename, set URL.
 
 The menu is the mouse path of every sidebar action; the header chips it replaced are gone (#469).
 
