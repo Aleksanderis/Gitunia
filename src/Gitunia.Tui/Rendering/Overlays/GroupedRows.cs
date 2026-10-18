@@ -6,18 +6,38 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// The lines of a menu or palette list: the entries with a subheader line before each run of one group (#483). A
 /// subheader is never an entry, so the selection and the mouse hit-test skip it by construction.
 /// </summary>
-/// <param name="Lines">Each line: a subheader text, or an entry index into the list.</param>
+/// <param name="Lines">Each line: a subheader text, an entry index into the list, or a blank gap (both null).</param>
 public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
 {
-    public static GroupedRows Of(IReadOnlyList<PaletteEntry> entries)
+    /// <summary>Rows a scrolling list needs at least before it spends one on a gap above a subheader.</summary>
+    public const int MinimumRowsForGaps = 8;
+
+    /// <summary>
+    /// The lines for <paramref name="entries"/> with a blank gap line before each subheader except the first (#489).
+    /// The gaps are dropped before any row is: when the list does not fit in <paramref name="maximumRows"/> with them
+    /// they are left out (a list that scrolls anyway keeps them while it has <see cref="MinimumRowsForGaps"/> rows).
+    /// </summary>
+    public static GroupedRows Of(IReadOnlyList<PaletteEntry> entries, int maximumRows, bool scrolls)
     {
-        var lines = new List<GroupedRow>(entries.Count + 4);
+        var withGaps = Build(entries, true);
+        var fits = withGaps.Lines.Count <= maximumRows || (scrolls && maximumRows >= MinimumRowsForGaps);
+        return fits ? withGaps : Build(entries, false);
+    }
+
+    private static GroupedRows Build(IReadOnlyList<PaletteEntry> entries, bool gaps)
+    {
+        var lines = new List<GroupedRow>(entries.Count + 8);
         string? previous = null;
         for (var index = 0; index < entries.Count; index++)
         {
             var group = entries[index].Group;
             if (group is not null && group != previous)
             {
+                if (gaps && lines.Count > 0)
+                {
+                    lines.Add(new GroupedRow(null, null));
+                }
+
                 lines.Add(new GroupedRow(group, null));
             }
 
@@ -34,10 +54,15 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
         var rowCount = Math.Max(1, Math.Min(maximumRows, Lines.Count));
         var selectedLine = Lines.Count == 0 ? 0 : Math.Max(0, IndexOfLine(selectedEntry));
         var top = Math.Clamp(selectedLine - (rowCount / 2), 0, Math.Max(0, Lines.Count - rowCount));
+        if (top < selectedLine && top < Lines.Count && Lines[top] is { Header: null, Entry: null })
+        {
+            top++;
+        }
+
         return new MenuWindow(rowCount, selectedLine, top);
     }
 
-    /// <summary>The entry on the list line <paramref name="line"/>, null for a subheader or past the end.</summary>
+    /// <summary>The entry on list line <paramref name="line"/>, null for a subheader, gap or past the end.</summary>
     public int? EntryAt(int line) => line >= 0 && line < Lines.Count ? Lines[line].Entry : null;
 
     private int IndexOfLine(int entry)
@@ -55,6 +80,6 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
 }
 
 /// <summary>One line of a grouped list.</summary>
-/// <param name="Header">The subheader text, null for an entry line.</param>
-/// <param name="Entry">The entry index, null for a subheader line.</param>
+/// <param name="Header">The subheader text, null for an entry or gap line.</param>
+/// <param name="Entry">The entry index, null for a subheader or gap line.</param>
 public readonly record struct GroupedRow(string? Header, int? Entry);

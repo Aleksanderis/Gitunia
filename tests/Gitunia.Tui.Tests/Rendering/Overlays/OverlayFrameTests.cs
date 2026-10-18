@@ -209,10 +209,10 @@ public class OverlayFrameTests
                 "│ Delete the branch (asks first)                             <space>bd │",
                 "│ Set the branch upstream                                    <space>bu │",
                 "│ Unset the branch upstream                                  <space>bU │",
+                "│                                                                      │",
                 "│ Merge and rebase                                                     │",
                 "│ Reset the current branch to the selected commit (soft, m…  <space>gx │",
                 "│ Rebase the current branch onto the selected commit, bran…  <space>gr │",
-                "│ Merge the selection (fast-forward if possible)             <space>gm │",
                 "│ 1/136 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
@@ -235,6 +235,45 @@ public class OverlayFrameTests
                 "+------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
+    }
+
+    [Theory]
+    [InlineData(7, false)]
+    [InlineData(8, true)]
+    public void GivenAScrollingList_WhenRowsReachTheThreshold_ThenGapsAppearOnlyFromEightRows(int rows, bool gaps)
+    {
+        var entries = Palette().Visible();
+
+        var grouped = GroupedRows.Of(entries, rows, scrolls: true);
+
+        Assert.Equal(gaps, grouped.Lines.Any(line => line is { Header: null, Entry: null }));
+        Assert.False(grouped.Lines[0] is { Header: null, Entry: null });
+    }
+
+    [Fact]
+    public void GivenAWindowStartingOnAGap_WhenScrolling_ThenTheFirstRowIsNotBlank()
+    {
+        var grouped = GroupedRows.Of(Palette().Visible(), 12, scrolls: true);
+        var gap = grouped.Lines.ToList().FindIndex(line => line is { Header: null, Entry: null });
+
+        for (var selected = 0; selected < 30; selected++)
+        {
+            var window = grouped.Window(selected, 12);
+            Assert.False(grouped.Lines[window.Top] is { Header: null, Entry: null }, $"selected {selected}, gap {gap}");
+        }
+    }
+
+    [Fact]
+    public void GivenGaps_WhenHitTestingThePalette_ThenGapAndSubheaderLinesAreNoEntry()
+    {
+        var palette = Palette();
+        var hits = Enumerable.Range(0, 14).Select(line => PaletteFrameBuilder.EntryIndexAt(palette, line, 24)).ToList();
+
+        Assert.Null(hits[1]);
+        Assert.Equal(6, hits[8]);
+        Assert.Null(hits[9]);
+        Assert.Null(hits[10]);
+        Assert.Equal(0, hits[2]);
     }
 
     [Fact]

@@ -33,7 +33,7 @@ public static class ContextMenuFrameBuilder
             return null;
         }
 
-        var rows = GroupedRows.Of(entries);
+        var rows = GroupedRows.Of(entries, maximumRows, scrolls: false);
         var selectedEntry = Math.Clamp(menu.SelectedIndex, 0, entries.Count - 1);
         var window = rows.Window(selectedEntry, Math.Min(rows.Lines.Count, maximumRows));
         var lines = new List<StyledLine> { OverlayBox.Title(Title, width, glyphs) };
@@ -46,7 +46,13 @@ public static class ContextMenuFrameBuilder
                 continue;
             }
 
-            var index = line.Entry!.Value;
+            if (line.Entry is null)
+            {
+                lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
+                continue;
+            }
+
+            var index = line.Entry.Value;
             var entry = entries[index];
             var role = entry.IsImplemented ? SegmentRole.Plain : SegmentRole.Faint;
             var keyRole = entry.IsImplemented ? SegmentRole.OverlayKey : SegmentRole.Faint;
@@ -65,8 +71,9 @@ public static class ContextMenuFrameBuilder
     /// <summary>The index of the entry drawn on <paramref name="frameLine"/>, or null for the border.</summary>
     public static int? EntryIndexAt(PaletteState menu, int frameLine, int screenHeight)
     {
-        var rows = GroupedRows.Of(menu.Entries);
-        var rowCount = Math.Min(rows.Lines.Count, screenHeight - ChromeRows - ScreenMargin);
+        var maximumRows = screenHeight - ChromeRows - ScreenMargin;
+        var rows = GroupedRows.Of(menu.Entries, maximumRows, scrolls: false);
+        var rowCount = Math.Min(rows.Lines.Count, maximumRows);
         var offset = frameLine - 1;
         if (rowCount < 1 || offset < 0 || offset >= rowCount)
         {
