@@ -95,4 +95,28 @@ public class PaletteStateTests
 
         Assert.Equal("a", palette.Query);
     }
+
+    [Fact]
+    public void GivenAFilter_WhenListingVisibleEntries_ThenGroupsStayTogether()
+    {
+        var visible = Palette().Type("branch").Visible();
+
+        var groups = visible.Select(entry => entry.Group).Distinct().ToList();
+        var runs = visible.Where((entry, index) => index == 0 || visible[index - 1].Group != entry.Group).Count();
+        Assert.True(groups.Count > 1);
+        Assert.Equal(groups.Count, runs);
+    }
+
+    [Fact]
+    public void GivenAGroupedPalette_WhenMovingThroughIt_ThenOnlyEntriesAreSelected()
+    {
+        var palette = Palette();
+        var seen = new List<PaletteEntry>();
+        for (var step = 0; step < palette.Entries.Count; step++)
+        {
+            seen.Add(palette.Move(step).Selected!);
+        }
+
+        Assert.Equal(palette.Entries, seen);
+    }
 }

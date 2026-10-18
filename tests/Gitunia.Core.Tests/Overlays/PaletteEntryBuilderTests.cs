@@ -42,13 +42,14 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
-    public void GivenAView_WhenBuildingEntries_ThenItsOwnActionsComeBeforeActionsOfOtherViews()
+    public void GivenAView_WhenBuildingEntries_ThenItsOwnActionsComeBeforeActionsOfOtherViewsInTheSameGroup()
     {
         var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView).ToList();
         var jumpToHead = entries.FindIndex(entry => entry.Action == ActionIds.GraphJumpToHead);
-        var nextHunk = entries.FindIndex(entry => entry.Action == ActionIds.DiffNextHunk);
+        var expand = entries.FindIndex(entry => entry.Action == ActionIds.SidebarExpand);
 
-        Assert.True(jumpToHead < nextHunk);
+        Assert.Equal(entries[jumpToHead].Group, entries[expand].Group);
+        Assert.True(jumpToHead < expand);
     }
 
     [Fact]
@@ -79,5 +80,39 @@ public class PaletteEntryBuilderTests
     public void GivenTabGoToActions_WhenDescribing_ThenTitleNamesTheTab()
     {
         Assert.Equal("Go to tab 3 (same as 3gt)", ActionCatalog.Describe(ActionIds.TabGoTo(3)));
+    }
+
+    [Fact]
+    public void GivenTheDefaultKeymap_WhenLookingUpGroups_ThenEveryBoundActionHasOne()
+    {
+        var missing = Table.Bindings
+            .Select(binding => binding.Action)
+            .Distinct()
+            .Where(action => ActionCatalog.GroupOf(action) is null)
+            .ToList();
+
+        Assert.True(missing.Count == 0, $"Actions without a group in ActionCatalog: {string.Join(", ", missing)}");
+    }
+
+    [Fact]
+    public void GivenTheDefaultKeymap_WhenBuildingEntries_ThenGroupsAreContiguousAndNamedByTheCatalog()
+    {
+        var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
+
+        var runs = entries.Select(entry => entry.Group).Distinct().ToList();
+        Assert.Equal(entries.Select(entry => entry.Group).Distinct().Count(), runs.Count);
+        Assert.All(entries, entry => Assert.Equal(ActionCatalog.GroupOf(entry.Action)!.Header, entry.Group));
+        var starts = entries.Where((entry, index) => index == 0 || entries[index - 1].Group != entry.Group);
+        Assert.Equal(runs.Count, starts.Count());
+    }
+
+    [Fact]
+    public void GivenTheWhichKeyGroups_WhenComparingVocabulary_ThenEachNamesAnActionGroup()
+    {
+        Assert.Equal("branch operations", ActionGroups.Branch.WhichKeyName);
+        Assert.Equal("tag operations", ActionGroups.Tag.WhichKeyName);
+        Assert.Equal("worktree operations", ActionGroups.Worktree.WhichKeyName);
+        Assert.Equal("stash operations", ActionGroups.Stash.WhichKeyName);
+        Assert.Equal(7, WhichKeyBuilder.GroupPrefixes.Count);
     }
 }

@@ -210,7 +210,7 @@ public sealed class OverlayControllerTests : IDisposable
         var selected = _overlays.SelectPaletteEntryAt(4);
 
         Assert.True(selected);
-        Assert.Equal(3, _overlays.State.Palette!.SelectedIndex);
+        Assert.Equal(2, _overlays.State.Palette!.SelectedIndex);
         Assert.True(_changes > changesBefore);
     }
 
@@ -412,9 +412,10 @@ public sealed class OverlayControllerTests : IDisposable
         _overlays.Handle(ActionIds.MenuOpenForRow, null);
 
         Assert.False(_overlays.SelectMenuEntryAt(0));
+        Assert.False(_overlays.SelectMenuEntryAt(1));
         Assert.True(_overlays.SelectMenuEntryAt(3));
 
-        Assert.Equal(2, _overlays.State.Palette!.SelectedIndex);
+        Assert.Equal(1, _overlays.State.Palette!.SelectedIndex);
     }
 
     [Fact]

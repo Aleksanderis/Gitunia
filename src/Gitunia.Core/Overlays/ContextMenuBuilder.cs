@@ -6,6 +6,9 @@ namespace Gitunia.Core.Overlays;
 /// <summary>Builds the entries of an actions menu (#471): a title and the key that runs the action in a view.</summary>
 public static class ContextMenuBuilder
 {
+    /// <summary>A menu with at most this many entries has no subheaders: grouping few rows is noise (#483).</summary>
+    public const int UngroupedMaximum = 5;
+
     /// <summary>
     /// The entries for <paramref name="actions"/>, in that order. The key shown is the first Normal-mode binding of the
     /// action that works in <paramref name="view"/>; an action without one is left out, since the menu runs actions
@@ -27,9 +30,22 @@ public static class ContextMenuBuilder
                 action,
                 ActionCatalog.Describe(action),
                 KeyFormatter.Format(binding.Sequence),
-                !ActionCatalog.Unimplemented.Contains(action)));
+                !ActionCatalog.Unimplemented.Contains(action),
+                ActionCatalog.GroupOf(action)?.Header));
         }
 
-        return entries;
+        return Grouped(entries);
+    }
+
+    // Entries of one group sit together (groups by first appearance); a short or one-group menu has no headers.
+    private static List<PaletteEntry> Grouped(List<PaletteEntry> entries)
+    {
+        if (entries.Count <= UngroupedMaximum || entries.Select(entry => entry.Group).Distinct().Count() < 2)
+        {
+            return [.. entries.Select(entry => entry with { Group = null })];
+        }
+
+        var order = entries.Select(entry => entry.Group).Distinct().ToList();
+        return [.. entries.OrderBy(entry => order.IndexOf(entry.Group))];
     }
 }
