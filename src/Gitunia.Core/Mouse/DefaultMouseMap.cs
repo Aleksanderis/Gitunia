@@ -110,7 +110,7 @@ public static class DefaultMouseMap
 
     public const string SidebarTagDeleteRemoteButton = "SidebarButton.TagDeleteRemote";
 
-    /// <summary>Merge chips of the Branches and Tags headers (#434): merge the selected branch or tag into HEAD.</summary>
+    /// <summary>Merge chips of the Branches and Tags headers (#434): merge the selected row into HEAD.</summary>
     public const string SidebarMergeButton = "SidebarButton.Merge";
 
     public const string SidebarMergeNoFastForwardButton = "SidebarButton.MergeNoFastForward";
