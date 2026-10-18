@@ -461,9 +461,14 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
-        if (_reflog.OnLineClicked(line))
+        var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
+        if (reflogHandled)
         {
             _overlayClickTicks = Environment.TickCount64;
+            if (reflogView is not null)
+            {
+                _mouse.Handle(reflogView, MouseGesture.Click);
+            }
         }
         else if (_overlays.SelectPaletteEntryAt(line))
         {
