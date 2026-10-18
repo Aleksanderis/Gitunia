@@ -290,3 +290,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Reflog follow-ups (#424): the ref picker opens with `<space>l` inside the list (the graph key keeps opening HEAD in one step), `/` search lives in the list footer, and the mouse paths of an entry are action rows under the list (no right-click or header button: the overlay is modal and has no pane header).
 
 **UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449).
+
+**Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
