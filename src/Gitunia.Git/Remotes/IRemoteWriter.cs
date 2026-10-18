@@ -38,10 +38,14 @@ public interface IRemoteWriter
         IProgress<RemoteProgress>? progress,
         CancellationToken cancellationToken);
 
-    /// <summary>Deletes <c>refs/heads/&lt;branch&gt;</c> on <paramref name="remote"/>; local refs stay.</summary>
+    /// <summary>
+    /// Deletes <c>refs/heads/&lt;branch&gt;</c> on <paramref name="remote"/> only while it still is at
+    /// <paramref name="expectedHash"/> (a lease); local refs stay.
+    /// </summary>
     Task DeleteRemoteBranchAsync(
         RepositoryLocation location,
         string remote,
         string branch,
+        string expectedHash,
         CancellationToken cancellationToken);
 }

@@ -1,4 +1,4 @@
-namespace Gitunia.Tui.App.Remote;
+namespace Gitunia.Git.Refs.Models;
 
 /// <summary>A remote-tracking branch split into its remote and the branch name on that remote.</summary>
 /// <param name="Remote">The remote, for example <c>origin</c>.</param>

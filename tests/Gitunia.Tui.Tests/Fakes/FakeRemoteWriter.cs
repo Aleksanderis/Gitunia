@@ -69,8 +69,9 @@ public sealed class FakeRemoteWriter : IRemoteWriter
         RepositoryLocation location,
         string remote,
         string branch,
+        string expectedHash,
         CancellationToken cancellationToken) =>
-        RunAsync($"delete|{location.RootPath}|{remote}|{branch}", null, cancellationToken);
+        RunAsync($"delete|{location.RootPath}|{remote}|{branch}|{expectedHash}", null, cancellationToken);
 
     private async Task RunAsync(string call, IProgress<RemoteProgress>? progress, CancellationToken cancellationToken)
     {

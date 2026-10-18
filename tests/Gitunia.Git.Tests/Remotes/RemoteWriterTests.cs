@@ -194,7 +194,12 @@ public class RemoteWriterTests
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
         var head = repository.Head;
 
-        await WriterFor(repository).DeleteRemoteBranchAsync(await LocateAsync(repository), "origin", "topic", Token);
+        await WriterFor(repository).DeleteRemoteBranchAsync(
+            await LocateAsync(repository),
+            "origin",
+            "topic",
+            repository.Git("rev-parse", "origin/topic").Trim(),
+            Token);
 
         Assert.DoesNotContain("topic", repository.GitIn(repository.OriginPath, ["branch"]), StringComparison.Ordinal);
         Assert.DoesNotContain("origin/topic", repository.Git("branch", "-r"), StringComparison.Ordinal);
@@ -202,13 +207,29 @@ public class RemoteWriterTests
     }
 
     [Fact]
+    public async Task GivenTheBranchMovedOnTheRemote_WhenDeletingIt_ThenTheLeaseRejectsAndTheirCommitSurvives()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        var theirs = CommitOnOriginWithoutFetching(repository, "topic");
+        var location = await LocateAsync(repository);
+
+        var failure = await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).DeleteRemoteBranchAsync(location, "origin", "topic", seen, Token));
+
+        Assert.Contains("stale info", failure.StandardError, StringComparison.Ordinal);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
     public async Task GivenAnUnknownRemote_WhenDeletingABranch_ThenGitsErrorIsThrown()
     {
         using var repository = TestRepositories.WithOrigin();
+        var head = repository.Head;
         var location = await LocateAsync(repository);
 
         await Assert.ThrowsAsync<GitCommandFailedException>(
-            () => WriterFor(repository).DeleteRemoteBranchAsync(location, "nowhere", "topic", Token));
+            () => WriterFor(repository).DeleteRemoteBranchAsync(location, "nowhere", "topic", head, Token));
     }
 
     [Fact]
@@ -286,15 +307,15 @@ public class RemoteWriterTests
     }
 
     // The new commit's objects exist only on the remote, so a fetch has to transfer a pack.
-    private static string CommitOnOriginWithoutFetching(TestRepository repository)
+    private static string CommitOnOriginWithoutFetching(TestRepository repository, string branch = "main")
     {
         var root = Path.GetDirectoryName(repository.OriginPath)!;
         var clone = Path.Combine(root, "other-clone");
-        repository.GitIn(root, ["clone", "-q", "--branch", "main", repository.OriginPath, clone]);
+        repository.GitIn(root, ["clone", "-q", "--branch", branch, repository.OriginPath, clone]);
         File.WriteAllText(Path.Combine(clone, "remote.txt"), "r\n");
         repository.GitIn(clone, ["add", "-A"]);
         repository.GitIn(clone, ["commit", "-q", "-m", "Remote only"]);
-        repository.GitIn(clone, ["push", "-q", "origin", "main"]);
+        repository.GitIn(clone, ["push", "-q", "origin", branch]);
         return repository.GitIn(clone, ["rev-parse", "HEAD"]).Trim();
     }
 

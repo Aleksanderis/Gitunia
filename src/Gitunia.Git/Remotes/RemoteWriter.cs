@@ -1,4 +1,5 @@
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -15,7 +16,6 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
     private const string LeaseOption = "--force-with-lease";
     private const string DeleteOption = "--delete";
     private const string NoProgressOption = "--no-progress";
-    private const string Heads = "refs/heads/";
     private const string AllOption = "--all";
     private const string PruneOption = "--prune";
     private const string FastForwardOnly = "--ff-only";
@@ -88,7 +88,7 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
 
         if (request.Lease is { } lease)
         {
-            arguments.Add($"{LeaseOption}={Heads}{lease.RemoteBranch}:{lease.ExpectedHash}");
+            arguments.Add($"{LeaseOption}={GitRefPrefixes.Heads}{lease.RemoteBranch}:{lease.ExpectedHash}");
         }
 
         if (request.Remote is not null)
@@ -97,8 +97,10 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
             arguments.Add(request.Remote);
             if (request.Branch is not null)
             {
-                arguments.Add(
-                    request.Lease is { } target ? $"{request.Branch}:{Heads}{target.RemoteBranch}" : request.Branch);
+                var target = request.Lease is { } leased
+                    ? $"{request.Branch}:{GitRefPrefixes.Heads}{leased.RemoteBranch}"
+                    : request.Branch;
+                arguments.Add(target);
             }
         }
 
@@ -109,12 +111,23 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         RepositoryLocation location,
         string remote,
         string branch,
+        string expectedHash,
         CancellationToken cancellationToken)
     {
+        // The lease makes git refuse the delete when the branch moved since the tip the user confirmed.
+        var reference = GitRefPrefixes.Heads + branch;
         await remoteRunner
             .RunAsync(
                 location,
-                [Push, NoProgressOption, DeleteOption, GitOptions.EndOfOptions, remote, Heads + branch],
+                [
+                    Push,
+                    NoProgressOption,
+                    DeleteOption,
+                    $"{LeaseOption}={reference}:{expectedHash}",
+                    GitOptions.EndOfOptions,
+                    remote,
+                    reference,
+                ],
                 null,
                 cancellationToken)
             .ConfigureAwait(false);

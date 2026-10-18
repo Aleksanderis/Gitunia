@@ -5,6 +5,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
@@ -395,7 +396,7 @@ public sealed class PushActions(
                 $"Delete the branch {branch} on the remote {remoteName} (at {ShortHash(target.CommitHash)})?",
                 "Local branches are not touched.",
             ],
-            $"Undo: git push {remoteName} {target.CommitHash}:refs/heads/{branch}",
+            $"Undo: git push {remoteName} {target.CommitHash}:{GitRefPrefixes.Heads}{branch}",
             "Delete on remote");
         return confirm(prompt, () => StartDelete(tab.Id, target)) ? string.Empty : TooSmallNotice;
     }
@@ -418,8 +419,9 @@ public sealed class PushActions(
         var name = target.Name;
         try
         {
-            await writer.DeleteRemoteBranchAsync(tab.Location, name.Remote, name.Branch, token).ConfigureAwait(false);
-            var restore = $"git push {name.Remote} {target.CommitHash}:refs/heads/{name.Branch}";
+            await writer.DeleteRemoteBranchAsync(tab.Location, name.Remote, name.Branch, target.CommitHash, token).ConfigureAwait(false);
+            var tip = target.CommitHash;
+            var restore = $"git push {name.Remote} {tip}:{GitRefPrefixes.Heads}{name.Branch}";
             var done = $"Deleted {name.Branch} on {name.Remote} (restore: {restore})";
             postToUi(() => Finish(tab.Id, done, StatusSeverity.Info, true));
         }

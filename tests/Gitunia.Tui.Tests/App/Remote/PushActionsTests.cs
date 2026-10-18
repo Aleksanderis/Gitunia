@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
