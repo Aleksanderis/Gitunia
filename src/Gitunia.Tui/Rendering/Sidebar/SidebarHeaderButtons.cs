@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 /// The buttons at the right end of a sidebar section header: the mouse path of the section's actions. A section lists
 /// its buttons in <see cref="Specifications"/> (most important first); the row keeps as many as fit after the header
 /// text and drops the rest from the end. A button acts on what the keys act on: the selected row, so a click on a row
-/// selects it first. Other sections add their rows here (tags).
+/// selects it first.
 /// </summary>
 public static class SidebarHeaderButtons
 {
@@ -20,18 +20,28 @@ public static class SidebarHeaderButtons
     [
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewButton, "[new]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchSwitchButton, "[switch]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeButton, "[merge]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchRenameButton, "[rename]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchDeleteButton, "[delete]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewOnlyButton, "[new-only]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeNoFastForwardButton, "[merge-commit]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeSquashButton, "[squash]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarRebaseButton, "[rebase]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarResetButton, "[reset]"),
-        new(SidebarSection.Tags, DefaultMouseMap.SidebarRebaseButton, "[rebase]"),
-        new(SidebarSection.Tags, DefaultMouseMap.SidebarResetButton, "[reset]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeAddButton, "[add]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeRemoveButton, "[remove]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeLockButton, "[lock]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeUnlockButton, "[unlock]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreePruneButton, "[prune]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarTagCreateButton, "[tag]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeButton, "[merge]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarTagDeleteButton, "[delete]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarTagPushButton, "[push]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarTagDeleteRemoteButton, "[remote-del]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeNoFastForwardButton, "[merge-commit]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeSquashButton, "[squash]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarRebaseButton, "[rebase]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarResetButton, "[reset]"),
         new(SidebarSection.Stashes, DefaultMouseMap.SidebarStashPushButton, "[push]"),
         new(SidebarSection.Stashes, DefaultMouseMap.SidebarStashApplyButton, "[apply]"),
         new(SidebarSection.Stashes, DefaultMouseMap.SidebarStashPopButton, "[pop]"),
