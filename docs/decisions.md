@@ -307,3 +307,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Process:** CI is manual-dispatch only (supersedes the 2026-10-16 CI cost entry): no PR, push or scheduled runs. Why: the free-plan minutes still ran out; local `dotnet build`/`dotnet test` are the gate. Dispatch CI (`gh workflow run ci.yml`) before closing a milestone or cutting a release. Revisit at v1.0.
 
 **UI:** Which-key rows (#472) list plain actions first, then `+more` groups, each alphabetical by key label (lowercase before uppercase), instead of keymap declaration order. Why: stable, scannable rows.
+
+**UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.
