@@ -552,7 +552,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail, diff, the working-tree diff and the two working-tree file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
-| Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); the details pane is reached by a click on it, `Enter` or `l` |
+| Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter` or `l` |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |

@@ -24,6 +24,15 @@ public class MainViewTests
     }
 
     [Fact]
+    public void GivenTheMainView_WhenBuilt_ThenOnlyTheGraphIgnoresDoubleClicksOnBlankSpace()
+    {
+        using var view = CreateView();
+
+        Assert.True(view.Graph.IgnoresBlankDoubleClick);
+        Assert.False(view.Detail.IgnoresBlankDoubleClick);
+    }
+
+    [Fact]
     public void GivenTheMainView_WhenBuilt_ThenTheHistoryPanesShowAndTheWorkingTreePanesAreHidden()
     {
         using var view = CreateView();
