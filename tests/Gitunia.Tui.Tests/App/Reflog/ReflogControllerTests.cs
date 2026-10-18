@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -362,7 +363,7 @@ public class ReflogControllerTests
         harness.Run(ActionIds.ReflogOpen);
         var row = harness.Reflog.State!.Picker!.Candidates.ToList().IndexOf("topic");
 
-        Assert.True(harness.Reflog.OnLineClicked(row + 1));
+        Assert.True(harness.Click(row + 1));
         await harness.PumpUntilAsync(() => harness.Reflog.State is { Picker: null, Title: "topic" });
     }
 
@@ -375,7 +376,7 @@ public class ReflogControllerTests
         await harness.OpenAsync();
         harness.Run(ActionIds.ReflogOpen);
 
-        Assert.False(harness.Reflog.OnLineClicked(harness.ActionLine(0) + 5));
+        Assert.False(harness.Click(harness.ActionLine(0) + 5));
         harness.Reflog.HandleTextKey(new KeyEvent("Down"));
         var moved = harness.Reflog.State!.Picker!.Selected;
         harness.Reflog.HandleTextKey(new KeyEvent("Up"));
@@ -394,7 +395,7 @@ public class ReflogControllerTests
         await harness.OpenAsync();
         harness.Run(ActionIds.SearchOpen);
 
-        Assert.False(harness.Reflog.OnLineClicked(harness.ActionLine(1)));
+        Assert.False(harness.Click(harness.ActionLine(1)));
         Assert.True(harness.Reflog.State!.IsEditingSearch);
     }
 
@@ -407,7 +408,7 @@ public class ReflogControllerTests
         await harness.OpenAsync();
         Assert.True(harness.Reflog.SelectEntryAt(2));
 
-        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(0)));
+        Assert.True(harness.Click(harness.ActionLine(0)));
 
         Assert.Equal([first], harness.SelectedCommits);
         Assert.True(harness.Reflog.IsOpen);
@@ -421,7 +422,7 @@ public class ReflogControllerTests
         await harness.OpenAsync();
         Assert.True(harness.Reflog.SelectEntryAt(2));
 
-        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(1)));
+        Assert.True(harness.Click(harness.ActionLine(1)));
 
         Assert.False(harness.Reflog.IsOpen);
         await harness.PumpUntilAsync(() => harness.Mode == KeyMode.Insert);
@@ -434,7 +435,7 @@ public class ReflogControllerTests
         using var harness = await Harness.LoadAsync(repository);
         await harness.OpenAsync();
 
-        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(2)));
+        Assert.True(harness.Click(harness.ActionLine(2)));
 
         Assert.False(harness.Reflog.IsOpen);
         Assert.Equal(KeyMode.Insert, harness.Mode);
@@ -449,12 +450,12 @@ public class ReflogControllerTests
         await harness.OpenAsync();
         Assert.True(harness.Reflog.SelectEntryAt(2));
 
-        Assert.True(harness.Reflog.ActivateLine(harness.ActionLine(3)));
+        Assert.True(harness.Click(harness.ActionLine(3)));
         await harness.PumpUntilAsync(() => harness.Refreshes > 0);
 
         Assert.False(harness.Reflog.IsOpen);
         Assert.Equal(first, repository.Head);
-        Assert.False(harness.Reflog.ActivateLine(0));
+        Assert.False(harness.Click(0));
     }
 
     [Fact]
@@ -595,6 +596,20 @@ public class ReflogControllerTests
         {
             Assert.True(index >= 0);
             Reflog.TryExecute(ActionIds.ListTop, index + 1);
+        }
+
+        /// <summary>A click through the real path: the controller names the view, the mouse map the action.</summary>
+        public bool Click(int frameLine)
+        {
+            var view = Reflog.OnLineClicked(frameLine, out var handled);
+            if (view is not null)
+            {
+                var binding = DefaultMouseMap.Create().Resolve(view, MouseGesture.Click);
+                Assert.NotNull(binding);
+                Assert.True(Reflog.TryExecute(binding.Action, null), binding.Action.Value);
+            }
+
+            return handled;
         }
 
         // The frame line of the nth action row under the entries.

@@ -9,6 +9,18 @@ namespace Gitunia.Core.Tests.Mouse;
 public class MouseMapTests
 {
     [Theory]
+    [InlineData(DefaultMouseMap.ReflogSelectButton)]
+    [InlineData(DefaultMouseMap.ReflogResetButton)]
+    [InlineData(DefaultMouseMap.ReflogBranchButton)]
+    [InlineData(DefaultMouseMap.ReflogCheckoutButton)]
+    [InlineData(DefaultMouseMap.ReflogPickerRow)]
+    public void GivenAReflogOverlayView_WhenClicked_ThenItIsBoundAndRunsWhileAnOverlayIsOpen(string view)
+    {
+        Assert.Contains(view, DefaultMouseMap.OverlayViews);
+        Assert.NotNull(DefaultMouseMap.Create().Resolve(view, MouseGesture.Click));
+    }
+
+    [Theory]
     [InlineData(DefaultKeymap.GraphView)]
     [InlineData(DefaultKeymap.DetailView)]
     [InlineData(DefaultKeymap.SidebarView)]

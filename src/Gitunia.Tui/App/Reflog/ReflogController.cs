@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Lists;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Search;
 using Gitunia.Core.Sidebar;
@@ -171,37 +172,38 @@ public sealed class ReflogController(
         return true;
     }
 
-    /// <summary>A click on a frame line: highlights an entry, picks a ref or runs an action; false when none.</summary>
-    public bool OnLineClicked(int frameLine) => SelectEntryAt(frameLine) || ActivateLine(frameLine);
-
-    /// <summary>Runs the action drawn on a frame line (a click on one of the entry actions); false when none.</summary>
-    public bool ActivateLine(int frameLine)
+    /// <summary>
+    /// A click on a frame line. An entry is highlighted (returns null, a position is no action); a ref picker row is
+    /// highlighted and its mouse view returned, as is the view of an action row. The caller sends the view's click
+    /// through the mouse map. Returns null when the line is none or an entry.
+    /// </summary>
+    public string? OnLineClicked(int frameLine, out bool handled)
     {
-        if (State is not { } state)
+        handled = SelectEntryAt(frameLine);
+        if (handled || State is not { } state)
         {
-            return false;
+            return null;
         }
 
         if (state.Picker is { } picker)
         {
             if (ReflogFrameBuilder.PickerIndexAt(picker, frameLine, screenSize().Height) is not { } index)
             {
-                return false;
+                return null;
             }
 
-            var moved = picker.MoveTo(index);
-            State = state with { Picker = moved };
-            Accept(moved);
-            return true;
+            State = state with { Picker = picker.MoveTo(index) };
+            handled = true;
+            return DefaultMouseMap.ReflogPickerRow;
         }
 
-        if (state.IsEditingSearch
-            || ReflogFrameBuilder.ActionAt(state, frameLine, screenSize().Height) is not { } action)
+        if (state.IsEditingSearch || ReflogFrameBuilder.ActionAt(state, frameLine, screenSize().Height) is not { } view)
         {
-            return false;
+            return null;
         }
 
-        return TryExecute(action, null);
+        handled = true;
+        return view;
     }
 
     /// <summary>Handles a key typed while the search box or the ref picker is open; false when neither is.</summary>

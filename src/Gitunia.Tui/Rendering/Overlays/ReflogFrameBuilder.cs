@@ -1,6 +1,5 @@
 using System.Globalization;
-using Gitunia.Core.Keymap;
-using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -21,10 +20,10 @@ public static class ReflogFrameBuilder
     // The mouse paths of an entry: a click on a row runs the action on the highlighted entry.
     private static readonly ReflogEntryAction[] Actions =
     [
-        new("Enter", "select the commit in the graph", ActionIds.ReflogSelectCommit),
-        new("<space>gx", "reset the current branch to it", ActionIds.ResetBranch),
-        new("<space>bc", "create a branch here", ActionIds.BranchCreate),
-        new("<space>bs", "check it out (detached HEAD)", ActionIds.BranchSwitch),
+        new("Enter", "select the commit in the graph", DefaultMouseMap.ReflogSelectButton),
+        new("<space>gx", "reset the current branch to it", DefaultMouseMap.ReflogResetButton),
+        new("<space>bc", "create a branch here", DefaultMouseMap.ReflogBranchButton),
+        new("<space>bs", "check it out (detached HEAD)", DefaultMouseMap.ReflogCheckoutButton),
     ];
 
     /// <summary>The reflog frame for a screen, or null when the screen is too small to show it.</summary>
@@ -86,8 +85,8 @@ public static class ReflogFrameBuilder
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
 
-    /// <summary>The action drawn on a frame line (a mouse click on its row); null when the line is none.</summary>
-    public static ActionId? ActionAt(ReflogState state, int frameLine, int screenHeight)
+    /// <summary>The mouse view of the action row drawn on a frame line; null when the line is none.</summary>
+    public static string? ActionAt(ReflogState state, int frameLine, int screenHeight)
     {
         if (state.Picker is not null)
         {
@@ -96,7 +95,7 @@ public static class ReflogFrameBuilder
 
         var rows = VisibleRows(state, screenHeight);
         var index = frameLine - 1 - rows;
-        return index >= 0 && index < Actions.Length ? Actions[index].Action : null;
+        return index >= 0 && index < Actions.Length ? Actions[index].View : null;
     }
 
     /// <summary>The choice of the picker drawn on a frame line, an index into its candidates; null for none.</summary>
