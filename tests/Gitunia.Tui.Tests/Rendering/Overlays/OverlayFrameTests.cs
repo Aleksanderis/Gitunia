@@ -402,7 +402,7 @@ public class OverlayFrameTests
     {
         var engine = new KeymapEngine(Table);
         var state = engine.Process(KeymapState.Initial, new KeyEvent("g"), DefaultKeymap.GraphView).State;
-        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView));
+        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
 
         var frame = WhichKeyFrameBuilder.Build("g", rows, 60, 12, GraphGlyphSet.Unicode);
 
@@ -420,6 +420,21 @@ public class OverlayFrameTests
             Text(frame));
         Assert.Equal(60 - frame!.Width, frame.Column);
         Assert.Equal(11 - frame.Height, frame.Row);
+    }
+
+    [Fact]
+    public void GivenWhichKeyAfterLeader_WhenRenderingAt60x20_ThenGroupRowsNameTheirContents()
+    {
+        var engine = new KeymapEngine(Table);
+        var state = engine.Process(KeymapState.Initial, new KeyEvent(" "), DefaultKeymap.GraphView).State;
+        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
+
+        var frame = WhichKeyFrameBuilder.Build("<space>", rows, 60, 30, GraphGlyphSet.Unicode);
+        var text = Text(frame);
+
+        Assert.Contains("+more (branch operations)", text, StringComparison.Ordinal);
+        Assert.Contains("+more (tag operations)", text, StringComparison.Ordinal);
+        Assert.All(text.Split('\n'), line => Assert.True(line.Length <= 60));
     }
 
     [Theory]

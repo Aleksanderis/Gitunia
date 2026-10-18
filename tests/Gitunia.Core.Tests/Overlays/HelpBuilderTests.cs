@@ -76,10 +76,55 @@ public class HelpBuilderTests
         var feeder = new KeyFeeder(engine);
         feeder.Feed("g");
 
-        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView));
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
 
         Assert.Contains(new WhichKeyRow("g", "Go to the top"), rows);
         Assert.Contains(new WhichKeyRow("t", "Next tab"), rows);
+    }
+
+    [Theory]
+    [InlineData("b", "+more (branch operations)")]
+    [InlineData("g", "+more (merge, rebase, reset, pick)")]
+    [InlineData("T", "+more (tag operations)")]
+    [InlineData("t", "+more (external tools)")]
+    public void GivenTheLeaderPrefix_WhenBuildingWhichKeyRows_ThenGroupRowsNameContents(string key, string expected)
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+
+        Assert.Contains(new WhichKeyRow(key, expected), rows);
+    }
+
+    [Fact]
+    public void GivenTheGroupNames_WhenLookingThemUp_ThenEveryPrefixIsABoundLeaderChord()
+    {
+        var sequences = Table.Bindings.Select(binding => KeyFormatter.Format(binding.Sequence)).ToList();
+
+        Assert.All(
+            WhichKeyBuilder.GroupPrefixes,
+            prefix => Assert.Contains(
+                sequences,
+                sequence => sequence.StartsWith(prefix, StringComparison.Ordinal) && sequence.Length > prefix.Length));
+    }
+
+    [Fact]
+    public void GivenAGroupWithoutAName_WhenBuildingWhichKeyRows_ThenItStaysPlainMore()
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
+
+        Assert.Contains(new WhichKeyRow("Ctrl-w", "+more"), rows);
     }
 
     [Fact]
@@ -89,7 +134,9 @@ public class HelpBuilderTests
         var feeder = new KeyFeeder(engine);
         feeder.Feed("Ctrl-w");
 
-        var rows = WhichKeyBuilder.Build(engine.Continuations(feeder.State, DefaultKeymap.GraphView));
+        var rows = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence);
 
         Assert.Contains(new WhichKeyRow("c", "Close the tab"), rows);
     }

@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,palette,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,palette,whichkey,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -195,6 +195,7 @@ render() {
       narrow) columns=64 rows=30 ;;
       light) theme=light ;;
       palette) rows=20 keys=": C-j C-j" ;;
+      whichkey) keys="Space" ;;
       jump) keys="Space j c" ;;
       jump-narrow) columns=64 rows=30 keys="Space j c" ;;
       jump-diff) keys="Enter Enter Space j e" ;;
