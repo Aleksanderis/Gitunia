@@ -11,7 +11,8 @@ public static class DisplayWidth
 {
     private const int FirstWide = 0x1100;
 
-    // Sorted, inclusive start/end pairs (East Asian Width W and F, Unicode 16.0). Stored as constant data in the
+    // Sorted, inclusive start/end pairs: East Asian Width W and F of Unicode 16.0 (EastAsianWidth.txt, plus the default-wide
+    // planes 2 and 3), regenerated from that file for a new Unicode version. Stored as constant data in the
     // binary, so nothing is built at startup.
     private static ReadOnlySpan<int> WideRanges =>
     [

@@ -60,6 +60,14 @@ public class DisplayWidthTests
     [InlineData(0xFF61, 1)]
     [InlineData(0xFFE6, 2)]
     [InlineData(0xFFE7, 1)]
+    [InlineData(0x1F320, 2)]
+    [InlineData(0x1F321, 1)]
+    [InlineData(0x1F32C, 1)]
+    [InlineData(0x1F32D, 2)]
+    [InlineData(0x1FAC6, 2)]
+    [InlineData(0x1FAC7, 1)]
+    [InlineData(0x1FAF8, 2)]
+    [InlineData(0x1FAF9, 1)]
     public void GivenRangeEdge_WhenMeasuring_ThenBoundaryIsExact(int codePoint, int expected)
     {
         Assert.Equal(expected, DisplayWidth.Of(new Rune(codePoint)));
