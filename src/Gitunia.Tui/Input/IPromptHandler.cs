@@ -13,8 +13,8 @@ public interface IPromptHandler
     string StatusLine { get; }
 
     /// <summary>
-    /// The prompt as a centred popup (title, text field, answering keys) while it asks for text or a choice, null when it is
-    /// closed or is a find-as-you-type bar that stays in the status bar (search, jump).
+    /// The prompt as a centred popup (title, text field, answering keys) while it asks for text or a choice, null when
+    /// it is closed or is a find-as-you-type bar that stays in the status bar (search, jump).
     /// </summary>
     PromptPopup? Popup => null;
 

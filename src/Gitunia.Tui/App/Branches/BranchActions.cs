@@ -20,7 +20,8 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
-/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches"). A name is typed in a prompt popup,
+/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches").
+/// A name is typed in a prompt popup,
 /// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one
 /// when the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch
 /// held by another worktree, a name in use) are decided from the tab refs and run nothing; everything else runs off

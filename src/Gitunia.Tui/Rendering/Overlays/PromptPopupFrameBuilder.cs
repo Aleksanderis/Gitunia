@@ -5,9 +5,9 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out a prompt popup: the title, what the answer is for, the text field (its tail when the text is longer than the
-/// popup, with a cursor mark), the rows under it and the answering keys. Centred on the screen; null when it does not fit,
-/// and then the prompt still answers to its keys.
+/// Lays out a prompt popup: the title, what the answer is for, the text field (its tail when the text is longer
+/// than the popup, with a cursor mark), the rows under it and the answering keys. Centred on the screen; null when
+/// it does not fit, and then the prompt still answers to its keys.
 /// </summary>
 public static class PromptPopupFrameBuilder
 {

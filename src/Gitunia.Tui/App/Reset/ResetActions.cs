@@ -73,7 +73,11 @@ public sealed class ResetActions(
         : PromptPopup.ForChoice(
             "Reset",
             $"Move {_branchName} to {ShortHash(_targetHash)}",
-            ["s  soft: keep the index and the files", "m  mixed: keep the files, clear the index", "h  hard: discard the changes"]);
+            [
+                "s  soft: keep the index and the files",
+                "m  mixed: keep the files, clear the index",
+                "h  hard: discard the changes",
+            ]);
 
     public bool TryExecute(ActionId action, int? count)
     {

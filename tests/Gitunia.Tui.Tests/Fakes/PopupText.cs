@@ -2,7 +2,7 @@ using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-/// <summary>The text a prompt's popup shows, flattened to one string for assertions; empty when no popup is open.</summary>
+/// <summary>The text of a prompt's popup as one string for assertions; empty when no popup is open.</summary>
 public static class PopupText
 {
     public static string Of(IPromptHandler prompt)
