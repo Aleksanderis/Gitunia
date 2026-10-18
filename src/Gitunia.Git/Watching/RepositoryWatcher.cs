@@ -12,6 +12,8 @@ namespace Gitunia.Git.Watching;
 /// </summary>
 public sealed class RepositoryWatcher : IDisposable
 {
+    private const int MaximumNewSubdirectories = 64;
+
     private static readonly NotifyFilters GitDirectoryFilters = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size;
 
     private readonly RepositoryLocation _location;
@@ -347,41 +349,57 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// Watches a created directory and a few of its subdirectories (a quick <c>mkdir -p</c> or unpack); the rescan that
+    /// follows adds what git lists and drops what it ignores, so a big new tree (<c>node_modules</c>) never fills the cap.
+    /// </summary>
     private void WatchNewDirectory(string path)
     {
+        var children = ListNewSubdirectories(path);
         lock (_gate)
         {
-            if (_isDisposed || _pollTimer is not null || !_hasScanned)
+            if (_isDisposed || _pollTimer is not null || !_hasScanned || !TryWatchDirectoryLocked(path, false))
             {
                 return;
             }
 
-            if (!TryWatchDirectoryLocked(path))
+            foreach (var child in children)
             {
-                return;
-            }
-
-            try
-            {
-                foreach (var child in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
+                if (!TryWatchDirectoryLocked(child, false))
                 {
-                    if (!TryWatchDirectoryLocked(child))
-                    {
-                        return;
-                    }
+                    return;
                 }
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                // The directory went away again; the rescan tidies up.
             }
 
             EnqueueLocked(RepositoryChangeKinds.WorkingTree);
         }
     }
 
+    private static List<string> ListNewSubdirectories(string path)
+    {
+        var children = new List<string>();
+        try
+        {
+            foreach (var child in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
+            {
+                if (children.Count >= MaximumNewSubdirectories)
+                {
+                    break;
+                }
+
+                children.Add(child);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The directory went away again; the rescan tidies up.
+        }
+
+        return children;
+    }
+
     /// <summary>Watches one directory. False when the tab fell back to polling (limit or failure).</summary>
-    private bool TryWatchDirectoryLocked(string path)
+    private bool TryWatchDirectoryLocked(string path, bool pollOnLimit = true)
     {
         if (_directoryWatchers.ContainsKey(path))
         {
@@ -390,7 +408,11 @@ public sealed class RepositoryWatcher : IDisposable
 
         if (_directoryWatchers.Count >= _options.MaximumWorkingTreeDirectories)
         {
-            FallBackToPollingLocked();
+            if (pollOnLimit)
+            {
+                FallBackToPollingLocked();
+            }
+
             return false;
         }
 
@@ -436,47 +458,99 @@ public sealed class RepositoryWatcher : IDisposable
 
     private async Task RescanLoopAsync()
     {
-        var token = _disposal.Token;
-        while (!token.IsCancellationRequested)
+        try
         {
-            IReadOnlyList<string>? directories = null;
-            try
+            var token = _disposal.Token;
+            while (!token.IsCancellationRequested)
             {
-                directories = await _directoryLister!.ListAsync(_location.WorkingTreePath!, token);
-            }
-            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
-            {
-                // Disposed while listing.
-            }
-
-            lock (_gate)
-            {
-                if (!_isDisposed && !token.IsCancellationRequested)
+                // Coalesces the burst of directory events a build or install causes into one listing.
+                await Task.Delay(_options.Debounce, token);
+                var directories = await _directoryLister!.ListAsync(_location.WorkingTreePath!, token);
+                var drops = FindDroppableDirectories(directories);
+                if (!ApplyDirectories(directories, drops))
                 {
-                    ApplyDirectories(directories);
-                }
-
-                if (!_rescanAgain || _isDisposed)
-                {
-                    _isRescanning = false;
                     return;
                 }
-
-                _rescanAgain = false;
+            }
+        }
+        catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+        {
+            // Disposed while listing.
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _isRescanning = false;
             }
         }
     }
 
-    private void ApplyDirectories(IReadOnlyList<string>? directories)
+    /// <summary>Checks the disk outside the lock: watched directories that git does not list and that are gone or ignored.</summary>
+    private List<string> FindDroppableDirectories(IReadOnlyList<string>? directories)
     {
-        if (_pollTimer is not null)
-        {
-            return;
-        }
-
+        var drops = new List<string>();
         if (directories is null)
         {
-            WatchRootRecursivelyLocked();
+            return drops;
+        }
+
+        string[] watched;
+        lock (_gate)
+        {
+            watched = [.. _directoryWatchers.Keys];
+        }
+
+        var wanted = new HashSet<string>(directories, StringComparer.Ordinal);
+        foreach (var path in watched)
+        {
+            if (!wanted.Contains(path) && ShouldDrop(path))
+            {
+                drops.Add(path);
+            }
+        }
+
+        return drops;
+    }
+
+    /// <summary>Applies one listing; false when the loop should end (disposed, polling, or nothing more queued).</summary>
+    private bool ApplyDirectories(IReadOnlyList<string>? directories, List<string> drops)
+    {
+        lock (_gate)
+        {
+            if (_isDisposed)
+            {
+                return false;
+            }
+
+            if (_pollTimer is null)
+            {
+                ApplyListingLocked(directories, drops);
+            }
+
+            if (!_rescanAgain || _pollTimer is not null)
+            {
+                _rescanAgain = false;
+                _isRescanning = false;
+                return false;
+            }
+
+            _rescanAgain = false;
+
+            return true;
+        }
+    }
+
+    private void ApplyListingLocked(IReadOnlyList<string>? directories, List<string> drops)
+    {
+        if (directories is null)
+        {
+            // A failed first listing falls back to the recursive watcher; a later failure keeps what is watched.
+            if (!_hasScanned)
+            {
+                WatchRootRecursivelyLocked();
+            }
+
             return;
         }
 
@@ -486,41 +560,46 @@ public sealed class RepositoryWatcher : IDisposable
             return;
         }
 
-        var wanted = new HashSet<string>(directories, StringComparer.Ordinal);
-        var before = _directoryWatchers.Count;
-        foreach (var path in _directoryWatchers.Keys.ToArray())
+        foreach (var path in drops)
         {
-            if (!wanted.Contains(path) && ShouldDrop(path))
+            if (_directoryWatchers.ContainsKey(path))
             {
                 RetireDirectory(path);
             }
         }
 
+        var added = 0;
         foreach (var path in directories)
         {
+            var isNew = !_directoryWatchers.ContainsKey(path);
             if (!TryWatchDirectoryLocked(path))
             {
                 return;
+            }
+
+            if (isNew && _directoryWatchers.ContainsKey(path))
+            {
+                added++;
             }
         }
 
         var hadScanned = _hasScanned;
         _hasScanned = true;
-        if (hadScanned && _directoryWatchers.Count > before)
+        if (hadScanned && added > 0)
         {
             // A file may have appeared in a directory before its watcher existed.
             EnqueueLocked(RepositoryChangeKinds.WorkingTree);
         }
     }
 
-    /// <summary>
-    /// A watched directory that git does not list is dropped when it is gone or holds files (ignored);
-    /// an empty one stays.
-    /// </summary>
     private static bool IsWatchFailure(Exception exception) =>
         exception is IOException or ArgumentException or UnauthorizedAccessException
             or PlatformNotSupportedException or InvalidOperationException;
 
+    /// <summary>
+    /// A watched directory that git does not list is dropped when it is gone or holds files (ignored);
+    /// an empty one stays.
+    /// </summary>
     private static bool ShouldDrop(string path)
     {
         try

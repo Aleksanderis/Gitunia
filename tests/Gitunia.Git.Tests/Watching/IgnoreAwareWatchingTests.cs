@@ -174,6 +174,36 @@ public class IgnoreAwareWatchingTests
     }
 
     [Fact]
+    public async Task GivenBigNewIgnoredTree_WhenItAppears_ThenTabKeepsWatchingInsteadOfPolling()
+    {
+        using var testRepository = CreateRepositoryWithIgnoredTree();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var options = FastOptions with { MaximumWorkingTreeDirectories = 6 };
+        using var watcher = new RepositoryWatcher(
+            location,
+            new WatchBudget(),
+            options,
+            _ => { },
+            directoryLister: Lister);
+        watcher.Start();
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+        testRepository.WriteFile(".gitignore", "ignored/\nmodules/\n");
+        var staging = Path.Combine(testRepository.WorkingTreePath, "ignored", "staging");
+        for (var index = 0; index < 40; index++)
+        {
+            Directory.CreateDirectory(Path.Combine(staging, $"package{index}", "lib"));
+            File.WriteAllText(Path.Combine(staging, $"package{index}", "lib", "index.js"), "x");
+        }
+
+        Directory.Move(staging, Path.Combine(testRepository.WorkingTreePath, "modules"));
+
+        testRepository.WriteFile(Path.Combine("src", "b", "s.txt"), "x");
+
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3 && !watcher.IsPolling);
+        Assert.False(watcher.IsPolling);
+    }
+
+    [Fact]
     public async Task GivenListingFails_WhenStarting_ThenWorkingTreeIsWatchedRecursively()
     {
         using var testRepository = CreateRepositoryWithIgnoredTree();
