@@ -14,7 +14,13 @@ public static class MouseFlagTranslator
         flags.HasFlag(MouseFlags.LeftButtonClicked) || flags.HasFlag(MouseFlags.LeftButtonDoubleClicked) || flags.HasFlag(MouseFlags.LeftButtonTripleClicked);
 
     /// <summary>Returns false for events the mouse map has no use for (moves, presses, releases, other buttons, a sideways wheel).</summary>
-    public static bool TryTranslate(MouseFlags flags, out MouseGesture gesture)
+    /// <param name="flags">The toolkit's flags.</param>
+    /// <param name="gesture">The gesture.</param>
+    /// <param name="opensRowMenu">
+    /// True for the panes whose rows have an actions menu (#471): only there a middle click and a Ctrl-held click are
+    /// gestures of their own; elsewhere the first is ignored and the second stays a plain click.
+    /// </param>
+    public static bool TryTranslate(MouseFlags flags, out MouseGesture gesture, bool opensRowMenu = false)
     {
         // Terminal.Gui reports a sideways wheel as the vertical wheel plus Ctrl (WheeledLeft, WheeledRight) and Shift+wheel is the same idea.
         var isSideways = flags.HasFlag(MouseFlags.Ctrl) || flags.HasFlag(MouseFlags.Shift);
@@ -35,6 +41,14 @@ public static class MouseFlagTranslator
         else if (flags.HasFlag(MouseFlags.RightButtonClicked))
         {
             gesture = MouseGesture.RightClick;
+        }
+        else if (opensRowMenu && flags.HasFlag(MouseFlags.MiddleButtonClicked))
+        {
+            gesture = MouseGesture.MiddleClick;
+        }
+        else if (opensRowMenu && flags.HasFlag(MouseFlags.LeftButtonClicked) && flags.HasFlag(MouseFlags.Ctrl))
+        {
+            gesture = MouseGesture.CtrlClick;
         }
         else if (flags.HasFlag(MouseFlags.LeftButtonDoubleClicked))
         {

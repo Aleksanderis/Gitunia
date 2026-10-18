@@ -255,6 +255,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _router.ViewName,
             _statuses);
         _overlays.Changed += RefreshOverlay;
+        _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
@@ -488,6 +489,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.PaletteView, MouseGesture.Click);
+        }
+        else if (_overlays.SelectMenuEntryAt(line))
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            _mouse.Handle(DefaultKeymap.ContextMenuView, MouseGesture.Click);
         }
         else if (_pick.Prompt is { } prompt && !_overlays.State.IsOpen && !_reflog.IsOpen)
         {
@@ -764,6 +770,28 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         gate,
         () => SelectedSidebarRow(sidebarSource));
+
+    // The actions menu of the row under the cursor of the graph or the sidebar, hanging at that row.
+    private RowMenuTarget? MenuTargetOf(string view, SidebarListSource sidebarSource)
+    {
+        if (view == DefaultKeymap.SidebarView)
+        {
+            return SelectedSidebarRow(sidebarSource) is { } row
+                ? new RowMenuTarget(RowActions.OfSidebarRow(row), AnchorOf(_view.Sidebar))
+                : null;
+        }
+
+        return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
+            ? new RowMenuTarget(RowActions.OfGraphRow, AnchorOf(_view.Graph))
+            : null;
+    }
+
+    private static MenuAnchor AnchorOf(PaneListView list)
+    {
+        var lastRow = Math.Max(0, list.Viewport.Height - 1);
+        var visibleRow = Math.Clamp((list.SelectedItem ?? 0) - list.Viewport.Y, 0, lastRow);
+        return new MenuAnchor(list.Frame.X, list.Frame.Y + visibleRow);
+    }
 
     private SidebarRow? SelectedSidebarRow(SidebarListSource sidebarSource)
     {

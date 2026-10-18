@@ -67,12 +67,19 @@ public sealed class OverlayController
 
     public OverlayState State { get; private set; } = OverlayState.None;
 
+    /// <summary>
+    /// What the actions menu of the focused row offers: asked with the keymap view it opens from (the graph or the
+    /// sidebar), it returns the row's actions and where the row is on screen, or null when there is no row to act on.
+    /// </summary>
+    public Func<string, RowMenuTarget?> MenuTarget { get; set; } = _ => null;
+
     /// <summary>The keymap view that is focused: the overlay's own while one is open, else the base view.</summary>
     public string ViewName => State.Kind switch
     {
         OverlayKind.Help => DefaultKeymap.HelpView,
         OverlayKind.Messages or OverlayKind.Output => DefaultKeymap.MessagesView,
         OverlayKind.Palette => DefaultKeymap.PaletteView,
+        OverlayKind.ContextMenu => DefaultKeymap.ContextMenuView,
         OverlayKind.Confirm => DefaultKeymap.ConfirmView,
         _ => _baseView(),
     };
@@ -159,6 +166,7 @@ public sealed class OverlayController
     /// </summary>
     public void OnScreenResized()
     {
+        CloseMenuOnResize();
         if (State is not { Kind: OverlayKind.Confirm, Confirm: { } prompt })
         {
             return;
@@ -221,17 +229,66 @@ public sealed class OverlayController
             return true;
         }
 
-        if (action == ActionIds.PaletteOpenForRow)
+        if (action == ActionIds.MenuOpenForRow)
         {
-            var view = _baseView();
-            var actions = view == DefaultKeymap.SidebarView ? RowActions.OfSidebarRow : RowActions.OfGraphRow;
-            var entries = PaletteEntryBuilder.BuildFor(_engine.Table, view, actions);
-            var palette = new PaletteState(entries);
-            Open(OverlayState.OpenPalette(palette, _keys.Mode), KeyMode.Command);
+            OpenContextMenu();
             return true;
         }
 
         return false;
+    }
+
+    // The menu hangs on a row of the old layout, so a resize closes it rather than leaving it on the wrong row.
+    private void CloseMenuOnResize()
+    {
+        if (State.Kind == OverlayKind.ContextMenu)
+        {
+            Close();
+        }
+    }
+
+    private void OpenContextMenu()
+    {
+        var view = _baseView();
+        if (MenuTarget(view) is not { } target)
+        {
+            return;
+        }
+
+        var entries = ContextMenuBuilder.Build(_engine.Table, view, target.Actions);
+        if (entries.Count == 0)
+        {
+            _statuses.Post("No actions for this row");
+            return;
+        }
+
+        var menu = new PaletteState(entries);
+        var size = _screenSize();
+        if (ContextMenuFrameBuilder.Build(menu, target.Anchor, size.Width, size.Height, _glyphs) is null)
+        {
+            _statuses.Warning("The screen is too small for the actions menu");
+            return;
+        }
+
+        Open(OverlayState.OpenContextMenu(menu, target.Anchor, _keys.Mode), KeyMode.Normal);
+    }
+
+    /// <summary>Highlights the menu entry drawn on a frame line (a click); false for any other line.</summary>
+    public bool SelectMenuEntryAt(int frameLine)
+    {
+        if (State is not { Kind: OverlayKind.ContextMenu, Palette: { } menu })
+        {
+            return false;
+        }
+
+        if (ContextMenuFrameBuilder.EntryIndexAt(menu, frameLine, _screenSize().Height) is not { } index)
+        {
+            return false;
+        }
+
+        State = State.WithPalette(menu with { SelectedIndex = index });
+        Changed?.Invoke();
+        return true;
     }
 
     // Newest first; the severity takes the keys column.

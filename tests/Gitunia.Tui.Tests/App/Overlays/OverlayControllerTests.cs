@@ -360,15 +360,93 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
-    public void GivenGraphView_WhenOpeningTheRowCommands_ThenThePaletteListsOnlyTheRowActions()
+    public void GivenAGraphRow_WhenPressingTheMenuKey_ThenAnActionsMenuOpensWithTheRowActionsAndTheirKeys()
     {
-        Assert.True(_overlays.Handle(ActionIds.PaletteOpenForRow, null));
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
 
-        Assert.Equal(OverlayKind.Palette, _overlays.State.Kind);
-        var actions = _overlays.State.Palette!.Entries.Select(entry => entry.Action).ToList();
-        Assert.Equal(RowActions.OfGraphRow, actions);
-        Assert.Contains(ActionIds.RebaseOnto, actions);
-        Assert.Contains(ActionIds.ResetBranch, actions);
+        Press(new Key(' '));
+        Press(new Key('.'));
+
+        Assert.Equal(OverlayKind.ContextMenu, _overlays.State.Kind);
+        Assert.Equal(DefaultKeymap.ContextMenuView, _overlays.ViewName);
+        var entries = _overlays.State.Palette!.Entries;
+        Assert.Equal(RowActions.OfGraphRow, entries.Select(entry => entry.Action));
+        Assert.Equal("<space>bs", entries.Single(entry => entry.Action == ActionIds.BranchSwitch).Keys);
+        Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenAnActionsMenu_WhenMovingAndPressingEnter_ThenTheHighlightedActionRunsAfterTheClose()
+    {
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
+        _overlays.Handle(ActionIds.MenuOpenForRow, null);
+
+        Press(new Key('j'));
+        Press(Key.CursorDown);
+        Press(new Key('k'));
+        Press(Key.Enter);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Equal([RowActions.OfGraphRow[1]], _routed);
+    }
+
+    [Fact]
+    public void GivenAnActionsMenu_WhenTypingText_ThenNothingFiltersAndEscCloses()
+    {
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
+        _overlays.Handle(ActionIds.MenuOpenForRow, null);
+        Press(new Key('x'));
+        var query = _overlays.State.Palette!.Query;
+        Press(Key.Esc);
+
+        Assert.Equal(string.Empty, query);
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+        Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenAnActionsMenu_WhenClickingAnEntry_ThenItIsHighlightedAndABorderLineIsNot()
+    {
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
+        _overlays.Handle(ActionIds.MenuOpenForRow, null);
+
+        Assert.False(_overlays.SelectMenuEntryAt(0));
+        Assert.True(_overlays.SelectMenuEntryAt(3));
+
+        Assert.Equal(2, _overlays.State.Palette!.SelectedIndex);
+    }
+
+    [Fact]
+    public void GivenAnActionsMenu_WhenTheScreenIsResized_ThenItCloses()
+    {
+        _overlays.MenuTarget = _ => new RowMenuTarget(RowActions.OfGraphRow, new MenuAnchor(3, 5));
+        _overlays.Handle(ActionIds.MenuOpenForRow, null);
+
+        _screen = new ScreenSize(100, 30);
+        _overlays.OnScreenResized();
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Equal(KeyMode.Normal, _keys.Mode);
+    }
+
+    [Fact]
+    public void GivenNoRowToActOn_WhenOpeningTheMenu_ThenNothingOpens()
+    {
+        Assert.True(_overlays.Handle(ActionIds.MenuOpenForRow, null));
+
+        Assert.False(_overlays.State.IsOpen);
+    }
+
+    [Fact]
+    public void GivenARowWithNoKeyedAction_WhenOpeningTheMenu_ThenTheStatusSaysThereAreNone()
+    {
+        _overlays.MenuTarget = _ => new RowMenuTarget([], new MenuAnchor(0, 0));
+
+        _overlays.Handle(ActionIds.MenuOpenForRow, null);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Contains("No actions", _statuses.Log.History[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]

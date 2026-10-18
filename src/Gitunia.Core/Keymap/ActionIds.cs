@@ -101,8 +101,6 @@ public static class ActionIds
 
     public static ActionId PaletteOpen { get; } = new("palette.open");
 
-    public static ActionId PaletteOpenForRow { get; } = new("palette.open-for-row");
-
     public static ActionId PalettePrevious { get; } = new("palette.previous");
 
     public static ActionId PaneFocusDown { get; } = new("pane.focus-down");
@@ -152,6 +150,9 @@ public static class ActionIds
     public static ActionId TagDeleteRemote { get; } = new("tag.delete-remote");
 
     public static ActionId TagPush { get; } = new("tag.push");
+
+    public static ActionId MenuOpenForRow { get; } = new("menu.open-for-row");
+
     public static ActionId MergeBranch { get; } = new("merge.branch");
 
     public static ActionId MergeBranchNoFastForward { get; } = new("merge.branch-no-ff");

@@ -18,6 +18,9 @@ public sealed class PaneListView : ListView
     private int _lastPointerRow;
     private bool _isAutoScrolling;
 
+    /// <summary>The rows of this pane have an actions menu: a middle click and a Ctrl-click open it (#471).</summary>
+    public bool OpensRowMenu { get; set; }
+
     /// <summary>True while something modal owns the screen: mouse input is swallowed without focusing or selecting anything.</summary>
     public Func<bool> IsSuppressed { get; set; } = () => false;
 
@@ -62,7 +65,7 @@ public sealed class PaneListView : ListView
             return HandleDrag(phase, mouse);
         }
 
-        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
+        if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture, OpensRowMenu))
         {
             return base.OnMouseEvent(mouse);
         }
@@ -77,9 +80,10 @@ public sealed class PaneListView : ListView
         }
 
         FocusPane();
-        if (gesture == MouseGesture.RightClick && mouse.Position is { } rightClicked)
+        if (gesture is MouseGesture.RightClick or MouseGesture.MiddleClick or MouseGesture.CtrlClick
+            && mouse.Position is { } rightClicked)
         {
-            // The row under the pointer is selected so the popup aims at it; below the last row nothing opens.
+            // The row under the pointer is selected so the menu aims at it; below the last row nothing opens.
             if (Viewport.Y + rightClicked.Y >= (Source?.Count ?? 0))
             {
                 return true;

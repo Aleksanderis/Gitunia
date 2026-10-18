@@ -23,39 +23,6 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
-    public void GivenTheSidebarAndGraphRowActions_WhenBuildingRowEntries_ThenEveryTagActionIsOffered()
-    {
-        ActionId[] tagActions = [ActionIds.TagCreate, ActionIds.TagDelete, ActionIds.TagPush, ActionIds.TagDeleteRemote];
-        var sidebar = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.SidebarView, RowActions.OfSidebarRow);
-        var graph = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
-
-        foreach (var action in tagActions)
-        {
-            Assert.Contains(sidebar, entry => entry.Action == action);
-            Assert.Contains(graph, entry => entry.Action == action);
-        }
-    }
-
-    [Fact]
-    public void GivenTheSidebarRowActions_WhenBuildingRowEntries_ThenSetAndUnsetUpstreamAreOffered()
-    {
-        var sidebar = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.SidebarView, RowActions.OfSidebarRow);
-
-        Assert.Contains(sidebar, entry => entry.Action == ActionIds.BranchSetUpstream);
-        Assert.Contains(sidebar, entry => entry.Action == ActionIds.BranchUnsetUpstream);
-    }
-
-    [Fact]
-    public void GivenTheGraphRowActions_WhenBuildingRowEntries_ThenOnlyThoseComeBackInOrderIncludingRebaseAndReset()
-    {
-        var entries = PaletteEntryBuilder.BuildFor(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
-
-        Assert.Equal(RowActions.OfGraphRow, entries.Select(entry => entry.Action));
-        Assert.Contains(entries, entry => entry.Action == ActionIds.RebaseOnto);
-        Assert.Contains(entries, entry => entry.Action == ActionIds.ResetBranch);
-    }
-
-    [Fact]
     public void GivenTheDefaultKeymap_WhenCheckingTitles_ThenEveryActionHasAHumanReadableOne()
     {
         var missing = Table.Bindings.Select(binding => binding.Action).Distinct().Where(action => !ActionCatalog.IsDescribed(action)).ToList();

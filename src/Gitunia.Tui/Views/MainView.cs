@@ -78,6 +78,7 @@ public sealed class MainView : IDisposable
         };
         Sidebar = new PaneListView
         {
+            OpensRowMenu = true,
             X = 1,
             Y = ScreenLayout.GraphTop,
             Width = Dim.Func(_ => Rects().Sidebar.Width),
@@ -118,6 +119,7 @@ public sealed class MainView : IDisposable
         };
         Graph = new PaneListView
         {
+            OpensRowMenu = true,
             X = Pos.Func(_ => Rects().Graph.X),
             Y = ScreenLayout.GraphTop,
             Width = Dim.Func(_ => Rects().Graph.Width),

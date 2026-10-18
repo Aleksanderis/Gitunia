@@ -20,6 +20,30 @@ public class MouseFlagTranslatorTests
     }
 
     [Theory]
+    [InlineData(MouseFlags.MiddleButtonClicked, MouseGesture.MiddleClick)]
+    [InlineData(MouseFlags.LeftButtonClicked | MouseFlags.Ctrl, MouseGesture.CtrlClick)]
+    public void GivenAPaneWithARowMenu_WhenTranslatingMiddleOrCtrlClick_ThenTheMenuGestureIsReturned(
+        MouseFlags flags,
+        MouseGesture expected)
+    {
+        Assert.True(MouseFlagTranslator.TryTranslate(flags, out var gesture, opensRowMenu: true));
+        Assert.Equal(expected, gesture);
+    }
+
+    [Fact]
+    public void GivenAPaneWithoutARowMenu_WhenTranslatingCtrlClick_ThenItStaysAPlainClick()
+    {
+        Assert.True(MouseFlagTranslator.TryTranslate(MouseFlags.LeftButtonClicked | MouseFlags.Ctrl, out var gesture));
+        Assert.Equal(MouseGesture.Click, gesture);
+    }
+
+    [Fact]
+    public void GivenAPaneWithoutARowMenu_WhenTranslatingMiddleClick_ThenItIsIgnored()
+    {
+        Assert.False(MouseFlagTranslator.TryTranslate(MouseFlags.MiddleButtonClicked, out _));
+    }
+
+    [Theory]
     [InlineData(MouseFlags.LeftButtonPressed)]
     [InlineData(MouseFlags.LeftButtonReleased)]
     [InlineData(MouseFlags.WheeledLeft)]
