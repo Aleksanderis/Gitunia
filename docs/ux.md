@@ -580,6 +580,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Messages | Wheel down | `list.down` | Scroll the status history down 3 lines |
 | Reflog | Wheel up | `list.up` | Scroll the reflog list up 3 entries |
 | Reflog | Wheel down | `list.down` | Scroll the reflog list down 3 entries |
+| ReflogButton.Select | Click | `reflog.select-commit` | Action row `Enter` under the reflog list: select the highlighted entry's commit in the graph (the list stays open); a click on an entry itself only highlights it |
+| ReflogButton.Reset | Click | `reset.branch` | Row `<space>gx`: reset the current branch to the highlighted entry (closes the list first) |
+| ReflogButton.Branch | Click | `branch.create` | Row `<space>bc`: new-branch prompt at the highlighted entry |
+| ReflogButton.Checkout | Click | `branch.switch` | Row `<space>bs`: check the entry out with a detached HEAD |
+| ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
 | DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
 | DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |
 | DiffButton.Wrap | Click | `diff.toggle-wrap` | Button `wrap`, same as `<space>vw` |

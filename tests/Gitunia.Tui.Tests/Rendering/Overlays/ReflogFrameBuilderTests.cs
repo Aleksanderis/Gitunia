@@ -1,4 +1,4 @@
-using Gitunia.Core.Keymap;
+using Gitunia.Core.Mouse;
 using Gitunia.Core.Reflog;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Reflog.Models;
@@ -93,8 +93,8 @@ public class ReflogFrameBuilderTests
         var state = State(3);
         var frame = ReflogFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
 
-        Assert.Equal(ActionIds.ReflogSelectCommit, ReflogFrameBuilder.ActionAt(state, 4, 24));
-        Assert.Equal(ActionIds.BranchSwitch, ReflogFrameBuilder.ActionAt(state, 7, 24));
+        Assert.Equal(DefaultMouseMap.ReflogSelectButton, ReflogFrameBuilder.ActionAt(state, 4, 24));
+        Assert.Equal(DefaultMouseMap.ReflogCheckoutButton, ReflogFrameBuilder.ActionAt(state, 7, 24));
         Assert.Contains("<space>gx", frame.Lines[5].Text, StringComparison.Ordinal);
         Assert.Null(ReflogFrameBuilder.ActionAt(state, 3, 24));
         Assert.Null(ReflogFrameBuilder.ActionAt(state, 8, 24));

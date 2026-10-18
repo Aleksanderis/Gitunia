@@ -142,6 +142,18 @@ public static class DefaultMouseMap
 
     public const string SidebarStashDropButton = "SidebarButton.StashDrop";
 
+    /// <summary>The action rows under the reflog list (#442) and a row of its ref picker (#441): each is a view of
+    /// its own, a click runs the action its key runs on the highlighted entry.</summary>
+    public const string ReflogSelectButton = "ReflogButton.Select";
+
+    public const string ReflogResetButton = "ReflogButton.Reset";
+
+    public const string ReflogBranchButton = "ReflogButton.Branch";
+
+    public const string ReflogCheckoutButton = "ReflogButton.Checkout";
+
+    public const string ReflogPickerRow = "ReflogPicker";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -171,6 +183,11 @@ public static class DefaultMouseMap
         DefaultKeymap.ReflogView,
         DefaultKeymap.PaletteView,
         BackdropView,
+        ReflogSelectButton,
+        ReflogResetButton,
+        ReflogBranchButton,
+        ReflogCheckoutButton,
+        ReflogPickerRow,
         ConfirmYesButton,
         ConfirmNoButton,
     ];
@@ -242,6 +259,11 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(ReflogSelectButton, MouseGesture.Click, ActionIds.ReflogSelectCommit),
+        new(ReflogResetButton, MouseGesture.Click, ActionIds.ResetBranch),
+        new(ReflogBranchButton, MouseGesture.Click, ActionIds.BranchCreate),
+        new(ReflogCheckoutButton, MouseGesture.Click, ActionIds.BranchSwitch),
+        new(ReflogPickerRow, MouseGesture.Click, ActionIds.InputAccept),
         new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),
