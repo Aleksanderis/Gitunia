@@ -101,7 +101,7 @@ public class SidebarFrameTests
     [Theory]
     [InlineData(SidebarSection.Branches)]
     [InlineData(SidebarSection.Tags)]
-    public void GivenWideHeader_WhenLayingOutButtons_ThenRebaseResetPickRevertAreAllPresentInOrder(SidebarSection section)
+    public void GivenWideHeader_WhenLayingOutButtons_ThenPickAndRevertFollowRebaseAndReset(SidebarSection section)
     {
         var buttons = SidebarHeaderButtons.Layout(Section(section, "Header", 1, isExpanded: true), 8, 200);
 
@@ -109,7 +109,12 @@ public class SidebarFrameTests
             DefaultMouseMap.SidebarRebaseButton or DefaultMouseMap.SidebarResetButton
             or DefaultMouseMap.SidebarPickButton or DefaultMouseMap.SidebarRevertButton);
         Assert.Equal(
-            [DefaultMouseMap.SidebarRebaseButton, DefaultMouseMap.SidebarResetButton, DefaultMouseMap.SidebarPickButton, DefaultMouseMap.SidebarRevertButton],
+            [
+                DefaultMouseMap.SidebarRebaseButton,
+                DefaultMouseMap.SidebarResetButton,
+                DefaultMouseMap.SidebarPickButton,
+                DefaultMouseMap.SidebarRevertButton,
+            ],
             views);
     }
 
