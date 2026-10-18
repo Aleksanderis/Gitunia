@@ -51,7 +51,7 @@ public static class ChromeBuilder
 
         if (model.Message.Length > 0)
         {
-            builder.Append($" {model.Message} ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.StatusError : SegmentRole.Status);
+            builder.Append($" {model.Message} ", MessageRole(model));
         }
 
         if (model.SearchLine.Length == 0)
@@ -61,6 +61,16 @@ public static class ChromeBuilder
 
         return builder.Build(SegmentRole.Status);
     }
+
+    // One role per severity, a filled chip while the message is fresh. No severity (a key's own notice, progress)
+    // keeps the plain bar style.
+    private static SegmentRole MessageRole(ScreenModel model) => model.MessageSeverity switch
+    {
+        null => SegmentRole.Status,
+        StatusSeverity.Error => model.MessageIsFresh ? SegmentRole.StatusErrorFresh : SegmentRole.StatusError,
+        StatusSeverity.Warning => model.MessageIsFresh ? SegmentRole.StatusWarningFresh : SegmentRole.StatusWarning,
+        _ => model.MessageIsFresh ? SegmentRole.StatusNoticeFresh : SegmentRole.StatusNotice,
+    };
 
     private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
     {
