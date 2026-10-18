@@ -238,7 +238,11 @@ public class GraphRowRendererTests
             CommitFactory.Commit(1, "Fix typo", []),
             CommitFactory.Commit(2, "Other", []));
         var hits = new HashSet<ObjectId> { graph[0].Id };
-        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Unicode, new SearchQuery(SearchField.Body, "closes", hits));
+        var options = new GraphRowOptions(
+            60,
+            1,
+            GraphGlyphSet.Unicode,
+            new SearchQuery(SearchField.Body, "closes", hits));
 
         var hit = GraphRowRenderer.Render(graph[0], options, false);
         var miss = GraphRowRenderer.Render(graph[1], options, false);
