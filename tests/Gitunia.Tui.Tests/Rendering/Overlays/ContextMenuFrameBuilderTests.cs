@@ -10,7 +10,7 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
 public class ContextMenuFrameBuilderTests
 {
-    private const int GraphMenuGroups = 4;
+    private const int GraphMenuGroups = 5;
 
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
@@ -24,7 +24,7 @@ public class ContextMenuFrameBuilderTests
     [Fact]
     public void GivenAnAnchor_WhenBuilding_ThenTheMenuHangsUnderTheRowWithTitleAndKeysAtTheRight()
     {
-        var frame = Frame(Menu(), new MenuAnchor(4, 1));
+        var frame = Frame(Menu(), new MenuAnchor(4, 1), height: 40);
 
         Assert.Equal(6, frame.Column);
         Assert.Equal(2, frame.Row);
@@ -39,9 +39,9 @@ public class ContextMenuFrameBuilderTests
     [Fact]
     public void GivenARowNearTheBottom_WhenBuilding_ThenTheMenuHangsAboveIt()
     {
-        var frame = Frame(Menu(), new MenuAnchor(0, 22), height: 24);
+        var frame = Frame(Menu(), new MenuAnchor(0, 38), height: 40);
 
-        Assert.Equal(22 - frame.Height, frame.Row);
+        Assert.Equal(38 - frame.Height, frame.Row);
     }
 
     [Fact]

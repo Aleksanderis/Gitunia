@@ -22,7 +22,10 @@ public static class RowActions
         ActionIds.PickRevert,
     ];
 
-    /// <summary>The actions on the commit of a graph row.</summary>
+    /// <summary>
+    /// The actions on the commit of a graph row. Open details is the mouse route to the details pane, which a
+    /// double-click no longer reaches and which is hidden on screens under 14 rows (#486).
+    /// </summary>
     public static IReadOnlyList<ActionId> OfGraphRow { get; } =
     [
         ActionIds.BranchCreate,
@@ -34,6 +37,7 @@ public static class RowActions
         ActionIds.TagDeleteRemote,
         .. Integrate,
         ActionIds.GraphCopyHash,
+        ActionIds.GraphOpenDetails,
     ];
 
     /// <summary>The actions on a sidebar row: a section header, a branch, a tag, a worktree or a stash.</summary>

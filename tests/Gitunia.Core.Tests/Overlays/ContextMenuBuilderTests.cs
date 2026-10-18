@@ -24,6 +24,14 @@ public class ContextMenuBuilderTests
     }
 
     [Fact]
+    public void GivenTheGraphRowActions_WhenBuilding_ThenOpenDetailsIsOfferedWithEnterAsItsKey()
+    {
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
+
+        Assert.Equal("Enter", entries.Single(entry => entry.Action == ActionIds.GraphOpenDetails).Keys);
+    }
+
+    [Fact]
     public void GivenAnActionWithoutAKeyInTheView_WhenBuilding_ThenItIsLeftOut()
     {
         ActionId[] actions = [ActionIds.BranchSwitch, ActionIds.StashApply];
@@ -66,7 +74,9 @@ public class ContextMenuBuilderTests
     {
         var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, RowActions.OfGraphRow);
 
-        Assert.Equal(["Branch", "Tag", "Merge and rebase", "Copy"], entries.Select(entry => entry.Group).Distinct());
+        Assert.Equal(
+            ["Branch", "Tag", "Merge and rebase", "Copy", "Navigate"],
+            entries.Select(entry => entry.Group).Distinct());
         Assert.All(entries, entry => Assert.NotNull(entry.Group));
     }
 
