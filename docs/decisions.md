@@ -335,3 +335,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Merge commits (#95) keep showing the diff and file list against the first parent (what the merge brought into the branch); the Changes heading names that parent. Combined diffs and a per-parent switch were not added: a clean merge has an empty `--cc` diff, and a switch needs a new key (follow-up: #497).
 
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
+
+**Git layer:** Working-tree watching (#83) is ignore-aware: one non-recursive watcher per directory that `ls-files --cached --others --exclude-standard` lists, none for ignored trees; a tab over 2048 directories polls. Supersedes the recursive working-tree watcher of the #27 entry. Detail in `git-layer.md`.

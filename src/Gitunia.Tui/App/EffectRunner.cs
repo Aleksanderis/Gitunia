@@ -136,7 +136,8 @@ public sealed class EffectRunner : IDisposable
                 _postToUi,
                 _watchBudget,
                 _watcherOptions,
-                operations: _services.OperationInfo);
+                operations: _services.OperationInfo,
+                directoryLister: _services.WatchedDirectories);
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);

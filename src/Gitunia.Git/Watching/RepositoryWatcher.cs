@@ -23,6 +23,9 @@ public sealed class RepositoryWatcher : IDisposable
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly HashSet<string> _watchedPaths = new(StringComparer.Ordinal);
     private readonly Timer _debounceTimer;
+    private readonly IWorkingTreeDirectoryLister? _directoryLister;
+    private readonly Dictionary<string, FileSystemWatcher> _directoryWatchers = new(StringComparer.Ordinal);
+    private readonly CancellationTokenSource _disposal = new();
     private Timer? _pollTimer;
     private RepositoryChangeKinds _pending;
     private DateTime _pendingSince;
@@ -31,14 +34,20 @@ public sealed class RepositoryWatcher : IDisposable
     private bool _isStarted;
     private bool _isDisposed;
     private int _lastFingerprint;
+    private bool _isRescanning;
+    private bool _rescanAgain;
+    private bool _hasScanned;
+    private bool _usesRecursiveRoot;
 
     public RepositoryWatcher(
         RepositoryLocation location,
         WatchBudget budget,
         RepositoryWatcherOptions options,
         Action<RepositoryChangeKinds> onChanged,
-        Action<Action>? queueNotification = null)
+        Action<Action>? queueNotification = null,
+        IWorkingTreeDirectoryLister? directoryLister = null)
     {
+        _directoryLister = directoryLister;
         _location = location;
         _budget = budget;
         _options = options;
@@ -101,6 +110,18 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
+    /// <summary>Number of non-ignored working tree directories watched one by one (zero when the working tree is watched recursively).</summary>
+    public int WorkingTreeDirectoryCount
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _directoryWatchers.Count;
+            }
+        }
+    }
+
     public void Start()
     {
         lock (_gate)
@@ -132,7 +153,10 @@ public sealed class RepositoryWatcher : IDisposable
             {
                 // Typically the inotify watch limit: give the slots back and poll.
                 StartPolling();
+                return;
             }
+
+            RequestRescan();
         }
     }
 
@@ -188,12 +212,14 @@ public sealed class RepositoryWatcher : IDisposable
             }
 
             _isDisposed = true;
+            _disposal.Cancel();
             ReleaseWatchers();
             _pollTimer?.Dispose();
             _pollTimer = null;
         }
 
         _debounceTimer.Dispose();
+        _disposal.Dispose();
     }
 
     private List<WatchTarget> CreatePlan()
@@ -209,7 +235,7 @@ public sealed class RepositoryWatcher : IDisposable
         AddIfExists(plan, Path.Combine(_location.CommonDirectory, "worktrees"), true);
         if (_location.WorkingTreePath is not null)
         {
-            AddIfExists(plan, _location.WorkingTreePath, true);
+            AddIfExists(plan, _location.WorkingTreePath, _directoryLister is null);
         }
 
         return plan;
@@ -224,6 +250,22 @@ public sealed class RepositoryWatcher : IDisposable
     }
 
     private FileSystemWatcher CreateWatcher(string path, bool isRecursive)
+    {
+        var watcher = BuildWatcher(path, isRecursive);
+        try
+        {
+            watcher.EnableRaisingEvents = true;
+        }
+        catch
+        {
+            watcher.Dispose();
+            throw;
+        }
+
+        return watcher;
+    }
+
+    private FileSystemWatcher BuildWatcher(string path, bool isRecursive)
     {
         var watcher = new FileSystemWatcher(path)
         {
@@ -240,15 +282,6 @@ public sealed class RepositoryWatcher : IDisposable
             OnPathChanged(arguments.FullPath, isCreation: true);
         };
         watcher.Error += (_, _) => FallBackToPolling();
-        try
-        {
-            watcher.EnableRaisingEvents = true;
-        }
-        catch
-        {
-            watcher.Dispose();
-            throw;
-        }
 
         return watcher;
     }
@@ -264,6 +297,261 @@ public sealed class RepositoryWatcher : IDisposable
         if (kinds != RepositoryChangeKinds.None)
         {
             Enqueue(kinds);
+        }
+
+        if (_directoryLister is not null && IsInWorkingTree(fullPath))
+        {
+            OnWorkingTreePathChanged(fullPath, isCreation);
+        }
+    }
+
+    private bool IsInWorkingTree(string fullPath)
+    {
+        var root = _location.WorkingTreePath;
+        if (root is null)
+        {
+            return false;
+        }
+
+        var comparison = OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var gitDirectory = Path.TrimEndingDirectorySeparator(_location.GitDirectory) + Path.DirectorySeparatorChar;
+
+        return fullPath.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, comparison)
+            && !fullPath.StartsWith(gitDirectory, comparison);
+    }
+
+    /// <summary>A new directory is watched at once (it may be empty and so unknown to git); a vanished one triggers a rescan.</summary>
+    private void OnWorkingTreePathChanged(string fullPath, bool isCreation)
+    {
+        if (isCreation && Directory.Exists(fullPath))
+        {
+            WatchNewDirectory(fullPath);
+            RequestRescan();
+            return;
+        }
+
+        bool isWatched;
+        lock (_gate)
+        {
+            isWatched = _directoryWatchers.ContainsKey(fullPath);
+        }
+
+        if (isWatched && !Directory.Exists(fullPath))
+        {
+            RequestRescan();
+        }
+    }
+
+    private void WatchNewDirectory(string path)
+    {
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is not null || !_hasScanned)
+            {
+                return;
+            }
+
+            if (!TryWatchDirectoryLocked(path))
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (var child in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories))
+                {
+                    if (!TryWatchDirectoryLocked(child))
+                    {
+                        return;
+                    }
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // The directory went away again; the rescan tidies up.
+            }
+
+            EnqueueLocked(RepositoryChangeKinds.WorkingTree);
+        }
+    }
+
+    /// <summary>Watches one directory. False when the tab fell back to polling (limit reached or watching failed).</summary>
+    private bool TryWatchDirectoryLocked(string path)
+    {
+        if (_directoryWatchers.ContainsKey(path))
+        {
+            return true;
+        }
+
+        if (_directoryWatchers.Count >= _options.MaximumWorkingTreeDirectories)
+        {
+            FallBackToPollingLocked();
+            return false;
+        }
+
+        try
+        {
+            _directoryWatchers[path] = CreateWatcher(path, isRecursive: false);
+
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
+        {
+            if (!Directory.Exists(path))
+            {
+                return true;
+            }
+
+            FallBackToPollingLocked();
+
+            return false;
+        }
+    }
+
+    private void RequestRescan()
+    {
+        lock (_gate)
+        {
+            if (_directoryLister is null || _isDisposed || _pollTimer is not null || _location.WorkingTreePath is null)
+            {
+                return;
+            }
+
+            if (_isRescanning)
+            {
+                _rescanAgain = true;
+                return;
+            }
+
+            _isRescanning = true;
+        }
+
+        _ = Task.Run(RescanLoopAsync);
+    }
+
+    private async Task RescanLoopAsync()
+    {
+        var token = _disposal.Token;
+        while (!token.IsCancellationRequested)
+        {
+            IReadOnlyList<string>? directories = null;
+            try
+            {
+                directories = await _directoryLister!.ListAsync(_location.WorkingTreePath!, token);
+            }
+            catch (Exception exception) when (exception is OperationCanceledException or ObjectDisposedException)
+            {
+                // Disposed while listing.
+            }
+
+            lock (_gate)
+            {
+                if (!_isDisposed && !token.IsCancellationRequested)
+                {
+                    ApplyDirectories(directories);
+                }
+
+                if (!_rescanAgain || _isDisposed)
+                {
+                    _isRescanning = false;
+                    return;
+                }
+
+                _rescanAgain = false;
+            }
+        }
+    }
+
+    private void ApplyDirectories(IReadOnlyList<string>? directories)
+    {
+        if (_pollTimer is not null)
+        {
+            return;
+        }
+
+        if (directories is null)
+        {
+            WatchRootRecursivelyLocked();
+            return;
+        }
+
+        if (directories.Count > _options.MaximumWorkingTreeDirectories)
+        {
+            FallBackToPollingLocked();
+            return;
+        }
+
+        var wanted = new HashSet<string>(directories, StringComparer.Ordinal);
+        var before = _directoryWatchers.Count;
+        foreach (var path in _directoryWatchers.Keys.ToArray())
+        {
+            if (!wanted.Contains(path) && ShouldDrop(path))
+            {
+                RetireDirectory(path);
+            }
+        }
+
+        foreach (var path in directories)
+        {
+            if (!TryWatchDirectoryLocked(path))
+            {
+                return;
+            }
+        }
+
+        var hadScanned = _hasScanned;
+        _hasScanned = true;
+        if (hadScanned && _directoryWatchers.Count > before)
+        {
+            // A file may have appeared in a directory before its watcher existed.
+            EnqueueLocked(RepositoryChangeKinds.WorkingTree);
+        }
+    }
+
+    /// <summary>A watched directory that git does not list is dropped when it is gone or holds files (ignored); an empty one stays.</summary>
+    private static bool ShouldDrop(string path)
+    {
+        try
+        {
+            return !Directory.Exists(path)
+                || Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).Any();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return true;
+        }
+    }
+
+    private void RetireDirectory(string path)
+    {
+        var watcher = _directoryWatchers[path];
+        _directoryWatchers.Remove(path);
+        RetireWatchers([watcher]);
+    }
+
+    /// <summary>Git could not list the files: watch the whole tree recursively, as before.</summary>
+    private void WatchRootRecursivelyLocked()
+    {
+        if (_usesRecursiveRoot || _location.WorkingTreePath is null)
+        {
+            return;
+        }
+
+        _usesRecursiveRoot = true;
+        if (!_budget.TryAcquire(1))
+        {
+            FallBackToPollingLocked();
+            return;
+        }
+
+        _heldSlots++;
+        try
+        {
+            _watchers.Add(CreateWatcher(_location.WorkingTreePath, isRecursive: true));
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException or InvalidOperationException)
+        {
+            FallBackToPollingLocked();
         }
     }
 
@@ -332,7 +620,15 @@ public sealed class RepositoryWatcher : IDisposable
     private void ReleaseWatchers()
     {
         // Disposing can wait for in-flight handlers, which take the gate, so it happens off this thread.
-        var retired = _watchers.ToArray();
+        RetireWatchers([.. _watchers, .. _directoryWatchers.Values]);
+        _watchers.Clear();
+        _directoryWatchers.Clear();
+        _watchedPaths.Clear();
+        _budget.Release(_heldSlots);
+        _heldSlots = 0;
+    }
+
+    private static void RetireWatchers(FileSystemWatcher[] retired) =>
         Task.Run(() =>
         {
             foreach (var watcher in retired)
@@ -341,11 +637,6 @@ public sealed class RepositoryWatcher : IDisposable
                 watcher.Dispose();
             }
         });
-        _watchers.Clear();
-        _watchedPaths.Clear();
-        _budget.Release(_heldSlots);
-        _heldSlots = 0;
-    }
 
     private void Poll()
     {

@@ -17,6 +17,7 @@ using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Tags;
 using Gitunia.Git.Worktrees;
+using Gitunia.Git.Watching;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Graph;
@@ -48,6 +49,7 @@ namespace Gitunia.Tui.App;
 /// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
 /// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
+/// <param name="WatchedDirectories">Lists the non-ignored working tree directories a tab watches.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
 /// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
 /// <param name="RepositoryLoader">Loads everything a freshly opened tab shows.</param>
@@ -76,6 +78,7 @@ public sealed record GitServices(
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
     IRepositoryRefresher Refresher,
+    IWorkingTreeDirectoryLister WatchedDirectories,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
     RepositoryLoader RepositoryLoader)
@@ -116,6 +119,7 @@ public sealed record GitServices(
             new OperationWriter(operationRunner),
             new OperationInfoReader(),
             new RepositoryRefresher(refs, status, operationDetector),
+            new WorkingTreeDirectoryLister(runner),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),
             new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));
