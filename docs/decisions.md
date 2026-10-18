@@ -301,3 +301,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-18
 
 **Process:** M4 plan (owner): themes in M4 are light, dark and auto only, named themes are M5 (#61); the Windows CI leg (#155) is M4 and blocks release packaging (#48), the macOS leg and anything costly in CI minutes is M5 and runs on release tags only; interactive rebase refuses ranges with merge commits (`--rebase-merges` post-MVP) and supports `--root`; background remote calls never prompt, a credential failure offers a retry on the real terminal (#45); #399, #45 and #48 are `needs-review`.
+
+**Process:** CI is manual-dispatch only (supersedes the 2026-10-16 CI cost entry): no PR, push or scheduled runs. Why: the free-plan minutes still ran out; local `dotnet build`/`dotnet test` are the gate. Dispatch CI (`gh workflow run ci.yml`) before closing a milestone or cutting a release. Revisit at v1.0.
