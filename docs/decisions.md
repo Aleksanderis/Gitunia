@@ -349,3 +349,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Remote management (#400): `<space>Ra` `Rd` `Rn` `Ru` (global) add, remove, rename and re-point a remote; only remove asks (Confirm naming the tracking branches that vanish), rename and set URL are reversible config edits. Why: `<space>R` was free, and `git remote` keeps tracking branches consistent itself.
 
 **UI:** Status messages (#500) are coloured by kind (success/info green, warning, error), drawn as a filled chip for 1.5 s, and expire: info 5 s, warning 15 s, error 30 s, by an injected clock in the state layer. Then the hints return; `<space>m` history keeps them. Why: a stale result must not look current.
+
+**UI:** Graph search `body:` (#97) searches the whole commit message through an on-demand `git log --grep --fixed-strings` (no bodies kept in graph rows, no cost on load); the answer is a hit set the normal scan filters rows by, and a refresh asks again. Why: keeps the 340-byte row and the graph load untouched. Refines the subject-only entry of the Architecture search note.

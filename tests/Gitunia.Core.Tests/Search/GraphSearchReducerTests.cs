@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Search;
@@ -329,5 +331,100 @@ public class GraphSearchReducerTests
 
         Assert.Equal(GraphSearchState.Initial, update.State);
         Assert.Empty(update.Effects);
+    }
+
+    private static ObjectId IdOf(int number)
+    {
+        Assert.True(ObjectId.TryParse(number.ToString("x40", CultureInfo.InvariantCulture), out var id));
+        return id;
+    }
+
+    [Fact]
+    public void GivenBodyPrefix_WhenTyping_ThenGitIsAskedAndNoRowIsScannedYet()
+    {
+        var opened = Apply(GraphSearchState.Initial, new OpenSearchCommand());
+
+        var update = GraphSearchReducer.Reduce(opened, new EditSearchTextCommand("body:closes"));
+
+        Assert.True(update.State.Query!.IsAwaitingBodyHits);
+        Assert.True(update.State.IsScanning);
+        Assert.Equal(new SearchBodiesEffect(update.State.Generation, "closes"), Assert.Single(update.Effects));
+    }
+
+    [Fact]
+    public void GivenBodyQuery_WhenTheAnswerArrives_ThenTheHitsAreKeptAndTheScanStarts()
+    {
+        var state = Editing("body:closes");
+        var hits = new HashSet<ObjectId> { IdOf(2) };
+
+        var update = GraphSearchReducer.Reduce(state, new BodyHitsCommand(state.Generation, hits, string.Empty));
+
+        Assert.False(update.State.Query!.IsAwaitingBodyHits);
+        Assert.Same(hits, update.State.Query.BodyHits);
+        Assert.Equal(new ScanSearchEffect(state.Generation), Assert.Single(update.Effects));
+    }
+
+    [Fact]
+    public void GivenBodyQuery_WhenAnAnswerOfAnOlderGenerationArrives_ThenItIsIgnored()
+    {
+        var older = Editing("body:clo");
+        var newer = Apply(older, new EditSearchTextCommand("body:closes"));
+
+        var update = GraphSearchReducer.Reduce(newer, new BodyHitsCommand(older.Generation, new HashSet<ObjectId>(), string.Empty));
+
+        Assert.Equal(newer, update.State);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenBodyQuery_WhenGitFails_ThenTheSearchEndsWithANoticeAndNoMatches()
+    {
+        var state = Editing("body:closes");
+
+        var update = GraphSearchReducer.Reduce(state, new BodyHitsCommand(state.Generation, null, "boom"));
+
+        Assert.True(update.State.IsComplete);
+        Assert.False(update.State.IsScanning);
+        Assert.Equal($"{GraphSearchReducer.BodySearchFailedNotice}: boom", update.State.Notice);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenAwaitedBodyQuery_WhenRowsAreAppended_ThenNothingIsScanned()
+    {
+        var state = Editing("body:closes");
+
+        var update = GraphSearchReducer.Reduce(state, new GraphGrewCommand(50, false));
+
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenAnsweredBodyQuery_WhenTheGraphIsReplaced_ThenGitIsAskedAgain()
+    {
+        var typed = Editing("body:closes");
+        var state = Apply(typed, new BodyHitsCommand(typed.Generation, new HashSet<ObjectId>(), string.Empty));
+
+        var update = GraphSearchReducer.Reduce(state, new GraphReplacedCommand(10));
+
+        Assert.True(update.State.Query!.IsAwaitingBodyHits);
+        Assert.Equal(new SearchBodiesEffect(update.State.Generation, "closes"), Assert.Single(update.Effects));
+    }
+
+    [Fact]
+    public void GivenAwaitedBodyQuery_WhenAccepting_ThenTheJumpWaitsForTheAnswer()
+    {
+        var state = Editing("body:closes");
+
+        var update = GraphSearchReducer.Reduce(state, new AcceptSearchCommand(0));
+
+        Assert.True(update.State.JumpPending);
+        Assert.Empty(update.Effects);
+    }
+
+    [Fact]
+    public void GivenAwaitedBodyQuery_WhenDescribing_ThenTheStatusSaysMessagesAreSearched()
+    {
+        Assert.Equal("/body:x_  0+ found searching messages", GraphSearchStatusText.Describe(Editing("body:x"), 0, 10));
     }
 }

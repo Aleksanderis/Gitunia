@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Git;
 
 namespace Gitunia.Core.Search.Models;
 
@@ -45,3 +46,9 @@ public sealed record GraphGrewCommand(int LoadedCount, bool LoadComplete) : Grap
 
 /// <summary>The graph was replaced by a refreshed log: matches and scan progress are stale and the scan starts over.</summary>
 public sealed record GraphReplacedCommand(int LoadedCount) : GraphSearchCommand;
+
+/// <summary>Git answered a <c>body:</c> query, or failed to.</summary>
+/// <param name="Generation">The generation the question was asked for.</param>
+/// <param name="Hits">The commits whose message contains the text; null when the search failed.</param>
+/// <param name="Error">Why it failed, empty on success.</param>
+public sealed record BodyHitsCommand(int Generation, IReadOnlySet<ObjectId>? Hits, string Error) : GraphSearchCommand;

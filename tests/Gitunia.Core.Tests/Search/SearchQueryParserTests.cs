@@ -13,6 +13,7 @@ public class SearchQueryParserTests
     [InlineData("hash:ABC12", SearchField.Hash, "ABC12")]
     [InlineData("hash:author:x", SearchField.Hash, "author:x")]
     [InlineData("authors", SearchField.Message, "authors")]
+    [InlineData("Body: Closes #4 ", SearchField.Body, "Closes #4")]
     public void GivenText_WhenParsing_ThenFieldAndTextAreSplit(string input, SearchField field, string text)
     {
         Assert.Equal(new SearchQuery(field, text), SearchQueryParser.Parse(input));
@@ -22,6 +23,7 @@ public class SearchQueryParserTests
     [InlineData("")]
     [InlineData("author:")]
     [InlineData("hash:  ")]
+    [InlineData("body:")]
     public void GivenNothingToLookFor_WhenParsing_ThenThereIsNoQuery(string input)
     {
         Assert.Null(SearchQueryParser.Parse(input));

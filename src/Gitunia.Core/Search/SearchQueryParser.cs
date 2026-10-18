@@ -7,6 +7,7 @@ public static class SearchQueryParser
 {
     private const string AuthorPrefix = "author:";
     private const string HashPrefix = "hash:";
+    private const string BodyPrefix = "body:";
 
     /// <summary>Parses the input; returns null while there is nothing to look for (empty, or only a prefix).</summary>
     public static SearchQuery? Parse(string input)
@@ -22,6 +23,11 @@ public static class SearchQueryParser
         {
             field = SearchField.Hash;
             text = input[HashPrefix.Length..];
+        }
+        else if (input.StartsWith(BodyPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            field = SearchField.Body;
+            text = input[BodyPrefix.Length..];
         }
 
         text = field == SearchField.Message ? text : text.Trim();
