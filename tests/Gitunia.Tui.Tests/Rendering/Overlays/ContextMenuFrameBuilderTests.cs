@@ -87,7 +87,7 @@ public class ContextMenuFrameBuilderTests
     [InlineData(SidebarRowKind.Section, SidebarSection.Stashes)]
     [InlineData(SidebarRowKind.Section, SidebarSection.Branches)]
     [InlineData(SidebarRowKind.Section, SidebarSection.Tags)]
-    public void GivenAHeaderChip_WhenLookingForItsActionInTheMenus_ThenTheSectionRowsOfferIt(
+    public void GivenAFormerHeaderChipAction_WhenLookingInTheMenus_ThenTheSectionRowsOfferIt(
         SidebarRowKind kind,
         SidebarSection section)
     {
