@@ -269,7 +269,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _statuses.Changed += _view.RefreshChrome;
         _host.Changed += _view.RefreshChrome;
-        _host.Changed += RefreshMainlineOverlay;
+        _host.Changed += _mainline.Sync;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
         _host.Changed += _commits.ForgetClosedTabs;
@@ -524,12 +524,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             prompt.UsableParents);
     }
 
-    // Opening or closing the prompt, and leaving its tab, show or hide the overlay.
-    private void RefreshMainlineOverlay()
-    {
-        _mainline.Sync();
-    }
-
     private PaneRects CurrentPaneRects()
     {
         var arrangement = _diffPane.Arrangement();
@@ -630,7 +624,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RefreshMainlineAndChrome()
     {
-        RefreshMainlineOverlay();
+        _mainline.Sync();
         _view.RefreshChrome();
     }
 

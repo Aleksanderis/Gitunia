@@ -19,12 +19,11 @@ public class MainlineOverlayTrackerTests
         tracker.Attach(window);
         window.Layout(new Size(80, 24));
         tracker.Sync();
-        var before = _refreshes;
+        Assert.Equal(1, _refreshes);
 
         window.Layout(new Size(60, 20));
 
-        Assert.Equal(1, before);
-        Assert.True(_refreshes > before);
+        Assert.Equal(2, _refreshes);
     }
 
     [Fact]
