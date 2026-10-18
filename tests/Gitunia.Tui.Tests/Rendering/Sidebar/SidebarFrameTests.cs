@@ -128,7 +128,7 @@ public class SidebarFrameTests
 
         Assert.Equal(120, TextWidth.Of(line.Text));
         Assert.EndsWith(
-            "[new] [switch] [rename] [delete] [new-only] [merge] [merge-commit] [squash]",
+            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
         var buttons = SidebarRowRenderer.ButtonsOf(row, 120, GraphGlyphSet.Unicode);
@@ -145,7 +145,7 @@ public class SidebarFrameTests
         var line = SidebarRowRenderer.Render(row, 90, isSelected: false, GraphGlyphSet.Unicode);
 
         Assert.EndsWith(
-            "[tag] [delete] [push] [remote-del] [merge] [merge-commit] [squash]",
+            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
         var buttons = SidebarRowRenderer.ButtonsOf(row, 90, GraphGlyphSet.Unicode);

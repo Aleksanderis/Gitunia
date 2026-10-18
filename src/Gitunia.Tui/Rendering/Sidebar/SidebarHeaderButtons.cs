@@ -20,10 +20,10 @@ public static class SidebarHeaderButtons
     [
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewButton, "[new]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchSwitchButton, "[switch]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeButton, "[merge]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchRenameButton, "[rename]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchDeleteButton, "[delete]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchNewOnlyButton, "[new-only]"),
-        new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeButton, "[merge]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeNoFastForwardButton, "[merge-commit]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarMergeSquashButton, "[squash]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeAddButton, "[add]"),
@@ -32,10 +32,10 @@ public static class SidebarHeaderButtons
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeUnlockButton, "[unlock]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreePruneButton, "[prune]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarTagCreateButton, "[tag]"),
+        new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeButton, "[merge]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarTagDeleteButton, "[delete]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarTagPushButton, "[push]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarTagDeleteRemoteButton, "[remote-del]"),
-        new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeButton, "[merge]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeNoFastForwardButton, "[merge-commit]"),
         new(SidebarSection.Tags, DefaultMouseMap.SidebarMergeSquashButton, "[squash]"),
     ];
