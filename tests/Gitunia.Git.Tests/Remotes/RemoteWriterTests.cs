@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
@@ -49,7 +50,9 @@ public class RemoteWriterTests
     {
         using var repository = TestRepositories.WithOrigin();
         var second = Path.Combine(Path.GetDirectoryName(repository.OriginPath)!, "second.git");
-        repository.GitIn(Path.GetDirectoryName(repository.OriginPath)!, ["clone", "-q", "--bare", repository.OriginPath, second]);
+        repository.GitIn(
+            Path.GetDirectoryName(repository.OriginPath)!,
+            ["clone", "-q", "--bare", repository.OriginPath, second]);
         repository.Git("remote", "add", "second", second);
 
         await WriterFor(repository).FetchAsync(
@@ -139,7 +142,8 @@ public class RemoteWriterTests
         await source.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => WriterFor(repository).FetchAsync(location, new FetchRequest("origin", false, false), null, source.Token));
+            () => WriterFor(repository)
+                .FetchAsync(location, new FetchRequest("origin", false, false), null, source.Token));
     }
 
     [Fact]
@@ -164,13 +168,14 @@ public class RemoteWriterTests
         var fetch = writer.FetchAsync(location, new FetchRequest("slow", false, false), null, source.Token);
         await Task.Delay(TimeSpan.FromMilliseconds(700), Token);
         await source.CancelAsync();
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stopwatch = Stopwatch.StartNew();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => fetch);
 
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), "Cancel must not wait for the 30 s hang.");
         Assert.Equal(before, repository.Git("rev-parse", "origin/main").Trim());
         Assert.Equal(string.Empty, repository.Git("fsck", "--no-progress").Trim());
-        Assert.Empty(Directory.GetFiles(Path.Combine(repository.WorkingTreePath, ".git"), "*.lock", SearchOption.AllDirectories));
+        var gitDirectory = Path.Combine(repository.WorkingTreePath, ".git");
+        Assert.Empty(Directory.GetFiles(gitDirectory, "*.lock", SearchOption.AllDirectories));
     }
 
     [Fact]

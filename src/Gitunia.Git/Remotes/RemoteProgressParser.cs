@@ -13,7 +13,7 @@ public static class RemoteProgressParser
     private const char CountSeparator = ',';
     private const int MaximumPercent = 100;
 
-    /// <summary>The progress in the segment, or null when it is any other line (<c>From ...</c>, ref updates, errors).</summary>
+    /// <summary>The progress in the segment, or null when it is any other line (ref updates, errors).</summary>
     public static RemoteProgress? Parse(string segment)
     {
         var text = segment.Trim();

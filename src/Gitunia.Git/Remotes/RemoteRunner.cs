@@ -11,7 +11,7 @@ namespace Gitunia.Git.Remotes;
 /// data), a cancel kills the whole process tree, and ssh is told not to prompt (<see cref="SshCommandPolicy"/>).
 /// </summary>
 /// <param name="runner">The shared git runner.</param>
-/// <param name="environmentLookup">Reads a process environment variable; <c>Environment.GetEnvironmentVariable</c> in production.</param>
+/// <param name="environmentLookup">Reads a process environment variable (the real lookup in production).</param>
 public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environmentLookup)
 {
     public const string ProgressOption = "--progress";
@@ -29,7 +29,10 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
     {
     }
 
-    /// <summary>Runs <c>git &lt;arguments&gt;</c>; failure throws the typed git exception, a cancel throws <see cref="OperationCanceledException"/>.</summary>
+    /// <summary>
+    /// Runs git with <paramref name="arguments"/>; a failure throws the typed git exception and a cancel throws
+    /// <see cref="OperationCanceledException"/>.
+    /// </summary>
     public async Task<GitResult> RunAsync(
         RepositoryLocation location,
         IReadOnlyList<string> arguments,

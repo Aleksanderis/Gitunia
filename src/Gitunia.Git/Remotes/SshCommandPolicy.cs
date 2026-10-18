@@ -31,7 +31,10 @@ public static class SshCommandPolicy
 
         var command = FirstNonEmpty(sshCommandVariable, configuredCommand) ?? DefaultCommand;
         var program = command.Split(WordSeparator, StringSplitOptions.RemoveEmptyEntries)[0];
-        var isSsh = string.Equals(Path.GetFileNameWithoutExtension(program), DefaultCommand, StringComparison.OrdinalIgnoreCase);
+        var isSsh = string.Equals(
+            Path.GetFileNameWithoutExtension(program),
+            DefaultCommand,
+            StringComparison.OrdinalIgnoreCase);
         if (!isSsh || command.Contains(BatchModeOption, StringComparison.Ordinal))
         {
             return isSsh ? command : null;
