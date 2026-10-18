@@ -26,25 +26,13 @@ public static class WhichKeyBuilder
         return [.. continuations
             .Select(continuation => (Continuation: continuation, Label: KeyFormatter.Format(continuation.Key)))
             .OrderBy(item => item.Continuation.Action is null)
-            .ThenBy(item => item.Label, LabelComparer.Instance)
-            .Select(item => item.Continuation)
-            .Select(continuation => new WhichKeyRow(
-            KeyFormatter.Format(continuation.Key),
-            continuation is { Action: { } action }
-                ? ActionCatalog.Describe(action) + (continuation.HasMore ? " (+more)" : string.Empty)
-                : MoreText(pending, continuation.Key)))];
-    }
-
-    /// <summary>Alphabetical by label, lowercase before uppercase of the same letter.</summary>
-    private sealed class LabelComparer : IComparer<string>
-    {
-        public static readonly LabelComparer Instance = new();
-
-        public int Compare(string? x, string? y)
-        {
-            var folded = string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
-            return folded != 0 ? folded : string.CompareOrdinal(y, x);
-        }
+            .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(item => item.Label, StringComparer.Ordinal)
+            .Select(item => new WhichKeyRow(
+                item.Label,
+                item.Continuation is { Action: { } action }
+                    ? ActionCatalog.Describe(action) + (item.Continuation.HasMore ? " (+more)" : string.Empty)
+                    : MoreText(pending, item.Continuation.Key)))];
     }
 
     /// <summary>The formatted prefixes that carry a group name.</summary>

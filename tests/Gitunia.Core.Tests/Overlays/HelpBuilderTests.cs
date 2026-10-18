@@ -148,31 +148,18 @@ public class HelpBuilderTests
     [Fact]
     public void GivenMixedCaseKeys_WhenBuildingWhichKeyRows_ThenLowercaseComesFirst()
     {
-        KeyEvent Key(string name) => new(name, KeyModifiers.None);
         var rows = WhichKeyBuilder.Build(
             [
-                new Continuation(Key("B"), new ActionId("x.y"), false),
-                new Continuation(Key("a"), new ActionId("x.y"), false),
-                new Continuation(Key("b"), new ActionId("x.y"), false),
-                new Continuation(Key("A"), null, true),
-                new Continuation(Key("c"), null, true),
+                new Continuation(new KeyEvent("B"), new ActionId("x.y"), false),
+                new Continuation(new KeyEvent("a"), new ActionId("x.y"), false),
+                new Continuation(new KeyEvent("b"), new ActionId("x.y"), false),
+                new Continuation(new KeyEvent("A"), null, true),
+                new Continuation(new KeyEvent("c"), null, true),
+                new Continuation(new KeyEvent("d"), new ActionId("x.y"), true),
             ],
             new KeySequence([]));
 
-        Assert.Equal(["a", "b", "B", "A", "c"], rows.Select(row => row.Key));
-    }
-
-    private static void AssertOrdered(IReadOnlyList<WhichKeyRow> rows)
-    {
-        var groupStart = rows.ToList().FindIndex(row => row.Description.StartsWith("+more", StringComparison.Ordinal));
-        groupStart = groupStart < 0 ? rows.Count : groupStart;
-        Assert.All(rows.Skip(groupStart), row => Assert.StartsWith("+more", row.Description, StringComparison.Ordinal));
-        foreach (var part in (List<WhichKeyRow>[])[[.. rows.Take(groupStart)], [.. rows.Skip(groupStart)]])
-        {
-            var expected = part.OrderBy(row => row.Key.ToLowerInvariant(), StringComparer.Ordinal)
-                .ThenByDescending(row => row.Key, StringComparer.Ordinal).Select(row => row.Key);
-            Assert.Equal(expected, part.Select(row => row.Key));
-        }
+        Assert.Equal(["a", "b", "B", "d", "A", "c"], rows.Select(row => row.Key));
     }
 
     [Fact]
@@ -213,5 +200,21 @@ public class HelpBuilderTests
     public void GivenDocumentedNotation_WhenFormattingTheParsedSequence_ThenItRoundTrips(string text)
     {
         Assert.Equal(text, KeyFormatter.Format(KeySequenceParser.Parse(text)));
+    }
+
+    private static void AssertOrdered(IReadOnlyList<WhichKeyRow> rows)
+    {
+        var groupStart = rows.ToList().FindIndex(row => row.Description.StartsWith("+more", StringComparison.Ordinal));
+        groupStart = groupStart < 0 ? rows.Count : groupStart;
+        Assert.All(rows.Skip(groupStart), row => Assert.StartsWith("+more", row.Description, StringComparison.Ordinal));
+        AssertSorted([.. rows.Take(groupStart)]);
+        AssertSorted([.. rows.Skip(groupStart)]);
+    }
+
+    private static void AssertSorted(List<WhichKeyRow> part)
+    {
+        var expected = part.OrderBy(row => row.Key, StringComparer.OrdinalIgnoreCase)
+            .ThenByDescending(row => row.Key, StringComparer.Ordinal).Select(row => row.Key);
+        Assert.Equal(expected, part.Select(row => row.Key));
     }
 }
