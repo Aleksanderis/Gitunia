@@ -486,7 +486,7 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Checks the disk outside the lock: watched directories git does not list that are gone or ignored.</summary>
+    /// <summary>Checks the disk outside the lock: watched directories git does not list, gone or ignored.</summary>
     private List<string> FindDroppableDirectories(IReadOnlyList<string>? directories)
     {
         var drops = new List<string>();
