@@ -98,6 +98,38 @@ public class SidebarFrameTests
         Assert.StartsWith("|  > Tags 2", frame[4], StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(SidebarSection.Branches)]
+    [InlineData(SidebarSection.Tags)]
+    public void GivenWideHeader_WhenLayingOutButtons_ThenPickAndRevertFollowRebaseAndReset(SidebarSection section)
+    {
+        var buttons = SidebarHeaderButtons.Layout(Section(section, "Header", 1, isExpanded: true), 8, 200);
+
+        var views = buttons.Select(button => button.View).Where(view => view is
+            DefaultMouseMap.SidebarRebaseButton or DefaultMouseMap.SidebarResetButton
+            or DefaultMouseMap.SidebarPickButton or DefaultMouseMap.SidebarRevertButton);
+        Assert.Equal(
+            [
+                DefaultMouseMap.SidebarRebaseButton,
+                DefaultMouseMap.SidebarResetButton,
+                DefaultMouseMap.SidebarPickButton,
+                DefaultMouseMap.SidebarRevertButton,
+            ],
+            views);
+    }
+
+    [Fact]
+    public void GivenNarrowTagsHeader_WhenLayingOutButtons_ThenRevertDropsFirst()
+    {
+        var wide = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, 200);
+        var width = 200 - wide.Min(button => button.Start) + 8 + 1 - 1 - 1;
+
+        var narrow = SidebarHeaderButtons.Layout(Section(SidebarSection.Tags, "Tags", 2, isExpanded: true), 8, width);
+
+        Assert.DoesNotContain(narrow, button => button.View == DefaultMouseMap.SidebarRevertButton);
+        Assert.Contains(narrow, button => button.View == DefaultMouseMap.SidebarPickButton);
+    }
+
     [Fact]
     public void GivenActiveFilter_WhenComposing_ThenFilterLineIsTheLastSidebarRow()
     {
@@ -124,15 +156,15 @@ public class SidebarFrameTests
     {
         var row = Section(SidebarSection.Branches, "Branches", 3, isExpanded: true);
 
-        var line = SidebarRowRenderer.Render(row, 140, isSelected: false, GraphGlyphSet.Unicode);
+        var line = SidebarRowRenderer.Render(row, 160, isSelected: false, GraphGlyphSet.Unicode);
 
-        Assert.Equal(140, TextWidth.Of(line.Text));
+        Assert.Equal(160, TextWidth.Of(line.Text));
         Assert.EndsWith(
-            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset]",
+            "[new] [switch] [merge] [rename] [delete] [new-only] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 140, GraphGlyphSet.Unicode);
-        Assert.Equal(10, buttons.Count);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 160, GraphGlyphSet.Unicode);
+        Assert.Equal(12, buttons.Count);
         var deleteColumn = line.Text.IndexOf("[delete]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarBranchDeleteButton, TitleButton.ViewAt(buttons, deleteColumn));
     }
@@ -142,14 +174,14 @@ public class SidebarFrameTests
     {
         var row = Section(SidebarSection.Tags, "Tags", 2, isExpanded: true);
 
-        var line = SidebarRowRenderer.Render(row, 120, isSelected: false, GraphGlyphSet.Unicode);
+        var line = SidebarRowRenderer.Render(row, 145, isSelected: false, GraphGlyphSet.Unicode);
 
         Assert.EndsWith(
-            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash] [rebase] [reset]",
+            "[tag] [merge] [delete] [push] [remote-del] [merge-commit] [squash] [rebase] [reset] [pick] [revert]",
             line.Text.TrimEnd(),
             StringComparison.Ordinal);
-        var buttons = SidebarRowRenderer.ButtonsOf(row, 120, GraphGlyphSet.Unicode);
-        Assert.Equal(9, buttons.Count);
+        var buttons = SidebarRowRenderer.ButtonsOf(row, 145, GraphGlyphSet.Unicode);
+        Assert.Equal(11, buttons.Count);
         var pushColumn = line.Text.IndexOf("[push]", StringComparison.Ordinal);
         Assert.Equal(DefaultMouseMap.SidebarTagPushButton, TitleButton.ViewAt(buttons, pushColumn));
         var squashColumn = line.Text.IndexOf("[squash]", StringComparison.Ordinal);
