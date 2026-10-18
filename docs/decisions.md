@@ -331,3 +331,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Subheaders in the row menu and palette get a blank line before each but the first (#489, owner), like the help overlay sections. On a short screen the gaps go before any row: the menu drops them when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows. Refines #483.
 
 **UI:** Below 14 rows (no details pane) the graph row menu omits "Open details" and `Enter` shows a notice instead of moving focus (#490). Zooming was rejected: the pane is hidden by design and the graph is the useful view there. Supersedes the "always listed" sentence of the #486 entry.
+
+**Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.

@@ -1,4 +1,5 @@
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tags;
@@ -15,7 +16,11 @@ public class TagWriterTests
         await new RepositoryDiscovery(repository.CreateIsolatedRunner())
             .DiscoverAsync(repository.WorkingTreePath, Token);
 
-    private static TagWriter WriterFor(TestRepository repository) => new(repository.CreateIsolatedRunner());
+    private static TagWriter WriterFor(TestRepository repository)
+    {
+        var runner = repository.CreateIsolatedRunner();
+        return new TagWriter(runner, new RemoteRunner(runner));
+    }
 
     [Theory]
     [InlineData("v1.0", true)]
