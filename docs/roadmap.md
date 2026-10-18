@@ -42,7 +42,7 @@ Done when: the owner can use Gitunia for all daily branch and worktree work.
 Status: not started (a few early items done).
 
 Fetch/pull/push with progress and cancel (keys and buttons, prune, force-with-lease, delete remote branch), interactive rebase editor (reorder/reword/squash/fixup/drop), remote management, clone/init, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
-Done when: usable as a daily driver on Linux; macOS/Windows binaries build in CI.
+Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are M5).
 
 ## Post-MVP candidates
 

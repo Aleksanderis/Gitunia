@@ -291,8 +291,13 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449).
 
+**UI:** Upstream by mouse (#436): `[upstream]` and `[unset-up]` chips close the Branches header, after `[revert]`, so narrow sidebars drop them first (right-click menu is the path); not on Tags.
+
 **Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
 
 **UI:** Reflog mouse paths (#441): the four action rows and a ref picker row are mouse views in `DefaultMouseMap` (overlay views), so ux.md lists them; an entry click only highlights (a position, no action). Why: one table for every gesture.
 
 **UI:** Mainline prompt by mouse (#449): a small overlay beside the status-line keys; a click on a parent row answers, any other click cancels. Supersedes the key-only note of #432.
+## 2026-10-18
+
+**Process:** M4 plan (owner): themes in M4 are light, dark and auto only, named themes are M5 (#61); the Windows CI leg (#155) is M4 and blocks release packaging (#48), the macOS leg and anything costly in CI minutes is M5 and runs on release tags only; interactive rebase refuses ranges with merge commits (`--rebase-merges` post-MVP) and supports `--root`; background remote calls never prompt, a credential failure offers a retry on the real terminal (#45); #399, #45 and #48 are `needs-review`.

@@ -30,6 +30,8 @@ public static class SidebarHeaderButtons
         new(SidebarSection.Branches, DefaultMouseMap.SidebarResetButton, "[reset]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarPickButton, "[pick]"),
         new(SidebarSection.Branches, DefaultMouseMap.SidebarRevertButton, "[revert]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchSetUpstreamButton, "[upstream]"),
+        new(SidebarSection.Branches, DefaultMouseMap.SidebarBranchUnsetUpstreamButton, "[unset-up]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeAddButton, "[add]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeRemoveButton, "[remove]"),
         new(SidebarSection.Worktrees, DefaultMouseMap.SidebarWorktreeLockButton, "[lock]"),
