@@ -351,7 +351,7 @@ public sealed class RepositoryWatcher : IDisposable
 
     /// <summary>
     /// Watches a created directory and a few of its subdirectories (a quick <c>mkdir -p</c> or unpack); the rescan that
-    /// follows adds what git lists and drops what it ignores, so a big new tree (<c>node_modules</c>) never fills the cap.
+    /// follows adds what git lists and drops what it ignores, so a big new tree never fills the cap.
     /// </summary>
     private void WatchNewDirectory(string path)
     {
@@ -486,7 +486,7 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Checks the disk outside the lock: watched directories that git does not list and that are gone or ignored.</summary>
+    /// <summary>Checks the disk outside the lock: watched directories git does not list that are gone or ignored.</summary>
     private List<string> FindDroppableDirectories(IReadOnlyList<string>? directories)
     {
         var drops = new List<string>();
@@ -513,7 +513,7 @@ public sealed class RepositoryWatcher : IDisposable
         return drops;
     }
 
-    /// <summary>Applies one listing; false when the loop should end (disposed, polling, or nothing more queued).</summary>
+    /// <summary>Applies one listing; false when the loop should end (disposed, polling or nothing queued).</summary>
     private bool ApplyDirectories(IReadOnlyList<string>? directories, List<string> drops)
     {
         lock (_gate)
