@@ -158,6 +158,11 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarWorktreeLockButton, "<space>wl")]
     [InlineData(DefaultMouseMap.SidebarWorktreeUnlockButton, "<space>wu")]
     [InlineData(DefaultMouseMap.SidebarWorktreePruneButton, "<space>wp")]
+    [InlineData(DefaultMouseMap.SidebarStashPushButton, "<space>Ss")]
+    [InlineData(DefaultMouseMap.SidebarStashPushUntrackedButton, "<space>Su")]
+    [InlineData(DefaultMouseMap.SidebarStashApplyButton, "<space>Sa")]
+    [InlineData(DefaultMouseMap.SidebarStashPopButton, "<space>Sp")]
+    [InlineData(DefaultMouseMap.SidebarStashDropButton, "<space>Sd")]
     public void GivenASidebarHeaderButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);

@@ -106,6 +106,17 @@ public static class DefaultMouseMap
 
     public const string SidebarWorktreePruneButton = "SidebarButton.WorktreePrune";
 
+    /// <summary>The Stashes header buttons (#413): apply, pop and drop act on the selected row.</summary>
+    public const string SidebarStashPushButton = "SidebarButton.StashPush";
+
+    public const string SidebarStashPushUntrackedButton = "SidebarButton.StashPushUntracked";
+
+    public const string SidebarStashApplyButton = "SidebarButton.StashApply";
+
+    public const string SidebarStashPopButton = "SidebarButton.StashPop";
+
+    public const string SidebarStashDropButton = "SidebarButton.StashDrop";
+
     /// <summary>The two answer rows of a confirm dialog: each is a view of its own so a click on it answers like <c>y</c> or <c>n</c>.</summary>
     public const string ConfirmYesButton = "ConfirmButton.Yes";
 
@@ -179,6 +190,11 @@ public static class DefaultMouseMap
         new(SidebarWorktreeLockButton, MouseGesture.Click, ActionIds.WorktreeLock),
         new(SidebarWorktreeUnlockButton, MouseGesture.Click, ActionIds.WorktreeUnlock),
         new(SidebarWorktreePruneButton, MouseGesture.Click, ActionIds.WorktreePrune),
+        new(SidebarStashPushButton, MouseGesture.Click, ActionIds.StashPush),
+        new(SidebarStashPushUntrackedButton, MouseGesture.Click, ActionIds.StashPushUntracked),
+        new(SidebarStashApplyButton, MouseGesture.Click, ActionIds.StashApply),
+        new(SidebarStashPopButton, MouseGesture.Click, ActionIds.StashPop),
+        new(SidebarStashDropButton, MouseGesture.Click, ActionIds.StashDrop),
         new(CommandsButton, MouseGesture.Click, ActionIds.PaletteOpen),
         new(NewTabButton, MouseGesture.Click, ActionIds.PickerOpen),
         new(BannerContinueButton, MouseGesture.Click, ActionIds.OperationContinue),
