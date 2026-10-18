@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Search;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -8,7 +9,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Tabs;
 
 /// <summary>
-/// The tab rename prompt (#219, <c>Ctrl-w r</c>): a status bar prompt that starts with the tab's current name; <c>Enter</c> saves it
+/// The tab rename prompt (#219, <c>Ctrl-w r</c>): a prompt popup that starts with the tab's current name; <c>Enter</c> saves it
 /// (the name is stored in the session), an empty name goes back to the repository name, <c>Esc</c> leaves the name alone.
 /// </summary>
 public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setMode, Action redraw) : IPromptHandler
@@ -18,7 +19,11 @@ public sealed class TabRenameController(WorkspaceHost host, Action<KeyMode> setM
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _renaming is null ? string.Empty : $"rename tab (empty: repository name): {_text}_";
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => _renaming is null
+        ? null
+        : PromptPopup.ForText("Rename tab", "Empty restores the repository name", _text, "save");
 
     public bool TryExecute(ActionId action, int? count)
     {

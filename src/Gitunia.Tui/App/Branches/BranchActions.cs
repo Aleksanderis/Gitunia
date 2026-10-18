@@ -20,7 +20,7 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Branches;
 
 /// <summary>
-/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches"). A name is typed in a status bar prompt,
+/// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches"). A name is typed in a prompt popup,
 /// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one
 /// when the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch
 /// held by another worktree, a name in use) are decided from the tab refs and run nothing; everything else runs off
@@ -67,15 +67,21 @@ public sealed class BranchActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public string StatusLine => _kind == BranchPromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? string.Empty
+    public string StatusLine => string.Empty;
+
+    public PromptPopup? Popup => _kind == BranchPromptKind.None || host.Workspace.ActiveTabId != _tabId
+        ? null
         : _kind switch
         {
-            BranchPromptKind.Create =>
-                $"new branch at {_label}{(_checkout ? string.Empty : " (not checked out)")}: {_text}_",
-            BranchPromptKind.Rename => $"rename {_label}: {_text}_",
-            BranchPromptKind.Upstream => UpstreamLine(),
-            _ => SwitchLine(),
+            BranchPromptKind.Create => PromptPopup.ForText(
+                "New branch",
+                $"At {_label}{(_checkout ? string.Empty : " (not checked out)")}",
+                _text,
+                "create"),
+            BranchPromptKind.Rename => PromptPopup.ForText("Rename branch", _label, _text, "rename"),
+            BranchPromptKind.Upstream => PromptPopup.ForFilter(
+                "Set upstream", $"Upstream of {_label}", _text, UpstreamDetail(), "set"),
+            _ => PromptPopup.ForFilter("Switch branch", "Branch to check out", _text, SwitchDetail(), "switch"),
         };
 
     public bool TryExecute(ActionId action, int? count)
@@ -367,18 +373,7 @@ public sealed class BranchActions(
         return string.Empty;
     }
 
-    private string UpstreamLine()
-    {
-        var line = $"upstream of {_label}: {_text}_  ";
-        if (_index >= _candidates.Count)
-        {
-            return $"{line}no matching remote branch";
-        }
-
-        var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-        var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-        return $"{line}{_candidates[_index].Label} ({position}/{total})";
-    }
+    private string UpstreamDetail() => CandidateDetail("No matching remote branch");
 
     private string AcceptUpstream(RepositoryState tab)
     {
@@ -406,17 +401,18 @@ public sealed class BranchActions(
         _index = 0;
     }
 
-    private string SwitchLine()
+    private string SwitchDetail() => CandidateDetail("No matching branch");
+
+    private string CandidateDetail(string none)
     {
-        var line = $"switch to {_text}_  ";
         if (_index >= _candidates.Count)
         {
-            return $"{line}no matching branch";
+            return none;
         }
 
         var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
         var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-        return $"{line}{_candidates[_index].Label} ({position}/{total})";
+        return $"{_candidates[_index].Label} ({position}/{total})";
     }
 
     // Finds the local branch a rename or a delete acts on, or returns why there is none.

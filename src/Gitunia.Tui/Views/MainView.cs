@@ -441,9 +441,13 @@ public sealed class MainView : IDisposable
 
     private int ScreenWidth => Window.Viewport.Width;
 
+    /// <summary>Raised after the chrome was redrawn: the model a popup is built from may have changed.</summary>
+    public event Action? ChromeRefreshed;
+
     /// <summary>Redraws the tab row, frame and status bar after the model changed.</summary>
     public void RefreshChrome()
     {
+        ChromeRefreshed?.Invoke();
         _tabs.SetNeedsDraw();
         _status.SetNeedsDraw();
         _picker.SetNeedsDraw();

@@ -1,6 +1,6 @@
 namespace Gitunia.Tui.App.Branches;
 
-/// <summary>Which status bar prompt of the branch actions is open.</summary>
+/// <summary>Which prompt popup of the branch actions is open.</summary>
 public enum BranchPromptKind
 {
     None,

@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -138,7 +139,7 @@ public class BranchActionsTests
         Assert.Contains($"finish or abort the {name} first", harness.Branches.Notice, StringComparison.Ordinal);
         Assert.Contains("<space>gc", harness.Branches.Notice, StringComparison.Ordinal);
         Assert.Contains("<space>ga", harness.Branches.Notice, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.Equal(0, harness.Refreshes);
     }
@@ -170,7 +171,7 @@ public class BranchActionsTests
         harness.Select(new BranchSelection(null, null, first));
 
         harness.Run(ActionIds.BranchCreateOnly);
-        Assert.Contains("(not checked out)", harness.Branches.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("(not checked out)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Type("old");
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
@@ -189,7 +190,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchCreate);
 
         Assert.Equal("Select a commit or a branch first", harness.Branches.Notice);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 
@@ -239,7 +240,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.Cancel);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "nope").Trim());
         Assert.False(harness.Branches.TryExecute(ActionIds.Cancel, null));
     }
@@ -253,7 +254,7 @@ public class BranchActionsTests
 
         harness.Run(ActionIds.BranchSwitch);
         harness.Type("rel");
-        Assert.Contains("release (1/1)", harness.Branches.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("release (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -362,7 +363,7 @@ public class BranchActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
 
         harness.Run(ActionIds.BranchRename);
-        Assert.Equal("rename topic: topic_", harness.Branches.StatusLine);
+        Assert.Equal("Rename branch\ntopic\n> topic_\nEnter rename   Esc cancel", PopupText.Of(harness.Branches));
         harness.Type("-2");
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
@@ -381,7 +382,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchRename);
 
         Assert.Equal("Select a local branch first", harness.Branches.Notice);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
     }
 
     [Fact]
@@ -394,7 +395,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchRename);
 
         Assert.Contains("branches point here", harness.Branches.Notice, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
     }
 
     [Fact]
@@ -519,7 +520,7 @@ public class BranchActionsTests
         var handled = harness.Branches.TryExecute(ActionIds.InputAccept, null);
 
         Assert.False(handled);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "lost").Trim());
         Assert.Equal(string.Empty, other.Git("branch", "--list", "lost").Trim());
         Assert.Equal(KeyMode.Normal, harness.Mode);
@@ -533,9 +534,9 @@ public class BranchActionsTests
         harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "lonely", repository.Head));
 
         harness.Run(ActionIds.BranchSetUpstream);
-        Assert.Contains("upstream of lonely", harness.Branches.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("Upstream of lonely", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Type("main");
-        Assert.Contains("origin/main (1/1)", harness.Branches.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("origin/main (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -570,7 +571,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchSetUpstream);
 
         Assert.Contains("no remote branch", harness.Branches.Notice, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, harness.Branches.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 

@@ -98,6 +98,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private TagActions _tags = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
+    private PromptPopup? _shownPopup;
+    private ScreenSize _shownPopupSize;
     private GraphGlyphSet _glyphs = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
@@ -297,6 +299,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
         _mainline.Attach(_view.Window);
+        _view.ChromeRefreshed += SyncPopup;
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -502,8 +505,52 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RefreshOverlay()
     {
-        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame());
+        ShowOverlayFrame();
         _view.RefreshChrome();
+    }
+
+    private void ShowOverlayFrame()
+    {
+        _shownPopup = CurrentPopup();
+        _shownPopupSize = _view.ScreenSize;
+        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame() ?? PopupFrame());
+    }
+
+    // A prompt popup follows the prompts' own state: typing, a candidate change or a resize redraws it.
+    private void SyncPopup()
+    {
+        var popup = CurrentPopup();
+        var same = popup is null ? _shownPopup is null : popup.SameText(_shownPopup);
+        if (!same || _shownPopupSize != _view.ScreenSize)
+        {
+            ShowOverlayFrame();
+        }
+    }
+
+    private PromptPopup? CurrentPopup() =>
+        _prompts.Select(prompt => prompt.Popup).FirstOrDefault(popup => popup is not null);
+
+    // The popup of the open text or choice prompt, when no other overlay is open.
+    private OverlayFrame? PopupFrame()
+    {
+        if (CurrentPopup() is not { } popup)
+        {
+            return null;
+        }
+
+        var size = _view.ScreenSize;
+        return PromptPopupFrameBuilder.Build(popup, size.Width, size.Height, _glyphs);
+    }
+
+    // The status bar carries the prompt only when the screen is too small for its popup.
+    private string PopupFallbackLine()
+    {
+        if (CurrentPopup() is not { } popup || _overlays.State.IsOpen || _reflog.IsOpen || PopupFrame() is not null)
+        {
+            return string.Empty;
+        }
+
+        return popup.Input is { } input ? $"{popup.Title}: {input}_  {popup.Hint}" : $"{popup.Title}  {popup.Hint}";
     }
 
     // The mainline question of a cherry-pick or revert of a merge commit, when no other overlay is open.
@@ -833,7 +880,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                     : _commits.IsEditing
                     ? PaneHints.ForMessageEditing()
                     : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
-            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ?? string.Empty,
+            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
+                ?? PopupFallbackLine(),
         };
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
@@ -886,7 +934,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
     }
 
-    private bool IsAnyOverlayOpen() => _overlays.State.IsOpen || _reflog.IsOpen || _pick.Prompt is not null;
+    private bool IsAnyOverlayOpen() =>
+        _overlays.State.IsOpen || _reflog.IsOpen || _pick.Prompt is not null || CurrentPopup() is not null;
 
     private string OverlayViewName() => _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
 

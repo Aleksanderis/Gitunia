@@ -173,14 +173,14 @@ public class StashControllerTests
         harness.Execute(ActionIds.StashPush);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Type("wip");
-        Assert.Contains("wip", harness.Controller.StatusLine, StringComparison.Ordinal);
-        Assert.Contains("tracked changes", harness.Controller.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("wip", PopupText.Of(harness.Controller), StringComparison.Ordinal);
+        Assert.Contains("Tracked changes", PopupText.Of(harness.Controller), StringComparison.Ordinal);
         harness.Execute(ActionIds.InputAccept);
         await harness.WaitAsync();
 
         Assert.Equal(["push|wip|False"], harness.Writer.Calls);
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Controller));
         Assert.StartsWith("Stashed \"wip\" as 01234567", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
@@ -190,7 +190,7 @@ public class StashControllerTests
         using var harness = new Harness();
 
         harness.Execute(ActionIds.StashPushUntracked);
-        Assert.Contains("untracked", harness.Controller.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("untracked", PopupText.Of(harness.Controller), StringComparison.Ordinal);
         harness.Execute(ActionIds.InputAccept);
         await harness.WaitAsync();
 
@@ -208,7 +208,7 @@ public class StashControllerTests
 
         Assert.Empty(harness.Writer.Calls);
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Controller));
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class StashControllerTests
         harness.Execute(ActionIds.StashPush);
 
         Assert.StartsWith("Busy", harness.Controller.Notice, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, harness.Controller.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Controller));
     }
 
     [Fact]

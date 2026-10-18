@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -238,7 +239,7 @@ public sealed class WorktreeActionsTests
         harness.Execute(ActionIds.WorktreeAdd);
         harness.Type("feature/x");
         harness.Execute(ActionIds.InputAccept);
-        Assert.Contains(expected, harness.Actions.StatusLine, StringComparison.Ordinal);
+        Assert.Contains(expected, PopupText.Of(harness.Actions), StringComparison.Ordinal);
         await harness.AcceptAsync();
 
         Assert.Equal(start, repository.GitIn(expected, ["rev-parse", "HEAD"]).Trim());
@@ -257,7 +258,7 @@ public sealed class WorktreeActionsTests
         harness.Execute(ActionIds.InputAccept);
 
         Assert.Contains("already checked out", harness.Actions.Notice, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, harness.Actions.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Actions));
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 

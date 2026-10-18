@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
@@ -20,14 +21,14 @@ public class TabRenameControllerTests
 
         Assert.True(controller.TryExecute(ActionIds.TabRename, null));
         Assert.Equal(KeyMode.Insert, _mode);
-        Assert.Contains("alpha_", controller.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("alpha_", PopupText.Of(controller), StringComparison.Ordinal);
         Type(controller, "-2");
         controller.TryExecute(ActionIds.InputAccept, null);
 
         Assert.Equal("alpha-2", _host.Workspace.ActiveTab!.Title);
         Assert.Equal("alpha", _host.Workspace.ActiveTab.DisplayName);
         Assert.Equal(KeyMode.Normal, _mode);
-        Assert.Equal(string.Empty, controller.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(controller));
         Assert.Contains("alpha-2", controller.Notice, StringComparison.Ordinal);
     }
 

@@ -1,3 +1,4 @@
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -31,7 +32,7 @@ public class ResetActionsTests
 
         harness.Run(ActionIds.ResetBranch);
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains("[s]oft", harness.Reset.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("soft", PopupText.Of(harness.Reset), StringComparison.Ordinal);
         harness.Press("s");
         await harness.FinishAsync();
 
@@ -186,7 +187,7 @@ public class ResetActionsTests
         harness.Run(ActionIds.Cancel);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
-        Assert.Equal(string.Empty, harness.Reset.StatusLine);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Reset));
         Assert.Equal(old, repository.Head);
         Assert.Equal(0, harness.Refreshes);
     }
@@ -203,7 +204,7 @@ public class ResetActionsTests
         harness.Press("S");
 
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains("[h]ard", harness.Reset.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("hard", PopupText.Of(harness.Reset), StringComparison.Ordinal);
     }
 
     [Fact]
