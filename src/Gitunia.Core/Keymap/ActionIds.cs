@@ -151,6 +151,16 @@ public static class ActionIds
 
     public static ActionId TagPush { get; } = new("tag.push");
 
+    public static ActionId RemoteFetch { get; } = new("remote.fetch");
+
+    public static ActionId RemoteCancel { get; } = new("remote.cancel");
+
+    public static ActionId RemoteFetchAll { get; } = new("remote.fetch-all");
+
+    public static ActionId RemotePull { get; } = new("remote.pull");
+
+    public static ActionId RemotePush { get; } = new("remote.push");
+
     public static ActionId MenuOpenForRow { get; } = new("menu.open-for-row");
 
     public static ActionId MergeBranch { get; } = new("merge.branch");

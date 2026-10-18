@@ -9,25 +9,27 @@ public static class ActionGroups
 
     public static ActionGroup Tag { get; } = new("Tag", 3, "tag operations");
 
-    public static ActionGroup Worktree { get; } = new("Worktree", 4, "worktree operations");
+    public static ActionGroup Remote { get; } = new("Remote", 4);
 
-    public static ActionGroup Stash { get; } = new("Stash", 5, "stash operations");
+    public static ActionGroup Worktree { get; } = new("Worktree", 5, "worktree operations");
 
-    public static ActionGroup WorkingTree { get; } = new("Working tree", 6);
+    public static ActionGroup Stash { get; } = new("Stash", 6, "stash operations");
 
-    public static ActionGroup Copy { get; } = new("Copy", 7);
+    public static ActionGroup WorkingTree { get; } = new("Working tree", 7);
 
-    public static ActionGroup Diff { get; } = new("Diff", 8, "diff view options");
+    public static ActionGroup Copy { get; } = new("Copy", 8);
 
-    public static ActionGroup Details { get; } = new("Details", 9);
+    public static ActionGroup Diff { get; } = new("Diff", 9, "diff view options");
 
-    public static ActionGroup Tools { get; } = new("External tools", 10, "external tools");
+    public static ActionGroup Details { get; } = new("Details", 10);
 
-    public static ActionGroup Navigate { get; } = new("Navigate", 11);
+    public static ActionGroup Tools { get; } = new("External tools", 11, "external tools");
 
-    public static ActionGroup View { get; } = new("View", 12);
+    public static ActionGroup Navigate { get; } = new("Navigate", 12);
 
-    public static ActionGroup Tabs { get; } = new("Tabs", 13);
+    public static ActionGroup View { get; } = new("View", 13);
 
-    public static ActionGroup General { get; } = new("General", 14);
+    public static ActionGroup Tabs { get; } = new("Tabs", 14);
+
+    public static ActionGroup General { get; } = new("General", 15);
 }
