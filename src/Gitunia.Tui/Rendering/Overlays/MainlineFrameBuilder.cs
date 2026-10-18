@@ -5,9 +5,9 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
-/// Lays out the mainline overlay of a cherry-pick or revert of a merge commit: the question, one row per parent (a click
-/// answers it like its digit key) and a hint. Parent n is on frame line n. There is no overlay (null) when it does not
-/// fit; the one-key prompt in the status bar still works then.
+/// Lays out the mainline overlay of a cherry-pick or revert of a merge commit: the question, one row per parent
+/// (a click answers it like its digit key) and a hint. Parent n is on frame line n. There is no overlay (null)
+/// when it does not fit; the one-key prompt in the status bar still works then.
 /// </summary>
 public static class MainlineFrameBuilder
 {
@@ -16,7 +16,12 @@ public static class MainlineFrameBuilder
     private const string Hint = "Esc or a click outside cancels";
 
     /// <summary>The overlay for a screen, or null when it does not fit.</summary>
-    public static OverlayFrame? Build(string title, IReadOnlyList<string> parents, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    public static OverlayFrame? Build(
+        string title,
+        IReadOnlyList<string> parents,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs)
     {
         var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
         var height = parents.Count + 3;

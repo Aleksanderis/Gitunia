@@ -64,7 +64,7 @@ public sealed class PickActions(
         ? string.Empty
         : PickTexts.MainlinePrompt(_kind, _commits.First(commit => commit.IsMerge));
 
-    /// <summary>The mainline prompt as an overlay (title and one row per parent); null while none is open here.</summary>
+    /// <summary>The mainline prompt as an overlay (title, a row per parent); null while none is open here.</summary>
     public MainlinePrompt? Prompt
     {
         get
