@@ -95,6 +95,11 @@ public static class DefaultMouseMap
 
     public const string SidebarResetButton = "SidebarButton.Reset";
 
+    /// <summary>The cherry-pick and revert buttons of the same headers (#432).</summary>
+    public const string SidebarPickButton = "SidebarButton.CherryPick";
+
+    public const string SidebarRevertButton = "SidebarButton.Revert";
+
     /// <summary>The buttons in the Worktrees header of the sidebar (#412): each acts on the selected row.</summary>
     public const string SidebarWorktreeAddButton = "SidebarButton.WorktreeAdd";
 
@@ -183,6 +188,8 @@ public static class DefaultMouseMap
         new(SidebarBranchDeleteButton, MouseGesture.Click, ActionIds.BranchDelete),
         new(SidebarRebaseButton, MouseGesture.Click, ActionIds.RebaseOnto),
         new(SidebarResetButton, MouseGesture.Click, ActionIds.ResetBranch),
+        new(SidebarPickButton, MouseGesture.Click, ActionIds.PickCherry),
+        new(SidebarRevertButton, MouseGesture.Click, ActionIds.PickRevert),
         new(DefaultKeymap.GraphView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(DefaultKeymap.SidebarView, MouseGesture.RightClick, ActionIds.PaletteOpenForRow),
         new(SidebarWorktreeAddButton, MouseGesture.Click, ActionIds.WorktreeAdd),

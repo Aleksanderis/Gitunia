@@ -174,6 +174,8 @@ public class MouseMapTests
     [Theory]
     [InlineData(DefaultMouseMap.SidebarRebaseButton, "<space>gr")]
     [InlineData(DefaultMouseMap.SidebarResetButton, "<space>gx")]
+    [InlineData(DefaultMouseMap.SidebarPickButton, "<space>gp")]
+    [InlineData(DefaultMouseMap.SidebarRevertButton, "<space>gv")]
     public void GivenARebaseOrResetButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
