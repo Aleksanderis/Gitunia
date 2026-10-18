@@ -292,3 +292,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Cherry-pick and revert by mouse (#432): `[pick]` and `[revert]` header chips after `[rebase]`/`[reset]`, no Confirm (same as the keys). The mainline prompt of a merge commit stays key-only (#449).
 
 **Git:** Pick/revert cancelled or timed out midway (#439) is aborted like any other failure, so no half-applied sequence stays; the old tip is in the reflog. Why: the user cancelled the whole action, and a banner for a state they never chose is worse.
+
+**UI:** Reflog mouse paths (#441): the four action rows and a ref picker row are mouse views in `DefaultMouseMap` (overlay views), so ux.md lists them; an entry click only highlights (a position, no action). Why: one table for every gesture.
