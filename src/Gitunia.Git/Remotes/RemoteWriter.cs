@@ -12,12 +12,9 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
     private const string Merge = "merge";
     private const string UpstreamRevision = "@{upstream}";
     private const string Push = "push";
-    private const string SetUpstreamOption = "--set-upstream";
     private const string LeaseOption = "--force-with-lease";
     private const string DeleteOption = "--delete";
     private const string NoProgressOption = "--no-progress";
-    private const string AllOption = "--all";
-    private const string PruneOption = "--prune";
     private const string FastForwardOnly = "--ff-only";
     private const string UpToDateText = "Already up to date";
     private const string CannotFastForwardText = "Not possible to fast-forward";
@@ -28,22 +25,7 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         IProgress<RemoteProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var arguments = new List<string> { Fetch, RemoteRunner.ProgressOption };
-        if (request.Prune)
-        {
-            arguments.Add(PruneOption);
-        }
-
-        if (request.AllRemotes)
-        {
-            arguments.Add(AllOption);
-        }
-        else if (request.Remote is not null)
-        {
-            arguments.Add(GitOptions.EndOfOptions);
-            arguments.Add(request.Remote);
-        }
-
+        var arguments = RemoteCommands.BuildFetch(request, true);
         await remoteRunner.RunAsync(location, arguments, progress, cancellationToken).ConfigureAwait(false);
     }
 
@@ -80,30 +62,7 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         IProgress<RemoteProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var arguments = new List<string> { Push, RemoteRunner.ProgressOption };
-        if (request.SetUpstream)
-        {
-            arguments.Add(SetUpstreamOption);
-        }
-
-        if (request.Lease is { } lease)
-        {
-            arguments.Add($"{LeaseOption}={GitRefPrefixes.Heads}{lease.RemoteBranch}:{lease.ExpectedHash}");
-        }
-
-        if (request.Remote is not null)
-        {
-            arguments.Add(GitOptions.EndOfOptions);
-            arguments.Add(request.Remote);
-            if (request.Branch is not null)
-            {
-                var target = request.Lease is { } leased
-                    ? $"{request.Branch}:{GitRefPrefixes.Heads}{leased.RemoteBranch}"
-                    : request.Branch;
-                arguments.Add(target);
-            }
-        }
-
+        var arguments = RemoteCommands.BuildPush(request, true);
         await remoteRunner.RunAsync(location, arguments, progress, cancellationToken).ConfigureAwait(false);
     }
 

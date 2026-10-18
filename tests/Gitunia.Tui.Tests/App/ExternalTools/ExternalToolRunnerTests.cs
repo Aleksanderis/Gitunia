@@ -36,6 +36,16 @@ public class ExternalToolRunnerTests
     }
 
     [Fact]
+    public void GivenAGitCommand_WhenLaunchingItInTheTerminal_ThenItRunsInTheRepositoryAndIsNamedInTheStatus()
+    {
+        var notice = CreateRunner().LaunchGit("fetch", ["fetch", "--prune"], Location);
+
+        Assert.Empty(notice);
+        Assert.Equal(["suspend", "run git -C /r fetch --prune in /r", "resume", "refresh"], _events);
+        Assert.Equal("fetch finished", _statuses.Log.Latest?.Text);
+    }
+
+    [Fact]
     public void GivenAFailingTool_WhenLaunching_ThenTheExitCodeIsAnError()
     {
         _launcher.Result = new ExternalToolResult(3);

@@ -99,6 +99,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
+    private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
     private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
@@ -226,6 +227,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _router.Operations = CreateOperations(operationGate);
+        _externalToolRunner = new ExternalToolRunner(
+            new ExternalToolLauncher(),
+            this,
+            _statuses,
+            RefreshAfterTool,
+            PauseForEnter);
         _remote = CreateRemote(operationGate);
         _router.Remote = _remote;
         _push = CreatePush();
@@ -237,7 +244,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.ExternalTools = new ExternalToolActions(
-            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool, PauseForEnter),
+            _externalToolRunner,
             () => _host.Workspace.ActiveTab?.Location,
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
@@ -772,7 +779,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
-        gate);
+        gate,
+        ShowConfirm,
+        _externalToolRunner.LaunchGit);
 
     private PushActions CreatePush() => new(
         _host,

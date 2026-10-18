@@ -218,7 +218,9 @@ public class PushActionsTests
                 _ => TestContext.Current.CancellationToken,
                 CountRefresh,
                 () => { },
-                new TabOperationGate());
+                new TabOperationGate(),
+                Confirm,
+                (_, _, _) => string.Empty);
             Push = new PushActions(
                 _host,
                 Remote,

@@ -50,4 +50,4 @@ Blame, conflict resolution view, submodules, PR/issue integration.
 
 ## Open questions
 
-- Interactive credential/ssh prompts: suspend the TUI and give git the terminal, or run with a pty and render prompts inline? Recommendation: suspend for fetch/pull/push when git needs input.
+- Interactive credential/ssh prompts: settled in #45 (suspend the TUI and give git the terminal on an auth failure; see `decisions.md`).
