@@ -111,7 +111,8 @@ public sealed class RepositoryWatcher : IDisposable
     }
 
     /// <summary>
-    /// Number of non-ignored working tree directories watched one by one (zero when the working tree is watched recursively).
+    /// Number of non-ignored working tree directories watched one by one
+    /// (zero when the working tree is watched recursively).
     /// </summary>
     public int WorkingTreeDirectoryCount
     {
@@ -379,7 +380,7 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Watches one directory. False when the tab fell back to polling (limit reached or watching failed).</summary>
+    /// <summary>Watches one directory. False when the tab fell back to polling (limit hit or watching failed).</summary>
     private bool TryWatchDirectoryLocked(string path)
     {
         if (_directoryWatchers.ContainsKey(path))
@@ -513,7 +514,8 @@ public sealed class RepositoryWatcher : IDisposable
     }
 
     /// <summary>
-    /// A watched directory that git does not list is dropped when it is gone or holds files (ignored); an empty one stays.
+    /// A watched directory that git does not list is dropped when it is gone or holds files (ignored);
+    /// an empty one stays.
     /// </summary>
     private static bool IsWatchFailure(Exception exception) =>
         exception is IOException or ArgumentException or UnauthorizedAccessException

@@ -196,7 +196,9 @@ public class IgnoreAwareWatchingTests
         Assert.Equal(0, watcher.WorkingTreeDirectoryCount);
     }
 
-    private static RepositoryWatcher CreateWatcher(RepositoryLocation location, Action<RepositoryChangeKinds> onChanged) =>
+    private static RepositoryWatcher CreateWatcher(
+        RepositoryLocation location,
+        Action<RepositoryChangeKinds> onChanged) =>
         new(location, new WatchBudget(), FastOptions, onChanged, directoryLister: Lister);
 
     private static TestRepository CreateRepositoryWithIgnoredTree()
