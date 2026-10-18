@@ -293,4 +293,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Reflog mouse paths (#441): the four action rows and a ref picker row are mouse views in `DefaultMouseMap` (overlay views), so ux.md lists them; an entry click only highlights (a position, no action). Why: one table for every gesture.
 
-**UI:** Mainline prompt by mouse (#449): the one-key prompt also opens a small overlay (a row per parent, `MainlineParent` view, click = digit key; outside click = Esc). The status line stays, so a screen too small for the overlay still has the keys. Supersedes the key-only note of #432.
+**UI:** Mainline prompt by mouse (#449): a small overlay beside the status-line keys; a click on a parent row answers, any other click cancels. Supersedes the key-only note of #432.
