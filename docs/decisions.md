@@ -325,3 +325,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Palette and row menu list actions under subheaders (#483, owner), groups from `ActionCatalog.GroupOf` (shared with which-key, superseding the hand-written table of #443); the menu groups only above 5 actions and 2+ groups, help and which-key stay flat. The palette orders by group first, superseding view-first.
 
 **UI:** The graph row menu ends with "Open details" (`Enter`, #486): the mouse route to the details pane, which is hidden under 14 rows and no longer reached by a double-click. Always listed, not only when hidden, so the menu does not change shape with the screen size. Supersedes the "Open details" sentence of the #482 entry.
+
+**UI:** Settings (owner, 2026-10-18): one general settings screen (#465), no separate theme picker (#464 folded in); it writes the config file by a minimal text edit of the changed key (comments kept) and refuses to save a file that does not parse. **Stack:** config format stays JSON with comments and trailing commas (source-generated, AOT-safe); TOML and YAML rejected for now.
