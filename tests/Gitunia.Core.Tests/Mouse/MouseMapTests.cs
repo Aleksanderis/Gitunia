@@ -153,6 +153,13 @@ public class MouseMapTests
     [InlineData(DefaultMouseMap.SidebarWorktreeLockButton, "<space>wl")]
     [InlineData(DefaultMouseMap.SidebarWorktreeUnlockButton, "<space>wu")]
     [InlineData(DefaultMouseMap.SidebarWorktreePruneButton, "<space>wp")]
+    [InlineData(DefaultMouseMap.SidebarTagCreateButton, "<space>Tc")]
+    [InlineData(DefaultMouseMap.SidebarTagDeleteButton, "<space>Td")]
+    [InlineData(DefaultMouseMap.SidebarTagPushButton, "<space>Tp")]
+    [InlineData(DefaultMouseMap.SidebarTagDeleteRemoteButton, "<space>TD")]
+    [InlineData(DefaultMouseMap.SidebarMergeButton, "<space>gm")]
+    [InlineData(DefaultMouseMap.SidebarMergeNoFastForwardButton, "<space>gM")]
+    [InlineData(DefaultMouseMap.SidebarMergeSquashButton, "<space>gs")]
     public void GivenASidebarHeaderButton_WhenClicking_ThenItRunsTheActionOfItsKey(string buttonView, string keys)
     {
         var binding = DefaultMouseMap.Create().Resolve(buttonView, MouseGesture.Click);
