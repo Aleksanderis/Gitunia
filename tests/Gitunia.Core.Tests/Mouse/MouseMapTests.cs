@@ -52,7 +52,7 @@ public class MouseMapTests
         var map = DefaultMouseMap.Create();
 
         var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.DoubleClick);
-        var keys = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.GraphView).Feed("<space>.");
+        var keys = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create())).Feed("<space>.");
 
         Assert.Equal(keys.Action, binding?.Action);
     }
