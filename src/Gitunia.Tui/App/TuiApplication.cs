@@ -251,7 +251,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
         _prompts = [_diffPane, _workingDiff, _quickJump, _worktrees, .. CreatePrompts(operationGate, sidebarSource)];
         _router.Prompts = _prompts;
-        _keys.TextKeyHandler = key => _prompts.Any(prompt => prompt.HandleTextKey(key));
+        _keys.TextKeyHandler = key => _reflog.HandleTextKey(key) || _prompts.Any(prompt => prompt.HandleTextKey(key));
 
         // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
         _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
@@ -461,7 +461,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     // A click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
-        if (_reflog.SelectEntryAt(line))
+        if (_reflog.OnLineClicked(line))
         {
             _overlayClickTicks = Environment.TickCount64;
         }
@@ -855,6 +855,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         BranchSelectionNow,
         () => _view.ScreenSize,
         glyphs,
+        SetMode,
         RefreshOverlay);
 
     // Moves the graph cursor to a commit; the reason it cannot is returned (empty on success).
