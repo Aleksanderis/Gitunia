@@ -47,14 +47,14 @@ public class MouseMapTests
     }
 
     [Fact]
-    public void GivenTheGraph_WhenDoubleClicking_ThenItRunsTheActionOfEnter()
+    public void GivenTheGraph_WhenDoubleClicking_ThenItOpensTheRowMenuLikeSpaceDot()
     {
         var map = DefaultMouseMap.Create();
 
         var binding = map.Resolve(DefaultKeymap.GraphView, MouseGesture.DoubleClick);
-        var enter = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create())).Feed("Enter");
+        var keys = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.GraphView).Feed("<space>.");
 
-        Assert.Equal(enter.Action, binding?.Action);
+        Assert.Equal(keys.Action, binding?.Action);
     }
 
     [Fact]

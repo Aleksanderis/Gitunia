@@ -49,7 +49,7 @@ public class DetailPaneComposerTests
                 '\n',
                 "   1 repo",
                 "╭─ History ──────────────────────────────────────╮",
-                "│ ●  second                                   ...│",
+                "│ ●  second                                      │",
                 "│ ●  root                                        │",
                 "│                                                │",
                 "│                                                │",

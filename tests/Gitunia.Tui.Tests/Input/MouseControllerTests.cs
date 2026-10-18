@@ -43,6 +43,16 @@ public class MouseControllerTests
     }
 
     [Fact]
+    public void GivenADoubleClickOnTheGraph_WhenHandled_ThenTheRowMenuOpens()
+    {
+        var controller = CreateController();
+
+        controller.Handle(DefaultKeymap.GraphView, MouseGesture.DoubleClick);
+
+        Assert.Equal([new ExecutedAction(ActionIds.MenuOpenForRow, null)], _executed);
+    }
+
+    [Fact]
     public void GivenAGestureWithoutABinding_WhenHandled_ThenNothingRuns()
     {
         var controller = CreateController();

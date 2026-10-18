@@ -203,8 +203,7 @@ public static class ScreenComposer
         if (!rects.Graph.IsEmpty)
         {
             var graphHeight = rects.Graph.Height;
-            var reserved = RowMenuMarker.ReservedColumns(rects.Graph.Width, paddingColumns);
-            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns) - reserved;
+            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns);
             var options = new GraphRowOptions(textWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth), glyphs, highlight);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
@@ -214,9 +213,7 @@ public static class ScreenComposer
                 var graphRow = commitIndex >= 0 && commitIndex < graph.Count
                     ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
                     : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
-                var graphLine = PanePadding.Wrap(RowMenuMarker.WithReserve(graphRow, reserved), paddingColumns);
-                var isCursorCommit = item == selectedItem && commitIndex >= 0 && commitIndex < graph.Count;
-                graphLines.Add(RowMenuMarker.Apply(graphLine, rects.Graph.Width, isCursorCommit));
+                graphLines.Add(PanePadding.Wrap(graphRow, paddingColumns));
             }
 
             overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
