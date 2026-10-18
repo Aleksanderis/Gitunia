@@ -12,7 +12,7 @@ public sealed record SequenceEditorCommand(IReadOnlyList<string> Arguments)
     /// <summary>The first argument of the Gitunia executable when it is called as the sequence editor.</summary>
     public const string ModeArgument = "--sequence-editor";
 
-    /// <summary>Git paths use forward slashes on every platform (the shell git runs commands through is POSIX).</summary>
+    /// <summary>Git paths use forward slashes on every platform (git runs commands through a POSIX shell).</summary>
     public static string ToGitPath(string path) => path.Replace(Path.DirectorySeparatorChar, '/');
 
     /// <summary>
