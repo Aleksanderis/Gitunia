@@ -98,8 +98,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private TagActions _tags = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
-    private PromptPopup? _shownPopup;
-    private ScreenSize _shownPopupSize;
+    private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
@@ -299,7 +298,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
         _mainline.Attach(_view.Window);
-        _view.ChromeRefreshed += SyncPopup;
+        _popups = new PromptPopupTracker(CurrentPopup, () => _view.ScreenSize, ShowOverlayFrame);
+        _view.ChromeRefreshed += _popups.Sync;
+        _view.Window.ViewportChanged += (_, _) => _popups.Sync();
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -511,20 +512,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void ShowOverlayFrame()
     {
-        _shownPopup = CurrentPopup();
-        _shownPopupSize = _view.ScreenSize;
+        _popups.MarkShown();
         _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame() ?? PopupFrame());
-    }
-
-    // A prompt popup follows the prompts' own state: typing, a candidate change or a resize redraws it.
-    private void SyncPopup()
-    {
-        var popup = CurrentPopup();
-        var same = popup is null ? _shownPopup is null : popup.SameText(_shownPopup);
-        if (!same || _shownPopupSize != _view.ScreenSize)
-        {
-            ShowOverlayFrame();
-        }
     }
 
     private PromptPopup? CurrentPopup() =>

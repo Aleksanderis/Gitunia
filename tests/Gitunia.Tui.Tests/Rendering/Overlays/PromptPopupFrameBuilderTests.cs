@@ -85,7 +85,7 @@ public class PromptPopupFrameBuilderTests
         Assert.NotNull(frame);
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
         Assert.Contains("release (1/2)", text, StringComparison.Ordinal);
-        Assert.Contains("Up/Down choose", text, StringComparison.Ordinal);
+        Assert.Contains("Up/Down select", text, StringComparison.Ordinal);
     }
 
     [Theory]

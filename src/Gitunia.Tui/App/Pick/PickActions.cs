@@ -16,7 +16,7 @@ namespace Gitunia.Tui.App.Pick;
 /// Cherry-picks (<c>gp</c>) or reverts (<c>gv</c>) the selected commit, the commits of a Visual range in the graph, or
 /// the tip of the selected sidebar branch or tag, onto the current branch (ux.md, workflow 3, "Integrating"). A
 /// cherry-pick applies the range oldest first, a revert newest first (git's own order for reverting a range). When a
-/// merge commit is among them, a one-key status bar prompt asks once which parent is the mainline. Nothing is lost, so
+/// merge commit is among them, a one-key prompt asks once which parent is the mainline. Nothing is lost, so
 /// there is no Confirm; the status line names the old tip for the undo. A stop on conflicts is not a failure: the
 /// in-progress operation takes over (banner, <c>gc</c>, <c>ga</c>, <c>gk</c>). Refused while another operation is in
 /// progress and on an unborn HEAD; a detached HEAD is allowed, as git allows it. The git call runs off the UI thread,

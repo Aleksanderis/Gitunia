@@ -32,7 +32,7 @@ public sealed record PromptPopup(
         string input,
         string detail,
         string acceptLabel) =>
-        new(title, [context], input, [detail], $"Enter {acceptLabel}{HintGap}Up/Down choose{HintGap}{CancelHint}");
+        new(title, [context], input, [detail], $"Enter {acceptLabel}{HintGap}Up/Down select{HintGap}{CancelHint}");
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>

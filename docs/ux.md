@@ -25,10 +25,16 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 **Confirm mode** is used by every destructive action. A centred dialog holds a title, what will happen, what cannot be undone or how to undo it (in the warning colour) and the name of `y`.
 - Only `y` runs the action, after the dialog has closed. `n` and `Esc` drop it. Every other key is swallowed: never `Enter`, and nothing behind the dialog moves.
 - The two answers are rows of the dialog and clickable; a click anywhere else closes it like `n`.
-**Prompt popups** (#470) are used by every flow that asks for text or a choice: new, rename and switch branch, set upstream, new tag and its message, the remote of a tag push or delete, the stash message, worktree branch, path and lock reason, the reset mode and the tab name. A centred box holds a title, what the answer is for, the text field (`> text_`; the end of a long text stays in view), the highlighted candidate of a filter prompt and the answering keys (`Enter` accepts, `Esc` cancels; `Up`/`Down` choose in a filter). The keys are the same whether the flow was started by key, palette or mouse (chip or row menu); a click outside the popup cancels like `Esc`. The component is one record (`PromptPopup` in Core) and one frame builder (`PromptPopupFrameBuilder`); a prompt handler exposes it as `IPromptHandler.Popup`, so a new prompt only describes its text. The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>f`, quick jump `<space>j`, the diff and reflog filters), which narrow a list in place and would hide what they filter. When the screen is too small for a popup, the prompt shows in the status bar as before and still answers to its keys. Confirm dialogs and the mainline choice were already centred boxes.
-
 - If the dialog does not fit the screen it is not shown and the action does not start (the status bar says so): an answer nobody can read is no confirmation. A dialog that stops fitting after a resize is closed unanswered, with a warning.
 - The input mode before the dialog (Normal, or Visual with a range) is restored when it closes. What the action does is fixed when the dialog opens, not when `y` is pressed.
+
+**Prompt popups** (#470) are used by every flow that asks for text or a choice: new, rename and switch branch, set upstream, new tag and its message, the remote of a tag push or delete, the stash message, worktree branch, path and lock reason, the reset mode and the tab name.
+
+- A centred box holds a title, what the answer is for, the text field (`> text_`; the end of a long text stays in view), the highlighted candidate of a filter prompt and the answering keys: `Enter` accepts, `Esc` cancels, `Up`/`Down` select in a filter.
+- The keys are the same whether the flow was started by key, palette or mouse; a click outside the popup cancels like `Esc`. A resize places the popup again.
+- One record (`PromptPopup` in Core) and one frame builder (`PromptPopupFrameBuilder`) draw them. A prompt handler exposes its popup as `IPromptHandler.Popup`, so a new prompt only describes its text.
+- The status bar keeps transient messages and the find-as-you-type bars (search `/`, ref jump `<space>f`, quick jump `<space>j`, the diff, reflog and sidebar filters), which narrow a list in place and would hide what they filter.
+- When the screen is too small for a popup, the prompt shows in the status bar and still answers to its keys. Confirm dialogs and the mainline choice are centred boxes as well.
 
 ## Focus model and key style
 
