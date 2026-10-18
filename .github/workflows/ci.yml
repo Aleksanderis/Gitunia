@@ -84,6 +84,7 @@ jobs:
         run: dotnet build -c Release
       - name: Test
         # Non-blocking until the Windows test failures (#494) are fixed, so AOT and smoke still report.
+        id: tests
         continue-on-error: true
         run: dotnet test -c Release --no-build
       - name: AOT publish (any IL* warning fails)
@@ -102,3 +103,6 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
+      - name: Warn that Windows tests failed
+        if: steps.tests.outcome == 'failure'
+        run: echo "::warning::Windows tests failed; non-blocking until #494 is fixed"

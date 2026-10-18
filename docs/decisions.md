@@ -302,8 +302,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Process:** M4 plan (owner): themes in M4 are light, dark and auto only, named themes are M5 (#61); the Windows CI leg (#155) is M4 and blocks release packaging (#48), the macOS leg and anything costly in CI minutes is M5 and runs on release tags only; interactive rebase refuses ranges with merge commits (`--rebase-merges` post-MVP) and supports `--root`; background remote calls never prompt, a credential failure offers a retry on the real terminal (#45); #399, #45 and #48 are `needs-review`.
 
-**CI:** The Windows leg (#155) is a `windows-x64` job in `ci.yml`, run on `v*` tags, weekly and on dispatch like the Linux job, never per PR (free-plan minutes); steps mirror Linux with bash as shell.
-
 **UI:** Which-key group rows (#443) read `+more (branch operations)` etc. for the named `<space>` leader groups; other prefixes stay plain `+more`. The table is hand-written (the keymap has no group metadata); a test checks every prefix exists. Why: the owner wants to see what a group holds before opening it.
 
 **Process:** CI is manual-dispatch only (supersedes the 2026-10-16 CI cost entry): no PR, push or scheduled runs. Why: the free-plan minutes still ran out; local `dotnet build`/`dotnet test` are the gate. Dispatch CI (`gh workflow run ci.yml`) before closing a milestone or cutting a release. Revisit at v1.0.
@@ -333,3 +331,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Subheaders in the row menu and palette get a blank line before each but the first (#489, owner), like the help overlay sections. On a short screen the gaps go before any row: the menu drops them when gaps plus rows exceed its height, the scrolling palette when it has fewer than 8 list rows. Refines #483.
 
 **UI:** Below 14 rows (no details pane) the graph row menu omits "Open details" and `Enter` shows a notice instead of moving focus (#490). Zooming was rejected: the pane is hidden by design and the graph is the useful view there. Supersedes the "always listed" sentence of the #486 entry.
+
+**Process:** CI also runs on `v*` tags and weekly (Monday), besides dispatch (owner, 2026-10-18; supersedes the manual-dispatch-only entry above). The Windows leg (#155) is a second job in `ci.yml` on the same triggers, never per PR. Why: minutes are scarce but a Windows break must surface before release.
