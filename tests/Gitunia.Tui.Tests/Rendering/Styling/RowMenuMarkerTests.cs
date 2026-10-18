@@ -55,6 +55,31 @@ public class RowMenuMarkerTests
         Assert.Equal(Width, TextWidth.Of(marked.Text));
     }
 
+    [Theory]
+    [InlineData(30, 27, true, true)]
+    [InlineData(30, 29, true, true)]
+    [InlineData(30, 26, true, false)]
+    [InlineData(30, 30, true, false)]
+    [InlineData(30, 28, false, false)]
+    [InlineData(19, 17, true, false)]
+    public void GivenAClick_WhenHitTesting_ThenOnlyTheMarkerColumnsOfTheSelectedRowHit(
+        int paneWidth,
+        int column,
+        bool isSelectedRow,
+        bool expected)
+    {
+        Assert.Equal(expected, RowMenuMarker.IsHit(paneWidth, column, isSelectedRow));
+    }
+
+    [Theory]
+    [InlineData(1, 2)]
+    [InlineData(2, 1)]
+    public void GivenThePadding_WhenReserving_ThenPaddingAndReservedColumnsHoldTheMarker(int padding, int expected)
+    {
+        Assert.Equal(expected, RowMenuMarker.ReservedColumns(Width, padding));
+        Assert.Equal(0, RowMenuMarker.ReservedColumns(RowMenuMarker.MinimumPaneWidth - 1, padding));
+    }
+
     private static StyledLine Line(string text) =>
         new LineBuilder(Width, "~").Append(text, SegmentRole.Plain).Build();
 }

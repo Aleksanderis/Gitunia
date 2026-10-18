@@ -89,13 +89,17 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
     public void Render(ListView listView, bool selected, int item, int col, int row, int width, int viewportX = 0)
     {
         var paneWidth = width;
-        width = PanePadding.TextWidth(width);
+        var reserved = RowMenuMarker.ReservedColumns(paneWidth, PanePadding.Columns);
+        width = PanePadding.TextWidth(width) - reserved;
         var line = item >= 0 && item < Rows.Length
             ? SidebarRowRenderer.Render(Rows[item], width, selected, glyphs)
             : new LineBuilder(width, glyphs.Ellipsis).Build();
         LinePainter.Paint(
             listView,
-            RowMenuMarker.Apply(PanePadding.Wrap(line), paneWidth, item == listView.SelectedItem),
+            RowMenuMarker.Apply(
+                PanePadding.Wrap(RowMenuMarker.WithReserve(line, reserved)),
+                paneWidth,
+                item == listView.SelectedItem),
             col,
             row,
             listView.HasFocus);

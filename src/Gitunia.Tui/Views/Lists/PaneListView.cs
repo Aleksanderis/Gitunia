@@ -196,10 +196,8 @@ public sealed class PaneListView : ListView
     private bool IsOnRowMenuMarker(int column, int row) =>
         OpensRowMenu
         && SelectedItem is { } selected
-        && Viewport.Y + row == selected
         && selected < (Source?.Count ?? 0)
-        && RowMenuMarker.IsShown(Viewport.Width)
-        && column >= Viewport.Width - RowMenuMarker.Width;
+        && RowMenuMarker.IsHit(Viewport.Width, column, Viewport.Y + row == selected);
 
     private void SelectItem(int pointerRow)
     {

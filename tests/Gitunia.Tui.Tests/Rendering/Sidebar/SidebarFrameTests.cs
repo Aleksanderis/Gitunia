@@ -72,8 +72,8 @@ public class SidebarFrameTests
         Assert.Equal("   1 repo", frame[0]);
         Assert.StartsWith("╭─ repo ─────────────┬─ History ─", frame[1], StringComparison.Ordinal);
         Assert.StartsWith("│  ▾ Branches 3   ...│ ●  second", frame[2], StringComparison.Ordinal);
-        Assert.StartsWith("│   * main ↑2↓1 wt:… │ ●  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("│     feature… wt:w… │", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("│   * main ↑2↓1 w…   │ ●  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("│     feature… wt…   │", frame[4], StringComparison.Ordinal);
         Assert.StartsWith("│     old            │", frame[5], StringComparison.Ordinal);
         Assert.StartsWith("│  ▸ Tags 12", frame[6], StringComparison.Ordinal);
         Assert.StartsWith("│                    │", frame[7], StringComparison.Ordinal);

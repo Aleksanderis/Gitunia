@@ -10,7 +10,7 @@ public static class SidebarPane
     public static int RowCapacity(int height) => Math.Max(0, height - 1);
 
     /// <returns>Exactly <paramref name="height"/> lines of <paramref name="width"/> columns.</returns>
-    public static IReadOnlyList<StyledLine> Compose(SidebarModel model, int width, int height, GraphGlyphSet glyphs)
+    public static IReadOnlyList<StyledLine> Compose(SidebarModel model, int width, int height, GraphGlyphSet glyphs, int reservedColumns = 0)
     {
         var lines = new List<StyledLine>(height);
         var capacity = RowCapacity(height);
@@ -18,7 +18,9 @@ public static class SidebarPane
         {
             var index = model.TopRow + offset;
             lines.Add(index >= 0 && index < model.Rows.Length
-                ? SidebarRowRenderer.Render(model.Rows[index], width, index == model.Cursor, glyphs)
+                ? RowMenuMarker.WithReserve(
+                    SidebarRowRenderer.Render(model.Rows[index], width - reservedColumns, index == model.Cursor, glyphs),
+                    reservedColumns)
                 : new LineBuilder(width, glyphs.Ellipsis).Build());
         }
 

@@ -2,8 +2,8 @@ namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>
 /// The <c>...</c> marker at the right edge of the selected graph or sidebar row (#479):
-/// the mouse path to the row's actions menu.
-/// Rendering puts it there, the pane treats a click on those columns as a button click.
+/// the mouse path to the row's actions menu. Every row of the pane keeps the marker's columns free
+/// (the pane padding plus <see cref="ReservedColumns"/>), so the marker never covers text.
 /// </summary>
 public static class RowMenuMarker
 {
@@ -16,8 +16,22 @@ public static class RowMenuMarker
 
     public static bool IsShown(int paneWidth) => paneWidth >= MinimumPaneWidth;
 
+    /// <summary>Columns every row leaves blank besides the right padding of <paramref name="paddingColumns"/>.</summary>
+    public static int ReservedColumns(int paneWidth, int paddingColumns) =>
+        IsShown(paneWidth) ? Math.Max(0, Width - paddingColumns) : 0;
+
+    /// <summary>The line followed by <paramref name="reserved"/> blank columns.</summary>
+    public static StyledLine WithReserve(StyledLine line, int reserved) =>
+        reserved <= 0
+            ? line
+            : line with { Segments = [.. line.Segments, new StyledSegment(new string(' ', reserved), SegmentRole.Plain)] };
+
+    /// <summary>True when a click at <paramref name="column"/> of a pane row hits the marker of the selected row.</summary>
+    public static bool IsHit(int paneWidth, int column, bool isSelectedRow) =>
+        isSelectedRow && IsShown(paneWidth) && column >= paneWidth - Width && column < paneWidth;
+
     /// <summary>
-    /// Replaces the last columns of the cursor row's full-width line with the marker;
+    /// Replaces the last columns of the cursor row's full-width line (blank by construction) with the marker;
     /// other lines are returned as they are.
     /// </summary>
     public static StyledLine Apply(StyledLine line, int width, bool isCursor)

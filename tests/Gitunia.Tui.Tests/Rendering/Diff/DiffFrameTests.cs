@@ -110,7 +110,7 @@ public class DiffFrameTests
     {
         var lines = Compose(100, 30, new PaneArrangement(true, PaneKind.Graph));
 
-        Assert.Contains("1970-01-01 00:00", lines[ScreenLayout.GraphTop], StringComparison.Ordinal);
+        Assert.Contains("1970-01-01 00:00 0000002", lines[ScreenLayout.GraphTop], StringComparison.Ordinal);
         Assert.DoesNotContain(lines, line => line.Contains("Details", StringComparison.Ordinal) || line.Contains(" Diff ", StringComparison.Ordinal));
         Assert.Equal(30, lines.Count);
     }
