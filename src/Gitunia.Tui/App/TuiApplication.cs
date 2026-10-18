@@ -97,7 +97,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private PickActions _pick = null!;
-    private bool _mainlineShown;
+    private MainlineOverlayTracker _mainline = null!;
     private GraphGlyphSet _glyphs = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
@@ -207,6 +207,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Merge = CreateMerge(operationGate);
         _router.Rebase = CreateRebase(operationGate);
         _pick = CreatePick(operationGate);
+        _mainline = new MainlineOverlayTracker(
+            () => _pick.Prompt is not null,
+            () => _overlays.State.IsOpen || _reflog.IsOpen,
+            RefreshOverlay);
         _router.Pick = _pick;
         _reflog = CreateReflog(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
@@ -265,7 +269,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         _statuses.Changed += _view.RefreshChrome;
         _host.Changed += _view.RefreshChrome;
-        _host.Changed += RefreshMainlineOverlay;
+        _host.Changed += _mainline.Sync;
         _host.Changed += _binder.Sync;
         _host.Changed += ApplyFocus;
         _host.Changed += _commits.ForgetClosedTabs;
@@ -292,7 +296,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
-        _view.Window.ViewportChanged += (_, _) => RefreshMainlineOnResize();
+        _mainline.Attach(_view.Window);
         _view.EdgeDragged += OnEdgeDragged;
         _view.OverlayLineClicked += OnOverlayLineClicked;
         _view.Graph.ValueChanged += (_, _) => _visual.OnCursorMoved();
@@ -520,25 +524,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             prompt.UsableParents);
     }
 
-    // The open mainline overlay is placed again for the new screen size.
-    private void RefreshMainlineOnResize()
-    {
-        if (_mainlineShown && !_overlays.State.IsOpen && !_reflog.IsOpen)
-        {
-            RefreshOverlay();
-        }
-    }
-
-    // Opening or closing the prompt, and leaving its tab, show or hide the overlay.
-    private void RefreshMainlineOverlay()
-    {
-        if ((_pick.Prompt is not null) != _mainlineShown)
-        {
-            _mainlineShown = _pick.Prompt is not null;
-            RefreshOverlay();
-        }
-    }
-
     private PaneRects CurrentPaneRects()
     {
         var arrangement = _diffPane.Arrangement();
@@ -639,7 +624,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private void RefreshMainlineAndChrome()
     {
-        RefreshMainlineOverlay();
+        _mainline.Sync();
         _view.RefreshChrome();
     }
 
