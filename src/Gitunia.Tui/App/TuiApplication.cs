@@ -99,6 +99,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
+    private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
     private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
@@ -207,6 +208,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        _remoteManagement = CreateRemoteManagement();
+        _router.RemoteManagement = _remoteManagement;
         _reset = CreateReset(operationGate);
         _router.Reset = _reset;
         _router.Merge = CreateMerge(operationGate);
@@ -745,6 +748,19 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         ShowConfirm,
         gate);
 
+    private RemoteManagementActions CreateRemoteManagement() => new(
+        _host,
+        services.RemoteManager,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SetMode,
+        _view.RefreshChrome,
+        BranchSelectionNow,
+        _remote.IsRunning);
+
     private RemoteActions CreateRemote(TabOperationGate gate) => new(
         _host,
         services.Remote,
@@ -1118,6 +1134,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
             _branches,
             _tags,
+            _remoteManagement,
             _reset,
             _pick,
             new RefJumpController(handle, () => _host.Workspace.ActiveTab?.Refs ?? []),

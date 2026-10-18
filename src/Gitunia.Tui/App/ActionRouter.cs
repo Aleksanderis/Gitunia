@@ -74,6 +74,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
     public TagActions? Tags { get; set; }
 
+    /// <summary>The remote management actions (add, remove, rename, set URL); they own their prompts.</summary>
+    public RemoteManagementActions? RemoteManagement { get; set; }
+
     /// <summary>Fetch, pull, push and the cancel of the running one; Esc is only its once the prompts passed.</summary>
     public RemoteActions? Remote { get; set; }
 
@@ -153,6 +156,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Tags?.TryExecute(action, count) == true)
         {
             Message = Tags.Notice;
+            return;
+        }
+
+        if (RemoteManagement?.TryExecute(action, count) == true)
+        {
+            Message = RemoteManagement.Notice;
             return;
         }
 

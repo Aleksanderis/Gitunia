@@ -38,6 +38,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
 /// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
@@ -66,6 +67,7 @@ public sealed record GitServices(
     IBranchWriter Branches,
     ITagWriter Tags,
     IRemoteWriter Remote,
+    IRemoteManager RemoteManager,
     IMergeWriter Merge,
     IPickWriter Pick,
     IPickCommitReader PickCommits,
@@ -107,6 +109,7 @@ public sealed record GitServices(
             new BranchWriter(runner),
             new TagWriter(runner, remoteRunner),
             new RemoteWriter(remoteRunner),
+            new RemoteManager(runner),
             new MergeWriter(runner, operationRunner),
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),
