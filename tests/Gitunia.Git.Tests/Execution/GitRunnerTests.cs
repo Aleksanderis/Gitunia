@@ -57,6 +57,54 @@ public class GitRunnerTests
     }
 
     [Fact]
+    public async Task GivenCarriageReturnProgress_WhenRunning_ThenEverySegmentIsReportedAndStderrIsKept()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create("printf 'a 1%%\\ra 2%%\\nb' >&2", "rem");
+        var segments = new List<string>();
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["fetch"],
+            new GitRunOptions(OnStandardErrorLine: segments.Add),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(["a 1%", "a 2%", "b"], segments);
+        Assert.Equal("a 1%\ra 2%\nb", result.StandardError);
+    }
+
+    [Fact]
+    public async Task GivenStderrKeepsArriving_WhenRunningLongerThanTheTimeout_ThenItIsNotTimedOut()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create(
+            "i=0; while [ $i -lt 5 ]; do echo x >&2; sleep 0.5; i=$((i+1)); done",
+            "rem");
+
+        var result = await RunnerFor(fake).RunAsync(
+            AnyDirectory,
+            ["fetch"],
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(1.5), OnStandardErrorLine: _ => { }),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, result.ExitCode);
+    }
+
+    [Fact]
+    public async Task GivenStderrGoesQuiet_WhenTheIdleLimitElapses_ThenTimeoutErrorAndProcessKilled()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
+        using var fake = FakeGitExecutable.Create("echo x >&2\nsleep 30", "rem");
+
+        await Assert.ThrowsAsync<GitTimeoutException>(
+            () => RunnerFor(fake).RunAsync(
+                AnyDirectory,
+                ["fetch"],
+                new GitRunOptions(Timeout: KillTimeout, OnStandardErrorLine: _ => { }),
+                TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task GivenSlowProcess_WhenTimeoutElapses_ThenTimeoutErrorAndProcessKilled()
     {
         var marker = MarkerPath();

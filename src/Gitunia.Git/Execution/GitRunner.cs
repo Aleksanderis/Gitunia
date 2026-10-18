@@ -14,6 +14,9 @@ namespace Gitunia.Git.Execution;
 public sealed class GitRunner
 {
     private const int ReadBufferSize = 64 * 1024;
+    private const int ErrorBufferSize = 4096;
+    private const char LineFeed = '\n';
+    private const char CarriageReturn = '\r';
 
     private readonly GitRunnerOptions _options;
 
@@ -79,6 +82,79 @@ public sealed class GitRunner
     private static bool IsAccepted(int exitCode, GitRunOptions runOptions) =>
         exitCode == 0 || runOptions.AcceptedExitCodes?.Contains(exitCode) == true;
 
+    private static void ApplyEnvironment(ProcessStartInfo startInfo, IReadOnlyDictionary<string, string?>? variables)
+    {
+        if (variables is null)
+        {
+            return;
+        }
+
+        foreach ((var name, var value) in variables)
+        {
+            if (value is null)
+            {
+                startInfo.Environment.Remove(name);
+            }
+            else
+            {
+                startInfo.Environment[name] = value;
+            }
+        }
+    }
+
+    // Reports each line-feed or carriage-return terminated segment and restarts the idle timer on every read.
+    private static async Task<string> ReadErrorAsync(
+        Process process,
+        GitRunOptions runOptions,
+        CancellationTokenSource timeoutSource,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        if (runOptions.OnStandardErrorLine is not { } onLine)
+        {
+            return await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var all = new StringBuilder();
+        var segment = new StringBuilder();
+        var buffer = new char[ErrorBufferSize];
+        var reader = process.StandardError;
+        while (true)
+        {
+            var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+            if (count == 0)
+            {
+                break;
+            }
+
+            timeoutSource.CancelAfter(timeout);
+            all.Append(buffer, 0, count);
+            for (var index = 0; index < count; index++)
+            {
+                if (buffer[index] is LineFeed or CarriageReturn)
+                {
+                    FlushSegment(segment, onLine);
+                }
+                else
+                {
+                    segment.Append(buffer[index]);
+                }
+            }
+        }
+
+        FlushSegment(segment, onLine);
+        return all.ToString();
+    }
+
+    private static void FlushSegment(StringBuilder segment, Action<string> onLine)
+    {
+        if (segment.Length > 0)
+        {
+            onLine(segment.ToString());
+            segment.Clear();
+        }
+    }
+
     private Process Start(IReadOnlyList<string> arguments, GitRunOptions runOptions)
     {
         var startInfo = new ProcessStartInfo(_options.Executable)
@@ -103,20 +179,8 @@ public sealed class GitRunner
             startInfo.Environment["GIT_OPTIONAL_LOCKS"] = "0";
         }
 
-        if (_options.EnvironmentOverrides is not null)
-        {
-            foreach ((var name, var value) in _options.EnvironmentOverrides)
-            {
-                if (value is null)
-                {
-                    startInfo.Environment.Remove(name);
-                }
-                else
-                {
-                    startInfo.Environment[name] = value;
-                }
-            }
-        }
+        ApplyEnvironment(startInfo, runOptions.Environment);
+        ApplyEnvironment(startInfo, _options.EnvironmentOverrides);
 
         var process = new Process { StartInfo = startInfo };
         try
@@ -141,7 +205,7 @@ public sealed class GitRunner
         try
         {
             var outputTask = ReadAllAsync(process.StandardOutput.BaseStream, linked.Token);
-            var errorTask = process.StandardError.ReadToEndAsync(linked.Token);
+            var errorTask = ReadErrorAsync(process, runOptions, timeoutSource, timeout, linked.Token);
             var inputTask = WriteInputAsync(process, runOptions.StandardInput, linked.Token);
             await Task.WhenAll(outputTask, errorTask, inputTask).ConfigureAwait(false);
             var output = outputTask.Result;

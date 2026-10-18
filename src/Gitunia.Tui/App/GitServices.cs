@@ -11,6 +11,7 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
@@ -62,6 +63,7 @@ public sealed record GitServices(
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
     ITagWriter Tags,
+    IRemoteWriter Remote,
     IMergeWriter Merge,
     IPickWriter Pick,
     IPickCommitReader PickCommits,
@@ -88,6 +90,7 @@ public sealed record GitServices(
         var graphLoader = new GraphLoader(commitLog);
         var operationDetector = new RepositoryOperationDetector();
         var operationRunner = new OperationRunner(runner, operationDetector);
+        var remoteRunner = new RemoteRunner(runner);
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
@@ -99,7 +102,8 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             new BranchWriter(runner),
-            new TagWriter(runner),
+            new TagWriter(runner, remoteRunner),
+            new RemoteWriter(remoteRunner),
             new MergeWriter(runner, operationRunner),
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),
