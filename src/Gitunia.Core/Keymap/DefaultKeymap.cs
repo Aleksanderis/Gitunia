@@ -92,10 +92,11 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "Ctrl-w k", ActionIds.PaneFocusUp);
         Add(bindings, NormalOnly, global, "Ctrl-w l", ActionIds.PaneFocusRight);
         Add(bindings, NormalOnly, global, "Ctrl-w w", ActionIds.PaneNext);
-        Add(bindings, NormalOnly, global, "Alt-h", ActionIds.PaneFocusLeft);
-        Add(bindings, NormalOnly, global, "Alt-j", ActionIds.PaneFocusDown);
-        Add(bindings, NormalOnly, global, "Alt-k", ActionIds.PaneFocusUp);
-        Add(bindings, NormalOnly, global, "Alt-l", ActionIds.PaneFocusRight);
+        Add(bindings, NormalOnly, global, "Ctrl-h", ActionIds.PaneFocusLeft);
+        Add(bindings, NormalOnly, global, "Ctrl-Backspace", ActionIds.PaneFocusLeft);
+        Add(bindings, NormalOnly, global, "Ctrl-j", ActionIds.PaneFocusDown);
+        Add(bindings, NormalOnly, global, "Ctrl-k", ActionIds.PaneFocusUp);
+        Add(bindings, NormalOnly, global, "Ctrl-l", ActionIds.PaneFocusRight);
         Add(bindings, TextEntry, global, "Ctrl-^", ActionIds.TabLastActive);
         Add(bindings, NormalOnly, global, "<space><Tab>", ActionIds.TabLastActive);
         Add(bindings, NormalOnly, global, "Ctrl-w >", ActionIds.PaneWider);

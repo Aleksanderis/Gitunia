@@ -308,4 +308,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Which-key rows (#472) list plain actions first, then `+more` groups, each alphabetical by key label (lowercase before uppercase), instead of keymap declaration order. Why: stable, scannable rows.
 
-**UI:** Pane focus by `Alt-h/j/k/l` (#473): same actions as `Ctrl-w h/j/k/l`, Normal mode only so Insert text and the commit box are never left by accident. `Ctrl-h/j/k/l` are Backspace/Enter and multiplexer navigator keys.
+**UI:** Pane focus by `Ctrl-h/j/k/l` (#473, owner): Alt clashes with multiplexers; same actions as `Ctrl-w h/j/k/l`, Normal mode only so Backspace/Enter in text entry are never stolen; `Ctrl-Backspace` is the Ctrl-h fallback.

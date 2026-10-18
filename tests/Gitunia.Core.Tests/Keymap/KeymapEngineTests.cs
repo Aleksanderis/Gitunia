@@ -168,10 +168,10 @@ public class KeymapEngineTests
     }
 
     [Theory]
-    [InlineData("Alt-h", "pane.focus-left")]
-    [InlineData("Alt-j", "pane.focus-down")]
-    [InlineData("Alt-k", "pane.focus-up")]
-    [InlineData("Alt-l", "pane.focus-right")]
+    [InlineData("Ctrl-h", "pane.focus-left")]
+    [InlineData("Ctrl-j", "pane.focus-down")]
+    [InlineData("Ctrl-k", "pane.focus-up")]
+    [InlineData("Ctrl-l", "pane.focus-right")]
     public void GivenAltDirection_WhenPressed_ThenSameFocusActionAsControlWFires(string key, string action)
     {
         foreach (var view in new[] { DefaultKeymap.GraphView, KeyBindingTable.GlobalView })
@@ -184,12 +184,12 @@ public class KeymapEngineTests
     }
 
     [Theory]
-    [InlineData("Alt-h", KeyMode.Insert)]
-    [InlineData("Alt-j", KeyMode.Insert)]
-    [InlineData("Alt-k", KeyMode.Insert)]
-    [InlineData("Alt-l", KeyMode.Insert)]
-    [InlineData("Alt-h", KeyMode.Visual)]
-    [InlineData("Alt-l", KeyMode.Visual)]
+    [InlineData("Ctrl-h", KeyMode.Insert)]
+    [InlineData("Ctrl-j", KeyMode.Insert)]
+    [InlineData("Ctrl-k", KeyMode.Insert)]
+    [InlineData("Ctrl-l", KeyMode.Insert)]
+    [InlineData("Ctrl-h", KeyMode.Visual)]
+    [InlineData("Ctrl-l", KeyMode.Visual)]
     public void GivenTextEntryOrVisualMode_WhenPressingAltDirection_ThenNoFocusActionFires(string key, KeyMode mode)
     {
         var feeder = CreateFeeder();
