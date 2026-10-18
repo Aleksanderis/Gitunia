@@ -337,3 +337,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
 
 **Git layer:** Working-tree watching (#83) is ignore-aware: one non-recursive watcher per directory that `ls-files --cached --others --exclude-standard` lists, none for ignored trees; a tab over 2048 directories polls. Supersedes the recursive working-tree watcher of the #27 entry. Detail in `git-layer.md`.
+
+**UI:** Fetch, pull and push (#456): `<space>F`/`L`/`P` global, tab-row chips (100+ columns) and the Remotes header menu; progress is one live status-bar line, not history messages; `Esc` in the graph or `<space>C` (any pane, also the cancel chip) cancels. All-remotes fetch is the palette action `remote.fetch-all`, not a second key press.
+
+**Process:** CI also runs on `v*` tags and weekly (Monday), besides dispatch (owner, 2026-10-18; supersedes the manual-dispatch-only entry above). The Windows leg (#155) is a second job in `ci.yml` on the same triggers, never per PR. Why: minutes are scarce but a Windows break must surface before release.
