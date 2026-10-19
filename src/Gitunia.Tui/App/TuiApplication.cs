@@ -65,7 +65,10 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitServices services, ConsoleCapabilities detectedCapabilities, IPlatform platform) : IDisposable, ITerminalSuspender
+public sealed class TuiApplication(
+    GitServices services,
+    ConsoleCapabilities detectedCapabilities,
+    IPlatform platform) : IDisposable, ITerminalSuspender
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
@@ -127,9 +130,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities det
     {
         _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
-        if (_startupConfig.Theme == ThemeChoice.Auto && platform.QueryLightBackground(_capabilities) is { } queriedLight)
+        var queriedLight = _startupConfig.Theme == ThemeChoice.Auto ? platform.QueryLightBackground(_capabilities) : null;
+        if (queriedLight is { } isLight)
         {
-            _capabilities = _capabilities with { IsLightBackground = queriedLight };
+            _capabilities = _capabilities with { IsLightBackground = isLight };
         }
 
         var glyphs = GraphGlyphSet.For(_capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };

@@ -22,7 +22,10 @@ public sealed class TerminalPlatform(Func<string, string?>? getEnvironmentVariab
     public bool? QueryLightBackground(ConsoleCapabilities capabilities) =>
         capabilities.Color == ColorDepth.None
             ? null
-            : TerminalBackgroundQuery.Query(capabilities.IsInteractive, ReadEnvironment("TERM"), TerminalBackgroundQuery.DefaultTimeout);
+            : TerminalBackgroundQuery.Query(
+                capabilities.IsInteractive,
+                ReadEnvironment("TERM"),
+                TerminalBackgroundQuery.DefaultTimeout);
 
     /// <summary>User home; falls back to the temp directory so paths never become cwd-relative.</summary>
     private static string Home

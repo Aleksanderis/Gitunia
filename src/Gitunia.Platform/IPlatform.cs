@@ -31,7 +31,8 @@ public interface IPlatform
     ConsoleCapabilities DetectConsole();
 
     /// <summary>
-    /// Asks the terminal whether its background is light (OSC 11, short timeout), writing to the terminal and reading its answer.
+    /// Asks the terminal whether its background is light (OSC 11, short timeout), writing to the terminal and
+    /// reading its answer.
     /// Null when unknown (not interactive, an unsupported OS or terminal, no answer): callers keep
     /// <see cref="ConsoleCapabilities.IsLightBackground"/>. Call before the UI takes over the input.
     /// </summary>

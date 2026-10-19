@@ -16,9 +16,9 @@ public static class TerminalBackgroundQuery
     private const int MaxResponseLength = 128;
 
     /// <summary>
-    /// Queries the terminal on the console. Returns null when the answer is unknown: not interactive, Windows (no reliable
-    /// answer from conhost, so the <c>COLORFGBG</c> fallback decides), <c>TERM</c> unset, <c>dumb</c> or <c>linux</c>, no answer
-    /// in time, or an answer that cannot be parsed.
+    /// Queries the terminal on the console. Returns null when the answer is unknown: not interactive, Windows (no
+    /// reliable answer from conhost, so the <c>COLORFGBG</c> fallback decides), <c>TERM</c> unset, <c>dumb</c> or
+    /// <c>linux</c>, no answer in time, or an answer that cannot be parsed.
     /// </summary>
     /// <param name="interactive">Input and output are a terminal.</param>
     /// <param name="term">The <c>TERM</c> value, null when unset.</param>
@@ -45,7 +45,8 @@ public static class TerminalBackgroundQuery
 
     /// <summary>
     /// Reads a colour from an OSC 11 answer (<c>rgb:RRRR/GGGG/BBBB</c> with 1 to 4 hex digits per channel, optionally
-    /// <c>rgba:</c>) and says whether it is light (relative luminance above one half). Null when the text holds no colour.
+    /// <c>rgba:</c>) and says whether it is light (relative luminance above one half). Null when the text holds no
+    /// colour.
     /// </summary>
     /// <param name="response">The answer text, with or without its escape framing.</param>
     public static bool? ParseIsLight(string response)
@@ -105,8 +106,8 @@ public static class TerminalBackgroundQuery
             var key = Console.ReadKey(intercept: true);
             builder.Append(key.KeyChar);
 
-            // The string terminator ESC \ reaches Console.ReadKey as a bare backslash (the escape is swallowed); a colour answer
-            // never contains one otherwise.
+            // The string terminator ESC \ reaches Console.ReadKey as a bare backslash (the escape is swallowed); a
+            // colour answer never contains one otherwise.
             if (key.KeyChar is '\u0007' or '\\')
             {
                 return builder.ToString();
