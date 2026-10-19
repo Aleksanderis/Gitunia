@@ -10,7 +10,7 @@ public static class ThemeConfigurator
     /// The choice for a setting value; an unknown value keeps <see cref="ThemeChoice.Auto"/> and adds a problem.
     /// </summary>
     /// <param name="value">The value of <c>theme</c>, null when absent.</param>
-    /// <param name="problems">Receives the problem for a value that is not <c>auto</c>, <c>dark</c> or <c>light</c>.</param>
+    /// <param name="problems">Receives the problem for a value that is not auto, dark or light.</param>
     public static ThemeChoice Parse(JsonElement? value, ICollection<ConfigProblem> problems)
     {
         if (value is null or { ValueKind: JsonValueKind.Null })
