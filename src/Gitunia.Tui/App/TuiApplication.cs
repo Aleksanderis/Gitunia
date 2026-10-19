@@ -130,7 +130,9 @@ public sealed class TuiApplication(
     {
         _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
-        var queriedLight = _startupConfig.Theme == ThemeChoice.Auto ? platform.QueryLightBackground(_capabilities) : null;
+        var queriedLight = _startupConfig.Theme == ThemeChoice.Auto
+            ? platform.QueryLightBackground(_capabilities)
+            : null;
         if (queriedLight is { } isLight)
         {
             _capabilities = _capabilities with { IsLightBackground = isLight };

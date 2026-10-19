@@ -37,7 +37,8 @@ public static class TerminalBackgroundQuery
             var response = ReadResponse(timeout);
             return response is null ? null : ParseIsLight(response);
         }
-        catch (Exception exception) when (exception is IOException or InvalidOperationException or UnauthorizedAccessException)
+        catch (Exception exception)
+            when (exception is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
             return null;
         }
