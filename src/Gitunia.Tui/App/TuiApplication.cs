@@ -781,6 +781,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.RefreshChrome,
         gate,
         ShowConfirm,
+        IsAnyOverlayOpen,
         _externalToolRunner.LaunchGit);
 
     private PushActions CreatePush() => new(

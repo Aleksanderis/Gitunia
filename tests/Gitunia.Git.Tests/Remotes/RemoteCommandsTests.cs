@@ -1,6 +1,6 @@
 using Gitunia.Git.Remotes;
-using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Git.Remotes.Models;
+using Gitunia.Git.Tests.Fixtures;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Remotes;

@@ -220,6 +220,7 @@ public class PushActionsTests
                 () => { },
                 new TabOperationGate(),
                 Confirm,
+                () => false,
                 (_, _, _) => string.Empty);
             Push = new PushActions(
                 _host,

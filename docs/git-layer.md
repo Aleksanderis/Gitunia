@@ -11,7 +11,7 @@ Contract between `Gitunia.Git` and everything above it: the rules every caller a
 - **Environment.** `LC_ALL=C` for parsed output, `GIT_TERMINAL_PROMPT=0` for background calls, `GIT_OPTIONAL_LOCKS=0` for read-only status polling (avoids fighting the user's other git processes over `index.lock`). Remote calls also set `GIT_SSH_COMMAND` (see "Remote calls"). Nothing else is set.
 - **Machine formats.** `status --porcelain=v2 -z`, `for-each-ref --format=...`, `log --format=... -z`, `worktree list --porcelain -z`, `rev-list --parents`, `diff --raw -z`, `cat-file --batch` for bulk object reads.
 - **Every call** takes a `CancellationToken` and a timeout, captures stderr and maps the exit code to a typed error. Long operations (fetch, pull, push, clone) stream progress (`--progress`) to the caller.
-- **User environment.** Credentials, hooks, signing and identity come from the user's real config. Prompts cannot reach a redirected git (stdin is closed), so a call that may prompt either fails with git's message or goes through `ExternalToolRunner` (`architecture.md`); a failed remote call offers the terminal (#45, "Remote calls").
+- **User environment.** Credentials, hooks, signing and identity come from the user's real config. Prompts cannot reach a redirected git (stdin is closed), so a call that may prompt either fails with git's message or goes through `ExternalToolRunner` (`architecture.md`); a failed fetch, pull or push offers the terminal (#45, "Remote calls").
 
 ### Runner (`GitRunner`)
 

@@ -50,4 +50,3 @@ Blame, conflict resolution view, submodules, PR/issue integration.
 
 ## Open questions
 
-- Interactive credential/ssh prompts: settled in #45 (suspend the TUI and give git the terminal on an auth failure; see `decisions.md`).

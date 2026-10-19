@@ -32,6 +32,9 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="redraw">Redraws the chrome (progress line, chips).</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions; a pull holds it.</param>
 /// <param name="confirm">Shows the retry Confirm and runs the callback on <c>y</c>; false when it cannot show.</param>
+/// <param name="isOverlayOpen">
+/// Whether a prompt, picker or other overlay is open; the retry Confirm never replaces one (a stray <c>y</c>).
+/// </param>
 /// <param name="runInTerminal">
 /// Runs git with these arguments on the real terminal (name for the status bar, arguments, repository); returns a
 /// notice when it cannot start, empty otherwise.
@@ -46,6 +49,7 @@ public sealed class RemoteActions(
     Action redraw,
     TabOperationGate gate,
     Func<ConfirmPrompt, Action, bool> confirm,
+    Func<bool> isOverlayOpen,
     Func<string, IReadOnlyList<string>, RepositoryLocation, string> runInTerminal)
 {
     private const string BusyNotice = "Busy: a fetch, pull or push of this tab is still running";
@@ -277,17 +281,23 @@ public sealed class RemoteActions(
     private void OfferTerminal(TabId tabId, Running running)
     {
         var command = $"git {string.Join(' ', running.TerminalArguments)}";
+        var repository = Path.GetFileName(host.Workspace.FindTab(tabId)!.Location.RootPath);
+
+        // An unsolicited Confirm must not replace something the user is typing in or belong to a tab they left.
+        var canAsk = host.Workspace.ActiveTabId == tabId && !isOverlayOpen();
         var prompt = new ConfirmPrompt(
             "Credentials needed",
             [
-                $"{running.Words.Noun} needs a passphrase or credentials, which the background run cannot ask for.",
+                $"{running.Words.Noun} in {repository} needs a passphrase, credentials or a host key answer, "
+                + "which the background run cannot give.",
                 "Run it again in the terminal? Gitunia hands the terminal to git and takes it back when git ends.",
             ],
-            $"Runs: {command}. Nothing is changed unless it succeeds.",
+            $"Runs: {command} (the same command as the one that failed).",
             "Retry in terminal");
-        if (!confirm(prompt, () => RetryInTerminal(tabId, running)))
+        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, running)))
         {
-            statuses.Warning($"{running.Words.Noun} needs credentials: run `{command}` in a terminal");
+            statuses.Warning(
+                $"{running.Words.Noun} in {repository} needs credentials: run `{command}` in a terminal");
         }
     }
 

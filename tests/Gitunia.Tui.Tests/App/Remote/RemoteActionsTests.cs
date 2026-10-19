@@ -194,8 +194,38 @@ public class RemoteActionsTests
         await harness.WaitAsync();
 
         Assert.Equal(
-            "Fetch needs credentials: run `git fetch --prune` in a terminal",
+            "Fetch in gitunia-remote-actions-tests needs credentials: run `git fetch --prune` in a terminal",
             harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAnotherOverlayIsOpen_WhenCredentialsAreNeeded_ThenNoConfirmReplacesItAndTheStatusSaysHow()
+    {
+        using var harness = new Harness { OverlayOpen = true };
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("run `git fetch --prune` in a terminal", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTheTabIsNotActiveAnymore_WhenCredentialsAreNeeded_ThenNoConfirmIsShown()
+    {
+        using var harness = new Harness();
+        harness.Writer.Blocks = true;
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.Writer.Started;
+        harness.OpenSecondTab();
+
+        harness.Writer.Release();
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("needs credentials", harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -389,6 +419,7 @@ public class RemoteActionsTests
                 () => { },
                 Gate,
                 Confirm,
+                () => OverlayOpen,
                 RunInTerminal);
         }
 
@@ -418,11 +449,21 @@ public class RemoteActionsTests
 
         public bool CanConfirm { get; init; } = true;
 
+        public bool OverlayOpen { get; set; }
+
         public string TerminalNotice { get; init; } = string.Empty;
 
         public void Execute(ActionId action) => Actions.TryExecute(action, null);
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Actions.IsRunning(TabId));
+
+        public void OpenSecondTab()
+        {
+            var other = Path.Combine(Root, "other");
+            var gitDirectory = Path.Combine(other, ".git");
+            _host.Dispatch(
+                new OpenRepositoryCommand(new RepositoryLocation(other, gitDirectory, gitDirectory, false, false)));
+        }
 
         public void Dispose()
         {
