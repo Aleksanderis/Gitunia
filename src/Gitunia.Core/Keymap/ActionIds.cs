@@ -199,6 +199,26 @@ public static class ActionIds
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
 
+    public static ActionId SettingsOpen { get; } = new("settings.open");
+
+    public static ActionId SettingsActivate { get; } = new("settings.activate");
+
+    public static ActionId SettingsToggle { get; } = new("settings.toggle");
+
+    public static ActionId SettingsFilter { get; } = new("settings.filter");
+
+    public static ActionId SettingsAdd { get; } = new("settings.add");
+
+    public static ActionId SettingsRemove { get; } = new("settings.remove");
+
+    public static ActionId SettingsMoveDown { get; } = new("settings.move-down");
+
+    public static ActionId SettingsMoveUp { get; } = new("settings.move-up");
+
+    public static ActionId SettingsIncrease { get; } = new("settings.increase");
+
+    public static ActionId SettingsDecrease { get; } = new("settings.decrease");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");

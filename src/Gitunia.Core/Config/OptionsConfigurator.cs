@@ -126,6 +126,27 @@ public static class OptionsConfigurator
         return roots.Count == 0 && index > 0 ? null : roots.ToImmutable();
     }
 
+    /// <summary>The path with a leading <c>~</c> replaced by the home folder; other text is returned as it is.</summary>
+    /// <param name="text">A folder path as written in the file.</param>
+    /// <param name="homeDirectory">What <c>~</c> stands for.</param>
+    public static string ExpandHome(string text, string homeDirectory)
+    {
+        if (text[0] != HomeMarker)
+        {
+            return text;
+        }
+
+        if (text.Length == 1)
+        {
+            return homeDirectory;
+        }
+
+        var separator = text[1];
+        return separator == Path.DirectorySeparatorChar || separator == Path.AltDirectorySeparatorChar
+            ? Path.Combine(homeDirectory, text[2..])
+            : text;
+    }
+
     private static string? ResolveRoot(
         JsonElement entry,
         string path,
@@ -155,23 +176,5 @@ public static class OptionsConfigurator
         }
 
         return expanded;
-    }
-
-    private static string ExpandHome(string text, string homeDirectory)
-    {
-        if (text[0] != HomeMarker)
-        {
-            return text;
-        }
-
-        if (text.Length == 1)
-        {
-            return homeDirectory;
-        }
-
-        var separator = text[1];
-        return separator == Path.DirectorySeparatorChar || separator == Path.AltDirectorySeparatorChar
-            ? Path.Combine(homeDirectory, text[2..])
-            : text;
     }
 }

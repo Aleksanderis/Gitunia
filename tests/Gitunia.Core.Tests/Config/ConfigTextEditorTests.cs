@@ -9,6 +9,25 @@ public class ConfigTextEditorTests
     private const string Quoted = "\"square\"";
 
     [Fact]
+    public void GivenStrings_WhenBuildingAListValue_ThenItIsOneLineOfEscapedJson()
+    {
+        Assert.Equal("[]", ConfigTextEditor.StringListValue([]));
+        Assert.Equal("[\"/a\", \"C:\\\\b\"]", ConfigTextEditor.StringListValue(["/a", "C:\\b"]));
+    }
+
+    [Fact]
+    public void GivenAListValue_WhenSettingAMultiLineArray_ThenOnlyTheArrayIsReplaced()
+    {
+        const string text = "{\n  // roots\n  \"scanRoots\": [\n    \"/a\",\n  ],\n  \"theme\": \"dark\"\n}\n";
+
+        var result = ConfigTextEditor.Set(text, ["scanRoots"], ConfigTextEditor.StringListValue(["/a", "/b"]));
+
+        Assert.Equal(
+            "{\n  // roots\n  \"scanRoots\": [\"/a\", \"/b\"],\n  \"theme\": \"dark\"\n}\n",
+            result.Text);
+    }
+
+    [Fact]
     public void GivenAnExistingKey_WhenSetting_ThenOnlyTheValueChangesAndCommentsStay()
     {
         const string text = "{\n  // Pick one.\n  \"frameStyle\": \"rounded\", // trailing\n  \"scanRoots\": [],\n}\n";

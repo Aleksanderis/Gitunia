@@ -191,6 +191,15 @@ public static class PaneHints
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Settings =
+    [
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("l/Enter", "edit", [ActionIds.SettingsActivate, ActionIds.SettingsActivate]),
+        new("h", "back", [ActionIds.NavigateBack]),
+        new("/", "filter", [ActionIds.SettingsFilter]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => Sidebar,
@@ -212,6 +221,9 @@ public static class PaneHints
 
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
+
+    /// <summary>The hints while the settings screen is open.</summary>
+    public static IReadOnlyList<KeyHint> ForSettings() => Settings;
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;

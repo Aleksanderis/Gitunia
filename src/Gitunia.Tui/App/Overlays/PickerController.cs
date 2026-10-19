@@ -31,12 +31,27 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
     private CancellationTokenSource? _listingCancellation;
     private bool _completeAfterListing;
     private ImmutableArray<string> _discovered = [];
+    private ImmutableArray<string>? _scanRoots = scanRoots;
     private DateTime _lastScan = DateTime.MinValue;
     private bool _isScanning;
     private int _openRequest;
 
     /// <summary>Raised after the picker opened, closed or changed, so the view can redraw.</summary>
     public event Action? Changed;
+
+    /// <summary>
+    /// The folders the next scan looks in, null for the conventional ones. The settings screen changes it while the app runs;
+    /// the next open of the picker rescans.
+    /// </summary>
+    public ImmutableArray<string>? ScanRoots
+    {
+        get => _scanRoots;
+        set
+        {
+            _scanRoots = value;
+            _lastScan = DateTime.MinValue;
+        }
+    }
 
     /// <summary>The open picker, null when closed.</summary>
     public PickerState? State { get; private set; }
@@ -310,7 +325,7 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
 
         _isScanning = true;
         _lastScan = DateTime.UtcNow;
-        var roots = scanRoots ?? RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
+        var roots = _scanRoots ?? RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
         _ = Task.Run(() =>
         {
             var found = ImmutableArray<string>.Empty;

@@ -370,3 +370,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".
 
 **Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".
+
+**UI:** Settings screen (#523): overlay on `<space>,`, categories left and settings right (one list with headings under 80 columns), toggle, choice, number and path-list controls, `/` filter, mouse. Each change is saved when committed and applied to the running app at once; a folder removal asks `y`/`n` inside the overlay. Its single-letter keys (`x` `a` `d` `J` `K`) belong to a modal list, not to buffer commands, so the vim-clash rule for the panes does not apply to them. Theme (#524) and key reference (#525) add rows to the registry. Rules in `ux.md`.
+
+**Architecture:** The frame corner style is a settable property of the one shared `GraphGlyphSet` (the settings screen changes it while the app runs) and part of the frame-grid cache keys. Segments of one line may carry their own selection, so two columns of one overlay row can be selected independently.
