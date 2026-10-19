@@ -49,7 +49,9 @@ public sealed class ConfigWriter
         var current = await ReadFileAsync(target, cancellationToken).ConfigureAwait(false);
         if (current.Error is { } error)
         {
-            return new ConfigWriteResult(ConfigWriteStatus.Refused, current, error, false);
+            var status = current.ReadFailed ? ConfigWriteStatus.Failed : ConfigWriteStatus.Refused;
+
+            return new ConfigWriteResult(status, current, error, false);
         }
 
         if (current.Exists != expected.Exists || current.Hash != expected.Hash)
@@ -76,12 +78,11 @@ public sealed class ConfigWriter
     {
         try
         {
-            var hadBom = current.Exists && await StartsWithBomAsync(target, cancellationToken).ConfigureAwait(false);
             var body = Encoding.UTF8.GetBytes(edit.Text);
-            var bytes = hadBom ? [.. ByteOrderMark, .. body] : body;
+            var bytes = current.HasBom ? [.. ByteOrderMark, .. body] : body;
             UnixFileMode? mode = current.Exists && !OperatingSystem.IsWindows() ? File.GetUnixFileMode(target) : null;
             await AtomicFileWriter.WriteAsync(target, bytes, mode, cancellationToken).ConfigureAwait(false);
-            var written = new ConfigSnapshot(true, edit.Text, Hash(bytes));
+            var written = new ConfigSnapshot(true, edit.Text, Hash(bytes), HasBom: current.HasBom);
             var message = edit.Shadowed ? ShadowedMessage : string.Empty;
 
             return new ConfigWriteResult(ConfigWriteStatus.Written, written, message, edit.Shadowed);
@@ -92,13 +93,6 @@ public sealed class ConfigWriter
 
             return new ConfigWriteResult(ConfigWriteStatus.Failed, current, message, false);
         }
-    }
-
-    private static async Task<bool> StartsWithBomAsync(string path, CancellationToken cancellationToken)
-    {
-        var bytes = await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
-
-        return bytes.AsSpan().StartsWith(ByteOrderMark);
     }
 
     private static async Task<ConfigSnapshot> ReadFileAsync(string target, CancellationToken cancellationToken)
@@ -117,14 +111,17 @@ public sealed class ConfigWriter
             }
 
             var bytes = await File.ReadAllBytesAsync(target, cancellationToken).ConfigureAwait(false);
-            var offset = bytes.AsSpan().StartsWith(ByteOrderMark) ? ByteOrderMark.Length : 0;
+            var hasBom = bytes.AsSpan().StartsWith(ByteOrderMark);
+            var offset = hasBom ? ByteOrderMark.Length : 0;
             var strict = new UTF8Encoding(false, true);
 
-            return new ConfigSnapshot(true, strict.GetString(bytes, offset, bytes.Length - offset), Hash(bytes));
+            var text = strict.GetString(bytes, offset, bytes.Length - offset);
+
+            return new ConfigSnapshot(true, text, Hash(bytes), HasBom: hasBom);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return Unusable($"config.json could not be read: {exception.Message}");
+            return Unusable($"config.json could not be read: {exception.Message}") with { ReadFailed = true };
         }
         catch (DecoderFallbackException)
         {

@@ -13,14 +13,14 @@ namespace Gitunia.Core.Config;
 public static class ConfigTextEditor
 {
     private const string DefaultIndent = "  ";
+    private const string Lf = "\n";
+    private const string CrLf = "\r\n";
+
     private static readonly JsonReaderOptions ReaderOptions = new()
     {
         CommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
     };
-
-    private const string Lf = "\n";
-    private const string CrLf = "\r\n";
 
     /// <summary>The JSON text of a string value (quoted and escaped), for <see cref="Set"/>.</summary>
     /// <param name="value">The string.</param>
@@ -40,6 +40,13 @@ public static class ConfigTextEditor
             return Refused(text, "The value is not a single JSON value");
         }
 
+        var result = SetUnchecked(text, path, jsonValue);
+
+        return result.Edited ? Verify(text, result, path, jsonValue) : result;
+    }
+
+    private static ConfigEditResult SetUnchecked(string text, IReadOnlyList<string> path, string jsonValue)
+    {
         var location = ConfigKeyLocator.Locate(text, path);
         switch (location.Kind)
         {
@@ -54,11 +61,23 @@ public static class ConfigTextEditor
                 return Insert(text, path, jsonValue, container, location);
             case ConfigLocationKind.Invalid:
                 return Refused(text, $"config.json is not valid (line {location.Line}): {location.Message}");
-            case ConfigLocationKind.ParentNotObject:
-                return Refused(text, NotObjectMessage(path, location.ResolvedDepth));
             default:
                 return Refused(text, NotObjectMessage(path, location.ResolvedDepth));
         }
+    }
+
+    // A last guard: the new text must hold exactly the requested value at the path (never inside a comment).
+    private static ConfigEditResult Verify(
+        string original,
+        ConfigEditResult result,
+        IReadOnlyList<string> path,
+        string jsonValue)
+    {
+        var check = ConfigKeyLocator.Locate(result.Text, path);
+        var holdsValue = check.Kind == ConfigLocationKind.Found
+            && result.Text.AsSpan(check.Span.Start, check.Span.Length).SequenceEqual(jsonValue);
+
+        return holdsValue ? result : Refused(original, "The setting could not be placed safely in config.json");
     }
 
     private static ConfigEditResult Refused(string text, string message)

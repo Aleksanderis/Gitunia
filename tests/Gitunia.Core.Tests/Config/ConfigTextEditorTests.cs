@@ -156,6 +156,17 @@ public class ConfigTextEditorTests
     }
 
     [Fact]
+    public void GivenABlockCommentAfterTheLastMember_WhenInserting_ThenTheMemberIsNeverHiddenInTheComment()
+    {
+        const string text = "{\n  \"a\": 1 /* x\n y */ }";
+
+        var result = ConfigTextEditor.Set(text, ["b"], "true");
+
+        Assert.False(result.Edited);
+        Assert.Equal(text, result.Text);
+    }
+
+    [Fact]
     public void GivenATopLevelArray_WhenSetting_ThenItIsRefused()
     {
         Assert.False(ConfigTextEditor.Set("[]", ["theme"], "1").Edited);

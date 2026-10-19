@@ -8,6 +8,8 @@ namespace Gitunia.Core.Tests.Config;
 
 public sealed class ConfigWriterTests : IDisposable
 {
+    private const UnixFileMode FullAccess = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+
     private readonly TemporaryDirectory _directory = new();
 
     public void Dispose()
@@ -166,7 +168,7 @@ public sealed class ConfigWriterTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenACancelledWrite_WhenSetting_ThenTheOriginalFileSurvives()
+    public async Task GivenACancelledToken_WhenSetting_ThenTheOriginalFileSurvives()
     {
         var writer = Create("{ \"theme\": \"auto\" }");
         var snapshot = await writer.ReadAsync(Token);
@@ -178,6 +180,31 @@ public sealed class ConfigWriterTests : IDisposable
 
         Assert.Equal("{ \"theme\": \"auto\" }", await File.ReadAllTextAsync(writer.FilePath, Token));
         Assert.Equal([writer.FilePath], Directory.GetFiles(_directory.DirectoryPath));
+    }
+
+    [Fact]
+    public async Task GivenADirectoryThatCannotBeWritten_WhenSetting_ThenItFailsAndTheFileIsUnchanged()
+    {
+        if (OperatingSystem.IsWindows() || Environment.UserName == "root")
+        {
+            return;
+        }
+
+        var writer = Create("{ \"theme\": \"auto\" }");
+        var snapshot = await writer.ReadAsync(Token);
+        File.SetUnixFileMode(_directory.DirectoryPath, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+        try
+        {
+            var result = await writer.SetAsync(["theme"], "\"dark\"", snapshot, Token);
+
+            Assert.Equal(ConfigWriteStatus.Failed, result.Status);
+        }
+        finally
+        {
+            File.SetUnixFileMode(_directory.DirectoryPath, FullAccess);
+        }
+
+        Assert.Equal("{ \"theme\": \"auto\" }", await File.ReadAllTextAsync(writer.FilePath, Token));
     }
 
     [Fact]
