@@ -409,3 +409,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The settings filter also matches key reference lines by title, keys and action id, and the collapsed layout lists the Key reference last (#558). Why: the reference is ~330 rows; amends the #525 entry.
 
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
+
+**UI:** The history diff pane shows one file, the one under the file list cursor (#537); hunk jumps and `hunk n/m` stop at its ends, `]f`/`[f` do not move. Hunk headers are rule separator rows. Supersedes 1c items 1, 2, 10 and the file jumps of the #25 and #310 entries.

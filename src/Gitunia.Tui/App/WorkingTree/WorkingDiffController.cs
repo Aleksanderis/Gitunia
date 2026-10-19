@@ -300,8 +300,7 @@ public sealed class WorkingDiffController : IPromptHandler
         }
         else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
         {
-            var row = _actions.CursorRow(diff);
-            _actions.Jump(diff, diff.Source.Document.FileRows, row, action == ActionIds.DiffNextFile, count, "file");
+            Notice = "The diff shows the selected file only; pick another in the file list";
         }
         else if (action == ActionIds.NavigateBack)
         {

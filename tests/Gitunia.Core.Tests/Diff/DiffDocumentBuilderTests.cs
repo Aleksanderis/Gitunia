@@ -41,6 +41,39 @@ public class DiffDocumentBuilderTests
     }
 
     [Fact]
+    public void GivenTwoHunksAndMoreFiles_WhenTakingTheFirstFile_ThenOnlyItsRowsAndHunksRemain()
+    {
+        var document = Build(TwoFiles).ForFile(0);
+
+        Assert.Equal([0], document.FileRows);
+        Assert.Equal([["one.txt"]], document.FilePaths);
+        Assert.Equal(2, document.HunkRows.Count);
+        Assert.All(document.Rows, row => Assert.Equal(0, row.FileIndex));
+        Assert.DoesNotContain(document.Rows, row => row.Text.Contains("new.txt", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenARenamedFile_WhenTakingIt_ThenItStartsAtItsHeaderAndKeepsBothPaths()
+    {
+        var document = Build(TwoFiles).ForFile(1);
+
+        Assert.Equal(DiffRowKind.FileHeader, document.Rows[0].Kind);
+        Assert.Equal([["new.txt", "old.txt"]], document.FilePaths);
+        Assert.Empty(document.HunkRows);
+        Assert.Equal(2, document.Rows.Count);
+    }
+
+    [Fact]
+    public void GivenAWarningAboveTheFiles_WhenTakingTheFirstFileOnly_ThenTheWarningStaysAbove()
+    {
+        var whole = Build(TwoFiles, "careful");
+
+        Assert.Equal(DiffRowKind.Warning, whole.ForFile(0).Rows[0].Kind);
+        Assert.Equal(1, whole.ForFile(0).FileRows[0]);
+        Assert.Equal(DiffRowKind.FileHeader, whole.ForFile(2).Rows[0].Kind);
+    }
+
+    [Fact]
     public void GivenAChangedLine_WhenBuilding_ThenKindAndLineNumbersFollowTheHunk()
     {
         var document = Build(TwoFiles);
