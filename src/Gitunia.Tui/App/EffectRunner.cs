@@ -62,7 +62,9 @@ public sealed class EffectRunner : IDisposable
         host.Changed += OnHostChanged;
     }
 
-    /// <summary>Says whether a tab runs a write or remote operation; such a tab is never evicted (its token would cancel the work).</summary>
+    /// <summary>
+    /// Says whether a tab runs a write or remote operation; such a tab is never evicted (its token would cancel the work).
+    /// </summary>
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
     /// <summary>The runtime session of an open tab, or null.</summary>
@@ -215,7 +217,8 @@ public sealed class EffectRunner : IDisposable
 
     // A tab beyond the most recently used ones drops its rows, caches and watcher and goes back to the pending state:
     // its cursor, scroll and selected commit live in the workspace state, so activating it again reloads in the
-    // background and puts them back. A tab still loading or running an operation stays. The tab's search and diff positions are not kept.
+    // background and puts them back. A tab still loading or running an operation stays.
+    // The tab's search and diff positions are not kept.
     private void EvictColdTabs()
     {
         for (var index = _warmTabLimit; index < _recent.Count; index++)
