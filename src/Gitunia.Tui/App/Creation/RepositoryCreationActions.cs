@@ -314,7 +314,8 @@ public sealed class RepositoryCreationActions(
             var location = await creator
                 .CloneAsync(request, progress, running.Cancellation.Token)
                 .ConfigureAwait(false);
-            postToUi(() => Finish(running, $"Cloned {Path.GetFileName(location.RootPath)}", location, StatusSeverity.Info));
+            var text = $"Cloned {Path.GetFileName(location.RootPath)}";
+            postToUi(() => Finish(running, text, location, StatusSeverity.Info));
         }
         catch (OperationCanceledException)
         {
