@@ -113,6 +113,26 @@ public static class DefaultMouseMap
 
     public const string ReflogPickerRow = "ReflogPicker";
 
+    /// <summary>The chips under the rebase todo editor (#458): each is a view of its own, a click runs the action
+    /// its key runs on the highlighted commit.</summary>
+    public const string RebasePickButton = "RebaseButton.Pick";
+
+    public const string RebaseRewordButton = "RebaseButton.Reword";
+
+    public const string RebaseSquashButton = "RebaseButton.Squash";
+
+    public const string RebaseFixupButton = "RebaseButton.Fixup";
+
+    public const string RebaseDropButton = "RebaseButton.Drop";
+
+    public const string RebaseMoveUpButton = "RebaseButton.Up";
+
+    public const string RebaseMoveDownButton = "RebaseButton.Down";
+
+    public const string RebaseStartButton = "RebaseButton.Start";
+
+    public const string RebaseCancelButton = "RebaseButton.Cancel";
+
     /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
     /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
@@ -152,6 +172,16 @@ public static class DefaultMouseMap
         DefaultKeymap.HelpView,
         DefaultKeymap.MessagesView,
         DefaultKeymap.ReflogView,
+        DefaultKeymap.RebaseEditorView,
+        RebasePickButton,
+        RebaseRewordButton,
+        RebaseSquashButton,
+        RebaseFixupButton,
+        RebaseDropButton,
+        RebaseMoveUpButton,
+        RebaseMoveDownButton,
+        RebaseStartButton,
+        RebaseCancelButton,
         DefaultKeymap.SettingsView,
         SettingsEditButton,
         SettingsAddButton,
@@ -211,6 +241,17 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.RebaseEditorView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(RebasePickButton, MouseGesture.Click, ActionIds.RebaseEditorPick),
+        new(RebaseRewordButton, MouseGesture.Click, ActionIds.RebaseEditorReword),
+        new(RebaseSquashButton, MouseGesture.Click, ActionIds.RebaseEditorSquash),
+        new(RebaseFixupButton, MouseGesture.Click, ActionIds.RebaseEditorFixup),
+        new(RebaseDropButton, MouseGesture.Click, ActionIds.RebaseEditorDrop),
+        new(RebaseMoveUpButton, MouseGesture.Click, ActionIds.RebaseEditorMoveUp),
+        new(RebaseMoveDownButton, MouseGesture.Click, ActionIds.RebaseEditorMoveDown),
+        new(RebaseStartButton, MouseGesture.Click, ActionIds.RebaseEditorStart),
+        new(RebaseCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(SettingsEditButton, MouseGesture.Click, ActionIds.SettingsActivate),

@@ -75,6 +75,54 @@ public sealed class RebaseActions(
         return true;
     }
 
+    /// <summary>
+    /// The warning for a branch that has an upstream (a rebase rewrites its history and needs a force push), stronger
+    /// when every commit is already on it; null without an upstream. Shared with the interactive rebase's Confirm.
+    /// </summary>
+    public static string? UpstreamWarning(GitRef? current)
+    {
+        if (current is not { UpstreamFullName: { } upstream, IsUpstreamGone: false })
+        {
+            return null;
+        }
+
+        var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
+        return $"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.";
+    }
+
+    /// <summary>
+    /// Why a rebase must not start in this tab, or null: an operation in progress, a detached or unborn HEAD, the target
+    /// being the current commit, or tracked changes. No git runs for any of these; the interactive rebase uses the same.
+    /// </summary>
+    public static string? Refusal(RepositoryState tab, string targetHash)
+    {
+        if (tab.Operation is { } info)
+        {
+            var name = OperationBannerBuilder.NameOf(info.Kind);
+            return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
+        }
+
+        if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null, CommitHash: not null })
+        {
+            return tab.Head?.Kind switch
+            {
+                null => "The repository is still loading: try again in a moment",
+                HeadKind.Unborn => "The branch has no commits yet: nothing to rebase",
+                _ => "HEAD is detached: switch to a branch first",
+            };
+        }
+
+        if (string.Equals(tab.Head.CommitHash, targetHash, StringComparison.Ordinal))
+        {
+            return $"{tab.Head.BranchName} is already at that commit: nothing to rebase";
+        }
+
+        var changed = tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;
+        return changed == 0
+            ? null
+            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: commit or stash them before a rebase";
+    }
+
     private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 
     private static bool IsTrackedChange(StatusEntry entry) =>
@@ -102,11 +150,9 @@ public sealed class RebaseActions(
                 "itself is dropped and the commits are replayed as one line.");
         }
 
-        if (current is { UpstreamFullName: { } upstream, IsUpstreamGone: false })
+        if (UpstreamWarning(current) is { } warning)
         {
-            var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
-            lines.Add(
-                $"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.");
+            lines.Add(warning);
         }
 
         return new ConfirmPrompt(
@@ -220,36 +266,6 @@ public sealed class RebaseActions(
         {
             statuses.Warning(TooSmallNotice);
         }
-    }
-
-    // Why a rebase must not start in this tab, or null. No git runs for any of these.
-    private static string? Refusal(RepositoryState tab, string targetHash)
-    {
-        if (tab.Operation is { } info)
-        {
-            var name = OperationBannerBuilder.NameOf(info.Kind);
-            return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
-        }
-
-        if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null, CommitHash: not null })
-        {
-            return tab.Head?.Kind switch
-            {
-                null => "The repository is still loading: try again in a moment",
-                HeadKind.Unborn => "The branch has no commits yet: nothing to rebase",
-                _ => "HEAD is detached: switch to a branch first",
-            };
-        }
-
-        if (string.Equals(tab.Head.CommitHash, targetHash, StringComparison.Ordinal))
-        {
-            return $"{tab.Head.BranchName} is already at that commit: nothing to rebase";
-        }
-
-        var changed = tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;
-        return changed == 0
-            ? null
-            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: commit or stash them before a rebase";
     }
 
     private void Start(RebaseTarget target)

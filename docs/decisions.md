@@ -397,3 +397,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Performance:** Soft row limit (#515, finishes #199 step 4): a tab loads its newest 100,000 commits and the rest on demand (`G`, search reaching the end, jumps). Measured on 1M commits: ~76 MB instead of ~390 MB until the end is asked for. Supersedes the "deferred to #515" part of the #199 entry. Details: `performance.md`.
 
 **UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.
+
+**UI:** Interactive rebase editor (#458) is a modal list opened by `<space>gi` with git's todo words as single keys (`p` `r` `s` `f` `d`, `J`/`K` to move), like the settings screen's modal-list keys, not buffer commands. Why: they match what git users type in a todo. The Confirm opens over the editor so `n` keeps the todo; an edited todo needs a second `Esc` to discard.

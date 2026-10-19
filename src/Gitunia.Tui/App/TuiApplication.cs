@@ -123,6 +123,7 @@ public sealed class TuiApplication(
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
+    private RebaseEditorController _rebaseEditor = null!;
     private SettingsController _settings = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
@@ -271,10 +272,11 @@ public sealed class TuiApplication(
         _pick = CreatePick(operationGate);
         _mainline = new MainlineOverlayTracker(
             () => _pick.Prompt is not null,
-            () => _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen,
+            IsMainlineCovered,
             RefreshOverlay);
         _router.Pick = _pick;
         _reflog = CreateReflog(glyphs);
+        _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
         _settings = CreateSettings(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -495,12 +497,14 @@ public sealed class TuiApplication(
     {
         // The settings do not open over another overlay (help, palette, a dialog, the reflog).
         if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
-            && (_overlays.State.IsOpen || _reflog.IsOpen))
+            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen))
         {
             return;
         }
 
-        if (_settings.TryExecute(action, count) || _reflog.TryExecute(action, count))
+        if (_settings.TryExecute(action, count)
+            || _rebaseEditor.TryExecute(action, count)
+            || _reflog.TryExecute(action, count))
         {
             return;
         }
@@ -514,7 +518,10 @@ public sealed class TuiApplication(
     }
 
     private bool HandleTextKey(KeyEvent key) =>
-        _settings.HandleTextKey(key) || _reflog.HandleTextKey(key) || _prompts.Any(prompt => prompt.HandleTextKey(key));
+        _settings.HandleTextKey(key)
+        || _rebaseEditor.HandleTextKey(key)
+        || _reflog.HandleTextKey(key)
+        || _prompts.Any(prompt => prompt.HandleTextKey(key));
 
     private void OnGestured(string viewName, MouseGesture gesture, int? target)
     {
@@ -603,12 +610,21 @@ public sealed class TuiApplication(
     {
         var settingsView = _settings.OnLineClicked(line, _view.Overlay.PointerColumn, out var settingsHandled);
         var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
+        var rebaseView = _rebaseEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var rebaseHandled);
         if (settingsHandled)
         {
             _overlayClickTicks = Environment.TickCount64;
             if (settingsView is not null)
             {
                 _mouse.Handle(settingsView, MouseGesture.Click);
+            }
+        }
+        else if (rebaseHandled)
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            if (rebaseView is not null)
+            {
+                _mouse.Handle(rebaseView, MouseGesture.Click);
             }
         }
         else if (reflogHandled)
@@ -629,7 +645,7 @@ public sealed class TuiApplication(
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.ContextMenuView, MouseGesture.Click);
         }
-        else if (_pick.Prompt is { } prompt && !_overlays.State.IsOpen && !_reflog.IsOpen && !_settings.IsOpen)
+        else if (_pick.Prompt is { } prompt && !IsMainlineCovered())
         {
             if (MainlineFrameBuilder.ParentAt(line, prompt.Parents.Count) is { } parent)
             {
@@ -653,7 +669,10 @@ public sealed class TuiApplication(
     private void ShowOverlayFrame()
     {
         _popups.MarkShown();
-        var overlay = _settings.CurrentFrame() ?? _reflog.CurrentFrame() ?? _overlays.CurrentFrame();
+        var overlay = _settings.CurrentFrame()
+            ?? _rebaseEditor.CurrentFrame()
+            ?? _reflog.CurrentFrame()
+            ?? _overlays.CurrentFrame();
         _view.Overlay.Show(overlay ?? MainlineFrame() ?? PopupFrame());
     }
 
@@ -675,7 +694,7 @@ public sealed class TuiApplication(
     // The status bar carries the prompt only when the screen is too small for its popup.
     private string PopupFallbackLine()
     {
-        if (CurrentPopup() is not { } popup || _overlays.State.IsOpen || _reflog.IsOpen || PopupFrame() is not null)
+        if (CurrentPopup() is not { } popup || IsMainlineCovered() || PopupFrame() is not null)
         {
             return string.Empty;
         }
@@ -1081,6 +1100,8 @@ public sealed class TuiApplication(
                 ? PaneHints.ForConfirm()
                 : _settings.IsOpen
                     ? PaneHints.ForSettings()
+                    : _rebaseEditor.IsOpen
+                    ? (_rebaseEditor.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor())
                     : _reflog.IsOpen
                     ? PaneHints.ForReflog()
                     : _commits.IsEditing
@@ -1166,7 +1187,14 @@ public sealed class TuiApplication(
         }
     }
 
-    private bool IsAnyOverlayOpen() =>
+    // The overlays a mainline question or a prompt popup hides behind.
+    private bool IsMainlineCovered() =>
+        _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen || _rebaseEditor.IsOpen;
+
+    private bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || IsOtherThanRebaseEditorOpen();
+
+    // The rebase editor is covered by these (its Confirm above all) and must not take their keys.
+    private bool IsOtherThanRebaseEditorOpen() =>
         _overlays.State.IsOpen
         || _reflog.IsOpen
         || _settings.IsOpen
@@ -1175,7 +1203,9 @@ public sealed class TuiApplication(
 
     private string OverlayViewName() => _settings.IsOpen
         ? DefaultKeymap.SettingsView
-        : _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+        : _rebaseEditor.IsOpen && !_overlays.State.IsOpen
+            ? DefaultKeymap.RebaseEditorView
+            : _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
 
     private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
         new ConfigWriter(platform.ConfigDirectory),
@@ -1227,6 +1257,23 @@ public sealed class TuiApplication(
         ConfigurePalette();
         _view.RefreshPalette();
     }
+
+    private RebaseEditorController CreateRebaseEditor(GraphGlyphSet glyphs, TabOperationGate gate) => new(
+        _host,
+        services.InteractiveRebase,
+        services.CommitDetails,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        BranchSelectionNow,
+        IsOtherThanRebaseEditorOpen,
+        () => _view.ScreenSize,
+        glyphs,
+        SetMode,
+        RefreshOverlay,
+        gate);
 
     private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(
         _host,

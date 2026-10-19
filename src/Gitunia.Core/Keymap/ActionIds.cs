@@ -195,6 +195,28 @@ public static class ActionIds
 
     public static ActionId RebaseOnto { get; } = new("rebase.onto");
 
+    public static ActionId RebaseInteractive { get; } = new("rebase.interactive");
+
+    public static ActionId RebaseEditorPick { get; } = new("rebase-editor.pick");
+
+    public static ActionId RebaseEditorReword { get; } = new("rebase-editor.reword");
+
+    public static ActionId RebaseEditorSquash { get; } = new("rebase-editor.squash");
+
+    public static ActionId RebaseEditorFixup { get; } = new("rebase-editor.fixup");
+
+    public static ActionId RebaseEditorDrop { get; } = new("rebase-editor.drop");
+
+    public static ActionId RebaseEditorMoveUp { get; } = new("rebase-editor.move-up");
+
+    public static ActionId RebaseEditorMoveDown { get; } = new("rebase-editor.move-down");
+
+    public static ActionId RebaseEditorStart { get; } = new("rebase-editor.start");
+
+    public static ActionId RebaseEditorMessageSave { get; } = new("rebase-editor.message-save");
+
+    public static ActionId RebaseEditorMessageNewLine { get; } = new("rebase-editor.message-newline");
+
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");

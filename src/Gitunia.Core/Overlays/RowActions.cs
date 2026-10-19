@@ -17,6 +17,7 @@ public static class RowActions
         ActionIds.MergeBranchNoFastForward,
         ActionIds.MergeBranchSquash,
         ActionIds.RebaseOnto,
+        ActionIds.RebaseInteractive,
         ActionIds.ResetBranch,
         ActionIds.PickCherry,
         ActionIds.PickRevert,
