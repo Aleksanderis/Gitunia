@@ -5,8 +5,8 @@ namespace Gitunia.Platform;
 
 /// <summary>
 /// Reads the answer to an OSC 11 query that was followed by a DA1 query (<c>ESC [ c</c>). Every terminal answers
-/// DA1, and answers come in order, so the DA1 reply marks the end: a terminal that ignores OSC 11 is detected as soon as it
-/// answers DA1 instead of by the timeout, and no late OSC answer is left to reach the UI as keystrokes.
+/// DA1, and answers come in order, so the DA1 reply marks the end: a terminal that ignores OSC 11 is detected as soon
+/// as it answers DA1 instead of by the timeout, and no late OSC answer is left to reach the UI as keystrokes.
 /// </summary>
 /// <param name="keyAvailable">Whether a key can be read without blocking.</param>
 /// <param name="readKey">Reads the next key as a character.</param>
