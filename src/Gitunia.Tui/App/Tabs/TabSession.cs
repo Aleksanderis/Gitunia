@@ -48,6 +48,9 @@ public sealed class TabSession : IDisposable
     /// <summary>Raised when the initial load ended, successfully or not.</summary>
     public event Action? LoadFinished;
 
+    /// <summary>Raised by <see cref="RequestExpand"/> when the rest of a cut log should load.</summary>
+    public event Action? ExpandRequested;
+
     /// <summary>Raised when a refresh read the status again and found it unchanged, so a file the status lists may still have changed.</summary>
     public event Action? StatusRead;
 
@@ -93,6 +96,18 @@ public sealed class TabSession : IDisposable
     /// <summary>The log is still streaming in.</summary>
     public bool IsLoading { get; private set; } = true;
 
+    /// <summary>The commits in the whole log when only its newest rows are loaded, null when all are.</summary>
+    public int? TruncatedTotal { get; private set; }
+
+    /// <summary>The last load of the rest of a cut log failed; see <see cref="RequestExpand"/>.</summary>
+    public bool ExpansionFailed { get; private set; }
+
+    /// <summary>The loaded rows are the newest part of a longer log.</summary>
+    public bool IsTruncated => TruncatedTotal is not null;
+
+    /// <summary>Every commit of the log is loaded: nothing streams and nothing was cut.</summary>
+    public bool IsGraphComplete => !IsLoading && !IsTruncated;
+
     /// <summary>Why loading stopped early, empty when it did not.</summary>
     public string LoadError { get; private set; } = string.Empty;
 
@@ -116,11 +131,59 @@ public sealed class TabSession : IDisposable
         Changed?.Invoke();
     }
 
-    /// <summary>Swaps in a refreshed log in one step.</summary>
-    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries)
+    /// <summary>Marks the loaded rows as the newest part of a log with <paramref name="total"/> commits.</summary>
+    public void Truncate(int total)
+    {
+        TruncatedTotal = total;
+    }
+
+    /// <summary>
+    /// Asks for the rest of a cut log; does nothing when the log is whole, the rest is already loading or nothing
+    /// answers (a session without an effect runner). After a failed load only a user's own action tries again, so a
+    /// restore or a search scan cannot loop on a broken read.
+    /// </summary>
+    /// <param name="isUserAction">The user asked (a key or a jump): retry even after a failure.</param>
+    public void RequestExpand(bool isUserAction = false)
+    {
+        if (isUserAction)
+        {
+            ExpansionFailed = false;
+        }
+
+        if (!IsTruncated || IsLoading || ExpansionFailed || ExpandRequested is null)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        Changed?.Invoke();
+        ExpandRequested.Invoke();
+    }
+
+    /// <summary>Loading the rest of a cut log stopped early; the log stays cut and can be requested again.</summary>
+    public void EndExpansion()
+    {
+        ExpansionFailed = true;
+        IsLoading = false;
+        Changed?.Invoke();
+        LoadFinished?.Invoke();
+    }
+
+    /// <summary>The rest of a cut log has been appended: the graph is whole now.</summary>
+    public void CompleteExpansion()
+    {
+        TruncatedTotal = null;
+        Complete();
+    }
+
+    /// <summary>Swaps in a refreshed log in one step; <paramref name="truncatedTotal"/> is set if it was cut.</summary>
+    public void ReplaceGraph(IReadOnlyList<GraphEntry> entries, int? truncatedTotal = null)
     {
         GraphReplacing?.Invoke();
         LoadError = string.Empty;
+        TruncatedTotal = truncatedTotal;
+        ExpansionFailed = false;
+        IsLoading = false;
         Graph.Replace(entries);
         GraphVersion++;
         Source.NotifyAppended();

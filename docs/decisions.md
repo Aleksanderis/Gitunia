@@ -384,3 +384,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
 
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
+
+**Performance:** Soft row limit (#515, finishes #199 step 4): a tab loads its newest 100,000 commits and the rest on demand (`G`, search reaching the end, jumps). Measured on 1M commits: ~76 MB instead of ~390 MB until the end is asked for. Supersedes the "deferred to #515" part of the #199 entry. Details: `performance.md`.

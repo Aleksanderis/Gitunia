@@ -13,15 +13,61 @@ namespace Gitunia.Tui.Loading.Graph;
 /// </summary>
 public sealed class GraphLoader
 {
+    /// <summary>Rows a tab loads eagerly; a longer log is cut here and the rest loads on demand (#515).</summary>
+    public const int DefaultSoftRowLimit = 100_000;
+
     private const int FirstBatchSize = 150;
     private const int BatchSize = 2000;
     private static readonly TimeSpan MaximumBatchAge = TimeSpan.FromMilliseconds(40);
 
     private readonly ICommitLogReader _commitLog;
 
-    public GraphLoader(ICommitLogReader commitLog)
+    public GraphLoader(ICommitLogReader commitLog, int softRowLimit = DefaultSoftRowLimit)
     {
         _commitLog = commitLog;
+        SoftRowLimit = softRowLimit;
+    }
+
+    /// <summary>Rows a tab loads eagerly (see <see cref="StreamCappedAsync"/>).</summary>
+    public int SoftRowLimit { get; }
+
+    /// <summary>
+    /// Like <see cref="StreamAsync"/> in topological order, but stops after <see cref="SoftRowLimit"/> rows when the
+    /// log is longer and says so in <paramref name="cut"/> (with the commit count of the whole log).
+    /// </summary>
+    /// <param name="location">The repository to read.</param>
+    /// <param name="cut">Receives the total when the log was cut.</param>
+    /// <param name="cancellationToken">Cancels the stream and kills git.</param>
+    public async IAsyncEnumerable<IReadOnlyList<GraphEntry>> StreamCappedAsync(
+        RepositoryLocation location,
+        GraphCut cut,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        cut.TruncatedTotal = null;
+        var limit = SoftRowLimit;
+
+        // One row more than the limit tells whether there is more.
+        var kept = 0;
+        var exceeded = false;
+        var stream = StreamAsync(location, CommitOrder.Topological, limit + 1, cancellationToken);
+        await foreach (var batch in stream.ConfigureAwait(false))
+        {
+            var room = limit - kept;
+            var isOver = batch.Count > room;
+            exceeded |= isOver;
+            var part = isOver ? batch.Take(room).ToList() : batch;
+            kept += part.Count;
+            if (part.Count > 0)
+            {
+                yield return part;
+            }
+        }
+
+        if (exceeded)
+        {
+            var total = await _commitLog.CountAsync(location, cancellationToken).ConfigureAwait(false);
+            cut.TruncatedTotal = Math.Max(total, limit + 1);
+        }
     }
 
     /// <param name="location">The repository to read.</param>

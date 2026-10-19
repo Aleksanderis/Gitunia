@@ -29,6 +29,8 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// the status bar instead.</param>
 /// <param name="RemoteBusy">A fetch, pull or push of the active tab runs; the tab row shows a cancel chip instead of
 /// the three chips.</param>
+/// <param name="TruncatedTotal">The commits in the whole log when only its newest rows are loaded (the soft row limit),
+/// null otherwise; the position then reads <c>12/100000+ of 1204331</c>.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -49,4 +51,5 @@ public sealed record ScreenModel(
     IReadOnlyList<KeyHint>? Hints = null,
     OperationBanner? Banner = null,
     bool RemoteBusy = false,
-    bool MessageIsFresh = false);
+    bool MessageIsFresh = false,
+    int? TruncatedTotal = null);

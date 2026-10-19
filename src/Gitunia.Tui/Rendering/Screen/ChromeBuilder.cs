@@ -34,7 +34,15 @@ public static class ChromeBuilder
 
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
-        var position = $"{model.SelectedPosition.ToString(CultureInfo.InvariantCulture)}/{model.LoadedCount.ToString(CultureInfo.InvariantCulture)}{(model.IsLoading ? "+" : string.Empty)}";
+        var selected = model.SelectedPosition.ToString(CultureInfo.InvariantCulture);
+        var loaded = model.LoadedCount.ToString(CultureInfo.InvariantCulture);
+        var more = model.IsLoading || model.TruncatedTotal is not null ? "+" : string.Empty;
+        var position = $"{selected}/{loaded}{more}";
+        if (model.TruncatedTotal is { } total)
+        {
+            position += $" of {total.ToString(CultureInfo.InvariantCulture)}";
+        }
+
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append($" {model.ModeName} ", SegmentRole.StatusMode)
             .Append(" ", SegmentRole.Status);
