@@ -76,5 +76,7 @@ public class StartupSmokeTests
         public string StateDirectory => Path.Combine(directories.Root, "state");
 
         public ConsoleCapabilities DetectConsole() => capabilities;
+
+        public bool? QueryLightBackground(ConsoleCapabilities detected) => null;
     }
 }
