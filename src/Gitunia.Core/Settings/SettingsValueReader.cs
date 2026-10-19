@@ -33,19 +33,39 @@ public static class SettingsValueReader
             }
         }
 
+        var theme = ThemeConfigurator.Parse(document.Theme, problems);
         var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems);
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
+        values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
         values[SettingsRegistry.FrameStyleId] = SettingValue.OfChoice(StyleName(options.FrameStyle));
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 
-        return new SettingsLoad(values.ToImmutable(), WarningsOf(problems), banner, options);
+        return new SettingsLoad(values.ToImmutable(), WarningsOf(problems), banner, options, theme);
     }
 
     /// <summary>The text of a frame style as written in the file.</summary>
     /// <param name="style">The style.</param>
     public static string StyleName(FrameStyle style) =>
         style == FrameStyle.Square ? SettingsRegistry.SquareStyle : SettingsRegistry.RoundedStyle;
+
+    /// <summary>The text of a theme as written in the file.</summary>
+    /// <param name="theme">The theme.</param>
+    public static string ThemeName(ThemeChoice theme) => theme switch
+    {
+        ThemeChoice.Dark => "dark",
+        ThemeChoice.Light => "light",
+        _ => "auto",
+    };
+
+    /// <summary>The theme a choice option stands for; auto for an unknown text.</summary>
+    /// <param name="text">The option text.</param>
+    public static ThemeChoice ThemeOf(string text) => text switch
+    {
+        "dark" => ThemeChoice.Dark,
+        "light" => ThemeChoice.Light,
+        _ => ThemeChoice.Auto,
+    };
 
     // The list as written, so editing it never rewrites an entry the user typed (a leading ~ stays one).
     private static SettingValue ReadScanRoots(JsonElement? element)

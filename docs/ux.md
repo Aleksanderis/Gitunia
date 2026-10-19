@@ -350,20 +350,21 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The text span of any value is found by `ConfigKeyLocator.Locate` (found, absent, empty, invalid with line, parent not an object; the last duplicate wins), which `ConfigTextEditor` and `ConfigWriter` (#522) use to change one key and keep comments and formatting.
 
-## Settings screen (design #465; the screen is implemented in #523, theme #524 and key reference #525 follow)
+## Settings screen (design #465; the screen is implemented in #523, the theme in #524, the key reference #525 follows)
 
-Implemented by #522 (config writer: `ConfigWriter`, `ConfigTextEditor`), #523 (the screen: overlay, categories, toggle, choice, number and path-list controls, filter, mouse, the `$EDITOR` row; `SettingsRegistry`, `SettingsState`, `SettingsReducer`, `SettingsController`), #524 (theme) and #525 (key reference). A category without a setting is hidden, so Keys and the Git category do not appear yet. The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it).
+Implemented by #522 (config writer: `ConfigWriter`, `ConfigTextEditor`), #523 (the screen: overlay, categories, toggle, choice, number and path-list controls, filter, mouse, the `$EDITOR` row; `SettingsRegistry`, `SettingsState`, `SettingsReducer`, `SettingsController`), #524 (the Theme setting: live preview, `settings.open-theme`) and #525 (key reference). A category without a setting is hidden, so Keys and the Git category do not appear yet. The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it).
 
 One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
 
-**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (palette only) opens it with the cursor on Appearance, Theme. Mouse: the `settings.open` entry of the command palette, reached by the ` : commands ` button.
+**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (no key, listed in the palette without one: `PaletteEntryBuilder` adds the actions of `ActionCatalog.PaletteOnly`) opens it with the cursor on Appearance, Theme. Mouse: the `settings.open` entry of the command palette, reached by the ` : commands ` button.
 
 ```
 ╭─ Settings ──────────────────────────────────────────────────────╮
 │ / filter                                                         │
-│ ▌Appearance  │ Theme                         ● Catppuccin Mocha  │
-│  Keys        │   ○ Catppuccin Latte                              │
-│  Repositories│   ○ auto (follows the terminal)                   │
+│ ▌Appearance  │ Theme                                [auto ▾]   │
+│  Keys        │   ● auto                                          │
+│  Repositories│   ○ dark                                          │
+│              │   ○ light                                         │
 │              │ Frame style                         [rounded ▾]   │
 │  Tabs        │ Show branch in tab name                  [x]      │
 │              ├───────────────────────────────────────────────────┤
@@ -390,14 +391,14 @@ New options of later issues add a row here in the same change; a number control 
 **Focus and keys.** Two columns, `h`/`l` move between them (`l` or `Enter` on a category enters it, `h` or `Esc` in the settings column goes back, `Esc` in the categories closes). `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u` move in the focused column. `/` filters settings across all categories by name and help text (Insert mode, input focused; `Esc` clears; matches show their category and `Enter` jumps to the setting). Per control:
 
 - Toggle: `Enter` or `x` flips it and saves at once (a bare `<space>` stays the leader prefix).
-- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme the cursor move previews it live (the whole UI is repainted with that theme behind the overlay); `Esc` restores the previous theme.
+- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme (options `auto`, `dark`, `light`; the schemes that exist today) the cursor move previews it live (the whole UI is repainted with that theme behind the overlay, nothing is written); `Enter` keeps it and writes `theme`, `Esc`, closing the screen or clicking another row restores the previous theme. A kept theme stays on screen while its write is pending and is restored if the write is refused or fails. `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
 - Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
 - Key reference: read-only, grouped by view, generated from the keymap and action titles like Help; `Enter` on a row shows its config entry (`keys` snippet) in the status bar. Editing a binding in the UI is out of scope (see open choices).
 
 Keys are Normal-mode view keys of the `Settings` view (rows in the keymap table); no new global leader beyond `<space>,`, which also closes the screen. A path list is always expanded: its folders are rows under the setting row, `a` or `Enter` on the setting row adds one, and a list with no entry in the file shows "default folders" (the first add writes a list that replaces them). The settings never open over another overlay. While the screen is open the file is the source of truth: it is read when the screen opens, a write that finds the file changed re-reads it, and the editor row re-reads it when the editor closes (key bindings still need a restart). Each applied change shows "Saved <name>" in the status bar; refusals and failures appear there too.
 
-**Mouse.** Click a category selects it; click a setting selects it, a second click (or a click on its control) edits it: toggle flips, choice opens the list, click on an option selects and keeps it; wheel scrolls the column under the pointer; click outside the overlay (Backdrop) closes it like `Esc`; a click on a path-list `[+]`/`[x]` adds or removes. Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows added by the implementing issue).
+**Mouse.** Click a category selects it; click a setting selects it, a second click (or a click on its control) edits it: toggle flips, choice opens the list, click on an option selects and keeps it (a theme option: the first click previews it, a second click on the same option keeps it); wheel scrolls the column under the pointer; click outside the overlay (Backdrop) closes it like `Esc`; a click on a path-list `[+]`/`[x]` adds or removes. Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows added by the implementing issue).
 
 **Persistence.**
 

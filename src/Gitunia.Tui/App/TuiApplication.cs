@@ -485,7 +485,8 @@ public sealed class TuiApplication(
     private void RouteAction(ActionId action, int? count)
     {
         // The settings do not open over another overlay (help, palette, a dialog, the reflog).
-        if (action == ActionIds.SettingsOpen && (_overlays.State.IsOpen || _reflog.IsOpen))
+        if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
+            && (_overlays.State.IsOpen || _reflog.IsOpen))
         {
             return;
         }
@@ -1174,6 +1175,7 @@ public sealed class TuiApplication(
         SetMode,
         RefreshOverlay,
         ApplyOptions,
+        ApplyTheme,
         new ConfigEditorLauncher(
             new ExternalToolLauncher(),
             this,
@@ -1197,6 +1199,21 @@ public sealed class TuiApplication(
         }
 
         Relayout();
+    }
+
+    // The theme on screen changed (previewed, kept or restored by the settings screen): the palette is rebuilt and
+    // every view repainted. An auto theme that was not asked for at start uses the COLORFGBG guess; the terminal is
+    // only queried (OSC 11) before the UI takes over the input.
+    private void ApplyTheme(ThemeChoice theme)
+    {
+        if (_startupConfig.Theme == theme)
+        {
+            return;
+        }
+
+        _startupConfig = _startupConfig with { Theme = theme };
+        ConfigurePalette();
+        _view.RefreshPalette();
     }
 
     private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(

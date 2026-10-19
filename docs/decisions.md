@@ -384,3 +384,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
 
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
+
+**UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.
