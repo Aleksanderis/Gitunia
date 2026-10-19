@@ -34,6 +34,7 @@ public class SettingsReducerTests
         Assert.Equal(
             [
                 SettingCategory.Appearance,
+                SettingCategory.Keys,
                 SettingCategory.Repositories,
                 SettingCategory.Tabs,
                 SettingCategory.ConfigFile,
@@ -44,7 +45,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheCategoriesColumn_WhenActivating_ThenTheCursorEntersTheSettingsOfThatCategory()
     {
-        var state = Open().MoveTo(2);
+        var state = Open().MoveTo(3);
 
         var outcome = Reduce(state, SettingsCommandKind.Activate);
 
@@ -470,7 +471,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(5, collapsed.Rows.Count);
+        Assert.Equal(6, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);
@@ -500,6 +501,94 @@ public class SettingsReducerTests
 
     private static SettingsState OpenChoice() =>
         Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+
+    [Fact]
+    public void GivenAKeyReferenceRow_WhenActivating_ThenTheStatusShowsItsKeysEntryAndNothingIsWritten()
+    {
+        var state = WithReference("{ \"banner\": 5 }").Reveal(
+            Definition(SettingsRegistry.KeyReferenceId),
+            SettingRowKind.Binding,
+            1);
+
+        var outcome = Reduce(state, SettingsCommandKind.Activate);
+
+        Assert.Equal(
+            "Down, config.json keys entry: { \"view\": \"Graph\", \"key\": \"j\", \"action\": \"list.down\" }",
+            outcome.Notice);
+        Assert.Null(outcome.Commit);
+        Assert.Equal(string.Empty, outcome.Warning);
+    }
+
+    [Fact]
+    public void GivenAReadOnlyFile_WhenActivatingAKeyReferenceRow_ThenTheEntryIsStillShown()
+    {
+        var state = WithReference("not json").Reveal(
+            Definition(SettingsRegistry.KeyReferenceId),
+            SettingRowKind.Binding,
+            0);
+
+        var outcome = Reduce(state, SettingsCommandKind.Activate);
+
+        Assert.True(state.IsReadOnly);
+        Assert.NotEqual(string.Empty, outcome.Notice);
+        Assert.Equal(string.Empty, outcome.Warning);
+    }
+
+    [Theory]
+    [InlineData(SettingsCommandKind.Toggle)]
+    [InlineData(SettingsCommandKind.Add)]
+    [InlineData(SettingsCommandKind.Remove)]
+    [InlineData(SettingsCommandKind.ItemDown)]
+    [InlineData(SettingsCommandKind.Increase)]
+    public void GivenAKeyReferenceRow_WhenEditing_ThenNothingChanges(SettingsCommandKind command)
+    {
+        var state = WithReference("{}").Reveal(
+            Definition(SettingsRegistry.KeyReferenceId),
+            SettingRowKind.Binding,
+            0);
+
+        var outcome = Reduce(state, command);
+
+        Assert.Equal(state, outcome.State);
+        Assert.Null(outcome.Commit);
+    }
+
+    [Fact]
+    public void GivenAKeyReferenceSetting_WhenActivatingItsOwnRow_ThenNothingHappens()
+    {
+        var state = WithReference("{}").Reveal(Definition(SettingsRegistry.KeyReferenceId));
+
+        var outcome = Reduce(state, SettingsCommandKind.Activate);
+
+        Assert.Equal(state, outcome.State);
+        Assert.Equal(string.Empty, outcome.Notice);
+    }
+
+    [Fact]
+    public void GivenAKeyReference_WhenListingRows_ThenEachLineIsABindingRowUnderItsSetting()
+    {
+        var state = WithReference("{}").Reveal(Definition(SettingsRegistry.KeyReferenceId));
+
+        var rows = state.Rows;
+
+        Assert.Equal(SettingRowKind.Setting, rows[0].Kind);
+        Assert.Equal(3, rows.Count(row => row.Kind == SettingRowKind.Binding));
+    }
+
+    private static SettingsState WithReference(string text) =>
+        SettingsState.Create(
+            [.. SettingsRegistry.All],
+            Load(text),
+            [
+                new KeyReferenceEntry("Global", "q", "Quit", "app.quit", "{ }"),
+                new KeyReferenceEntry(
+                    "Graph",
+                    "j / Down",
+                    "Down",
+                    "list.down",
+                    "{ \"view\": \"Graph\", \"key\": \"j\", \"action\": \"list.down\" }"),
+                new KeyReferenceEntry("Graph", "k", "Up", "list.up", "{ }"),
+            ]);
 
     private static SettingsOutcome Reduce(SettingsState state, SettingsCommandKind command) =>
         SettingsReducer.Reduce(state, command, Environment);

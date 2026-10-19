@@ -17,4 +17,7 @@ public enum SettingControl
 
     /// <summary>A row that does something instead of holding a value (open the config file in the editor).</summary>
     Action,
+
+    /// <summary>The read-only key reference: its rows are the bindings of the keymap, <c>Enter</c> shows one's config entry.</summary>
+    KeyReference,
 }

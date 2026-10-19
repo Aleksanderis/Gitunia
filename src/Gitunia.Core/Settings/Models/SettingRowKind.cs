@@ -14,4 +14,7 @@ public enum SettingRowKind
 
     /// <summary>The line where a new folder is being typed.</summary>
     NewItem,
+
+    /// <summary>A line of the key reference, listed under its setting; the index is into the reference.</summary>
+    Binding,
 }

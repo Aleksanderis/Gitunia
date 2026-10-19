@@ -9,6 +9,7 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -1181,7 +1182,8 @@ public sealed class TuiApplication(
             this,
             _statuses,
             Environment.GetEnvironmentVariable,
-            PauseForEnter).Launch);
+            PauseForEnter).Launch,
+        KeyReferenceBuilder.Build(_startupConfig.Keymap.Table));
 
     private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
         current is null || other is null
