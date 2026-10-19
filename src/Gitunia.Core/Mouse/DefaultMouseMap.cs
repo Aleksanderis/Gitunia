@@ -82,6 +82,11 @@ public static class DefaultMouseMap
 
     public const string PickerRemoveButton = "PickerButton.Remove";
 
+    /// <summary>Picker buttons on the hint line: clone a repository, initialise a directory.</summary>
+    public const string PickerCloneButton = "PickerButton.Clone";
+
+    public const string PickerInitButton = "PickerButton.Init";
+
     /// <summary>The checkboxes and the Commit button in the option row of the working-tree message box.</summary>
     public const string MessageSignOffButton = "MessageButton.SignOff";
 
@@ -107,6 +112,14 @@ public static class DefaultMouseMap
     public const string ReflogCheckoutButton = "ReflogButton.Checkout";
 
     public const string ReflogPickerRow = "ReflogPicker";
+
+    /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
+    /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
+    public const string SettingsEditButton = "SettingsButton.Edit";
+
+    public const string SettingsAddButton = "SettingsButton.Add";
+
+    public const string SettingsRemoveButton = "SettingsButton.Remove";
 
     /// <summary>A parent row of the mainline overlay of a cherry-pick or revert of a merge commit (#449); the click
     /// target is the parent's number.</summary>
@@ -139,6 +152,10 @@ public static class DefaultMouseMap
         DefaultKeymap.HelpView,
         DefaultKeymap.MessagesView,
         DefaultKeymap.ReflogView,
+        DefaultKeymap.SettingsView,
+        SettingsEditButton,
+        SettingsAddButton,
+        SettingsRemoveButton,
         DefaultKeymap.PaletteView,
         DefaultKeymap.ContextMenuView,
         BackdropView,
@@ -194,6 +211,11 @@ public static class DefaultMouseMap
         new(DefaultKeymap.MessagesView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.ReflogView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(DefaultKeymap.SettingsView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
+        new(DefaultKeymap.SettingsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
+        new(SettingsEditButton, MouseGesture.Click, ActionIds.SettingsActivate),
+        new(SettingsAddButton, MouseGesture.Click, ActionIds.SettingsAdd),
+        new(SettingsRemoveButton, MouseGesture.Click, ActionIds.SettingsRemove),
         new(ReflogSelectButton, MouseGesture.Click, ActionIds.ReflogSelectCommit),
         new(ReflogResetButton, MouseGesture.Click, ActionIds.ResetBranch),
         new(ReflogBranchButton, MouseGesture.Click, ActionIds.BranchCreate),
@@ -228,5 +250,7 @@ public static class DefaultMouseMap
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),
         new(PickerPinButton, MouseGesture.Click, ActionIds.PickerPin),
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
+        new(PickerCloneButton, MouseGesture.Click, ActionIds.PickerClone),
+        new(PickerInitButton, MouseGesture.Click, ActionIds.PickerInit),
     ];
 }

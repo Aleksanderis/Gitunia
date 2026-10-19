@@ -5,7 +5,7 @@ Spec for workflows and keys. Keyboard and mouse are both fully supported: every 
 ## Principles
 
 - **Modal and discoverable.** Normal mode navigates, actions are short mnemonic chords, `?` shows the keys of the current view, `:` or `Ctrl-p` opens a command palette that lists every action with its binding.
-- **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping in the config file is planned for M4.
+- **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping is done in the config file (see "Config file" below).
 - **Layout.** History view: left sidebar (branches, remotes, tags, stashes, worktrees), centre commit graph, bottom detail pane (commit info, files, diff). The working tree is a separate view of the tab (workflow 2), not a graph row.
 - **Branches and worktrees are first-class:** always visible in the sidebar, and every branch shows which worktree holds it.
 - **Destructive actions confirm,** say what they will do and how to undo it.
@@ -65,9 +65,10 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
    - `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` or `Ctrl-l` opens in a new tab (or focuses the existing one); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits, since there is nothing to go back to).
    - `Tab` or `Right` accepts the suggestion: the highlighted repository's path is filled in and its subfolders are listed; in a typed path it completes the folder name.
    - Typing and matching ignore case: every segment of a typed path is resolved against the real folder names (`~/projects/x` lists `~/Projects/x` on Linux) and the inserted text keeps the real case.
-   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped). Configurable scan roots arrive with the config file in M4.
+   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped). The `scanRoots` config option replaces these folders (see "Config file").
    - A typed path is listed off the UI thread: the previous rows stay until the new listing arrives, `scanning...` appears after about 150 ms when there are none, a newer keystroke cancels the older listing, and a listing slower than 5 s ends with a "timed out" notice.
    - A click highlights a row, a double-click opens it.
+   - **Clone and init** (#401). `Alt-c` (or the `[clone]` button at the right end of the hint line, shown from 84 columns) asks for a URL or a path in a prompt popup, then for the directory in a second popup (default: the folder typed in the picker, else the first scan root, plus the repository name; `Esc` in either popup closes only the popup). A local path is taken from the active repository or home, never from the process working directory. The target must be missing or empty (a file or a folder with content is refused by the clone with a status bar message, nothing is touched; if a stopped clone's folder cannot be removed the message names it). The clone runs off the UI thread, belongs to no tab, and shows `Cloning: Receiving objects 45%` in the status bar with the cancel chip; `Esc` (once no other holder of `Esc` claims it) or the chip stops it and git's half-made folder (and any parents it created) is removed. When it ends the repository opens in a new tab and the picker closes; on failure the status bar says why and the picker stays. A clone never prompts: a failure that needs credentials says to set up a credential helper or an ssh-agent key (prompting comes with #45). `Alt-i` (or `[init]`) asks for a directory (default: the typed path, else the active repository's folder or home), creates it when missing, runs `git init` (files already in it are kept, nothing is staged) and opens it; a folder that already is a repository root is just opened. One clone or init at a time. Both are unavailable while locating a missing repository.
 3. **Typed paths.** Text starting with `/`, `~/`, `./`, `../` or a drive (`C:\` or `C:/`) is a path; anything else is a fuzzy query. For a path the list shows the matching directories (repositories marked), `Tab` completes to the common prefix and then to the highlighted directory, and `Enter` opens the resolved path. Relative paths are taken from the active repository, or the home directory, never from the process working directory. A non-repository path shows an inline "not a git repository" message and the picker stays open.
 4. **Pin and remove.** In the picker `Alt-p` (or the `[pin]`/`[unpin]` button on the highlighted row) pins or unpins the entry; `Alt-d` removes it from recents (never deletes anything on disk). `<space>p` pins the repository of the active tab.
 5. **Switch tabs** with `gt`/`gT` (or `3gt`), `Alt-1`..`Alt-9`, or `Ctrl-^` / `<space><Tab>` for the previously active tab. Mouse: click a tab; a click on a tab's `*` also opens its working-tree view. `Ctrl-w c` closes the tab; closing the last tab shows the picker.
@@ -100,7 +101,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 8. **Details.** `Enter` on a commit moves focus to the detail pane; `Esc` or `h` returns. The pane follows the graph selection while the graph is focused. It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
    - **Changes:** the changed files with status `A` `M` `D` `T`, `R<score> old -> new`, `C<score> old -> new`; merges show changes against the first parent, and the heading says so (`(merge: against first parent <hash>)`). Combined diffs (`--cc`) and a per-parent switch are not offered: the diff viewer, the file list and the difftool all use the first parent (#95).
-   - **Files:** the file tree of the commit (a "not implemented yet" placeholder for now).
+   - **Files:** the file tree of the commit (`ls-tree -r -z --long`): directories first, then files, each ordinal by name; a directory whose only child is a directory folds into one row (`src/Gitunia.Core`). Every directory starts closed (the open ones are remembered per repository tab while the selection moves to other commits); a closed directory shows its file count, a file its size, and executables, symbolic links and submodules say so (`(executable, 1.2 KB)`, `(symlink, 12 B)`, `(submodule)`). `Enter`, `l` and a double-click open or close the directory under the cursor; `h` closes an open directory, else moves to the parent row, and at the top goes back to the graph. `/` filters by path (case-insensitive substring, typed in the status bar, Insert mode): the rows narrow as you type and every directory that holds a match is open (and cannot be closed) until the filter is cleared; `Enter` keeps the filter, `Esc` in the box clears it, and `Esc` in Normal mode clears an active filter before it goes back to the graph. The filter stays when the selection moves to another commit. `Enter` on a file only says that file contents cannot be shown yet (a file content view is outside the MVP, decision 2026-10-18). `y` copies the path of the row. The tree is listed off the UI thread when the tab is shown (not while another tab is selected), cancelled when the selection moves on, and the last four trees are kept; the title shows the number of files in the tree. Timing of large trees: `docs/architecture.md`.
    - A fresh tab opens on Changes. `]`/`[` switch to the next/previous tab (wrapping), `gd` `gc` `gf` jump to Details, Changes, Files from the graph or the detail pane; a click on a label does the same. The selected tab is part of the repository tab's view: kept while the graph selection moves, saved with the session, and each tab remembers its own cursor row for the selected commit.
    - `j`/`k` scroll the rows of the tab. On Changes, focus lands on the first file row, that file's diff is already shown beside the list and `j`/`k` show the diff of each file as the cursor reaches it, no `Enter` (see 1c). `Enter` or `l` moves focus into the diff (on the other tabs they only say to open Changes).
    - When the details fail to load the pane says so and `<space>r` in the detail pane (or the palette) retries. The title row shows the file count (`.. files` until the details have arrived). The rows of all tabs start at the same left edge; only the commit message is indented.
@@ -199,9 +200,9 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 9. **Failure.** A failing hook (non-zero exit), a prompt, or a signing program that needs a passphrase fails the commit, keeps the draft and the staged state, and shows git's and the hooks' output (stderr, then stdout such as `nothing to commit`) in a scrollable overlay (title `Commit failed`, `Esc` closes it; the status bar carries the first line). Under the output a hint says that no keyboard input reaches git and its hooks (stdin is closed) and that `<space>te` runs `git commit` in the real terminal where it can prompt. Files a hook rewrites show as new unstaged changes after the refresh. A commit that fails on a tab that is not active leaves the status bar notice and keeps its output; the overlay opens once that tab is shown.
 
 **Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...). A Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key) or a `Ctrl-`/`Alt-` combination. Check this before adding a binding.
-- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
+- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>,` (settings, #523); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
 - **`Alt-`:** `Alt-p` and `Alt-d` are Picker-only, `Alt-1`..`Alt-9` jump tabs, `Alt-s` `Alt-n` `Alt-a` act only in the working-tree view.
-- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
+- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling). The settings screen (#523) is a modal list, not a buffer, so its view keys `x` `a` `d` `J` `K` `+` `-` are bare on purpose (owner to confirm, asked in the PR of #523).
 
 **Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens keep `Enter`/`l`). The discard itself is reached from the palette, not a list button.
 
@@ -227,7 +228,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Integrating** (`<space>g` + key, on the selected commit or branch; the target is the current branch):
 1. `gm` merge the selection into the current branch. Fast-forward when possible; `gM` forces a merge commit (`--no-ff`), `gs` squashes (`--squash`, leaves the changes staged for the commit box; no operation is in progress afterwards). The message is git's default (`--no-edit`). It runs at once, no Confirm (nothing is lost); the status line names the old tip and the undo (`git reset --hard <old>`, also `ORIG_HEAD`). A stop on conflicts becomes the in-progress merge (banner, `<space>gc`, `<space>ga`); a conflicting squash leaves the files marked `!` but no operation and says to resolve and commit. A branch row merges that branch, a tag row or a graph commit that commit. Refused during any in-progress operation and on a detached or unborn HEAD.
-2. `gr` rebase the current branch onto the selection (implemented in #39; non-interactive with `-c core.editor=true`, interactive is #399). The Confirm names both sides and the undo (`git reset --hard <old tip>`, also `ORIG_HEAD` and the reflog) and warns when the branch has an upstream (history rewrite, force push needed; the text is stronger when every commit is already on it). Refused with no git run when an operation is in progress ("finish or abort the <operation> first"), HEAD is detached or unborn, the target is the current commit, or tracked files have uncommitted changes (untracked files are fine). A rebase that stops on conflicts is the in-progress rebase of workflow 4 (banner, `<space>gc`, `<space>ga`, `<space>gk`); the status line warns and names the keys. When the commits being replayed (the target does not have them) contain merge commits, the Confirm says so ("N merge commits in that range will be flattened"): a plain rebase drops the merge and replays its side's commits as one line; keeping the merges (`--rebase-merges`) is interactive rebase, #399. The count is one `git rev-list --merges` call, so the Confirm opens when it answers. Mouse: the actions menu of a graph row (`<space>.` or a double-click) or sidebar row (`<space>.` or the `...` marker). While the Confirm is being prepared a second `<space>gr` says "Already asking", and the Confirm is dropped with a warning if an overlay was opened or HEAD moved meanwhile.
+2. `gr` rebase the current branch onto the selection (implemented in #39; non-interactive with `-c core.editor=true`; the interactive engine is #399, its editor UI #458). The Confirm names both sides and the undo (`git reset --hard <old tip>`, also `ORIG_HEAD` and the reflog) and warns when the branch has an upstream (history rewrite, force push needed; the text is stronger when every commit is already on it). Refused with no git run when an operation is in progress ("finish or abort the <operation> first"), HEAD is detached or unborn, the target is the current commit, or tracked files have uncommitted changes (untracked files are fine). A rebase that stops on conflicts is the in-progress rebase of workflow 4 (banner, `<space>gc`, `<space>ga`, `<space>gk`); the status line warns and names the keys. When the commits being replayed (the target does not have them) contain merge commits, the Confirm says so ("N merge commits in that range will be flattened"): a plain rebase drops the merge and replays its side's commits as one line; keeping the merges (`--rebase-merges`) is post-MVP (interactive rebase refuses such ranges). The count is one `git rev-list --merges` call, so the Confirm opens when it answers. Mouse: the actions menu of a graph row (`<space>.` or a double-click) or sidebar row (`<space>.` or the `...` marker). While the Confirm is being prepared a second `<space>gr` says "Already asking", and the Confirm is dropped with a warning if an overlay was opened or HEAD moved meanwhile.
 3. `gp` cherry-pick the selection onto the current branch (implemented in #40): the commit under the graph cursor, the commits of a Visual range in the graph (applied oldest first, whatever lanes they sit on) or the tip of the selected sidebar branch or tag. `gv` reverts it the same way (`--no-edit`); a range is reverted newest first, git's own order. Both run at once, no Confirm (nothing is lost); the status line names the old tip and the undo (`git reset --hard <old>`, also in the reflog). A commit whose changes HEAD already has is dropped (`--empty=drop`), and when that is every commit the status says "Nothing to cherry-pick". A stop on conflicts becomes the in-progress cherry-pick or revert (banner, `<space>gc` continue, `<space>ga` abort, `<space>gk` skip the commit). A detached HEAD is allowed (git allows it); refused during any in-progress operation and on an unborn HEAD. The Visual range ends when the action starts. Mouse: the actions menu of a row; a Visual range is picked with `<space>gp`/`<space>gv`.
 4. A merge commit among the commits opens a one-key prompt, once for the whole range (the overlay below; the status bar carries it only when the screen is too small for the overlay): `1`, `2` pick the mainline parent (parent hashes and subjects shown), `Esc` cancels; a small overlay lists the same parents as rows, a click on a row answers like its digit and a click outside cancels. The answer is passed as `-m` to every commit of the call. Git accepts `-m 1` on a plain commit but fails the whole call on `-m 2`, so with a plain commit in the range only `1` is accepted and the `[2]` row of the overlay is dimmed and marked unavailable. The overlay is placed again when the terminal is resized.
 5. A dirty tree is refused for rebase; for the others git decides and its message is shown.
@@ -277,7 +278,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme later swaps the table and nothing else. There is no config file yet.
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting (`auto`, `dark`, `light`, #47) picks the light or dark side; named themes are #61.
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
@@ -314,9 +315,112 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 | Search match | dark text on yellow (kept on a selected row) |
 | Overlay key column | yellow, bold |
 
-**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch). Light backgrounds are recognised from `COLORFGBG` (background 7 or 15) and get darker accents and light tints; a terminal that does not set it is assumed dark. A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
+**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch). Light backgrounds get darker accents and light tints. With `theme = auto` the terminal is asked for its background (OSC 11, before the UI starts, 50 ms timeout, skipped when not interactive, at `NO_COLOR`, for `TERM` unset, `dumb` or `linux`, and on Windows, where the answer is not reliable); an unanswered or unreadable query falls back to `COLORFGBG` (background 7 or 15), and a terminal that offers neither is assumed dark. A terminal that answers costs a few ms of startup, a silent one the full timeout. The `theme` setting overrides that detection (`light` or `dark`; `auto`, the default, keeps it), at every colour depth except `NO_COLOR`, which has no colours to switch. `theme` tells Gitunia what the terminal looks like: `light` assumes a light terminal background, so at 16 colours (where the terminal's own background is kept) it is only readable on a light terminal, while at 24 bits the scheme paints its own backgrounds and works on either. A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
 
-**Looking at it without the UI.** `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
+**Looking at it without the UI.** `--print-frame` reads `config.json` like the app (`frameStyle`). `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
+
+## Config file
+
+`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections fit beside `keys`. The file is read once at startup and never modified by the loader; the settings screen (below) is the only writer.
+
+```jsonc
+{
+  // auto (default: follow the terminal's background), dark or light.
+  "theme": "auto",
+  // rounded (default) or square corners of the pane frame (overlays follow; the ASCII tier is always + - |).
+  "frameStyle": "rounded",
+  // Tab chips show the checked-out branch after the name (default false: it makes tabs long).
+  "tabs": { "showBranch": false },
+  // Folders the repository picker scans for repositories (default: Projects, src, code, dev, ... below the home folder).
+  "scanRoots": ["~/Projects", "/srv/git"],
+  "keys": [
+    // Bind a free key (mode defaults to Normal, view to Global).
+    { "view": "Graph", "key": "J", "action": "list.down" },
+    // Replace what a key does.
+    { "key": "q", "action": "palette.open" },
+    // Unbind: the action "none".
+    { "view": "Lists", "key": "gg", "action": "none" }
+  ]
+}
+```
+
+- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the keymap table; a view's keys also apply to the views that inherit from it), `key` (notation of the keymap table), `action` (id from the palette/help, or `none`). One entry binds one mode and view; bind a key in Normal and Visual with two entries.
+- An entry on a key that already has a binding in that mode and view replaces it; `none` removes it (and uncovers a binding of the parent view, if any). Two entries for the same mode, view and key: the first applies, the second is reported.
+- Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, has a field of the wrong type (`"key": 5`), is unreadable or is over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
+- Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
+- Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
+- Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
+- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The text span of any value is found by `ConfigKeyLocator.Locate` (found, absent, empty, invalid with line, parent not an object; the last duplicate wins), which `ConfigTextEditor` and `ConfigWriter` (#522) use to change one key and keep comments and formatting.
+
+## Settings screen (design #465; the screen is implemented in #523, the theme in #524, the key reference #525 follows)
+
+Implemented by #522 (config writer: `ConfigWriter`, `ConfigTextEditor`), #523 (the screen: overlay, categories, toggle, choice, number and path-list controls, filter, mouse, the `$EDITOR` row; `SettingsRegistry`, `SettingsState`, `SettingsReducer`, `SettingsController`), #524 (the Theme setting: live preview, `settings.open-theme`) and #525 (key reference). A category without a setting is hidden, so Keys and the Git category do not appear yet. The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it).
+
+One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
+
+**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (no key, listed in the palette without one: `PaletteEntryBuilder` adds the actions of `ActionCatalog.PaletteOnly`) opens it with the cursor on Appearance, Theme. Mouse: the `settings.open` entry of the command palette, reached by the ` : commands ` button.
+
+```
+╭─ Settings ──────────────────────────────────────────────────────╮
+│ / filter                                                         │
+│ ▌Appearance  │ Theme                                [auto ▾]   │
+│  Keys        │   ● auto                                          │
+│  Repositories│   ○ dark                                          │
+│              │   ○ light                                         │
+│              │ Frame style                         [rounded ▾]   │
+│  Tabs        │ Show branch in tab name                  [x]      │
+│              ├───────────────────────────────────────────────────┤
+│              │ Theme: the colours of the interface. Written to   │
+│              │ config.json as "theme". Default: auto.            │
+├──────────────┴───────────────────────────────────────────────────┤
+│ j/k move  l/Enter edit  h back  / filter  Esc close              │
+╰──────────────────────────────────────────────────────────────────╯
+```
+
+**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs, Config file; a category with no setting yet is hidden, Keys and Git have none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it). The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
+
+| Category | Setting | Control | Config key | From |
+|---|---|---|---|---|
+| Appearance | Theme | choice list with live preview | `theme` | #47 |
+| Appearance | Frame style | choice | `frameStyle` | #453 |
+| Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
+| Repositories | Scan roots | path list | `scanRoots` | #453 |
+| Keys | Key reference | read-only list from the keymap | none | #50 |
+| Config file | Open config.json in $EDITOR | action | none | #523 |
+
+New options of later issues add a row here in the same change; a number control exists in the screen for them (min, max, step, typed digits).
+
+**Focus and keys.** Two columns, `h`/`l` move between them (`l` or `Enter` on a category enters it, `h` or `Esc` in the settings column goes back, `Esc` in the categories closes). `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u` move in the focused column. `/` filters settings across all categories by name and help text (Insert mode, input focused; `Esc` clears; matches show their category and `Enter` jumps to the setting). Per control:
+
+- Toggle: `Enter` or `x` flips it and saves at once (a bare `<space>` stays the leader prefix).
+- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme (options `auto`, `dark`, `light`; the schemes that exist today) the cursor move previews it live (the whole UI is repainted with that theme behind the overlay, nothing is written); `Enter` keeps it and writes `theme`, `Esc`, closing the screen or clicking another row restores the previous theme. A kept theme stays on screen while its write is pending and is restored if the write is refused or fails. `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
+- Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
+- Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
+- Key reference: read-only, grouped by view, generated from the keymap and action titles like Help; `Enter` on a row shows its config entry (`keys` snippet) in the status bar. Editing a binding in the UI is out of scope (see open choices).
+
+Keys are Normal-mode view keys of the `Settings` view (rows in the keymap table); no new global leader beyond `<space>,`, which also closes the screen. A path list is always expanded: its folders are rows under the setting row, `a` or `Enter` on the setting row adds one, and a list with no entry in the file shows "default folders" (the first add writes a list that replaces them). The settings never open over another overlay. While the screen is open the file is the source of truth: it is read when the screen opens, a write that finds the file changed re-reads it, and the editor row re-reads it when the editor closes (key bindings still need a restart). Each applied change shows "Saved <name>" in the status bar; refusals and failures appear there too.
+
+**Mouse.** Click a category selects it; click a setting selects it, a second click (or a click on its control) edits it: toggle flips, choice opens the list, click on an option selects and keeps it (a theme option: the first click previews it, a second click on the same option keeps it); wheel scrolls the column under the pointer; click outside the overlay (Backdrop) closes it like `Esc`; a click on a path-list `[+]`/`[x]` adds or removes. Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows added by the implementing issue).
+
+**Persistence.**
+
+- A change is written when it is committed (toggle flip, `Enter` on a choice, number, path edit), never on each cursor move; the theme preview is not written until `Enter`. The write is applied to the running app at once, no restart.
+- The write is a minimal text edit: `ConfigKeyLocator` (extended by #522 to return the last match and a result that tells found, absent, invalid file with line, parent not an object, and shadowed duplicate apart) finds the span of the value of the key; only that span is replaced, so comments, order, indentation and trailing commas stay byte-for-byte. The file is written to a temporary file in the same directory and renamed over `config.json` (keeping its permissions), so a crash never leaves half a file. A symlinked `config.json` is resolved and the temporary file is written next to its target (the link stays). The file's BOM, line ending and indent are reused for inserted text. Rename-over uses `File.Move(overwrite)` on Windows and `rename` elsewhere; permissions are copied where the OS has them, best effort. The window between the stale check and the rename is accepted.
+- A key the file lacks is inserted as a new member at the end of the top-level object, one line, indented like the other members, with a comma added after the previous last member unless it already has one. An empty file or `{}` gets the object filled in. A nested key (`tabs.showBranch`) is inserted into its parent object, which is created the same way if missing; a parent that exists but is not an object (`"tabs": 5`, `null`) is refused with a message, never replaced.
+- A file that does not parse (or is over 1 MB, or is not an object) is never written. The screen opens read-only with a banner naming the problem and its line, and edits are refused with the same message. A missing file is created (with the config directory) on the first change, containing only that key.
+- Unknown keys are kept untouched and not shown. Duplicate keys (the same member twice in one object): the screen edits the last one, which is the one the reader honours (the locator returns it), and warns once that the first is shadowed; it does not delete either.
+- A value in the file that is invalid (wrong type, out of range) shows the setting with its default and a warning marker with the reason; changing it writes a valid value over the bad one.
+- The file changed on disk since it was read (compared by content hash just before the write): the screen re-reads it, shows the new values, and asks to repeat the edit; nothing is overwritten blindly. Editing the file by hand while the screen is open is therefore safe; the app does not watch the file otherwise.
+- Settings that hold a value the file cannot (read-only key reference) are not editable and show no control.
+
+**Open choices for the owner** (the default is built unless the owner says otherwise):
+
+1. Entry key: `<space>,` (default) or a different leader key; `:settings` always exists.
+2. Overlay (default) or a full-screen tab.
+3. Edit key bindings in the screen (default: no, the `keys` list stays a hand-edited file; the key reference shows what is bound).
+4. Save on commit of each control (default) or an explicit save key with a dirty marker.
+5. Theme `auto` default (follows the terminal) versus `dark`.
+6. Whether the screen offers "Open config.json in `$EDITOR`" as a last row (default: yes, it suspends the TUI like `<space>te`).
 
 ## Keymap
 
@@ -331,13 +435,13 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Lists | `j` `k` / `gg` `G` | Move / top / bottom |
 | Lists | `/` `n` `N` | Search, next, previous (graph search prefixes: `author:`, `hash:`, `body:`) |
 | Global | `gt` / `gT` | Next / previous tab (counts: `3gt` goes to tab 3) |
-| Global | `Alt-1`..`Alt-9` | Jump to tab N (terminal multiplexers may take `Alt-N` for themselves; `3gt`, typing the number and then `gt`, does the same and never conflicts; configurable keys arrive with) |
+| Global | `Alt-1`..`Alt-9` | Jump to tab N (terminal multiplexers may take `Alt-N` for themselves; `3gt`, typing the number and then `gt`, does the same and never conflicts; remap in the config file) |
 | Global | `Ctrl-t` / `<space>o` | Open repository picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
 | Global | `<space>p` | Pin the repository to the top of the picker / unpin it |
 | Global | `Ctrl-w r` | Rename the tab (prompt popup, `Enter` saves, an empty name restores the repository name) |
 | Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
-| Global | `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` `Ctrl-Backspace` | Same as `Ctrl-w h/j/k/l` without the prefix, Normal mode only (Insert and Command keep Backspace/Enter; picker and palette keep their own `Ctrl-j/k/l`). `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; configurable keys arrive with the config file (#46) |
+| Global | `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` `Ctrl-Backspace` | Same as `Ctrl-w h/j/k/l` without the prefix, Normal mode only (Insert and Command keep Backspace/Enter; picker and palette keep their own `Ctrl-j/k/l`). `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; remap in the config file |
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |
@@ -346,6 +450,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-w =` | Reset the pane sizes to automatic |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
+| Global | `<space>,` | Open the settings screen (overlay over the tab; `Esc` closes; see "Settings screen") |
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `<space>F` | Fetch the remote of the current branch with `--prune`, in the background with a progress line (workflow 5) |
 | Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |
@@ -395,13 +500,15 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>.` | Open the actions menu of the row under the cursor (same menu as a double-click on the row) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
-| Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
-| Detail | `y` | Copy the path of the selected file |
+| Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand. Files tab: open or close the directory under the cursor |
+| Detail | `y` | Copy the path of the selected file (Files tab: of the row) |
+| Detail | `/` | Filter the file tree by path (Files tab; Insert mode: `Enter` keeps the filter, `Esc` clears it) |
 | Detail | `<space>j` | Quick jump: type text, labels appear on the rows in view that contain it (file paths on Changes), press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Detail | `<space>r` | Retry loading the commit details after a failure |
 | Detail | `]` `[` | Next / previous tab of the detail pane (Details, Changes, Files; wraps) |
 | Detail | `gd` `gc` `gf` | Show the Details / Changes / Files tab |
-| Detail | `h` / `Esc` | Back to graph |
+| Detail | `h` | Back to graph (Files tab: close the open directory, else move to the parent row; back to graph at the top) |
+| Detail | `Esc` | Back to graph (Files tab: first clears an active filter) |
 | WorkingUnstaged | `<space>j` | Quick jump: type text, labels appear on the files in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingUnstaged | `<space>r` | Refresh the status |
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
@@ -532,12 +639,22 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Reflog | `<space>gx` | Reset the current branch to the entry (`s`/`m`/`h`; Confirm where work is lost) |
 | Reflog | `<space>bc` | Create a branch at the entry and check it out (prompt popup) |
 | Reflog | `<space>bs` | Check out the entry with a detached HEAD |
+| Settings | `Enter` `l` | Enter the category, edit the setting under the cursor (toggle flips, choice opens its options, number and path list start typing) or keep the option under the cursor; with a filter active, jump to the setting |
+| Settings | `h` `Esc` | Undo the innermost thing (the removal question, typing, an open choice, the filter), else go back to the categories, else close |
+| Settings | `x` | Flip a toggle and save |
+| Settings | `/` | Filter the settings across all categories by name and help text (Insert mode; `Enter` keeps the filter, `Esc` clears it) |
+| Settings | `a` | Add a folder to the path list under the cursor (prompt; `~` is expanded; must be an existing folder) |
+| Settings | `d` | Remove the folder under the cursor after a question naming it (`y` removes, `n` or `Esc` keeps; the folder itself is not touched) |
+| Settings | `J` `K` | Move the folder under the cursor down / up in its list |
+| Settings | `+` `-` | Raise / lower a number setting by its step |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` `Ctrl-l` | Open repository (new tab or focus existing); `Ctrl-l` is the home-row alias of `Enter`, `Ctrl-w l` is a chord and unaffected |
 | Picker | `Tab` `Right` | Accept the suggestion: with a typed name, fill in the highlighted repository's path (then its subfolders are listed); in a path, complete the directory name (to the common prefix of the candidates, or to the highlighted one). Matching ignores case on every platform, the inserted text keeps the real case of the directory |
 | Picker | `Alt-p` | Pin the entry to the top of the list / unpin it |
 | Picker | `Alt-d` | Remove from recents |
+| Picker | `Alt-c` | Clone a repository: prompt for the URL or path, then the target folder; opens it in a new tab (modal: `Enter` asks, `Esc` closes the prompt) |
+| Picker | `Alt-i` | Initialise a directory (`git init`, created when missing) and open it in a new tab |
 | Palette | `Up` `Down` | Move highlight (typing filters; `Enter` runs the action, `Esc` closes) |
 | Palette | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases, like the picker) |
 | Palette | `Ctrl-l` | Run the highlighted action (alias of `Enter`, like the picker); `Ctrl-h` is left unbound because some terminals send it for `Backspace` |
@@ -561,7 +678,7 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -571,7 +688,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `l` or the menu's Open details row |
-| Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff |
+| Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory) |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
@@ -605,6 +722,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | ReflogButton.Branch | Click | `branch.create` | Row `<space>bc`: new-branch prompt at the highlighted entry |
 | ReflogButton.Checkout | Click | `branch.switch` | Row `<space>bs`: check the entry out with a detached HEAD |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
+| Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
+| Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |
+| SettingsButton.Edit | Click | `settings.activate` | A click on a setting's control, on an option of an open choice, or a second click on the selected row: edits it like `Enter` (toggle flips, choice opens, option is kept). A first click on a row, and a click on a category, only select |
+| SettingsButton.Add | Click | `settings.add` | The `[+]` marker of a path list: add a folder, like `a` |
+| SettingsButton.Remove | Click | `settings.remove` | The `[x]` marker of a folder: ask to remove it, like `d`; the question's `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views |
 | MainlineParent | Click | `pick.mainline` | A parent row of the mainline overlay of a cherry-pick or revert of a merge commit: answers like the parent's digit key (the row number is the click target; a click outside cancels) |
 | DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
 | DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |
@@ -637,6 +759,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Picker | Wheel down | `picker.next` | Move the highlight down one row |
 | PickerButton.Pin | Click | `picker.pin` | Button `[pin]` / `[unpin]` on the highlighted row, same as `Alt-p` |
 | PickerButton.Remove | Click | `picker.remove-recent` | Button `[remove]` on a highlighted recent row, same as `Alt-d` |
+| PickerButton.Clone | Click | `picker.clone` | Button `[clone]` at the right end of the picker's hint line (84 columns or more, not while locating), same as `Alt-c` |
+| PickerButton.Init | Click | `picker.init` | Button `[init]` next to it, same as `Alt-i` |
 
 Pointer-position behaviour that has no action of its own: a click on a pane focuses it, a click on a list row selects it (graph, detail, sidebar, diff; the details pane follows the graph selection as with keys), a click on a picker row highlights it. A click on empty space does nothing. The wheel moves the selection, not just the view (the keyboard has no pure scroll either), so the details pane follows it as it does for `j`/`k`. A mouse action does not touch a pending count or chord typed before it. While the help, palette or status history is open, panes and the picker ignore every mouse gesture (no focus change, no selection), except that the wheel scrolls the help or history (or moves the palette highlight) when the pointer is over a pane or the overlay, and a click on a pane or the tab row closes it, like `Esc`; the which-key popup does not block the mouse.
 

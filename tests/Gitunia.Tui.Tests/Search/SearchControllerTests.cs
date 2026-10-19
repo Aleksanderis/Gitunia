@@ -347,4 +347,81 @@ public class SearchControllerTests
 
         Assert.Contains(GraphSearchReducer.BodySearchFailedNotice, harness.StatusLine, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenPressingEscape_ThenGitIsCancelledAndNoAnswerIsApplied()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        searcher.Hits.Add(CommitFactory.Id(2));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, _ => searcher.CallCount == 1);
+        var token = searcher.TokenOf(0);
+
+        harness.Press(Key.Esc);
+        Assert.True(token.IsCancellationRequested);
+        searcher.Gate.TrySetResult();
+        Thread.Sleep(100);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Session.Search.IsOpen);
+        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(0, harness.SelectedRow);
+    }
+
+    [Fact]
+    public void GivenAnsweredBodySearch_WhenTheGraphIsReplaced_ThenGitIsAskedAgainAndTheNewAnswerWins()
+    {
+        var searcher = new FakeCommitMessageSearcher();
+        searcher.Hits.Add(CommitFactory.Id(3));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+        Assert.Equal(1, searcher.CallCount);
+        Assert.Contains("1 found", harness.StatusLine, StringComparison.Ordinal);
+
+        searcher.Hits.Add(CommitFactory.Id(1));
+        var graph = Graph();
+        var rows = Enumerable.Range(0, graph.Count).Select(index => graph[index]);
+        harness.Session.ReplaceGraph([.. rows]);
+        WaitUntil(
+            harness,
+            h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+
+        Assert.Contains("2 found", harness.StatusLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenTheGraphIsReplaced_ThenTheEarlierRunIsCancelled()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, _ => searcher.CallCount == 1);
+        var first = searcher.TokenOf(0);
+
+        var graph = Graph();
+        harness.Session.ReplaceGraph([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
+        WaitUntil(harness, _ => searcher.CallCount == 2);
+
+        Assert.True(first.IsCancellationRequested);
+        Assert.False(searcher.TokenOf(1).IsCancellationRequested);
+    }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenTheTabIsClosed_ThenItsEntryIsRemoved()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, h => searcher.CallCount == 1 && h.Search.BodySearchCount == 1);
+
+        harness.Session.Cancellation.Cancel();
+
+        WaitUntil(harness, h => h.Search.BodySearchCount == 0);
+    }
 }

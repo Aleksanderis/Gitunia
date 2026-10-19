@@ -1,3 +1,4 @@
+using Gitunia.Core;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Rebase;
@@ -16,6 +17,7 @@ using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Tags;
+using Gitunia.Git.Trees;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
@@ -32,6 +34,7 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitLog">Reads the commit log.</param>
 /// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
 /// <param name="CommitDetails">Reads one commit's details.</param>
+/// <param name="CommitTree">Lists the files of a commit's tree.</param>
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
@@ -40,11 +43,15 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
+/// <param name="Creator">Clones and initialises repositories.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
 /// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
 /// <param name="Reset">Moves the current branch to a commit (soft, mixed, hard).</param>
 /// <param name="Rebase">Rebases the current branch onto a commit (non-interactive).</param>
+/// <param name="InteractiveRebase">
+/// Rebases with a todo (pick, reword, squash, fixup, drop, reorder) prepared by the app.
+/// </param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
@@ -60,6 +67,7 @@ public sealed record GitServices(
     ICommitLogReader CommitLog,
     ICommitMessageSearcher CommitMessages,
     ICommitDetailsReader CommitDetails,
+    ICommitTreeReader CommitTree,
     IDiffReader Diff,
     IRefReader Refs,
     IStatusReader Status,
@@ -70,11 +78,13 @@ public sealed record GitServices(
     ITagWriter Tags,
     IRemoteWriter Remote,
     IRemoteManager RemoteManager,
+    IRepositoryCreator Creator,
     IMergeWriter Merge,
     IPickWriter Pick,
     IPickCommitReader PickCommits,
     IResetWriter Reset,
     IRebaseWriter Rebase,
+    IInteractiveRebaseWriter InteractiveRebase,
     IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
@@ -103,6 +113,7 @@ public sealed record GitServices(
             commitLog,
             new CommitMessageSearcher(runner),
             new CommitDetailsReader(runner),
+            new CommitTreeReader(runner),
             new DiffReader(runner),
             refs,
             status,
@@ -113,11 +124,19 @@ public sealed record GitServices(
             new TagWriter(runner, remoteRunner),
             new RemoteWriter(remoteRunner),
             new RemoteManager(runner),
+            new RepositoryCreator(remoteRunner, runner, new RepositoryDiscovery(runner)),
             new MergeWriter(runner, operationRunner),
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),
             new ResetWriter(runner),
             new RebaseWriter(operationRunner, runner),
+            new InteractiveRebaseWriter(
+                operationRunner,
+                runner,
+                operationDetector,
+                new SequenceEditorCommand(
+                    [Environment.ProcessPath ?? AppInfo.Name, SequenceEditorCommand.ModeArgument]),
+                Environment.GetEnvironmentVariable),
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),

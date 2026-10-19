@@ -1,3 +1,4 @@
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 
@@ -10,8 +11,18 @@ namespace Gitunia.Tui.Rendering.Details;
 /// <param name="Files">The changed files (also on tabs that do not list them, for the title); on the Changes tab file row <c>FirstFileRow + n</c> shows <c>Files[n]</c>.</param>
 /// <param name="Tab">The tab these rows belong to.</param>
 /// <param name="FileCount">The number of changed files, null while the details are not loaded (the title shows <c>.. files</c> then instead of a count that would flicker from 0).</param>
-public sealed record DetailContent(string ShortHash, IReadOnlyList<DetailRow> Rows, int FirstFileRow, IReadOnlyList<CommitFileChange> Files, BottomTab Tab, int? FileCount = null)
+public sealed record DetailContent(
+    string ShortHash,
+    IReadOnlyList<DetailRow> Rows,
+    int FirstFileRow,
+    IReadOnlyList<CommitFileChange> Files,
+    BottomTab Tab,
+    int? FileCount = null)
 {
+    /// <summary>On the Files tab the visible tree rows; row <c>n</c> of <see cref="Rows"/> shows <c>Tree[n]</c>. Empty
+    /// while the tree is not shown (loading, failed, empty, other tabs).</summary>
+    public IReadOnlyList<FileTreeRow> Tree { get; init; } = [];
+
     /// <summary>No commit selected, on the Changes tab.</summary>
     public static DetailContent Empty { get; } = EmptyFor(BottomTab.Changes);
 

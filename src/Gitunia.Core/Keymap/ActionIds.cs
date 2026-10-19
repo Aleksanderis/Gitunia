@@ -13,7 +13,11 @@ public static class ActionIds
 
     public static ActionId ConfirmYes { get; } = new("confirm.yes");
 
+    public static ActionId DetailCollapse { get; } = new("detail.collapse");
+
     public static ActionId DetailCopyPath { get; } = new("detail.copy-path");
+
+    public static ActionId DetailFilter { get; } = new("detail.filter");
 
     public static ActionId DetailNextTab { get; } = new("detail.next-tab");
 
@@ -194,6 +198,32 @@ public static class ActionIds
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
+
+    public static ActionId SettingsOpen { get; } = new("settings.open");
+
+    public static ActionId SettingsOpenTheme { get; } = new("settings.open-theme");
+
+    public static ActionId SettingsActivate { get; } = new("settings.activate");
+
+    public static ActionId SettingsToggle { get; } = new("settings.toggle");
+
+    public static ActionId SettingsFilter { get; } = new("settings.filter");
+
+    public static ActionId SettingsAdd { get; } = new("settings.add");
+
+    public static ActionId SettingsRemove { get; } = new("settings.remove");
+
+    public static ActionId SettingsMoveDown { get; } = new("settings.move-down");
+
+    public static ActionId SettingsMoveUp { get; } = new("settings.move-up");
+
+    public static ActionId SettingsIncrease { get; } = new("settings.increase");
+
+    public static ActionId SettingsDecrease { get; } = new("settings.decrease");
+
+    public static ActionId PickerClone { get; } = new("picker.clone");
+
+    public static ActionId PickerInit { get; } = new("picker.init");
 
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 

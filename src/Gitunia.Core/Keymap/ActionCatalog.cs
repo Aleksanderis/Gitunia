@@ -14,6 +14,15 @@ public static class ActionCatalog
     [
         ActionIds.Cancel,
         ActionIds.ReflogSelectCommit,
+        ActionIds.SettingsActivate,
+        ActionIds.SettingsToggle,
+        ActionIds.SettingsFilter,
+        ActionIds.SettingsAdd,
+        ActionIds.SettingsRemove,
+        ActionIds.SettingsMoveDown,
+        ActionIds.SettingsMoveUp,
+        ActionIds.SettingsIncrease,
+        ActionIds.SettingsDecrease,
         ActionIds.PickMainline,
         ActionIds.CommandExecute,
         ActionIds.ConfirmNo,
@@ -22,12 +31,19 @@ public static class ActionCatalog
         ActionIds.PaletteNext,
         ActionIds.PalettePrevious,
         ActionIds.PickerAccept,
+        ActionIds.PickerClone,
         ActionIds.PickerCompletePath,
+        ActionIds.PickerInit,
         ActionIds.PickerNext,
         ActionIds.PickerPin,
         ActionIds.PickerPrevious,
         ActionIds.PickerRemoveRecent,
         ActionIds.WorkingTreeMessageNewLine,
+    ];
+
+    private static readonly HashSet<ActionId> PaletteOnlyActions =
+    [
+        ActionIds.SettingsOpenTheme,
     ];
 
     private static readonly HashSet<ActionId> CopyActions =
@@ -68,6 +84,7 @@ public static class ActionCatalog
         ["pane"] = ActionGroups.View,
         ["tab"] = ActionGroups.Tabs,
         ["palette"] = ActionGroups.General,
+        ["settings"] = ActionGroups.General,
         ["help"] = ActionGroups.General,
         ["status"] = ActionGroups.General,
         ["app"] = ActionGroups.General,
@@ -104,7 +121,9 @@ public static class ActionCatalog
         ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",
+        ["detail.collapse"] = "Back to the graph (Files tab: close the directory or go to its parent)",
         ["detail.copy-path"] = "Copy the file path",
+        ["detail.filter"] = "Filter the file tree by path (Files tab)",
         ["detail.next-tab"] = "Next bottom pane tab",
         ["detail.open-diff"] = "Go to the file diff",
         ["detail.previous-tab"] = "Previous bottom pane tab",
@@ -161,7 +180,9 @@ public static class ActionCatalog
         ["pane.wider"] = "Make the focused pane wider",
         ["pane.zoom"] = "Zoom the focused pane",
         ["picker.accept"] = "Open the repository",
+        ["picker.clone"] = "Clone a repository into a new tab",
         ["picker.complete-path"] = "Accept the suggestion / complete the path",
+        ["picker.init"] = "Initialise a directory as a repository",
         ["picker.next"] = "Next picker entry",
         ["picker.open"] = "Open the repository picker",
         ["picker.pin"] = "Pin to the top of the picker (toggle)",
@@ -169,6 +190,17 @@ public static class ActionCatalog
         ["picker.remove-recent"] = "Remove from recents",
         ["repo.pin"] = "Pin to the top of the picker (toggle)",
         ["repo.refresh"] = "Refresh the repository",
+        ["settings.open"] = "Open the settings",
+        ["settings.open-theme"] = "Open the settings at the theme",
+        ["settings.activate"] = "Settings: enter the column, edit the setting or keep the option",
+        ["settings.toggle"] = "Settings: flip the toggle under the cursor",
+        ["settings.filter"] = "Settings: filter the settings by name and help text",
+        ["settings.add"] = "Settings: add a folder to the list under the cursor",
+        ["settings.remove"] = "Settings: remove the folder under the cursor (asks first)",
+        ["settings.move-down"] = "Settings: move the folder down in its list",
+        ["settings.move-up"] = "Settings: move the folder up in its list",
+        ["settings.increase"] = "Settings: raise the number under the cursor",
+        ["settings.decrease"] = "Settings: lower the number under the cursor",
         ["search.next"] = "Next search match",
         ["search.open"] = "Search",
         ["search.previous"] = "Previous search match",
@@ -241,6 +273,9 @@ public static class ActionCatalog
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>
     public static IReadOnlySet<ActionId> Unimplemented { get; } = FrozenSet<ActionId>.Empty;
+
+    /// <summary>Actions with no key: the palette lists them without keys, the mouse reaches them there.</summary>
+    public static IReadOnlySet<ActionId> PaletteOnly { get; } = PaletteOnlyActions.ToFrozenSet();
 
     /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
     public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);

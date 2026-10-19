@@ -35,11 +35,11 @@ Example, Enter on a commit: Tui turns the key into a key event; Core's keymap ma
 
 ## Principles
 
-- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
 - **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
 - **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
-- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`). Settings, pitfalls and measured numbers: `docs/history/architecture.md`.
+- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`). Settings, pitfalls and measured numbers: `docs/history/architecture.md` (cell widths: `DisplayWidth` follows Terminal.Gui per character, ZWJ sequences differ).
 
 ## Solution layout
 
@@ -71,9 +71,15 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 - Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
 - The credential retry (#45) reuses `ITerminalSuspender` through `ExternalToolRunner.LaunchGit`, which runs any git argument list (`-C <repo>` prefixed) with the real terminal, with no environment set: the user's ssh, askpass and credential helper decide how to prompt.
 
+## Files tab (commit tree)
+
+`CommitTreeStore` (Tui, one per tab, like `CommitDetailsStore`) reads `ls-tree -r -z --long` off the UI thread when the Files tab is shown, with the same debounce, cancels on every selection change and keeps the last four trees. The worker also builds the `FileTreeModel` (Core: nested directories, folded single-child chains, ordinal order), so the UI thread only asks it for the visible rows, which `FileTreeSession` caches until the opened directories or the filter change. A closed directory costs nothing: the rows are produced by walking only the open ones.
+
+Measured on Linux with the AOT binary (`--print-frame 120x36 --tab files`, one commit with 100 000 files in 20 x 50 x 100 directories): `ls-tree -r -z --long` alone 0.21 s, the whole frame (process start, read, parse, model, rows, render) 0.60 s. The tree is shown as "Loading..." meanwhile and the UI never waits. A filter walks every file once per keystroke: the worst case (a one-letter filter that matches all 100 000 files and their directories, 201 020 rows) took 72 ms in `Rows` plus 16 ms to build the pane rows in a Debug build (JIT), so a keystroke stays near 0.1 s; rows are not built lazily. Lazy per-directory loading was not needed at this size; revisit it if a 1M-file monorepo shows up.
+
 ## Native AOT
 
-Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Every dependency addition and every dispatched CI run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64.
+Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Every dependency addition and every dispatched CI run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64. Release archives for linux-x64 and win-x64 are built on `v*` tags by `ci.yml` (`scripts/package.sh`, draft release).
 
 ## Composition root
 
@@ -83,6 +89,8 @@ Static versus instance rules: `.claude/rules/csharp-style.md`. `Program.Main` cr
 
 - Linux, Windows and macOS are all supported targets; macOS is the lowest priority and may be dropped if it adds significant complexity. Build and test on Linux first; CI has a Windows leg (tags, on demand), macOS comes in M5.
 - Platform-specific code lives behind a small abstraction in one place (console setup: raw mode and VT input/output; resize notification: SIGWINCH vs console events; process spawning and signals; file watching quirks). Every abstraction has an implementation or an explicit "unsupported" result for each OS.
+- The config file is `config.json` in the config directory (format and rules: `ux.md`, "Config file"). `ConfigLoader` and `KeymapConfigurator` (Core) read it and build the keymap; `ConfigStartup` (Tui) runs them at startup. `ConfigJsonContext` is the source-generated JSON context; sections are added as properties of `ConfigDocument`. `ConfigStartup.Load` also reads `theme` (`ThemeConfigurator`) and `frameStyle`, `tabs.showBranch` and `scanRoots` (`OptionsConfigurator`, result `ConfigOptions` in `StartupConfig`; the frame style is carried by `GraphGlyphSet.Frame`, which only changes frame and overlay corners, not the graph); `PaletteSettings.WithTheme` forces the light or dark side before `Palette.Configure`.
+- `ConfigWriter` (Core) changes one key of `config.json`: pure edit in `ConfigTextEditor`, atomic replace via `AtomicFileWriter` (permissions kept on Unix, symlink target resolved, BOM kept), stale check by content hash; it uses `System.Text.Json` readers only, so it is AOT-safe.
 - Config and state locations follow terminal-app convention on every OS, not the OS-native dirs: config in `$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, state in `$XDG_STATE_HOME/gitunia` or `~/.local/state/gitunia`. So the config folder can live in a dotfiles repository, and config stays apart from machine-local state.
 - Never hardcode path separators, `/tmp`, `/dev/null` or line endings; handle case-insensitive file systems, long Windows paths and CRLF in diffs.
 - Terminal features are capability-detected (truecolor/256/16, Unicode width, mouse, OSC 52), not assumed.

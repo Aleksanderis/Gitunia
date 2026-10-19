@@ -1,3 +1,4 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
@@ -481,6 +482,21 @@ public sealed class MainView : IDisposable
         }
     }
 
+    /// <summary>Repaints every view after the palette changed (the settings screen previews a theme).</summary>
+    public void RefreshPalette()
+    {
+        Detail.SetScheme(Palette.PanelScheme());
+        RefreshChrome();
+        Window.SetNeedsDraw();
+        Graph.SetNeedsDraw();
+        Detail.SetNeedsDraw();
+        Diff.SetNeedsDraw();
+        WorkingUnstaged.SetNeedsDraw();
+        WorkingStaged.SetNeedsDraw();
+        WorkingDiff.SetNeedsDraw();
+        WorkingMessage.SetNeedsDraw();
+    }
+
     public void Dispose() => Window.Dispose();
 
     private PaneListView FocusedWorkingList() => WorkingFocus() switch
@@ -723,7 +739,8 @@ public sealed class MainView : IDisposable
             unstagedTitle,
             stagedTitle,
             messageTitle,
-            _glyphs.IsAscii);
+            _glyphs.IsAscii,
+            _glyphs.Frame);
         if (_workingGrid is null || _workingGridKey != key)
         {
             _workingGrid = FrameGrid.Build(
@@ -750,7 +767,15 @@ public sealed class MainView : IDisposable
             : Rects();
         PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
         var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repository";
-        var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, _glyphs.IsAscii);
+        var key = new GridKey(
+            ScreenWidth,
+            ScreenHeight(),
+            rects,
+            focused,
+            title,
+            isPicker,
+            _glyphs.IsAscii,
+            _glyphs.Frame);
         if (_grid is null || _gridKey != key)
         {
             _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
@@ -768,7 +793,8 @@ public sealed class MainView : IDisposable
         string UnstagedTitle,
         string StagedTitle,
         string MessageTitle,
-        bool IsAscii);
+        bool IsAscii,
+        FrameStyle Frame);
 
     private StyledLine OptionsLine(int width) =>
         MessageBoxRenderer.OptionsLine(ActiveDraft(), width, PanePadding.ColumnsFor(ScreenWidth), _glyphs);

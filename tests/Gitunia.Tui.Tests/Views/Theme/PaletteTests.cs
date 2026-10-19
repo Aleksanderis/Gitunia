@@ -1,3 +1,4 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
@@ -431,6 +432,31 @@ public class PaletteTests
 
         Assert.Equal(expected, settings.Depth);
         Assert.True(settings.IsLightBackground);
+    }
+
+    [Theory]
+    [InlineData(ThemeChoice.Auto, true, true)]
+    [InlineData(ThemeChoice.Auto, false, false)]
+    [InlineData(ThemeChoice.Dark, true, false)]
+    [InlineData(ThemeChoice.Light, false, true)]
+    public void GivenATheme_WhenApplyingItToTheDetectedScheme_ThenOnlyAutoKeepsTheDetectedSide(
+        ThemeChoice theme,
+        bool detectedLight,
+        bool expectedLight)
+    {
+        var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(theme);
+
+        Assert.Equal(expectedLight, settings.IsLightBackground);
+        Assert.Equal(ColorDepth.Ansi16, settings.Depth);
+    }
+
+    [Fact]
+    public void GivenTheLightTheme_WhenTheTerminalLooksDark_ThenTheTableIsTheLightOne()
+    {
+        var forced = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.Light));
+
+        Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, true)).Accent, forced.Accent);
+        Assert.NotEqual(PaletteTable.For(PaletteSettings.Default).Accent, forced.Accent);
     }
 
     private static bool IsNamedOrDefault(Color color, HashSet<Color> named) => color == Color.None || named.Contains(color);

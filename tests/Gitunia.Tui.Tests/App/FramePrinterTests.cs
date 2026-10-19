@@ -89,20 +89,20 @@ public class FramePrinterTests
         Assert.DoesNotContain(details, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.Contains(changes, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.DoesNotContain(changes, line => line.StartsWith("│  author ", StringComparison.Ordinal));
-        Assert.Contains(files, line => line.Contains("not implemented yet", StringComparison.Ordinal));
+        Assert.Contains(files, line => HasFileWithSize(line, "4 B"));
         Assert.DoesNotContain(files, line => line.Contains("A a.txt", StringComparison.Ordinal));
         Assert.All([details, changes, files], lines => Assert.Contains(lines, line => line.Contains(" Details ─ Changes ─ Files ", StringComparison.Ordinal)));
     }
 
     [Fact]
-    public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenThePlaceholderSitsBesideTheDiff()
+    public async Task GivenAnOpenDiffAndTheFilesTab_WhenPrinting_ThenTheTreeSitsBesideTheDiff()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "first line\n"));
 
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(true, null), BottomTab.Files);
 
-        Assert.Contains(lines, line => line.Contains("The file tree", StringComparison.Ordinal));
+        Assert.Contains(lines, line => HasFileWithSize(line, "11 B"));
         Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
     }
 
@@ -135,6 +135,42 @@ public class FramePrinterTests
 
         Assert.DoesNotContain(lines, line => line.Contains('\u001b', StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData("""{ "frameStyle": "square" }""", '┌', '╭')]
+    [InlineData("""{ "frameStyle": "rounded" }""", '╭', '┌')]
+    [InlineData("{}", '╭', '┌')]
+    public async Task GivenAFrameStyleInTheConfig_WhenPrinting_ThenTheFrameUsesItsCorners(
+        string config,
+        char expected,
+        char other)
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory, "config.json"), config, Token);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
+            using var writer = new StringWriter();
+
+            var glyphs = FramePrinter.GlyphsFor(true, directory, directory);
+            await new FramePrinter(TestGit.Services)
+                .PrintAsync(location, 100, 30, glyphs, writer, null, BottomTab.Changes, null, Token);
+
+            var text = writer.ToString();
+            Assert.Contains(expected, text);
+            Assert.DoesNotContain(other, text);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static bool HasFileWithSize(string line, string size) =>
+        line.Contains("a.txt", StringComparison.Ordinal) && line.Contains(size, StringComparison.Ordinal);
 
     private static async Task<List<string>> PrintAsync(TestRepository repository, int width, int height, PaneArrangement? arrangement, BottomTab tab = BottomTab.Changes, PaletteSettings? colors = null)
     {

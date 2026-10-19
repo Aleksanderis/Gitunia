@@ -332,6 +332,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Below 14 rows (no details pane) the graph row menu omits "Open details" and `Enter` shows a notice instead of moving focus (#490). Zooming was rejected: the pane is hidden by design and the graph is the useful view there. Supersedes the "always listed" sentence of the #486 entry.
 
+**Git layer:** Interactive rebase engine (#399) writes the todo itself and hands it to git through `-c sequence.editor` pointing at `gitunia --sequence-editor` (no new env var; a set `GIT_SEQUENCE_EDITOR` is refused); rewords are `exec git commit --amend -F`. Ranges with merge commits are refused and `--root` is supported (owner, 2026-10-18); details in git-layer.md.
+
 **UI:** Merge commits (#95) keep showing the diff and file list against the first parent (what the merge brought into the branch); the Changes heading names that parent. Combined diffs and a per-parent switch were not added: a clean merge has an empty `--cc` diff, and a switch needs a new key (follow-up: #497).
 
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
@@ -350,8 +352,44 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Status messages (#500) are coloured by kind (success/info green, warning, error), drawn as a filled chip for 1.5 s, and expire: info 5 s, warning 15 s, error 30 s, by an injected clock in the state layer. Then the hints return; `<space>m` history keeps them. Why: a stale result must not look current.
 
+**UI:** Files tab (#173): the whole tree is read at once, not per directory (timings in `architecture.md`). `h` in Detail is now `detail.collapse` (closes a directory, climbs to the parent, else back), `/` is `detail.filter`. `Enter` on a file does nothing: a content view is outside the MVP (asked in #511).
+
 **UI:** Force push is `<space>Rf`, remote branch delete `<space>RD` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.
 
 **UI:** Credentials (#45): remote calls stay in the background with prompts off; on an auth failure a Confirm offers the same command with the terminal handed to git (TUI suspends like `$EDITOR`), not an inline pty. Why: ssh prompts on /dev/tty, so a pty needs a terminal emulator in the TUI. Detail: `git-layer.md`.
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
+
+**Process:** Release packaging (#48) lives in `ci.yml`, tag runs only: each leg archives its AOT binary with `scripts/package.sh` (tar.gz, zip on Windows, plus SHA-256) and a `release` job attaches them to a draft release. Linux x64 and Windows x64 only; macOS and linux-arm64 follow with #455. Why: no extra workflow or build, so no extra minutes; draft so the owner publishes.
+
+**UI:** Key config (#46): `config.json` has a `keys` list of entries (mode, view, key, action; `none` unbinds) applied over the defaults; each entry is validated alone and bad ones are skipped with a startup warning, so config never blocks startup. An entry that would make a key both complete and a chord prefix is refused (the engine always waits for a longer chord, #457). Detail in `ux.md`.
+
+**Performance:** Cold-tab eviction (#199): only the 5 most recently used tabs keep their graph; older idle tabs reload on activation (view state stays in the workspace, search and diff position do not); a tab with a running operation is never evicted. Why 5: recent tabs stay instant, RSS stays bounded. Soft row limit deferred to #515 with numbers.
+
+**UI:** Theme setting (#47): `theme` in `config.json` is `auto` (default, follows the detected terminal background), `dark` or `light`; it only forces which side of the existing Catppuccin Mocha/Latte and 16-colour tables is used. Unknown values warn and mean `auto`. `auto` still uses `COLORFGBG` only; the OSC 11 query is #527. Named themes stay in #61.
+
+**UI:** Settings screen (#465): one overlay opened by `<space>,` (default, owner may change) or `:settings` edits `config.json` by a minimal text edit of the changed key (comments kept, unparsable file never written); the theme picker is an entry of it, not a second UI. Key bindings stay hand-edited. Design in `ux.md`.
+
+## 2026-10-19
+
+**UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".
+
+**UI:** Clone and init (#401) live in the picker (`Alt-c`, `Alt-i`, mouse buttons) and open the result in a new tab; a cancelled or failed clone removes what it made. Credential prompts stay with #45. Details: `ux.md`, `git-layer.md`.
+
+**Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".
+
+**UI:** Settings screen (#523): overlay on `<space>,`; each change is saved when committed and applied at once; a folder removal asks `y`/`n` inside the overlay. Its single letters (`x` `a` `d` `J` `K`) are keys of a modal list, so the vim-clash rule for the panes does not apply. Rules in `ux.md`.
+
+**Architecture:** The frame corner style is a settable property of the one shared `GraphGlyphSet` (the settings screen changes it while the app runs) and part of the frame-grid cache keys.
+
+**UI:** Theme auto asks the terminal for its background with OSC 11 before the UI starts (#527), 50 ms timeout, falling back to `COLORFGBG`, then dark; skipped when not interactive and on Windows (unsupported there). Why: most terminals do not set `COLORFGBG`. Supersedes the COLORFGBG-only detection of #47.
+
+**Testing:** Startup smoke test (#532): `TuiApplication.Run` runs headless on the `ansi` driver in `dotnet test` (public `DriverName` and `ExitAfterFirstIteration`, no InternalsVisibleTo). Why: two startup crashes passed green unit tests. Details: `testing.md`.
+
+**Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
+
+**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
+
+**Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
+
+**UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.
