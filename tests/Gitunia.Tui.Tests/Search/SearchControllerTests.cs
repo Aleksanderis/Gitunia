@@ -357,10 +357,12 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         harness.Type("body:x");
         WaitUntil(harness, _ => searcher.CallCount == 1);
+        var token = searcher.TokenOf(0);
 
         harness.Press(Key.Esc);
-        WaitUntil(harness, h => h.Search.BodySearchCount == 0);
+        Assert.True(token.IsCancellationRequested);
         searcher.Gate.TrySetResult();
+        Thread.Sleep(100);
 
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.False(harness.Session.Search.IsOpen);
@@ -381,9 +383,12 @@ public class SearchControllerTests
         Assert.Contains("1 found", harness.StatusLine, StringComparison.Ordinal);
 
         searcher.Hits.Add(CommitFactory.Id(1));
-        var graph = Graph();
+        var rows = Enumerable.Range(0, graph.Count).Select(index => graph[index]);
+        harness.Session.ReplaceGraph([.. rows]);
         harness.Session.ReplaceGraph([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
-        WaitUntil(harness, h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+        WaitUntil(
+            harness,
+            h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
 
         Assert.Contains("2 found", harness.StatusLine, StringComparison.Ordinal);
     }
@@ -396,12 +401,14 @@ public class SearchControllerTests
         harness.Press(new Key('/'));
         harness.Type("body:x");
         WaitUntil(harness, _ => searcher.CallCount == 1);
+        var first = searcher.TokenOf(0);
 
         var graph = Graph();
         harness.Session.ReplaceGraph([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         WaitUntil(harness, _ => searcher.CallCount == 2);
 
-        Assert.Equal(1, harness.Search.BodySearchCount);
+        Assert.True(first.IsCancellationRequested);
+        Assert.False(searcher.TokenOf(1).IsCancellationRequested);
     }
 
     [Fact]

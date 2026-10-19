@@ -50,6 +50,18 @@ public sealed class SearchController(
         }
     }
 
+    /// <summary>Number of tabs with a body search in flight (pending debounce included); public so tests can see it.</summary>
+    public int BodySearchCount
+    {
+        get
+        {
+            lock (_bodySearches)
+            {
+                return _bodySearches.Count;
+            }
+        }
+    }
+
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
@@ -194,26 +206,20 @@ public sealed class SearchController(
     // The run of a closed tab is cancelled by its session; its entry must not outlive it.
     private void ForgetBodySearch(TabSession session, CancellationTokenSource source)
     {
+        var owned = false;
         lock (_bodySearches)
         {
             if (_bodySearches.TryGetValue(session, out var current) && current == source)
             {
                 _bodySearches.Remove(session);
+                owned = true;
             }
         }
 
-        source.Dispose();
-    }
-
-    /// <summary>Number of tabs that still hold a running body search entry.</summary>
-    public int BodySearchCount
-    {
-        get
+        // Whoever removed the entry disposes it, so a Cancel from the UI thread never meets a disposed source.
+        if (owned)
         {
-            lock (_bodySearches)
-            {
-                return _bodySearches.Count;
-            }
+            source.Dispose();
         }
     }
 
@@ -245,6 +251,7 @@ public sealed class SearchController(
 
         (invokeOnUi ?? postToUi)(() =>
         {
+            // The entry is gone once the run ended, so the generation check in the reducer is the real guard.
             if (!token.IsCancellationRequested)
             {
                 Dispatch(session, command);
