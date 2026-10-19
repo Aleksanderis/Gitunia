@@ -4,7 +4,13 @@ namespace Gitunia.Core.Persistence;
 public static class AtomicFileWriter
 {
     /// <summary>Writes the bytes to the path, creating the directory when needed. The old file stays intact if anything fails.</summary>
-    public static async Task WriteAsync(string path, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    public static Task WriteAsync(string path, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    {
+        return WriteAsync(path, content, null, cancellationToken);
+    }
+
+    /// <summary>Like the plain overload, and gives the new file the Unix permissions of the file it replaces (ignored on Windows).</summary>
+    public static async Task WriteAsync(string path, ReadOnlyMemory<byte> content, UnixFileMode? mode, CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
         Directory.CreateDirectory(directory);
@@ -17,6 +23,11 @@ public static class AtomicFileWriter
                 await stream.WriteAsync(content, cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 stream.Flush(flushToDisk: true);
+            }
+
+            if (mode is { } permissions && !OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(temporaryPath, permissions);
             }
 
             File.Move(temporaryPath, path, overwrite: true);
