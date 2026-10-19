@@ -70,7 +70,8 @@ public static class ConfigKeyLocator
         TextSpan? found = null;
         while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
         {
-            var matches = found is null && string.Equals(reader.GetString(), path[depth], StringComparison.OrdinalIgnoreCase);
+            var name = reader.GetString();
+            var matches = found is null && string.Equals(name, path[depth], StringComparison.OrdinalIgnoreCase);
             reader.Read();
             if (matches)
             {
