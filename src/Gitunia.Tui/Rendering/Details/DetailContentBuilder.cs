@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
@@ -15,12 +16,19 @@ public static class DetailContentBuilder
     private const int HashLength = 7;
     private const string TimeFormat = "yyyy-MM-dd HH:mm zzz";
     private const string Indent = "  ";
-    private const string FilesPlaceholder = "The file tree is not implemented yet";
+    private const string EmptyTree = "The commit has no files";
+    private const string NoMatch = "No file matches the filter";
+    private const int TreeIndent = 2;
 
     /// <param name="entry">The selected graph row, null when nothing is selected. Its subject and refs show before the details arrive.</param>
     /// <param name="state">The loading state of the commit's details.</param>
     /// <param name="tab">The tab to build the rows of.</param>
-    public static DetailContent Build(GraphEntry? entry, CommitDetailsState state, BottomTab tab)
+    /// <param name="tree">The file tree to list on the Files tab; null shows it as loading.</param>
+    public static DetailContent Build(
+        GraphEntry? entry,
+        CommitDetailsState state,
+        BottomTab tab,
+        FileTreeView? tree = null)
     {
         if (entry is null)
         {
@@ -32,8 +40,25 @@ public static class DetailContentBuilder
         {
             BottomTab.Details => BuildDetails(entry, state, details),
             BottomTab.Changes => BuildChanges(entry, state, details),
-            _ => BuildFilesPlaceholder(),
+            _ => BuildFiles(entry, tree),
         };
+        if (tab == BottomTab.Files)
+        {
+            var shown = tree is { State.Commit: { } commit } && commit == entry.Id ? tree : null;
+            var treeRows = shown is { State.Status: CommitDetailsStatus.Loaded } ? shown.Rows : [];
+
+            return new DetailContent(
+                ShortHash(entry.Id),
+                rows,
+                rows.Count,
+                details?.Files ?? [],
+                tab,
+                shown?.State.Model?.FileCount)
+            {
+                Tree = treeRows,
+            };
+        }
+
         var firstFileRow = tab == BottomTab.Changes && details is not null ? 1 : rows.Count;
         return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
@@ -80,10 +105,66 @@ public static class DetailContentBuilder
         return rows;
     }
 
-    private static List<DetailRow> BuildFilesPlaceholder() =>
-    [
-        new([new StyledSegment(FilesPlaceholder, SegmentRole.Faint)]),
-    ];
+    private static List<DetailRow> BuildFiles(GraphEntry entry, FileTreeView? tree)
+    {
+        if (tree is not { State: { Commit: { } commit } state }
+            || commit != entry.Id
+            || state.Status == CommitDetailsStatus.Loading)
+        {
+            return [Faint("Loading...")];
+        }
+
+        if (state.Status == CommitDetailsStatus.Failed)
+        {
+            return [Faint($"Could not load the tree (<space>r retries): {state.Error}")];
+        }
+
+        if (tree.Rows.Count == 0)
+        {
+            return [Faint(tree.Filter.Length > 0 ? NoMatch : EmptyTree)];
+        }
+
+        return [.. tree.Rows.Select(row => TreeRow(row, tree))];
+    }
+
+    private static DetailRow TreeRow(FileTreeRow row, FileTreeView tree)
+    {
+        var indent = new string(' ', row.Depth * TreeIndent);
+        if (row.Kind == FileTreeRowKind.Directory)
+        {
+            var chevron = row.IsExpanded ? tree.Glyphs.Expanded : tree.Glyphs.Collapsed;
+            var segments = new List<StyledSegment>
+            {
+                new($"{indent}{chevron} ", SegmentRole.Faint),
+                new(row.Label, SegmentRole.SectionTitle),
+            };
+            if (!row.IsExpanded)
+            {
+                segments.Add(new StyledSegment($"  {FileCountText(row.FileCount)}", SegmentRole.Faint));
+            }
+
+            return new DetailRow(segments);
+        }
+
+        // Files line up with the names of directories, which start after their chevron.
+        var suffix = row.Kind switch
+        {
+            FileTreeRowKind.Submodule => "  (submodule)",
+            FileTreeRowKind.Symlink => $"  (symlink, {FileSizeText.Of(row.Size ?? 0)})",
+            FileTreeRowKind.Executable => $"  (executable, {FileSizeText.Of(row.Size ?? 0)})",
+            _ => $"  {FileSizeText.Of(row.Size ?? 0)}",
+        };
+
+        return new DetailRow([
+            new StyledSegment($"{indent}  {row.Label}", SegmentRole.Plain),
+            new StyledSegment(suffix, SegmentRole.Faint),
+        ]);
+    }
+
+    private static string FileCountText(int count) =>
+        count == 1 ? "1 file" : $"{count.ToString(CultureInfo.InvariantCulture)} files";
+
+    private static DetailRow Faint(string text) => new([new StyledSegment(text, SegmentRole.Faint)]);
 
     private static DetailRow Status(GraphEntry entry, CommitDetailsState state) => new([new StyledSegment(
         state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed

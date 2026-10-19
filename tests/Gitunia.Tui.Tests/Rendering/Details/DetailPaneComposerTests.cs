@@ -1,10 +1,14 @@
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Trees.Models;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
+using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Xunit;
@@ -90,18 +94,29 @@ public class DetailPaneComposerTests
     }
 
     [Fact]
-    public void GivenTheFilesTab_WhenComposingAt50x20_ThenThePaneShowsThePlaceholder()
+    public void GivenTheFilesTab_WhenComposingAt50x20_ThenThePaneShowsTheTreeAndItsFileCountInTheTitle()
     {
         var graph = TwoCommits();
+        var model = FileTreeModel.Build(
+        [
+            new TreeEntry("src/a.cs", TreeEntryKind.File, CommitFactory.Id(5), 2048),
+            new TreeEntry("README", TreeEntryKind.File, CommitFactory.Id(5), 12),
+        ]);
+        var view = new FileTreeView(
+            new CommitTreeState(graph[0].Id, CommitDetailsStatus.Loaded, model, string.Empty),
+            model.Rows(new HashSet<string> { "src" }, string.Empty),
+            string.Empty,
+            SidebarGlyphs.Unicode);
+        var content = DetailContentBuilder.Build(graph[0], CommitDetailsState.Empty, BottomTab.Files, view);
 
-        var pane = PaneLines(new DetailPaneModel(LoadedContent(graph, BottomTab.Files), 0, 0, false));
+        var pane = PaneLines(new DetailPaneModel(content, 0, 0, false));
 
         Assert.Equal(
             [
                 "─ Details ─ Changes ─ Files ─ 0000002 ─ 2 files",
-                " The file tree is not implemented yet",
-                "",
-                "",
+                " ▾ src",
+                "     a.cs  2.0 KB",
+                "   README  12 B",
                 "",
                 "",
             ],

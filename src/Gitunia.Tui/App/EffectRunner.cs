@@ -5,6 +5,8 @@ using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Trees;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
 
@@ -16,6 +18,12 @@ namespace Gitunia.Tui.App;
 /// </summary>
 public sealed class EffectRunner : IDisposable
 {
+    /// <summary>
+    /// How many tabs, the active one included, keep their loaded graph; older tabs are evicted
+    /// (docs/performance.md, "Bounded memory").
+    /// </summary>
+    public const int DefaultWarmTabLimit = 5;
+
     private readonly GitServices _services;
     private readonly WorkspaceHost _host;
     private readonly Action<Action> _postToUi;
@@ -25,11 +33,23 @@ public sealed class EffectRunner : IDisposable
     private readonly Dictionary<TabId, TabSession> _sessions = [];
     private readonly Dictionary<TabId, Action> _pendingLoads = [];
     private readonly Dictionary<TabId, TabRefresher> _refreshers = [];
+    private readonly List<TabId> _recent = [];
+    private readonly int _warmTabLimit;
     private readonly WatchBudget _watchBudget;
     private readonly RepositoryWatcherOptions _watcherOptions;
 
-    public EffectRunner(GitServices services, WorkspaceHost host, Action<Action> postToUi, GraphGlyphSet glyphs, StatusChannel statuses, TimeSpan? detailDebounce = null, RepositoryWatcherOptions? watcherOptions = null, WatchBudget? watchBudget = null)
+    public EffectRunner(
+        GitServices services,
+        WorkspaceHost host,
+        Action<Action> postToUi,
+        GraphGlyphSet glyphs,
+        StatusChannel statuses,
+        TimeSpan? detailDebounce = null,
+        RepositoryWatcherOptions? watcherOptions = null,
+        WatchBudget? watchBudget = null,
+        int warmTabLimit = DefaultWarmTabLimit)
     {
+        _warmTabLimit = Math.Max(1, warmTabLimit);
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
         _watchBudget = watchBudget ?? new WatchBudget();
         _detailDebounce = detailDebounce ?? TimeSpan.FromMilliseconds(80);
@@ -41,6 +61,12 @@ public sealed class EffectRunner : IDisposable
         host.EffectRaised += Run;
         host.Changed += OnHostChanged;
     }
+
+    /// <summary>
+    /// Says whether a tab runs a write or remote operation; such a tab is never evicted
+    /// (closing its session would cancel the work).
+    /// </summary>
+    public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
     /// <summary>The runtime session of an open tab, or null.</summary>
     public TabSession? SessionOf(TabId tabId) => _sessions.GetValueOrDefault(tabId);
@@ -88,6 +114,7 @@ public sealed class EffectRunner : IDisposable
                 break;
             case CancelLoadEffect cancel:
                 _pendingLoads.Remove(cancel.TabId);
+                _recent.Remove(cancel.TabId);
                 DisposeRefresher(cancel.TabId);
                 if (_sessions.Remove(cancel.TabId, out var closed))
                 {
@@ -118,7 +145,8 @@ public sealed class EffectRunner : IDisposable
             _glyphs,
             new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
             new DiffStore(_services.Diff, tab.Location, _postToUi),
-            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi));
+            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
+            new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
@@ -167,6 +195,13 @@ public sealed class EffectRunner : IDisposable
     {
         StartActiveTabLoad();
         var activeId = _host.Workspace.ActiveTabId;
+        if (activeId is { } shownId)
+        {
+            _recent.Remove(shownId);
+            _recent.Insert(0, shownId);
+            EvictColdTabs();
+        }
+
         foreach (var (tabId, refresher) in _refreshers)
         {
             refresher.SetActive(tabId == activeId);
@@ -178,6 +213,24 @@ public sealed class EffectRunner : IDisposable
         if (_pendingLoads.Count > 0 && _host.Workspace.ActiveTabId is { } active && _pendingLoads.Remove(active, out var start))
         {
             start();
+        }
+    }
+
+    // A tab beyond the most recently used ones drops its rows, caches and watcher and goes back to the pending state:
+    // its cursor, scroll and selected commit live in the workspace state, so activating it again reloads in the
+    // background and puts them back. A tab still loading or running an operation stays.
+    // The tab's search and diff positions are not kept.
+    private void EvictColdTabs()
+    {
+        for (var index = _warmTabLimit; index < _recent.Count; index++)
+        {
+            var tabId = _recent[index];
+            if (_sessions.TryGetValue(tabId, out var session) && !session.IsPending && !session.IsLoading
+                && !IsTabBusy(tabId)
+                && _host.Workspace.FindTab(tabId) is { } tab)
+            {
+                StartLoad(new LoadRepositoryEffect(tabId, tab.CommandPath));
+            }
         }
     }
 }

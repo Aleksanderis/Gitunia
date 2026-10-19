@@ -35,7 +35,7 @@ Example, Enter on a commit: Tui turns the key into a key event; Core's keymap ma
 
 ## Principles
 
-- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
 - **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
 - **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
@@ -70,6 +70,12 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 - `ITerminalSuspender` is implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (leaves the alternate screen, restores terminal and console modes, ends the input thread so the tool is the only stdin reader), runs the tool, then creates a fresh `IApplication` (2.5.0 cannot dispose and re-initialise the same instance twice), re-applies the palette and key handler and runs the same window again. The new driver reads the terminal size, so a resize while suspended is handled.
 - Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
 - The credential-prompt issue reuses `ITerminalSuspender`.
+
+## Files tab (commit tree)
+
+`CommitTreeStore` (Tui, one per tab, like `CommitDetailsStore`) reads `ls-tree -r -z --long` off the UI thread when the Files tab is shown, with the same debounce, cancels on every selection change and keeps the last four trees. The worker also builds the `FileTreeModel` (Core: nested directories, folded single-child chains, ordinal order), so the UI thread only asks it for the visible rows, which `FileTreeSession` caches until the opened directories or the filter change. A closed directory costs nothing: the rows are produced by walking only the open ones.
+
+Measured on Linux with the AOT binary (`--print-frame 120x36 --tab files`, one commit with 100 000 files in 20 x 50 x 100 directories): `ls-tree -r -z --long` alone 0.21 s, the whole frame (process start, read, parse, model, rows, render) 0.60 s. The tree is shown as "Loading..." meanwhile and the UI never waits. A filter walks every file once per keystroke: the worst case (a one-letter filter that matches all 100 000 files and their directories, 201 020 rows) took 72 ms in `Rows` plus 16 ms to build the pane rows in a Debug build (JIT), so a keystroke stays near 0.1 s; rows are not built lazily. Lazy per-directory loading was not needed at this size; revisit it if a 1M-file monorepo shows up.
 
 ## Native AOT
 

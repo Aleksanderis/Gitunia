@@ -16,6 +16,7 @@ using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Tags;
+using Gitunia.Git.Trees;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
@@ -32,6 +33,7 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitLog">Reads the commit log.</param>
 /// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
 /// <param name="CommitDetails">Reads one commit's details.</param>
+/// <param name="CommitTree">Lists the files of a commit's tree.</param>
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
@@ -60,6 +62,7 @@ public sealed record GitServices(
     ICommitLogReader CommitLog,
     ICommitMessageSearcher CommitMessages,
     ICommitDetailsReader CommitDetails,
+    ICommitTreeReader CommitTree,
     IDiffReader Diff,
     IRefReader Refs,
     IStatusReader Status,
@@ -103,6 +106,7 @@ public sealed record GitServices(
             commitLog,
             new CommitMessageSearcher(runner),
             new CommitDetailsReader(runner),
+            new CommitTreeReader(runner),
             new DiffReader(runner),
             refs,
             status,

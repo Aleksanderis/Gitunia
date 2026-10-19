@@ -18,8 +18,15 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class TabSession : IDisposable
 {
-    public TabSession(TabId tabId, GraphGlyphSet glyphs, CommitDetailsStore details, DiffStore? diffStore = null, WorkingDiffStore? workingDiffStore = null)
+    public TabSession(
+        TabId tabId,
+        GraphGlyphSet glyphs,
+        CommitDetailsStore details,
+        DiffStore? diffStore = null,
+        WorkingDiffStore? workingDiffStore = null,
+        FileTreeSession? tree = null)
     {
+        Tree = tree;
         TabId = tabId;
         Details = details;
         Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs);
@@ -61,6 +68,10 @@ public sealed class TabSession : IDisposable
 
     /// <summary>The details of the commit selected in the graph, loaded on demand.</summary>
     public CommitDetailsStore Details { get; }
+
+    /// <summary>The tab's Files tab (tree store, opened directories, filter); null in sessions built without a tree
+    /// store (tests).</summary>
+    public FileTreeSession? Tree { get; }
 
     /// <summary>The tab's diff pane; null in sessions built without a diff store (tests).</summary>
     public DiffSession? Diff { get; }
@@ -135,6 +146,7 @@ public sealed class TabSession : IDisposable
     public void Dispose()
     {
         Details.Dispose();
+        Tree?.Dispose();
         Diff?.Dispose();
         WorkingDiff?.Dispose();
         Cancellation.Cancel();
