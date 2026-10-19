@@ -91,7 +91,7 @@ public class DiffPaneControllerTests
         Assert.Contains(firstAfterStart!.Value, document.HunkRows);
         Assert.Equal(firstAfterStart, back);
         Assert.Equal(firstAfterStart, harness.DiffList.SelectedItem);
-        Assert.Equal("No next file", harness.Controller.Notice);
+        Assert.Equal("The diff shows the selected file only; pick another in the file list", harness.Controller.Notice);
         Assert.Same(document, harness.Session.Diff.Source.Document);
     }
 
@@ -296,11 +296,16 @@ public class DiffPaneControllerTests
         var document = harness.Session.Diff!.Source.Document;
         var listCursor = harness.DetailList.SelectedItem;
 
+        harness.Execute(ActionIds.ListBottom);
+        var cursor = harness.DiffList.SelectedItem;
+        harness.Execute(ActionIds.DiffPreviousFile);
+        Assert.Equal(cursor, harness.DiffList.SelectedItem);
         harness.Execute(ActionIds.DiffNextFile);
 
+        Assert.Equal(cursor, harness.DiffList.SelectedItem);
         Assert.Same(document, harness.Session.Diff.Source.Document);
         Assert.Equal(listCursor, harness.DetailList.SelectedItem);
-        Assert.Equal("No next file", harness.Controller.Notice);
+        Assert.Equal("The diff shows the selected file only; pick another in the file list", harness.Controller.Notice);
     }
 
     [Fact]

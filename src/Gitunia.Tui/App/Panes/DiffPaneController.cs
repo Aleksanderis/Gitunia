@@ -285,9 +285,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
         else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
         {
-            // The pane holds the one file chosen in the file list, so this only reports the end.
-            var document = diff.Source.Document;
-            _actions.Jump(diff, document.FileRows, _actions.CursorRow(diff), action == ActionIds.DiffNextFile, count, "file");
+            Notice = "The diff shows the selected file only; pick another in the file list";
         }
         else if (action == ActionIds.NavigateBack)
         {

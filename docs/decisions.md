@@ -406,4 +406,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
 
-**UI:** The history diff pane shows one file, the one under the file list cursor (#537); `]c`/`[c`, scrolling and the title `hunk n/m` stop at that file's ends, `]f`/`[f` only report the end, and the title drops `file n/m`. Each hunk header is drawn as a rule separator row. A folder view (all changes of a folder) is later, M5. Supersedes the multi-file pane of 1c items 1, 2 and 10.
+**UI:** The history diff pane shows one file, the one under the file list cursor (#537); `]c`/`[c`, scrolling and the title `hunk n/m` stop at that file's ends, `]f`/`[f` only report the end, and the title drops `file n/m`. Each hunk header is drawn as a rule separator row. A folder view (all changes of a folder) is later, M5. Supersedes the multi-file pane of 1c items 1, 2 and 10 and the file jumps of the #25 and #310 entries.
