@@ -92,8 +92,8 @@ public sealed class RebaseEditorController(
     }
 
     /// <summary>
-    /// Handles an action: opens the editor on <see cref="ActionIds.RebaseInteractive"/> and, while it is open and no
-    /// dialog covers it, consumes every action (nothing behind it may move). Returns true when the action was consumed.
+    /// Handles an action: opens the editor on <see cref="ActionIds.RebaseInteractive"/> or
+    /// <see cref="ActionIds.RebaseInteractiveRoot"/> and, while it is open and no dialog covers it, consumes every action (nothing behind it may move). Returns true when the action was consumed.
     /// </summary>
     public bool TryExecute(ActionId action, int? count)
     {
