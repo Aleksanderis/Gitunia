@@ -14,7 +14,8 @@ public static class TextWidth
 
     /// <summary>
     /// Makes <paramref name="text"/> fit <paramref name="columns"/>: control characters become spaces and an overlong text
-    /// is cut and ends with <paramref name="ellipsis"/>. A wide character is never split.
+    /// is cut and ends with <paramref name="ellipsis"/>. A wide character is never split. Joined emoji sequences are measured
+    /// by <see cref="WidthCounter"/>.
     /// </summary>
     public static string Fit(string text, int columns, string ellipsis)
     {
@@ -27,9 +28,10 @@ public static class TextWidth
         var limit = fits ? columns : Math.Max(0, columns - Of(ellipsis));
         var builder = new StringBuilder(Math.Min(text.Length, columns * 2));
         var width = 0;
+        var counter = new WidthCounter();
         foreach (var rune in text.EnumerateRunes())
         {
-            var runeWidth = Of(rune);
+            var runeWidth = counter.Next(rune);
             if (width + runeWidth > limit)
             {
                 break;

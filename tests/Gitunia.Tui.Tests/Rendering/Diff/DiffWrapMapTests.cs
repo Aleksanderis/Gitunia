@@ -49,6 +49,16 @@ public class DiffWrapMapTests
     }
 
     [Fact]
+    public void GivenJoinedEmoji_WhenChunking_ThenTheSequenceStaysInOneChunk()
+    {
+        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
+
+        var chunks = DiffRowRenderer.Chunks($"ab{family}cd", 3);
+
+        Assert.Equal(["ab", family + "c", "d"], chunks);
+    }
+
+    [Fact]
     public void GivenATabHeavyRow_WhenCountingSegments_ThenEveryColumnOfTheExpandedTextIsReachable()
     {
         var row = new DiffRow(DiffRowKind.Added, $"{new string('\t', 7)}abcdefghijk", null, 1, 0);

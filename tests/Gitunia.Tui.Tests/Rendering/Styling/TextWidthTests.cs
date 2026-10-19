@@ -37,6 +37,23 @@ public class TextWidthTests
     }
 
     [Fact]
+    public void GivenJoinedEmoji_WhenFitting_ThenItCountsTwoColumnsAndIsKeptWhole()
+    {
+        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
+
+        Assert.Equal($"ab{family}", TextWidth.Fit($"ab{family}", 4, "…"));
+        Assert.Equal($"a{family}…", TextWidth.Fit($"a{family}cdef", 4, "…"));
+    }
+
+    [Fact]
+    public void GivenJoinedEmojiThatDoesNotFit_WhenFitting_ThenItIsDroppedNotCut()
+    {
+        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
+
+        Assert.Equal("abc…", TextWidth.Fit($"abc{family}", 4, "…"));
+    }
+
+    [Fact]
     public void GivenNoRoom_WhenFitting_ThenResultIsEmpty()
     {
         Assert.Equal(string.Empty, TextWidth.Fit("hello", 0, "…"));

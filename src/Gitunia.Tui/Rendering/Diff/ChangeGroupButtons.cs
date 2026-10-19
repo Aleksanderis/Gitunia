@@ -1,5 +1,6 @@
 using System.Text;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -102,9 +103,10 @@ public static class ChangeGroupButtons
             }
 
             var builder = new StringBuilder();
+            var counter = new WidthCounter();
             foreach (var rune in segment.Text.EnumerateRunes())
             {
-                var width = TextWidth.Of(rune);
+                var width = counter.Next(rune);
                 if (used + width > columns)
                 {
                     builder.Append(' ', columns - used);
