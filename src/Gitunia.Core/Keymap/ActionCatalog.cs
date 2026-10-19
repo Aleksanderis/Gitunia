@@ -41,6 +41,11 @@ public static class ActionCatalog
         ActionIds.WorkingTreeMessageNewLine,
     ];
 
+    private static readonly HashSet<ActionId> PaletteOnlyActions =
+    [
+        ActionIds.SettingsOpenTheme,
+    ];
+
     private static readonly HashSet<ActionId> CopyActions =
     [
         ActionIds.GraphCopyHash,
@@ -186,6 +191,7 @@ public static class ActionCatalog
         ["repo.pin"] = "Pin to the top of the picker (toggle)",
         ["repo.refresh"] = "Refresh the repository",
         ["settings.open"] = "Open the settings",
+        ["settings.open-theme"] = "Open the settings at the theme",
         ["settings.activate"] = "Settings: enter the column, edit the setting or keep the option",
         ["settings.toggle"] = "Settings: flip the toggle under the cursor",
         ["settings.filter"] = "Settings: filter the settings by name and help text",
@@ -267,6 +273,9 @@ public static class ActionCatalog
 
     /// <summary>Actions that are bound but have no behaviour yet; the palette shows them greyed out until their milestone. Empty today: add an id here when a binding lands ahead of its feature, remove it when the feature does.</summary>
     public static IReadOnlySet<ActionId> Unimplemented { get; } = FrozenSet<ActionId>.Empty;
+
+    /// <summary>Actions with no key: the palette lists them without keys, the mouse reaches them there.</summary>
+    public static IReadOnlySet<ActionId> PaletteOnly { get; } = PaletteOnlyActions.ToFrozenSet();
 
     /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
     public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);

@@ -1,7 +1,9 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Remotes;
@@ -97,6 +99,168 @@ public class RemoteActionsTests
             harness.Writer.Calls);
         Assert.Equal("Push failed: ! [rejected] main -> main", harness.Statuses.Log.Latest!.Text);
         Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest.Severity);
+    }
+
+    [Theory]
+    [InlineData("user@host: Permission denied (publickey).\nfatal: Could not read from remote repository.")]
+    [InlineData("fatal: could not read Username for 'https://example.com': terminal prompts disabled")]
+    public async Task GivenAFetchThatNeedsCredentials_WhenItFails_ThenTheConfirmOffersTheTerminalAndYRunsTheSameFetch(
+        string standardError)
+    {
+        using var harness = new Harness();
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, standardError);
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Retry in terminal", prompt.YesLabel);
+        Assert.Contains("Runs: git fetch --prune", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Empty(harness.TerminalCalls);
+
+        harness.Answers[0]();
+
+        var call = Assert.Single(harness.TerminalCalls);
+        Assert.Equal($"fetch|{harness.Root}|fetch --prune", call);
+    }
+
+    [Fact]
+    public async Task GivenAPullThatNeedsCredentials_WhenRetrying_ThenTheTerminalRunsAFastForwardOnlyPull()
+    {
+        using var harness = new Harness();
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "fatal: Authentication failed for 'x'");
+
+        harness.Execute(ActionIds.RemotePull);
+        await harness.WaitAsync();
+        harness.Answers[0]();
+
+        Assert.Equal([$"pull|{harness.Root}|pull --no-rebase --ff-only"], harness.TerminalCalls);
+        Assert.False(harness.Gate.IsAnyBusy);
+    }
+
+    [Fact]
+    public async Task GivenAForcePushThatNeedsCredentials_WhenRetrying_ThenTheTerminalKeepsTheLease()
+    {
+        using var harness = new Harness();
+        harness.Writer.Failure = new GitCommandFailedException(["push"], 128, "Permission denied (publickey).");
+        var tab = harness.Tab;
+
+        harness.Actions.StartPush(
+            tab,
+            new PushRequest("origin", "topic", false, new PushLease("topic", "abc123")),
+            "Force pushed");
+        await harness.WaitAsync();
+        harness.Answers[0]();
+
+        Assert.Equal(
+            [$"push|{harness.Root}|push --force-with-lease=refs/heads/topic:abc123 -- origin topic:refs/heads/topic"],
+            harness.TerminalCalls);
+    }
+
+    [Fact]
+    public async Task GivenAFailureThatIsNotAboutCredentials_WhenItFails_ThenNoTerminalIsOffered()
+    {
+        using var harness = new Harness();
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "fatal: repository 'x' not found");
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
+    public async Task GivenACancelledFetch_WhenItEnds_ThenNoTerminalIsOffered()
+    {
+        using var harness = new Harness();
+        harness.Writer.Blocks = true;
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.Writer.Started;
+
+        harness.Actions.TryExecute(ActionIds.Cancel, null);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
+    public async Task GivenTheConfirmCannotShow_WhenCredentialsAreNeeded_ThenTheStatusNamesTheCommandToRun()
+    {
+        using var harness = new Harness { CanConfirm = false };
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+
+        Assert.Equal(
+            "Fetch in gitunia-remote-actions-tests needs credentials: run `git fetch --prune` in a terminal",
+            harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAnotherOverlayIsOpen_WhenCredentialsAreNeeded_ThenNoConfirmReplacesItAndTheStatusSaysHow()
+    {
+        using var harness = new Harness { OverlayOpen = true };
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("run `git fetch --prune` in a terminal", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTheTabIsNotActiveAnymore_WhenCredentialsAreNeeded_ThenNoConfirmIsShown()
+    {
+        using var harness = new Harness();
+        harness.Writer.Blocks = true;
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.Writer.Started;
+        harness.OpenSecondTab();
+
+        harness.Writer.Release();
+        await harness.WaitAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("needs credentials", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAnotherFetchStartedWhileTheConfirmWasOpen_WhenAnswering_ThenTheTerminalDoesNotRaceIt()
+    {
+        using var harness = new Harness();
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+        harness.Writer.Failure = null;
+        harness.Writer.Blocks = true;
+        harness.Execute(ActionIds.RemoteFetch);
+
+        harness.Answers[0]();
+
+        Assert.Empty(harness.TerminalCalls);
+        Assert.StartsWith("Busy", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        harness.Writer.Release();
+        await harness.WaitAsync();
+    }
+
+    [Fact]
+    public async Task GivenTheTerminalCannotStart_WhenRetrying_ThenTheNoticeIsShown()
+    {
+        const string notice = "External tools are not supported on this operating system";
+        using var harness = new Harness { TerminalNotice = notice };
+        harness.Writer.Failure = new GitCommandFailedException(["fetch"], 128, "Permission denied (publickey).");
+
+        harness.Execute(ActionIds.RemoteFetch);
+        await harness.WaitAsync();
+        harness.Answers[0]();
+
+        Assert.Equal(
+            notice,
+            harness.Statuses.Log.Latest!.Text);
     }
 
     [Fact]
@@ -253,7 +417,10 @@ public class RemoteActionsTests
                     return true;
                 },
                 () => { },
-                Gate);
+                Gate,
+                Confirm,
+                () => OverlayOpen,
+                RunInTerminal);
         }
 
         public string Root { get; }
@@ -272,12 +439,52 @@ public class RemoteActionsTests
 
         public int Refreshes { get; private set; }
 
+        public RepositoryState Tab => _host.Workspace.ActiveTab!;
+
+        public List<ConfirmPrompt> Prompts { get; } = [];
+
+        public List<Action> Answers { get; } = [];
+
+        public List<string> TerminalCalls { get; } = [];
+
+        public bool CanConfirm { get; init; } = true;
+
+        public bool OverlayOpen { get; set; }
+
+        public string TerminalNotice { get; init; } = string.Empty;
+
         public void Execute(ActionId action) => Actions.TryExecute(action, null);
 
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Actions.IsRunning(TabId));
 
+        public void OpenSecondTab()
+        {
+            var other = Path.Combine(Root, "other");
+            var gitDirectory = Path.Combine(other, ".git");
+            _host.Dispatch(
+                new OpenRepositoryCommand(new RepositoryLocation(other, gitDirectory, gitDirectory, false, false)));
+        }
+
         public void Dispose()
         {
+        }
+
+        private bool Confirm(ConfirmPrompt prompt, Action onYes)
+        {
+            if (!CanConfirm)
+            {
+                return false;
+            }
+
+            Prompts.Add(prompt);
+            Answers.Add(onYes);
+            return true;
+        }
+
+        private string RunInTerminal(string name, IReadOnlyList<string> arguments, RepositoryLocation location)
+        {
+            TerminalCalls.Add($"{name}|{location.RootPath}|{string.Join(' ', arguments)}");
+            return TerminalNotice;
         }
     }
 }

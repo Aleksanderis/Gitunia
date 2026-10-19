@@ -113,6 +113,7 @@ public sealed class TuiApplication(
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
+    private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
     private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
@@ -249,6 +250,14 @@ public sealed class TuiApplication(
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        // The tool runner comes before the remote actions, whose terminal retry launches git through it.
+        _externalToolRunner = new ExternalToolRunner(
+            new ExternalToolLauncher(),
+            this,
+            _statuses,
+            RefreshAfterTool,
+            PauseForEnter);
+
         // The remote actions come first: remote management reads their running state through a method group.
         _remote = CreateRemote(operationGate);
         _effects.IsTabBusy = tabId => operationGate.IsBusy(tabId) || _remote.IsRunning(tabId);
@@ -280,7 +289,7 @@ public sealed class TuiApplication(
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.ExternalTools = new ExternalToolActions(
-            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool, PauseForEnter),
+            _externalToolRunner,
             () => _host.Workspace.ActiveTab?.Location,
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
@@ -485,7 +494,8 @@ public sealed class TuiApplication(
     private void RouteAction(ActionId action, int? count)
     {
         // The settings do not open over another overlay (help, palette, a dialog, the reflog).
-        if (action == ActionIds.SettingsOpen && (_overlays.State.IsOpen || _reflog.IsOpen))
+        if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
+            && (_overlays.State.IsOpen || _reflog.IsOpen))
         {
             return;
         }
@@ -884,7 +894,10 @@ public sealed class TuiApplication(
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
-        gate);
+        gate,
+        ShowConfirm,
+        IsAnyOverlayOpen,
+        _externalToolRunner.LaunchGit);
 
     private PushActions CreatePush() => new(
         _host,
@@ -1174,6 +1187,7 @@ public sealed class TuiApplication(
         SetMode,
         RefreshOverlay,
         ApplyOptions,
+        ApplyTheme,
         new ConfigEditorLauncher(
             new ExternalToolLauncher(),
             this,
@@ -1197,6 +1211,21 @@ public sealed class TuiApplication(
         }
 
         Relayout();
+    }
+
+    // The theme on screen changed (previewed, kept or restored by the settings screen): the palette is rebuilt and
+    // every view repainted. An auto theme that was not asked for at start uses the COLORFGBG guess; the terminal is
+    // only queried (OSC 11) before the UI takes over the input.
+    private void ApplyTheme(ThemeChoice theme)
+    {
+        if (_startupConfig.Theme == theme)
+        {
+            return;
+        }
+
+        _startupConfig = _startupConfig with { Theme = theme };
+        ConfigurePalette();
+        _view.RefreshPalette();
     }
 
     private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(

@@ -1,6 +1,7 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
@@ -150,6 +151,7 @@ public sealed class EffectRunner : IDisposable
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;
+        session.ExpandRequested += () => ExpandGraph(session, location, token);
         void Start()
         {
             session.MarkStarted();
@@ -181,6 +183,25 @@ public sealed class EffectRunner : IDisposable
         {
             _pendingLoads[load.TabId] = Start;
         }
+    }
+
+    // Runs on the UI thread (the session asked for it), so the graph can be read here.
+    private void ExpandGraph(TabSession session, RepositoryLocation location, CancellationToken token)
+    {
+        var shownCount = session.Graph.Count;
+        var lastShown = session.Graph[shownCount - 1].Id;
+        var version = session.GraphVersion;
+        _ = Task.Run(
+            () => _services.RepositoryLoader.ExpandAsync(
+                location,
+                session,
+                _statuses,
+                _postToUi,
+                shownCount,
+                lastShown,
+                version,
+                token),
+            CancellationToken.None);
     }
 
     private void DisposeRefresher(TabId tabId)

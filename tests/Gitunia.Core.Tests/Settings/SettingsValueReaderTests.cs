@@ -25,6 +25,33 @@ public class SettingsValueReaderTests
         Assert.Empty(load.Warnings);
     }
 
+    [Theory]
+    [InlineData("{}", "auto", ThemeChoice.Auto)]
+    [InlineData("{ \"theme\": \"dark\" }", "dark", ThemeChoice.Dark)]
+    [InlineData("{ \"theme\": \"Light\" }", "light", ThemeChoice.Light)]
+    public void GivenATheme_WhenReading_ThenTheChoiceAndTheRunningThemeHoldIt(
+        string text,
+        string choice,
+        ThemeChoice expected)
+    {
+        var load = Read(new ConfigSnapshot(true, text, "h"));
+
+        Assert.Equal(choice, load.Values[SettingsRegistry.ThemeId].Choice);
+        Assert.Equal(expected, load.Theme);
+        Assert.Empty(load.Warnings);
+    }
+
+    [Fact]
+    public void GivenAnUnknownTheme_WhenReading_ThenAutoShowsWithAWarningOnTheThemeRow()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"theme\": \"solarized\" }", "h"));
+
+        Assert.Equal("auto", load.Values[SettingsRegistry.ThemeId].Choice);
+        Assert.Equal(ThemeChoice.Auto, load.Theme);
+        Assert.Contains("solarized", load.Warnings[SettingsRegistry.ThemeId], StringComparison.Ordinal);
+        Assert.Equal(string.Empty, load.Banner);
+    }
+
     [Fact]
     public void GivenAFileWithValues_WhenReading_ThenTheScreenAndTheOptionsHoldThem()
     {

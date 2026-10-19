@@ -8,8 +8,8 @@ namespace Gitunia.Git.Rebase;
 
 /// <summary>
 /// Rebases with the git CLI. <c>-c core.editor=true</c> keeps any message edit from opening an editor (it is passed per
-/// call and never written); no <c>--interactive</c>, so no todo list is opened (interactive rebase is #399). Hooks and
-/// config are the user's.
+/// call and never written); no <c>--interactive</c>, so no todo list is opened (see
+/// <see cref="InteractiveRebaseWriter"/>). Hooks and config are the user's.
 /// </summary>
 public sealed class RebaseWriter(OperationRunner runner, GitRunner git) : IRebaseWriter
 {

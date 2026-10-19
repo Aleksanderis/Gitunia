@@ -155,6 +155,28 @@ public class SearchControllerTests
     }
 
     [Fact]
+    public void GivenACutLog_WhenTheSearchScansToTheLoadedEnd_ThenTheRestLoadsAndTheSearchStaysOpenUntilItArrives()
+    {
+        using var harness = new PromptHarness(Graph());
+        harness.Session.Truncate(8);
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Press(new Key('/'));
+        harness.Type("zeta");
+
+        Assert.Equal(1, requests);
+        Assert.False(harness.Session.Search.IsComplete);
+        var more = CommitFactory.Graph(
+            CommitFactory.Commit(9, "the zeta commit", [8]),
+            CommitFactory.Commit(8, "later", []));
+        harness.Session.Append([more[0], more[1]]);
+        harness.Session.CompleteExpansion();
+        Assert.Single(harness.Session.Search.Matches);
+        Assert.True(harness.Session.Search.IsComplete);
+    }
+
+    [Fact]
     public void GivenAcceptedSearch_WhenTheGraphIsReplacedByARefresh_ThenTheSearchRescansTheNewRows()
     {
         using var harness = new PromptHarness(Graph());

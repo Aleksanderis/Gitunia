@@ -25,6 +25,10 @@ public static class ExternalToolCommands
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
+    /// <summary>Prefixes <paramref name="arguments"/> with <c>-C &lt;repositoryPath&gt;</c>.</summary>
+    public static IReadOnlyList<string> InRepository(string repositoryPath, IReadOnlyList<string> arguments) =>
+        [RepositoryDirectoryOption, repositoryPath, .. arguments];
+
     /// <summary>The name shown in messages.</summary>
     public static string NameOf(ExternalToolKind kind) =>
         kind switch

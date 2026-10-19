@@ -138,7 +138,7 @@ public sealed class SearchController(
         }
         else
         {
-            Dispatch(session, new GraphGrewCommand(session.Graph.Count, !session.IsLoading));
+            Dispatch(session, new GraphGrewCommand(session.Graph.Count, session.IsGraphComplete));
         }
     }
 
@@ -268,6 +268,19 @@ public sealed class SearchController(
         }
 
         var result = GraphSearchScanner.Scan(search.Query, session.Graph, search.Scanned, SliceSize);
-        Dispatch(session, new ScanProgressCommand(generation, result.Matches, result.NextIndex, session.Graph.Count, !session.IsLoading));
+        Dispatch(
+            session,
+            new ScanProgressCommand(
+                generation,
+                result.Matches,
+                result.NextIndex,
+                session.Graph.Count,
+                session.IsGraphComplete));
+
+        // The scan reached the end of a cut log: the rest loads, and the scan goes on as it arrives (#515).
+        if (result.NextIndex >= session.Graph.Count)
+        {
+            session.RequestExpand();
+        }
     }
 }

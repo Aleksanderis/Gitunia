@@ -1,7 +1,9 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
@@ -42,9 +44,15 @@ public sealed class RepositoryLoader
         var sidebarData = _sidebarLoader.LoadAsync(location, session.TabId, host, statuses, postToUi, token);
         try
         {
-            await foreach (var batch in _graphLoader.StreamAsync(location, CommitOrder.Topological, null, token).ConfigureAwait(false))
+            var cut = new GraphCut();
+            await foreach (var batch in _graphLoader.StreamCappedAsync(location, cut, token).ConfigureAwait(false))
             {
                 postToUi(() => session.Append(batch));
+            }
+
+            if (cut.TruncatedTotal is { } total)
+            {
+                postToUi(() => session.Truncate(total));
             }
 
             postToUi(session.Complete);
@@ -65,6 +73,102 @@ public sealed class RepositoryLoader
 
         await metadata.ConfigureAwait(false);
         await sidebarData.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Streams the rest of a cut log and appends it behind the rows the session already shows. The log is read again
+    /// from the newest commit (the lane layout needs every row before), and the rows already shown are skipped. A
+    /// refresh that replaces the graph meanwhile ends this quietly; a log that no longer starts with the shown rows
+    /// ends it with a message.
+    /// </summary>
+    /// <param name="location">The repository of the tab.</param>
+    /// <param name="session">Receives the rows.</param>
+    /// <param name="statuses">Told when the log changed under the read or the read failed.</param>
+    /// <param name="postToUi">Runs an action on the UI thread.</param>
+    /// <param name="shownCount">Rows the session shows now.</param>
+    /// <param name="lastShown">The last of them, which the stream must reach at the same place.</param>
+    /// <param name="graphVersion">The session's graph version now; a replacement makes this read stale.</param>
+    /// <param name="token">Cancelled when the tab closes.</param>
+    public async Task ExpandAsync(
+        RepositoryLocation location,
+        TabSession session,
+        StatusChannel statuses,
+        Action<Action> postToUi,
+        int shownCount,
+        ObjectId lastShown,
+        int graphVersion,
+        CancellationToken token)
+    {
+        var name = Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath));
+        var seen = 0;
+        try
+        {
+            var stream = _graphLoader.StreamAsync(location, CommitOrder.Topological, null, token);
+            await foreach (var batch in stream.ConfigureAwait(false))
+            {
+                var skip = Math.Clamp(shownCount - seen, 0, batch.Count);
+                if (skip > 0 && seen + skip == shownCount && batch[skip - 1].Id != lastShown)
+                {
+                    postToUi(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
+
+                    return;
+                }
+
+                seen += batch.Count;
+                if (skip < batch.Count)
+                {
+                    var rest = skip == 0 ? batch : batch.Skip(skip).ToList();
+                    postToUi(() => AppendExpansion(session, graphVersion, rest));
+                }
+            }
+
+            if (seen < shownCount)
+            {
+                postToUi(() => ExpansionFailed(session, statuses, graphVersion, ChangedMessage(name)));
+
+                return;
+            }
+
+            postToUi(() => CompleteExpansion(session, graphVersion));
+        }
+        catch (OperationCanceledException)
+        {
+            // The tab was closed.
+        }
+        catch (Exception exception)
+        {
+            var message = $"{name}: could not load the full history: {exception.Message}";
+            postToUi(() => ExpansionFailed(session, statuses, graphVersion, message));
+        }
+    }
+
+    private static string ChangedMessage(string name) => $"{name}: history changed while loading, press r to refresh";
+
+    private static void AppendExpansion(TabSession session, int graphVersion, IReadOnlyList<GraphEntry> rows)
+    {
+        if (session.GraphVersion == graphVersion)
+        {
+            session.Append(rows);
+        }
+    }
+
+    private static void CompleteExpansion(TabSession session, int graphVersion)
+    {
+        if (session.GraphVersion == graphVersion)
+        {
+            session.CompleteExpansion();
+        }
+    }
+
+    private static void ExpansionFailed(TabSession session, StatusChannel statuses, int graphVersion, string message)
+    {
+        if (session.GraphVersion != graphVersion)
+        {
+            return;
+        }
+
+        statuses.Error(message);
+        session.EndExpansion();
     }
 
     private async Task LoadMetadataAsync(RepositoryLocation location, TabId tabId, WorkspaceHost host, StatusChannel statuses, Action<Action> postToUi, CancellationToken token)

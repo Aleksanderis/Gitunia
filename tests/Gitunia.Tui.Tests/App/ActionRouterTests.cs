@@ -34,6 +34,35 @@ public class ActionRouterTests
     }
 
     [Fact]
+    public void GivenTheLogIsCutAtTheSoftLimit_WhenPressingG_ThenTheRestIsRequestedAndTheHintShows()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+        harness.Session.Truncate(500);
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Router.Execute(ActionIds.ListBottom, null);
+
+        Assert.Equal(1, requests);
+        Assert.True(harness.Session.IsLoading);
+        Assert.Equal(ActionRouter.StillLoadingNotice, harness.Router.Message);
+        Assert.Equal(CommitCount - 1 + ScreenLayout.ReservedLeadingRows, harness.GraphList.SelectedItem);
+    }
+
+    [Fact]
+    public void GivenTheLogIsCutAtTheSoftLimit_WhenPressingGWithACount_ThenTheRestIsNotRequested()
+    {
+        using var harness = new RouterHarness(isLoading: false);
+        harness.Session.Truncate(500);
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Router.Execute(ActionIds.ListBottom, 3);
+
+        Assert.Equal(0, requests);
+    }
+
+    [Fact]
     public void GivenTheLogIsLoaded_WhenPressingG_ThenThereIsNoHint()
     {
         using var harness = new RouterHarness(isLoading: false);

@@ -22,8 +22,8 @@ public class SettingsFrameBuilderTests
                 '\n',
                 " Settings".PadRight(76),
                 "│ / filter                                                                 │",
-                "│  Appearance    │  Frame style                                [rounded ▾] │",
-                "│  Repositories  │                                                         │",
+                "│  Appearance    │  Theme                                         [auto ▾] │",
+                "│  Repositories  │  Frame style                                [rounded ▾] │",
                 "│  Tabs          │                                                         │",
                 "│  Config file   │                                                         │",
                 "│                │                                                         │",
@@ -86,12 +86,11 @@ public class SettingsFrameBuilderTests
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
 
-        var row = frame.Lines[2].Segments;
         Assert.Contains(
-            row,
+            frame.Lines[2].Segments,
             segment => segment.Selection == SegmentSelection.Dim && segment.Text.Contains("Appearance"));
         Assert.Contains(
-            row,
+            frame.Lines[3].Segments,
             segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Frame style"));
         Assert.Equal(
             1,
@@ -106,8 +105,8 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
         var text = frame.Lines.Select(line => line.Text).ToList();
 
-        Assert.Contains("● rounded", text[3], StringComparison.Ordinal);
-        Assert.Contains("○ square", text[4], StringComparison.Ordinal);
+        Assert.Contains("● rounded", text[4], StringComparison.Ordinal);
+        Assert.Contains("○ square", text[5], StringComparison.Ordinal);
         Assert.Contains("Esc restore", text[^2], StringComparison.Ordinal);
     }
 
@@ -119,7 +118,7 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Ascii)!;
 
         Assert.All(frame.Lines, line => Assert.True(line.Text.All(character => character < 128), line.Text));
-        Assert.Contains("(*) rounded", frame.Lines[3].Text, StringComparison.Ordinal);
+        Assert.Contains("(*) rounded", frame.Lines[4].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -214,7 +213,7 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;
 
-        Assert.Contains("! Frame style", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("! Frame style", frame.Lines[3].Text, StringComparison.Ordinal);
         Assert.Contains("! frameStyle must be", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
     }
 

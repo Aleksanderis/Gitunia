@@ -201,6 +201,8 @@ public static class ActionIds
 
     public static ActionId SettingsOpen { get; } = new("settings.open");
 
+    public static ActionId SettingsOpenTheme { get; } = new("settings.open-theme");
+
     public static ActionId SettingsActivate { get; } = new("settings.activate");
 
     public static ActionId SettingsToggle { get; } = new("settings.toggle");

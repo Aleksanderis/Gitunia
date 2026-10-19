@@ -69,7 +69,7 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 - `ExternalToolRunner` (Tui) orchestrates: suspend, run, pause for Enter on a non-zero exit (git's own message stays readable), resume, report the exit code in the status bar, refresh the tab quietly.
 - `ITerminalSuspender` is implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (leaves the alternate screen, restores terminal and console modes, ends the input thread so the tool is the only stdin reader), runs the tool, then creates a fresh `IApplication` (2.5.0 cannot dispose and re-initialise the same instance twice), re-applies the palette and key handler and runs the same window again. The new driver reads the terminal size, so a resize while suspended is handled.
 - Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
-- The credential-prompt issue reuses `ITerminalSuspender`.
+- The credential retry (#45) reuses `ITerminalSuspender` through `ExternalToolRunner.LaunchGit`, which runs any git argument list (`-C <repo>` prefixed) with the real terminal, with no environment set: the user's ssh, askpass and credential helper decide how to prompt.
 
 ## Files tab (commit tree)
 
@@ -79,7 +79,7 @@ Measured on Linux with the AOT binary (`--print-frame 120x36 --tab files`, one c
 
 ## Native AOT
 
-Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Every dependency addition and every dispatched CI run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64.
+Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Every dependency addition and every dispatched CI run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64. Release archives for linux-x64 and win-x64 are built on `v*` tags by `ci.yml` (`scripts/package.sh`, draft release).
 
 ## Composition root
 

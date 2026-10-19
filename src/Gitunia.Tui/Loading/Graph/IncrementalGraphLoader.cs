@@ -26,12 +26,18 @@ public sealed class IncrementalGraphLoader
 
     /// <param name="location">The repository to read.</param>
     /// <param name="previous">The rows currently shown (a copy that nobody changes meanwhile); empty means a full read.</param>
+    /// <param name="isCapped">A full read stops at the soft row limit (the tab has not loaded its whole history); give
+    /// no previous rows then.</param>
     /// <param name="cancellationToken">Cancels the read and kills git.</param>
-    public async Task<GraphReload> ReloadAsync(RepositoryLocation location, IReadOnlyList<GraphEntry> previous, CancellationToken cancellationToken)
+    public async Task<GraphReload> ReloadAsync(
+        RepositoryLocation location,
+        IReadOnlyList<GraphEntry> previous,
+        bool isCapped,
+        CancellationToken cancellationToken)
     {
         if (previous.Count == 0)
         {
-            return await ReadAllAsync(location, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(location, isCapped, cancellationToken).ConfigureAwait(false);
         }
 
         var splicer = new GraphSplicer(previous);
@@ -60,7 +66,7 @@ public sealed class IncrementalGraphLoader
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
         if (await _commitLog.CountAsync(location, cancellationToken).ConfigureAwait(false) != expectedCount)
         {
-            return await ReadAllAsync(location, cancellationToken).ConfigureAwait(false);
+            return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
         var decorations = await _commitLog.ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
@@ -68,18 +74,25 @@ public sealed class IncrementalGraphLoader
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).
         return spliced is null
-            ? await ReadAllAsync(location, cancellationToken).ConfigureAwait(false)
+            ? await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false)
             : new GraphReload(spliced, previous.Count - joinIndex - 1);
     }
 
-    private async Task<GraphReload> ReadAllAsync(RepositoryLocation location, CancellationToken cancellationToken)
+    private async Task<GraphReload> ReadAllAsync(
+        RepositoryLocation location,
+        bool isCapped,
+        CancellationToken cancellationToken)
     {
         var entries = new List<GraphEntry>();
-        await foreach (var batch in _graphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellationToken).ConfigureAwait(false))
+        var cut = new GraphCut();
+        var stream = isCapped
+            ? _graphLoader.StreamCappedAsync(location, cut, cancellationToken)
+            : _graphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellationToken);
+        await foreach (var batch in stream.ConfigureAwait(false))
         {
             entries.AddRange(batch);
         }
 
-        return new GraphReload(entries, 0);
+        return new GraphReload(entries, 0, cut.TruncatedTotal);
     }
 }
