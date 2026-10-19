@@ -26,7 +26,7 @@ public sealed class ConfigStartup(string configDirectory)
 
     /// <summary>
     /// Posts the first few problems as warnings, newest last, so the status bar shows the first problem
-    /// (with a count of the others) and <c>&lt;space&gt;m</c> lists them all.
+    /// (with a count of the others) and <c>&lt;space&gt;m</c> shows the others.
     /// </summary>
     /// <param name="problems">The problems found while loading.</param>
     /// <param name="statuses">Where the warnings go.</param>
@@ -41,7 +41,7 @@ public sealed class ConfigStartup(string configDirectory)
         if (problems.Count > 0)
         {
             var others = problems.Count - 1;
-            var more = others > 0 ? $" (and {others} more, <space>m lists them)" : string.Empty;
+            var more = others > 0 ? $" (and {others} more, see <space>m)" : string.Empty;
             statuses.Warning($"Config: {problems[0]}{more}");
         }
     }

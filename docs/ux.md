@@ -335,9 +335,10 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 - Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the keymap table; a view's keys also apply to the views that inherit from it), `key` (notation of the keymap table), `action` (id from the palette/help, or `none`). One entry binds one mode and view; bind a key in Normal and Visual with two entries.
 - An entry on a key that already has a binding in that mode and view replaces it; `none` removes it (and uncovers a binding of the parent view, if any). Two entries for the same mode, view and key: the first applies, the second is reported.
-- Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, unreadable or over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
+- Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, has a field of the wrong type (`"key": 5`), is unreadable or is over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
 - Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
-- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` lists up to five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
+- Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
+- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
 
 ## Keymap
 

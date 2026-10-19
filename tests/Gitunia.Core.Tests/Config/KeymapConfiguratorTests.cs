@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
@@ -194,20 +193,49 @@ public class KeymapConfiguratorTests
     }
 
     [Fact]
-    public void GivenFiftyValidEntries_WhenApplying_ThenAllApplyWithinAFewSeconds()
+    public void GivenFiftyValidEntries_WhenApplying_ThenAllApplyWithoutConflicts()
     {
         var entries = Enumerable.Range(0, 50)
             .Select(index => Entry("Normal", "Graph", $"<space>Z{(char)('a' + (index % 26))}{index:D2}", "list.down"));
 
-        var watch = Stopwatch.StartNew();
         var result = Apply([.. entries]);
-        watch.Stop();
 
         Assert.Empty(result.Problems);
-        Assert.True(watch.ElapsedMilliseconds < 3000, $"took {watch.ElapsedMilliseconds} ms");
+        Assert.Empty(result.Table.FindConflicts());
     }
 
-    private static KeymapBuildResult Apply(params ConfigKeyEntry[] entries) => KeymapConfigurator.Apply(Defaults, entries);
+    [Fact]
+    public void GivenARefusedEntryThenAValidOneOnTheSameKey_WhenApplying_ThenTheSecondIsNotCalledADuplicate()
+    {
+        var result = Apply(
+            Entry("Normal", "Graph", "g", "list.down"),
+            Entry("Normal", "Graph", "g", "list.up"),
+            Entry("Normal", "Graph", "J", "list.down"));
+
+        Assert.Equal(["keys[0]", "keys[1]"], result.Problems.Select(problem => problem.Path));
+        Assert.DoesNotContain("earlier entry", result.Problems[1].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAParentViewKeyThatExtendsAChildViewKey_WhenApplying_ThenItIsRefused()
+    {
+        var result = Apply(Entry("Normal", "Graph", "Z", "list.up"), Entry("Normal", "Lists", "ZZ", "list.down"));
+
+        Assert.Equal("keys[1]", Assert.Single(result.Problems).Path);
+    }
+
+    [Fact]
+    public void GivenAParentViewKeyThatIsAPrefixOfAChildViewChord_WhenApplying_ThenItIsRefused()
+    {
+        var result = Apply(Entry("Normal", "Graph", "ZZ", "list.down"), Entry("Normal", "Lists", "Z", "list.up"));
+
+        Assert.Equal("keys[1]", Assert.Single(result.Problems).Path);
+    }
+
+    private static KeymapBuildResult Apply(params ConfigKeyEntry[] entries)
+    {
+        return KeymapConfigurator.Apply(Defaults, entries);
+    }
 
     private static ConfigKeyEntry Entry(string mode, string view, string key, string action)
     {

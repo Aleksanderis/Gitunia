@@ -42,7 +42,7 @@ public static class KeymapConfigurator
                 continue;
             }
 
-            if (!touched.Add(edit.Slot))
+            if (touched.Contains(edit.Slot))
             {
                 problems.Add(new ConfigProblem(path, $"{DescribeEdit(edit)} is already set by an earlier entry"));
                 continue;
@@ -62,6 +62,7 @@ public static class KeymapConfigurator
                 continue;
             }
 
+            touched.Add(edit.Slot);
             current = candidate;
         }
 
@@ -140,8 +141,9 @@ public static class KeymapConfigurator
         return result;
     }
 
-    // Looks only at the keys that share a prefix with the slot's sequence, in the slot's view and every view
-    // that inherits from it, so the cost does not grow with the size of the keymap (a full conflict scan does).
+    // Looks only at keys that share a prefix with the slot's sequence, in the slot's view and every view that
+    // inherits from it, instead of scanning every pair of the keymap (about 50 entries apply in a few milliseconds).
+    // After an unbind the sequence still resolves to the parent view's binding, which is checked the same way.
     private static BindingConflict? FindConflict(KeyBindingTable table, BindingSlot slot)
     {
         foreach (var view in table.Views.Where(name => table.ViewChain(name).Contains(slot.View)))

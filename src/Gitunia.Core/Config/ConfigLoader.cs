@@ -46,7 +46,8 @@ public sealed class ConfigLoader
         catch (JsonException exception)
         {
             var line = exception.LineNumber is { } number ? $" (line {number + 1})" : string.Empty;
-            problems.Add(new ConfigProblem(string.Empty, $"{FileName} is not valid{line}, using the defaults: {exception.Message}"));
+            var message = $"{FileName} is not valid{line}, using the defaults: {exception.Message}";
+            problems.Add(new ConfigProblem(string.Empty, message));
         }
 
         return new ConfigDocument();

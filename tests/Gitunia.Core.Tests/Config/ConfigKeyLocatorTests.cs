@@ -26,6 +26,14 @@ public class ConfigKeyLocatorTests
     }
 
     [Fact]
+    public void GivenAPropertyWrittenInOtherCase_WhenFinding_ThenItIsFoundLikeTheLoaderReadsIt()
+    {
+        var span = ConfigKeyLocator.Find("{ \"Keys\": [ { \"Key\": \"a\" } ] }", ["keys", "0", "key"]);
+
+        Assert.NotNull(span);
+    }
+
+    [Fact]
     public void GivenAnArrayPath_WhenFinding_ThenTheSpanCoversTheWholeObject()
     {
         var span = ConfigKeyLocator.Find(Text, ["keys", "0"]);

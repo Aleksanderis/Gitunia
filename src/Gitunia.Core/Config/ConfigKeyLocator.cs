@@ -6,7 +6,8 @@ namespace Gitunia.Core.Config;
 
 /// <summary>
 /// Finds where a value lives in the config text, so a settings screen can replace just that span and keep
-/// comments and formatting. A path is property names and array indexes, for example <c>keys</c>, <c>2</c>, <c>action</c>.
+/// comments and formatting. A path is property names (matched ignoring case, as the loader does) and array indexes,
+/// for example <c>keys</c>, <c>2</c>, <c>action</c>.
 /// </summary>
 public static class ConfigKeyLocator
 {
@@ -69,7 +70,7 @@ public static class ConfigKeyLocator
         TextSpan? found = null;
         while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
         {
-            var matches = found is null && reader.ValueTextEquals(path[depth]);
+            var matches = found is null && string.Equals(reader.GetString(), path[depth], StringComparison.OrdinalIgnoreCase);
             reader.Read();
             if (matches)
             {
