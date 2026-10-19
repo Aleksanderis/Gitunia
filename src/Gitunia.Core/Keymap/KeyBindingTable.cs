@@ -23,6 +23,10 @@ public sealed class KeyBindingTable
 
     public IReadOnlyList<KeyBinding> Bindings { get; }
 
+    /// <summary>A table with the same view hierarchy and other bindings (the effective-bindings cache is not shared).</summary>
+    /// <param name="bindings">The bindings of the new table.</param>
+    public KeyBindingTable WithBindings(IEnumerable<KeyBinding> bindings) => new(bindings, _viewParents);
+
     /// <summary>Every view name that appears in a binding or as a parent link, including <see cref="GlobalView"/>.</summary>
     public IReadOnlyCollection<string> Views
     {
