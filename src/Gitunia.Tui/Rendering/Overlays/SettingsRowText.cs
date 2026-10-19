@@ -38,6 +38,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         {
             SettingRowKind.Item => ItemText(state, row, value),
             SettingRowKind.NewItem => NewItemText(state),
+            SettingRowKind.Binding => BindingText(state.Reference[row.Index]),
             SettingRowKind.Option => new SettingsRowText(NoMarker, OptionText(row, value, glyphs), string.Empty),
             _ => SettingText(state, definition, value, glyphs),
         };
@@ -49,6 +50,9 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
     /// <param name="ellipsis">The cut mark.</param>
     public static string FitRight(string right, int settingsWidth, string ellipsis) =>
         TextWidth.Fit(right, Math.Max(0, settingsWidth / 2), ellipsis);
+
+    private static SettingsRowText BindingText(KeyReferenceEntry entry) =>
+        new(NoMarker, $"{ItemIndent}{entry.Title}", entry.Keys);
 
     private static SettingsRowText NewItemText(SettingsState state) =>
         new(NoMarker, $"{ItemIndent}> {TypedText(state)}{Cursor}", string.Empty);
@@ -85,6 +89,8 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
                     : $"[{value.Number}]";
             case SettingControl.PathList:
                 return $"{PathSummary(value)} {AddMarker}";
+            case SettingControl.KeyReference:
+                return state.Reference.Count == 1 ? "1 key" : $"{state.Reference.Count} keys";
             default:
                 return string.Empty;
         }

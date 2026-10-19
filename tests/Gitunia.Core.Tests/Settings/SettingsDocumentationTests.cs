@@ -31,6 +31,7 @@ public class SettingsDocumentationTests
         SettingControl.Choice => "choice",
         SettingControl.Number => "number",
         SettingControl.PathList => "path list",
+        SettingControl.KeyReference => "read-only list",
         _ => "action",
     };
 

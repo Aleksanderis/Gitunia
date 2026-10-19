@@ -22,6 +22,7 @@ namespace Gitunia.Core.Settings;
 /// <param name="Choice">The choice whose options are listed, null for none.</param>
 /// <param name="Input">The text being typed into a setting, null for none.</param>
 /// <param name="Removal">The folder waiting for the answer to the removal question, null for none.</param>
+/// <param name="KeyReference">The lines of the key reference, null for none.</param>
 public sealed record SettingsState(
     IReadOnlyList<SettingDefinition> Definitions,
     ImmutableDictionary<string, SettingValue> Values,
@@ -35,8 +36,12 @@ public sealed record SettingsState(
     bool IsEditingFilter = false,
     ChoiceEdit? Choice = null,
     SettingsInput? Input = null,
-    PendingRemoval? Removal = null)
+    PendingRemoval? Removal = null,
+    IReadOnlyList<KeyReferenceEntry>? KeyReference = null)
 {
+    /// <summary>The lines of the key reference, in the order they are listed.</summary>
+    public IReadOnlyList<KeyReferenceEntry> Reference => KeyReference ?? [];
+
     /// <summary>The categories that have at least one setting, in display order.</summary>
     public IReadOnlyList<SettingCategory> Categories =>
         [.. Definitions.Select(definition => definition.Category).Distinct().Order()];
@@ -108,8 +113,12 @@ public sealed record SettingsState(
     /// <summary>Builds the state for a freshly read file.</summary>
     /// <param name="definitions">The settings on offer.</param>
     /// <param name="load">The values read from the file.</param>
-    public static SettingsState Create(IReadOnlyList<SettingDefinition> definitions, SettingsLoad load) =>
-        new(definitions, load.Values, load.Warnings, load.Banner);
+    /// <param name="keyReference">The lines of the key reference, generated from the keymap.</param>
+    public static SettingsState Create(
+        IReadOnlyList<SettingDefinition> definitions,
+        SettingsLoad load,
+        IReadOnlyList<KeyReferenceEntry>? keyReference = null) =>
+        new(definitions, load.Values, load.Warnings, load.Banner, KeyReference: keyReference);
 
     /// <summary>The value of a setting; its default shape when the file read gave none.</summary>
     /// <param name="definition">The setting.</param>
@@ -269,6 +278,13 @@ public sealed record SettingsState(
             if (Input is { Kind: SettingsInputKind.PathAdd } add && add.SettingId == definition.Id)
             {
                 rows.Add(new SettingRow(definition, SettingRowKind.NewItem, paths.Length));
+            }
+        }
+        else if (definition.Control == SettingControl.KeyReference)
+        {
+            for (var index = 0; index < Reference.Count; index++)
+            {
+                rows.Add(new SettingRow(definition, SettingRowKind.Binding, index));
             }
         }
         else if (Choice is { } choice && choice.SettingId == definition.Id)

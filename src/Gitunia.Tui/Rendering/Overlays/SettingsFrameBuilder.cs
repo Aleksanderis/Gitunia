@@ -71,6 +71,7 @@ public static class SettingsFrameBuilder
         var rows = state.Rows;
         var entries = new List<SettingsBodyEntry>();
         SettingCategory? previous = null;
+        var previousSection = string.Empty;
         for (var index = 0; index < rows.Count; index++)
         {
             var category = rows[index].Definition.Category;
@@ -80,6 +81,13 @@ public static class SettingsFrameBuilder
             }
 
             previous = category;
+            if (rows[index].Kind == SettingRowKind.Binding
+                && state.Reference[rows[index].Index].Section != previousSection)
+            {
+                previousSection = state.Reference[rows[index].Index].Section;
+                entries.Add(new SettingsBodyEntry(-1, previousSection));
+            }
+
             entries.Add(new SettingsBodyEntry(index, string.Empty));
         }
 
@@ -377,6 +385,15 @@ public static class SettingsFrameBuilder
         }
 
         var definition = row.Definition;
+        if (row.Kind == SettingRowKind.Binding)
+        {
+            var entry = state.Reference[row.Index];
+            var text = $"Action {entry.ActionId}. Enter shows the keys entry of config.json that binds it again.";
+            var lines = HelpFrameBuilder.WrapText(text, width);
+
+            return [lines.FirstOrDefault() ?? string.Empty, lines.ElementAtOrDefault(1) ?? string.Empty];
+        }
+
         var warning = state.Warnings.TryGetValue(definition.Id, out var reason)
             ? $"! {reason}. Changing it writes a valid value. "
             : string.Empty;
@@ -426,6 +443,8 @@ public static class SettingsFrameBuilder
             { Definition.Control: SettingControl.PathList } => "Enter/a add  j/k move  h back  / filter  Esc close",
             { Definition.Control: SettingControl.Toggle } => "Enter/x flip  j/k move  h back  / filter  Esc close",
             { Definition.Control: SettingControl.Number } => "Enter type  +/- step  j/k move  h back  Esc close",
+            { Kind: SettingRowKind.Binding } => "Enter show config entry  j/k move  h back  / filter  Esc close",
+            { Definition.Control: SettingControl.KeyReference } => "j/k move  h back  / filter  Esc close",
             { Definition.Control: SettingControl.Action } => "Enter open  j/k move  h back  / filter  Esc close",
             _ => "j/k move  l/Enter edit  h back  / filter  Esc close",
         };
