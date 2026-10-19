@@ -365,7 +365,10 @@ public sealed class RepositoryWatcher : IDisposable
                 return;
             }
 
-            wanted = [.. new[] { path }.Concat(children).Where(candidate => !_directoryWatchers.ContainsKey(candidate))];
+            wanted =
+            [
+                .. new[] { path }.Concat(children).Where(candidate => !_directoryWatchers.ContainsKey(candidate)),
+            ];
         }
 
         var created = CreateDirectoryWatchers(wanted, out var failed);
@@ -411,7 +414,7 @@ public sealed class RepositoryWatcher : IDisposable
     }
 
     /// <summary>
-    /// Creates one non-recursive watcher per path without holding the gate (each is an inotify call, thousands for a big tree).
+    /// Creates one non-recursive watcher per path without holding the gate (an inotify call each, thousands for a big tree).
     /// A directory that vanished meanwhile is skipped; any other failure sets <paramref name="failed"/> and stops.
     /// </summary>
     private Dictionary<string, FileSystemWatcher> CreateDirectoryWatchers(IEnumerable<string> paths, out bool failed)
@@ -600,7 +603,7 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    /// <summary>Under the gate: handles the cheap cases and drops, returns the directories that still need a watcher.</summary>
+    /// <summary>Under the gate: handles the cheap cases and drops; returns the directories still needing a watcher.</summary>
     private List<string> PlanListing(IReadOnlyList<string>? directories, List<string> drops)
     {
         lock (_gate)
