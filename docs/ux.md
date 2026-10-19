@@ -65,7 +65,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
    - `Up`/`Down` and `Ctrl-j`/`Ctrl-k` move; `Enter` or `Ctrl-l` opens in a new tab (or focuses the existing one); `Backspace` deletes a character; `Esc` cancels (with no tab open it quits, since there is nothing to go back to).
    - `Tab` or `Right` accepts the suggestion: the highlighted repository's path is filled in and its subfolders are listed; in a typed path it completes the folder name.
    - Typing and matching ignore case: every segment of a typed path is resolved against the real folder names (`~/projects/x` lists `~/Projects/x` on Linux) and the inserted text keeps the real case.
-   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped). Configurable scan roots arrive with the config file in M4.
+   - Discovered repositories come from a scan of the conventional source folders below the home directory (`Projects`, `src`, `code`, `dev`, `repos`, `git`, `work`, ... up to three levels deep, hidden and dependency folders skipped). The `scanRoots` config option replaces these folders (see "Config file").
    - A typed path is listed off the UI thread: the previous rows stay until the new listing arrives, `scanning...` appears after about 150 ms when there are none, a newer keystroke cancels the older listing, and a listing slower than 5 s ends with a "timed out" notice.
    - A click highlights a row, a double-click opens it.
 3. **Typed paths.** Text starting with `/`, `~/`, `./`, `../` or a drive (`C:\` or `C:/`) is a path; anything else is a fuzzy query. For a path the list shows the matching directories (repositories marked), `Tab` completes to the common prefix and then to the highlighted directory, and `Enter` opens the resolved path. Relative paths are taken from the active repository, or the home directory, never from the process working directory. A non-repository path shows an inline "not a git repository" message and the picker stays open.
@@ -318,12 +318,18 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 ## Config file
 
-`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (options #453) fit beside `keys`. The file is read once at startup and never modified by the loader; the settings screen (below) is the only writer.
+`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections fit beside `keys`. The file is read once at startup and never modified by the loader; the settings screen (below) is the only writer.
 
 ```jsonc
 {
   // auto (default: follow the terminal's background), dark or light.
   "theme": "auto",
+  // rounded (default) or square corners of the pane frame (overlays follow; the ASCII tier is always + - |).
+  "frameStyle": "rounded",
+  // Tab chips show the checked-out branch after the name (default false: it makes tabs long).
+  "tabs": { "showBranch": false },
+  // Folders the repository picker scans for repositories (default: Projects, src, code, dev, ... below the home folder).
+  "scanRoots": ["~/Projects", "/srv/git"],
   "keys": [
     // Bind a free key (mode defaults to Normal, view to Global).
     { "view": "Graph", "key": "J", "action": "list.down" },
@@ -340,6 +346,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, has a field of the wrong type (`"key": 5`), is unreadable or is over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
 - Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
 - Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
+- Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read once at startup; the settings screen will apply a change at once.
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
 
 ## Settings screen (design, #465; not implemented)

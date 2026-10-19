@@ -121,13 +121,13 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
-        var glyphs = GraphGlyphSet.For(capabilities.Unicode);
-        _glyphs = glyphs;
         _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
+        var glyphs = GraphGlyphSet.For(capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
+        _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-        _startupConfig = new ConfigStartup(platform.ConfigDirectory).Load();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
@@ -249,7 +249,13 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
 
-        _picker = new PickerController(services.Discovery, _host, _homeDirectory, InvokeOnUi, moveDraft: _commits.MoveDraft);
+        _picker = new PickerController(
+            services.Discovery,
+            _host,
+            _homeDirectory,
+            InvokeOnUi,
+            moveDraft: _commits.MoveDraft,
+            scanRoots: _startupConfig.Options.ScanRoots);
         _workspaceActions = new WorkspaceActions(_host, _picker, RequestQuit, _commits.HasUnsentMessage);
 
         _binder = new GraphTabBinder(
@@ -965,7 +971,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 RemoteProgressNow(),
                 _statuses.Current?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
-            TabLabelFactory.Create(_host.Workspace, tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false }),
+            TabLabelFactory.Create(
+                _host.Workspace,
+                tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false },
+                _startupConfig.Options.ShowBranchInTab),
             _picker.State,
             _homeDirectory)
         with

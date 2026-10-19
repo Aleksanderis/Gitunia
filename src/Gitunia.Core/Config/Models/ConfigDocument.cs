@@ -16,4 +16,13 @@ public sealed record ConfigDocument
     /// accepted here so a wrong type costs only this setting.
     /// </summary>
     public JsonElement? Theme { get; init; }
+
+    /// <summary><c>rounded</c> (default) or <c>square</c>, read by <c>OptionsConfigurator</c>.</summary>
+    public JsonElement? FrameStyle { get; init; }
+
+    /// <summary>The <c>tabs</c> object (<c>showBranch</c>), read by <c>OptionsConfigurator</c>.</summary>
+    public JsonElement? Tabs { get; init; }
+
+    /// <summary>The folders the repository picker scans, read by <c>OptionsConfigurator</c>.</summary>
+    public JsonElement? ScanRoots { get; init; }
 }

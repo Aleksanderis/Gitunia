@@ -1,0 +1,187 @@
+using System.Text.Json;
+using Gitunia.Core.Config;
+using Gitunia.Core.Config.Models;
+using Xunit;
+
+namespace Gitunia.Core.Tests.Config;
+
+public sealed class OptionsConfiguratorTests
+{
+    private static readonly string Home = Path.Combine(Path.GetTempPath(), "gitunia-home");
+    private static readonly string Existing = Path.Combine(Path.GetTempPath(), "gitunia-existing");
+
+    private static JsonElement Json(string json) => JsonDocument.Parse(json).RootElement;
+
+    private static string Quote(string path) => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
+
+    private static bool Exists(string path) => path == Existing || path == Path.Combine(Home, "code");
+
+    [Theory]
+    [InlineData("\"rounded\"", FrameStyle.Rounded)]
+    [InlineData("\"square\"", FrameStyle.Square)]
+    [InlineData("\" Square \"", FrameStyle.Square)]
+    [InlineData("\"SQUARE\"", FrameStyle.Square)]
+    [InlineData("null", FrameStyle.Rounded)]
+    public void GivenAValidFrameStyle_WhenParsing_ThenItIsReturnedWithoutProblems(string json, FrameStyle expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseFrameStyle(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("\"heavy\"")]
+    [InlineData("\"\"")]
+    [InlineData("3")]
+    [InlineData("true")]
+    public void GivenAnInvalidFrameStyle_WhenParsing_ThenRoundedWithAProblemOnTheKey(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(FrameStyle.Rounded, OptionsConfigurator.ParseFrameStyle(Json(json), problems));
+        Assert.Equal("frameStyle", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoFrameStyle_WhenParsing_ThenRoundedWithoutProblems()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(FrameStyle.Rounded, OptionsConfigurator.ParseFrameStyle(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("{ \"showBranch\": true }", true)]
+    [InlineData("{ \"showBranch\": false }", false)]
+    [InlineData("{ \"showBranch\": null }", false)]
+    [InlineData("{}", false)]
+    [InlineData("{ \"other\": 1 }", false)]
+    [InlineData("null", false)]
+    public void GivenAValidTabsObject_WhenParsing_ThenShowBranchFollowsItWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseShowBranch(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Theory]
+    [InlineData("{ \"showBranch\": \"yes\" }", "tabs.showBranch")]
+    [InlineData("{ \"showBranch\": 1 }", "tabs.showBranch")]
+    [InlineData("5", "tabs")]
+    [InlineData("[true]", "tabs")]
+    public void GivenAnInvalidTabsValue_WhenParsing_ThenFalseWithAProblemOnTheKey(string json, string path)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.False(OptionsConfigurator.ParseShowBranch(Json(json), problems));
+        Assert.Equal(path, Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenNoScanRoots_WhenParsing_ThenNullMeansTheConventionalFolders()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Null(OptionsConfigurator.ParseScanRoots(null, Home, Exists, problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAbsoluteAndHomeRelativeRoots_WhenParsing_ThenBothAreKeptInOrderWithTheHomeExpanded()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = $"[{Quote(Existing)}, \"~/code\"]";
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json(text), Home, Exists, problems);
+
+        Assert.Equal([Existing, Path.Combine(Home, "code")], roots);
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAnEmptyList_WhenParsing_ThenNoRootsAreScanned()
+    {
+        var problems = new List<ConfigProblem>();
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json("[]"), Home, Exists, problems);
+
+        Assert.NotNull(roots);
+        Assert.Empty(roots.Value);
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenSomeUnusableEntries_WhenParsing_ThenTheUsableOnesStayAndEachBadOneIsReportedByIndex()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = $"[{Quote(Existing)}, 5, \"\", \"relative/dir\", \"~/absent\"]";
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json(text), Home, Exists, problems);
+
+        Assert.Equal([Existing], roots);
+        Assert.Equal(["scanRoots[1]", "scanRoots[2]", "scanRoots[3]", "scanRoots[4]"], problems.Select(problem => problem.Path));
+    }
+
+    [Fact]
+    public void GivenOnlyUnusableEntries_WhenParsing_ThenTheConventionalFoldersApply()
+    {
+        var problems = new List<ConfigProblem>();
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json("[\"relative\", 3]"), Home, Exists, problems);
+
+        Assert.Null(roots);
+        Assert.Equal(2, problems.Count);
+    }
+
+    [Fact]
+    public void GivenTheSameRootTwice_WhenParsing_ThenItIsListedOnce()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = $"[{Quote(Existing)}, {Quote(Existing)}]";
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json(text), Home, Exists, problems);
+
+        Assert.Equal([Existing], roots);
+    }
+
+    [Theory]
+    [InlineData("\"~/code\"")]
+    [InlineData("{ \"path\": 1 }")]
+    [InlineData("7")]
+    public void GivenScanRootsOfTheWrongType_WhenParsing_ThenTheDefaultAppliesWithAProblem(string json)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Null(OptionsConfigurator.ParseScanRoots(Json(json), Home, Exists, problems));
+        Assert.Equal("scanRoots", Assert.Single(problems).Path);
+    }
+
+    [Fact]
+    public void GivenAFileWithAllOptions_WhenReading_ThenEveryOptionIsSet()
+    {
+        var problems = new List<ConfigProblem>();
+        var json = $$"""{ "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": [{{Quote(Existing)}}] }""";
+        var document = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.ConfigDocument)!;
+
+        var options = OptionsConfigurator.Read(document, Home, Exists, problems);
+
+        Assert.Equal(FrameStyle.Square, options.FrameStyle);
+        Assert.True(options.ShowBranchInTab);
+        Assert.Equal([Existing], options.ScanRoots);
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAnEmptyDocument_WhenReading_ThenTheDefaultsApply()
+    {
+        var problems = new List<ConfigProblem>();
+
+        var options = OptionsConfigurator.Read(new ConfigDocument(), Home, Exists, problems);
+
+        Assert.Equal(ConfigOptions.Default, options);
+        Assert.Empty(problems);
+    }
+}

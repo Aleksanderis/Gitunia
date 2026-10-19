@@ -24,7 +24,7 @@ public sealed class ConfigStartupTests : IDisposable
     {
         Write("""{ "keys": [ { "view": "Graph", "key": "J", "action": "list.down" } ] }""");
 
-        var built = new ConfigStartup(_directory).LoadKeymap();
+        var built = new ConfigStartup(_directory, _directory).LoadKeymap();
 
         var result = new KeymapEngine(built.Table).Process(
             KeymapState.Initial,
@@ -39,7 +39,7 @@ public sealed class ConfigStartupTests : IDisposable
     {
         Write("{ broken");
 
-        var built = new ConfigStartup(_directory).LoadKeymap();
+        var built = new ConfigStartup(_directory, _directory).LoadKeymap();
 
         Assert.Single(built.Problems);
         Assert.Equal(DefaultKeymap.Create().Bindings.Count, built.Table.Bindings.Count);
@@ -48,7 +48,7 @@ public sealed class ConfigStartupTests : IDisposable
     [Fact]
     public void GivenNoConfig_WhenLoadingTheKeymap_ThenThereAreNoProblems()
     {
-        Assert.Empty(new ConfigStartup(_directory).LoadKeymap().Problems);
+        Assert.Empty(new ConfigStartup(_directory, _directory).LoadKeymap().Problems);
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class ConfigStartupTests : IDisposable
     {
         Write(json);
 
-        var config = new ConfigStartup(_directory).Load();
+        var config = new ConfigStartup(_directory, _directory).Load();
 
         Assert.Equal(expected, config.Theme);
         Assert.Empty(config.Keymap.Problems);
@@ -94,10 +94,33 @@ public sealed class ConfigStartupTests : IDisposable
     {
         Write("""{ "theme": "solarized" }""");
 
-        var config = new ConfigStartup(_directory).Load();
+        var config = new ConfigStartup(_directory, _directory).Load();
 
         Assert.Equal(ThemeChoice.Auto, config.Theme);
         Assert.Equal("theme", Assert.Single(config.Keymap.Problems).Path);
+    }
+
+    [Fact]
+    public void GivenOptionsInTheFile_WhenLoading_ThenTheyReachTheStartupConfig()
+    {
+        Write($$"""{ "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": ["{{_directory.Replace("\\", "\\\\", StringComparison.Ordinal)}}"] }""");
+
+        var options = new ConfigStartup(_directory, _directory).Load().Options;
+
+        Assert.Equal(FrameStyle.Square, options.FrameStyle);
+        Assert.True(options.ShowBranchInTab);
+        Assert.Equal([_directory], options.ScanRoots);
+    }
+
+    [Fact]
+    public void GivenBadOptions_WhenLoading_ThenDefaultsApplyAndEveryProblemIsReported()
+    {
+        Write("""{ "frameStyle": "dotted", "tabs": 3, "scanRoots": "x" }""");
+
+        var config = new ConfigStartup(_directory, _directory).Load();
+
+        Assert.Equal(ConfigOptions.Default, config.Options);
+        Assert.Equal(["frameStyle", "tabs", "scanRoots"], config.Keymap.Problems.Select(problem => problem.Path));
     }
 
     private void Write(string content) => File.WriteAllText(Path.Combine(_directory, ConfigLoader.FileName), content);

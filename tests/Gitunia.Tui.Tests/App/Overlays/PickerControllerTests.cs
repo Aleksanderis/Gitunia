@@ -25,6 +25,31 @@ public class PickerControllerTests
         return new PickerHarness(picker, host, pump);
     }
 
+    [Fact]
+    public async Task GivenConfiguredScanRoots_WhenOpening_ThenOnlyRepositoriesBelowThemAreDiscovered()
+    {
+        var configured = Directory.CreateTempSubdirectory("gitunia-roots-");
+        var home = Directory.CreateTempSubdirectory("gitunia-home-");
+        Directory.CreateDirectory(Path.Combine(configured.FullName, "inside", ".git"));
+        Directory.CreateDirectory(Path.Combine(home.FullName, "code", "outside", ".git"));
+        var host = new WorkspaceHost(Workspace.Empty);
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var picker = new PickerController(
+            TestGit.Services.Discovery,
+            host,
+            home.FullName,
+            pump.Post,
+            scanningDelay: Timeout.InfiniteTimeSpan,
+            scanRoots: [configured.FullName]);
+
+        picker.Open();
+        await pump.RunUntilAsync(() => picker.State!.Rows.Length > 0);
+
+        Assert.Equal(["inside"], picker.State!.Rows.Select(row => row.Name));
+        configured.Delete(recursive: true);
+        home.Delete(recursive: true);
+    }
+
     [Theory]
     [InlineData(true, 1)]
     [InlineData(false, 2)]
