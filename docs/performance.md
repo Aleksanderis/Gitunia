@@ -58,6 +58,18 @@ Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit
 
 How these were measured, harness faults, noisy-machine comparisons and the RSS re-check: `docs/history/performance.md`.
 
+## Body search: `log --grep` (#509)
+
+`body:` queries run `log -z --format=%H --regexp-ignore-case --fixed-strings --grep=<text> --exclude=refs/stash --all` (`CommitMessageSearcher`), off the UI thread after a 250 ms typing debounce. Measured on the 100k-commit repo from `scripts/gen-big-repo.sh` (warm cache, three runs each, the CLI alone, linux-x64):
+
+| Query | Hits | Time |
+|---|---|---|
+| no match | 0 | ~380-430 ms |
+| one feature branch's merges | 555 | ~380 ms |
+| matches nearly every commit | 97,501 | ~750-785 ms |
+
+The cost is the walk over every commit message, so it grows with the log and only slightly with the hit count. A refresh that replaces the graph restarts the search, but the restart cancels the earlier run first (at most one process per tab) and refreshes are already coalesced by the watcher debounce, so no extra throttle is added: the worst case is one ~0.4-0.8 s process per refresh while a body query is open, off the UI thread. Revisit if a much larger log shows otherwise.
+
 ## Startup: terminal background query (OSC 11, #527)
 
 With `theme = auto` startup writes one OSC 11 query followed by a DA1 query (`ESC [ c`) and reads until the DA1 reply, which every terminal sends after the OSC 11 answer (or instead of it, when OSC 11 is unknown). The wait therefore ends with the terminal's own answer and a late OSC reply cannot reach the UI as keys; the 50 ms timeout only bounds a terminal that answers neither.
