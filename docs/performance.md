@@ -36,7 +36,7 @@ Measured with a throwaway repo (git init, no remote), Linux, Debug build of the 
 | Until every directory is watched | ~333 ms (off-thread) | ~48 ms |
 | Longest wait of a gate-taking property read while watchers are created | 0.03 ms | n/a |
 
-A tree with 1801 listed directories did not fit: the watcher fell back to polling, because each `FileSystemWatcher` holds one inotify instance and this machine allows 1024 per user (below the 2048-directory cap). On a system with the old default of 128 instances the limit is reached after ~100 directories. Registered as #543. Before this change the watchers were created while holding the gate; the lock now covers only the bookkeeping.
+A tree with 1801 listed directories did not fit: the watcher fell back to polling, because each `FileSystemWatcher` holds one inotify instance and this machine allows 1024 per user (below the 2048-directory cap). On a system with the old default of 128 instances the limit is reached after ~100 directories. Registered as #543. Per-directory watchers were created while holding the gate; the lock now covers only their bookkeeping (`Start`, the recursive root fallback and the `worktrees` watcher still create under it, one to six watchers). One-off run, not scripted: the tree is built by a throwaway test, the gate wait is a single worst-case sample.
 
 ## Bounded memory with many tabs (#199)
 

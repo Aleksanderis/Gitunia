@@ -440,6 +440,12 @@ public sealed class RepositoryWatcher : IDisposable
                     break;
                 }
             }
+            catch
+            {
+                // Unexpected: do not leak what was created so far (it is not tracked anywhere yet).
+                RetireWatchers([.. created.Values]);
+                throw;
+            }
         }
 
         return created;
@@ -589,7 +595,11 @@ public sealed class RepositoryWatcher : IDisposable
                 }
             }
 
-            RetireWatchers([.. created.Values]);
+            if (created.Count > 0)
+            {
+                RetireWatchers([.. created.Values]);
+            }
+
             if (!_rescanAgain || _pollTimer is not null)
             {
                 _rescanAgain = false;

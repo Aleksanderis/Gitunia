@@ -377,4 +377,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Testing:** Startup smoke test (#532): `TuiApplication.Run` runs headless on the `ansi` driver in `dotnet test` (public `DriverName` and `ExitAfterFirstIteration`, no InternalsVisibleTo). Why: two startup crashes passed green unit tests. Details: `testing.md`.
 
-**Git layer:** Working tree directory watchers are created outside the watcher gate (#504). Empty and ignored-only directories stay unwatched: watching ignored ones defeats ignore-aware watching, and an empty one is noticed at the next event or refresh. Measurements in `performance.md`.
+**Git layer:** Working tree directory watchers are created outside the watcher gate (#504). Empty and ignored-only directories stay unwatched: watching ignored ones defeats ignore-aware watching, and an empty one is noticed at the next event or refresh. Per-directory `FileSystemWatcher`s each hold an inotify instance, so `max_user_instances` (1024 here) binds before the 2048 cap and larger trees poll (#543). Measurements in `performance.md`.
