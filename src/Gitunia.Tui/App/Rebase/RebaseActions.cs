@@ -1,6 +1,5 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
-using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
@@ -8,10 +7,8 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Rebase;
-using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.WorkingTree;
@@ -50,7 +47,6 @@ public sealed class RebaseActions(
 {
     private readonly HashSet<TabId> _asking = [];
 
-    private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
     private const string AskingNotice = "Already asking: answer or cancel the rebase question first";
@@ -75,18 +71,6 @@ public sealed class RebaseActions(
         return true;
     }
 
-    private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
-
-    private static bool IsTrackedChange(StatusEntry entry) =>
-        entry.Kind is not (StatusEntryKind.Untracked or StatusEntryKind.Ignored);
-
-    private static string ShortRef(string fullName) =>
-        fullName.StartsWith(GitRefPrefixes.Remotes, StringComparison.Ordinal)
-            ? fullName[GitRefPrefixes.Remotes.Length..]
-            : fullName.StartsWith(GitRefPrefixes.Heads, StringComparison.Ordinal)
-                ? fullName[GitRefPrefixes.Heads.Length..]
-                : fullName;
-
     private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current, int merges)
     {
         List<string> lines =
@@ -102,11 +86,9 @@ public sealed class RebaseActions(
                 "itself is dropped and the commits are replayed as one line.");
         }
 
-        if (current is { UpstreamFullName: { } upstream, IsUpstreamGone: false })
+        if (RebaseGuard.UpstreamWarning(current) is { } warning)
         {
-            var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
-            lines.Add(
-                $"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.");
+            lines.Add(warning);
         }
 
         return new ConfirmPrompt(
@@ -123,7 +105,7 @@ public sealed class RebaseActions(
         {
             return new OperationReport(
                 $"Rebase of {target.BranchName} onto {target.Label} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash(target.OldTip)})",
+                $"marked !, then <space>gc (continue), <space>ga (abort, back to {RebaseGuard.ShortHash(target.OldTip)})",
                 StatusSeverity.Warning);
         }
 
@@ -135,8 +117,8 @@ public sealed class RebaseActions(
         }
 
         return new OperationReport(
-            $"Rebased {target.BranchName} onto {target.Label} ({ShortHash(result.Head ?? string.Empty)}), " +
-            $"was {ShortHash(target.OldTip)}; undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
+            $"Rebased {target.BranchName} onto {target.Label} ({RebaseGuard.ShortHash(result.Head ?? string.Empty)}), " +
+            $"was {RebaseGuard.ShortHash(target.OldTip)}; undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
 
@@ -159,7 +141,7 @@ public sealed class RebaseActions(
             return refusal;
         }
 
-        var label = chosen.Name ?? ShortHash(hash);
+        var label = chosen.Name ?? RebaseGuard.ShortHash(hash);
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
@@ -222,35 +204,7 @@ public sealed class RebaseActions(
         }
     }
 
-    // Why a rebase must not start in this tab, or null. No git runs for any of these.
-    private static string? Refusal(RepositoryState tab, string targetHash)
-    {
-        if (tab.Operation is { } info)
-        {
-            var name = OperationBannerBuilder.NameOf(info.Kind);
-            return $"A {name} is in progress: finish or abort the {name} first (<space>gc continue, <space>ga abort)";
-        }
-
-        if (tab.Head is not { Kind: HeadKind.Branch, BranchName: not null, CommitHash: not null })
-        {
-            return tab.Head?.Kind switch
-            {
-                null => "The repository is still loading: try again in a moment",
-                HeadKind.Unborn => "The branch has no commits yet: nothing to rebase",
-                _ => "HEAD is detached: switch to a branch first",
-            };
-        }
-
-        if (string.Equals(tab.Head.CommitHash, targetHash, StringComparison.Ordinal))
-        {
-            return $"{tab.Head.BranchName} is already at that commit: nothing to rebase";
-        }
-
-        var changed = tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;
-        return changed == 0
-            ? null
-            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: commit or stash them before a rebase";
-    }
+    private static string? Refusal(RepositoryState tab, string targetHash) => RebaseGuard.Refusal(tab, targetHash);
 
     private void Start(RebaseTarget target)
     {

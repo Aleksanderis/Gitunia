@@ -397,3 +397,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Performance:** Soft row limit (#515, finishes #199 step 4): a tab loads its newest 100,000 commits and the rest on demand (`G`, search reaching the end, jumps). Measured on 1M commits: ~76 MB instead of ~390 MB until the end is asked for. Supersedes the "deferred to #515" part of the #199 entry. Details: `performance.md`.
 
 **UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.
+
+**UI:** Quick rebase actions (#459): `<space>gf` fixup, `<space>gw` reword, `<space>gd` drop on the graph commit, each behind a Confirm with the undo. Fixup melds the selected commit into the one before it (the reading "fix up into the selected commit" would need staged changes and a commit step the engine lacks); reword changes the subject only, so a multi-line message keeps its body. Details: `ux.md` workflow 3, `git-layer.md`.

@@ -169,6 +169,7 @@ public static class DefaultKeymap
         AddTagKeys(bindings, GraphView);
         AddTagKeys(bindings, SidebarView);
         AddResetKeys(bindings, GraphView);
+        AddQuickRebaseKeys(bindings, GraphView);
         Add(bindings, NormalOnly, GraphView, "<space>l", ActionIds.ReflogOpen);
         Add(bindings, NormalOnly, GraphView, "<space>.", ActionIds.MenuOpenForRow);
         Add(bindings, NormalOnly, SidebarView, "<space>.", ActionIds.MenuOpenForRow);
@@ -268,6 +269,14 @@ public static class DefaultKeymap
     {
         Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, view, "<space>gr", ActionIds.RebaseOnto);
+    }
+
+    // Fixup, reword and drop act on the commit selected in the graph (interactive rebase engine, #459).
+    private static void AddQuickRebaseKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>gf", ActionIds.RebaseFixup);
+        Add(bindings, NormalOnly, view, "<space>gw", ActionIds.RebaseReword);
+        Add(bindings, NormalOnly, view, "<space>gd", ActionIds.RebaseDrop);
     }
 
     // The reflog list acts on the entry under the cursor; the actions are the graph's, the controller aims them.
