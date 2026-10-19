@@ -103,7 +103,10 @@ public sealed class ConfigStartupTests : IDisposable
     [Fact]
     public void GivenOptionsInTheFile_WhenLoading_ThenTheyReachTheStartupConfig()
     {
-        Write($$"""{ "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": ["{{_directory.Replace("\\", "\\\\", StringComparison.Ordinal)}}"] }""");
+        var root = _directory.Replace("\\", "\\\\", StringComparison.Ordinal);
+        Write($$"""
+            { "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": ["{{root}}"] }
+            """);
 
         var options = new ConfigStartup(_directory, _directory).Load().Options;
 

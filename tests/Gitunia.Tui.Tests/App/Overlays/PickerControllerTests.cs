@@ -42,12 +42,46 @@ public class PickerControllerTests
             scanningDelay: Timeout.InfiniteTimeSpan,
             scanRoots: [configured.FullName]);
 
-        picker.Open();
-        await pump.RunUntilAsync(() => picker.State!.Rows.Length > 0);
+        try
+        {
+            picker.Open();
+            await pump.RunUntilAsync(() => picker.State!.Rows.Length > 0);
 
-        Assert.Equal(["inside"], picker.State!.Rows.Select(row => row.Name));
-        configured.Delete(recursive: true);
-        home.Delete(recursive: true);
+            Assert.Equal(["inside"], picker.State!.Rows.Select(row => row.Name));
+        }
+        finally
+        {
+            configured.Delete(recursive: true);
+            home.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task GivenAnEmptyScanRootList_WhenOpening_ThenNothingIsDiscovered()
+    {
+        var home = Directory.CreateTempSubdirectory("gitunia-home-");
+        Directory.CreateDirectory(Path.Combine(home.FullName, "code", "outside", ".git"));
+        var host = new WorkspaceHost(Workspace.Empty);
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var picker = new PickerController(
+            TestGit.Services.Discovery,
+            host,
+            home.FullName,
+            pump.Post,
+            scanningDelay: Timeout.InfiniteTimeSpan,
+            scanRoots: []);
+
+        try
+        {
+            picker.Open();
+            await pump.RunPostsAsync(1);
+
+            Assert.Empty(picker.State!.Rows);
+        }
+        finally
+        {
+            home.Delete(recursive: true);
+        }
     }
 
     [Theory]

@@ -367,4 +367,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-19
 
-**UI:** Config options (#453): `frameStyle` (`rounded` default, `square`), `tabs.showBranch` (default false) and `scanRoots` (absolute or `~` folders; replaces the conventional picker folders, `[]` turns discovery off). Each is validated alone: a bad value or entry is reported and skipped, defaults apply, startup never blocks. Square only swaps the four corners of frames and overlays; the graph curves stay rounded.
+**UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".

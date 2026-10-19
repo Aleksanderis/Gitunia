@@ -122,7 +122,8 @@ public sealed class OptionsConfiguratorTests
         var roots = OptionsConfigurator.ParseScanRoots(Json(text), Home, Exists, problems);
 
         Assert.Equal([Existing], roots);
-        Assert.Equal(["scanRoots[1]", "scanRoots[2]", "scanRoots[3]", "scanRoots[4]"], problems.Select(problem => problem.Path));
+        var paths = problems.Select(problem => problem.Path);
+        Assert.Equal(["scanRoots[1]", "scanRoots[2]", "scanRoots[3]", "scanRoots[4]"], paths);
     }
 
     [Fact]
@@ -134,6 +135,29 @@ public sealed class OptionsConfiguratorTests
 
         Assert.Null(roots);
         Assert.Equal(2, problems.Count);
+    }
+
+    [Fact]
+    public void GivenTheSameRootWithATrailingSeparator_WhenParsing_ThenItIsListedOnce()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = $"[{Quote(Existing)}, {Quote(Existing + Path.DirectorySeparatorChar)}]";
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json(text), Home, Exists, problems);
+
+        Assert.Equal([Existing], roots);
+    }
+
+    [Fact]
+    public void GivenARootThatIsRootedButNotFullyQualified_WhenParsing_ThenItIsSkippedAndReported()
+    {
+        var problems = new List<ConfigProblem>();
+        var rootedOnly = OperatingSystem.IsWindows() ? "\\\\srv\\git" : "relative";
+
+        var roots = OptionsConfigurator.ParseScanRoots(Json($"[\"{rootedOnly}\"]"), Home, _ => true, problems);
+
+        Assert.Null(roots);
+        Assert.Equal("scanRoots[0]", Assert.Single(problems).Path);
     }
 
     [Fact]
@@ -163,7 +187,9 @@ public sealed class OptionsConfiguratorTests
     public void GivenAFileWithAllOptions_WhenReading_ThenEveryOptionIsSet()
     {
         var problems = new List<ConfigProblem>();
-        var json = $$"""{ "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": [{{Quote(Existing)}}] }""";
+        var json = $$"""
+            { "frameStyle": "square", "tabs": { "showBranch": true }, "scanRoots": [{{Quote(Existing)}}] }
+            """;
         var document = JsonSerializer.Deserialize(json, ConfigJsonContext.Default.ConfigDocument)!;
 
         var options = OptionsConfigurator.Read(document, Home, Exists, problems);

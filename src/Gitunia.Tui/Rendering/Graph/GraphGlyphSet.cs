@@ -12,6 +12,11 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Remote">After a branch label that also stands for its remote-tracking branch.</param>
 public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, string Lines, string Ellipsis, string CurrentBranch, string Remote)
 {
+    private const char SquareTopLeft = '┌';
+    private const char SquareTopRight = '┐';
+    private const char SquareBottomLeft = '└';
+    private const char SquareBottomRight = '┘';
+
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
     public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", " ");
 
@@ -29,14 +34,14 @@ public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, str
     /// <summary>The character for a cell whose lines go in the given directions.</summary>
     public char For(LineDirections directions) => Lines[(int)directions];
 
-    /// <summary>The character of a frame cell whose lines go in the given directions; square style swaps the four corners.</summary>
+    /// <summary>The character of a frame cell for the given directions; square style swaps the four corners.</summary>
     public char FrameLine(LineDirections directions) => Frame == FrameStyle.Square && !IsAscii
         ? directions switch
         {
-            LineDirections.Up | LineDirections.Left => '┘',
-            LineDirections.Down | LineDirections.Left => '┐',
-            LineDirections.Up | LineDirections.Right => '└',
-            LineDirections.Down | LineDirections.Right => '┌',
+            LineDirections.Up | LineDirections.Left => SquareBottomRight,
+            LineDirections.Down | LineDirections.Left => SquareTopRight,
+            LineDirections.Up | LineDirections.Right => SquareBottomLeft,
+            LineDirections.Down | LineDirections.Right => SquareTopLeft,
             _ => For(directions),
         }
         : For(directions);

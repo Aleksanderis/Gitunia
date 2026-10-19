@@ -4,7 +4,9 @@ using Gitunia.Core.Config.Models;
 
 namespace Gitunia.Core.Config;
 
-/// <summary>Reads <c>frameStyle</c>, <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds a problem.</summary>
+/// <summary>
+/// Reads <c>frameStyle</c>, <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds a problem.
+/// </summary>
 public static class OptionsConfigurator
 {
     private const string FrameStyleKey = "frameStyle";
@@ -45,7 +47,8 @@ public static class OptionsConfigurator
             case "square":
                 return FrameStyle.Square;
             default:
-                problems.Add(new ConfigProblem(FrameStyleKey, "frameStyle must be \"rounded\" or \"square\", using rounded"));
+                var message = "frameStyle must be \"rounded\" or \"square\", using rounded";
+                problems.Add(new ConfigProblem(FrameStyleKey, message));
                 return FrameStyle.Rounded;
         }
     }
@@ -86,8 +89,9 @@ public static class OptionsConfigurator
     }
 
     /// <summary>
-    /// The scan roots: absolute paths or <c>~</c>-relative ones that exist. Entries that cannot be used are reported and
-    /// skipped; when none of a non-empty list is usable the conventional folders apply. An empty list turns scanning off.
+    /// The scan roots: absolute paths or <c>~</c>-relative ones that exist. Entries that cannot be used are reported
+    /// and skipped; when none of a non-empty list is usable the conventional folders apply. An empty list turns
+    /// scanning off.
     /// </summary>
     public static ImmutableArray<string>? ParseScanRoots(
         JsonElement? value,
@@ -102,7 +106,8 @@ public static class OptionsConfigurator
 
         if (value.Value.ValueKind != JsonValueKind.Array)
         {
-            problems.Add(new ConfigProblem(ScanRootsKey, "scanRoots must be a list of folders, using the default folders"));
+            var message = "scanRoots must be a list of folders, using the default folders";
+            problems.Add(new ConfigProblem(ScanRootsKey, message));
             return null;
         }
 
@@ -134,10 +139,11 @@ public static class OptionsConfigurator
             return null;
         }
 
-        var expanded = ExpandHome(text, homeDirectory);
-        if (!Path.IsPathRooted(expanded))
+        var expanded = Path.TrimEndingDirectorySeparator(ExpandHome(text, homeDirectory));
+        if (!Path.IsPathFullyQualified(expanded))
         {
-            problems.Add(new ConfigProblem(path, $"\"{text}\" is not an absolute path (start it with ~ or /), skipped"));
+            var message = $"\"{text}\" is not an absolute path (start it with ~ or /), skipped";
+            problems.Add(new ConfigProblem(path, message));
             return null;
         }
 
