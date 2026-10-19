@@ -41,9 +41,9 @@ public static class PaneHints
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
-        new("l", "open diff", [ActionIds.DetailOpenDiff]),
+        new("l", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
-        new("h", "back", [ActionIds.NavigateBack]),
+        new("h", "back", [ActionIds.DetailCollapse]),
         new("<space>r", "retry", [ActionIds.DetailRetry]),
     ];
 
@@ -164,6 +164,8 @@ public static class PaneHints
         new("Tab", "accept", [ActionIds.PickerCompletePath]),
         new("Alt-p", "pin to top", [ActionIds.PickerPin]),
         new("Alt-d", "forget", [ActionIds.PickerRemoveRecent]),
+        new("Alt-c", "clone", [ActionIds.PickerClone]),
+        new("Alt-i", "init", [ActionIds.PickerInit]),
         new("Esc", "close", [ActionIds.Cancel]),
     ];
 
@@ -191,6 +193,15 @@ public static class PaneHints
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> Settings =
+    [
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("l/Enter", "edit", [ActionIds.SettingsActivate, ActionIds.SettingsActivate]),
+        new("h", "back", [ActionIds.NavigateBack]),
+        new("/", "filter", [ActionIds.SettingsFilter]),
+        new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {
         PaneKind.Sidebar => Sidebar,
@@ -212,6 +223,9 @@ public static class PaneHints
 
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
+
+    /// <summary>The hints while the settings screen is open.</summary>
+    public static IReadOnlyList<KeyHint> ForSettings() => Settings;
 
     /// <summary>The hints while the repository picker is open.</summary>
     public static IReadOnlyList<KeyHint> ForPicker() => Picker;

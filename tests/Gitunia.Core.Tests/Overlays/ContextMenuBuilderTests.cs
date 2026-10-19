@@ -72,9 +72,24 @@ public class ContextMenuBuilderTests
     }
 
     [Fact]
-    public void GivenTheRemotesHeader_WhenAskingForActions_ThenThereAreNone()
+    public void GivenTheRemotesHeader_WhenAskingForActions_ThenFetchPullPushAndTheManagementActionsAreOffered()
     {
-        Assert.Empty(RowActions.OfSidebarRow(Row(SidebarRowKind.Section, SidebarSection.Remotes)));
+        var actions = RowActions.OfSidebarRow(Row(SidebarRowKind.Section, SidebarSection.Remotes));
+
+        Assert.Equal(
+            [
+                ActionIds.RemoteFetch,
+                ActionIds.RemoteFetchAll,
+                ActionIds.RemotePull,
+                ActionIds.RemotePush,
+                ActionIds.RemotePushForce,
+                ActionIds.RemoteDeleteBranch,
+                ActionIds.RemoteAdd,
+                ActionIds.RemoteRemove,
+                ActionIds.RemoteRename,
+                ActionIds.RemoteSetUrl,
+            ],
+            actions);
     }
 
     [Fact]

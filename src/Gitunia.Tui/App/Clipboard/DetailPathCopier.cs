@@ -12,6 +12,16 @@ public sealed class DetailPathCopier(ClipboardCopier clipboard)
     /// <returns>A notice for the status bar when nothing was copied, empty when the path was copied.</returns>
     public string Copy(DetailListSource? source, int? selectedItem)
     {
+        if (source is { Content.Tree.Count: > 0 }
+            && selectedItem is { } row
+            && row >= 0
+            && row < source.Content.Tree.Count)
+        {
+            clipboard.Copy(source.Content.Tree[row].Path, "path");
+
+            return string.Empty;
+        }
+
         var index = (selectedItem ?? -1) - (source?.Content.FirstFileRow ?? 0);
         if (source is null || index < 0 || index >= source.Content.Files.Count)
         {

@@ -8,7 +8,9 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Tags;
+using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Pick;
@@ -17,6 +19,7 @@ using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Operations;
@@ -73,6 +76,18 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The tag actions (create, delete, push, remote delete), which own their prompts in every pane.</summary>
     public TagActions? Tags { get; set; }
 
+    /// <summary>The remote management actions (add, remove, rename, set URL); they own their prompts.</summary>
+    public RemoteManagementActions? RemoteManagement { get; set; }
+
+    /// <summary>Fetch, pull, push and the cancel of the running one; Esc is only its once the prompts passed.</summary>
+    public RemoteActions? Remote { get; set; }
+
+    /// <summary>Clone and init from the picker; Esc is only its once everything else passed.</summary>
+    public RepositoryCreationActions? Creation { get; set; }
+
+    /// <summary>The push cases that ask first (first push, force with lease, delete a remote branch).</summary>
+    public PushActions? Push { get; set; }
+
     /// <summary>Merging the selected commit or branch into the current branch (merge, no-ff, squash).</summary>
     public MergeActions? Merge { get; set; }
 
@@ -100,6 +115,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
 
+    /// <summary>The keys of the Files tab (open, close, filter).</summary>
+    public FileTreeController? FileTree { get; set; }
+
     /// <summary>The bottom pane tab keys.</summary>
     public DetailTabController? DetailTabs { get; set; }
 
@@ -122,6 +140,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        action = FileTree?.Resolve(action) ?? action;
         if (QuickJump?.TryExecute(action, count) == true)
         {
             Message = QuickJump.Notice;
@@ -149,6 +168,18 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Tags?.TryExecute(action, count) == true)
         {
             Message = Tags.Notice;
+            return;
+        }
+
+        if (Push?.TryExecute(action, count) == true)
+        {
+            Message = Push.Notice;
+            return;
+        }
+
+        if (RemoteManagement?.TryExecute(action, count) == true)
+        {
+            Message = RemoteManagement.Notice;
             return;
         }
 
@@ -200,6 +231,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             return;
         }
 
+        if (FileTree?.TryExecute(action, count) == true)
+        {
+            Message = FileTree.Notice;
+            return;
+        }
+
         if (DetailTabs?.TryExecute(action) == true)
         {
             return;
@@ -208,6 +245,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (WorktreeSwitch?.TryExecute(action) == true)
         {
             Message = WorktreeSwitch.Notice;
+            return;
+        }
+
+        if (action != ActionIds.Cancel && Remote?.TryExecute(action, count) == true)
+        {
+            Message = Remote.Notice;
             return;
         }
 
@@ -246,6 +289,17 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
                     return;
                 }
             }
+        }
+
+        if (Remote?.TryExecute(action, count) == true)
+        {
+            Message = Remote.Notice;
+            return;
+        }
+
+        if (Creation?.TryCancelWithEscape(action) == true)
+        {
+            return;
         }
 
         var itemCount = list.Source?.Count ?? 0;

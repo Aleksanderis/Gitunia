@@ -169,4 +169,37 @@ public class PickerComposerTests
         Assert.Equal([DefaultMouseMap.PickerPinButton, DefaultMouseMap.PickerRemoveButton], buttons.Select(button => button.View));
         Assert.True(buttons[1].Start > buttons[0].Start + buttons[0].Width);
     }
+
+    [Fact]
+    public void GivenAWideScreen_WhenComposing_ThenTheHintLineEndsWithCloneAndInitButtons()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+
+        var lines = PickerComposer.Compose(picker, Home, 100, 6, GraphGlyphSet.Unicode);
+        var buttons = PickerHeaderButtons.Layout(100);
+
+        Assert.EndsWith("[clone] [init] ", lines[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.Equal(100, lines[PickerHeaderButtons.Row].Text.Length);
+        Assert.Equal(
+            [DefaultMouseMap.PickerCloneButton, DefaultMouseMap.PickerInitButton],
+            buttons.Select(button => button.View));
+        Assert.Equal(DefaultMouseMap.PickerCloneButton, TitleButton.ViewAt(buttons, buttons[0].Start));
+        Assert.Equal(DefaultMouseMap.PickerInitButton, TitleButton.ViewAt(buttons, buttons[1].Start));
+        Assert.Null(TitleButton.ViewAt(buttons, buttons[0].Start - 1));
+    }
+
+    [Fact]
+    public void GivenANarrowScreenOrTheLocateMode_WhenComposing_ThenThereAreNoCloneAndInitButtons()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+        var locating = picker with { LocatingTabId = new TabId(1) };
+
+        var narrowWidth = PickerHeaderButtons.MinimumWidth - 1;
+        var narrow = PickerComposer.Compose(picker, Home, narrowWidth, 6, GraphGlyphSet.Unicode);
+        var locate = PickerComposer.Compose(locating, Home, 100, 6, GraphGlyphSet.Unicode);
+
+        Assert.Empty(PickerHeaderButtons.Layout(narrowWidth));
+        Assert.DoesNotContain("[clone]", narrow[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[clone]", locate[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+    }
 }

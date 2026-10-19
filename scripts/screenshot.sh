@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,theme-preview,theme-kept] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -13,7 +13,7 @@
 # so the code repository never carries them. It is private: links are github.com/<screenshots repo>/raw/<commit>/... (render for
 # logged-in viewers; raw.githubusercontent.com needs a token). They are pinned to the screenshots commit, so later pushes never break
 # them; `clean` deletes the files of merged PRs from the branch tip, but history keeps them (the owner may reset that repository).
-# Scenarios: default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background),
+# Scenarios: theme-preview (the theme list with the light theme previewed) and theme-kept (the same after Enter: the theme is saved and stays); settings, settings-choice (an open choice) and settings-narrow (64x24, collapsed layout) show the settings screen (<space>,); default (120x36), diff (diff pane open), split (170 columns, side-by-side diff), narrow (64x30), light (light terminal background), files (gf Enter Enter: the Files tab with the first directory opened) and files-filter (gf Enter / then mul: the tree filter),
 # prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the working-tree view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
@@ -194,6 +194,8 @@ render() {
       split) columns=170 keys="Enter Enter S" ;;
       narrow) columns=64 rows=30 ;;
       light) theme=light ;;
+      files) keys="g f Enter Enter" ;;
+      files-filter) keys="g f Enter / m u l" ;;
       palette) rows=20 keys=": C-j C-j" ;;
       whichkey) keys="Space" ;;
       menu) keys="j j Space ." ;;
@@ -214,6 +216,13 @@ render() {
       working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
       working-discard) keys="Space s j" keys_after="Space d" ;;
       working-resolve) keys="Space s" keys_after="Space a" ;;
+      settings) keys="Space ," ;;
+      settings-choice) keys="Space , Enter Enter j" ;;
+      settings-narrow) columns=64 rows=24 keys="Space ," ;;
+      theme-preview) keys="Space , Enter Enter j j" ;;
+      theme-kept) keys="Space , Enter Enter j j Enter" ;;
+      status-fresh) keys="Space F" ;;
+      status-settled) keys="Space F" keys_after="Space F" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
@@ -227,6 +236,11 @@ render() {
     elif [[ "$scenario" == working* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
+    fi
+    if [[ -n "${GITUNIA_SCREENSHOT_CONFIG:-}" ]]; then
+      # Optional config.json for the private config directory (options such as frameStyle).
+      mkdir -p "$work/config/gitunia"
+      cp "$GITUNIA_SCREENSHOT_CONFIG" "$work/config/gitunia/config.json"
     fi
     tmux_cmd kill-session -t shot 2>/dev/null || true
     tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$scenario_repo")"

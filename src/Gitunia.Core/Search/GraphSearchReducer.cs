@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git;
 
 namespace Gitunia.Core.Search;
 
@@ -13,6 +14,7 @@ public static class GraphSearchReducer
     public const string WrappedNotice = "Search wrapped";
     public const string NoSearchNotice = "No search yet; press / to start one";
     public const string NoMatchNotice = "No match";
+    public const string BodySearchFailedNotice = "Message search failed";
 
     public static GraphSearchUpdate Reduce(GraphSearchState state, GraphSearchCommand command) => command switch
     {
@@ -24,6 +26,7 @@ public static class GraphSearchReducer
         ScanProgressCommand progress => Progress(state, progress),
         GraphGrewCommand grew => Grew(state, grew),
         GraphReplacedCommand => Replaced(state),
+        BodyHitsCommand hits => BodyHits(state, hits),
         _ => Plain(state),
     };
 
@@ -49,7 +52,35 @@ public static class GraphSearchReducer
             JumpPending = false,
             Notice = string.Empty,
         };
-        return new GraphSearchUpdate(next, query is null ? [] : [new ScanSearchEffect(next.Generation)]);
+        return new GraphSearchUpdate(next, query is null ? [] : [FirstEffect(query, next.Generation)]);
+    }
+
+    // A body query first asks git which commits match; the rows are scanned once the answer is in.
+    private static GraphSearchEffect FirstEffect(SearchQuery query, int generation) =>
+        query.IsAwaitingBodyHits ? new SearchBodiesEffect(generation, query.Text) : new ScanSearchEffect(generation);
+
+    private static GraphSearchUpdate BodyHits(GraphSearchState state, BodyHitsCommand answer)
+    {
+        if (answer.Generation != state.Generation || state.Query is not { IsAwaitingBodyHits: true } query)
+        {
+            return Plain(state);
+        }
+
+        if (answer.Hits is null)
+        {
+            var failed = state with
+            {
+                Query = query with { BodyHits = new HashSet<ObjectId>() },
+                IsScanning = false,
+                IsComplete = true,
+                JumpPending = false,
+                Notice = $"{BodySearchFailedNotice}: {answer.Error}",
+            };
+            return Plain(failed);
+        }
+
+        var next = state with { Query = query with { BodyHits = answer.Hits } };
+        return new GraphSearchUpdate(next, [new ScanSearchEffect(next.Generation)]);
     }
 
     private static GraphSearchUpdate Accept(GraphSearchState state, int selectedIndex)
@@ -130,7 +161,7 @@ public static class GraphSearchReducer
 
     private static GraphSearchUpdate Grew(GraphSearchState state, GraphGrewCommand grew)
     {
-        if (state.Query is null || state.IsScanning)
+        if (state.Query is null || state.IsScanning || state.Query.IsAwaitingBodyHits)
         {
             return Plain(state);
         }
@@ -152,8 +183,19 @@ public static class GraphSearchReducer
             return Plain(state);
         }
 
-        var next = state with { Matches = [], Scanned = 0, IsScanning = true, IsComplete = false, Generation = state.Generation + 1, JumpPending = false };
-        return new GraphSearchUpdate(next, [new ScanSearchEffect(next.Generation)]);
+        // New commits may have the text in their message, so a body query asks git again.
+        var query = state.Query.Field == SearchField.Body ? state.Query with { BodyHits = null } : state.Query;
+        var next = state with
+        {
+            Query = query,
+            Matches = [],
+            Scanned = 0,
+            IsScanning = true,
+            IsComplete = false,
+            Generation = state.Generation + 1,
+            JumpPending = false,
+        };
+        return new GraphSearchUpdate(next, [FirstEffect(query, next.Generation)]);
     }
 
     // Jumps to the first match after the anchor; waits for the scan when there is none yet and it is not finished.

@@ -6,7 +6,6 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.CommandLine;
-using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 
 namespace Gitunia.Tui;
@@ -59,7 +58,10 @@ public static class Program
                 location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,
-                GraphGlyphSet.For(capabilities.Unicode),
+                FramePrinter.GlyphsFor(
+                    capabilities.Unicode,
+                    PlatformInfo.Current.ConfigDirectory,
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
                 Console.Out,
                 new PaneArrangement(options.OpenDiff, options.Zoom),
                 options.Tab,

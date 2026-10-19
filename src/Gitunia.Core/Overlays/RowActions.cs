@@ -100,6 +100,19 @@ public static class RowActions
     private static ActionId[] OfSection(SidebarSection section) => section switch
     {
         SidebarSection.Branches => [ActionIds.BranchCreate, ActionIds.BranchCreateOnly],
+        SidebarSection.Remotes =>
+        [
+            ActionIds.RemoteFetch,
+            ActionIds.RemoteFetchAll,
+            ActionIds.RemotePull,
+            ActionIds.RemotePush,
+            ActionIds.RemotePushForce,
+            ActionIds.RemoteDeleteBranch,
+            ActionIds.RemoteAdd,
+            ActionIds.RemoteRemove,
+            ActionIds.RemoteRename,
+            ActionIds.RemoteSetUrl,
+        ],
         SidebarSection.Tags => [ActionIds.TagCreate],
         SidebarSection.Worktrees => [ActionIds.WorktreeAdd, ActionIds.WorktreePrune],
         SidebarSection.Stashes => [ActionIds.StashPush, ActionIds.StashPushUntracked],

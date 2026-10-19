@@ -4,4 +4,5 @@ namespace Gitunia.Core.Status;
 /// <param name="Sequence">Position in posting order, starting at 1; unique within a log.</param>
 /// <param name="Text">What to tell the user, one line.</param>
 /// <param name="Severity">How serious it is.</param>
-public sealed record StatusMessage(long Sequence, string Text, StatusSeverity Severity);
+/// <param name="PostedAt">When it was posted, by the channel's clock.</param>
+public sealed record StatusMessage(long Sequence, string Text, StatusSeverity Severity, DateTimeOffset PostedAt);

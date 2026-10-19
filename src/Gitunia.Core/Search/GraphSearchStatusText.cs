@@ -26,7 +26,11 @@ public static class GraphSearchStatusText
         var matchCount = $"{state.Matches.Length.ToString(CultureInfo.InvariantCulture)}{(state.IsComplete ? string.Empty : "+")}";
         var position = state.Matches.IndexOf(selectedIndex);
         var summary = position >= 0 ? $"{(position + 1).ToString(CultureInfo.InvariantCulture)}/{matchCount}" : $"{matchCount} found";
-        if (!state.IsComplete && loadedCount > 0)
+        if (state.Query.IsAwaitingBodyHits)
+        {
+            summary = $"{summary} searching messages";
+        }
+        else if (!state.IsComplete && loadedCount > 0)
         {
             var percent = (int)Math.Min(100L, (long)state.Scanned * 100 / loadedCount);
             summary = $"{summary} searching {percent.ToString(CultureInfo.InvariantCulture)}%";

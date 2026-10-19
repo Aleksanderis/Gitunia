@@ -4,9 +4,13 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
+using Gitunia.Tui.Tests.Loading;
 using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
@@ -41,6 +45,36 @@ public class StatusActionHandlerTests : IDisposable
         Assert.True(handler.TryHandleFallback(ActionIds.Cancel));
 
         Assert.Null(statuses.Log.Latest);
+    }
+
+    [Fact]
+    public void GivenAnExpiredMessage_WhenEscapeFallsThrough_ThenNothingIsDismissedOrRedrawn()
+    {
+        var clock = new ManualTimeProvider();
+        var statuses = new StatusChannel(clock);
+        statuses.Post("done");
+        clock.Advance(StatusLifetime.Of(StatusSeverity.Info));
+        var changes = 0;
+        statuses.Changed += () => changes++;
+        var handler = new StatusActionHandler(statuses, () => null);
+
+        handler.TryHandleFallback(ActionIds.Cancel);
+
+        Assert.Equal(0, changes);
+    }
+
+    [Fact]
+    public void GivenAShowingMessage_WhenEscapeFallsThrough_ThenItIsDismissedBeforeItExpires()
+    {
+        var clock = new ManualTimeProvider();
+        var statuses = new StatusChannel(clock);
+        statuses.Error("boom");
+        clock.Advance(TimeSpan.FromSeconds(10));
+        var handler = new StatusActionHandler(statuses, () => null);
+
+        handler.TryHandleFallback(ActionIds.Cancel);
+
+        Assert.Null(statuses.Current);
     }
 
     [Fact]
@@ -113,6 +147,33 @@ public class StatusActionHandlerTests : IDisposable
 
         Assert.Equal("retrying...", handler.Message);
         Assert.Equal(CommitDetailsStatus.Loading, _session.Details.Current.Status);
+    }
+
+    [Fact]
+    public async Task GivenAFailedFileTree_WhenRetrying_ThenTheTreeLoadStartsAgain()
+    {
+        var pump = new UiPump(Token);
+        var debounce = TimeSpan.FromMilliseconds(1);
+        var reader = new FakeCommitTreeReader();
+        var store = new CommitTreeStore(reader, FakeCommitDetailsReader.Location, pump.Post, debounce);
+        _session = new TabSession(
+            new TabId(1),
+            GraphGlyphSet.Unicode,
+            new CommitDetailsStore(
+                new FakeCommitDetailsReader(),
+                FakeCommitDetailsReader.Location,
+                pump.Post,
+                debounce),
+            tree: new FileTreeSession(store));
+        var missing = FakeCommitDetailsReader.MissingId();
+        store.Select(missing);
+        await pump.RunUntilAsync(() => store.Current.Status == CommitDetailsStatus.Failed);
+        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+
+        handler.TryHandle(ActionIds.DetailRetry);
+
+        Assert.Equal("retrying...", handler.Message);
+        Assert.Equal(CommitDetailsStatus.Loading, store.Current.Status);
     }
 
     public void Dispose()

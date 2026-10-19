@@ -20,11 +20,15 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="Tabs">One label per open tab for the tab row; empty falls back to a single label built from the fields above.</param>
 /// <param name="Picker">The open repository picker, which replaces the graph area; null when closed.</param>
 /// <param name="HomeDirectory">The home directory, shown as <c>~</c> in picker paths.</param>
-/// <param name="MessageSeverity">How serious <paramref name="Message"/> is; errors are drawn in the error colour.</param>
+/// <param name="MessageSeverity">How serious <paramref name="Message"/> is, which picks its colour; null for a
+/// message that is not a posted status message (a key's own notice, progress), drawn in the plain bar style.</param>
+/// <param name="MessageIsFresh">Whether <paramref name="Message"/> is new and drawn as a filled chip.</param>
 /// <param name="SearchLine">The open search or prompt (<c>/foo_  3/17</c>), shown instead of the position; empty when none.</param>
 /// <param name="Banner">The in-progress operation of the tab (ux.md, workflow 4), null when none. Drawn on the
 /// frame's bottom edge; a terminal under <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows shows its text in
 /// the status bar instead.</param>
+/// <param name="RemoteBusy">A fetch, pull or push of the active tab runs; the tab row shows a cancel chip instead of
+/// the three chips.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -41,6 +45,8 @@ public sealed record ScreenModel(
     IReadOnlyList<TabLabel>? Tabs = null,
     PickerState? Picker = null,
     string HomeDirectory = "",
-    StatusSeverity MessageSeverity = StatusSeverity.Info,
+    StatusSeverity? MessageSeverity = null,
     IReadOnlyList<KeyHint>? Hints = null,
-    OperationBanner? Banner = null);
+    OperationBanner? Banner = null,
+    bool RemoteBusy = false,
+    bool MessageIsFresh = false);

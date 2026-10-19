@@ -25,6 +25,7 @@ public static class DefaultKeymap
     public const string MessagesView = "Messages";
     public const string ConfirmView = "Confirm";
     public const string ReflogView = "Reflog";
+    public const string SettingsView = "Settings";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
     private static readonly KeyMode[] NormalOnly = [KeyMode.Normal];
@@ -49,6 +50,7 @@ public static class DefaultKeymap
         [MessagesView] = ListsView,
         [ConfirmView] = KeyBindingTable.GlobalView,
         [ReflogView] = ListsView,
+        [SettingsView] = ListsView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -59,6 +61,7 @@ public static class DefaultKeymap
         AddGlobal(bindings);
         AddLists(bindings);
         AddViews(bindings);
+        AddSettingsKeys(bindings);
         AddWorkingTreeLists(bindings);
         AddWorkingTreeDiffs(bindings);
         AddWorkingMessage(bindings);
@@ -110,7 +113,18 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>z", ActionIds.PaneZoom);
         Add(bindings, NormalOnly, global, "<space>x", ActionIds.StatusDismiss);
         Add(bindings, NormalOnly, global, "<space>m", ActionIds.StatusHistory);
+        Add(bindings, NormalOnly, global, "<space>,", ActionIds.SettingsOpen);
         Add(bindings, NormalOnly, global, "<space>s", ActionIds.WorkingTreeToggle);
+        Add(bindings, NormalOnly, global, "<space>F", ActionIds.RemoteFetch);
+        Add(bindings, NormalOnly, global, "<space>L", ActionIds.RemotePull);
+        Add(bindings, NormalOnly, global, "<space>P", ActionIds.RemotePush);
+        Add(bindings, NormalOnly, global, "<space>Rf", ActionIds.RemotePushForce);
+        Add(bindings, NormalOnly, global, "<space>RD", ActionIds.RemoteDeleteBranch);
+        Add(bindings, NormalOnly, global, "<space>C", ActionIds.RemoteCancel);
+        Add(bindings, NormalOnly, global, "<space>Ra", ActionIds.RemoteAdd);
+        Add(bindings, NormalOnly, global, "<space>Rd", ActionIds.RemoteRemove);
+        Add(bindings, NormalOnly, global, "<space>Rn", ActionIds.RemoteRename);
+        Add(bindings, NormalOnly, global, "<space>Ru", ActionIds.RemoteSetUrl);
         Add(bindings, NormalOnly, global, "<space>Ss", ActionIds.StashPush);
         Add(bindings, NormalOnly, global, "<space>Su", ActionIds.StashPushUntracked);
         Add(bindings, NormalOnly, global, "<space>gc", ActionIds.OperationContinue);
@@ -171,7 +185,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DetailView, "<space>r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "<space>j", ActionIds.QuickJump);
-        Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, DetailView, "h", ActionIds.DetailCollapse);
+        Add(bindings, NormalOnly, DetailView, "/", ActionIds.DetailFilter);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
         AddBottomTabKeys(bindings, DetailView);
 
@@ -269,6 +284,24 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ReflogView, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, ReflogView, "<space>bc", ActionIds.BranchCreate);
         Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
+    }
+
+    // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys
+    // of a modal list, not buffer commands, so the single letters do not clash with the Normal-mode rule of the panes.
+    private static void AddSettingsKeys(List<KeyBinding> bindings)
+    {
+        Add(bindings, NormalOnly, SettingsView, "Enter", ActionIds.SettingsActivate);
+        Add(bindings, NormalOnly, SettingsView, "l", ActionIds.SettingsActivate);
+        Add(bindings, NormalOnly, SettingsView, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, SettingsView, "Esc", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, SettingsView, "x", ActionIds.SettingsToggle);
+        Add(bindings, NormalOnly, SettingsView, "/", ActionIds.SettingsFilter);
+        Add(bindings, NormalOnly, SettingsView, "a", ActionIds.SettingsAdd);
+        Add(bindings, NormalOnly, SettingsView, "d", ActionIds.SettingsRemove);
+        Add(bindings, NormalOnly, SettingsView, "J", ActionIds.SettingsMoveDown);
+        Add(bindings, NormalOnly, SettingsView, "K", ActionIds.SettingsMoveUp);
+        Add(bindings, NormalOnly, SettingsView, "+", ActionIds.SettingsIncrease);
+        Add(bindings, NormalOnly, SettingsView, "-", ActionIds.SettingsDecrease);
     }
 
     // The two file lists of the working-tree view share their keys; stage and unstage are side-specific; discard is unstaged-only.
@@ -379,6 +412,8 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], PickerView, "Right", ActionIds.PickerCompletePath);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-p", ActionIds.PickerPin);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-d", ActionIds.PickerRemoveRecent);
+        Add(bindings, [KeyMode.Insert], PickerView, "Alt-c", ActionIds.PickerClone);
+        Add(bindings, [KeyMode.Insert], PickerView, "Alt-i", ActionIds.PickerInit);
     }
 
     private static void AddPalette(List<KeyBinding> bindings)

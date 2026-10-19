@@ -12,10 +12,13 @@ using Gitunia.Git.Execution;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Tags;
+using Gitunia.Git.Trees;
+using Gitunia.Git.Watching;
 using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
@@ -29,7 +32,9 @@ namespace Gitunia.Tui.App;
 /// </summary>
 /// <param name="Discovery">Resolves a path to its repository.</param>
 /// <param name="CommitLog">Reads the commit log.</param>
+/// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
 /// <param name="CommitDetails">Reads one commit's details.</param>
+/// <param name="CommitTree">Lists the files of a commit's tree.</param>
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
@@ -37,6 +42,8 @@ namespace Gitunia.Tui.App;
 /// <param name="Discarder">Throws working-tree changes away (always behind a confirm dialog).</param>
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
+/// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
+/// <param name="Creator">Clones and initialises repositories.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
 /// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
@@ -51,13 +58,16 @@ namespace Gitunia.Tui.App;
 /// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
 /// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
+/// <param name="WatchedDirectories">Lists the non-ignored working tree directories a tab watches.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
 /// <param name="IncrementalGraphLoader">Reloads a graph after a change.</param>
 /// <param name="RepositoryLoader">Loads everything a freshly opened tab shows.</param>
 public sealed record GitServices(
     RepositoryDiscovery Discovery,
     ICommitLogReader CommitLog,
+    ICommitMessageSearcher CommitMessages,
     ICommitDetailsReader CommitDetails,
+    ICommitTreeReader CommitTree,
     IDiffReader Diff,
     IRefReader Refs,
     IStatusReader Status,
@@ -66,6 +76,9 @@ public sealed record GitServices(
     ICommitWriter CommitWriter,
     IBranchWriter Branches,
     ITagWriter Tags,
+    IRemoteWriter Remote,
+    IRemoteManager RemoteManager,
+    IRepositoryCreator Creator,
     IMergeWriter Merge,
     IPickWriter Pick,
     IPickCommitReader PickCommits,
@@ -79,6 +92,7 @@ public sealed record GitServices(
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
     IRepositoryRefresher Refresher,
+    IWorkingTreeDirectoryLister WatchedDirectories,
     GraphLoader GraphLoader,
     IncrementalGraphLoader IncrementalGraphLoader,
     RepositoryLoader RepositoryLoader)
@@ -93,10 +107,13 @@ public sealed record GitServices(
         var graphLoader = new GraphLoader(commitLog);
         var operationDetector = new RepositoryOperationDetector();
         var operationRunner = new OperationRunner(runner, operationDetector);
+        var remoteRunner = new RemoteRunner(runner);
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
+            new CommitMessageSearcher(runner),
             new CommitDetailsReader(runner),
+            new CommitTreeReader(runner),
             new DiffReader(runner),
             refs,
             status,
@@ -104,7 +121,10 @@ public sealed record GitServices(
             new WorkingTreeDiscarder(runner, ByteExactFileSystems.ForCurrentOs()),
             new CommitWriter(runner),
             new BranchWriter(runner),
-            new TagWriter(runner),
+            new TagWriter(runner, remoteRunner),
+            new RemoteWriter(remoteRunner),
+            new RemoteManager(runner),
+            new RepositoryCreator(remoteRunner, runner, new RepositoryDiscovery(runner)),
             new MergeWriter(runner, operationRunner),
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),
@@ -124,6 +144,7 @@ public sealed record GitServices(
             new OperationWriter(operationRunner),
             new OperationInfoReader(),
             new RepositoryRefresher(refs, status, operationDetector),
+            new WorkingTreeDirectoryLister(runner),
             graphLoader,
             new IncrementalGraphLoader(commitLog, graphLoader),
             new RepositoryLoader(refs, status, graphLoader, new SidebarDataLoader(refs, stashes)));

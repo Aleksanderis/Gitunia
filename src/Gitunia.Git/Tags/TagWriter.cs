@@ -1,11 +1,15 @@
 using Gitunia.Git.Execution;
 using Gitunia.Git.Refs;
+using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Git.Tags;
 
-/// <summary>Tag operations with the git CLI; hooks, config and credential helpers are the user's.</summary>
-public sealed class TagWriter(GitRunner runner) : ITagWriter
+/// <summary>
+/// Tag operations with the git CLI; hooks, config and credential helpers are the user's. Pushes go through the
+/// remote runner (idle timeout, ssh never prompts).
+/// </summary>
+public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITagWriter
 {
     private const string Tag = "tag";
     private const string Push = "push";
@@ -82,25 +86,31 @@ public sealed class TagWriter(GitRunner runner) : ITagWriter
             .Split(LineSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
-    public Task PushAsync(
+    public async Task PushAsync(
         RepositoryLocation location,
         string remote,
         string name,
         CancellationToken cancellationToken) =>
-        RunWriteAsync(
-            location,
-            [Push, NoProgressOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
-            cancellationToken);
+        await remoteRunner
+            .RunAsync(
+                location,
+                [Push, NoProgressOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                null,
+                cancellationToken)
+            .ConfigureAwait(false);
 
-    public Task DeleteOnRemoteAsync(
+    public async Task DeleteOnRemoteAsync(
         RepositoryLocation location,
         string remote,
         string name,
         CancellationToken cancellationToken) =>
-        RunWriteAsync(
-            location,
-            [Push, NoProgressOption, RemoteDeleteOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
-            cancellationToken);
+        await remoteRunner
+            .RunAsync(
+                location,
+                [Push, NoProgressOption, RemoteDeleteOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                null,
+                cancellationToken)
+            .ConfigureAwait(false);
 
     private async Task RunWriteAsync(
         RepositoryLocation location,

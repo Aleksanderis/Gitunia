@@ -1,5 +1,6 @@
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git;
 using Xunit;
 
 namespace Gitunia.Core.Tests.Search;
@@ -15,6 +16,21 @@ public class GraphSearchScannerTests
 
         Assert.Equal([0, 2], result.Matches);
         Assert.Equal(3, result.NextIndex);
+    }
+
+    [Fact]
+    public void GivenBodyQuery_WhenScanning_ThenOnlyRowsInTheHitsMatchAndNoneBeforeTheAnswer()
+    {
+        var graph = SearchTestGraph.Build(
+            new SearchTestRow("one", "Bob"),
+            new SearchTestRow("two", "Bob"),
+            new SearchTestRow("three", "Bob"));
+        Assert.True(ObjectId.TryParse("0000000000000000000000000000000000000002", out var second));
+
+        var answered = new SearchQuery(SearchField.Body, "closes", new HashSet<ObjectId> { second });
+
+        Assert.Equal([1], GraphSearchScanner.Scan(answered, graph, 0, 100).Matches);
+        Assert.Empty(GraphSearchScanner.Scan(answered with { BodyHits = null }, graph, 0, 100).Matches);
     }
 
     [Fact]

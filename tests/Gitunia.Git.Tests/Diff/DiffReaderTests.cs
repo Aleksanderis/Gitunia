@@ -253,6 +253,36 @@ public class DiffReaderTests
     }
 
     [Fact]
+    public async Task GivenMergeCommit_WhenReadingAgainstFirstParent_ThenPlainDiffOfWhatTheMergeBrought()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var warnings = new List<string>();
+        var files = new List<DiffFile>();
+
+        await foreach (var file in Diff.ReadCommitAsync(
+            location,
+            IdOf(testRepository, "HEAD"),
+            IdOf(testRepository, "HEAD^1"),
+            warnings,
+            cancellationToken: Token))
+        {
+            files.Add(file);
+        }
+
+        Assert.Empty(warnings);
+        var side = Assert.Single(files);
+        Assert.Equal("side.txt", side.Path);
+        Assert.Equal("side", Assert.Single(side.Hunks).Lines.Single(line => line.Kind == DiffLineKind.Added).Text);
+    }
+
+    [Fact]
     public async Task GivenCancelledToken_WhenReading_ThenOperationCancelled()
     {
         using var testRepository = TestRepository.Create().Commit("base", new TestFile("a.txt", "1\n"));

@@ -44,7 +44,9 @@ public static class TabBarLayout
     public static IReadOnlyList<TabCell> Layout(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)
     {
         // The new tab button follows the last tab, so its room is kept free.
-        var available = (CommandsStart(width) ?? width) - GapColumns - NewTabLabel.Length - GapColumns;
+        // The remote chips (#456) sit left of the commands button, so they take room from the tabs too.
+        var available = (RemoteChips.Start(width) ?? CommandsStart(width) ?? width)
+            - GapColumns - NewTabLabel.Length - GapColumns;
         var described = labels.Select(label => Describe(label, glyphs)).ToList();
         var texts = described.Select(item => item.Text).ToList();
         var activeIndex = Math.Max(0, labels.ToList().FindIndex(label => label.IsActive));

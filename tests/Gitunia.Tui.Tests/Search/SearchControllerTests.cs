@@ -2,6 +2,8 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Terminal.Gui.Input;
 using Xunit;
@@ -242,5 +244,184 @@ public class SearchControllerTests
         Assert.Equal(KeyMode.Normal, harness.Mode);
         Assert.True(harness.Session.Search.IsOpen);
         Assert.StartsWith("/fix", harness.StatusLine, StringComparison.Ordinal);
+    }
+
+    private static TaskCompletionSource NewGate() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private static void WaitUntil(PromptHarness harness, Func<PromptHarness, bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!condition(harness) && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(5);
+        }
+
+        Assert.True(condition(harness), "Timed out waiting for the message search");
+    }
+
+    [Fact]
+    public void GivenBodyQuery_WhenGitAnswers_ThenOnlyCommitsWithTheTextInTheirMessageMatchAndTheJumpFollows()
+    {
+        var searcher = new FakeCommitMessageSearcher();
+        searcher.Hits.Add(CommitFactory.Id(3));
+        searcher.Hits.Add(CommitFactory.Id(1));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+
+        harness.Press(new Key('/'));
+        harness.Type("body:closes #4");
+        WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+        Assert.Equal("/body:closes #4_  2 found", harness.StatusLine);
+        harness.Press(Key.Enter);
+
+        Assert.Equal("closes #4", searcher.LastText);
+        Assert.Equal(3, harness.SelectedRow);
+        harness.Press(new Key('n'));
+        Assert.Equal(5, harness.SelectedRow);
+        harness.Press(new Key('n'));
+        Assert.Equal(3, harness.SelectedRow);
+    }
+
+    [Fact]
+    public void GivenSlowGit_WhenAcceptingBeforeTheAnswer_ThenTheJumpHappensWhenTheAnswerArrives()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        searcher.Hits.Add(CommitFactory.Id(2));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+
+        Assert.Contains("searching messages", harness.StatusLine, StringComparison.Ordinal);
+        harness.Press(Key.Enter);
+        Assert.Equal(0, harness.SelectedRow);
+        searcher.Gate.SetResult();
+        WaitUntil(harness, h => h.SelectedRow == 4);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
+    [Fact]
+    public void GivenFailingGit_WhenSearchingBodies_ThenTheStatusExplainsAndNothingMatches()
+    {
+        var searcher = new FakeCommitMessageSearcher { Failure = new GitException("bad pattern") };
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, h => h.Session.Search.IsComplete);
+
+        Assert.Contains("Message search failed: git returned an error", harness.StatusLine, StringComparison.Ordinal);
+        Assert.Contains("0 found", harness.StatusLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTextTypedAfterBodyPrefix_WhenTheAnswerOfTheOlderQueryArrives_ThenItIsDropped()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate(), IgnoreCancellation = true };
+        searcher.Hits.Add(CommitFactory.Id(2));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+
+        harness.Press(Key.Backspace);
+        harness.Press(Key.Backspace);
+        harness.Press(Key.Backspace);
+        harness.Press(Key.Backspace);
+        harness.Press(Key.Backspace);
+        harness.Press(Key.Backspace);
+        harness.Type("fix");
+        searcher.Gate.SetResult();
+        await searcher.Finished.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        Assert.Equal(SearchField.Message, harness.Session.Search.Query!.Field);
+        Assert.Equal("/fix_  1/3", harness.StatusLine);
+    }
+
+    [Fact]
+    public void GivenNoSearcher_WhenSearchingBodies_ThenTheSearchEndsWithANotice()
+    {
+        using var harness = new PromptHarness(Graph());
+
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+
+        Assert.Contains(GraphSearchReducer.BodySearchFailedNotice, harness.StatusLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenPressingEscape_ThenGitIsCancelledAndNoAnswerIsApplied()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        searcher.Hits.Add(CommitFactory.Id(2));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, _ => searcher.CallCount == 1);
+        var token = searcher.TokenOf(0);
+
+        harness.Press(Key.Esc);
+        Assert.True(token.IsCancellationRequested);
+        searcher.Gate.TrySetResult();
+        Thread.Sleep(100);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Session.Search.IsOpen);
+        Assert.Equal(string.Empty, harness.StatusLine);
+        Assert.Equal(0, harness.SelectedRow);
+    }
+
+    [Fact]
+    public void GivenAnsweredBodySearch_WhenTheGraphIsReplaced_ThenGitIsAskedAgainAndTheNewAnswerWins()
+    {
+        var searcher = new FakeCommitMessageSearcher();
+        searcher.Hits.Add(CommitFactory.Id(3));
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, h => h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+        Assert.Equal(1, searcher.CallCount);
+        Assert.Contains("1 found", harness.StatusLine, StringComparison.Ordinal);
+
+        searcher.Hits.Add(CommitFactory.Id(1));
+        var graph = Graph();
+        var rows = Enumerable.Range(0, graph.Count).Select(index => graph[index]);
+        harness.Session.ReplaceGraph([.. rows]);
+        WaitUntil(
+            harness,
+            h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
+
+        Assert.Contains("2 found", harness.StatusLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenTheGraphIsReplaced_ThenTheEarlierRunIsCancelled()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, _ => searcher.CallCount == 1);
+        var first = searcher.TokenOf(0);
+
+        var graph = Graph();
+        harness.Session.ReplaceGraph([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
+        WaitUntil(harness, _ => searcher.CallCount == 2);
+
+        Assert.True(first.IsCancellationRequested);
+        Assert.False(searcher.TokenOf(1).IsCancellationRequested);
+    }
+
+    [Fact]
+    public void GivenRunningBodySearch_WhenTheTabIsClosed_ThenItsEntryIsRemoved()
+    {
+        var searcher = new FakeCommitMessageSearcher { Gate = NewGate() };
+        using var harness = new PromptHarness(Graph(), messages: searcher);
+        harness.Press(new Key('/'));
+        harness.Type("body:x");
+        WaitUntil(harness, h => searcher.CallCount == 1 && h.Search.BodySearchCount == 1);
+
+        harness.Session.Cancellation.Cancel();
+
+        WaitUntil(harness, h => h.Search.BodySearchCount == 0);
     }
 }

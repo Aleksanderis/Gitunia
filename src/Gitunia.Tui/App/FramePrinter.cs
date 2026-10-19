@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Sidebar;
@@ -9,8 +10,10 @@ using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
+using Gitunia.Tui.App.Config;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -31,6 +34,13 @@ public sealed class FramePrinter
     {
         _services = services;
     }
+
+    /// <summary>The glyphs the app would start with: the terminal's set with the config's <c>frameStyle</c>.</summary>
+    public static GraphGlyphSet GlyphsFor(bool unicode, string configDirectory, string homeDirectory) =>
+        GraphGlyphSet.For(unicode) with
+        {
+            Frame = new ConfigStartup(configDirectory, homeDirectory).Load().Options.FrameStyle,
+        };
 
     public async Task PrintAsync(
         RepositoryLocation location,
@@ -71,7 +81,10 @@ public sealed class FramePrinter
         var diff = arrangement.IsDiffOpen && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
             ? await ReadDiffAsync(location, selected, detailState, cancellationToken)
             : null;
-        var content = DetailContentBuilder.Build(selected, detailState, tab);
+        var treeView = tab == BottomTab.Files && selected is not null
+            ? await ReadTreeAsync(location, selected, glyphs, cancellationToken)
+            : null;
+        var content = DetailContentBuilder.Build(selected, detailState, tab, treeView);
         var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
@@ -96,6 +109,24 @@ public sealed class FramePrinter
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }
+    }
+
+    // The tree as a fresh tab shows it: every directory closed.
+    private async Task<FileTreeView> ReadTreeAsync(
+        RepositoryLocation location,
+        GraphEntry selected,
+        GraphGlyphSet glyphs,
+        CancellationToken cancellationToken)
+    {
+        var entries = await _services.CommitTree.ReadAsync(location, selected.Id, cancellationToken: cancellationToken);
+        var model = FileTreeModel.Build(entries);
+        var state = new CommitTreeState(selected.Id, CommitDetailsStatus.Loaded, model, string.Empty);
+
+        return new FileTreeView(
+            state,
+            model.Rows(new HashSet<string>(), string.Empty),
+            string.Empty,
+            SidebarGlyphs.For(glyphs));
     }
 
     private async Task<DiffPaneModel> ReadDiffAsync(RepositoryLocation location, GraphEntry selected, CommitDetailsState detailState, CancellationToken cancellationToken)

@@ -17,7 +17,7 @@ public static class ChromeBuilder
     {
         if (model.Tabs is { Count: > 0 } labels)
         {
-            return TabRow(labels, width, glyphs);
+            return TabRow(labels, width, glyphs, model.RemoteBusy);
         }
 
         if (model.TabCount == 0)
@@ -51,7 +51,7 @@ public static class ChromeBuilder
 
         if (model.Message.Length > 0)
         {
-            builder.Append($" {model.Message} ", model.MessageSeverity == StatusSeverity.Error ? SegmentRole.StatusError : SegmentRole.Status);
+            builder.Append($" {model.Message} ", MessageRole(model));
         }
 
         if (model.SearchLine.Length == 0)
@@ -62,12 +62,22 @@ public static class ChromeBuilder
         return builder.Build(SegmentRole.Status);
     }
 
+    // One role per severity, a filled chip while the message is fresh. No severity (a key's own notice, progress)
+    // keeps the plain bar style.
+    private static SegmentRole MessageRole(ScreenModel model) => model.MessageSeverity switch
+    {
+        null => SegmentRole.Status,
+        StatusSeverity.Error => model.MessageIsFresh ? SegmentRole.StatusErrorFresh : SegmentRole.StatusError,
+        StatusSeverity.Warning => model.MessageIsFresh ? SegmentRole.StatusWarningFresh : SegmentRole.StatusWarning,
+        _ => model.MessageIsFresh ? SegmentRole.StatusNoticeFresh : SegmentRole.StatusNotice,
+    };
+
     private static void AppendHints(LineBuilder builder, IReadOnlyList<KeyHint> hints)
     {
         HintRenderer.Append(builder, hints, HintGap);
     }
 
-    private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)
+    private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs, bool remoteBusy)
     {
         var cells = TabBarLayout.Layout(labels, width, glyphs);
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(new string(' ', TabBarLayout.LeftMargin), SegmentRole.Status);
@@ -86,6 +96,11 @@ public static class ChromeBuilder
 
         builder.Append(" ", SegmentRole.Status);
         builder.Append(TabBarLayout.NewTabLabel, SegmentRole.BarButton);
+        if (RemoteChips.Start(width) is { } chipsStart)
+        {
+            AppendRemoteChips(builder, width, chipsStart, remoteBusy, glyphs);
+        }
+
         if (TabBarLayout.CommandsStart(width) is { } commandsStart)
         {
             builder.Append(new string(' ', Math.Max(0, commandsStart - (width - builder.Remaining))), SegmentRole.Status);
@@ -93,5 +108,17 @@ public static class ChromeBuilder
         }
 
         return builder.Build(SegmentRole.Status);
+    }
+
+    private static void AppendRemoteChips(LineBuilder builder, int width, int start, bool isBusy, GraphGlyphSet glyphs)
+    {
+        builder.Append(new string(' ', Math.Max(0, start - (width - builder.Remaining))), SegmentRole.Status);
+        var first = true;
+        foreach (var chip in RemoteChips.Shown(isBusy))
+        {
+            builder.Append(first ? string.Empty : " ", SegmentRole.Status);
+            builder.Append(ButtonLabel.For(chip.Label, glyphs.IsAscii), SegmentRole.BarButton);
+            first = false;
+        }
     }
 }
