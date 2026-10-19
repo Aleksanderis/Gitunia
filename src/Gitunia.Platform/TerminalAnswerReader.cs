@@ -4,8 +4,8 @@ using System.Text;
 namespace Gitunia.Platform;
 
 /// <summary>
-/// Reads the answer to an OSC 11 query that was followed by a DA1 query (<c>ESC [ c</c>). Every terminal answers DA1, and
-/// answers come in order, so the DA1 reply marks the end: a terminal that ignores OSC 11 is detected as soon as it
+/// Reads the answer to an OSC 11 query that was followed by a DA1 query (<c>ESC [ c</c>). Every terminal answers
+/// DA1, and answers come in order, so the DA1 reply marks the end: a terminal that ignores OSC 11 is detected as soon as it
 /// answers DA1 instead of by the timeout, and no late OSC answer is left to reach the UI as keystrokes.
 /// </summary>
 /// <param name="keyAvailable">Whether a key can be read without blocking.</param>
@@ -20,8 +20,8 @@ public sealed class TerminalAnswerReader(Func<bool> keyAvailable, Func<char> rea
 
     /// <summary>
     /// Reads until the DA1 reply, or until the timeout. Returns the text that came before the DA1 reply, null when
-    /// nothing came. The string terminator <c>ESC \</c> reaches <c>Console.ReadKey</c> as a bare backslash (the escape is
-    /// swallowed), so both it and BEL end the colour answer.
+    /// nothing came. The string terminator <c>ESC \</c> reaches <c>Console.ReadKey</c> as a bare backslash (the escape
+    /// is swallowed), so both it and BEL end the colour answer.
     /// </summary>
     /// <param name="timeout">How long to wait for the DA1 reply.</param>
     public string? Read(TimeSpan timeout)

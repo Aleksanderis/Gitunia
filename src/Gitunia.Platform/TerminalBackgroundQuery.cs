@@ -31,7 +31,9 @@ public static class TerminalBackgroundQuery
             // The DA1 query behind it (ESC [ c) is answered by every terminal, in order: its reply ends the wait.
             Console.Out.Write("\u001b]11;?\u001b\\\u001b[c");
             Console.Out.Flush();
-            var reader = new TerminalAnswerReader(() => Console.KeyAvailable, () => Console.ReadKey(intercept: true).KeyChar);
+            var reader = new TerminalAnswerReader(
+                () => Console.KeyAvailable,
+                () => Console.ReadKey(intercept: true).KeyChar);
             var response = reader.Read(timeout);
             return response is null ? null : ParseIsLight(response);
         }
@@ -87,7 +89,7 @@ public static class TerminalBackgroundQuery
             channels[i] = value / (Math.Pow(16, parts[i].Length) - 1);
         }
 
-        // A plain weighted luminance of the encoded channels: a heuristic for "light or dark", not a colour-science value.
+        // A weighted luminance of the encoded channels: a "light or dark" heuristic, not a colour-science value.
         return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]) > 0.5;
     }
 }
