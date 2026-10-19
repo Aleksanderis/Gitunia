@@ -357,6 +357,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
 
+**Process:** Release packaging (#48) lives in `ci.yml`, tag runs only: each leg archives its AOT binary with `scripts/package.sh` (tar.gz, zip on Windows, plus SHA-256) and a `release` job attaches them to a draft release. Linux x64 and Windows x64 only; macOS and linux-arm64 follow with #455. Why: no extra workflow or build, so no extra minutes; draft so the owner publishes.
+
 **UI:** Key config (#46): `config.json` has a `keys` list of entries (mode, view, key, action; `none` unbinds) applied over the defaults; each entry is validated alone and bad ones are skipped with a startup warning, so config never blocks startup. An entry that would make a key both complete and a chord prefix is refused (the engine always waits for a longer chord, #457). Detail in `ux.md`.
 
 **Performance:** Cold-tab eviction (#199): only the 5 most recently used tabs keep their graph; older idle tabs reload on activation (view state stays in the workspace, search and diff position do not); a tab with a running operation is never evicted. Why 5: recent tabs stay instant, RSS stays bounded. Soft row limit deferred to #515 with numbers.
