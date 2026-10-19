@@ -124,11 +124,26 @@ public sealed class TuiApplication(
     private Action? _suspendedWork;
     private Action? _resumed;
 
+    /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
+    public string? DriverName { get; init; }
+
+    /// <summary>Home directory for config paths and picker scans (smoke tests); null uses the user profile.</summary>
+    public string? HomeDirectory { get; init; }
+
+    /// <summary>Stop the main loop right after it starts, so a smoke test builds the shell and returns.</summary>
+    public bool ExitAfterFirstIteration { get; init; }
+
+    /// <summary>
+    /// Smoke tests: receives the screen text after one forced draw in the first iteration (the loop stops right
+    /// after). Only used with <see cref="ExitAfterFirstIteration"/>.
+    /// </summary>
+    public Action<string>? FrameCaptured { get; init; }
+
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
-        _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
         var queriedLight = _startupConfig.Theme == ThemeChoice.Auto
             ? platform.QueryLightBackground(_capabilities)
@@ -414,6 +429,11 @@ public sealed class TuiApplication(
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
+        if (ExitAfterFirstIteration)
+        {
+            StopAfterFirstFrame();
+        }
+
         try
         {
             _application.Run(_view.Window);
@@ -1065,11 +1085,21 @@ public sealed class TuiApplication(
         }
     }
 
+    // Draws one frame inside the first loop iteration, hands the screen text to the test and stops the loop.
+    private void StopAfterFirstFrame() => _application.Invoke(CaptureFirstFrameAndStop);
+
+    private void CaptureFirstFrameAndStop()
+    {
+        _application.LayoutAndDraw(true);
+        FrameCaptured?.Invoke(_application.Driver?.ToString() ?? string.Empty);
+        _application.RequestStop();
+    }
+
     // The same setup for the first start and for every restart after a hand-off to an external tool.
     private void CreateApplication()
     {
         _application = Application.Create();
-        _application.Init();
+        _application.Init(DriverName);
         ConfigurePalette();
     }
 
