@@ -71,6 +71,12 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 - Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
 - The credential-prompt issue reuses `ITerminalSuspender`.
 
+## Files tab (commit tree)
+
+`CommitTreeStore` (Tui, one per tab, like `CommitDetailsStore`) reads `ls-tree -r -z --long` off the UI thread when the Files tab is shown, with the same debounce, cancels on every selection change and keeps the last four trees. The worker also builds the `FileTreeModel` (Core: nested directories, folded single-child chains, ordinal order), so the UI thread only asks it for the visible rows, which `FileTreeSession` caches until the opened directories or the filter change. A closed directory costs nothing: the rows are produced by walking only the open ones.
+
+Measured on Linux with the AOT binary (`--print-frame 120x36 --tab files`, one commit with 100 000 files in 20 x 50 x 100 directories): `ls-tree -r -z --long` alone 0.21 s, the whole frame (process start, read, parse, model, rows, render) 0.60 s. The tree is shown as "Loading..." meanwhile and the UI never waits. A filter walks every file once per keystroke: the worst case (a one-letter filter that matches all 100 000 files and their directories, 201 020 rows) took 72 ms in `Rows` plus 16 ms to build the pane rows in a Debug build (JIT), so a keystroke stays near 0.1 s; rows are not built lazily. Lazy per-directory loading was not needed at this size; revisit it if a 1M-file monorepo shows up.
+
 ## Native AOT
 
 Rules (no reflection, source generators, dependency checks): `.claude/rules/csharp-style.md`. `PublishAot=true` and the trim/AOT analyzers are on from the first commit, `IL*` warnings are errors. Every dependency addition and every dispatched CI run the AOT publish and a smoke test of the produced binary. Targets: linux-x64 first, then linux-arm64, osx-arm64, win-x64.

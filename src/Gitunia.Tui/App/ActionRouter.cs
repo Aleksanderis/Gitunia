@@ -18,6 +18,7 @@ using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.App.Operations;
@@ -110,6 +111,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The pane resize keys.</summary>
     public PaneSizeController? PaneSizes { get; set; }
 
+    /// <summary>The keys of the Files tab (open, close, filter).</summary>
+    public FileTreeController? FileTree { get; set; }
+
     /// <summary>The bottom pane tab keys.</summary>
     public DetailTabController? DetailTabs { get; set; }
 
@@ -132,6 +136,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
+        action = FileTree?.Resolve(action) ?? action;
         if (QuickJump?.TryExecute(action, count) == true)
         {
             Message = QuickJump.Notice;
@@ -219,6 +224,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (PaneSizes?.TryExecute(action, count) == true)
         {
             Message = PaneSizes.Notice;
+            return;
+        }
+
+        if (FileTree?.TryExecute(action, count) == true)
+        {
+            Message = FileTree.Notice;
             return;
         }
 

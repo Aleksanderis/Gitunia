@@ -100,7 +100,7 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 8. **Details.** `Enter` on a commit moves focus to the detail pane; `Esc` or `h` returns. The pane follows the graph selection while the graph is focused. It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
    - **Changes:** the changed files with status `A` `M` `D` `T`, `R<score> old -> new`, `C<score> old -> new`; merges show changes against the first parent, and the heading says so (`(merge: against first parent <hash>)`). Combined diffs (`--cc`) and a per-parent switch are not offered: the diff viewer, the file list and the difftool all use the first parent (#95).
-   - **Files:** the file tree of the commit (a "not implemented yet" placeholder for now).
+   - **Files:** the file tree of the commit (`ls-tree -r -z --long`): directories first, then files, each ordinal by name; a directory whose only child is a directory folds into one row (`src/Gitunia.Core`). Every directory starts closed (the open ones are remembered per repository tab while the selection moves to other commits); a closed directory shows its file count, a file its size, and executables, symbolic links and submodules say so (`(executable, 1.2 KB)`, `(symlink, 12 B)`, `(submodule)`). `Enter`, `l` and a double-click open or close the directory under the cursor; `h` closes an open directory, else moves to the parent row, and at the top goes back to the graph. `/` filters by path (case-insensitive substring, typed in the status bar, Insert mode): the rows narrow as you type and every directory that holds a match is open (and cannot be closed) until the filter is cleared; `Enter` keeps the filter, `Esc` in the box clears it, and `Esc` in Normal mode clears an active filter before it goes back to the graph. The filter stays when the selection moves to another commit. `Enter` on a file only says that file contents cannot be shown yet (a file content view is outside the MVP, decision 2026-10-18). `y` copies the path of the row. The tree is listed off the UI thread when the tab is shown (not while another tab is selected), cancelled when the selection moves on, and the last four trees are kept; the title shows the number of files in the tree. Timing of large trees: `docs/architecture.md`.
    - A fresh tab opens on Changes. `]`/`[` switch to the next/previous tab (wrapping), `gd` `gc` `gf` jump to Details, Changes, Files from the graph or the detail pane; a click on a label does the same. The selected tab is part of the repository tab's view: kept while the graph selection moves, saved with the session, and each tab remembers its own cursor row for the selected commit.
    - `j`/`k` scroll the rows of the tab. On Changes, focus lands on the first file row, that file's diff is already shown beside the list and `j`/`k` show the diff of each file as the cursor reaches it, no `Enter` (see 1c). `Enter` or `l` moves focus into the diff (on the other tabs they only say to open Changes).
    - When the details fail to load the pane says so and `<space>r` in the detail pane (or the palette) retries. The title row shows the file count (`.. files` until the details have arrived). The rows of all tabs start at the same left edge; only the commit message is indented.
@@ -393,13 +393,15 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>.` | Open the actions menu of the row under the cursor (same menu as a double-click on the row) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
-| Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand |
-| Detail | `y` | Copy the path of the selected file |
+| Detail | `Enter` `l` | Go to the diff of the selected file (Changes tab): focus it; on narrow screens open it on demand. Files tab: open or close the directory under the cursor |
+| Detail | `y` | Copy the path of the selected file (Files tab: of the row) |
+| Detail | `/` | Filter the file tree by path (Files tab; Insert mode: `Enter` keeps the filter, `Esc` clears it) |
 | Detail | `<space>j` | Quick jump: type text, labels appear on the rows in view that contain it (file paths on Changes), press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Detail | `<space>r` | Retry loading the commit details after a failure |
 | Detail | `]` `[` | Next / previous tab of the detail pane (Details, Changes, Files; wraps) |
 | Detail | `gd` `gc` `gf` | Show the Details / Changes / Files tab |
-| Detail | `h` / `Esc` | Back to graph |
+| Detail | `h` | Back to graph (Files tab: close the open directory, else move to the parent row; back to graph at the top) |
+| Detail | `Esc` | Back to graph (Files tab: first clears an active filter) |
 | WorkingUnstaged | `<space>j` | Quick jump: type text, labels appear on the files in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingUnstaged | `<space>r` | Refresh the status |
 | WorkingUnstaged | `y` | Copy the path of the file under the cursor |
@@ -569,7 +571,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `l` or the menu's Open details row |
-| Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff |
+| Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory) |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
 | TabDirtyMarker | Click | `working-tree.open` | The `*` of a dirty tab chip: switch to that tab and open its working-tree view (a click elsewhere on the chip only switches); no effect where the marker is cut off |
