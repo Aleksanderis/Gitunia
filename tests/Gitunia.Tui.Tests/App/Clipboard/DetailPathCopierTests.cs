@@ -1,12 +1,16 @@
 using System.Text;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Trees.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Xunit;
@@ -60,6 +64,29 @@ public class DetailPathCopierTests : IDisposable
         Assert.Equal(string.Empty, _terminal.ToString());
     }
 
+    [Fact]
+    public void GivenATreeRowOnTheFilesTab_WhenCopying_ThenItsFullPathGoesToTheClipboard()
+    {
+        var source = TreeSource("src/lib/a.cs", "src/lib/b.cs", "top.txt");
+
+        // Rows: "src/lib" (folded directory), "top.txt".
+        var directory = CreateCopier().Copy(source, 0);
+        var file = CreateCopier().Copy(source, 1);
+
+        Assert.Equal(string.Empty, directory);
+        Assert.Equal(string.Empty, file);
+        Assert.Equal(Osc52Sequence("src/lib") + Osc52Sequence("top.txt"), _terminal.ToString());
+    }
+
+    [Fact]
+    public void GivenARowPastTheTree_WhenCopying_ThenANoticeSaysToSelectAFile()
+    {
+        var source = TreeSource("a.txt");
+
+        Assert.Equal("Select a file to copy its path", CreateCopier().Copy(source, 5));
+        Assert.Equal(string.Empty, _terminal.ToString());
+    }
+
     public void Dispose()
     {
         _terminal.Dispose();
@@ -75,6 +102,25 @@ public class DetailPathCopierTests : IDisposable
         var details = new CommitDetails(CommitFactory.Id(2), [CommitFactory.Id(1)], "Ann", "ann@x.org", when, "Ann", "ann@x.org", when, "Fix the thing", files);
         var source = new DetailListSource(GraphGlyphSet.Unicode);
         source.Update(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty), BottomTab.Changes));
+        return source;
+    }
+
+    private static DetailListSource TreeSource(params string[] paths)
+    {
+        var graph = CommitFactory.Graph(
+            CommitFactory.Commit(2, "Fix the thing", [1], []),
+            CommitFactory.Commit(1, "root", []));
+        var entry = graph[0];
+        var model = FileTreeModel.Build(
+            [.. paths.Select(path => new TreeEntry(path, TreeEntryKind.File, CommitFactory.Id(3), 1))]);
+        var view = new FileTreeView(
+            new CommitTreeState(entry.Id, CommitDetailsStatus.Loaded, model, string.Empty),
+            model.Rows(new HashSet<string>(), string.Empty),
+            string.Empty,
+            SidebarGlyphs.Unicode);
+        var source = new DetailListSource(GraphGlyphSet.Unicode);
+        source.Update(DetailContentBuilder.Build(entry, CommitDetailsState.Empty, BottomTab.Files, view));
+
         return source;
     }
 

@@ -5,6 +5,8 @@ using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Loading.Trees;
+using Gitunia.Tui.App.Details;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Rendering.Graph;
 
@@ -118,7 +120,8 @@ public sealed class EffectRunner : IDisposable
             _glyphs,
             new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
             new DiffStore(_services.Diff, tab.Location, _postToUi),
-            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi));
+            new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
+            new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;

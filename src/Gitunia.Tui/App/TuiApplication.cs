@@ -41,6 +41,7 @@ using Gitunia.Tui.App.Worktrees;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
+using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
 using Gitunia.Tui.Rendering.Panes;
@@ -105,6 +106,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private MainlineOverlayTracker _mainline = null!;
     private PromptPopupTracker _popups = null!;
     private GraphGlyphSet _glyphs = null!;
+    private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
     private SessionPersistence? _persistence;
@@ -256,6 +258,14 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
         var engine = new KeymapEngine(DefaultKeymap.Create());
         _keys = new KeyController(engine, RouteAction);
+        _fileTree = new FileTreeController(
+            _host,
+            ActiveSession,
+            () => _view.Detail.SelectedItem,
+            MoveDetailCursor,
+            _keys.SetMode,
+            RefreshDetail);
+        _router.FileTree = _fileTree;
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,
@@ -271,7 +281,15 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
-        _prompts = [_diffPane, _workingDiff, _quickJump, _worktrees, .. CreatePrompts(operationGate, sidebarSource)];
+        _prompts =
+        [
+            _diffPane,
+            _workingDiff,
+            _quickJump,
+            _fileTree,
+            _worktrees,
+            .. CreatePrompts(operationGate, sidebarSource),
+        ];
         _router.Prompts = _prompts;
         _keys.TextKeyHandler = key => _reflog.HandleTextKey(key) || _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -1266,6 +1284,17 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         if (previous is not null)
         {
             previous.Details.Changed -= RefreshDetail;
+            if (previous.Tree is { IsEditingFilter: true } editing)
+            {
+                // A filter typed in the tab left behind must not keep owning Insert mode.
+                editing.IsEditingFilter = false;
+                _keys.SetMode(KeyMode.Normal);
+            }
+
+            if (previous.Tree is { } previousTree)
+            {
+                previousTree.Store.Changed -= RefreshDetail;
+            }
         }
 
         _visual.End();
@@ -1275,6 +1304,10 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
+            if (current.Tree is { } currentTree)
+            {
+                currentTree.Store.Changed += RefreshDetail;
+            }
         }
 
         RefreshDetail();
@@ -1377,6 +1410,28 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
     }
 
+    private void MoveDetailCursor(int row)
+    {
+        if (row >= 0 && row < (_view.Detail.Source?.Count ?? 0))
+        {
+            _view.Detail.SelectedItem = row;
+            _view.Detail.EnsureSelectedItemVisible();
+        }
+    }
+
+    // The tree is only listed while the Files tab is shown, so scrolling the graph on another tab starts no ls-tree.
+    private FileTreeView? FileTreeViewOf(TabSession session, GraphEntry? entry, BottomTab tab)
+    {
+        if (tab != BottomTab.Files || entry is null || session.Tree is not { } tree)
+        {
+            return null;
+        }
+
+        tree.Store.Select(entry.Id);
+
+        return new FileTreeView(tree.Store.Current, tree.Rows, tree.Filter, SidebarGlyphs.For(_glyphs));
+    }
+
     private void RefreshDetail()
     {
         var session = ActiveSession();
@@ -1388,7 +1443,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var commitIndex = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
         var previous = session.DetailSource.Content;
-        var content = DetailContentBuilder.Build(entry, session.Details.Current, _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes);
+        var tab = _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes;
+        var content = DetailContentBuilder.Build(
+            entry,
+            session.Details.Current,
+            tab,
+            FileTreeViewOf(session, entry, tab));
         session.DetailSource.Update(content);
 
         var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;

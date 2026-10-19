@@ -350,6 +350,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Status messages (#500) are coloured by kind (success/info green, warning, error), drawn as a filled chip for 1.5 s, and expire: info 5 s, warning 15 s, error 30 s, by an injected clock in the state layer. Then the hints return; `<space>m` history keeps them. Why: a stale result must not look current.
 
+**UI:** Files tab (#173): the whole tree is read at once, not per directory (timings in `architecture.md`). `h` in Detail is now `detail.collapse` (closes a directory, climbs to the parent, else back), `/` is `detail.filter`. `Enter` on a file does nothing: a content view is outside the MVP (asked in #511).
+
 **UI:** Force push is `<space>Rf`, remote branch delete `<space>RD` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.
 
 

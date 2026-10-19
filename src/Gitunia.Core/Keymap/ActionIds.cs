@@ -13,7 +13,11 @@ public static class ActionIds
 
     public static ActionId ConfirmYes { get; } = new("confirm.yes");
 
+    public static ActionId DetailCollapse { get; } = new("detail.collapse");
+
     public static ActionId DetailCopyPath { get; } = new("detail.copy-path");
+
+    public static ActionId DetailFilter { get; } = new("detail.filter");
 
     public static ActionId DetailNextTab { get; } = new("detail.next-tab");
 

@@ -28,7 +28,10 @@ public sealed class StatusActionHandler(StatusChannel statuses, Func<TabSession?
 
         if (action == ActionIds.DetailRetry)
         {
-            Message = activeSession()?.Details.Retry() == true ? "retrying..." : "nothing to retry";
+            var session = activeSession();
+            var retried = session?.Details.Retry() == true;
+            retried |= session?.Tree?.Store.Retry() == true;
+            Message = retried ? "retrying..." : "nothing to retry";
             return true;
         }
 
