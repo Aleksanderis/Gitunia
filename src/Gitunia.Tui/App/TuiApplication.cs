@@ -210,6 +210,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Branches = _branches;
         _router.Tags = _tags;
         _remote = CreateRemote(operationGate);
+        _effects.IsTabBusy = tabId => operationGate.IsBusy(tabId) || _remote.IsRunning(tabId);
         _router.Remote = _remote;
         _remoteManagement = CreateRemoteManagement();
         _router.RemoteManagement = _remoteManagement;

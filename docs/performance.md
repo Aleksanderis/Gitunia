@@ -22,7 +22,7 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 | Switch back to an already loaded tab | ~10-30 ms (single sample, poll-bound) |
 | RSS after visiting all 12 tabs | ~46 MB (20 tabs: ~50 MB) |
 
-Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
+Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB (bounded to 5 loaded tabs, see below). Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
 
 ## Bounded memory with many tabs (#199)
 
@@ -35,7 +35,7 @@ Lazy restore already existed (#91: only the active tab loads). New: `EffectRunne
 | First visit of a background tab | ~85 ms | ~88 ms |
 | Switch back to a tab (script's last step: tab 2, evicted after) | ~26 ms (kept) | ~101 ms (reload of 20k commits) |
 
-Memory is now about (5 tabs x size), not the sum over all open tabs. Soft row limit (step 4) is deferred (#515): ~350 bytes per commit means ~400 MB for one 1.2M-commit tab (extrapolated, not measured on a kernel clone).
+A tab running an operation (push, fetch, merge, rebase, ...) is never evicted, since closing its session cancels the work. An evicted tab loses its graph search and diff position (cursor, scroll and selected commit are kept). Switching to a recent tab is unchanged (instant, ~26 ms measured). Memory is now about (5 tabs x size), not the sum over all open tabs. Soft row limit (step 4) is deferred (#515): ~350 bytes per commit means ~400 MB for one 1.2M-commit tab (extrapolated from the 20k-commit measurement, not measured on a kernel clone; the deferral rests on that extrapolation and #515 asks to measure first).
 
 ## Verified numbers (graph view)
 
