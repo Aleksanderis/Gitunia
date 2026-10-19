@@ -128,6 +128,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     /// <summary>Stop the main loop right after it starts, so a smoke test builds the shell and returns.</summary>
     public bool ExitAfterFirstIteration { get; init; }
 
+    /// <summary>
+    /// Smoke tests: receives the screen text after one forced draw in the first iteration (the loop stops right
+    /// after). Only used with <see cref="ExitAfterFirstIteration"/>.
+    /// </summary>
+    public Action<string>? FrameCaptured { get; init; }
+
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
@@ -412,7 +418,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _view.Graph.SetFocus();
         if (ExitAfterFirstIteration)
         {
-            _application.Invoke(_application.RequestStop);
+            StopAfterFirstFrame();
         }
 
         try
@@ -1064,6 +1070,16 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
                 _application.Invoke(resumed);
             }
         }
+    }
+
+    // Draws one frame inside the first loop iteration, hands the screen text to the test and stops the loop.
+    private void StopAfterFirstFrame() => _application.Invoke(CaptureFirstFrameAndStop);
+
+    private void CaptureFirstFrameAndStop()
+    {
+        _application.LayoutAndDraw(true);
+        FrameCaptured?.Invoke(_application.Driver?.ToString() ?? string.Empty);
+        _application.RequestStop();
     }
 
     // The same setup for the first start and for every restart after a hand-off to an external tool.

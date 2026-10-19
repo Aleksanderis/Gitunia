@@ -9,13 +9,13 @@ namespace Gitunia.Tui.Tests.App.Startup;
 
 /// <summary>
 /// Builds the whole shell the way <c>Program.Main</c> does (every controller, presenter and event wire-up in
-/// <see cref="TuiApplication.Run"/>) on a headless driver and starts its main loop once. Constructor-order crashes
+/// <see cref="TuiApplication.Run"/>) on a headless driver and draws its first frame once. Constructor-order crashes
 /// (a null field used by a callback, a key controller used before it exists) throw here instead of on the first start.
 /// </summary>
 public class StartupSmokeTests
 {
     [Fact]
-    public async Task GivenARepository_WhenStartingTheShell_ThenItBuildsAndStartsWithoutThrowing()
+    public async Task GivenARepository_WhenStartingTheShell_ThenItDrawsTheFirstFrameWithStatusBarAndHistory()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "one\n"));
@@ -24,34 +24,43 @@ public class StartupSmokeTests
             repository.WorkingTreePath,
             TestContext.Current.CancellationToken);
 
-        var exitCode = Start(directories, location);
+        var result = Start(directories, location);
 
-        Assert.Equal(0, exitCode);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("NORMAL", result.Frame);
+        Assert.Contains("History", result.Frame);
     }
 
     [Fact]
-    public void GivenNoRepositoryAndNoSession_WhenStartingTheShell_ThenThePickerShowsWithoutThrowing()
+    public void GivenNoRepositoryAndNoSession_WhenStartingTheShell_ThenTheFirstFrameShowsThePicker()
     {
         using var directories = new TempDirectories();
 
-        var exitCode = Start(directories, null);
+        var result = Start(directories, null);
 
-        Assert.Equal(0, exitCode);
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("no repository open", result.Frame);
     }
 
-    private static int Start(TempDirectories directories, RepositoryLocation? location)
+    private static StartResult Start(TempDirectories directories, RepositoryLocation? location)
     {
         var capabilities = new ConsoleCapabilities(IsInteractive: true, Color: ColorDepth.TrueColor, Unicode: true);
         var platform = new TestPlatform(directories, capabilities);
+        var frame = string.Empty;
         using var application = new TuiApplication(TestGit.Services, capabilities, platform)
         {
             HomeDirectory = directories.Root,
             DriverName = DriverRegistry.Names.ANSI,
             ExitAfterFirstIteration = true,
+            FrameCaptured = text => frame = text,
         };
 
-        return application.Run(location);
+        var exitCode = application.Run(location);
+
+        return new StartResult(exitCode, frame);
     }
+
+    private sealed record StartResult(int ExitCode, string Frame);
 
     private sealed class TempDirectories : IDisposable
     {
