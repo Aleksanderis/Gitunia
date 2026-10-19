@@ -30,6 +30,7 @@ namespace Gitunia.Tui.App;
 /// </summary>
 /// <param name="Discovery">Resolves a path to its repository.</param>
 /// <param name="CommitLog">Reads the commit log.</param>
+/// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
 /// <param name="CommitDetails">Reads one commit's details.</param>
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
@@ -57,6 +58,7 @@ namespace Gitunia.Tui.App;
 public sealed record GitServices(
     RepositoryDiscovery Discovery,
     ICommitLogReader CommitLog,
+    ICommitMessageSearcher CommitMessages,
     ICommitDetailsReader CommitDetails,
     IDiffReader Diff,
     IRefReader Refs,
@@ -99,6 +101,7 @@ public sealed record GitServices(
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
+            new CommitMessageSearcher(runner),
             new CommitDetailsReader(runner),
             new DiffReader(runner),
             refs,
