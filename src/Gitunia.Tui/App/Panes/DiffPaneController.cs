@@ -38,7 +38,6 @@ public sealed class DiffPaneController : IPromptHandler
     private readonly Action _relayout;
     private readonly Action _refreshChrome;
     private readonly DiffListActions _actions;
-    private bool _isFileSyncing;
 
     /// <param name="host">The workspace the focus commands go to.</param>
     /// <param name="activeSession">The active tab's runtime session.</param>
@@ -141,7 +140,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         var diff = _activeSession()?.Diff;
 
-        return _actions.HandleTextKey(diff, diff?.Store.Document ?? DiffDocument.Empty, key);
+        return _actions.HandleTextKey(diff, diff?.Source.Document ?? DiffDocument.Empty, key);
     }
 
     /// <summary>
@@ -191,7 +190,7 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void OnDetailCursorMoved()
     {
-        if (_isFileSyncing || _activeSession() is not { Diff: { } diff } session || !ShowsWithChanges() || SelectedFilePath() is not { } path)
+        if (_activeSession() is not { Diff: { } diff } session || !ShowsWithChanges() || SelectedFilePath() is not { } path)
         {
             return;
         }
@@ -284,9 +283,9 @@ public sealed class DiffPaneController : IPromptHandler
         }
         else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
         {
+            // The pane holds the one file chosen in the file list, so this only reports the end.
             var document = diff.Source.Document;
             _actions.Jump(diff, document.FileRows, _actions.CursorRow(diff), action == ActionIds.DiffNextFile, count, "file");
-            SelectFileInList(diff);
         }
         else if (action == ActionIds.NavigateBack)
         {
@@ -438,6 +437,9 @@ public sealed class DiffPaneController : IPromptHandler
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
         diff.Store.Clear();
+        diff.ShownFull = null;
+        diff.ShownPath = null;
+        diff.ShownDocument = DiffDocument.Empty;
         diff.Source.Update(DiffDocument.Empty);
         _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Detail)));
         _relayout();
@@ -455,34 +457,6 @@ public sealed class DiffPaneController : IPromptHandler
         _relayout();
     }
 
-    // The file list follows a jump to another file, so its cursor and the diff stay on the same file.
-    private void SelectFileInList(DiffSession diff)
-    {
-        if (!ShowsWithChanges() || CurrentFilePath(diff) is not { } path || _activeSession()?.DetailSource is not { Content: { Tab: BottomTab.Changes } content })
-        {
-            return;
-        }
-
-        for (var index = 0; index < content.Files.Count; index++)
-        {
-            if (content.Files[index].Path == path)
-            {
-                _isFileSyncing = true;
-                try
-                {
-                    _detailList.SelectedItem = content.FirstFileRow + index;
-                    _detailList.EnsureSelectedItemVisible();
-                }
-                finally
-                {
-                    _isFileSyncing = false;
-                }
-
-                return;
-            }
-        }
-    }
-
     private void OnStoreChanged()
     {
         if (_activeSession()?.Diff is { } diff)
@@ -493,19 +467,29 @@ public sealed class DiffPaneController : IPromptHandler
 
     private void Refresh(DiffSession diff)
     {
-        var document = diff.Store.Document;
-        if (!ReferenceEquals(diff.Source.Document, document))
-        {
-            _actions.ForgetSearch(diff);
-            diff.Source.Update(document);
-            _actions.Select(diff, 0, atTop: true);
-        }
-
-        if (diff.Store.Status == DiffStatus.Loaded && diff.PendingFilePath is { } path)
+        var full = diff.Store.Document;
+        var path = diff.Store.Status == DiffStatus.Loaded ? diff.PendingFilePath : null;
+        if (path is not null)
         {
             diff.PendingFilePath = null;
-            var file = document.FileIndexOf(path);
-            _actions.Select(diff, file >= 0 ? document.FileRows[file] : 0, atTop: true);
+        }
+
+        var wanted = path ?? diff.ShownPath;
+        var file = full.FilePaths.Count == 0 ? -1 : Math.Max(0, wanted is null ? 0 : full.FileIndexOf(wanted));
+        if (!ReferenceEquals(diff.ShownFull, full) || diff.ShownFile != file)
+        {
+            // The pane holds one file only: the one under the file list's cursor.
+            diff.ShownFull = full;
+            diff.ShownFile = file;
+            diff.ShownPath = file >= 0 ? full.FilePaths[file][0] : null;
+            diff.ShownDocument = file >= 0 ? full.ForFile(file) : full;
+        }
+
+        if (!ReferenceEquals(diff.Source.Document, diff.ShownDocument))
+        {
+            _actions.ForgetSearch(diff);
+            diff.Source.Update(diff.ShownDocument);
+            _actions.Select(diff, 0, atTop: true);
         }
 
         _diffList.SetNeedsDraw();

@@ -19,6 +19,29 @@ public sealed record DiffDocument(
     public static DiffDocument Message(string text) =>
         new([new DiffRow(DiffRowKind.Note, text, null, null, -1)], [], [], [], 0);
 
+    /// <summary>
+    /// The document of one file of this one: its rows (parser warnings stay above the first file), its hunks and itself as the
+    /// only file, so the pane never shows another file than the one chosen. The gutter width stays that of the whole diff.
+    /// </summary>
+    public DiffDocument ForFile(int fileIndex)
+    {
+        var first = FileRows[fileIndex];
+        var end = fileIndex + 1 < FileRows.Count ? FileRows[fileIndex + 1] : Rows.Count;
+        var start = fileIndex == 0 ? 0 : first;
+        var rows = new List<DiffRow>(end - start);
+        for (var row = start; row < end; row++)
+        {
+            rows.Add(Rows[row].FileIndex < 0 ? Rows[row] : Rows[row] with { FileIndex = 0 });
+        }
+
+        return new DiffDocument(
+            rows,
+            [.. HunkRows.Where(row => row >= start && row < end).Select(row => row - start)],
+            [first - start],
+            [FilePaths[fileIndex]],
+            MaximumLineNumber);
+    }
+
     /// <summary>Index of the file shown under <paramref name="path"/> (its new or old path), or -1.</summary>
     public int FileIndexOf(string path)
     {

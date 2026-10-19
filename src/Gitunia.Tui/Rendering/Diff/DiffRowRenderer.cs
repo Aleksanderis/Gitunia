@@ -16,6 +16,7 @@ public static class DiffRowRenderer
 
     private const int MinimumGutterDigits = 3;
     private const int CutMargin = 16;
+    private const int HunkRuleWidth = 2;
 
     /// <summary>Digits each line number column needs for a document whose largest line number is <paramref name="maximumLineNumber"/>.</summary>
     public static int GutterDigits(int maximumLineNumber) =>
@@ -37,8 +38,7 @@ public static class DiffRowRenderer
                 AppendText(builder, row.Text, SegmentRole.DiffFile, highlight, width, jump: jump);
                 break;
             case DiffRowKind.HunkHeader:
-                AppendText(builder, row.Text, SegmentRole.DiffHunk, highlight, width, jump: jump);
-                break;
+                return RenderHunk(row, 0, width, highlight, isSelected, glyphs, jump, false);
             case DiffRowKind.Warning:
                 AppendText(builder, row.Text, SegmentRole.Error, highlight, width, "! ", jump);
                 break;
@@ -57,7 +57,8 @@ public static class DiffRowRenderer
     /// <summary>Columns taken before the text of <paramref name="row"/> (line numbers and marker, or the note prefix).</summary>
     public static int PrefixWidth(DiffRow row, int gutterDigits) => row.Kind switch
     {
-        DiffRowKind.FileHeader or DiffRowKind.HunkHeader => 0,
+        DiffRowKind.FileHeader => 0,
+        DiffRowKind.HunkHeader => HunkRuleWidth + 1,
         DiffRowKind.Warning or DiffRowKind.Note or DiffRowKind.NoNewline => 2,
         _ => (2 * gutterDigits) + 3,
     };
@@ -129,6 +130,11 @@ public static class DiffRowRenderer
             return Render(row, width, gutterDigits, highlight, isSelected, glyphs, jump);
         }
 
+        if (row.Kind == DiffRowKind.HunkHeader)
+        {
+            return RenderHunk(row, segment, width, highlight, isSelected, glyphs, jump, true);
+        }
+
         if (segment == 0)
         {
             switch (row.Kind)
@@ -160,6 +166,47 @@ public static class DiffRowRenderer
         else
         {
             AppendHighlighted(builder, shown, textRole, highlight);
+        }
+
+        return builder.Build(SegmentRole.Plain, isSelected);
+    }
+
+    /// <summary>
+    /// A hunk header as a separator: a short rule, the header text and a rule to the right edge (the glyph is the frame's
+    /// horizontal line, so it shows without colour and in the ASCII set). With <paramref name="wrap"/> the text continues on
+    /// following screen lines and the rule closes the last one.
+    /// </summary>
+    private static StyledLine RenderHunk(
+        DiffRow row,
+        int segment,
+        int width,
+        string? highlight,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump,
+        bool wrap)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        var rule = glyphs.Horizontal.ToString();
+        var columns = width - HunkRuleWidth - 1;
+        var chunks = wrap && columns > 0
+            ? Chunks(ExpandTabs(row.Text), columns)
+            : [ExpandTabs(CutToWidth(row.Text, width))];
+        var shown = segment < chunks.Count ? chunks[segment] : string.Empty;
+        builder.Append(segment == 0 ? $"{rule}{rule} " : new string(' ', HunkRuleWidth + 1), SegmentRole.Faint);
+        if (segment == 0 && jump is { } target)
+        {
+            JumpOverlay.Append(builder, shown, SegmentRole.DiffHunk, target);
+        }
+        else
+        {
+            AppendHighlighted(builder, shown, SegmentRole.DiffHunk, highlight);
+        }
+
+        if (segment >= chunks.Count - 1 && builder.Remaining > 1)
+        {
+            builder.Append(" ", SegmentRole.Faint);
+            builder.Append(new string(glyphs.Horizontal, builder.Remaining), SegmentRole.Faint);
         }
 
         return builder.Build(SegmentRole.Plain, isSelected);

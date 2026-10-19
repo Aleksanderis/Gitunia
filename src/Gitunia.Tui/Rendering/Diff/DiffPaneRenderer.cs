@@ -40,7 +40,7 @@ public static class DiffPaneRenderer
         pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count ? HunksUpTo(pane.Document.HunkRows, pane.SelectedRow) : 0;
 
     /// <summary>
-    /// The title: the file under the cursor and its position among the files and the hunks, then the buttons
+    /// The title: the file shown and the cursor's position among its hunks, then the buttons
     /// (<see cref="DiffTitleButtons"/>) at the right end when the row is wide enough.
     /// </summary>
     public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
@@ -88,13 +88,12 @@ public static class DiffPaneRenderer
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
             .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
-        var fileCount = pane.Document.FileRows.Count;
-        if (fileCount > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
+        if (pane.Document.FileRows.Count > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
         {
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);
             builder.Append(
-                $"  file {(fileIndex + 1).ToString(CultureInfo.InvariantCulture)}/{fileCount.ToString(CultureInfo.InvariantCulture)}  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
+                $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture)}",
                 SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
             builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);

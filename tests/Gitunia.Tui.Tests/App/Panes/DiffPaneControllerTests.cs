@@ -73,13 +73,13 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenAnOpenDiff_WhenJumpingBetweenHunksAndFiles_ThenTheCursorLandsOnTheirHeaders()
+    public async Task GivenAnOpenDiff_WhenJumpingBetweenHunksAndFiles_ThenHunksAreVisitedAndTheFileJumpStopsAtTheEnd()
     {
         using var harness = await DiffHarness.LoadAsync();
         await harness.OpenAsync("a.txt");
         var document = harness.Session.Diff!.Source.Document;
         Assert.True(document.HunkRows.Count >= 2);
-        Assert.True(document.FileRows.Count >= 2);
+        Assert.Single(document.FileRows);
 
         harness.Execute(ActionIds.DiffNextHunk);
         var firstAfterStart = harness.DiffList.SelectedItem;
@@ -90,7 +90,28 @@ public class DiffPaneControllerTests
 
         Assert.Contains(firstAfterStart!.Value, document.HunkRows);
         Assert.Equal(firstAfterStart, back);
-        Assert.Equal(document.FileRows[1], harness.DiffList.SelectedItem);
+        Assert.Equal(firstAfterStart, harness.DiffList.SelectedItem);
+        Assert.Equal("No next file", harness.Controller.Notice);
+        Assert.Same(document, harness.Session.Diff.Source.Document);
+    }
+
+    [Fact]
+    public async Task GivenAShownDiffOfTwoFiles_WhenPickingTheSmallerOne_ThenHunkJumpsAndTheTitleCountOnlyItsHunks()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.SelectFile("b.txt");
+        harness.Execute(ActionIds.DetailOpenDiff);
+
+        Assert.Contains("hunk 0/1", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("file 1/2", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        harness.Execute(ActionIds.DiffNextHunk);
+        Assert.Contains("hunk 1/1", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        harness.Execute(ActionIds.DiffNextHunk);
+        Assert.Equal("No next hunk", harness.Controller.Notice);
+        Assert.Equal([["b.txt"]], harness.Session.Diff!.Source.Document.FilePaths);
     }
 
     [Fact]
@@ -200,18 +221,24 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenAShownDiff_WhenTheFileCursorMoves_ThenTheDiffShowsThatFileAtOnceWithoutLoadingAgain()
+    public async Task GivenAShownDiff_WhenTheFileCursorMoves_ThenTheDiffHoldsOnlyThatFileWithoutLoadingAgain()
     {
         using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
         harness.SelectFirstFile();
         harness.Controller.FollowSelection();
         await harness.WaitForDiffAsync();
-        var loaded = harness.Session.Diff!.Source.Document;
+        var loaded = harness.Session.Diff!.Store.Document;
 
         harness.SelectFile("b.txt");
 
-        Assert.Same(loaded, harness.Session.Diff.Source.Document);
-        Assert.Equal(loaded.FileRows[loaded.FileIndexOf("b.txt")], harness.DiffList.SelectedItem);
+        var shown = harness.Session.Diff.Source.Document;
+        Assert.Same(loaded, harness.Session.Diff.Store.Document);
+        Assert.Equal([["b.txt"]], shown.FilePaths);
+        Assert.Equal(0, shown.FileRows[0]);
+        Assert.Equal(DiffRowKind.FileHeader, shown.Rows[0].Kind);
+        Assert.All(shown.Rows, row => Assert.Equal(0, row.FileIndex));
+        Assert.DoesNotContain(shown.Rows, row => row.Text.Contains("line 3", StringComparison.Ordinal));
+        Assert.Equal(0, harness.DiffList.SelectedItem);
     }
 
     [Theory]
@@ -257,7 +284,7 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenTheDiffHasFocus_WhenJumpingToTheNextFile_ThenTheFileListFollowsWithoutMovingTheDiffAway()
+    public async Task GivenTheDiffHasFocus_WhenJumpingToTheNextFile_ThenTheDiffAndTheFileListStayOnTheSelectedFile()
     {
         using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
         harness.SelectFirstFile();
@@ -265,11 +292,13 @@ public class DiffPaneControllerTests
         await harness.WaitForDiffAsync();
         harness.Execute(ActionIds.DetailOpenDiff);
         var document = harness.Session.Diff!.Source.Document;
+        var listCursor = harness.DetailList.SelectedItem;
 
         harness.Execute(ActionIds.DiffNextFile);
 
-        Assert.Equal(document.FileRows[1], harness.DiffList.SelectedItem);
-        Assert.Equal(harness.Session.DetailSource.Content.FirstFileRow + 1, harness.DetailList.SelectedItem);
+        Assert.Same(document, harness.Session.Diff.Source.Document);
+        Assert.Equal(listCursor, harness.DetailList.SelectedItem);
+        Assert.Equal("No next file", harness.Controller.Notice);
     }
 
     [Fact]
@@ -357,7 +386,7 @@ public class DiffPaneControllerTests
 
         harness.Controller.OnTabSwitched(null, harness.Session);
 
-        Assert.Same(harness.Session.Diff.Store.Document, harness.Session.Diff.Source.Document);
+        Assert.Equal(harness.Session.Diff.Store.Document.ForFile(0).Rows, harness.Session.Diff.Source.Document.Rows);
     }
 
     [Fact]
@@ -583,14 +612,15 @@ public class DiffPaneControllerTests
     {
         using var harness = await DiffHarness.LoadAsync(rowLimit: 8);
         await harness.OpenAsync("a.txt");
-        var cutRows = harness.Session.Diff!.Source.Document.Rows.Count;
-        Assert.True(harness.Session.Diff.Store.IsCut);
+        Assert.True(harness.Session.Diff!.Store.IsCut);
+        Assert.Contains("cut short", harness.Session.Diff.Source.Document.Rows[^1].Text, StringComparison.Ordinal);
 
         harness.Execute(ActionIds.DiffLoadAnyway);
         await harness.WaitForDiffAsync();
 
         Assert.False(harness.Session.Diff.Store.IsCut);
-        Assert.True(harness.Session.Diff.Source.Document.Rows.Count > cutRows);
+        Assert.DoesNotContain(harness.Session.Diff.Source.Document.Rows, row => row.Text.Contains("cut short", StringComparison.Ordinal));
+        Assert.Equal([["a.txt"]], harness.Session.Diff.Source.Document.FilePaths);
         Assert.Equal(0, harness.DiffList.SelectedItem);
     }
 
@@ -634,7 +664,7 @@ public class DiffPaneControllerTests
         var hunks = source.Document.HunkRows;
 
         Assert.Equal(unified, hunks.Count);
-        Assert.Equal(3, hunks.Count);
+        Assert.Equal(2, hunks.Count);
         harness.Execute(ActionIds.DiffNextHunk);
         Assert.Equal(hunks[0], source.RowOf(harness.DiffList.SelectedItem!.Value));
         harness.Execute(ActionIds.DiffNextHunk);
@@ -777,9 +807,7 @@ public class DiffPaneControllerTests
     public async Task GivenACursorInAFile_WhenCopyingTheFile_ThenOnlyThatFilesRowsAreCopied()
     {
         using var harness = await DiffHarness.LoadAsync();
-        await harness.OpenAsync("a.txt");
-        var document = harness.Session.Diff!.Source.Document;
-        harness.DiffList.SelectedItem = document.FileRows[document.FileIndexOf("b.txt")];
+        await harness.OpenAsync("b.txt");
 
         harness.Execute(ActionIds.DiffCopyFile);
 
