@@ -5,6 +5,8 @@ namespace Gitunia.Tui.App.Clipboard;
 /// <summary>Runs <see cref="CopyToClipboardEffect"/>s: the only place that writes OSC 52 to the terminal.</summary>
 public sealed class ClipboardWriter
 {
+    public const string Hint = "Check that your terminal or tmux allows OSC 52 clipboard writes.";
+
     private readonly TextWriter _output;
     private readonly Osc52Options _options;
 
@@ -33,7 +35,7 @@ public sealed class ClipboardWriter
         }
         catch (Exception exception) when (exception is IOException or ObjectDisposedException)
         {
-            return new ClipboardOutcome(false, $"Cannot copy: writing to the terminal failed ({exception.Message}).");
+            return new ClipboardOutcome(false, $"Cannot copy: writing to the terminal failed ({exception.Message}). {Hint}");
         }
 
         return new ClipboardOutcome(true, $"Copied {effect.Description}");
