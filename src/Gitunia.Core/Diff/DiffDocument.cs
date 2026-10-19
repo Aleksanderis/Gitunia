@@ -20,8 +20,9 @@ public sealed record DiffDocument(
         new([new DiffRow(DiffRowKind.Note, text, null, null, -1)], [], [], [], 0);
 
     /// <summary>
-    /// The document of one file of this one: its rows (parser warnings stay above the first file), its hunks and itself as the
-    /// only file, so the pane never shows another file than the one chosen. The gutter width stays that of the whole diff.
+    /// The document of one file of this one: its rows (parser warnings stay above the first file), its hunks and itself
+    /// as the only file, so the pane never shows another file than the one chosen. The gutter width stays that of the
+    /// whole diff.
     /// </summary>
     public DiffDocument ForFile(int fileIndex)
     {

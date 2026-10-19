@@ -172,9 +172,9 @@ public static class DiffRowRenderer
     }
 
     /// <summary>
-    /// A hunk header as a separator: a short rule, the header text and a rule to the right edge (the glyph is the frame's
-    /// horizontal line, so it shows without colour and in the ASCII set). With <paramref name="wrap"/> the text continues on
-    /// following screen lines and the rule closes the last one.
+    /// A hunk header as a separator: a short rule, the header text and a rule to the right edge (the glyph is the
+    /// frame's horizontal line, so it shows without colour and in the ASCII set). With <paramref name="wrap"/> the text
+    /// continues on following screen lines and the rule closes the last one.
     /// </summary>
     private static StyledLine RenderHunk(
         DiffRow row,

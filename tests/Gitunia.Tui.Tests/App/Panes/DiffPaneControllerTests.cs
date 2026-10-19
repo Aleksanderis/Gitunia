@@ -105,10 +105,12 @@ public class DiffPaneControllerTests
         harness.SelectFile("b.txt");
         harness.Execute(ActionIds.DetailOpenDiff);
 
-        Assert.Contains("hunk 0/1", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("file 1/2", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        var before = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
         harness.Execute(ActionIds.DiffNextHunk);
-        Assert.Contains("hunk 1/1", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        var after = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        Assert.Contains("hunk 0/1", before, StringComparison.Ordinal);
+        Assert.DoesNotContain("file 1/2", before, StringComparison.Ordinal);
+        Assert.Contains("hunk 1/1", after, StringComparison.Ordinal);
         harness.Execute(ActionIds.DiffNextHunk);
         Assert.Equal("No next hunk", harness.Controller.Notice);
         Assert.Equal([["b.txt"]], harness.Session.Diff!.Source.Document.FilePaths);
@@ -619,7 +621,9 @@ public class DiffPaneControllerTests
         await harness.WaitForDiffAsync();
 
         Assert.False(harness.Session.Diff.Store.IsCut);
-        Assert.DoesNotContain(harness.Session.Diff.Source.Document.Rows, row => row.Text.Contains("cut short", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            harness.Session.Diff.Source.Document.Rows,
+            row => row.Text.Contains("cut short", StringComparison.Ordinal));
         Assert.Equal([["a.txt"]], harness.Session.Diff.Source.Document.FilePaths);
         Assert.Equal(0, harness.DiffList.SelectedItem);
     }

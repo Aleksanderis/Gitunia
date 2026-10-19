@@ -190,7 +190,9 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void OnDetailCursorMoved()
     {
-        if (_activeSession() is not { Diff: { } diff } session || !ShowsWithChanges() || SelectedFilePath() is not { } path)
+        if (_activeSession() is not { Diff: { } diff } session
+            || !ShowsWithChanges()
+            || SelectedFilePath() is not { } path)
         {
             return;
         }
