@@ -34,13 +34,13 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs) : IDiffVi
     /// <summary>The file to put the cursor on once the diff has loaded, null for none.</summary>
     public string? PendingFilePath { get; set; }
 
-    /// <summary>The loaded diff the pane last took its file from (it shows one file of it), null before the first.</summary>
+    /// <summary>The loaded diff the pane last took its file from, null before the first.</summary>
     public DiffDocument? ShownFull { get; set; }
 
     /// <summary>Index in <see cref="ShownFull"/> of the file the pane shows, -1 for none.</summary>
     public int ShownFile { get; set; } = -1;
 
-    /// <summary>The shown file's document (<see cref="ShownFull"/> cut to that file), what the list source holds.</summary>
+    /// <summary>The shown file's document (<see cref="ShownFull"/> cut to it), held by the list source.</summary>
     public DiffDocument ShownDocument { get; set; } = DiffDocument.Empty;
 
     /// <summary>The path of the file the pane shows, kept to show the same file when the diff reloads.</summary>

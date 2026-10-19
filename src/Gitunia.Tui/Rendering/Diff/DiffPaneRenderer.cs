@@ -92,10 +92,9 @@ public static class DiffPaneRenderer
         {
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);
-            var hunkCount = pane.Document.HunkRows.Count;
-            builder.Append(
-                $"  hunk {hunksBefore.ToString(CultureInfo.InvariantCulture)}/{hunkCount.ToString(CultureInfo.InvariantCulture)}",
-                SegmentRole.Faint);
+            var position = hunksBefore.ToString(CultureInfo.InvariantCulture);
+            var total = pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture);
+            builder.Append($"  hunk {position}/{total}", SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
             builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);
         }
