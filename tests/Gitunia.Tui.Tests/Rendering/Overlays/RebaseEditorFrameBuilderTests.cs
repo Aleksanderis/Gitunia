@@ -123,9 +123,11 @@ public class RebaseEditorFrameBuilderTests
             Assert.Contains(chip, text, StringComparison.Ordinal);
         }
 
-        var startLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("[Enter start]", StringComparison.Ordinal));
-        var startColumn = frame.Lines[startLine].Text.IndexOf("[Enter start]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.RebaseStartButton, RebaseEditorFrameBuilder.ChipAt(state, startLine, startColumn, 40, 30));
+        const string start = "[Enter start]";
+        var startLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains(start, StringComparison.Ordinal));
+        var startColumn = frame.Lines[startLine].Text.IndexOf(start, StringComparison.Ordinal);
+        var view = RebaseEditorFrameBuilder.ChipAt(state, startLine, startColumn, 40, 30);
+        Assert.Equal(DefaultMouseMap.RebaseStartButton, view);
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, startLine, frame.Width - 1, 40, 30));
     }
 
