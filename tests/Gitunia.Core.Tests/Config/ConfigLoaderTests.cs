@@ -26,7 +26,7 @@ public sealed class ConfigLoaderTests : IDisposable
         await WriteAsync("""
             {
               // My keys.
-              "theme": { "accent": "blue" },
+              "options": { "accent": "blue" },
               "keys": [
                 { "mode": "Normal", "view": "Graph", "key": "J", "action": "list.down", },
               ],
@@ -39,6 +39,20 @@ public sealed class ConfigLoaderTests : IDisposable
         var entry = Assert.Single(result.Document.Keys!);
         Assert.Equal("J", entry!.Key);
         Assert.Equal("list.down", entry.Action);
+    }
+
+    [Fact]
+    public void GivenAThemeOfTheWrongType_WhenParsing_ThenTheKeysSurviveAndOnlyTheThemeIsAProblem()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = """{ "theme": { "accent": "blue" }, "keys": [ { "key": "J", "action": "list.down" } ] }""";
+        var document = ConfigLoader.Parse(text, problems);
+
+        var choice = ThemeConfigurator.Parse(document.Theme, problems);
+
+        Assert.Equal(ThemeChoice.Auto, choice);
+        Assert.Single(document.Keys!);
+        Assert.Equal("theme", Assert.Single(problems).Path);
     }
 
     [Theory]
