@@ -119,6 +119,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private Action? _suspendedWork;
     private Action? _resumed;
 
+    /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
+    public string? DriverName { get; init; }
+
+    /// <summary>Stop the main loop right after it starts, so a smoke test builds and draws the shell.</summary>
+    public bool ExitAfterFirstIteration { get; init; }
+
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
@@ -401,6 +407,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
+        if (ExitAfterFirstIteration)
+        {
+            _application.Invoke(_application.RequestStop);
+        }
+
         try
         {
             _application.Run(_view.Window);
@@ -1056,7 +1067,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private void CreateApplication()
     {
         _application = Application.Create();
-        _application.Init();
+        _application.Init(DriverName);
         ConfigurePalette();
     }
 
