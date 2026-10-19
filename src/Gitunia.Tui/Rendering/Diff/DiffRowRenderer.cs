@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -80,9 +81,10 @@ public static class DiffRowRenderer
         var chunks = new List<string>();
         var builder = new StringBuilder();
         var used = 0;
+        var counter = new WidthCounter();
         foreach (var rune in shown.EnumerateRunes())
         {
-            var runeWidth = TextWidth.Of(rune);
+            var runeWidth = counter.Next(rune);
             if (used > 0 && used + runeWidth > columns)
             {
                 chunks.Add(builder.ToString());
@@ -173,6 +175,7 @@ public static class DiffRowRenderer
 
         var builder = new StringBuilder(text.Length + 8);
         var column = 0;
+        var counter = new WidthCounter();
         foreach (var rune in text.EnumerateRunes())
         {
             if (rune.Value == '\t')
@@ -189,7 +192,7 @@ public static class DiffRowRenderer
             else
             {
                 builder.Append(rune.ToString());
-                column += TextWidth.Of(rune);
+                column += counter.Next(rune);
             }
         }
 

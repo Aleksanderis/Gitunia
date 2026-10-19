@@ -343,8 +343,36 @@ public class IncrementalGraphLoaderTests
         return [.. entries];
     }
 
+    [Fact]
+    public async Task GivenCappedReloadOverTheLimit_WhenReloading_ThenOnlyTheNewestRowsComeAndTheTotalIsReported()
+    {
+        var commitLog = FakeCommitLogReader.Chain(10);
+        var loader = new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog, 4));
+
+        var location = FakeStatusReader.LocationOf("incremental");
+        var reload = await loader.ReloadAsync(location, [], true, CancellationToken.None);
+
+        Assert.Equal(4, reload.Entries.Count);
+        Assert.Equal(10, reload.TruncatedTotal);
+        Assert.Equal(0, reload.ReusedCount);
+    }
+
+    [Fact]
+    public async Task GivenUncappedReloadOfALogLongerThanTheLimit_WhenReloading_ThenEverythingComesAndNothingIsCut()
+    {
+        var commitLog = FakeCommitLogReader.Chain(10);
+        var loader = new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog, 4));
+
+        var location = FakeStatusReader.LocationOf("incremental");
+        var reload = await loader.ReloadAsync(location, [], false, CancellationToken.None);
+
+        Assert.Equal(10, reload.Entries.Count);
+        Assert.Null(reload.TruncatedTotal);
+    }
+
     private static Task<GraphReload> ReloadAsync(FakeCommitLogReader commitLog, IReadOnlyList<GraphEntry> previous) =>
-        new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog)).ReloadAsync(FakeStatusReader.LocationOf("incremental"), previous, CancellationToken.None);
+        new IncrementalGraphLoader(commitLog, new GraphLoader(commitLog))
+            .ReloadAsync(FakeStatusReader.LocationOf("incremental"), previous, false, CancellationToken.None);
 
     private static TestRepository LongHistory(int count)
     {
@@ -373,7 +401,8 @@ public class IncrementalGraphLoaderTests
     private static async Task<GraphReload> ReloadAsync(TestRepository testRepository, IReadOnlyList<GraphEntry> previous)
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
-        return await TestGit.Services.IncrementalGraphLoader.ReloadAsync(location, previous, CancellationToken.None);
+        return await TestGit.Services.IncrementalGraphLoader
+            .ReloadAsync(location, previous, false, CancellationToken.None);
     }
 
     private static async Task AssertEqualToFullReadAsync(TestRepository testRepository, GraphReload reload)

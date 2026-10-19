@@ -292,7 +292,11 @@ public sealed class SidebarActionHandler(
             var index = session?.Graph.IndexOf(commit) ?? -1;
             if (index < 0)
             {
-                Message = session is { IsLoading: true } ? $"{row.Label} is not loaded yet" : $"{row.Label} is not in the graph";
+                // Past the soft row limit the commit may still come: the rest loads now, and the next try finds it.
+                session?.RequestExpand(true);
+                Message = session is { IsGraphComplete: false }
+                    ? $"{row.Label} is not loaded yet"
+                    : $"{row.Label} is not in the graph";
             }
             else
             {

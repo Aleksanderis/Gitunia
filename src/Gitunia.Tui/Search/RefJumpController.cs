@@ -97,7 +97,7 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
                 _pendingCommit = null;
                 view.SelectRow(index);
             }
-            else if (!session.IsLoading)
+            else if (!session.IsLoading && (session.IsGraphComplete || session.ExpansionFailed))
             {
                 _pendingCommit = null;
             }
@@ -122,9 +122,11 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
         {
             view.SelectRow(index);
         }
-        else if (session.IsLoading)
+        else if (session.IsLoading || session.IsTruncated)
         {
-            // The log is still streaming in; the jump happens as soon as the commit arrives.
+            // The log is still streaming in, or its rest has not been asked for yet (past the soft row limit); the jump
+            // happens as soon as the commit arrives.
+            session.RequestExpand(true);
             _pendingCommit = candidate.CommitId;
             Notice = $"Loading {candidate.Label}...";
         }

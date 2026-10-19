@@ -78,6 +78,39 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenACutLog_WhenTheTabIsRefreshed_ThenTheGraphStaysCutAtTheSoftLimitWithTheNewTotal()
+    {
+        using var harness = await FakeHarness.LoadAsync(commits: 10, softRowLimit: 4);
+        Assert.Equal(10, harness.Session.TruncatedTotal);
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        harness.Refresher.RefreshNow();
+
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+        Assert.Equal(4, harness.Session.Graph.Count);
+        Assert.Equal(10, harness.Session.TruncatedTotal);
+        Assert.False(harness.Session.IsLoading);
+    }
+
+    [Fact]
+    public async Task GivenTheRestOfACutLogIsLoading_WhenARefreshIsRequested_ThenItWaitsUntilTheLoadEnds()
+    {
+        using var harness = await FakeHarness.LoadAsync(commits: 10, softRowLimit: 4);
+        harness.Session.ExpandRequested += () => { };
+        harness.Session.RequestExpand(true);
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        harness.Refresher.RefreshNow();
+        Assert.False(harness.Refresher.IsRefreshing);
+        Assert.Equal(0, replaced);
+        harness.Session.CompleteExpansion();
+
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+    }
+
+    [Fact]
     public async Task GivenManualRefresh_WhenItSucceeds_ThenTheGraphIsReloadedAndCompletionIsReported()
     {
         using var harness = await FakeHarness.LoadAsync();
@@ -370,10 +403,12 @@ public class TabRefresherTests
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
         /// <summary>Loads a three-commit tab from fakes, starts the refresher and waits until its baseline refresh is done.</summary>
-        public static async Task<FakeHarness> LoadAsync()
+        public static async Task<FakeHarness> LoadAsync(
+            int commits = 3,
+            int softRowLimit = GraphLoader.DefaultSoftRowLimit)
         {
             var location = FakeStatusReader.LocationOf("refresher");
-            var commitLog = FakeCommitLogReader.Chain(3);
+            var commitLog = FakeCommitLogReader.Chain(commits);
             var refs = new FakeRefReader();
             var stashes = new FakeStashReader();
             var host = new WorkspaceHost(Workspace.Empty);
@@ -382,7 +417,7 @@ public class TabRefresherTests
             var statuses = new StatusChannel();
             var session = new TabSession(tabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), location, action => action(), TimeSpan.Zero));
             session.MarkStarted();
-            var graphLoader = new GraphLoader(commitLog);
+            var graphLoader = new GraphLoader(commitLog, softRowLimit);
             await new RepositoryLoader(refs, new FakeStatusReader(), graphLoader, new SidebarDataLoader(refs, stashes))
                 .RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             var pump = new UiPump(TestContext.Current.CancellationToken);

@@ -21,7 +21,20 @@ public sealed class ExternalToolRunner(
     private ExternalToolResult _result = new(ExternalToolResult.NotStartedExitCode, "did not run");
 
     /// <summary>Starts the hand-off; a notice for the status bar when it cannot start, empty otherwise.</summary>
-    public string Launch(ExternalToolKind kind, RepositoryLocation location, string? commit = null)
+    public string Launch(ExternalToolKind kind, RepositoryLocation location, string? commit = null) =>
+        Start(
+            ExternalToolCommands.NameOf(kind),
+            ExternalToolCommands.Build(kind, location.CommandPath, commit),
+            location);
+
+    /// <summary>
+    /// Hands the terminal to a git command that needs to prompt (a fetch, pull or push that failed for lack of
+    /// credentials, #45); <paramref name="name"/> is shown in the status bar. Returns a notice when it cannot start.
+    /// </summary>
+    public string LaunchGit(string name, IReadOnlyList<string> arguments, RepositoryLocation location) =>
+        Start(name, ExternalToolCommands.InRepository(location.CommandPath, arguments), location);
+
+    private string Start(string name, IReadOnlyList<string> arguments, RepositoryLocation location)
     {
         if (_running)
         {
@@ -33,14 +46,11 @@ public sealed class ExternalToolRunner(
             return "External tools are not supported on this operating system";
         }
 
-        var request = new ExternalToolRequest(
-            gitExecutable,
-            ExternalToolCommands.Build(kind, location.CommandPath, commit),
-            location.CommandPath);
+        var request = new ExternalToolRequest(gitExecutable, arguments, location.CommandPath);
         _running = true;
         try
         {
-            terminal.Suspend(() => Run(request), () => Resumed(kind, location));
+            terminal.Suspend(() => Run(request), () => Resumed(name, location));
         }
         catch
         {
@@ -66,11 +76,10 @@ public sealed class ExternalToolRunner(
         }
     }
 
-    private void Resumed(ExternalToolKind kind, RepositoryLocation location)
+    private void Resumed(string name, RepositoryLocation location)
     {
         _running = false;
         var result = _result;
-        var name = ExternalToolCommands.NameOf(kind);
         if (result.Succeeded)
         {
             statuses.Post(result.Describe(name));

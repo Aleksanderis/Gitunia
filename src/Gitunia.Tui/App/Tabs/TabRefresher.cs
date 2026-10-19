@@ -150,6 +150,15 @@ public sealed class TabRefresher : IDisposable
             return;
         }
 
+        // The rest of a cut log is loading: a reload now would throw it away, so wait for it to end.
+        if (_session.IsLoading)
+        {
+            _isReady = false;
+            _session.LoadFinished += OnLoadFinished;
+
+            return;
+        }
+
         var kinds = _pending;
         var isManual = _announce;
         _announce = false;
@@ -164,11 +173,23 @@ public sealed class TabRefresher : IDisposable
 
         // A copy, because the background read must not see the graph change; only a refresh that is not forced may reuse the old rows
         // (the baseline needs them too, to compare the graph with its snapshot).
-        IReadOnlyList<GraphEntry> previousRows = reloadGraph ? [] : _session.Graph.ToArray();
-        _ = Task.Run(() => RefreshAsync(previous, previousRows, kinds, reloadGraph, isManual, token), CancellationToken.None);
+        // A cut log reloads its newest rows again instead: the rows below the cut are not loaded, so nothing joins
+        // and the count guard cannot hold.
+        var isCapped = _session.IsTruncated;
+        IReadOnlyList<GraphEntry> previousRows = reloadGraph || isCapped ? [] : _session.Graph.ToArray();
+        _ = Task.Run(
+            () => RefreshAsync(previous, previousRows, isCapped, kinds, reloadGraph, isManual, token),
+            CancellationToken.None);
     }
 
-    private async Task RefreshAsync(RepositorySnapshot? previous, IReadOnlyList<GraphEntry> previousRows, RepositoryChangeKinds kinds, bool reloadGraph, bool isManual, CancellationToken token)
+    private async Task RefreshAsync(
+        RepositorySnapshot? previous,
+        IReadOnlyList<GraphEntry> previousRows,
+        bool isCapped,
+        RepositoryChangeKinds kinds,
+        bool reloadGraph,
+        bool isManual,
+        CancellationToken token)
     {
         try
         {
@@ -183,11 +204,11 @@ public sealed class TabRefresher : IDisposable
             // The first pass is the baseline: it re-applies every section (the tab may have changed since the initial load read it) and reloads the graph
             // when a change was seen meanwhile or when the loaded graph no longer matches the baseline refs (a change between the load and this read leaves no event to diff).
             var graphChanged = previous is null
-                ? reloadGraph || GraphRefCheck.Differs(previousRows, result.Snapshot)
+                ? reloadGraph || (!isCapped && GraphRefCheck.Differs(previousRows, result.Snapshot))
                 : result.Changed.HasFlag(RepositorySections.Head) || result.Changed.HasFlag(RepositorySections.Refs) || reloadGraph;
             if (graphChanged)
             {
-                reload = await _graphLoader.ReloadAsync(_location, previousRows, token).ConfigureAwait(false);
+                reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);
             }
 
             _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation));
@@ -261,7 +282,7 @@ public sealed class TabRefresher : IDisposable
 
         if (reload is not null)
         {
-            _session.ReplaceGraph(reload.Entries);
+            _session.ReplaceGraph(reload.Entries, reload.TruncatedTotal);
             _graphReloaded?.Invoke(reload);
         }
 

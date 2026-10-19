@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Graph;
 using Gitunia.Tui.Tests.Fakes;
@@ -52,6 +53,53 @@ public class GraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenLogOverTheSoftLimit_WhenStreamingCapped_ThenOnlyTheNewestRowsComeAndTheCutHoldsTheTotal()
+    {
+        var cut = new GraphCut();
+
+        var batches = await LoadCappedAsync(FakeCommitLogReader.Chain(10), 4, cut);
+
+        var subjects = batches.SelectMany(batch => batch).Select(entry => entry.Subject).ToList();
+        Assert.Equal(["commit 10", "commit 9", "commit 8", "commit 7"], subjects);
+        Assert.Equal(10, cut.TruncatedTotal);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(3)]
+    [InlineData(0)]
+    public async Task GivenLogWithinTheSoftLimit_WhenStreamingCapped_ThenEverythingComesAndNothingIsCut(int commits)
+    {
+        var cut = new GraphCut();
+
+        var batches = await LoadCappedAsync(FakeCommitLogReader.Chain(commits), 4, cut);
+
+        Assert.Equal(commits, batches.Sum(batch => batch.Count));
+        Assert.Null(cut.TruncatedTotal);
+    }
+
+    [Fact]
+    public async Task GivenRealHistoryLongerThanTheSoftLimit_WhenStreamingCapped_ThenTheRowsAreThePrefixOfAFullRead()
+    {
+        using var testRepository = TestRepository.Create();
+        testRepository.Commit("commit 0", new TestFile("a.txt", "0"));
+        for (var number = 1; number < 12; number++)
+        {
+            testRepository.Git("commit", "-q", "--allow-empty", "-m", $"commit {number}");
+        }
+
+        var path = testRepository.WorkingTreePath;
+        var location = await TestGit.Services.Discovery.DiscoverAsync(path, CancellationToken.None);
+        var cut = new GraphCut();
+        var capped = await LoadCappedAsync(new GraphLoader(TestGit.Services.CommitLog, 5), location, cut);
+        var full = (await LoadAsync(testRepository)).SelectMany(batch => batch).ToList();
+
+        Assert.Equal(12, cut.TruncatedTotal);
+        var cappedIds = capped.SelectMany(batch => batch).Select(entry => entry.Id);
+        Assert.Equal(full.Take(5).Select(entry => entry.Id), cappedIds);
+    }
+
+    [Fact]
     public async Task GivenCancelledToken_WhenStreaming_ThenItStopsWithCancellation()
     {
         using var cancellation = new CancellationTokenSource();
@@ -73,6 +121,26 @@ public class GraphLoaderTests
         commitLog.Failure = new GitException("boom");
 
         await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
+    }
+
+    private static Task<List<IReadOnlyList<GraphEntry>>> LoadCappedAsync(
+        FakeCommitLogReader commitLog,
+        int softLimit,
+        GraphCut cut) =>
+        LoadCappedAsync(new GraphLoader(commitLog, softLimit), FakeStatusReader.LocationOf("graph"), cut);
+
+    private static async Task<List<IReadOnlyList<GraphEntry>>> LoadCappedAsync(
+        GraphLoader loader,
+        RepositoryLocation location,
+        GraphCut cut)
+    {
+        var batches = new List<IReadOnlyList<GraphEntry>>();
+        await foreach (var batch in loader.StreamCappedAsync(location, cut, CancellationToken.None))
+        {
+            batches.Add(batch);
+        }
+
+        return batches;
     }
 
     private static async Task<List<IReadOnlyList<GraphEntry>>> LoadAsync(TestRepository testRepository, int? maximumCommits = null)

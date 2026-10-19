@@ -1,4 +1,5 @@
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Text;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -89,9 +90,10 @@ public static class HelpFrameBuilder
 
                 var length = 0;
                 var width = 0;
+                var counter = new WidthCounter();
                 foreach (var rune in remaining.EnumerateRunes())
                 {
-                    var runeWidth = TextWidth.Of(rune);
+                    var runeWidth = counter.Next(rune);
                     if (length > 0 && width + runeWidth > columns && runeWidth > 0)
                     {
                         break;

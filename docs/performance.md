@@ -49,7 +49,21 @@ Lazy restore already existed (#91: only the active tab loads). New: `EffectRunne
 | First visit of a background tab | ~85 ms | ~88 ms |
 | Switch back to a tab (script's last step: tab 2, evicted after) | ~26 ms (kept) | ~101 ms (reload of 20k commits) |
 
-A tab running an operation (push, fetch, merge, rebase, ...) is never evicted, since closing its session cancels the work. An evicted tab loses its graph search and diff position (cursor, scroll and selected commit are kept). Switching to a recent tab is unchanged (instant, ~26 ms measured). Memory is now about (5 tabs x size), not the sum over all open tabs. Soft row limit (step 4) is deferred (#515): ~350 bytes per commit means ~400 MB for one 1.2M-commit tab (extrapolated from the 20k-commit measurement, not measured on a kernel clone; the deferral rests on that extrapolation and #515 asks to measure first).
+A tab running an operation (push, fetch, merge, rebase, ...) is never evicted, since closing its session cancels the work. An evicted tab loses its graph search and diff position (cursor, scroll and selected commit are kept). Switching to a recent tab is unchanged (instant, ~26 ms measured). Memory is now about (5 tabs x size), not the sum over all open tabs. Step 4, the soft row limit, followed in #515 (next section).
+
+## Soft row limit for huge logs (#515)
+
+A tab loads its newest 100,000 commits eagerly (`GraphLoader.DefaultSoftRowLimit`); a longer log is cut there. The status bar then reads `12/100000+ of 1204331` (selected, loaded, whole log; the total is one `rev-list --count` after the cut). The rest loads on demand and appends behind the shown rows: `G` (a plain one), a graph search that scans to the loaded end, a jump to a branch, tag or commit that is not loaded, a sidebar jump, and a restored selection that is not in the loaded rows. The rest is read by a second full `log` stream (the lane layout needs every row before), skipping the rows already shown after checking that the last shown commit sits at the same place; a log that changed meanwhile ends with `history changed while loading, press r to refresh`. A refresh of a cut tab reads the newest 100,000 rows again (no incremental splice, since the rows below the cut are not loaded) and its baseline pass skips the ref-decoration check (refs below the cut can never show). Once the rest is loaded the tab behaves as before.
+
+Measured on `scripts/gen-big-repo.sh <dir> 1000000` (1,000,000 commits, linear main with merged branches, `commit-graph` file present), Native AOT linux-x64, 120x40 under tmux, one run each (before/after the change, same machine; `git log --topo-order` of the whole log alone takes ~1.9 s, `rev-list --count --all` ~0.36 s):
+
+| Metric | Before (whole log) | After (cut at 100k) |
+|---|---|---|
+| Newest rows on screen | ~630 ms | ~620 ms |
+| RSS once loading settled | ~383-396 MB | ~76 MB |
+| After `G` (rest loaded, ~10 s) | n/a (all loaded) | ~394 MB (as before, only when asked for) |
+
+A kernel-sized tab therefore costs what a 100k tab costs until the user asks for its end (~350 bytes per commit measured on the 1M log). The "continues below" lane marker of the issue text is not drawn: the cut row keeps its outgoing lines and the status bar says `+ of total`; registered as #555.
 
 ## Verified numbers (graph view)
 

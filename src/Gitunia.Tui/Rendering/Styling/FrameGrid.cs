@@ -1,3 +1,4 @@
+using Gitunia.Core.Text;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -209,9 +210,23 @@ public sealed class FrameGrid
 
         var role = isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab;
         var column = left + 2;
+        var counter = new WidthCounter();
+        var textIndex = -1;
         foreach (var rune in ($" {fitted} ").EnumerateRunes())
         {
-            var runeWidth = TextWidth.Of(rune);
+            var runeWidth = counter.Next(rune);
+            if (runeWidth == 0 && textIndex >= 0)
+            {
+                // A joined or combining character shares the cell of the character it follows.
+                if (_titleCells.TryGetValue(textIndex, out var previous))
+                {
+                    _titleCells[textIndex] = previous with { Text = $"{previous.Text}{rune}" };
+                }
+
+                continue;
+            }
+
+            textIndex = row * _width + column;
             for (var offset = 0; offset < Math.Max(1, runeWidth); offset++)
             {
                 if (column + offset >= 0 && column + offset < _width && row >= 0 && row < _height)

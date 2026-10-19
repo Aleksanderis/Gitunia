@@ -154,8 +154,11 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         }
 
         var index = tab.View.SelectedCommit is { } wanted ? session.Graph.IndexOf(wanted) : -1;
-        if (index < 0 && tab.View.SelectedCommit is not null && session.IsLoading)
+        if (index < 0 && tab.View.SelectedCommit is not null && !session.IsGraphComplete && !session.ExpansionFailed)
         {
+            // The remembered commit may lie below the soft row limit: load the rest and wait for it.
+            session.RequestExpand();
+
             return;
         }
 

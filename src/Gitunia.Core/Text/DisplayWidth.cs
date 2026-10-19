@@ -6,7 +6,8 @@ namespace Gitunia.Core.Text;
 /// <summary>
 /// Terminal column widths of text: wide (CJK, emoji) characters take two, combining marks none. Wide means East Asian
 /// Width W or F in Unicode 16.0 (this covers emoji with default emoji presentation). Per character it matches
-/// Terminal.Gui's own measure (#503, tested); sequences are summed per character, not per cluster.
+/// Terminal.Gui's own measure (#503, tested); a zero-width-joiner sequence counts as its first character (#547,
+/// see <see cref="WidthCounter"/>), other sequences are summed per character.
 /// </summary>
 public static class DisplayWidth
 {
@@ -152,9 +153,10 @@ public static class DisplayWidth
     public static int Of(string text)
     {
         var width = 0;
+        var counter = new WidthCounter();
         foreach (var rune in text.EnumerateRunes())
         {
-            width += Of(rune);
+            width += counter.Next(rune);
         }
 
         return width;
