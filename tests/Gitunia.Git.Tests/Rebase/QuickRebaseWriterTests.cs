@@ -131,6 +131,16 @@ public class QuickRebaseWriterTests
     }
 
     [Fact]
+    public async Task GivenTheOnlyCommit_WhenPlanningADrop_ThenItIsRefused()
+    {
+        using var repository = TestRepository.Create().Commit("One", new TestFile("one.txt", "1\n"));
+        var (writer, location) = await CreateAsync(repository);
+
+        await Assert.ThrowsAsync<RebaseRangeException>(
+            () => writer.PlanAsync(location, QuickRebaseKind.Drop, repository.Head, Token));
+    }
+
+    [Fact]
     public async Task GivenAMergeCommit_WhenPlanning_ThenItIsRefused()
     {
         using var repository = TestRepository.Create()

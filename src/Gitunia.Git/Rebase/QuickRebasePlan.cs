@@ -26,7 +26,18 @@ public sealed record QuickRebasePlan(
     public int LaterCommits => Range.Count - 1 - IndexOfCommit();
 
     /// <summary>The position of the edited commit in <see cref="Range"/>.</summary>
-    public int IndexOfCommit() => Range.ToList().FindIndex(item => item.Hash == Commit);
+    public int IndexOfCommit()
+    {
+        for (var index = 0; index < Range.Count; index++)
+        {
+            if (string.Equals(Range[index].Hash, Commit, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
 
     /// <summary>The first line of a message.</summary>
     public static string FirstLine(string message)

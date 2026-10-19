@@ -51,6 +51,11 @@ public sealed class QuickRebaseWriter(GitRunner git, IInteractiveRebaseWriter in
             throw new RebaseRangeException("That commit is not in the history of the current branch");
         }
 
+        if (kind == QuickRebaseKind.Drop && rebaseBase.IsRoot && range.Count == 1)
+        {
+            throw new RebaseRangeException("It is the only commit of the branch: nothing would be left");
+        }
+
         var target = into is null ? null : range.FirstOrDefault(item => item.Hash == into);
         var message = await MessageAsync(location, commit, cancellationToken).ConfigureAwait(false);
         var head = range[^1].Hash;
@@ -97,7 +102,7 @@ public sealed class QuickRebaseWriter(GitRunner git, IInteractiveRebaseWriter in
         }
 
         var end = message.IndexOf('\n', StringComparison.Ordinal);
-        return end < 0 ? newSubject.Trim() : newSubject.Trim() + message[end..];
+        return end < 0 ? newSubject.Trim() : $"{newSubject.Trim()}{message[end..]}";
     }
 
     private async Task<List<string>> ParentsAsync(
