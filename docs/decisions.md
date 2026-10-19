@@ -406,4 +406,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The interactive rebase of the whole history (`--root`, #561) is `<space>gI` in the graph and the sidebar, plus a row in the actions menu of the root commit only. Why: the root rewrite needs no target, so it is a separate action rather than a special selection of `<space>gi`.
 
+**UI:** The settings filter also matches key reference lines by title, keys and action id, and the collapsed layout lists the Key reference last (#558). Why: the reference is ~330 rows; amends the #525 entry.
+
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.

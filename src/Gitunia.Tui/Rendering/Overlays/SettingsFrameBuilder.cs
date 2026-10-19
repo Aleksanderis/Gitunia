@@ -203,7 +203,8 @@ public static class SettingsFrameBuilder
 
         if (state.IsFiltering)
         {
-            var count = state.Rows.Count;
+            var count = state.Rows.Count(
+                row => row.Definition.Control != SettingControl.KeyReference || row.Kind == SettingRowKind.Binding);
             var noun = count == 1 ? "match" : "matches";
             var text = string.Create(CultureInfo.InvariantCulture, $"/{state.Filter}  {count} {noun}");
 
@@ -381,7 +382,7 @@ public static class SettingsFrameBuilder
 
         if (state.Selected is not { } row)
         {
-            return [state.IsFiltering ? "No setting matches the filter." : "Nothing to show.", string.Empty];
+            return [state.IsFiltering ? "Nothing matches the filter." : "Nothing to show.", string.Empty];
         }
 
         var definition = row.Definition;
@@ -429,7 +430,7 @@ public static class SettingsFrameBuilder
 
         if (state.IsFiltering)
         {
-            return "j/k move  Enter jump to the setting  / new filter  Esc clear";
+            return "j/k move  Enter jump to it  / new filter  Esc clear";
         }
 
         if (state.Column == SettingsColumn.Categories && !state.ListsAllCategories)

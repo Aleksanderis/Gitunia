@@ -403,7 +403,7 @@ public sealed class SettingsControllerTests : IDisposable
 
         _harness.Run(ActionIds.SettingsFilter);
         Assert.Equal(KeyMode.Insert, _harness.Mode);
-        _harness.Type("branch");
+        _harness.Type("branch in tab");
         _harness.Run(ActionIds.InputAccept);
         Assert.Equal(KeyMode.Normal, _harness.Mode);
         Assert.Single(_harness.Settings.State!.Rows);

@@ -429,7 +429,9 @@ public static class SettingsReducer
         var selected = state.Selected;
         var cleared = state with { Filter = string.Empty, IsEditingFilter = false };
 
-        return selected is null ? cleared.Clamped() : cleared.Reveal(selected.Definition);
+        return selected is null
+            ? cleared.Clamped()
+            : cleared.Reveal(selected.Definition, selected.Kind, selected.Index);
     }
 
     private static SettingDefinition? FindDefinition(SettingsState state, string id) =>
