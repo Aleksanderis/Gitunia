@@ -105,7 +105,8 @@ public sealed class RebaseActions(
         {
             return new OperationReport(
                 $"Rebase of {target.BranchName} onto {target.Label} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to {RebaseGuard.ShortHash(target.OldTip)})",
+                $"marked !, then <space>gc (continue), <space>ga (abort, back to " +
+                $"{RebaseGuard.ShortHash(target.OldTip)})",
                 StatusSeverity.Warning);
         }
 
@@ -116,9 +117,11 @@ public sealed class RebaseActions(
                 StatusSeverity.Info);
         }
 
+        var head = RebaseGuard.ShortHash(result.Head ?? string.Empty);
+        var was = RebaseGuard.ShortHash(target.OldTip);
         return new OperationReport(
-            $"Rebased {target.BranchName} onto {target.Label} ({RebaseGuard.ShortHash(result.Head ?? string.Empty)}), " +
-            $"was {RebaseGuard.ShortHash(target.OldTip)}; undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
+            $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +
+            $"undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
 
