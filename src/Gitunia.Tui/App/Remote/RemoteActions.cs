@@ -1,8 +1,10 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
@@ -17,6 +19,9 @@ namespace Gitunia.Tui.App.Remote;
 /// operation per tab; other tabs stay usable. <c>Esc</c> (the cancel action) or the cancel chip stops the running one:
 /// the writer kills git, which leaves the repository consistent. A pull also takes the tab's operation gate because
 /// it moves the branch and the working tree. The tab is read again afterwards in every case, as refs may have moved.
+/// The background run cannot prompt (no terminal prompts, ssh in batch mode): when it fails for lack of credentials, a
+/// passphrase or a host key confirmation, a Confirm offers the same command again with the real terminal handed to git
+/// (the TUI suspends like for <c>$EDITOR</c>, #45).
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Runs fetch, pull and push.</param>
@@ -26,6 +31,14 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="refresh">Asks a tab to read everything again; false when it cannot.</param>
 /// <param name="redraw">Redraws the chrome (progress line, chips).</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with the staging actions; a pull holds it.</param>
+/// <param name="confirm">Shows the retry Confirm and runs the callback on <c>y</c>; false when it cannot show.</param>
+/// <param name="isOverlayOpen">
+/// Whether a prompt, picker or other overlay is open; the retry Confirm never replaces one (a stray <c>y</c>).
+/// </param>
+/// <param name="runInTerminal">
+/// Runs git with these arguments on the real terminal (name for the status bar, arguments, repository); returns a
+/// notice when it cannot start, empty otherwise.
+/// </param>
 public sealed class RemoteActions(
     WorkspaceHost host,
     IRemoteWriter writer,
@@ -34,7 +47,10 @@ public sealed class RemoteActions(
     Func<TabId, CancellationToken> cancellationOf,
     Func<TabId, bool> refresh,
     Action redraw,
-    TabOperationGate gate)
+    TabOperationGate gate,
+    Func<ConfirmPrompt, Action, bool> confirm,
+    Func<bool> isOverlayOpen,
+    Func<string, IReadOnlyList<string>, RepositoryLocation, string> runInTerminal)
 {
     private const string BusyNotice = "Busy: a fetch, pull or push of this tab is still running";
     private const string GateBusyNotice = "Busy: another operation of this tab is still running";
@@ -109,6 +125,23 @@ public sealed class RemoteActions(
         return action == ActionIds.RemotePush ? new Wording("Pushing", "Push") : new Wording("Fetching", "Fetch");
     }
 
+    private static IReadOnlyList<string> ArgumentsForTerminal(ActionId action, PushPlan? plan)
+    {
+        if (action == ActionIds.RemotePull)
+        {
+            return RemoteCommands.BuildPull();
+        }
+
+        if (action == ActionIds.RemotePush)
+        {
+            return RemoteCommands.BuildPush(plan?.Request ?? new PushRequest(null), false);
+        }
+
+        return RemoteCommands.BuildFetch(
+            new FetchRequest(null, action == ActionIds.RemoteFetchAll, true),
+            false);
+    }
+
     private bool Cancel(TabId tabId)
     {
         var running = _running[tabId];
@@ -132,7 +165,7 @@ public sealed class RemoteActions(
         }
 
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
-        var running = new Running(WordsOf(action), linked, plan);
+        var running = new Running(WordsOf(action), linked, plan, ArgumentsForTerminal(action, plan));
         _running[tab.Id] = running;
         if (isPull)
         {
@@ -157,6 +190,7 @@ public sealed class RemoteActions(
     {
         string text;
         var severity = StatusSeverity.Info;
+        var needsTerminal = false;
         try
         {
             text = await RunGitAsync(action, running.Plan, location, progress, token).ConfigureAwait(false);
@@ -171,9 +205,11 @@ public sealed class RemoteActions(
         {
             text = $"{running.Words.Noun} failed: {RemoteFailureText.Reason(exception)}";
             severity = StatusSeverity.Error;
+            needsTerminal = exception is GitCommandFailedException failed
+                && RemoteAuthFailure.Matches(failed.StandardError);
         }
 
-        postToUi(() => Finish(tabId, running, action, text, severity));
+        postToUi(() => Finish(tabId, running, action, text, severity, needsTerminal));
     }
 
     private async Task<string> RunGitAsync(
@@ -210,7 +246,13 @@ public sealed class RemoteActions(
         }
     }
 
-    private void Finish(TabId tabId, Running running, ActionId action, string text, StatusSeverity severity)
+    private void Finish(
+        TabId tabId,
+        Running running,
+        ActionId action,
+        string text,
+        StatusSeverity severity,
+        bool needsTerminal)
     {
         running.Cancellation.Dispose();
         _running.Remove(tabId);
@@ -227,17 +269,71 @@ public sealed class RemoteActions(
         if (host.Workspace.FindTab(tabId) is not null)
         {
             refresh(tabId);
+            if (needsTerminal)
+            {
+                OfferTerminal(tabId, running);
+            }
         }
 
         redraw();
+    }
+
+    private void OfferTerminal(TabId tabId, Running running)
+    {
+        var command = $"git {string.Join(' ', running.TerminalArguments)}";
+        var repository = Path.GetFileName(host.Workspace.FindTab(tabId)!.Location.RootPath);
+
+        // An unsolicited Confirm must not replace something the user is typing in or belong to a tab they left.
+        var canAsk = host.Workspace.ActiveTabId == tabId && !isOverlayOpen();
+        var prompt = new ConfirmPrompt(
+            "Credentials needed",
+            [
+                $"{running.Words.Noun} in {repository} needs a passphrase, credentials or a host key answer, "
+                + "which the background run cannot give.",
+                "Run it again in the terminal? Gitunia hands the terminal to git and takes it back when git ends.",
+            ],
+            $"Runs: {command} (the same command as the one that failed).",
+            "Retry in terminal");
+        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, running)))
+        {
+            statuses.Warning(
+                $"{running.Words.Noun} in {repository} needs credentials: run `{command}` in a terminal");
+        }
+    }
+
+    private void RetryInTerminal(TabId tabId, Running running)
+    {
+        if (host.Workspace.FindTab(tabId) is not { } tab)
+        {
+            return;
+        }
+
+        // Another operation may have started while the Confirm was open; the terminal must not race it.
+        if (_running.ContainsKey(tabId) || gate.IsBusy(tabId))
+        {
+            statuses.Warning(BusyNotice);
+            return;
+        }
+
+        var notice = runInTerminal(running.Words.Noun.ToLowerInvariant(), running.TerminalArguments, tab.Location);
+        if (notice.Length > 0)
+        {
+            statuses.Warning(notice);
+        }
     }
 
     private sealed record Wording(string Activity, string Noun);
 
     private sealed record PushPlan(PushRequest Request, string Done);
 
-    private sealed class Running(Wording words, CancellationTokenSource cancellation, PushPlan? plan)
+    private sealed class Running(
+        Wording words,
+        CancellationTokenSource cancellation,
+        PushPlan? plan,
+        IReadOnlyList<string> terminalArguments)
     {
+        public IReadOnlyList<string> TerminalArguments { get; } = terminalArguments;
+
         public PushPlan? Plan { get; } = plan;
 
         public Wording Words { get; } = words;

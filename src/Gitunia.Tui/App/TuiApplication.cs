@@ -113,6 +113,7 @@ public sealed class TuiApplication(
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
     private RemoteActions _remote = null!;
+    private ExternalToolRunner _externalToolRunner = null!;
     private PushActions _push = null!;
     private RemoteManagementActions _remoteManagement = null!;
     private PickActions _pick = null!;
@@ -249,6 +250,14 @@ public sealed class TuiApplication(
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        // The tool runner comes before the remote actions, whose terminal retry launches git through it.
+        _externalToolRunner = new ExternalToolRunner(
+            new ExternalToolLauncher(),
+            this,
+            _statuses,
+            RefreshAfterTool,
+            PauseForEnter);
+
         // The remote actions come first: remote management reads their running state through a method group.
         _remote = CreateRemote(operationGate);
         _effects.IsTabBusy = tabId => operationGate.IsBusy(tabId) || _remote.IsRunning(tabId);
@@ -280,7 +289,7 @@ public sealed class TuiApplication(
             () => _view.ScreenSize,
             ApplyPaneSizes);
         _router.ExternalTools = new ExternalToolActions(
-            new ExternalToolRunner(new ExternalToolLauncher(), this, _statuses, RefreshAfterTool, PauseForEnter),
+            _externalToolRunner,
             () => _host.Workspace.ActiveTab?.Location,
             SelectedCommitHash);
         _router.Refresh = () => _host.Workspace.ActiveTabId is { } activeId && _effects.Refresh(activeId);
@@ -885,7 +894,10 @@ public sealed class TuiApplication(
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
         tabId => _effects.Refresh(tabId, false),
         _view.RefreshChrome,
-        gate);
+        gate,
+        ShowConfirm,
+        IsAnyOverlayOpen,
+        _externalToolRunner.LaunchGit);
 
     private PushActions CreatePush() => new(
         _host,

@@ -69,7 +69,7 @@ scripts/              bash and PowerShell helpers: big-repo generator, measureme
 - `ExternalToolRunner` (Tui) orchestrates: suspend, run, pause for Enter on a non-zero exit (git's own message stays readable), resume, report the exit code in the status bar, refresh the tab quietly.
 - `ITerminalSuspender` is implemented by `TuiApplication`: it stops the main loop, disposes the Terminal.Gui application (leaves the alternate screen, restores terminal and console modes, ends the input thread so the tool is the only stdin reader), runs the tool, then creates a fresh `IApplication` (2.5.0 cannot dispose and re-initialise the same instance twice), re-applies the palette and key handler and runs the same window again. The new driver reads the terminal size, so a resize while suspended is handled.
 - Background producers (watchers, pollers, timers) post through `SuspendableUiInvoker`: while suspended their work is queued and replayed, in order, on the new application. The tool blocks the UI thread by design; background git work continues.
-- The credential-prompt issue reuses `ITerminalSuspender`.
+- The credential retry (#45) reuses `ITerminalSuspender` through `ExternalToolRunner.LaunchGit`, which runs any git argument list (`-C <repo>` prefixed) with the real terminal, with no environment set: the user's ssh, askpass and credential helper decide how to prompt.
 
 ## Files tab (commit tree)
 

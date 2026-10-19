@@ -356,6 +356,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Force push is `<space>Rf`, remote branch delete `<space>RD` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.
 
+**UI:** Credentials (#45): remote calls stay in the background with prompts off; on an auth failure a Confirm offers the same command with the terminal handed to git (TUI suspends like `$EDITOR`), not an inline pty. Why: ssh prompts on /dev/tty, so a pty needs a terminal emulator in the TUI. Detail: `git-layer.md`.
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
 
