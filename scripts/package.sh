@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Packs an AOT publish directory into a release archive plus a SHA-256 file.
 # Usage: scripts/package.sh <rid> <publish-dir> <version> <out-dir>
-# Linux/macOS rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip. Used by the release job in ci.yml.
+# Non-Windows rids give gitunia-<version>-<rid>.tar.gz, win-* rids give .zip. Used by the release job in ci.yml.
+# Needs sha256sum (macOS will need a shasum fallback with #455).
 set -euo pipefail
 
 if [ "$#" -ne 4 ]; then
@@ -34,7 +35,7 @@ case "$rid" in
     else echo "need 7z or zip to build $archive" >&2; exit 1; fi ;;
   *)
     archive="$name.tar.gz"
-    (cd "$stage" && tar -czf "$out/$archive" "$name") ;;
+    (cd "$stage" && tar --owner=0 --group=0 -czf "$out/$archive" "$name") ;;
 esac
 
 (cd "$out" && sha256sum "$archive" > "$archive.sha256")
