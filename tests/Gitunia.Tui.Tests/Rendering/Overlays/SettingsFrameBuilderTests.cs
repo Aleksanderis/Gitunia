@@ -237,7 +237,7 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;
 
-        Assert.Contains("No setting matches", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
+        Assert.Contains("Nothing matches", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
