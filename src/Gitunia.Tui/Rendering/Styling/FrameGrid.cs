@@ -139,7 +139,7 @@ public sealed class FrameGrid
     {
         if (!_glyphs.IsAscii)
         {
-            return _glyphs.For(directions);
+            return _glyphs.FrameLine(directions);
         }
 
         return directions switch

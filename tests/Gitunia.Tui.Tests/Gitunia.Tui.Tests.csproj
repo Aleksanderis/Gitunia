@@ -14,6 +14,7 @@
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepository.cs" Link="Fixtures\TestRepository.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestFile.cs" Link="Fixtures\TestFile.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepositories.cs" Link="Fixtures\TestRepositories.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Execution\FakeGitExecutable.cs" Link="Fixtures\FakeGitExecutable.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gitunia.Tui\Gitunia.Tui.csproj" />
