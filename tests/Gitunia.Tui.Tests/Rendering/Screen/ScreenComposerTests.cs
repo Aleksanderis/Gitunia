@@ -196,4 +196,35 @@ public class ScreenComposerTests
         Assert.Equal("│ ●  emoji 🎉 ok             │", lines[3].Text);
         Assert.All(lines, line => Assert.Equal(30, TextWidth.Of(line.Text)));
     }
+
+    [Theory]
+    [InlineData(80, 12, false, "⋮ more commits below, G loads the rest")]
+    [InlineData(80, 12, true, ": more commits below, G loads the rest")]
+    [InlineData(30, 12, false, "⋮ more commits below, G l…")]
+    [InlineData(30, 12, true, ": more commits below, G l~")]
+    public void GivenCutLog_WhenComposing_ThenMarkerFollowsLastCommit(int width, int height, bool ascii, string text)
+    {
+        var model = Model(1, 4) with { TruncatedTotal = 500 };
+
+        var glyphs = ascii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+
+        var lines = ScreenComposer.Compose(model, Diamond(), 0, 0, width, height, glyphs);
+
+        var marker = lines.Single(line => line.Text.Contains("more commits", StringComparison.Ordinal));
+        Assert.Contains(text, marker.Text, StringComparison.Ordinal);
+        Assert.Equal(width, TextWidth.Of(marker.Text));
+        Assert.Contains("root", lines[lines.ToList().IndexOf(marker) - 1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenCutLogStillLoadingOrWholeLog_WhenComposing_ThenNoMarkerIsDrawn()
+    {
+        var loading = Model(1, 4, isLoading: true) with { TruncatedTotal = 500 };
+
+        var cutAndLoading = Frame(loading, Diamond(), 0, 0, 80, 12);
+        var whole = Frame(Model(1, 4), Diamond(), 0, 0, 80, 12);
+
+        Assert.DoesNotContain("more commits", cutAndLoading, StringComparison.Ordinal);
+        Assert.DoesNotContain("more commits", whole, StringComparison.Ordinal);
+    }
 }

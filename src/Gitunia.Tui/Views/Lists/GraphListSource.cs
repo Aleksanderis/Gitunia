@@ -24,7 +24,14 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
     /// <summary>Items of the list: the reserved leading rows plus the loaded commits.</summary>
-    public int Count => ScreenLayout.ReservedLeadingRows + graph.Count;
+    public int Count => ScreenLayout.ReservedLeadingRows + graph.Count + (ShowsCutMarker ? 1 : 0);
+
+    /// <summary>
+    /// The log is cut at the soft row limit and idle: one extra item after the last commit shows the continues-below
+    /// marker (#555). It holds no commit, so <see cref="CommitIndexOf"/> gives <c>graph.Count</c> for it and every
+    /// consumer bounds-checks that against the graph.
+    /// </summary>
+    public bool ShowsCutMarker { get; set; }
 
     public int MaxItemLength => 0;
 
@@ -93,7 +100,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         selected |= Range?.Contains(item) == true;
         var line = commitIndex >= 0 && commitIndex < graph.Count
             ? GraphRowRenderer.Render(graph[commitIndex], options, selected, JumpLabelOf(listView, commitIndex))
-            : GraphRowRenderer.RenderEmpty(options, selected);
+            : ShowsCutMarker && commitIndex == graph.Count
+                ? GraphRowRenderer.RenderCutMarker(options, selected)
+                : GraphRowRenderer.RenderEmpty(options, selected);
         LinePainter.Paint(
             listView,
             PanePadding.Wrap(line, columns),
