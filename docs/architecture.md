@@ -35,7 +35,7 @@ Example, Enter on a commit: Tui turns the key into a key event; Core's keymap ma
 
 ## Principles
 
-- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. The app starts with no repo (the picker shows) and restores the previous session when there is one.
+- **Workspace model.** `AppState` holds a `Workspace` (ordered repo tabs, active tab, recent/pinned repos). Each tab owns an independent `RepositoryState` (graph, selection, scroll, status, worktrees). Commands are routed to a tab by id; effects carry the repo path they run against. Only the 5 most recently used tabs keep a loaded graph (about 350 bytes per commit); colder tabs are evicted and reload on activation (`EffectRunner`, docs/performance.md). The app starts with no repo (the picker shows) and restores the previous session when there is one.
 - **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
 - **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
