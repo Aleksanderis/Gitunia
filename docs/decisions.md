@@ -354,3 +354,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
+
+**Performance:** Cold-tab eviction (#199): only the 5 most recently used tabs keep their graph; older idle tabs reload on activation (view state stays in the workspace). Soft row limit deferred to #515 with numbers.

@@ -6,7 +6,7 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 
 - Cold start to first frame: < 100 ms with a warm git cache.
 - Commit graph: open a 100k-commit repo and scroll without dropping frames. Load incrementally (`git log` streamed, paged); never materialize the whole graph eagerly in the UI.
-- Many tabs: background tabs hold only compact state and are refreshed lazily or on a throttled timer; only the active tab does continuous work. Tab switch is instant (no reload).
+- Many tabs: background tabs hold only compact state and are refreshed lazily or on a throttled timer; only the active tab does continuous work. Tab switch to a recent tab is instant (no reload); tabs beyond the 5 most recently used drop their graph and reload on activation.
 - Memory: compact commit model (struct-of-arrays or interned hashes), virtualized lists.
 - Render: diff against the previous frame, write one buffered flush per frame.
 
@@ -23,6 +23,19 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 | RSS after visiting all 12 tabs | ~46 MB (20 tabs: ~50 MB) |
 
 Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB. Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
+
+## Bounded memory with many tabs (#199)
+
+Lazy restore already existed (#91: only the active tab loads). New: `EffectRunner` keeps the 5 most recently used loaded tabs (`DefaultWarmTabLimit`, the active one included). A tab beyond that, not loading, drops its session (rows, caches, watcher) and goes back to the pending state; cursor, scroll and selected commit live in the workspace state, so activating it reloads in the background and restores them. Measured with `scripts/measure-tabs.sh <binary> --tabs 12 --commits 20000 --runs 3`, Native AOT linux-x64, 120x40:
+
+| Metric | Before | After |
+|---|---|---|
+| RSS after start (active tab only) | ~49.6 MB | ~47.4 MB |
+| RSS after visiting all 12 tabs | ~125 MB | ~98 MB |
+| First visit of a background tab | ~85 ms | ~88 ms |
+| Switch back to a tab (script's last step: tab 2, evicted after) | ~26 ms (kept) | ~101 ms (reload of 20k commits) |
+
+Memory is now about (5 tabs x size), not the sum over all open tabs. Soft row limit (step 4) is deferred (#515): ~350 bytes per commit means ~400 MB for one 1.2M-commit tab (extrapolated, not measured on a kernel clone).
 
 ## Verified numbers (graph view)
 

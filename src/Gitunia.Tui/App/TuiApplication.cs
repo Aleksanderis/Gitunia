@@ -209,6 +209,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        _remote = CreateRemote(operationGate);
+        _router.Remote = _remote;
         _remoteManagement = CreateRemoteManagement();
         _router.RemoteManagement = _remoteManagement;
         _reset = CreateReset(operationGate);
@@ -226,8 +228,6 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
         _router.Operations = CreateOperations(operationGate);
-        _remote = CreateRemote(operationGate);
-        _router.Remote = _remote;
         _push = CreatePush();
         _router.Push = _push;
         _router.DetailTabs = new DetailTabController(_host);

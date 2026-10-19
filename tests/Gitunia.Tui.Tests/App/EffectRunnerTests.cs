@@ -47,6 +47,54 @@ public class EffectRunnerTests
     }
 
     [Fact]
+    public async Task GivenMoreVisitedTabsThanLimit_WhenSwitching_ThenColdestTabIsEvictedAndReloadsOnActivation()
+    {
+        var fakes = new FakeGitServices();
+        fakes.CommitLog.AddOnTop("root");
+        var pump = new UiPump(TestContext.Current.CancellationToken);
+        var scratch = Workspace.Empty;
+        foreach (var name in new[] { "first", "second", "third" })
+        {
+            var location = FakeStatusReader.LocationOf(name);
+            scratch = WorkspaceReducer.Reduce(scratch, new OpenRepositoryCommand(location)).Workspace;
+        }
+
+        var ids = scratch.Tabs.Select(tab => tab.Id).ToArray();
+        var host = new WorkspaceHost(Workspace.Empty);
+        using var effects = new EffectRunner(
+            fakes.Services,
+            host,
+            pump.Post,
+            GraphGlyphSet.Unicode,
+            new StatusChannel(),
+            watcherOptions: TestGit.QuietWatcherOptions,
+            warmTabLimit: 2);
+        host.Restore(new WorkspaceUpdate(
+            scratch with { ActiveTabId = ids[0] },
+            [.. scratch.Tabs.Select(tab => new LoadRepositoryEffect(tab.Id, tab.CommandPath))]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[0])!.IsLoading);
+        var firstSession = effects.SessionOf(ids[0])!;
+
+        host.Dispatch(new ActivateTabCommand(ids[1]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[1])!.IsLoading);
+        Assert.Same(firstSession, effects.SessionOf(ids[0]));
+        Assert.Equal(1, firstSession.Graph.Count);
+
+        host.Dispatch(new ActivateTabCommand(ids[2]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[2])!.IsLoading);
+
+        Assert.NotSame(firstSession, effects.SessionOf(ids[0]));
+        Assert.True(effects.SessionOf(ids[0])!.IsPending);
+        Assert.Equal(0, effects.SessionOf(ids[0])!.Graph.Count);
+        Assert.Equal(1, effects.SessionOf(ids[1])!.Graph.Count);
+
+        host.Dispatch(new ActivateTabCommand(ids[0]));
+        await pump.RunUntilAsync(() => !effects.SessionOf(ids[0])!.IsLoading);
+
+        Assert.Equal(1, effects.SessionOf(ids[0])!.Graph.Count);
+    }
+
+    [Fact]
     public async Task GivenWatchedTab_WhenGitChangesExternally_ThenGraphAndTabStateFollow()
     {
         using var repository = TestRepository.Create();
