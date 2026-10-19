@@ -63,7 +63,8 @@ public sealed class EffectRunner : IDisposable
     }
 
     /// <summary>
-    /// Says whether a tab runs a write or remote operation; such a tab is never evicted (its token would cancel the work).
+    /// Says whether a tab runs a write or remote operation; such a tab is never evicted
+    /// (closing its session would cancel the work).
     /// </summary>
     public Func<TabId, bool> IsTabBusy { get; set; } = static _ => false;
 
