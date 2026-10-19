@@ -376,3 +376,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Theme auto asks the terminal for its background with OSC 11 before the UI starts (#527), 50 ms timeout, falling back to `COLORFGBG`, then dark; skipped when not interactive and on Windows (unsupported there). Why: most terminals do not set `COLORFGBG`. Supersedes the COLORFGBG-only detection of #47.
 
 **Testing:** Startup smoke test (#532): `TuiApplication.Run` runs headless on the `ansi` driver in `dotnet test` (public `DriverName` and `ExitAfterFirstIteration`, no InternalsVisibleTo). Why: two startup crashes passed green unit tests. Details: `testing.md`.
+
+**Git layer:** Working tree directory watchers are created outside the watcher gate (#504). Empty and ignored-only directories stay unwatched: watching ignored ones defeats ignore-aware watching, and an empty one is noticed at the next event or refresh. Measurements in `performance.md`.
