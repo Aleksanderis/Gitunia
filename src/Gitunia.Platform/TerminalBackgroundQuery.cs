@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 
 namespace Gitunia.Platform;
 
@@ -12,8 +10,6 @@ public static class TerminalBackgroundQuery
 {
     /// <summary>How long a silent terminal is waited for.</summary>
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromMilliseconds(50);
-
-    private const int MaxResponseLength = 128;
 
     /// <summary>
     /// Queries the terminal on the console. Returns null when the answer is unknown: not interactive, Windows (no
@@ -32,14 +28,16 @@ public static class TerminalBackgroundQuery
 
         try
         {
-            Console.Out.Write("\u001b]11;?\u001b\\");
+            // The DA1 query behind it (ESC [ c) is answered by every terminal, in order: its reply ends the wait.
+            Console.Out.Write("\u001b]11;?\u001b\\\u001b[c");
             Console.Out.Flush();
-            var response = ReadResponse(timeout);
+            var reader = new TerminalAnswerReader(() => Console.KeyAvailable, () => Console.ReadKey(intercept: true).KeyChar);
+            var response = reader.Read(timeout);
             return response is null ? null : ParseIsLight(response);
         }
-        catch (Exception exception)
-            when (exception is IOException or InvalidOperationException or UnauthorizedAccessException)
+        catch (Exception)
         {
+            // A best-effort probe: whatever goes wrong, startup continues with the COLORFGBG fallback.
             return null;
         }
     }
@@ -89,32 +87,7 @@ public static class TerminalBackgroundQuery
             channels[i] = value / (Math.Pow(16, parts[i].Length) - 1);
         }
 
+        // A plain weighted luminance of the encoded channels: a heuristic for "light or dark", not a colour-science value.
         return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]) > 0.5;
-    }
-
-    private static string? ReadResponse(TimeSpan timeout)
-    {
-        var builder = new StringBuilder();
-        var clock = Stopwatch.StartNew();
-        while (clock.Elapsed < timeout && builder.Length < MaxResponseLength)
-        {
-            if (!Console.KeyAvailable)
-            {
-                Thread.Sleep(1);
-                continue;
-            }
-
-            var key = Console.ReadKey(intercept: true);
-            builder.Append(key.KeyChar);
-
-            // The string terminator ESC \ reaches Console.ReadKey as a bare backslash (the escape is swallowed); a
-            // colour answer never contains one otherwise.
-            if (key.KeyChar is '\u0007' or '\\')
-            {
-                return builder.ToString();
-            }
-        }
-
-        return builder.Length > 0 ? builder.ToString() : null;
     }
 }

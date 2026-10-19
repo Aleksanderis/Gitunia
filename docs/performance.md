@@ -60,4 +60,6 @@ How these were measured, harness faults, noisy-machine comparisons and the RSS r
 
 ## Startup: terminal background query (OSC 11, #527)
 
-With `theme = auto` startup writes one OSC 11 query and reads the answer (Native AOT linux-x64, pty harness that answers like a terminal, 120x40, single runs). A terminal that answers adds a few ms (first frame ~25 ms in the harness with an answering terminal); a terminal that stays silent adds the 50 ms timeout (~75 ms to the first frame), still inside the 100 ms budget. Skipped for `theme` light or dark, no tty, `NO_COLOR`, Windows and `TERM` dumb or linux.
+With `theme = auto` startup writes one OSC 11 query followed by a DA1 query (`ESC [ c`) and reads until the DA1 reply, which every terminal sends after the OSC 11 answer (or instead of it, when OSC 11 is unknown). The wait therefore ends with the terminal's own answer and a late OSC reply cannot reach the UI as keys; the 50 ms timeout only bounds a terminal that answers neither.
+
+Measured with a throwaway pty harness (a Python script that forks the Native AOT linux-x64 binary on a 120x40 pty and replies like a terminal; not committed; single runs, a few ms of floor) as time to the first frame: a terminal answering OSC 11 and DA1, or DA1 only, ~26 ms; a terminal that never answers ~75-80 ms (the full timeout), still inside the 100 ms budget. Skipped for `theme` light or dark, no tty, `NO_COLOR`, Windows and `TERM` unset, dumb or linux.

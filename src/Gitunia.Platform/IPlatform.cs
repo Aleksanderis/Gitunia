@@ -13,7 +13,7 @@ public enum ColorDepth
 /// <param name="IsInteractive">Input and output are a terminal.</param>
 /// <param name="Color">The colour depth.</param>
 /// <param name="Unicode">The terminal can show box-drawing and similar characters.</param>
-/// <param name="IsLightBackground">The terminal reports a light background (<c>COLORFGBG</c>); false for dark and for unknown.</param>
+/// <param name="IsLightBackground">The terminal reports a light background (<c>COLORFGBG</c>, replaced by the OSC 11 answer when the theme is auto); false for dark and for unknown.</param>
 public sealed record ConsoleCapabilities(bool IsInteractive, ColorDepth Color, bool Unicode, bool IsLightBackground = false);
 
 /// <summary>
