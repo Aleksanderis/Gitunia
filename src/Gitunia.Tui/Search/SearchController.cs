@@ -50,7 +50,7 @@ public sealed class SearchController(
         }
     }
 
-    /// <summary>Number of tabs with a body search in flight (pending debounce included); public so tests can see it.</summary>
+    /// <summary>Number of tabs with a body search in flight (debounce included).</summary>
     public int BodySearchCount
     {
         get

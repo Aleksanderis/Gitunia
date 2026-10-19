@@ -383,9 +383,9 @@ public class SearchControllerTests
         Assert.Contains("1 found", harness.StatusLine, StringComparison.Ordinal);
 
         searcher.Hits.Add(CommitFactory.Id(1));
+        var graph = Graph();
         var rows = Enumerable.Range(0, graph.Count).Select(index => graph[index]);
         harness.Session.ReplaceGraph([.. rows]);
-        harness.Session.ReplaceGraph([.. Enumerable.Range(0, graph.Count).Select(index => graph[index])]);
         WaitUntil(
             harness,
             h => searcher.CallCount == 2 && h.Session.Search is { IsScanning: false, Query.IsAwaitingBodyHits: false });
