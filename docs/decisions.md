@@ -368,3 +368,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-19
 
 **UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".
+
+**Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".

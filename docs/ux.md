@@ -347,11 +347,11 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
 - Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
 - Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read once at startup; the settings screen will apply a change at once.
-- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
+- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The text span of any value is found by `ConfigKeyLocator.Locate` (found, absent, empty, invalid with line, parent not an object; the last duplicate wins), which `ConfigTextEditor` and `ConfigWriter` (#522) use to change one key and keep comments and formatting.
 
 ## Settings screen (design, #465; not implemented)
 
-Implemented by #522 (config writer), #523 (screen), #524 (theme), #525 (key reference).
+Implemented by #522 (config writer, done: `ConfigWriter`, `ConfigTextEditor`), #523 (screen), #524 (theme), #525 (key reference).
 
 One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
 
