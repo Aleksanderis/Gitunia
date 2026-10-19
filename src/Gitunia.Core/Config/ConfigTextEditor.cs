@@ -29,6 +29,13 @@ public static class ConfigTextEditor
         return $"\"{JsonEncodedText.Encode(value, JavaScriptEncoder.UnsafeRelaxedJsonEscaping)}\"";
     }
 
+    /// <summary>The JSON text of a list of strings on one line (<c>["a", "b"]</c>), for <see cref="Set"/>.</summary>
+    /// <param name="values">The strings.</param>
+    public static string StringListValue(IEnumerable<string> values)
+    {
+        return $"[{string.Join(", ", values.Select(StringValue))}]";
+    }
+
     /// <summary>Sets the key at <paramref name="path"/> to a JSON value; a missing key is inserted.</summary>
     /// <param name="text">The config text without a byte order mark.</param>
     /// <param name="path">Property names from the root, for example <c>tabs</c>, <c>showBranch</c>.</param>

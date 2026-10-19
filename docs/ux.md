@@ -200,9 +200,9 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 9. **Failure.** A failing hook (non-zero exit), a prompt, or a signing program that needs a passphrase fails the commit, keeps the draft and the staged state, and shows git's and the hooks' output (stderr, then stdout such as `nothing to commit`) in a scrollable overlay (title `Commit failed`, `Esc` closes it; the status bar carries the first line). Under the output a hint says that no keyboard input reaches git and its hooks (stdin is closed) and that `<space>te` runs `git commit` in the real terminal where it can prompt. Files a hook rewrites show as new unstaged changes after the refresh. A commit that fails on a tab that is not active leaves the status bar notice and keeps its output; the overlay opens once that tab is shown.
 
 **Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...). A Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key) or a `Ctrl-`/`Alt-` combination. Check this before adding a binding.
-- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>,` (settings, planned #523); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
+- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>,` (settings, #523); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
 - **`Alt-`:** `Alt-p` and `Alt-d` are Picker-only, `Alt-1`..`Alt-9` jump tabs, `Alt-s` `Alt-n` `Alt-a` act only in the working-tree view.
-- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
+- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling). The settings screen (#523) is a modal list, not a buffer, so its view keys `x` `a` `d` `J` `K` `+` `-` are bare on purpose (owner to confirm, asked in the PR of #523).
 
 **Mouse.** Same action path as keys. A click on a file row selects it and a double-click stages or unstages it (a deliberate deviation from "double-click opens": the diff already follows the selection). The diff's title row gets `stage`/`unstage` and `discard` buttons next to the hunk buttons; the list titles get `stage all`/`unstage all`; the `SignOff`, `No-Verify` and `Amend` checkboxes toggle and `Commit` commits; a drag over diff rows or file rows starts a Visual range; a click on the tab's dirty marker opens the view; a click on the diff box focuses it (on screens of 80 columns or more; narrow screens keep `Enter`/`l`). The discard itself is reached from the palette, not a list button.
 
@@ -347,12 +347,12 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, has a field of the wrong type (`"key": 5`), is unreadable or is over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
 - Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
 - Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
-- Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read once at startup; the settings screen will apply a change at once.
+- Options (#453), read by `OptionsConfigurator` (Core, pure; the folder check is injected). `frameStyle`: `rounded` or `square`, case-insensitive; anything else is reported and rounded applies. `tabs.showBranch`: a boolean; a `tabs` that is not an object or a non-boolean value is reported and false applies. `scanRoots`: a list of absolute paths, a leading `~` stands for the home folder; it replaces the conventional folders, an empty list turns discovery off, and the picker scans these folders only (depth and count limits unchanged). An entry that is not a string, is relative (never resolved against the process working directory) or is not an existing folder is reported by index (`scanRoots[2]`) and skipped; if no entry of a non-empty list is usable, or the value is not a list, the conventional folders apply. Options are read at startup; the settings screen applies a change at once (and reads the file again when it opens and when the editor row returns).
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The text span of any value is found by `ConfigKeyLocator.Locate` (found, absent, empty, invalid with line, parent not an object; the last duplicate wins), which `ConfigTextEditor` and `ConfigWriter` (#522) use to change one key and keep comments and formatting.
 
-## Settings screen (design, #465; not implemented)
+## Settings screen (design #465; the screen is implemented in #523, theme #524 and key reference #525 follow)
 
-Implemented by #522 (config writer, done: `ConfigWriter`, `ConfigTextEditor`), #523 (screen), #524 (theme), #525 (key reference).
+Implemented by #522 (config writer: `ConfigWriter`, `ConfigTextEditor`), #523 (the screen: overlay, categories, toggle, choice, number and path-list controls, filter, mouse, the `$EDITOR` row; `SettingsRegistry`, `SettingsState`, `SettingsReducer`, `SettingsController`), #524 (theme) and #525 (key reference). A category without a setting is hidden, so Keys and the Git category do not appear yet. The registry is the single list the screen, the writer and the table below agree on (a test compares the table with it).
 
 One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
 
@@ -374,7 +374,7 @@ One screen for every option of the config file, and the only UI for them (the th
 ╰──────────────────────────────────────────────────────────────────╯
 ```
 
-**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it). The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
+**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs, Config file; a category with no setting yet is hidden, Keys and Git have none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it). The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
 
 | Category | Setting | Control | Config key | From |
 |---|---|---|---|---|
@@ -383,6 +383,7 @@ One screen for every option of the config file, and the only UI for them (the th
 | Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
 | Repositories | Scan roots | path list | `scanRoots` | #453 |
 | Keys | Key reference | read-only list from the keymap | none | #50 |
+| Config file | Open config.json in $EDITOR | action | none | #523 |
 
 New options of later issues add a row here in the same change; a number control exists in the screen for them (min, max, step, typed digits).
 
@@ -391,10 +392,10 @@ New options of later issues add a row here in the same change; a number control 
 - Toggle: `Enter` or `x` flips it and saves at once (a bare `<space>` stays the leader prefix).
 - Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme the cursor move previews it live (the whole UI is repainted with that theme behind the overlay); `Esc` restores the previous theme.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
-- Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (Confirm naming the path; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
+- Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
 - Key reference: read-only, grouped by view, generated from the keymap and action titles like Help; `Enter` on a row shows its config entry (`keys` snippet) in the status bar. Editing a binding in the UI is out of scope (see open choices).
 
-Keys are Normal-mode view keys of the `Settings` view, added to the keymap table by the implementing issue; no new global leader beyond `<space>,`.
+Keys are Normal-mode view keys of the `Settings` view (rows in the keymap table); no new global leader beyond `<space>,`, which also closes the screen. A path list is always expanded: its folders are rows under the setting row, `a` or `Enter` on the setting row adds one, and a list with no entry in the file shows "default folders" (the first add writes a list that replaces them). The settings never open over another overlay. While the screen is open the file is the source of truth: it is read when the screen opens, a write that finds the file changed re-reads it, and the editor row re-reads it when the editor closes (key bindings still need a restart). Each applied change shows "Saved <name>" in the status bar; refusals and failures appear there too.
 
 **Mouse.** Click a category selects it; click a setting selects it, a second click (or a click on its control) edits it: toggle flips, choice opens the list, click on an option selects and keeps it; wheel scrolls the column under the pointer; click outside the overlay (Backdrop) closes it like `Esc`; a click on a path-list `[+]`/`[x]` adds or removes. Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows added by the implementing issue).
 
@@ -446,6 +447,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Global | `Ctrl-w =` | Reset the pane sizes to automatic |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
+| Global | `<space>,` | Open the settings screen (overlay over the tab; `Esc` closes; see "Settings screen") |
 | Global | `<space>s` | Open the working-tree view of the tab, or leave it (workflow 2) |
 | Global | `<space>F` | Fetch the remote of the current branch with `--prune`, in the background with a progress line (workflow 5) |
 | Global | `<space>L` | Pull the current branch, fast-forward only (a diverged branch is refused, nothing merged) |
@@ -634,6 +636,14 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Reflog | `<space>gx` | Reset the current branch to the entry (`s`/`m`/`h`; Confirm where work is lost) |
 | Reflog | `<space>bc` | Create a branch at the entry and check it out (prompt popup) |
 | Reflog | `<space>bs` | Check out the entry with a detached HEAD |
+| Settings | `Enter` `l` | Enter the category, edit the setting under the cursor (toggle flips, choice opens its options, number and path list start typing) or keep the option under the cursor; with a filter active, jump to the setting |
+| Settings | `h` `Esc` | Undo the innermost thing (the removal question, typing, an open choice, the filter), else go back to the categories, else close |
+| Settings | `x` | Flip a toggle and save |
+| Settings | `/` | Filter the settings across all categories by name and help text (Insert mode; `Enter` keeps the filter, `Esc` clears it) |
+| Settings | `a` | Add a folder to the path list under the cursor (prompt; `~` is expanded; must be an existing folder) |
+| Settings | `d` | Remove the folder under the cursor after a question naming it (`y` removes, `n` or `Esc` keeps; the folder itself is not touched) |
+| Settings | `J` `K` | Move the folder under the cursor down / up in its list |
+| Settings | `+` `-` | Raise / lower a number setting by its step |
 | Picker | `Up` `Down` | Move highlight |
 | Picker | `Ctrl-j` `Ctrl-k` | Move highlight down / up (aliases; terminals report `Ctrl-j` distinct from `Enter`) |
 | Picker | `Enter` `Ctrl-l` | Open repository (new tab or focus existing); `Ctrl-l` is the home-row alias of `Enter`, `Ctrl-w l` is a chord and unaffected |
@@ -665,7 +675,7 @@ Mouse paths are listed in the next section.
 
 ## Mouse
 
-Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
+Mouse input is optional and goes through the same action path as keys: the mouse map (`DefaultMouseMap`) turns a gesture on a view into the action id a key would produce, and the same handler runs it. A test parses the table below and checks it against the defaults, so add a row in the same change that adds a mouse path. Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff and the two working-tree lists. `CommandsButton`, `NewTabButton`, `Tabs`, `Picker`, the banner chips (`BannerButton.*`), the overlays (`Help`, `Messages`, `Palette`, `Reflog`, `Settings` and `Backdrop` for everything outside an open one) and the buttons (`DiffButton.*`, `DetailTab.*`, `PickerButton.*`, `ListButton.*`, one view per button or label) are views of their own.
 
 | View | Gesture | Action | Effect |
 |---|---|---|---|
@@ -709,6 +719,11 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | ReflogButton.Branch | Click | `branch.create` | Row `<space>bc`: new-branch prompt at the highlighted entry |
 | ReflogButton.Checkout | Click | `branch.switch` | Row `<space>bs`: check the entry out with a detached HEAD |
 | ReflogPicker | Click | `input.accept` | A row of the reflog ref picker: highlights it and opens that ref's reflog, like `Enter` |
+| Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
+| Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |
+| SettingsButton.Edit | Click | `settings.activate` | A click on a setting's control, on an option of an open choice, or a second click on the selected row: edits it like `Enter` (toggle flips, choice opens, option is kept). A first click on a row, and a click on a category, only select |
+| SettingsButton.Add | Click | `settings.add` | The `[+]` marker of a path list: add a folder, like `a` |
+| SettingsButton.Remove | Click | `settings.remove` | The `[x]` marker of a folder: ask to remove it, like `d`; the question's `y` and `n` rows are the `ConfirmButton.Yes` and `ConfirmButton.No` views |
 | MainlineParent | Click | `pick.mainline` | A parent row of the mainline overlay of a cherry-pick or revert of a merge commit: answers like the parent's digit key (the row number is the click target; a click outside cancels) |
 | DiffButton.PreviousHunk | Click | `diff.previous-hunk` | Button `‹ hunk`, same as `[c` |
 | DiffButton.NextHunk | Click | `diff.next-hunk` | Button `hunk ›`, same as `]c` |

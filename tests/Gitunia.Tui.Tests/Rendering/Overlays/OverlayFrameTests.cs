@@ -213,7 +213,7 @@ public class OverlayFrameTests
                 "│ Merge and rebase                                                     │",
                 "│ Reset the current branch to the selected commit (soft, m…  <space>gx │",
                 "│ Rebase the current branch onto the selected commit, bran…  <space>gr │",
-                "│ 1/148 Ctrl-j/k move  Enter run  Esc close                            │",
+                "│ 1/149 Ctrl-j/k move  Enter run  Esc close                            │",
                 "╰──────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(4, frame!.Column);
@@ -231,7 +231,7 @@ public class OverlayFrameTests
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
-                "| 1/148 Ctrl-j/k move  Enter run  Esc|",
+                "| 1/149 Ctrl-j/k move  Enter run  Esc|",
                 "+------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
@@ -449,7 +449,7 @@ public class OverlayFrameTests
                 "│  <space>bC            │ Create a branch without checking out │",
                 "│  <space>bs            │ Switch to a branch (check out)       │",
                 "│  <space>br            │ Rename the branch                    │",
-                "│ 1-19/119  list keys scroll  Esc close                        │",
+                "│ 1-19/120  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

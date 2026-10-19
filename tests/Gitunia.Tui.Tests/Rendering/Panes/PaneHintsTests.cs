@@ -138,6 +138,12 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheSettingsHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheSettingsView()
+    {
+        AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
     {
         AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);

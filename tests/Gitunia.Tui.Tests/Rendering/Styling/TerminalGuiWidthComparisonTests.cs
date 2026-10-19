@@ -28,7 +28,7 @@ public class TerminalGuiWidthComparisonTests(ITestOutputHelper output)
     [InlineData("👍🏽", 2)]
     [InlineData("🇩🇪", 2)]
     [InlineData("❤️", 1)]
-    [InlineData("é", 1)]
+    [InlineData("é", 1)] // Decomposed é
     [InlineData("가", 2)]
     public void GivenCommonText_WhenMeasuredByBoth_ThenTerminalGuiAgreesWithDisplayWidth(string text, int expected)
     {
@@ -67,6 +67,7 @@ public class TerminalGuiWidthComparisonTests(ITestOutputHelper output)
     [Fact]
     public void GivenZeroWidthJoinerSequence_WhenMeasuredByBoth_ThenTheyDifferAsDocumented()
     {
+        // Pins the known divergence of #547: flip the expectation when that issue is fixed.
         const string family = "\U0001F468‍\U0001F469‍\U0001F467";
 
         Assert.Equal(6, DisplayWidth.Of(family));
