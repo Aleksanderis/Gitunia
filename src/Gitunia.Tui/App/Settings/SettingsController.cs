@@ -29,6 +29,7 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="setMode">Switches the keymap mode (Insert while typing, Confirm for the removal question).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="applyOptions">Applies the options of the file to the running app.</param>
+/// <param name="applyTheme">Shows a theme in the running app: the one under the cursor, else the kept one.</param>
 /// <param name="launchEditor">Opens a file in the editor and calls back when it closes; returns why it cannot.</param>
 /// <param name="definitions">The settings on offer; the registry unless a test brings its own.</param>
 /// <param name="cancellationToken">Ends the file work when the app is closing.</param>
@@ -42,6 +43,7 @@ public sealed class SettingsController(
     Action<KeyMode> setMode,
     Action redraw,
     Action<ConfigOptions> applyOptions,
+    Action<ThemeChoice> applyTheme,
     Func<string, Action, string> launchEditor,
     IReadOnlyList<SettingDefinition>? definitions = null,
     CancellationToken cancellationToken = default)
@@ -70,6 +72,9 @@ public sealed class SettingsController(
     private ConfigSnapshot _snapshot = new(false, string.Empty, string.Empty);
     private KeyMode _mode = KeyMode.Normal;
     private bool _isBusy;
+    private ThemeChoice? _committedTheme;
+    private ThemeChoice? _pendingTheme;
+    private ThemeChoice? _shownTheme;
 
     /// <summary>The open screen, null while it is closed.</summary>
     public SettingsState? State { get; private set; }
@@ -94,12 +99,12 @@ public sealed class SettingsController(
     {
         if (State is null)
         {
-            if (action != ActionIds.SettingsOpen)
+            if (action != ActionIds.SettingsOpen && action != ActionIds.SettingsOpenTheme)
             {
                 return false;
             }
 
-            Open();
+            Open(action == ActionIds.SettingsOpenTheme);
 
             return true;
         }
@@ -243,6 +248,7 @@ public sealed class SettingsController(
             Cursor = hit.Index,
         };
         State = State.Clamped();
+        SyncTheme();
         redraw();
         if (hit.Kind == SettingsHitKind.Add)
         {
@@ -254,7 +260,11 @@ public sealed class SettingsController(
             return DefaultMouseMap.SettingsRemoveButton;
         }
 
-        var edits = hit.Kind == SettingsHitKind.Control || row.Kind == SettingRowKind.Option || isSecondClick;
+        // A theme option is previewed by the first click and kept by the next on it; others are kept at once.
+        var previewsOnly = row.Kind == SettingRowKind.Option && !isSecondClick
+            && row.Definition.Id == SettingsRegistry.ThemeId;
+        var edits = hit.Kind == SettingsHitKind.Control || (row.Kind == SettingRowKind.Option && !previewsOnly)
+            || isSecondClick;
 
         return edits ? DefaultMouseMap.SettingsEditButton : null;
     }
@@ -278,6 +288,7 @@ public sealed class SettingsController(
         if (ListMotion.TryMove(action, count, state.ActiveIndex, state.ActiveCount, page, out var target))
         {
             State = state.MoveTo(target);
+            SyncTheme();
             redraw();
         }
     }
@@ -314,6 +325,7 @@ public sealed class SettingsController(
             Write(commit);
         }
 
+        SyncTheme();
         redraw();
     }
 
@@ -321,6 +333,7 @@ public sealed class SettingsController(
     {
         State = null;
         SyncMode();
+        SyncTheme();
         redraw();
     }
 
@@ -341,20 +354,26 @@ public sealed class SettingsController(
         }
     }
 
-    private void Open()
+    private void Open(bool atTheme)
     {
         if (_isBusy)
         {
             return;
         }
 
-        ReadThen(Show);
+        ReadThen(read => Show(read, atTheme));
     }
 
-    private void Show(SettingsRead read)
+    private void Show(SettingsRead read, bool atTheme)
     {
         _snapshot = read.Snapshot;
         State = SettingsState.Create(_definitions, read.Load).WithLayout(IsCollapsed());
+        var theme = _definitions.FirstOrDefault(definition => definition.Id == SettingsRegistry.ThemeId);
+        if (atTheme && theme is not null)
+        {
+            State = State.Reveal(theme);
+        }
+
         ApplyOptions(read.Load);
         SyncMode();
         redraw();
@@ -400,7 +419,9 @@ public sealed class SettingsController(
     private void Failed(string message)
     {
         _isBusy = false;
+        _pendingTheme = null;
         statuses.Error(message);
+        SyncTheme();
         redraw();
     }
 
@@ -441,6 +462,11 @@ public sealed class SettingsController(
         }
 
         _isBusy = true;
+        if (commit.Definition.Id == SettingsRegistry.ThemeId)
+        {
+            _pendingTheme = SettingsValueReader.ThemeOf(commit.Value.Choice);
+        }
+
         var json = commit.Value.ToJson(commit.Definition.Control);
         var snapshot = _snapshot;
         _ = Task.Run(() => WriteAsync(commit, json, snapshot), CancellationToken.None);
@@ -470,6 +496,7 @@ public sealed class SettingsController(
     private void Written(SettingsCommit commit, ConfigWriteResult result, SettingsRead? read)
     {
         _isBusy = false;
+        _pendingTheme = null;
         if (read is not null)
         {
             _snapshot = read.Snapshot;
@@ -499,6 +526,7 @@ public sealed class SettingsController(
         }
 
         SyncMode();
+        SyncTheme();
         redraw();
     }
 
@@ -522,6 +550,21 @@ public sealed class SettingsController(
         if (load.Banner.Length == 0)
         {
             applyOptions(load.Options);
+            _committedTheme = load.Theme;
+        }
+
+        SyncTheme();
+    }
+
+    // The theme on screen: the one under the cursor while picking, else the one just kept (until its write is
+    // answered), else the one of the file. Closing or Esc therefore restores the previous theme.
+    private void SyncTheme()
+    {
+        var wanted = State?.PreviewTheme ?? _pendingTheme ?? _committedTheme;
+        if (wanted is { } theme && _shownTheme != theme)
+        {
+            _shownTheme = theme;
+            applyTheme(theme);
         }
     }
 }

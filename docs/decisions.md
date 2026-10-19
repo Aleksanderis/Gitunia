@@ -386,3 +386,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
 
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
+
+**UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.

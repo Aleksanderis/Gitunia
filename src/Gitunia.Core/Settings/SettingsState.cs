@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings.Models;
 
 namespace Gitunia.Core.Settings;
@@ -94,6 +95,15 @@ public sealed record SettingsState(
     public int ActiveCount => Column == SettingsColumn.Categories && !ListsAllCategories
         ? Categories.Count
         : Rows.Count;
+
+    /// <summary>
+    /// The theme to show while the theme options are listed and the cursor is on one; null when no theme is being
+    /// picked, so the kept theme applies.
+    /// </summary>
+    public ThemeChoice? PreviewTheme =>
+        Choice is { SettingId: SettingsRegistry.ThemeId } && Selected is { Kind: SettingRowKind.Option } row
+            ? SettingsValueReader.ThemeOf(row.Definition.Choices[row.Index])
+            : null;
 
     /// <summary>Builds the state for a freshly read file.</summary>
     /// <param name="definitions">The settings on offer.</param>

@@ -482,6 +482,21 @@ public sealed class MainView : IDisposable
         }
     }
 
+    /// <summary>Repaints every view after the palette changed (the settings screen previews a theme).</summary>
+    public void RefreshPalette()
+    {
+        Detail.SetScheme(Palette.PanelScheme());
+        RefreshChrome();
+        Window.SetNeedsDraw();
+        Graph.SetNeedsDraw();
+        Detail.SetNeedsDraw();
+        Diff.SetNeedsDraw();
+        WorkingUnstaged.SetNeedsDraw();
+        WorkingStaged.SetNeedsDraw();
+        WorkingDiff.SetNeedsDraw();
+        WorkingMessage.SetNeedsDraw();
+    }
+
     public void Dispose() => Window.Dispose();
 
     private PaneListView FocusedWorkingList() => WorkingFocus() switch

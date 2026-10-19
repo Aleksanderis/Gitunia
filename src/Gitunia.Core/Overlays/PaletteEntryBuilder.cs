@@ -45,6 +45,18 @@ public static class PaletteEntryBuilder
             entries.Add(new RankedPaletteEntry(entry, rankByAction.GetValueOrDefault(group.Key, chain.Count), order++));
         }
 
+        var listed = entries.Select(item => item.Entry.Action).ToHashSet();
+        foreach (var action in ActionCatalog.PaletteOnly.Where(action => !listed.Contains(action)))
+        {
+            var entry = new PaletteEntry(
+                action,
+                ActionCatalog.Describe(action),
+                string.Empty,
+                !unimplemented.Contains(action),
+                ActionCatalog.GroupOf(action)?.Header);
+            entries.Add(new RankedPaletteEntry(entry, chain.Count, order++));
+        }
+
         // Grouped (#483): the groups in their fixed order; inside a group the focused view's own actions first.
         return [.. entries
             .OrderBy(item => GroupOrder(item.Entry.Action))

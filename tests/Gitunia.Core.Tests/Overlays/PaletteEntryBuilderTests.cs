@@ -53,6 +53,18 @@ public class PaletteEntryBuilderTests
     }
 
     [Fact]
+    public void GivenAnActionWithoutAKey_WhenBuildingEntries_ThenThePaletteStillListsItWithNoKeys()
+    {
+        var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
+
+        var entry = Assert.Single(entries, candidate => candidate.Action == ActionIds.SettingsOpenTheme);
+        Assert.Equal(string.Empty, entry.Keys);
+        Assert.Equal("Open the settings at the theme", entry.Title);
+        Assert.True(entry.IsImplemented);
+        Assert.DoesNotContain(Table.Bindings, binding => binding.Action == ActionIds.SettingsOpenTheme);
+    }
+
+    [Fact]
     public void GivenModalOnlyActions_WhenBuildingEntries_ThenTheyAreHidden()
     {
         var entries = PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView);
