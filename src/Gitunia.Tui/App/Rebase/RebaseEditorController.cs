@@ -78,7 +78,7 @@ public sealed class RebaseEditorController(
     /// <summary>True while the reword's message editor is open (the keymap is in Insert mode).</summary>
     public bool IsEditingMessage => State?.Edit is not null;
 
-    /// <summary>The frame to draw, or null when the editor is closed, covered by a dialog or the screen is too small.</summary>
+    /// <summary>The frame to draw, or null when the editor is closed, covered by a dialog or too big for the screen.</summary>
     public OverlayFrame? CurrentFrame()
     {
         if (State is not { } state || isOtherOverlayOpen())
@@ -215,8 +215,10 @@ public sealed class RebaseEditorController(
         var location = tab.Location;
         var token = cancellationOf(tab.Id);
         _isWorking = true;
+        var branchName = tab.Head!.BranchName!;
+        var oldTip = tab.Head.CommitHash!;
         _ = Task.Run(
-            () => ReadRangeAsync(tab.Id, location, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!, generation, token),
+            () => ReadRangeAsync(tab.Id, location, hash, label, branchName, oldTip, generation, token),
             CancellationToken.None);
     }
 
@@ -531,7 +533,8 @@ public sealed class RebaseEditorController(
         }
         catch (Exception exception)
         {
-            var text = $"Could not rebase {state.BranchName} onto {state.TargetLabel}: {OperationText.Reason(exception)}";
+            var reason = OperationText.Reason(exception);
+            var text = $"Could not rebase {state.BranchName} onto {state.TargetLabel}: {reason}";
             postToUi(() => Finish(tab.Id, text, StatusSeverity.Error));
         }
     }

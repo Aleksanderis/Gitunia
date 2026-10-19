@@ -68,7 +68,8 @@ public static class RebaseEditorTexts
 
     private static string Summary(RebaseEditorState state)
     {
-        var parts = new List<string> { $"{state.KeptCount} of {OperationText.Plural(state.Rows.Count, "commit")} kept" };
+        var total = OperationText.Plural(state.Rows.Count, "commit");
+        var parts = new List<string> { $"{state.KeptCount} of {total} kept" };
         AddCount(parts, state, RebaseTodoAction.Reword, "reworded");
         AddCount(parts, state, RebaseTodoAction.Squash, "squashed");
         AddCount(parts, state, RebaseTodoAction.Fixup, "fixed up");

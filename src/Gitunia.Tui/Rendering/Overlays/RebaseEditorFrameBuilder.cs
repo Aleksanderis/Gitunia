@@ -27,7 +27,8 @@ public static class RebaseEditorFrameBuilder
     private const int ChipStartColumn = 2;
     private const int ChipGap = 2;
     private const string ChipGapText = "  ";
-    private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld into the one above";
+    private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
+    private const string MessageHint = "Alt-Enter or Ctrl-g keep the message   Enter new line   Esc cancel";
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
 
@@ -162,7 +163,7 @@ public static class RebaseEditorFrameBuilder
 
         lines.Add(edit.Editor.IsBlank
             ? OverlayBox.Text(BlankMessageHint, width, glyphs, SegmentRole.Error)
-            : OverlayBox.Text("Alt-Enter or Ctrl-g keep the message   Enter new line   Esc cancel", width, glyphs, SegmentRole.Faint));
+            : OverlayBox.Text(MessageHint, width, glyphs, SegmentRole.Faint));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
@@ -172,7 +173,8 @@ public static class RebaseEditorFrameBuilder
         var hash = row.Hash[..Math.Min(ShortHashLength, row.Hash.Length)];
         var action = ActionWord(row.Action).PadRight(ActionColumnWidth);
         var role = row.Action == RebaseTodoAction.Drop ? SegmentRole.Faint : SegmentRole.Plain;
-        return OverlayBox.TwoColumns($"{action} {hash} {row.ShownSubject}", string.Empty, width, glyphs, role, role, isSelected);
+        var text = $"{action} {hash} {row.ShownSubject}";
+        return OverlayBox.TwoColumns(text, string.Empty, width, glyphs, role, role, isSelected);
     }
 
     private static StyledLine ChipLine(IReadOnlyList<RebaseEditorChip> chips, int width, GraphGlyphSet glyphs)

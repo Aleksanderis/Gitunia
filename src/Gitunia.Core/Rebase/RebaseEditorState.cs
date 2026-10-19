@@ -13,7 +13,7 @@ namespace Gitunia.Core.Rebase;
 /// <param name="BranchName">The branch being rebased.</param>
 /// <param name="TargetLabel">The commit, branch or tag the commits are replayed onto, as the user chose it.</param>
 /// <param name="Base">Where the range starts.</param>
-/// <param name="OldTip">The commit HEAD pointed at when the editor opened (the undo hint, and the staleness check).</param>
+/// <param name="OldTip">HEAD when the editor opened: the undo hint, and the check that nothing moved.</param>
 /// <param name="Rows">The todo as edited.</param>
 /// <param name="Original">The todo as read, to tell whether anything changed.</param>
 /// <param name="SelectedIndex">Index into <paramref name="Rows"/>.</param>
@@ -85,26 +85,37 @@ public sealed record RebaseEditorState(
 
     /// <summary>Moves the highlight to <paramref name="index"/>, clamped to the rows.</summary>
     public RebaseEditorState MoveTo(int index) =>
-        this with { SelectedIndex = Rows.Count == 0 ? 0 : Math.Clamp(index, 0, Rows.Count - 1), IsDiscardPending = false };
+        this with
+        {
+            SelectedIndex = Rows.Count == 0 ? 0 : Math.Clamp(index, 0, Rows.Count - 1),
+            IsDiscardPending = false,
+        };
 
     /// <summary>
-    /// Swaps the highlighted commit with its neighbour, <paramref name="delta"/> of -1 replaying it earlier (up) and 1
-    /// later (down); the highlight follows the commit. At either end nothing moves.
+    /// Moves the highlighted commit <paramref name="delta"/> rows, -1 replaying it earlier (up) and 1 later (down),
+    /// stopping at the ends; the highlight follows the commit. At an end nothing moves.
     /// </summary>
     public RebaseEditorState MoveRow(int delta)
     {
-        var target = SelectedIndex + delta;
-        if (Rows.Count == 0 || SelectedIndex < 0 || SelectedIndex >= Rows.Count || target < 0 || target >= Rows.Count)
+        if (Rows.Count == 0 || SelectedIndex < 0 || SelectedIndex >= Rows.Count)
+        {
+            return this;
+        }
+
+        var target = Math.Clamp(SelectedIndex + delta, 0, Rows.Count - 1);
+        if (target == SelectedIndex)
         {
             return this;
         }
 
         var rows = Rows.ToList();
-        (rows[SelectedIndex], rows[target]) = (rows[target], rows[SelectedIndex]);
+        var row = rows[SelectedIndex];
+        rows.RemoveAt(SelectedIndex);
+        rows.Insert(target, row);
         return this with { Rows = rows, SelectedIndex = target, IsDiscardPending = false };
     }
 
-    /// <summary>Sets the action of the highlighted commit. A reword needs a message: use <see cref="SaveEdit"/>.</summary>
+    /// <summary>Sets the action of the highlighted commit; a reword needs a message (<see cref="SaveEdit"/>).</summary>
     public RebaseEditorState SetAction(RebaseTodoAction action)
     {
         if (Selected is not { } row || action == RebaseTodoAction.Reword)
@@ -117,7 +128,7 @@ public sealed record RebaseEditorState(
         return this with { Rows = rows, IsDiscardPending = false };
     }
 
-    /// <summary>Opens the message editor for the highlighted commit with <paramref name="message"/> as its text.</summary>
+    /// <summary>Opens the message editor on the highlighted commit with <paramref name="message"/> as text.</summary>
     public RebaseEditorState BeginEdit(string message)
     {
         if (Selected is not { } row)

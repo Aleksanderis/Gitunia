@@ -91,8 +91,9 @@ public sealed class RebaseActions(
     }
 
     /// <summary>
-    /// Why a rebase must not start in this tab, or null: an operation in progress, a detached or unborn HEAD, the target
-    /// being the current commit, or tracked changes. No git runs for any of these; the interactive rebase uses the same.
+    /// Why a rebase must not start in this tab, or null: an operation in progress, a detached or unborn HEAD, the
+    /// target being the current commit, or tracked changes. No git runs for any of these; the interactive rebase
+    /// uses the same.
     /// </summary>
     public static string? Refusal(RepositoryState tab, string targetHash)
     {

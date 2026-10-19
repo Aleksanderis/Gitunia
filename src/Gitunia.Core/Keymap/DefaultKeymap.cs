@@ -290,8 +290,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
     }
 
-    // The todo editor of an interactive rebase is a modal list like the settings screen: the single letters are git's own
-    // todo words (pick, reword, squash, fixup, drop), keys of the list and not buffer commands. In Insert mode the
+    // The todo editor of an interactive rebase is a modal list like the settings screen: the single letters are git's
+    // own todo words (pick, reword, squash, fixup, drop), keys of the list and not buffer commands. In Insert mode the
     // reword's message editor takes text; only Enter, Esc and the Alt-Enter/Ctrl-g accept act.
     private static void AddRebaseEditorKeys(List<KeyBinding> bindings)
     {

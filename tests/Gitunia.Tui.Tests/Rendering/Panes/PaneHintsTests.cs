@@ -138,6 +138,18 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheRebaseEditorHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheEditorView()
+    {
+        AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);
+    }
+
+    [Fact]
+    public void GivenTheRebaseMessageHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInInsertMode()
+    {
+        AssertKeysTriggerActions(PaneHints.ForRebaseMessage(), KeyMode.Insert, DefaultKeymap.RebaseEditorView);
+    }
+
+    [Fact]
     public void GivenTheSettingsHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheSettingsView()
     {
         AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
