@@ -383,4 +383,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
 
+**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
+
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
