@@ -81,6 +81,9 @@ public class DisplayWidthTests
     [InlineData("a‍b", 2)] // A joiner after a plain letter joins nothing
     [InlineData("‍\U0001F468", 2)]
     [InlineData("\U0001F468‍", 2)]
+    [InlineData("\U0001F468‍a", 3)] // A joiner followed by a non-emoji joins nothing
+    [InlineData("\U0001F468‍ ", 3)]
+    [InlineData("\U0001F468‍‍\U0001F469", 4)]
     [InlineData("\U0001F468‍\U0001F469\U0001F467", 4)] // The last emoji is not joined
     public void GivenZeroWidthJoinerSequence_WhenMeasuring_ThenItIsOneWideCell(string text, int expected)
     {

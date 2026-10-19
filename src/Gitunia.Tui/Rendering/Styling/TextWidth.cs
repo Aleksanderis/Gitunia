@@ -14,8 +14,8 @@ public static class TextWidth
 
     /// <summary>
     /// Makes <paramref name="text"/> fit <paramref name="columns"/>: control characters become spaces and an overlong text
-    /// is cut and ends with <paramref name="ellipsis"/>. A wide character is never split. Joined emoji sequences are measured
-    /// by <see cref="WidthCounter"/>.
+    /// is cut and ends with <paramref name="ellipsis"/>. A wide character is never split. Joined emoji sequences are
+    /// measured by <see cref="WidthCounter"/>.
     /// </summary>
     public static string Fit(string text, int columns, string ellipsis)
     {

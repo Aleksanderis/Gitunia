@@ -58,6 +58,19 @@ public class DiffWrapMapTests
         Assert.Equal(["ab", family + "c", "d"], chunks);
     }
 
+    [Theory]
+    [InlineData("\U0001F468a‍\U0001F469 and more text here")]
+    [InlineData("\U0001F468‍x and some more text here")]
+    [InlineData("\t\U0001F468‍\U0001F469‍\U0001F467\tabc def ghi jkl")]
+    public void GivenJoinersMixedWithOtherText_WhenBuilding_ThenTheMapCountsWhatTheRendererDraws(string text)
+    {
+        var row = new DiffRow(DiffRowKind.Added, text, null, 1, 0);
+
+        var map = DiffWrapMap.Build(Document(row), 19);
+
+        Assert.Equal(DiffRowRenderer.SegmentCount(row, 19, 3), map.Count);
+    }
+
     [Fact]
     public void GivenATabHeavyRow_WhenCountingSegments_ThenEveryColumnOfTheExpandedTextIsReachable()
     {

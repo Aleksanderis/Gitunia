@@ -125,10 +125,13 @@ public sealed class DiffWrapMap
         {
             if (rune.Value == '\t')
             {
+                // Tabs become spaces before chunking, so the counter sees a plain character.
+                counter.Next(new Rune(' '));
                 column += DiffRowRenderer.TabWidth - (column % DiffRowRenderer.TabWidth);
             }
             else if (rune.Value is >= ' ' and < 0x7F || Rune.IsControl(rune))
             {
+                counter.Next(new Rune(' '));
                 column++;
             }
             else

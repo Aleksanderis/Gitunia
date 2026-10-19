@@ -73,6 +73,13 @@ public class TerminalGuiWidthComparisonTests(ITestOutputHelper output)
     [InlineData("❤️‍\U0001F525")] // Heart on fire
     [InlineData("x\U0001F468‍\U0001F469y")]
     [InlineData("a‍b")]
+    [InlineData("\U0001F468‍a")]
+    [InlineData("\U0001F468‍日")]
+    [InlineData("\U0001F468‍ ")]
+    [InlineData("\U0001F468‍1")]
+    [InlineData("\U0001F468‍‍\U0001F469")]
+    [InlineData("❤‍\U0001F525")]
+    [InlineData("\U0001F468‍\U0001F469\U0001F467")]
     [InlineData("‍\U0001F468")]
     [InlineData("\U0001F468‍")]
     public void GivenZeroWidthJoinerSequence_WhenMeasuredByBoth_ThenTerminalGuiAgrees(string text)

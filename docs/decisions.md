@@ -387,4 +387,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
 
-**UI:** A zero-width-joiner emoji sequence measures as one wide cell, like Terminal.Gui (#547): `WidthCounter` joins it in `DisplayWidth.Of(string)` and the per-character wrap and fit loops. Supersedes the "ZWJ sequences still differ" note in the #503 entry.
+**UI:** A zero-width-joiner emoji sequence measures as one wide cell, as Terminal.Gui does for the sequences in `TerminalGuiWidthComparisonTests` (#547): `WidthCounter` joins an emoji to an emoji in `DisplayWidth.Of(string)`, the per-character wrap and fit loops and the title cells. Supersedes the "ZWJ sequences still differ" note in the #503 entry.
