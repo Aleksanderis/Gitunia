@@ -638,7 +638,8 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.SettingsActivate);
         var rows = _harness.Settings.State!.Rows;
         var rebound = rows.ToList().FindIndex(row => row.Kind == SettingRowKind.Binding
-            && _harness.Settings.State.Reference[row.Index] is { Section: "Graph", Keys: "J", ActionId: "list.down" });
+            && _harness.Settings.State.Reference[row.Index] is
+                { Section: "Graph", Keys: "J", ActionId: "list.down" });
         Assert.True(rebound > 0, "the user's J binding is in the key reference");
 
         _harness.Run(ActionIds.ListDown, rebound);

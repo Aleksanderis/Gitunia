@@ -524,8 +524,7 @@ public class SettingsReducerTests
     {
         var state = WithReference("not json").Reveal(
             Definition(SettingsRegistry.KeyReferenceId),
-            SettingRowKind.Binding,
-            0);
+            SettingRowKind.Binding);
 
         var outcome = Reduce(state, SettingsCommandKind.Activate);
 
@@ -544,8 +543,7 @@ public class SettingsReducerTests
     {
         var state = WithReference("{}").Reveal(
             Definition(SettingsRegistry.KeyReferenceId),
-            SettingRowKind.Binding,
-            0);
+            SettingRowKind.Binding);
 
         var outcome = Reduce(state, command);
 
