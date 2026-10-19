@@ -573,6 +573,52 @@ public class SettingsReducerTests
         Assert.Equal(3, rows.Count(row => row.Kind == SettingRowKind.Binding));
     }
 
+    [Theory]
+    [InlineData("QUIT", "app.quit")]
+    [InlineData("list.up", "list.up")]
+    [InlineData("j / down", "list.down")]
+    public void GivenAKeyReference_WhenFilteringByTitleKeysOrActionId_ThenTheLineIsListed(string text, string action)
+    {
+        var state = WithReference("{}").WithFilterText(text);
+
+        var bindings = state.Rows.Where(row => row.Kind == SettingRowKind.Binding).ToList();
+
+        Assert.Equal([action], bindings.Select(row => state.Reference[row.Index].ActionId));
+    }
+
+    [Fact]
+    public void GivenAFilterMatchingNoKeyLine_WhenListingRows_ThenTheKeyReferenceIsHidden()
+    {
+        var state = WithReference("{}").WithFilterText("zzz");
+
+        Assert.Empty(state.Rows);
+    }
+
+    [Fact]
+    public void GivenAFilteredKeyLine_WhenActivating_ThenTheCursorJumpsToThatLineInTheReference()
+    {
+        var typing = Reduce(WithReference("{}"), SettingsCommandKind.FilterOpen).State.WithFilterText("list.up");
+        var accepted = Reduce(typing, SettingsCommandKind.InputAccept).State;
+        Assert.Equal(SettingRowKind.Setting, accepted.Rows[0].Kind);
+        var onLine = accepted.MoveTo(1);
+
+        var jumped = Reduce(onLine, SettingsCommandKind.Activate).State;
+
+        Assert.False(jumped.IsFiltering);
+        Assert.Equal(SettingRowKind.Binding, jumped.Selected?.Kind);
+        Assert.Equal("list.up", jumped.Reference[jumped.Selected!.Index].ActionId);
+    }
+
+    [Fact]
+    public void GivenTheCollapsedLayout_WhenListingRows_ThenTheKeyReferenceComesLast()
+    {
+        var rows = WithReference("{}").WithLayout(collapsed: true).Rows;
+
+        Assert.Equal(SettingsRegistry.KeyReferenceId, rows[^4].Definition.Id);
+        Assert.DoesNotContain(rows.Take(rows.Count - 4), row => row.Definition.Id == SettingsRegistry.KeyReferenceId);
+        Assert.Equal(SettingsRegistry.OpenConfigId, rows[^5].Definition.Id);
+    }
+
     private static SettingsState WithReference(string text) =>
         SettingsState.Create(
             [.. SettingsRegistry.All],

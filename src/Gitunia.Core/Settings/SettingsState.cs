@@ -242,12 +242,16 @@ public sealed record SettingsState(
     {
         if (IsFiltering)
         {
-            return Definitions.Where(Matches).OrderBy(definition => definition.Category);
+            return Definitions
+                .Where(definition => Matches(definition) || MatchingBindings(definition).Any())
+                .OrderBy(definition => definition.Category);
         }
 
         if (IsCollapsed)
         {
-            return Definitions.OrderBy(definition => definition.Category);
+            // The long key reference goes last, so the other categories are reachable without passing it.
+            return Definitions.OrderBy(definition => definition.Category == SettingCategory.Keys ? 1 : 0)
+                .ThenBy(definition => definition.Category);
         }
 
         var category = CurrentCategory;
@@ -259,11 +263,30 @@ public sealed record SettingsState(
         definition.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase)
         || definition.Help.Contains(Filter, StringComparison.OrdinalIgnoreCase);
 
+    // The key lines whose title, keys or action id contain the filter (indexes into the reference).
+    private IEnumerable<int> MatchingBindings(SettingDefinition definition)
+    {
+        if (definition.Control != SettingControl.KeyReference)
+        {
+            return [];
+        }
+
+        var reference = Reference;
+
+        return Enumerable.Range(0, reference.Count).Where(index =>
+            reference[index].Title.Contains(Filter, StringComparison.OrdinalIgnoreCase)
+            || reference[index].Keys.Contains(Filter, StringComparison.OrdinalIgnoreCase)
+            || reference[index].ActionId.Contains(Filter, StringComparison.OrdinalIgnoreCase));
+    }
+
     private void AddRows(List<SettingRow> rows, SettingDefinition definition)
     {
         rows.Add(new SettingRow(definition, SettingRowKind.Setting, 0));
         if (IsFiltering)
         {
+            rows.AddRange(MatchingBindings(definition)
+                .Select(index => new SettingRow(definition, SettingRowKind.Binding, index)));
+
             return;
         }
 
