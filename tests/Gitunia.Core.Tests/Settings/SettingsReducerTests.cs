@@ -237,8 +237,7 @@ public class SettingsReducerTests
     {
         var state = Open("{ \"scanRoots\": [\"/srv/git\", \"/srv/other\"] }").Reveal(
             Definition(SettingsRegistry.ScanRootsId),
-            SettingRowKind.Item,
-            0);
+            SettingRowKind.Item);
 
         var typing = Reduce(state, SettingsCommandKind.Activate).State;
         Assert.Equal("/srv/git", typing.Input?.Text);
@@ -277,7 +276,7 @@ public class SettingsReducerTests
     public void GivenTheOnlyFolder_WhenRemovingIt_ThenTheListBecomesEmptyAndNoItemIsSelected()
     {
         var state = Open("{ \"scanRoots\": [\"/a\"] }")
-            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
+            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item);
         var asked = Reduce(state, SettingsCommandKind.Remove).State;
 
         var outcome = Reduce(asked, SettingsCommandKind.ConfirmYes);
@@ -293,9 +292,9 @@ public class SettingsReducerTests
         var state = Open("{ \"scanRoots\": [\"/a\", \"/b\", \"/c\"] }");
         var definition = Definition(SettingsRegistry.ScanRootsId);
 
-        var down = Reduce(state.Reveal(definition, SettingRowKind.Item, 0), SettingsCommandKind.ItemDown);
+        var down = Reduce(state.Reveal(definition, SettingRowKind.Item), SettingsCommandKind.ItemDown);
         var up = Reduce(state.Reveal(definition, SettingRowKind.Item, 2), SettingsCommandKind.ItemUp);
-        var topUp = Reduce(state.Reveal(definition, SettingRowKind.Item, 0), SettingsCommandKind.ItemUp);
+        var topUp = Reduce(state.Reveal(definition, SettingRowKind.Item), SettingsCommandKind.ItemUp);
         var bottomDown = Reduce(state.Reveal(definition, SettingRowKind.Item, 2), SettingsCommandKind.ItemDown);
 
         Assert.Equal(["/b", "/a", "/c"], down.Commit?.Value.Paths);

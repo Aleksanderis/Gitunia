@@ -138,7 +138,7 @@ public static class SettingsReducer
                 return Commit(state, definition, SettingValue.OfFlag(!value.Flag));
             case SettingControl.Choice:
                 var original = Math.Max(0, IndexOfChoice(definition, value.Choice));
-                var editing = state with { Choice = new ChoiceEdit(definition.Id, original) };
+                var editing = state with { Choice = new ChoiceEdit(definition.Id) };
 
                 return new SettingsOutcome(editing.Reveal(definition, SettingRowKind.Option, original));
             case SettingControl.Number:

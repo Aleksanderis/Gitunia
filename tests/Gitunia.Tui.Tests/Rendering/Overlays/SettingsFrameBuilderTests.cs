@@ -165,8 +165,7 @@ public class SettingsFrameBuilderTests
     {
         var state = Open("{ \"scanRoots\": [\"/srv/git\"] }").Reveal(
             Definition(SettingsRegistry.ScanRootsId),
-            SettingRowKind.Item,
-            0);
+            SettingRowKind.Item);
         var asked = Reduce(state, SettingsCommandKind.Remove);
 
         var frame = SettingsFrameBuilder.Build(asked, 100, 30, GraphGlyphSet.Unicode)!;
@@ -279,7 +278,7 @@ public class SettingsFrameBuilderTests
     public void GivenTheRemovalQuestion_WhenHittingItsAnswerLine_ThenTheLeftHalfIsYesAndTheRightHalfIsNo()
     {
         var state = Open("{ \"scanRoots\": [\"/a\"] }")
-            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
+            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item);
         var asked = Reduce(state, SettingsCommandKind.Remove);
         var layout = SettingsLayout.For(100, 30)!;
 
@@ -300,7 +299,7 @@ public class SettingsFrameBuilderTests
         var row = SettingsFrameBuilder.HitAt(state, 5, 3, 60, 24, GraphGlyphSet.Unicode);
 
         Assert.Equal(SettingsHit.None, heading);
-        Assert.Equal(new SettingsHit(SettingsHitKind.Row, 0), row);
+        Assert.Equal(new SettingsHit(SettingsHitKind.Row), row);
     }
 
     [Fact]
