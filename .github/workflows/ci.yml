@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+# Release packaging (#48): on a v* tag the AOT binaries of both legs are archived by scripts/package.sh and attached to
+# a draft GitHub release by the `release` job. macOS and linux-arm64 binaries follow with their CI legs (#455).
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -64,6 +67,15 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
+      - name: Package (release tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: scripts/package.sh linux-x64 out "${GITHUB_REF_NAME#v}" dist
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dist-linux-x64
+          path: dist/*
+          if-no-files-found: error
 
   windows-x64:
     runs-on: windows-latest
@@ -102,3 +114,31 @@ jobs:
           echo "$frame" | grep -q "NORMAL"
       - name: Note that Windows tests are disabled
         run: echo "::warning::Windows test step is temporarily disabled until #494 is fixed"
+      - name: Package (release tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: scripts/package.sh win-x64 out "${GITHUB_REF_NAME#v}" dist
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: dist-win-x64
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    # Draft release so the owner reads the notes and publishes it; never runs for dispatch or branches.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux-x64, windows-x64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft --generate-notes --title "$GITHUB_REF_NAME"

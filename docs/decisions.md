@@ -356,3 +356,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
+
+**Process:** Release packaging (#48) lives in `ci.yml`, tag runs only: each leg archives its AOT binary with `scripts/package.sh` (tar.gz, zip on Windows, plus SHA-256) and a `release` job attaches them to a draft release. Linux x64 and Windows x64 only; macOS and linux-arm64 follow with #455. Why: no extra workflow or build, so no extra minutes; draft so the owner publishes.
