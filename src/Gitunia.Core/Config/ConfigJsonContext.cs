@@ -4,7 +4,10 @@ using Gitunia.Core.Config.Models;
 
 namespace Gitunia.Core.Config;
 
-/// <summary>Source-generated JSON metadata for the config file (Native AOT: no reflection). Comments and trailing commas are allowed.</summary>
+/// <summary>
+/// Source-generated JSON metadata for the config file (Native AOT: no reflection). Comments and
+/// trailing commas are allowed.
+/// </summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = true,

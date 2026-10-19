@@ -16,7 +16,10 @@ public static class ConfigKeyLocator
         AllowTrailingCommas = true,
     };
 
-    /// <summary>The span of the value at <paramref name="path"/> (a string value includes its quotes), or null when absent or the text is invalid.</summary>
+    /// <summary>
+    /// The span of the value at <paramref name="path"/> (a string value includes its quotes), or null when
+    /// absent or the text is invalid.
+    /// </summary>
     /// <param name="text">The config text.</param>
     /// <param name="path">Property names and array indexes from the root.</param>
     public static TextSpan? Find(string text, IReadOnlyList<string> path)

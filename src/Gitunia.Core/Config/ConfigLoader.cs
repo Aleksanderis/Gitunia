@@ -15,7 +15,10 @@ public sealed class ConfigLoader
 
     private const long MaximumFileBytes = 1024 * 1024;
 
-    /// <summary>Creates a loader for a config directory (from <c>IPlatform.ConfigDirectory</c>; tests pass a temp directory).</summary>
+    /// <summary>
+    /// Creates a loader for a config directory (from <c>IPlatform.ConfigDirectory</c>; tests pass a temp
+    /// directory).
+    /// </summary>
     /// <param name="configDirectory">The directory holding the config file.</param>
     public ConfigLoader(string configDirectory)
     {
@@ -60,7 +63,10 @@ public sealed class ConfigLoader
         return new ConfigLoadResult(document, problems);
     }
 
-    /// <summary>Reads the file text; null when there is no file or it cannot be used (then a problem is added when it exists).</summary>
+    /// <summary>
+    /// Reads the file text; null when there is no file or it cannot be used (then a problem is added when
+    /// it exists).
+    /// </summary>
     /// <param name="problems">Receives the problem when the file exists but cannot be used.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     public async Task<string?> ReadTextAsync(ICollection<ConfigProblem> problems, CancellationToken cancellationToken)
