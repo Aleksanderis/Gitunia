@@ -9,13 +9,13 @@ namespace Gitunia.Tui.Tests.App.Startup;
 
 /// <summary>
 /// Builds the whole shell the way <c>Program.Main</c> does (every controller, presenter and event wire-up in
-/// <see cref="TuiApplication.Run"/>) on a headless driver and draws once. Constructor-order crashes (a null field used
-/// by a callback, a key controller used before it exists) throw here instead of on the user's first start.
+/// <see cref="TuiApplication.Run"/>) on a headless driver and starts its main loop once. Constructor-order crashes
+/// (a null field used by a callback, a key controller used before it exists) throw here instead of on the first start.
 /// </summary>
 public class StartupSmokeTests
 {
     [Fact]
-    public async Task GivenARepository_WhenStartingTheShell_ThenItBuildsAndRendersAFrameWithoutThrowing()
+    public async Task GivenARepository_WhenStartingTheShell_ThenItBuildsAndStartsWithoutThrowing()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "one\n"));
@@ -41,10 +41,11 @@ public class StartupSmokeTests
 
     private static int Start(TempDirectories directories, RepositoryLocation? location)
     {
-        var capabilities = new ConsoleCapabilities(true, ColorDepth.TrueColor, true);
+        var capabilities = new ConsoleCapabilities(IsInteractive: true, Color: ColorDepth.TrueColor, Unicode: true);
         var platform = new TestPlatform(directories, capabilities);
         using var application = new TuiApplication(TestGit.Services, capabilities, platform)
         {
+            HomeDirectory = directories.Root,
             DriverName = DriverRegistry.Names.ANSI,
             ExitAfterFirstIteration = true,
         };

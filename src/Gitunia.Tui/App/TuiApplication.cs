@@ -122,14 +122,17 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
     public string? DriverName { get; init; }
 
-    /// <summary>Stop the main loop right after it starts, so a smoke test builds and draws the shell.</summary>
+    /// <summary>Home directory for config paths and picker scans (smoke tests); null uses the user profile.</summary>
+    public string? HomeDirectory { get; init; }
+
+    /// <summary>Stop the main loop right after it starts, so a smoke test builds the shell and returns.</summary>
     public bool ExitAfterFirstIteration { get; init; }
 
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
-        _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
         var glyphs = GraphGlyphSet.For(capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
         _glyphs = glyphs;
