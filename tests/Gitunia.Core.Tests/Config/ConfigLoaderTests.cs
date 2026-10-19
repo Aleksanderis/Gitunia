@@ -45,7 +45,8 @@ public sealed class ConfigLoaderTests : IDisposable
     public void GivenAThemeOfTheWrongType_WhenParsing_ThenTheKeysSurviveAndOnlyTheThemeIsAProblem()
     {
         var problems = new List<ConfigProblem>();
-        var document = ConfigLoader.Parse("""{ "theme": { "accent": "blue" }, "keys": [ { "key": "J", "action": "list.down" } ] }""", problems);
+        var text = """{ "theme": { "accent": "blue" }, "keys": [ { "key": "J", "action": "list.down" } ] }""";
+        var document = ConfigLoader.Parse(text, problems);
 
         var choice = ThemeConfigurator.Parse(document.Theme, problems);
 

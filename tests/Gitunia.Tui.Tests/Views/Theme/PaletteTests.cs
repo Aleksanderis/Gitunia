@@ -439,7 +439,10 @@ public class PaletteTests
     [InlineData(ThemeChoice.Auto, false, false)]
     [InlineData(ThemeChoice.Dark, true, false)]
     [InlineData(ThemeChoice.Light, false, true)]
-    public void GivenATheme_WhenApplyingItToTheDetectedScheme_ThenOnlyAutoKeepsTheDetectedSide(ThemeChoice theme, bool detectedLight, bool expectedLight)
+    public void GivenATheme_WhenApplyingItToTheDetectedScheme_ThenOnlyAutoKeepsTheDetectedSide(
+        ThemeChoice theme,
+        bool detectedLight,
+        bool expectedLight)
     {
         var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(theme);
 

@@ -361,4 +361,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Performance:** Cold-tab eviction (#199): only the 5 most recently used tabs keep their graph; older idle tabs reload on activation (view state stays in the workspace, search and diff position do not); a tab with a running operation is never evicted. Why 5: recent tabs stay instant, RSS stays bounded. Soft row limit deferred to #515 with numbers.
 
-**UI:** Theme setting (#47): `theme` in `config.json` is `auto` (default, follows the detected terminal background), `dark` or `light`; it only forces which side of the existing Catppuccin Mocha/Latte and 16-colour tables is used. Unknown values warn and mean `auto`. Named themes stay in #61.
+**UI:** Theme setting (#47): `theme` in `config.json` is `auto` (default, follows the detected terminal background), `dark` or `light`; it only forces which side of the existing Catppuccin Mocha/Latte and 16-colour tables is used. Unknown values warn and mean `auto`. `auto` still uses `COLORFGBG` only; the OSC 11 query is #527. Named themes stay in #61.

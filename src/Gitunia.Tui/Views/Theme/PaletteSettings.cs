@@ -14,7 +14,10 @@ public sealed record PaletteSettings(ColorDepth Depth, bool IsLightBackground)
     /// <summary>The scheme used before the terminal is known: 24-bit colours for a dark background.</summary>
     public static PaletteSettings Default { get; } = new(ColorDepth.TrueColor, false);
 
-    /// <summary>The same scheme with the light or dark side forced by the <c>theme</c> setting; <see cref="ThemeChoice.Auto"/> keeps the detected one.</summary>
+    /// <summary>
+    /// The same scheme with the light or dark side forced by the <c>theme</c> setting;
+    /// <see cref="ThemeChoice.Auto"/> keeps the detected one.
+    /// </summary>
     /// <param name="theme">The configured choice.</param>
     public PaletteSettings WithTheme(ThemeChoice theme) => theme switch
     {
