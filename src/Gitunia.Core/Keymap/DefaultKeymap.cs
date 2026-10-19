@@ -181,7 +181,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DetailView, "<space>r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "<space>j", ActionIds.QuickJump);
-        Add(bindings, NormalOnly, DetailView, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, DetailView, "h", ActionIds.DetailCollapse);
+        Add(bindings, NormalOnly, DetailView, "/", ActionIds.DetailFilter);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
         AddBottomTabKeys(bindings, DetailView);
 
