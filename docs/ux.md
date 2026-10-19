@@ -5,7 +5,7 @@ Spec for workflows and keys. Keyboard and mouse are both fully supported: every 
 ## Principles
 
 - **Modal and discoverable.** Normal mode navigates, actions are short mnemonic chords, `?` shows the keys of the current view, `:` or `Ctrl-p` opens a command palette that lists every action with its binding.
-- **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping in the config file is planned for M4.
+- **Vim-like motions everywhere:** `h j k l`, `gg`/`G`, `Ctrl-d`/`Ctrl-u`, `/` search, `n`/`N`, counts (`5j`). Arrow keys and PageUp/Down also work. Bindings are data (mode, view, key sequence, action id); remapping is done in the config file (see "Config file" below).
 - **Layout.** History view: left sidebar (branches, remotes, tags, stashes, worktrees), centre commit graph, bottom detail pane (commit info, files, diff). The working tree is a separate view of the tab (workflow 2), not a graph row.
 - **Branches and worktrees are first-class:** always visible in the sidebar, and every branch shows which worktree holds it.
 - **Destructive actions confirm,** say what they will do and how to undo it.
@@ -275,7 +275,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme later swaps the table and nothing else. There is no config file yet.
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme later swaps the table and nothing else. The config file does not set colours yet (#47).
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
@@ -316,6 +316,30 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 **Looking at it without the UI.** `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
 
+## Config file
+
+`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (theme #47, options #453) fit beside `keys`. The file is read once at startup and never modified by the loader.
+
+```jsonc
+{
+  "keys": [
+    // Bind a free key (mode defaults to Normal, view to Global).
+    { "view": "Graph", "key": "J", "action": "list.down" },
+    // Replace what a key does.
+    { "key": "q", "action": "palette.open" },
+    // Unbind: the action "none".
+    { "view": "Lists", "key": "gg", "action": "none" }
+  ]
+}
+```
+
+- Entry fields: `mode` (`Normal`, `Visual`, `Insert`, `Command`, `Confirm`), `view` (`Global`, `Lists`, `Graph`, ... as in the keymap table; a view's keys also apply to the views that inherit from it), `key` (notation of the keymap table), `action` (id from the palette/help, or `none`). One entry binds one mode and view; bind a key in Normal and Visual with two entries.
+- An entry on a key that already has a binding in that mode and view replaces it; `none` removes it (and uncovers a binding of the parent view, if any). Two entries for the same mode, view and key: the first applies, the second is reported.
+- Each entry is checked alone. A bad one (unknown mode, view or action, key that does not parse, nothing to unbind) is skipped and reported; the others apply. A file that is not valid JSON, has a field of the wrong type (`"key": 5`), is unreadable or is over 1 MB is ignored as a whole. The app always starts: the defaults fill in whatever could not be used.
+- Conflicts: the engine always waits for a longer chord (no timeout), so a key cannot be both complete and the start of a longer chord (`g` next to `gg`, `gt`). An entry that would create that, in its view or any view that inherits from it, is refused with a message naming both keys. Unbind the other key first (earlier entry) if you want the shorter one.
+- Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
+- Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
+
 ## Keymap
 
 The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<lt>` a literal `<`, `:name` is an ex command and not a key. Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mode only); Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
@@ -329,13 +353,13 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Lists | `j` `k` / `gg` `G` | Move / top / bottom |
 | Lists | `/` `n` `N` | Search, next, previous (graph search prefixes: `author:`, `hash:`, `body:`) |
 | Global | `gt` / `gT` | Next / previous tab (counts: `3gt` goes to tab 3) |
-| Global | `Alt-1`..`Alt-9` | Jump to tab N (terminal multiplexers may take `Alt-N` for themselves; `3gt`, typing the number and then `gt`, does the same and never conflicts; configurable keys arrive with) |
+| Global | `Alt-1`..`Alt-9` | Jump to tab N (terminal multiplexers may take `Alt-N` for themselves; `3gt`, typing the number and then `gt`, does the same and never conflicts; remap in the config file) |
 | Global | `Ctrl-t` / `<space>o` | Open repository picker in a new tab |
 | Global | `Ctrl-w c` / `:tabclose` | Close tab |
 | Global | `<space>p` | Pin the repository to the top of the picker / unpin it |
 | Global | `Ctrl-w r` | Rename the tab (prompt popup, `Enter` saves, an empty name restores the repository name) |
 | Global | `Ctrl-w h` `Ctrl-w j` `Ctrl-w k` `Ctrl-w l` | Focus pane left / down / up / right |
-| Global | `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` `Ctrl-Backspace` | Same as `Ctrl-w h/j/k/l` without the prefix, Normal mode only (Insert and Command keep Backspace/Enter; picker and palette keep their own `Ctrl-j/k/l`). `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; configurable keys arrive with the config file (#46) |
+| Global | `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` `Ctrl-Backspace` | Same as `Ctrl-w h/j/k/l` without the prefix, Normal mode only (Insert and Command keep Backspace/Enter; picker and palette keep their own `Ctrl-j/k/l`). `Ctrl-j` arrives as `Ctrl+Enter`, distinct from `Enter`; `Ctrl-h` is `Backspace` (0x08) in many terminals, so `Ctrl-Backspace` (focus left) is bound too and plain `Backspace` stays unbound in Normal mode. Where a terminal or multiplexer swallows them, `Tab` and `Ctrl-w h/j/k/l` still work; remap in the config file |
 | Global | `Ctrl-w w` | Next pane |
 | Global | `Ctrl-^` / `<space><Tab>` | Previously active tab (second binding for terminals that drop `Ctrl-^`) |
 | Global | `<space>z` | Zoom focused pane |

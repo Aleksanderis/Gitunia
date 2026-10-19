@@ -28,6 +28,7 @@ using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
@@ -211,6 +212,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
         _router.Branches = _branches;
         _router.Tags = _tags;
+        // The remote actions come first: remote management reads their running state through a method group.
         _remote = CreateRemote(operationGate);
         _effects.IsTabBusy = tabId => operationGate.IsBusy(tabId) || _remote.IsRunning(tabId);
         _router.Remote = _remote;
@@ -257,7 +259,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _binder.Switched += OnTabSwitched;
         _binder.GraphChanged += OnGraphChanged;
 
-        var engine = new KeymapEngine(DefaultKeymap.Create());
+        var configured = new ConfigStartup(platform.ConfigDirectory).LoadKeymap();
+        var engine = new KeymapEngine(configured.Table);
         _keys = new KeyController(engine, RouteAction);
         _fileTree = new FileTreeController(
             _host,
@@ -350,6 +353,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         {
             _statuses.Warning(restoreNotice);
         }
+
+        ConfigStartup.Report(configured.Problems, _statuses);
 
         _host.Restore(restored.Update);
         _commits.Restore(restored.Drafts);

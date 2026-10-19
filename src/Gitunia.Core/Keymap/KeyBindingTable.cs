@@ -23,7 +23,16 @@ public sealed class KeyBindingTable
 
     public IReadOnlyList<KeyBinding> Bindings { get; }
 
-    /// <summary>Every view name that appears in a binding or as a parent link, including <see cref="GlobalView"/>.</summary>
+    /// <summary>
+    /// A table with the same view hierarchy and other bindings (the effective-bindings cache is not
+    /// shared).
+    /// </summary>
+    /// <param name="bindings">The bindings of the new table.</param>
+    public KeyBindingTable WithBindings(IEnumerable<KeyBinding> bindings) => new(bindings, _viewParents);
+
+    /// <summary>
+    /// Every view name that appears in a binding or as a parent link, including <see cref="GlobalView"/>.
+    /// </summary>
     public IReadOnlyCollection<string> Views
     {
         get
@@ -36,7 +45,9 @@ public sealed class KeyBindingTable
         }
     }
 
-    /// <summary>The view followed by its ancestors, most specific first, always ending in <see cref="GlobalView"/>.</summary>
+    /// <summary>
+    /// The view followed by its ancestors, most specific first, always ending in <see cref="GlobalView"/>.
+    /// </summary>
     public IReadOnlyList<string> ViewChain(string view)
     {
         var chain = new List<string>();
@@ -51,13 +62,18 @@ public sealed class KeyBindingTable
         return chain;
     }
 
-    /// <summary>The bindings active in a mode and view after inheritance and shadowing, most specific view first.</summary>
+    /// <summary>
+    /// The bindings active in a mode and view after inheritance and shadowing, most specific view first.
+    /// </summary>
     public IReadOnlyList<KeyBinding> EffectiveBindings(KeyMode mode, string view)
     {
         return _effectiveCache.GetOrAdd(new EffectiveBindingsKey(mode, view), key => ComputeEffective(key.Mode, key.View));
     }
 
-    /// <summary>Finds duplicate bindings and prefixes that would hide a longer chord. An empty list means the table is consistent.</summary>
+    /// <summary>
+    /// Finds duplicate bindings and prefixes that would hide a longer chord. An empty list means the table
+    /// is consistent.
+    /// </summary>
     public IReadOnlyList<BindingConflict> FindConflicts()
     {
         var conflicts = new List<BindingConflict>();
