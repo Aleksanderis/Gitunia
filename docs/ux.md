@@ -199,7 +199,7 @@ The working tree is a separate view of the tab, not a graph pane or pseudo-row. 
 9. **Failure.** A failing hook (non-zero exit), a prompt, or a signing program that needs a passphrase fails the commit, keeps the draft and the staged state, and shows git's and the hooks' output (stderr, then stdout such as `nothing to commit`) in a scrollable overlay (title `Commit failed`, `Esc` closes it; the status bar carries the first line). Under the output a hint says that no keyboard input reaches git and its hooks (stdin is closed) and that `<space>te` runs `git commit` in the real terminal where it can prompt. Files a hook rewrites show as new unstaged changes after the refresh. A commit that fails on a tab that is not active leaves the status bar notice and keeps its output; the overlay opens once that tab is shown.
 
 **Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...). A Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key) or a `Ctrl-`/`Alt-` combination. Check this before adding a binding.
-- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
+- **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` (external tools); `<space>,` (settings, planned #523); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
 - **`Alt-`:** `Alt-p` and `Alt-d` are Picker-only, `Alt-1`..`Alt-9` jump tabs, `Alt-s` `Alt-n` `Alt-a` act only in the working-tree view.
 - **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (back/quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
 
@@ -318,7 +318,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 ## Config file
 
-`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (theme #47, options #453) fit beside `keys`. The file is read once at startup and never modified by the loader.
+`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (theme #47, options #453) fit beside `keys`. The file is read once at startup and never modified by the loader; the settings screen (below) is the only writer.
 
 ```jsonc
 {
@@ -342,9 +342,11 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 ## Settings screen (design, #465; not implemented)
 
+Implemented by #522 (config writer), #523 (screen), #524 (theme), #525 (key reference).
+
 One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
 
-**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (palette only) opens it with the cursor on Appearance, Theme. Mouse: a `Settings` entry in the `Commands` menu.
+**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (palette only) opens it with the cursor on Appearance, Theme. Mouse: the `settings.open` entry of the command palette, reached by the ` : commands ` button.
 
 ```
 ╭─ Settings ──────────────────────────────────────────────────────╮
@@ -352,9 +354,9 @@ One screen for every option of the config file, and the only UI for them (the th
 │ ▌Appearance  │ Theme                         ● Catppuccin Mocha  │
 │  Keys        │   ○ Catppuccin Latte                              │
 │  Repositories│   ○ auto (follows the terminal)                   │
-│  Git         │ Frame style                         [rounded ▾]   │
+│              │ Frame style                         [rounded ▾]   │
 │  Tabs        │ Show branch in tab name                  [x]      │
-│              ├───────────────────────────────────────────────────│
+│              ├───────────────────────────────────────────────────┤
 │              │ Theme: the colours of the interface. Written to   │
 │              │ config.json as "theme". Default: auto.            │
 ├──────────────┴───────────────────────────────────────────────────┤
@@ -362,7 +364,7 @@ One screen for every option of the config file, and the only UI for them (the th
 ╰──────────────────────────────────────────────────────────────────╯
 ```
 
-**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings. The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
+**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs; a category with no setting yet is hidden, Git has none today), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings; under 40x12 the overlay shows a "terminal too small" line and no layout (Esc still closes it). The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
 
 | Category | Setting | Control | Config key | From |
 |---|---|---|---|---|
@@ -376,7 +378,7 @@ New options of later issues add a row here in the same change; a number control 
 
 **Focus and keys.** Two columns, `h`/`l` move between them (`l` or `Enter` on a category enters it, `h` or `Esc` in the settings column goes back, `Esc` in the categories closes). `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u` move in the focused column. `/` filters settings across all categories by name and help text (Insert mode, input focused; `Esc` clears; matches show their category and `Enter` jumps to the setting). Per control:
 
-- Toggle: `Enter` or `<space>` flips it and saves at once.
+- Toggle: `Enter` or `x` flips it and saves at once (a bare `<space>` stays the leader prefix).
 - Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme the cursor move previews it live (the whole UI is repainted with that theme behind the overlay); `Esc` restores the previous theme.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
 - Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (Confirm naming the path; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
@@ -389,10 +391,10 @@ Keys are Normal-mode view keys of the `Settings` view, added to the keymap table
 **Persistence.**
 
 - A change is written when it is committed (toggle flip, `Enter` on a choice, number, path edit), never on each cursor move; the theme preview is not written until `Enter`. The write is applied to the running app at once, no restart.
-- The write is a minimal text edit: `ConfigKeyLocator` finds the span of the value of the key; only that span is replaced, so comments, order, indentation and trailing commas stay byte-for-byte. The file is written to a temporary file in the same directory and renamed over `config.json` (keeping its permissions), so a crash never leaves half a file.
-- A key the file lacks is inserted as a new member at the end of the top-level object, one line, indented like the other members, with a comma added after the previous last member unless it already has one. An empty file or `{}` gets the object filled in. A nested key (`tabs.showBranch`) is inserted into its parent object, which is created the same way if missing.
+- The write is a minimal text edit: `ConfigKeyLocator` (extended by #522 to return the last match and a result that tells found, absent, invalid file with line, parent not an object, and shadowed duplicate apart) finds the span of the value of the key; only that span is replaced, so comments, order, indentation and trailing commas stay byte-for-byte. The file is written to a temporary file in the same directory and renamed over `config.json` (keeping its permissions), so a crash never leaves half a file. A symlinked `config.json` is resolved and the temporary file is written next to its target (the link stays). The file's BOM, line ending and indent are reused for inserted text. Rename-over uses `File.Move(overwrite)` on Windows and `rename` elsewhere; permissions are copied where the OS has them, best effort. The window between the stale check and the rename is accepted.
+- A key the file lacks is inserted as a new member at the end of the top-level object, one line, indented like the other members, with a comma added after the previous last member unless it already has one. An empty file or `{}` gets the object filled in. A nested key (`tabs.showBranch`) is inserted into its parent object, which is created the same way if missing; a parent that exists but is not an object (`"tabs": 5`, `null`) is refused with a message, never replaced.
 - A file that does not parse (or is over 1 MB, or is not an object) is never written. The screen opens read-only with a banner naming the problem and its line, and edits are refused with the same message. A missing file is created (with the config directory) on the first change, containing only that key.
-- Unknown keys are kept untouched and not shown. Duplicate keys (the same member twice in one object): the screen edits the last one, which is the one the reader honours, and warns once that the first is shadowed; it does not delete either.
+- Unknown keys are kept untouched and not shown. Duplicate keys (the same member twice in one object): the screen edits the last one, which is the one the reader honours (the locator returns it), and warns once that the first is shadowed; it does not delete either.
 - A value in the file that is invalid (wrong type, out of range) shows the setting with its default and a warning marker with the reason; changing it writes a valid value over the bad one.
 - The file changed on disk since it was read (compared by content hash just before the write): the screen re-reads it, shows the new values, and asks to repeat the edit; nothing is overwritten blindly. Editing the file by hand while the screen is open is therefore safe; the app does not watch the file otherwise.
 - Settings that hold a value the file cannot (read-only key reference) are not editable and show no control.
