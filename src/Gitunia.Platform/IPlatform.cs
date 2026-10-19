@@ -29,4 +29,12 @@ public interface IPlatform
     string StateDirectory { get; }
 
     ConsoleCapabilities DetectConsole();
+
+    /// <summary>
+    /// Asks the terminal whether its background is light (OSC 11, short timeout), writing to the terminal and reading its answer.
+    /// Null when unknown (not interactive, an unsupported OS or terminal, no answer): callers keep
+    /// <see cref="ConsoleCapabilities.IsLightBackground"/>. Call before the UI takes over the input.
+    /// </summary>
+    /// <param name="capabilities">What <see cref="DetectConsole"/> found.</param>
+    bool? QueryLightBackground(ConsoleCapabilities capabilities);
 }

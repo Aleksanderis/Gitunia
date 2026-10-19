@@ -372,3 +372,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Clone and init (#401) live in the picker (`Alt-c`, `Alt-i`, mouse buttons) and open the result in a new tab; a cancelled or failed clone removes what it made. Credential prompts stay with #45. Details: `ux.md`, `git-layer.md`.
 
 **Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".
+
+**UI:** Theme auto asks the terminal for its background with OSC 11 before the UI starts (#527), 50 ms timeout, falling back to `COLORFGBG`, then dark; skipped when not interactive and on Windows (unsupported there). Why: most terminals do not set `COLORFGBG`. Supersedes the COLORFGBG-only detection of #47.

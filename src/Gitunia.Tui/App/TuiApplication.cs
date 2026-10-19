@@ -1,4 +1,5 @@
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -64,7 +65,7 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitServices services, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable, ITerminalSuspender
+public sealed class TuiApplication(GitServices services, ConsoleCapabilities detectedCapabilities, IPlatform platform) : IDisposable, ITerminalSuspender
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
@@ -100,6 +101,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
     private StartupConfig _startupConfig = null!;
+    private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
@@ -125,7 +127,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     {
         _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
-        var glyphs = GraphGlyphSet.For(capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
+        if (_startupConfig.Theme == ThemeChoice.Auto && platform.QueryLightBackground(_capabilities) is { } queriedLight)
+        {
+            _capabilities = _capabilities with { IsLightBackground = queriedLight };
+        }
+
+        var glyphs = GraphGlyphSet.For(_capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
         _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -1170,7 +1177,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     {
         var driver = _application.Driver;
         var palette = PaletteSettings
-            .Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
+            .Choose(_capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
             .WithTheme(_startupConfig.Theme);
         if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
         {
@@ -1182,7 +1189,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private ClipboardCopier CreateClipboard()
     {
-        var clipboardWriter = capabilities.IsInteractive
+        var clipboardWriter = _capabilities.IsInteractive
             ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable))
             : null;
 

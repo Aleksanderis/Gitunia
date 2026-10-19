@@ -57,3 +57,7 @@ Native AOT linux-x64 binary (9.9 MB plus the 564 KB native library), 100k-commit
 - Known limit: at 80x24 the newest row is cut inside the harness marker, so pass `--marker "Commit #97500"` there (`resize_ms=nan` at that size is the marker, not a redraw failure).
 
 How these were measured, harness faults, noisy-machine comparisons and the RSS re-check: `docs/history/performance.md`.
+
+## Startup: terminal background query (OSC 11, #527)
+
+With `theme = auto` startup writes one OSC 11 query and reads the answer (Native AOT linux-x64, pty harness that answers like a terminal, 120x40, single runs). A terminal that answers adds a few ms (first frame ~25 ms in the harness with an answering terminal); a terminal that stays silent adds the 50 ms timeout (~75 ms to the first frame), still inside the 100 ms budget. Skipped for `theme` light or dark, no tty, `NO_COLOR`, Windows and `TERM` dumb or linux.
