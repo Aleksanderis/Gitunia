@@ -49,6 +49,24 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         return await runner.RunAsync(location.CommandPath, arguments, options, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Runs git outside any repository (clone). The ssh policy reads <c>core.sshCommand</c> from the global
+    /// configuration only; paths in <paramref name="arguments"/> must be absolute.
+    /// </summary>
+    public async Task<GitResult> RunGlobalAsync(
+        IReadOnlyList<string> arguments,
+        IProgress<RemoteProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var environment = await BuildEnvironmentAsync(null, cancellationToken).ConfigureAwait(false);
+        var options = new GitRunOptions(
+            Timeout: IdleTimeout,
+            Environment: environment,
+            OnStandardErrorLine: line => Report(progress, line));
+        return await runner.RunGlobalAsync(arguments, options, cancellationToken).ConfigureAwait(false);
+    }
+
     private static void Report(IProgress<RemoteProgress>? progress, string line)
     {
         if (progress is not null && RemoteProgressParser.Parse(line) is { } parsed)
@@ -58,7 +76,7 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
     }
 
     private async Task<IReadOnlyDictionary<string, string?>?> BuildEnvironmentAsync(
-        RepositoryLocation location,
+        RepositoryLocation? location,
         CancellationToken cancellationToken)
     {
         var sshCommand = environmentLookup(SshCommandVariable);
@@ -68,13 +86,18 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         // Git's order is the variable, then core.sshCommand, then GIT_SSH.
         if (string.IsNullOrWhiteSpace(sshCommand))
         {
-            var result = await runner
-                .RunAsync(
-                    location.CommandPath,
-                    [Config, GetOption, SshCommandKey],
-                    GitRunOptions.ReadOnlyRunAllowingNoMatch,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            var arguments = new[] { Config, GetOption, SshCommandKey };
+            var result = location is null
+                ? await runner
+                    .RunGlobalAsync(arguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
+                    .ConfigureAwait(false)
+                : await runner
+                    .RunAsync(
+                        location.CommandPath,
+                        arguments,
+                        GitRunOptions.ReadOnlyRunAllowingNoMatch,
+                        cancellationToken)
+                    .ConfigureAwait(false);
             configured = result.StandardOutputText.Trim();
         }
 

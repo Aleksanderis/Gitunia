@@ -35,9 +35,11 @@ public static class PickerComposer
             .Build());
         if (height > 1)
         {
-            lines.Add(new LineBuilder(width, glyphs.Ellipsis)
+            var headerButtons = picker.LocatingTabId is null ? PickerHeaderButtons.Layout(width) : [];
+            var hint = new LineBuilder(headerButtons.Count > 0 ? headerButtons[0].Start - 1 : width, glyphs.Ellipsis)
                 .Append(" type to filter, or a path starting with / ~/ ./ ../ (Tab accepts)", SegmentRole.Faint)
-                .Build());
+                .Build();
+            lines.Add(WithButtons(hint, headerButtons));
         }
 
         var hasMessage = picker.Message.Length > 0;

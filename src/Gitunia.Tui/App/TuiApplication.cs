@@ -29,6 +29,7 @@ using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Config;
+using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
@@ -94,6 +95,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private WorkingDiffController _workingDiff = null!;
     private QuickJumpController _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
+    private RepositoryCreationActions _creation = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
@@ -290,11 +292,22 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _statuses);
         _overlays.Changed += RefreshOverlay;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
+        _creation = new RepositoryCreationActions(
+            services.Creator,
+            _picker,
+            _statuses,
+            InvokeOnUi,
+            _keys.SetMode,
+            _view.RefreshChrome,
+            _homeDirectory,
+            DefaultCloneParent);
+        _router.Creation = _creation;
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
         _prompts =
         [
+            _creation,
             _diffPane,
             _workingDiff,
             _quickJump,
@@ -422,6 +435,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     public void Dispose()
     {
+        _creation.CancelAndWait();
         _whichKeyTimer.Dispose();
         _statusPoller?.Dispose();
         _effects.Dispose();
@@ -435,7 +449,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return;
         }
 
-        if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
+        if (!_overlays.Handle(action, count)
+            && !_creation.TryExecute(action, count)
+            && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
         }
@@ -996,9 +1012,20 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
 
     private string RemoteProgressNow() =>
-        _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty;
+        FirstNotEmpty(
+            _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty,
+            _creation.ProgressLine());
 
-    private bool RemoteIsBusy() => _host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId);
+    private bool RemoteIsBusy() =>
+        _creation.IsCloning || (_host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId));
+
+    // The folder a clone goes into when the picker holds no path: the first scan root that exists, else home.
+    private string DefaultCloneParent()
+    {
+        var roots = _startupConfig.Options.ScanRoots
+            ?? RepositoryScanner.DefaultRoots(_homeDirectory, Directory.Exists);
+        return roots.FirstOrDefault(Directory.Exists) ?? _homeDirectory;
+    }
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 

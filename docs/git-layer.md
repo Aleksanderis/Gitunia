@@ -31,6 +31,12 @@ Contract between `Gitunia.Git` and everything above it: the rules every caller a
 - **No prompts.** stdin is closed and `GIT_TERMINAL_PROMPT=0`, but ssh asks on the controlling terminal. `SshCommandPolicy` sets `GIT_SSH_COMMAND` to the effective command (`GIT_SSH_COMMAND`, else `core.sshCommand`, else a `GIT_SSH` program (left alone), else `ssh`) plus `-o BatchMode=yes`, only when that command is plain `ssh`; a `GIT_SSH` program or another client (plink) is left alone. A call that needs a passphrase fails with git's message; #45 offers the real terminal.
 - Status bar: `RemoteProgressText.Format` (Core) renders the single progress line (`Fetching: Receiving objects 45%`); the keys, chips and `Esc` cancel are #456, which also wires `GitServices.Remote` to it.
 
+### Clone and init (`IRepositoryCreator`, `RepositoryCreator`; #401)
+
+- Neither needs an open repository, so they run outside any `-C`: `RemoteRunner.RunGlobalAsync` (the same idle timeout, progress parsing and `SshCommandPolicy`, with `core.sshCommand` read from the global config) for `git clone --progress -- <source> <absolute target>` and `GitRunner.RunGlobalAsync` for `git init -- <absolute directory>`. All paths are absolute; `CloneSource.Resolve` (pure) makes a typed local path absolute against an explicit base directory and `~`, and leaves URLs (`scheme://`, scp-like `host:path`) alone, so the process working directory never matters.
+- The target must be missing or an empty directory (`CloneTargetException` otherwise, before git runs). A failed or cancelled clone leaves nothing behind: killing git cannot run its own cleanup, so the creator removes the topmost directory it created (the target and the parents git makes), or empties a target that already existed empty. Init keeps the files of a non-empty directory and returns a folder that already is a repository root as it is (`InitResult.WasRepository`).
+- No prompts: stdin is closed, `GIT_TERMINAL_PROMPT=0` and ssh runs in batch mode, so a clone that needs credentials fails with git's message. #45's terminal hand-off plugs in at the clone call (`RepositoryCreationActions.RunCloneAsync` in the UI).
+
 ### Paths that are not valid UTF-8
 
 - Status output is decoded with `GitPathText.Decode`: valid UTF-8 as is, every invalid byte becomes the lone surrogate `U+DC00 + byte`. `StatusEntry.Path` therefore round-trips byte-exactly through `GitPathText.Encode`. Display code must treat lone surrogates as replacement characters.

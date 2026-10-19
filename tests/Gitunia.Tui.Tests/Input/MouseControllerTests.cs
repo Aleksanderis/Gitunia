@@ -171,6 +171,8 @@ public class MouseControllerTests
     [InlineData(DefaultMouseMap.DiffZoomButton, "pane.zoom")]
     [InlineData(DefaultMouseMap.PickerPinButton, "picker.pin")]
     [InlineData(DefaultMouseMap.PickerRemoveButton, "picker.remove-recent")]
+    [InlineData(DefaultMouseMap.PickerCloneButton, "picker.clone")]
+    [InlineData(DefaultMouseMap.PickerInitButton, "picker.init")]
     public void GivenAButtonClick_WhenHandled_ThenItRunsTheActionOfItsKey(string buttonView, string action)
     {
         var controller = CreateController();

@@ -390,6 +390,8 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], PickerView, "Right", ActionIds.PickerCompletePath);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-p", ActionIds.PickerPin);
         Add(bindings, [KeyMode.Insert], PickerView, "Alt-d", ActionIds.PickerRemoveRecent);
+        Add(bindings, [KeyMode.Insert], PickerView, "Alt-c", ActionIds.PickerClone);
+        Add(bindings, [KeyMode.Insert], PickerView, "Alt-i", ActionIds.PickerInit);
     }
 
     private static void AddPalette(List<KeyBinding> bindings)
