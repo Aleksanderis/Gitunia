@@ -29,7 +29,7 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="setMode">Switches the keymap mode (Insert while typing, Confirm for the removal question).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="applyOptions">Applies the options of the file to the running app.</param>
-/// <param name="launchEditor">Opens a file in the user's editor and calls back when it closes; returns why it cannot.</param>
+/// <param name="launchEditor">Opens a file in the editor and calls back when it closes; returns why it cannot.</param>
 /// <param name="definitions">The settings on offer; the registry unless a test brings its own.</param>
 /// <param name="cancellationToken">Ends the file work when the app is closing.</param>
 public sealed class SettingsController(
