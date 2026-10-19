@@ -47,7 +47,7 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenAReorderFixupAndReword_WhenStartingAfterConfirming_ThenGitReplaysThatTodoAndTheStatusNamesTheUndo()
+    public async Task GivenAReorderFixupAndReword_WhenStartingAfterConfirming_ThenGitReplaysTheTodoAndTheStatusNamesTheUndo()
     {
         using var repository = FourCommits();
         var oldTip = repository.Head;
