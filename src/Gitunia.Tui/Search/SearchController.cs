@@ -31,6 +31,7 @@ public sealed class SearchController(
     // A body query starts the search only once typing paused, so a fast typist starts no process per key.
     private static readonly TimeSpan DefaultBodyDebounce = TimeSpan.FromMilliseconds(250);
 
+    // Touched by the UI thread and by the end of a run on a pool thread, so every access takes the lock.
     private readonly Dictionary<TabSession, CancellationTokenSource> _bodySearches = [];
 
     public string Notice { get; private set; } = string.Empty;
@@ -170,16 +171,49 @@ public sealed class SearchController(
         }
 
         var source = CancellationTokenSource.CreateLinkedTokenSource(session.Cancellation.Token);
-        _bodySearches[session] = source;
-        _ = RunBodySearchAsync(session, location, effect, source.Token);
+        lock (_bodySearches)
+        {
+            _bodySearches[session] = source;
+        }
+
+        _ = RunBodySearchAsync(session, location, effect, source);
     }
 
     private void CancelBodySearch(TabSession session)
     {
-        if (_bodySearches.Remove(session, out var running))
+        CancellationTokenSource? running;
+        lock (_bodySearches)
         {
-            running.Cancel();
-            running.Dispose();
+            _bodySearches.Remove(session, out running);
+        }
+
+        running?.Cancel();
+        running?.Dispose();
+    }
+
+    // The run of a closed tab is cancelled by its session; its entry must not outlive it.
+    private void ForgetBodySearch(TabSession session, CancellationTokenSource source)
+    {
+        lock (_bodySearches)
+        {
+            if (_bodySearches.TryGetValue(session, out var current) && current == source)
+            {
+                _bodySearches.Remove(session);
+            }
+        }
+
+        source.Dispose();
+    }
+
+    /// <summary>Number of tabs that still hold a running body search entry.</summary>
+    public int BodySearchCount
+    {
+        get
+        {
+            lock (_bodySearches)
+            {
+                return _bodySearches.Count;
+            }
         }
     }
 
@@ -187,8 +221,9 @@ public sealed class SearchController(
         TabSession session,
         RepositoryLocation location,
         SearchBodiesEffect effect,
-        CancellationToken token)
+        CancellationTokenSource source)
     {
+        var token = source.Token;
         BodyHitsCommand command;
         try
         {
@@ -198,12 +233,15 @@ public sealed class SearchController(
         }
         catch (OperationCanceledException)
         {
+            ForgetBodySearch(session, source);
             return;
         }
         catch (Exception exception) when (exception is GitException or IOException)
         {
             command = new BodyHitsCommand(effect.Generation, null, FailureText);
         }
+
+        ForgetBodySearch(session, source);
 
         (invokeOnUi ?? postToUi)(() =>
         {

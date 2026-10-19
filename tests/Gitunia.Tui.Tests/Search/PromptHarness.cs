@@ -63,13 +63,14 @@ public sealed class PromptHarness : IDisposable
             mode => _keys!.SetMode(mode),
             () => Redraws++)));
         _prompts.Add(new RefJumpController(handle, () => references));
-        _prompts.Add(new SearchController(
+        Search = new SearchController(
             handle,
             action => (deferred is null ? action : () => deferred.Enqueue(action))(),
             messages,
             _ => location,
             action => action(),
-            TimeSpan.Zero));
+            TimeSpan.Zero);
+        _prompts.Add(Search);
         Session.Changed += () => _prompts.ForEach(prompt => prompt.OnGraphChanged());
         _keys = new KeyController(
             new KeymapEngine(DefaultKeymap.Create()),
@@ -91,6 +92,8 @@ public sealed class PromptHarness : IDisposable
     }
 
     public TabSession Session { get; }
+
+    public SearchController Search { get; }
 
     /// <summary>When set, the session the shell reports as active instead of <see cref="Session"/> (a tab switch).</summary>
     public TabSession? ActiveSession { get; set; }
