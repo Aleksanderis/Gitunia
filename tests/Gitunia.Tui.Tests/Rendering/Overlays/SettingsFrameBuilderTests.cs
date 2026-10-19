@@ -190,7 +190,8 @@ public class SettingsFrameBuilderTests
             .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item);
 
         var list = SettingsFrameBuilder.Build(state, width, height, GraphGlyphSet.Unicode)!;
-        var asked = SettingsFrameBuilder.Build(Reduce(state, SettingsCommandKind.Remove), width, height, GraphGlyphSet.Unicode)!;
+        var removal = Reduce(state, SettingsCommandKind.Remove);
+        var asked = SettingsFrameBuilder.Build(removal, width, height, GraphGlyphSet.Unicode)!;
 
         Assert.All(list.Lines, line => Assert.Equal(list.Width, TextWidth.Of(line.Text)));
         Assert.All(asked.Lines, line => Assert.Equal(asked.Width, TextWidth.Of(line.Text)));

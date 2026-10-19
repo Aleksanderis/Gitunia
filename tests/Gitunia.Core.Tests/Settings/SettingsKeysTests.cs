@@ -25,7 +25,9 @@ public class SettingsKeysTests
     [InlineData("gg", "list.top")]
     [InlineData("G", "list.bottom")]
     [InlineData("Ctrl-d", "list.half-page-down")]
-    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(string keys, string action)
+    public void GivenTheSettingsView_WhenPressingAKeyInNormalMode_ThenItRunsTheDocumentedAction(
+        string keys,
+        string action)
     {
         var feeder = new KeyFeeder(new KeymapEngine(DefaultKeymap.Create()), DefaultKeymap.SettingsView);
 
