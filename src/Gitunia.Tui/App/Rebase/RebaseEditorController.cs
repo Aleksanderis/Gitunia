@@ -142,8 +142,8 @@ public sealed class RebaseEditorController(
             return null;
         }
 
-        var height = screenSize().Height;
-        if (RebaseEditorFrameBuilder.EntryIndexAt(state, frameLine, height) is { } index)
+        var size = screenSize();
+        if (RebaseEditorFrameBuilder.EntryIndexAt(state, frameLine, size.Width, size.Height) is { } index)
         {
             State = state.MoveTo(index);
             handled = true;
@@ -151,7 +151,7 @@ public sealed class RebaseEditorController(
             return null;
         }
 
-        var view = RebaseEditorFrameBuilder.ChipAt(state, frameLine, frameColumn, height);
+        var view = RebaseEditorFrameBuilder.ChipAt(state, frameLine, frameColumn, size.Width, size.Height);
         handled = view is not null;
         return view;
     }
@@ -384,7 +384,8 @@ public sealed class RebaseEditorController(
 
     private void Move(RebaseEditorState state, ActionId action, int? count)
     {
-        var rows = RebaseEditorFrameBuilder.VisibleRows(state, screenSize().Height);
+        var size = screenSize();
+        var rows = RebaseEditorFrameBuilder.VisibleRows(state, size.Width, size.Height);
         if (ListMotion.TryMove(action, count, state.SelectedIndex, state.Rows.Count, rows, out var target))
         {
             Update(state.MoveTo(target));

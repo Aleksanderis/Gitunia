@@ -51,7 +51,7 @@ public sealed record RebaseEditorState(
         Rows.Count == 0 ? null : Rows[Math.Clamp(SelectedIndex, 0, Rows.Count - 1)];
 
     /// <summary>True when the order, an action or a message differs from the todo as read.</summary>
-    public bool IsModified => !Rows.SequenceEqual(Original);
+    public bool IsModified => !Rows.Select(Effective).SequenceEqual(Original.Select(Effective));
 
     /// <summary>True when the message editor is open.</summary>
     public bool IsEditingMessage => Edit is not null;
@@ -168,4 +168,8 @@ public sealed record RebaseEditorState(
 
     /// <summary>Remembers that the user asked to close an edited todo; the next close really closes.</summary>
     public RebaseEditorState AskDiscard() => this with { IsDiscardPending = true };
+
+    // What the engine would get: a message only counts for a reword, so a kept but unused message is no edit.
+    private static RebaseEditorRow Effective(RebaseEditorRow row) =>
+        row.Action == RebaseTodoAction.Reword ? row : row with { Message = null };
 }

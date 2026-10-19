@@ -158,6 +158,7 @@ public class RebaseEditorStateTests
         var state = reworded.SaveEdit().SetAction(RebaseTodoAction.Pick);
 
         Assert.Null(state.ToEntries()[0].Message);
+        Assert.False(state.IsModified);
         Assert.Equal("kept text", state.Rows[0].Message);
         Assert.Equal("c0 subject", state.Rows[0].ShownSubject);
     }

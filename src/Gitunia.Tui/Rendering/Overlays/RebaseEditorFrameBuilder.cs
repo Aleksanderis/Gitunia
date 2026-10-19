@@ -19,7 +19,7 @@ public static class RebaseEditorFrameBuilder
     private const int MaximumRows = 20;
     private const int MaximumMessageRows = 12;
     private const int ScreenMargin = 2;
-    private const int ListChromeRows = 6;
+    private const int FixedChromeRows = 4;
     private const int MessageChromeRows = 3;
     private const int ShortHashLength = 7;
     private const int ActionColumnWidth = 6;
@@ -32,21 +32,17 @@ public static class RebaseEditorFrameBuilder
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
 
-    private static readonly IReadOnlyList<IReadOnlyList<RebaseEditorChip>> ChipRows =
+    private static readonly RebaseEditorChip[] Chips =
     [
-        [
-            new("[p pick]", DefaultMouseMap.RebasePickButton),
-            new("[r reword]", DefaultMouseMap.RebaseRewordButton),
-            new("[s squash]", DefaultMouseMap.RebaseSquashButton),
-            new("[f fixup]", DefaultMouseMap.RebaseFixupButton),
-            new("[d drop]", DefaultMouseMap.RebaseDropButton),
-        ],
-        [
-            new("[K move up]", DefaultMouseMap.RebaseMoveUpButton),
-            new("[J move down]", DefaultMouseMap.RebaseMoveDownButton),
-            new("[Enter start]", DefaultMouseMap.RebaseStartButton),
-            new("[Esc cancel]", DefaultMouseMap.RebaseCancelButton),
-        ],
+        new("[p pick]", DefaultMouseMap.RebasePickButton),
+        new("[r reword]", DefaultMouseMap.RebaseRewordButton),
+        new("[s squash]", DefaultMouseMap.RebaseSquashButton),
+        new("[f fixup]", DefaultMouseMap.RebaseFixupButton),
+        new("[d drop]", DefaultMouseMap.RebaseDropButton),
+        new("[K move up]", DefaultMouseMap.RebaseMoveUpButton),
+        new("[J move down]", DefaultMouseMap.RebaseMoveDownButton),
+        new("[Enter start]", DefaultMouseMap.RebaseStartButton),
+        new("[Esc cancel]", DefaultMouseMap.RebaseCancelButton),
     ];
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
@@ -64,9 +60,9 @@ public static class RebaseEditorFrameBuilder
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>
-    public static int? EntryIndexAt(RebaseEditorState state, int frameLine, int screenHeight)
+    public static int? EntryIndexAt(RebaseEditorState state, int frameLine, int screenWidth, int screenHeight)
     {
-        var window = Window(state, screenHeight);
+        var window = Window(state, screenWidth, screenHeight);
         var offset = frameLine - ListStartLine;
         return state.Edit is null && offset >= 0 && offset < window.RowCount && window.Top + offset < state.Rows.Count
             ? window.Top + offset
@@ -74,17 +70,23 @@ public static class RebaseEditorFrameBuilder
     }
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
-    public static string? ChipAt(RebaseEditorState state, int frameLine, int frameColumn, int screenHeight)
+    public static string? ChipAt(
+        RebaseEditorState state,
+        int frameLine,
+        int frameColumn,
+        int screenWidth,
+        int screenHeight)
     {
-        var window = Window(state, screenHeight);
+        var window = Window(state, screenWidth, screenHeight);
+        var chipRows = ChipRowsFor(FrameWidth(screenWidth));
         var chipRow = frameLine - ListStartLine - window.RowCount;
-        if (state.Edit is not null || chipRow < 0 || chipRow >= ChipRows.Count)
+        if (state.Edit is not null || chipRow < 0 || chipRow >= chipRows.Count)
         {
             return null;
         }
 
         var start = ChipStartColumn;
-        foreach (var chip in ChipRows[chipRow])
+        foreach (var chip in chipRows[chipRow])
         {
             var end = start + TextWidth.Of(chip.Text);
             if (frameColumn >= start && frameColumn < end)
@@ -99,7 +101,8 @@ public static class RebaseEditorFrameBuilder
     }
 
     /// <summary>Rows the list shows at a screen height (the page size of the half-page motions).</summary>
-    public static int VisibleRows(RebaseEditorState state, int screenHeight) => Window(state, screenHeight).RowCount;
+    public static int VisibleRows(RebaseEditorState state, int screenWidth, int screenHeight) =>
+        Window(state, screenWidth, screenHeight).RowCount;
 
     private static OverlayFrame? BuildList(
         RebaseEditorState state,
@@ -108,12 +111,13 @@ public static class RebaseEditorFrameBuilder
         int width,
         GraphGlyphSet glyphs)
     {
-        if (screenHeight - ScreenMargin - ListChromeRows < 1)
+        var chipRows = ChipRowsFor(width);
+        if (screenHeight - ScreenMargin - FixedChromeRows - chipRows.Count < 1)
         {
             return null;
         }
 
-        var window = Window(state, screenHeight);
+        var window = Window(state, screenWidth, screenHeight);
         var lines = new List<StyledLine>
         {
             OverlayBox.Title($"Interactive rebase: {state.BranchName} onto {state.TargetLabel}", width, glyphs),
@@ -129,7 +133,7 @@ public static class RebaseEditorFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        foreach (var chips in ChipRows)
+        foreach (var chips in chipRows)
         {
             lines.Add(ChipLine(chips, width, glyphs));
         }
@@ -177,7 +181,7 @@ public static class RebaseEditorFrameBuilder
         return OverlayBox.TwoColumns(text, string.Empty, width, glyphs, role, role, isSelected);
     }
 
-    private static StyledLine ChipLine(IReadOnlyList<RebaseEditorChip> chips, int width, GraphGlyphSet glyphs)
+    private static StyledLine ChipLine(List<RebaseEditorChip> chips, int width, GraphGlyphSet glyphs)
     {
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
         for (var index = 0; index < chips.Count; index++)
@@ -219,9 +223,35 @@ public static class RebaseEditorFrameBuilder
         _ => "drop",
     };
 
-    private static PaletteWindow Window(RebaseEditorState state, int screenHeight)
+    private static int FrameWidth(int screenWidth) => Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+
+    // The chips flow left to right and start a new row where the next one would not fit, so none is cut off.
+    private static List<List<RebaseEditorChip>> ChipRowsFor(int frameWidth)
     {
-        var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - ListChromeRows);
+        var available = OverlayBox.InnerWidth(frameWidth) - 1;
+        var rows = new List<List<RebaseEditorChip>> { new() };
+        var used = 0;
+        foreach (var chip in Chips)
+        {
+            var width = TextWidth.Of(chip.Text);
+            var needed = rows[^1].Count == 0 ? width : used + ChipGap + width;
+            if (rows[^1].Count > 0 && needed > available)
+            {
+                rows.Add([]);
+                needed = width;
+            }
+
+            rows[^1].Add(chip);
+            used = needed;
+        }
+
+        return rows;
+    }
+
+    private static PaletteWindow Window(RebaseEditorState state, int screenWidth, int screenHeight)
+    {
+        var chromeRows = FixedChromeRows + ChipRowsFor(FrameWidth(screenWidth)).Count;
+        var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - chromeRows);
         var count = state.Rows.Count;
         var rowCount = Math.Max(1, Math.Min(maximumRows, count));
         var selected = count == 0 ? 0 : Math.Clamp(state.SelectedIndex, 0, count - 1);

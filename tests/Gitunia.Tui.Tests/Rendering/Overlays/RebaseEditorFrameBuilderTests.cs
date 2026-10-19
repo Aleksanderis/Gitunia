@@ -64,13 +64,13 @@ public class RebaseEditorFrameBuilderTests
     }
 
     [Fact]
-    public void GivenTheChipRows_WhenRendering_ThenBothRowsListTheirChipsAsButtons()
+    public void GivenTheChips_WhenRenderingAt80Columns_ThenTwoRowsListThemAsButtons()
     {
         var frame = RebaseEditorFrameBuilder.Build(State(2), 80, 24, GraphGlyphSet.Unicode);
 
         var chipRows = frame!.Lines.Skip(frame.Height - 4).Take(2).ToList();
-        const string firstRow = "[p pick]  [r reword]  [s squash]  [f fixup]  [d drop]";
-        const string secondRow = "[K move up]  [J move down]  [Enter start]  [Esc cancel]";
+        const string firstRow = "[p pick]  [r reword]  [s squash]  [f fixup]  [d drop]  [K move up]";
+        const string secondRow = "[J move down]  [Enter start]  [Esc cancel]";
         Assert.Contains(firstRow, chipRows[0].Text, StringComparison.Ordinal);
         Assert.Contains(secondRow, chipRows[1].Text, StringComparison.Ordinal);
         Assert.Contains(
@@ -82,7 +82,7 @@ public class RebaseEditorFrameBuilderTests
     public void GivenEachChip_WhenClickingItsColumn_ThenItsMouseViewIsReturnedAndTheGapsAreNone()
     {
         var state = State(2);
-        var chipLine = 2 + RebaseEditorFrameBuilder.VisibleRows(state, 24);
+        var chipLine = 2 + RebaseEditorFrameBuilder.VisibleRows(state, 80, 24);
         var frame = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
         var firstRow = frame.Lines[chipLine].Text;
         var secondRow = frame.Lines[chipLine + 1].Text;
@@ -92,7 +92,7 @@ public class RebaseEditorFrameBuilderTests
         Assert.Null(ChipAt(state, chipLine, firstRow, "[p pick]", "[p pick]".Length));
         Assert.Equal(DefaultMouseMap.RebaseCancelButton, ChipAt(state, chipLine + 1, secondRow, "[Esc cancel]", 0));
         Assert.Equal(DefaultMouseMap.RebaseStartButton, ChipAt(state, chipLine + 1, secondRow, "[Enter start]", 0));
-        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 1, 5, 24));
+        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 1, 5, 80, 24));
     }
 
     [Fact]
@@ -102,12 +102,31 @@ public class RebaseEditorFrameBuilderTests
 
         var frame = RebaseEditorFrameBuilder.Build(state, 80, 14, GraphGlyphSet.Unicode);
 
-        Assert.Equal(6, RebaseEditorFrameBuilder.VisibleRows(state, 14));
+        Assert.Equal(6, RebaseEditorFrameBuilder.VisibleRows(state, 80, 14));
         var selectedLine = Array.FindIndex([.. frame!.Lines], line => line.IsSelected);
         Assert.Contains("subject 40", frame.Lines[selectedLine].Text, StringComparison.Ordinal);
-        Assert.Equal(40, RebaseEditorFrameBuilder.EntryIndexAt(state, selectedLine, 14));
-        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 0, 14));
-        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2 + 6, 14));
+        Assert.Equal(40, RebaseEditorFrameBuilder.EntryIndexAt(state, selectedLine, 80, 14));
+        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 0, 80, 14));
+        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2 + 6, 80, 14));
+    }
+
+    [Fact]
+    public void GivenANarrowScreen_WhenRendering_ThenNoChipIsCutOffAndEachOneStillHitTests()
+    {
+        var state = State(2);
+        var frame = RebaseEditorFrameBuilder.Build(state, 40, 30, GraphGlyphSet.Unicode)!;
+        var text = string.Join('\n', frame.Lines.Select(line => line.Text));
+
+        foreach (var chip in new[] { "[p pick]", "[r reword]", "[s squash]", "[f fixup]", "[d drop]", "[K move up]",
+            "[J move down]", "[Enter start]", "[Esc cancel]" })
+        {
+            Assert.Contains(chip, text, StringComparison.Ordinal);
+        }
+
+        var startLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("[Enter start]", StringComparison.Ordinal));
+        var startColumn = frame.Lines[startLine].Text.IndexOf("[Enter start]", StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.RebaseStartButton, RebaseEditorFrameBuilder.ChipAt(state, startLine, startColumn, 40, 30));
+        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, startLine, frame.Width - 1, 40, 30));
     }
 
     [Fact]
@@ -117,7 +136,8 @@ public class RebaseEditorFrameBuilderTests
 
         Assert.Null(RebaseEditorFrameBuilder.Build(state, 80, 8, GraphGlyphSet.Unicode));
         Assert.Null(RebaseEditorFrameBuilder.Build(state, 17, 24, GraphGlyphSet.Unicode));
-        Assert.NotNull(RebaseEditorFrameBuilder.Build(state, 20, 9, GraphGlyphSet.Ascii));
+        _ = RebaseEditorFrameBuilder.Build(state, 20, 9, GraphGlyphSet.Ascii);
+        _ = RebaseEditorFrameBuilder.Build(state, 20, 40, GraphGlyphSet.Ascii);
         Assert.Null(RebaseEditorFrameBuilder.Build(state.BeginEdit("x"), 80, 4, GraphGlyphSet.Unicode));
     }
 
@@ -154,8 +174,8 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains("body line", lines[3], StringComparison.Ordinal);
         Assert.Contains("Alt-Enter or Ctrl-g keep the message", lines[^2], StringComparison.Ordinal);
         Assert.Contains(frame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Cursor);
-        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 5, 5, 24));
-        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2, 24));
+        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 5, 5, 80, 24));
+        Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2, 80, 24));
     }
 
     [Fact]
@@ -169,7 +189,7 @@ public class RebaseEditorFrameBuilderTests
     }
 
     private static string? ChipAt(RebaseEditorState state, int line, string text, string chip, int offset) =>
-        RebaseEditorFrameBuilder.ChipAt(state, line, text.IndexOf(chip, StringComparison.Ordinal) + offset, 24);
+        RebaseEditorFrameBuilder.ChipAt(state, line, text.IndexOf(chip, StringComparison.Ordinal) + offset, 80, 24);
 
     private static RebaseEditorState State(int count) =>
         RebaseEditorState.Create(

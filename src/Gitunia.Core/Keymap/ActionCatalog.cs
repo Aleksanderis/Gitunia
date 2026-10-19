@@ -139,7 +139,7 @@ public static class ActionCatalog
         ["rebase-editor.start"] = "Rebase todo: start the rebase (asks first)",
         ["rebase-editor.message-save"] = "Rebase todo: keep the edited message",
         ["rebase-editor.message-newline"] = "Rebase todo: new line in the message",
-        ["rebase.onto"] ="Rebase the current branch onto the selected commit, branch or tag",
+        ["rebase.onto"] = "Rebase the current branch onto the selected commit, branch or tag",
         ["reset.branch"] = "Reset the current branch to the selected commit (soft, mixed, hard)",
         ["confirm.no"] = "Answer no",
         ["confirm.yes"] = "Answer yes",
