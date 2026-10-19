@@ -20,6 +20,9 @@ public static class SettingsRegistry
     /// <summary>The id of the scan roots setting.</summary>
     public const string ScanRootsId = "scan-roots";
 
+    /// <summary>The id of the read-only key reference.</summary>
+    public const string KeyReferenceId = "key-reference";
+
     /// <summary>The id of the row that opens the config file in the editor.</summary>
     public const string OpenConfigId = "open-config";
 
@@ -68,6 +71,16 @@ public static class SettingsRegistry
             ["tabs", "showBranch"],
             "Tab chips show the checked-out branch after the name. It makes the tabs long.",
             "off",
+            []),
+        new SettingDefinition(
+            KeyReferenceId,
+            SettingCategory.Keys,
+            "Key reference",
+            SettingControl.KeyReference,
+            [],
+            "Every key of the running keymap, defaults and your keys entries, by view. Read-only: Enter on a key "
+                + "shows the config.json entry that binds it again.",
+            string.Empty,
             []),
         new SettingDefinition(
             OpenConfigId,

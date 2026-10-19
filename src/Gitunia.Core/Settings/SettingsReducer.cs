@@ -115,6 +115,16 @@ public static class SettingsReducer
             return new SettingsOutcome(state, OpensEditor: true);
         }
 
+        if (row.Kind == SettingRowKind.Binding)
+        {
+            return new SettingsOutcome(state, Notice: ShowEntry(state.Reference[row.Index]));
+        }
+
+        if (definition.Control == SettingControl.KeyReference)
+        {
+            return new SettingsOutcome(state);
+        }
+
         if (state.IsReadOnly)
         {
             return Refuse(state, state.Banner);
@@ -155,6 +165,9 @@ public static class SettingsReducer
                 return new SettingsOutcome(state);
         }
     }
+
+    private static string ShowEntry(KeyReferenceEntry entry) =>
+        $"{entry.Title}, config.json keys entry: {entry.Snippet}";
 
     private static SettingsOutcome KeepOption(SettingsState state, SettingRow row)
     {
