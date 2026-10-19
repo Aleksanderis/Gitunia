@@ -39,7 +39,7 @@ Example, Enter on a commit: Tui turns the key into a key event; Core's keymap ma
 - **Persistence.** Open tabs, recents, pins, per-tab view state and config live in the user config/state dir and are written atomically. A corrupt or missing file never prevents startup.
 - **Pure state.** Effects (run a git command, open an editor, copy to clipboard) are returned as data; a runner executes them and feeds the results back as commands.
 - **Async git.** Every git call is async, cancellable and time-bounded; the UI never blocks on one.
-- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`). Settings, pitfalls and measured numbers: `docs/history/architecture.md`.
+- **UI toolkit.** Terminal.Gui v2, wrapped by the rendering layer; Core never sees it. Custom drawing (graph, diff) uses custom views, and modal keys and chords are handled at the application level by our keymap engine. Keep Terminal.Gui types out of Core and keep view models and key events renderer-agnostic (no abstraction interface until a second renderer exists; see `docs/decisions.md`). Settings, pitfalls and measured numbers: `docs/history/architecture.md` (cell widths: `DisplayWidth` follows Terminal.Gui per character, ZWJ sequences differ).
 
 ## Solution layout
 

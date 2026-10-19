@@ -52,7 +52,7 @@ public class DisplayWidthTests
 
     [Theory]
     [InlineData(0x115F, 2)]
-    [InlineData(0x1160, 1)]
+    [InlineData(0x1160, 0)] // Conjoining vowel: zero width, as Terminal.Gui measures it (#503)
     [InlineData(0xA4C6, 2)]
     [InlineData(0xAC00, 2)]
     [InlineData(0xD7A3, 2)]

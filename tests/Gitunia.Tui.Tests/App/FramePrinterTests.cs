@@ -136,6 +136,39 @@ public class FramePrinterTests
         Assert.DoesNotContain(lines, line => line.Contains('\u001b', StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("""{ "frameStyle": "square" }""", '┌', '╭')]
+    [InlineData("""{ "frameStyle": "rounded" }""", '╭', '┌')]
+    [InlineData("{}", '╭', '┌')]
+    public async Task GivenAFrameStyleInTheConfig_WhenPrinting_ThenTheFrameUsesItsCorners(
+        string config,
+        char expected,
+        char other)
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
+        var directory = Path.Combine(Path.GetTempPath(), $"gitunia-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(directory, "config.json"), config, Token);
+            var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
+            using var writer = new StringWriter();
+
+            var glyphs = FramePrinter.GlyphsFor(true, directory, directory);
+            await new FramePrinter(TestGit.Services)
+                .PrintAsync(location, 100, 30, glyphs, writer, null, BottomTab.Changes, null, Token);
+
+            var text = writer.ToString();
+            Assert.Contains(expected, text);
+            Assert.DoesNotContain(other, text);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static bool HasFileWithSize(string line, string size) =>
         line.Contains("a.txt", StringComparison.Ordinal) && line.Contains(size, StringComparison.Ordinal);
 
