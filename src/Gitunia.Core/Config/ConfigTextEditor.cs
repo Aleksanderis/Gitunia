@@ -29,10 +29,10 @@ public static class ConfigTextEditor
         return $"\"{JsonEncodedText.Encode(value, JavaScriptEncoder.UnsafeRelaxedJsonEscaping)}\"";
     }
 
-    /// <summary>Sets the key at <paramref name="path"/> to a JSON value, inserting the key when it is missing.</summary>
+    /// <summary>Sets the key at <paramref name="path"/> to a JSON value; a missing key is inserted.</summary>
     /// <param name="text">The config text without a byte order mark.</param>
     /// <param name="path">Property names from the root, for example <c>tabs</c>, <c>showBranch</c>.</param>
-    /// <param name="jsonValue">One JSON value, for example <c>true</c> or the result of <see cref="StringValue"/>.</param>
+    /// <param name="jsonValue">One JSON value, for example <c>true</c> or a <see cref="StringValue"/>.</param>
     public static ConfigEditResult Set(string text, IReadOnlyList<string> path, string jsonValue)
     {
         if (path.Count == 0 || !IsSingleValue(jsonValue))
@@ -44,7 +44,8 @@ public static class ConfigTextEditor
         switch (location.Kind)
         {
             case ConfigLocationKind.Found:
-                var replaced = text.Remove(location.Span.Start, location.Span.Length).Insert(location.Span.Start, jsonValue);
+                var span = location.Span;
+                var replaced = text.Remove(span.Start, span.Length).Insert(span.Start, jsonValue);
 
                 return new ConfigEditResult(true, replaced, string.Empty, location.Shadowed);
             case ConfigLocationKind.Empty:
@@ -137,13 +138,19 @@ public static class ConfigTextEditor
         return text.Insert(container.Start + 1, $"{lineEnding}{memberIndent}{member}");
     }
 
-    private static string InsertAfterLast(string text, MemberScan scan, int closeIndex, string member, string lineEnding)
+    private static string InsertAfterLast(
+        string text,
+        MemberScan scan,
+        int closeIndex,
+        string member,
+        string lineEnding)
     {
         var afterValue = ConfigTrivia.Skip(text, scan.LastValueEnd);
         var hasComma = afterValue < closeIndex && text[afterValue] == ',';
         var gapStart = hasComma ? afterValue + 1 : scan.LastValueEnd;
         var newline = text.LastIndexOf('\n', closeIndex - 1, closeIndex - scan.LastValueEnd);
-        var startsLine = scan.LastNameStart == LineStart(text, scan.LastNameStart) + LineIndent(text, scan.LastNameStart).Length;
+        var nameLineStart = LineStart(text, scan.LastNameStart);
+        var startsLine = scan.LastNameStart == nameLineStart + LineIndent(text, scan.LastNameStart).Length;
         var builder = new StringBuilder(text);
         if (newline >= 0 && startsLine)
         {

@@ -6,7 +6,7 @@ public enum ConfigLocationKind
     /// <summary>The value exists; its span is set.</summary>
     Found,
 
-    /// <summary>The text is valid but has no value at the path. The container is set when a member can be added.</summary>
+    /// <summary>The text is valid but has no value at the path; the container tells where it can go.</summary>
     Absent,
 
     /// <summary>The text is blank or holds only comments.</summary>

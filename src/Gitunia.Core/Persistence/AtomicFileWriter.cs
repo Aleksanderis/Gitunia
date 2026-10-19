@@ -9,8 +9,12 @@ public static class AtomicFileWriter
         return WriteAsync(path, content, null, cancellationToken);
     }
 
-    /// <summary>Like the plain overload, and gives the new file the Unix permissions of the file it replaces (ignored on Windows).</summary>
-    public static async Task WriteAsync(string path, ReadOnlyMemory<byte> content, UnixFileMode? mode, CancellationToken cancellationToken)
+    /// <summary>Like the plain overload, and gives the new file these Unix permissions (ignored on Windows).</summary>
+    public static async Task WriteAsync(
+        string path,
+        ReadOnlyMemory<byte> content,
+        UnixFileMode? mode,
+        CancellationToken cancellationToken)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
         Directory.CreateDirectory(directory);

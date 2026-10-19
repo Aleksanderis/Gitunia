@@ -14,6 +14,7 @@ namespace Gitunia.Core.Config;
 public sealed class ConfigWriter
 {
     private const long MaximumFileBytes = 1024 * 1024;
+    private const string ShadowedMessage = "The key is written twice in config.json; the last one was changed";
     private static readonly byte[] ByteOrderMark = [0xEF, 0xBB, 0xBF];
 
     /// <summary>Creates a writer for the config file of a config directory.</summary>
@@ -81,7 +82,7 @@ public sealed class ConfigWriter
             UnixFileMode? mode = current.Exists && !OperatingSystem.IsWindows() ? File.GetUnixFileMode(target) : null;
             await AtomicFileWriter.WriteAsync(target, bytes, mode, cancellationToken).ConfigureAwait(false);
             var written = new ConfigSnapshot(true, edit.Text, Hash(bytes));
-            var message = edit.Shadowed ? "The key is written twice in config.json; the last one was changed" : string.Empty;
+            var message = edit.Shadowed ? ShadowedMessage : string.Empty;
 
             return new ConfigWriteResult(ConfigWriteStatus.Written, written, message, edit.Shadowed);
         }

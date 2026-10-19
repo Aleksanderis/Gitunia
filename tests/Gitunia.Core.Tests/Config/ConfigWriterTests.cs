@@ -36,7 +36,8 @@ public sealed class ConfigWriterTests : IDisposable
         var result = await writer.SetAsync(["theme"], "\"dark\"", snapshot, Token);
 
         Assert.Equal(ConfigWriteStatus.Written, result.Status);
-        Assert.Equal("{\n  // keep me\n  \"theme\": \"dark\", /* x */\n}\n", await File.ReadAllTextAsync(writer.FilePath, Token));
+        var expected = "{\n  // keep me\n  \"theme\": \"dark\", /* x */\n}\n";
+        Assert.Equal(expected, await File.ReadAllTextAsync(writer.FilePath, Token));
         Assert.Equal([writer.FilePath], Directory.GetFiles(_directory.DirectoryPath));
     }
 
@@ -49,7 +50,8 @@ public sealed class ConfigWriterTests : IDisposable
         var second = await writer.SetAsync(["frameStyle"], "\"square\"", first.Snapshot, Token);
 
         Assert.Equal(ConfigWriteStatus.Written, second.Status);
-        Assert.Contains("\"theme\": \"dark\"", await File.ReadAllTextAsync(writer.FilePath, Token), StringComparison.Ordinal);
+        var text = await File.ReadAllTextAsync(writer.FilePath, Token);
+        Assert.Contains("\"theme\": \"dark\"", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -116,7 +118,8 @@ public sealed class ConfigWriterTests : IDisposable
         var result = await writer.SetAsync(["theme"], "\"dark\"", await writer.ReadAsync(Token), Token);
 
         Assert.Equal(ConfigWriteStatus.Written, result.Status);
-        Assert.StartsWith("// nothing yet\n", await File.ReadAllTextAsync(writer.FilePath, Token), StringComparison.Ordinal);
+        var text = await File.ReadAllTextAsync(writer.FilePath, Token);
+        Assert.StartsWith("// nothing yet\n", text, StringComparison.Ordinal);
     }
 
     [Fact]
