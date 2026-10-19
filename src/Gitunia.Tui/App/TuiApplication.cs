@@ -33,6 +33,7 @@ using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Config;
+using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
@@ -68,7 +69,10 @@ namespace Gitunia.Tui.App;
 /// Wires the Terminal.Gui shell to the state layer: keys go through the keymap engine, actions become workspace
 /// commands, git results come back on the UI thread. This is the only place that knows both worlds.
 /// </summary>
-public sealed class TuiApplication(GitServices services, ConsoleCapabilities capabilities, IPlatform platform) : IDisposable, ITerminalSuspender
+public sealed class TuiApplication(
+    GitServices services,
+    ConsoleCapabilities detectedCapabilities,
+    IPlatform platform) : IDisposable, ITerminalSuspender
 {
     // Terminal.Gui's default of 25 iterations per second gave ~34 ms key latency; see docs/decisions.md.
     private const ushort IterationsPerSecond = 100;
@@ -99,10 +103,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private WorkingDiffController _workingDiff = null!;
     private QuickJumpController _quickJump = null!;
     private WorkspaceActions _workspaceActions = null!;
+    private RepositoryCreationActions _creation = null!;
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
     private StartupConfig _startupConfig = null!;
+    private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
@@ -123,13 +129,36 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private Action? _suspendedWork;
     private Action? _resumed;
 
+    /// <summary>Terminal.Gui driver to force (smoke tests); null picks the platform default.</summary>
+    public string? DriverName { get; init; }
+
+    /// <summary>Home directory for config paths and picker scans (smoke tests); null uses the user profile.</summary>
+    public string? HomeDirectory { get; init; }
+
+    /// <summary>Stop the main loop right after it starts, so a smoke test builds the shell and returns.</summary>
+    public bool ExitAfterFirstIteration { get; init; }
+
+    /// <summary>
+    /// Smoke tests: receives the screen text after one forced draw in the first iteration (the loop stops right
+    /// after). Only used with <see cref="ExitAfterFirstIteration"/>.
+    /// </summary>
+    public Action<string>? FrameCaptured { get; init; }
+
     /// <summary>Runs the UI until the user quits.</summary>
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
-        _homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
-        var glyphs = GraphGlyphSet.For(capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
+        var queriedLight = _startupConfig.Theme == ThemeChoice.Auto
+            ? platform.QueryLightBackground(_capabilities)
+            : null;
+        if (queriedLight is { } isLight)
+        {
+            _capabilities = _capabilities with { IsLightBackground = isLight };
+        }
+
+        var glyphs = GraphGlyphSet.For(_capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
         _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -297,11 +326,22 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             _statuses);
         _overlays.Changed += RefreshOverlay;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
+        _creation = new RepositoryCreationActions(
+            services.Creator,
+            _picker,
+            _statuses,
+            InvokeOnUi,
+            _keys.SetMode,
+            _view.RefreshChrome,
+            _homeDirectory,
+            DefaultCloneParent);
+        _router.Creation = _creation;
         _quickJump = CreateQuickJump();
         _router.QuickJump = _quickJump;
         // The quick jump is also in the router (first in line, so Esc and Enter reach it in every pane) and here for its status line and typed keys.
         _prompts =
         [
+            _creation,
             _diffPane,
             _workingDiff,
             _quickJump,
@@ -396,6 +436,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _commits.DraftChanged += persistence.NotifyDraftChanged;
         persistence.Start();
         _view.Graph.SetFocus();
+        if (ExitAfterFirstIteration)
+        {
+            StopAfterFirstFrame();
+        }
+
         try
         {
             _application.Run(_view.Window);
@@ -430,6 +475,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     public void Dispose()
     {
+        _creation.CancelAndWait();
         _whichKeyTimer.Dispose();
         _statusPoller?.Dispose();
         _effects.Dispose();
@@ -449,7 +495,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             return;
         }
 
-        if (!_overlays.Handle(action, count) && !_workspaceActions.TryExecute(action, count))
+        if (!_overlays.Handle(action, count)
+            && !_creation.TryExecute(action, count)
+            && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
         }
@@ -1030,9 +1078,20 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         };
 
     private string RemoteProgressNow() =>
-        _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty;
+        FirstNotEmpty(
+            _host.Workspace.ActiveTabId is { } tabId ? _remote.ProgressLine(tabId) : string.Empty,
+            _creation.ProgressLine());
 
-    private bool RemoteIsBusy() => _host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId);
+    private bool RemoteIsBusy() =>
+        _creation.IsCloning || (_host.Workspace.ActiveTabId is { } tabId && _remote.IsRunning(tabId));
+
+    // The folder a clone goes into when the picker holds no path: the first scan root that exists, else home.
+    private string DefaultCloneParent()
+    {
+        var roots = _startupConfig.Options.ScanRoots
+            ?? RepositoryScanner.DefaultRoots(_homeDirectory, Directory.Exists);
+        return roots.FirstOrDefault(Directory.Exists) ?? _homeDirectory;
+    }
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
@@ -1059,11 +1118,21 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         }
     }
 
+    // Draws one frame inside the first loop iteration, hands the screen text to the test and stops the loop.
+    private void StopAfterFirstFrame() => _application.Invoke(CaptureFirstFrameAndStop);
+
+    private void CaptureFirstFrameAndStop()
+    {
+        _application.LayoutAndDraw(true);
+        FrameCaptured?.Invoke(_application.Driver?.ToString() ?? string.Empty);
+        _application.RequestStop();
+    }
+
     // The same setup for the first start and for every restart after a hand-off to an external tool.
     private void CreateApplication()
     {
         _application = Application.Create();
-        _application.Init();
+        _application.Init(DriverName);
         ConfigurePalette();
     }
 
@@ -1218,7 +1287,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     {
         var driver = _application.Driver;
         var palette = PaletteSettings
-            .Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
+            .Choose(_capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
             .WithTheme(_startupConfig.Theme);
         if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
         {
@@ -1230,7 +1299,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     private ClipboardCopier CreateClipboard()
     {
-        var clipboardWriter = capabilities.IsInteractive
+        var clipboardWriter = _capabilities.IsInteractive
             ? new ClipboardWriter(Console.Out, Osc52Environment.Detect(Environment.GetEnvironmentVariable))
             : null;
 

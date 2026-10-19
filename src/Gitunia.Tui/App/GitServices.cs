@@ -42,6 +42,7 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitWriter">Creates commits.</param>
 /// <param name="Branches">Creates, switches, renames and deletes branches.</param>
 /// <param name="RemoteManager">Adds, removes, renames and re-points remotes.</param>
+/// <param name="Creator">Clones and initialises repositories.</param>
 /// <param name="Merge">Merges a branch or commit into the current branch.</param>
 /// <param name="Pick">Cherry-picks or reverts commits onto the current branch.</param>
 /// <param name="PickCommits">Reads the commits a cherry-pick or revert acts on.</param>
@@ -73,6 +74,7 @@ public sealed record GitServices(
     ITagWriter Tags,
     IRemoteWriter Remote,
     IRemoteManager RemoteManager,
+    IRepositoryCreator Creator,
     IMergeWriter Merge,
     IPickWriter Pick,
     IPickCommitReader PickCommits,
@@ -117,6 +119,7 @@ public sealed record GitServices(
             new TagWriter(runner, remoteRunner),
             new RemoteWriter(remoteRunner),
             new RemoteManager(runner),
+            new RepositoryCreator(remoteRunner, runner, new RepositoryDiscovery(runner)),
             new MergeWriter(runner, operationRunner),
             new PickWriter(runner, operationRunner, operationDetector),
             new PickCommitReader(runner),

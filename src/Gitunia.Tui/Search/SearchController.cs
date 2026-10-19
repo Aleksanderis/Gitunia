@@ -31,6 +31,7 @@ public sealed class SearchController(
     // A body query starts the search only once typing paused, so a fast typist starts no process per key.
     private static readonly TimeSpan DefaultBodyDebounce = TimeSpan.FromMilliseconds(250);
 
+    // Touched by the UI thread and by the end of a run on a pool thread, so every access takes the lock.
     private readonly Dictionary<TabSession, CancellationTokenSource> _bodySearches = [];
 
     public string Notice { get; private set; } = string.Empty;
@@ -46,6 +47,18 @@ public sealed class SearchController(
 
             var text = GraphSearchStatusText.Describe(session.Search, view.SelectedRow(), session.Graph.Count);
             return session.Search.Notice.Length > 0 ? $"{text}  {session.Search.Notice}" : text;
+        }
+    }
+
+    /// <summary>Number of tabs with a body search in flight (debounce included).</summary>
+    public int BodySearchCount
+    {
+        get
+        {
+            lock (_bodySearches)
+            {
+                return _bodySearches.Count;
+            }
         }
     }
 
@@ -170,16 +183,43 @@ public sealed class SearchController(
         }
 
         var source = CancellationTokenSource.CreateLinkedTokenSource(session.Cancellation.Token);
-        _bodySearches[session] = source;
-        _ = RunBodySearchAsync(session, location, effect, source.Token);
+        lock (_bodySearches)
+        {
+            _bodySearches[session] = source;
+        }
+
+        _ = RunBodySearchAsync(session, location, effect, source);
     }
 
     private void CancelBodySearch(TabSession session)
     {
-        if (_bodySearches.Remove(session, out var running))
+        CancellationTokenSource? running;
+        lock (_bodySearches)
         {
-            running.Cancel();
-            running.Dispose();
+            _bodySearches.Remove(session, out running);
+        }
+
+        running?.Cancel();
+        running?.Dispose();
+    }
+
+    // The run of a closed tab is cancelled by its session; its entry must not outlive it.
+    private void ForgetBodySearch(TabSession session, CancellationTokenSource source)
+    {
+        var owned = false;
+        lock (_bodySearches)
+        {
+            if (_bodySearches.TryGetValue(session, out var current) && current == source)
+            {
+                _bodySearches.Remove(session);
+                owned = true;
+            }
+        }
+
+        // Whoever removed the entry disposes it, so a Cancel from the UI thread never meets a disposed source.
+        if (owned)
+        {
+            source.Dispose();
         }
     }
 
@@ -187,8 +227,9 @@ public sealed class SearchController(
         TabSession session,
         RepositoryLocation location,
         SearchBodiesEffect effect,
-        CancellationToken token)
+        CancellationTokenSource source)
     {
+        var token = source.Token;
         BodyHitsCommand command;
         try
         {
@@ -198,6 +239,7 @@ public sealed class SearchController(
         }
         catch (OperationCanceledException)
         {
+            ForgetBodySearch(session, source);
             return;
         }
         catch (Exception exception) when (exception is GitException or IOException)
@@ -205,8 +247,11 @@ public sealed class SearchController(
             command = new BodyHitsCommand(effect.Generation, null, FailureText);
         }
 
+        ForgetBodySearch(session, source);
+
         (invokeOnUi ?? postToUi)(() =>
         {
+            // The entry is gone once the run ended, so the generation check in the reducer is the real guard.
             if (!token.IsCancellationRequested)
             {
                 Dispatch(session, command);

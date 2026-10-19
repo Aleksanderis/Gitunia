@@ -24,7 +24,18 @@ public sealed class FakeCommitMessageSearcher : ICommitMessageSearcher
     /// <summary>Completes when the search returned or threw.</summary>
     public TaskCompletionSource Finished { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    public CancellationToken TokenOf(int call)
+    {
+        lock (Tokens)
+        {
+            return Tokens[call];
+        }
+    }
+
     public int CallCount => Volatile.Read(ref _callCount);
+
+    /// <summary>The token of every call, in call order.</summary>
+    public List<CancellationToken> Tokens { get; } = [];
 
     public string? LastText { get; private set; }
 
@@ -34,6 +45,11 @@ public sealed class FakeCommitMessageSearcher : ICommitMessageSearcher
         CancellationToken cancellationToken)
     {
         LastText = text;
+        lock (Tokens)
+        {
+            Tokens.Add(cancellationToken);
+        }
+
         Interlocked.Increment(ref _callCount);
         if (Gate is { } gate)
         {

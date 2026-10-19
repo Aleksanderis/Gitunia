@@ -219,6 +219,10 @@ public static class ActionIds
 
     public static ActionId SettingsDecrease { get; } = new("settings.decrease");
 
+    public static ActionId PickerClone { get; } = new("picker.clone");
+
+    public static ActionId PickerInit { get; } = new("picker.init");
+
     public static ActionId PickerCompletePath { get; } = new("picker.complete-path");
 
     public static ActionId PickerNext { get; } = new("picker.next");

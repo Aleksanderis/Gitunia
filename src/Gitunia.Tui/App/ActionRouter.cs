@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Branches;
+using Gitunia.Tui.App.Creation;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Merge;
@@ -80,6 +81,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Fetch, pull, push and the cancel of the running one; Esc is only its once the prompts passed.</summary>
     public RemoteActions? Remote { get; set; }
+
+    /// <summary>Clone and init from the picker; Esc is only its once everything else passed.</summary>
+    public RepositoryCreationActions? Creation { get; set; }
 
     /// <summary>The push cases that ask first (first push, force with lease, delete a remote branch).</summary>
     public PushActions? Push { get; set; }
@@ -290,6 +294,11 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Remote?.TryExecute(action, count) == true)
         {
             Message = Remote.Notice;
+            return;
+        }
+
+        if (Creation?.TryCancelWithEscape(action) == true)
+        {
             return;
         }
 
