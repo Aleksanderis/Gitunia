@@ -64,14 +64,27 @@ public class TerminalGuiWidthComparisonTests(ITestOutputHelper output)
         Assert.Empty(unexpected);
     }
 
-    [Fact]
-    public void GivenZeroWidthJoinerSequence_WhenMeasuredByBoth_ThenTheyDifferAsDocumented()
+    [Theory]
+    [InlineData("\U0001F468‍\U0001F469‍\U0001F467")] // Family
+    [InlineData("\U0001F469‍❤️‍\U0001F468")] // Couple with heart
+    [InlineData("\U0001F3C3‍♀️")] // Woman running
+    [InlineData("\U0001F468\U0001F3FD‍\U0001F4BB")] // Man technologist, skin tone
+    [InlineData("\U0001F3F3️‍\U0001F308")] // Rainbow flag
+    [InlineData("❤️‍\U0001F525")] // Heart on fire
+    [InlineData("x\U0001F468‍\U0001F469y")]
+    [InlineData("a‍b")]
+    [InlineData("\U0001F468‍a")]
+    [InlineData("\U0001F468‍日")]
+    [InlineData("\U0001F468‍ ")]
+    [InlineData("\U0001F468‍1")]
+    [InlineData("\U0001F468‍‍\U0001F469")]
+    [InlineData("❤‍\U0001F525")]
+    [InlineData("\U0001F468‍\U0001F469\U0001F467")]
+    [InlineData("‍\U0001F468")]
+    [InlineData("\U0001F468‍")]
+    public void GivenZeroWidthJoinerSequence_WhenMeasuredByBoth_ThenTerminalGuiAgrees(string text)
     {
-        // Pins the known divergence of #547: flip the expectation when that issue is fixed.
-        const string family = "\U0001F468‍\U0001F469‍\U0001F467";
-
-        Assert.Equal(6, DisplayWidth.Of(family));
-        Assert.Equal(2, family.GetColumns());
+        Assert.Equal(text.GetColumns(), DisplayWidth.Of(text));
     }
 
     // Soft hyphen (Terminal.Gui 1, we 0), the line and paragraph separators and U+1200 (we 1, Terminal.Gui 0, an

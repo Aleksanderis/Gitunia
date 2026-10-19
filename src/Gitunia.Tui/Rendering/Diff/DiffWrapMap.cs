@@ -1,6 +1,6 @@
 using System.Text;
 using Gitunia.Core.Diff;
-using Gitunia.Tui.Rendering.Styling;
+using Gitunia.Core.Text;
 
 namespace Gitunia.Tui.Rendering.Diff;
 
@@ -120,19 +120,23 @@ public sealed class DiffWrapMap
             return asciiLength;
         }
 
+        var counter = new WidthCounter();
         foreach (var rune in text.EnumerateRunes())
         {
             if (rune.Value == '\t')
             {
+                // Tabs become spaces before chunking, so the counter sees a plain character.
+                counter.Next(new Rune(' '));
                 column += DiffRowRenderer.TabWidth - (column % DiffRowRenderer.TabWidth);
             }
             else if (rune.Value is >= ' ' and < 0x7F || Rune.IsControl(rune))
             {
+                counter.Next(new Rune(' '));
                 column++;
             }
             else
             {
-                var runeWidth = TextWidth.Of(rune);
+                var runeWidth = counter.Next(rune);
                 simple &= runeWidth == 1;
                 column += runeWidth;
             }

@@ -388,9 +388,11 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
 
-**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
+**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547, fixed: see the entry at the end); supplements the #99 entry above.
 
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
+
+**UI:** A zero-width-joiner emoji sequence measures as one wide cell, as Terminal.Gui does for the sequences in `TerminalGuiWidthComparisonTests` (#547): `WidthCounter` joins an emoji to an emoji in `DisplayWidth.Of(string)`, the per-character wrap and fit loops and the title cells. Supersedes the "ZWJ sequences still differ" note in the #503 entry.
 
 **Performance:** Soft row limit (#515, finishes #199 step 4): a tab loads its newest 100,000 commits and the rest on demand (`G`, search reaching the end, jumps). Measured on 1M commits: ~76 MB instead of ~390 MB until the end is asked for. Supersedes the "deferred to #515" part of the #199 entry. Details: `performance.md`.
 

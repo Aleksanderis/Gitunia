@@ -1,3 +1,4 @@
+using System.Globalization;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
@@ -64,21 +65,22 @@ public static class PromptPopupFrameBuilder
             return text;
         }
 
-        var kept = new List<string>();
+        var starts = StringInfo.ParseCombiningCharacters(text);
         var used = 0;
-        foreach (var rune in text.EnumerateRunes().Reverse())
+        var keptFrom = text.Length;
+        for (var index = starts.Length - 1; index >= 0; index--)
         {
-            var runeWidth = TextWidth.Of(rune);
-            if (used + runeWidth > columns)
+            var end = index + 1 < starts.Length ? starts[index + 1] : text.Length;
+            var elementWidth = TextWidth.Of(text[starts[index]..end]);
+            if (used + elementWidth > columns)
             {
                 break;
             }
 
-            kept.Add(rune.ToString());
-            used += runeWidth;
+            keptFrom = starts[index];
+            used += elementWidth;
         }
 
-        kept.Reverse();
-        return string.Concat(kept);
+        return text[keptFrom..];
     }
 }
