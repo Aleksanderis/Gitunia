@@ -373,6 +373,10 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".
 
+**UI:** Settings screen (#523): overlay on `<space>,`; each change is saved when committed and applied at once; a folder removal asks `y`/`n` inside the overlay. Its single letters (`x` `a` `d` `J` `K`) are keys of a modal list, so the vim-clash rule for the panes does not apply. Rules in `ux.md`.
+
+**Architecture:** The frame corner style is a settable property of the one shared `GraphGlyphSet` (the settings screen changes it while the app runs) and part of the frame-grid cache keys.
+
 **UI:** Theme auto asks the terminal for its background with OSC 11 before the UI starts (#527), 50 ms timeout, falling back to `COLORFGBG`, then dark; skipped when not interactive and on Windows (unsupported there). Why: most terminals do not set `COLORFGBG`. Supersedes the COLORFGBG-only detection of #47.
 
 **Testing:** Startup smoke test (#532): `TuiApplication.Run` runs headless on the `ansi` driver in `dotnet test` (public `DriverName` and `ExitAfterFirstIteration`, no InternalsVisibleTo). Why: two startup crashes passed green unit tests. Details: `testing.md`.

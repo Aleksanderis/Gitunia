@@ -22,8 +22,12 @@ public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, str
 
     public static GraphGlyphSet Ascii { get; } = new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)");
 
-    /// <summary>The corners of pane frames and overlays (the graph's own curves are not affected).</summary>
-    public FrameStyle Frame { get; init; } = FrameStyle.Rounded;
+    /// <summary>
+    /// The corners of pane frames and overlays (the graph's own curves are not affected). Settable because the
+    /// settings screen changes it while the app runs; the one instance the app draws with is shared, so every view
+    /// sees the change.
+    /// </summary>
+    public FrameStyle Frame { get; set; } = FrameStyle.Rounded;
 
     /// <summary>This is the ASCII fallback set (whatever its frame style).</summary>
     public bool IsAscii => Lines == Ascii.Lines;

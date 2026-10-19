@@ -18,6 +18,9 @@ public sealed class OverlayView : View
         Visible = false;
     }
 
+    /// <summary>The column inside the frame (0 is the left border) of the last mouse event over the overlay.</summary>
+    public int PointerColumn { get; private set; }
+
     /// <summary>Raised with the frame line (0 is the top border) when the overlay is clicked.</summary>
     public event Action<int>? LineClicked;
 
@@ -47,6 +50,11 @@ public sealed class OverlayView : View
         if (!MouseFlagTranslator.TryTranslate(mouse.Flags, out var gesture))
         {
             return base.OnMouseEvent(mouse);
+        }
+
+        if (mouse.Position is { } pointer)
+        {
+            PointerColumn = pointer.X;
         }
 
         if (gesture == MouseGesture.Click && mouse.Position is { } position)

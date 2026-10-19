@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
+using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
@@ -7,6 +9,7 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
+using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -35,6 +38,7 @@ using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.App.Sidebar;
 using Gitunia.Tui.App.Operations;
 using Gitunia.Tui.App.Stash;
@@ -118,6 +122,7 @@ public sealed class TuiApplication(
     private FileTreeController _fileTree = null!;
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
+    private SettingsController _settings = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
@@ -257,10 +262,11 @@ public sealed class TuiApplication(
         _pick = CreatePick(operationGate);
         _mainline = new MainlineOverlayTracker(
             () => _pick.Prompt is not null,
-            () => _overlays.State.IsOpen || _reflog.IsOpen,
+            () => _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen,
             RefreshOverlay);
         _router.Pick = _pick;
         _reflog = CreateReflog(glyphs);
+        _settings = CreateSettings(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
@@ -344,7 +350,7 @@ public sealed class TuiApplication(
             .. CreatePrompts(operationGate, sidebarSource),
         ];
         _router.Prompts = _prompts;
-        _keys.TextKeyHandler = key => _reflog.HandleTextKey(key) || _prompts.Any(prompt => prompt.HandleTextKey(key));
+        _keys.TextKeyHandler = HandleTextKey;
 
         // Subscribes itself to the host and the list in its constructor; nothing else needs the instance.
         _ = new SidebarPresenter(_host, _view.Sidebar, sidebarSource);
@@ -382,6 +388,7 @@ public sealed class TuiApplication(
         _view.MessageClicked += _commits.PlaceCursor;
         _view.Window.ViewportChanged += (_, _) => DeferToNextIteration(_diffPane.OnScreenResized);
         _view.Window.ViewportChanged += (_, _) => _overlays.OnScreenResized();
+        _view.Window.ViewportChanged += (_, _) => _settings.OnScreenResized();
         _mainline.Attach(_view.Window);
         _popups = new PromptPopupTracker(CurrentPopup, () => _view.ScreenSize, ShowOverlayFrame);
         _view.ChromeRefreshed += _popups.Sync;
@@ -477,7 +484,13 @@ public sealed class TuiApplication(
 
     private void RouteAction(ActionId action, int? count)
     {
-        if (_reflog.TryExecute(action, count))
+        // The settings do not open over another overlay (help, palette, a dialog, the reflog).
+        if (action == ActionIds.SettingsOpen && (_overlays.State.IsOpen || _reflog.IsOpen))
+        {
+            return;
+        }
+
+        if (_settings.TryExecute(action, count) || _reflog.TryExecute(action, count))
         {
             return;
         }
@@ -489,6 +502,9 @@ public sealed class TuiApplication(
             _router.Execute(action, count);
         }
     }
+
+    private bool HandleTextKey(KeyEvent key) =>
+        _settings.HandleTextKey(key) || _reflog.HandleTextKey(key) || _prompts.Any(prompt => prompt.HandleTextKey(key));
 
     private void OnGestured(string viewName, MouseGesture gesture, int? target)
     {
@@ -508,6 +524,11 @@ public sealed class TuiApplication(
         // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
         if (IsAnyOverlayOpen() && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {
+            if (viewName == MainView.OverlayGestureView)
+            {
+                _settings.FocusColumnAt(_view.Overlay.PointerColumn);
+            }
+
             viewName = OverlayViewName();
         }
 
@@ -570,8 +591,17 @@ public sealed class TuiApplication(
     // A click on a palette row highlights it and runs it (the palette is the menu of every action).
     private void OnOverlayLineClicked(int line)
     {
+        var settingsView = _settings.OnLineClicked(line, _view.Overlay.PointerColumn, out var settingsHandled);
         var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
-        if (reflogHandled)
+        if (settingsHandled)
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            if (settingsView is not null)
+            {
+                _mouse.Handle(settingsView, MouseGesture.Click);
+            }
+        }
+        else if (reflogHandled)
         {
             _overlayClickTicks = Environment.TickCount64;
             if (reflogView is not null)
@@ -589,7 +619,7 @@ public sealed class TuiApplication(
             _overlayClickTicks = Environment.TickCount64;
             _mouse.Handle(DefaultKeymap.ContextMenuView, MouseGesture.Click);
         }
-        else if (_pick.Prompt is { } prompt && !_overlays.State.IsOpen && !_reflog.IsOpen)
+        else if (_pick.Prompt is { } prompt && !_overlays.State.IsOpen && !_reflog.IsOpen && !_settings.IsOpen)
         {
             if (MainlineFrameBuilder.ParentAt(line, prompt.Parents.Count) is { } parent)
             {
@@ -613,7 +643,8 @@ public sealed class TuiApplication(
     private void ShowOverlayFrame()
     {
         _popups.MarkShown();
-        _view.Overlay.Show(_reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame() ?? PopupFrame());
+        var overlay = _settings.CurrentFrame() ?? _reflog.CurrentFrame() ?? _overlays.CurrentFrame();
+        _view.Overlay.Show(overlay ?? MainlineFrame() ?? PopupFrame());
     }
 
     private PromptPopup? CurrentPopup() =>
@@ -1035,7 +1066,9 @@ public sealed class TuiApplication(
             MessageIsFresh = _statuses.IsFresh,
             Hints = _overlays.State.Kind == OverlayKind.Confirm
                 ? PaneHints.ForConfirm()
-                : _reflog.IsOpen
+                : _settings.IsOpen
+                    ? PaneHints.ForSettings()
+                    : _reflog.IsOpen
                     ? PaneHints.ForReflog()
                     : _commits.IsEditing
                     ? PaneHints.ForMessageEditing()
@@ -1121,9 +1154,50 @@ public sealed class TuiApplication(
     }
 
     private bool IsAnyOverlayOpen() =>
-        _overlays.State.IsOpen || _reflog.IsOpen || _pick.Prompt is not null || CurrentPopup() is not null;
+        _overlays.State.IsOpen
+        || _reflog.IsOpen
+        || _settings.IsOpen
+        || _pick.Prompt is not null
+        || CurrentPopup() is not null;
 
-    private string OverlayViewName() => _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+    private string OverlayViewName() => _settings.IsOpen
+        ? DefaultKeymap.SettingsView
+        : _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
+
+    private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
+        new ConfigWriter(platform.ConfigDirectory),
+        new SettingsEnvironment(_homeDirectory, Directory.Exists),
+        _statuses,
+        InvokeOnUi,
+        () => _view.ScreenSize,
+        glyphs,
+        SetMode,
+        RefreshOverlay,
+        ApplyOptions,
+        new ConfigEditorLauncher(
+            new ExternalToolLauncher(),
+            this,
+            _statuses,
+            Environment.GetEnvironmentVariable,
+            PauseForEnter).Launch);
+
+    private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
+        current is null || other is null
+            ? current is null && other is null
+            : current.Value.SequenceEqual(other.Value);
+
+    // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
+    private void ApplyOptions(ConfigOptions options)
+    {
+        _startupConfig = _startupConfig with { Options = options };
+        _glyphs.Frame = options.FrameStyle;
+        if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
+        {
+            _picker.ScanRoots = options.ScanRoots;
+        }
+
+        Relayout();
+    }
 
     private ReflogController CreateReflog(GraphGlyphSet glyphs) => new(
         _host,
