@@ -307,9 +307,14 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         {
             Select(list, target);
             // A count targets a line, so only a plain G (jump to the end) is hinted; the hint ends with the load.
-            if (action == ActionIds.ListBottom && count is null && FocusedPane == PaneKind.Graph && activeSession()?.IsLoading == true)
+            if (action == ActionIds.ListBottom && count is null && FocusedPane == PaneKind.Graph)
             {
-                Message = StillLoadingNotice;
+                // Past the soft row limit the end is not loaded: G starts loading the rest (#515).
+                activeSession()?.RequestExpand(true);
+                if (activeSession()?.IsLoading == true)
+                {
+                    Message = StillLoadingNotice;
+                }
             }
         }
         else if (action == ActionIds.GraphJumpToHead)
@@ -419,7 +424,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         var index = session.Graph.IndexOf(headId);
         if (index < 0)
         {
-            Message = session.IsLoading ? "HEAD is not loaded yet" : "HEAD is not in the graph";
+            // Below the soft row limit HEAD may still come: the rest loads now and the next try finds it.
+            session.RequestExpand(true);
+            Message = session.IsGraphComplete ? "HEAD is not in the graph" : "HEAD is not loaded yet";
             return;
         }
 

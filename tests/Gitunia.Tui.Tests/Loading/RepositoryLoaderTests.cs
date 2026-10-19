@@ -114,16 +114,164 @@ public class RepositoryLoaderTests
         Assert.False(harness.Session.IsLoading);
     }
 
+    [Fact]
+    public async Task GivenLogLongerThanTheSoftLimit_WhenLoading_ThenOnlyTheNewestRowsLoadAndTheSessionIsTruncated()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+
+        await harness.RunAsync();
+
+        Assert.Equal(4, harness.Session.Graph.Count);
+        Assert.Equal(10, harness.Session.TruncatedTotal);
+        Assert.False(harness.Session.IsLoading);
+        Assert.False(harness.Session.IsGraphComplete);
+        Assert.Equal("commit 10", harness.Session.Graph[0].Subject);
+    }
+
+    [Fact]
+    public async Task GivenLogWithinTheSoftLimit_WhenLoading_ThenTheSessionIsNotTruncated()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 4);
+
+        await harness.RunAsync();
+
+        Assert.Equal(4, harness.Session.Graph.Count);
+        Assert.Null(harness.Session.TruncatedTotal);
+        Assert.True(harness.Session.IsGraphComplete);
+    }
+
+    [Fact]
+    public async Task GivenTruncatedSession_WhenRequestingTheRest_ThenTheRowsAreAppendedAndTheGraphIsComplete()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+        await harness.RunAsync();
+
+        harness.Session.RequestExpand(true);
+        Assert.True(harness.Session.IsLoading);
+        await harness.ExpandAsync();
+
+        Assert.Equal(10, harness.Session.Graph.Count);
+        var shownIds = Enumerable.Range(0, 10).Select(index => harness.Session.Graph[index].Id);
+        Assert.Equal(harness.CommitLog.Commits.Select(commit => commit.Id), shownIds);
+        Assert.True(harness.Session.IsGraphComplete);
+        Assert.Null(harness.Session.TruncatedTotal);
+    }
+
+    [Fact]
+    public async Task GivenCompleteSession_WhenRequestingTheRest_ThenNothingHappens()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 4);
+        await harness.RunAsync();
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Session.RequestExpand(true);
+
+        Assert.Equal(0, requests);
+        Assert.False(harness.Session.IsLoading);
+    }
+
+    [Fact]
+    public async Task GivenRestIsLoading_WhenRequestingAgain_ThenNoSecondLoadStarts()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+        await harness.RunAsync();
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Session.RequestExpand();
+        harness.Session.RequestExpand(true);
+
+        Assert.Equal(1, requests);
+    }
+
+    [Fact]
+    public async Task GivenGraphReplacedWhileTheRestLoads_WhenTheStaleReadArrives_ThenItAddsNothing()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+        await harness.RunAsync();
+        var shown = harness.Session.Graph.Count;
+        var staleVersion = harness.Session.GraphVersion;
+        harness.Session.ReplaceGraph([.. Enumerable.Range(0, shown).Select(index => harness.Session.Graph[index])], 10);
+
+        await harness.Loader.ExpandAsync(
+            harness.Location,
+            harness.Session,
+            harness.Statuses,
+            InlineUi.Post,
+            shown,
+            harness.Session.Graph[shown - 1].Id,
+            staleVersion,
+            CancellationToken.None);
+
+        Assert.Equal(4, harness.Session.Graph.Count);
+        Assert.Equal(10, harness.Session.TruncatedTotal);
+    }
+
+    [Fact]
+    public async Task GivenHistoryChangedUnderTheShownRows_WhenTheRestLoads_ThenNothingIsAppendedAndItIsReported()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+        await harness.RunAsync();
+        harness.CommitLog.AddOnTop("new top");
+        harness.Session.RequestExpand(true);
+
+        await harness.ExpandAsync();
+
+        Assert.Equal(4, harness.Session.Graph.Count);
+        Assert.True(harness.Session.IsTruncated);
+        Assert.True(harness.Session.ExpansionFailed);
+        Assert.False(harness.Session.IsLoading);
+        var texts = harness.Statuses.Log.History.Select(message => message.Text);
+        Assert.Contains(texts, text => text.Contains("history changed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenFailedRestLoad_WhenRequestingWithoutTheUser_ThenItDoesNotRetryAndAUserActionDoes()
+    {
+        using var harness = new Harness(softRowLimit: 4);
+        AddCommits(harness, 10);
+        await harness.RunAsync();
+        harness.Session.RequestExpand(true);
+        harness.CommitLog.Failure = new GitException("boom");
+        await harness.ExpandAsync();
+        var requests = 0;
+        harness.Session.ExpandRequested += () => requests++;
+
+        harness.Session.RequestExpand();
+        Assert.Equal(0, requests);
+        harness.Session.RequestExpand(true);
+
+        Assert.Equal(1, requests);
+    }
+
+    private static void AddCommits(Harness harness, int count)
+    {
+        for (var number = 1; number <= count; number++)
+        {
+            harness.CommitLog.AddOnTop($"commit {number}");
+        }
+    }
+
     private sealed class Harness : IDisposable
     {
-        public Harness()
+        public Harness(int softRowLimit = GraphLoader.DefaultSoftRowLimit)
         {
             Location = FakeStatusReader.LocationOf("loader");
             Host = new WorkspaceHost(Workspace.Empty);
             Host.Dispatch(new OpenRepositoryCommand(Location));
             TabId = Host.Workspace.ActiveTabId!.Value;
             Session = new TabSession(TabId, GraphGlyphSet.Unicode, new CommitDetailsStore(new FakeCommitDetailsReader(), Location, action => action(), TimeSpan.Zero));
-            Loader = new RepositoryLoader(Refs, Status, new GraphLoader(CommitLog), new SidebarDataLoader(Refs, Stashes));
+            var graphLoader = new GraphLoader(CommitLog, softRowLimit);
+            Loader = new RepositoryLoader(Refs, Status, graphLoader, new SidebarDataLoader(Refs, Stashes));
+            Session.ExpandRequested += OnExpandRequested;
         }
 
         public RepositoryLocation Location { get; }
@@ -146,10 +294,30 @@ public class RepositoryLoaderTests
 
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
-        private RepositoryLoader Loader { get; }
+        public RepositoryLoader Loader { get; }
 
         public Task RunAsync() => Loader.RunAsync(Location, Session, Host, Statuses, InlineUi.Post, Session.Cancellation.Token);
 
+        // Stands in for the effect runner's answer to a request for the rest of the log.
+        public Task ExpandAsync()
+        {
+            var shown = Session.Graph.Count;
+
+            return Loader.ExpandAsync(
+                Location,
+                Session,
+                Statuses,
+                InlineUi.Post,
+                shown,
+                Session.Graph[shown - 1].Id,
+                Session.GraphVersion,
+                Session.Cancellation.Token);
+        }
+
         public void Dispose() => Session.Dispose();
+
+        private void OnExpandRequested()
+        {
+        }
     }
 }

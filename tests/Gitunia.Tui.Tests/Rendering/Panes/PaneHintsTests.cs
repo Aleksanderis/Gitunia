@@ -211,6 +211,26 @@ public class PaneHintsTests
         }
     }
 
+    [Fact]
+    public void GivenACutLog_WhenDrawingTheStatusBar_ThenThePositionShowsLoadedAndTotalWithAPlus()
+    {
+        var model = new ScreenModel(
+            "repo", null, 1, 1, "NORMAL", string.Empty, 12, 100000, false, string.Empty, TruncatedTotal: 1204331);
+
+        Assert.Contains("12/100000+ of 1204331", StatusText(model), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAWholeLog_WhenDrawingTheStatusBar_ThenThePositionHasNoTotal()
+    {
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 12, 100, false, string.Empty);
+
+        var text = StatusText(model);
+
+        Assert.Contains("12/100 ", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(" of ", text, StringComparison.Ordinal);
+    }
+
     private static string StatusText(ScreenModel model) =>
         string.Concat(ChromeBuilder.Status(model, 160, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 }

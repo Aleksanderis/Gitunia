@@ -61,7 +61,8 @@ public static class ScreenModelFactory
             HomeDirectory: homeDirectory,
             Banner: OperationBannerBuilder.Build(
                 tab?.Operation,
-                OperationBannerBuilder.ConflictCount(tab?.WorkingTree)));
+                OperationBannerBuilder.ConflictCount(tab?.WorkingTree)),
+            TruncatedTotal: session?.TruncatedTotal);
     }
 
     private static string MissingNotice(RepositoryState? tab) =>
