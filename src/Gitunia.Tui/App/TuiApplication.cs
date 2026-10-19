@@ -130,7 +130,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
 
     /// <summary>
     /// Smoke tests: receives the screen text after one forced draw in the first iteration (the loop stops right
-    /// after); a draw fault throws out of <see cref="Run"/>. Only used with <see cref="ExitAfterFirstIteration"/>.
+    /// after). Only used with <see cref="ExitAfterFirstIteration"/>.
     /// </summary>
     public Action<string>? FrameCaptured { get; init; }
 
