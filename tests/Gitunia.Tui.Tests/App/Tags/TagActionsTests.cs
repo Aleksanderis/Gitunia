@@ -320,7 +320,7 @@ public class TagActionsTests
         harness.Answer();
         await harness.FinishAsync();
 
-        Assert.Equal(["Tag delete|git push --delete -- origin refs/tags/v1"], harness.Offers);
+        Assert.Equal(["Remote tag delete|git push --delete -- origin refs/tags/v1"], harness.Offers);
     }
 
     [Fact]
@@ -401,7 +401,7 @@ public class TagActionsTests
                 mode => Mode = mode,
                 () => { },
                 () => _selection,
-                (_, noun, arguments) => Offers.Add($"{noun}|git {string.Join(' ', arguments)}"));
+                (_, noun, arguments, _) => Offers.Add($"{noun}|git {string.Join(' ', arguments)}"));
         }
 
         public TagActions Tags { get; }

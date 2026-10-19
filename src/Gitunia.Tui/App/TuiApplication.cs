@@ -794,8 +794,12 @@ public sealed class TuiApplication(
         BranchSelectionNow,
         OfferTerminalRetry);
 
-    private void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
-        _remote.OfferTerminalRetry(tabId, noun, arguments);
+    private void OfferTerminalRetry(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isBusy) =>
+        _remote.OfferTerminalRetry(tabId, noun, arguments, isBusy);
 
     private MergeActions CreateMerge(TabOperationGate gate) => new(
         _host,

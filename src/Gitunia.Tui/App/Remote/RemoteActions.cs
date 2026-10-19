@@ -281,20 +281,27 @@ public sealed class RemoteActions(
     /// <summary>
     /// Offers the terminal retry for a git command that failed for lack of credentials (also used by the remote branch
     /// delete and the tag pushes, which run outside this class). <paramref name="noun"/> names the operation
-    /// ("Tag push"); <paramref name="arguments"/> are exactly what failed, without the background-only options.
+    /// ("Tag push"); <paramref name="arguments"/> are exactly what failed (built by the same
+    /// <see cref="RemoteCommands"/> method as the writer, minus background-only options);
+    /// <paramref name="isCallerBusy"/> is re-checked on <c>y</c> so the terminal never races a newer operation of the
+    /// caller.
     /// </summary>
-    public void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    public void OfferTerminalRetry(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isCallerBusy)
     {
         if (host.Workspace.FindTab(tabId) is not null)
         {
-            Offer(tabId, noun, arguments);
+            Offer(tabId, noun, arguments, isCallerBusy);
         }
     }
 
     private void OfferTerminal(TabId tabId, Running running) =>
-        Offer(tabId, running.Words.Noun, running.TerminalArguments);
+        Offer(tabId, running.Words.Noun, running.TerminalArguments, () => false);
 
-    private void Offer(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    private void Offer(TabId tabId, string noun, IReadOnlyList<string> arguments, Func<bool> isCallerBusy)
     {
         var command = $"git {string.Join(' ', arguments)}";
         var repository = Path.GetFileName(host.Workspace.FindTab(tabId)!.Location.RootPath);
@@ -310,14 +317,18 @@ public sealed class RemoteActions(
             ],
             $"Runs: {command} (the same command as the one that failed).",
             "Retry in terminal");
-        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, noun, arguments)))
+        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, noun, arguments, isCallerBusy)))
         {
             statuses.Warning(
                 $"{noun} in {repository} needs credentials: run `{command}` in a terminal");
         }
     }
 
-    private void RetryInTerminal(TabId tabId, string noun, IReadOnlyList<string> arguments)
+    private void RetryInTerminal(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isCallerBusy)
     {
         if (host.Workspace.FindTab(tabId) is not { } tab)
         {
@@ -325,7 +336,7 @@ public sealed class RemoteActions(
         }
 
         // Another operation may have started while the Confirm was open; the terminal must not race it.
-        if (_running.ContainsKey(tabId) || gate.IsBusy(tabId))
+        if (_running.ContainsKey(tabId) || gate.IsBusy(tabId) || isCallerBusy())
         {
             statuses.Warning(BusyNotice);
             return;

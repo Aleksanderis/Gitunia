@@ -443,7 +443,7 @@ public sealed class PushActions(
                 if (offer)
                 {
                     var retry = RemoteCommands.BuildDeleteBranch(name.Remote, name.Branch, target.CommitHash, false);
-                    remote.OfferTerminalRetry(tab.Id, "Remote branch delete", retry);
+                    remote.OfferTerminalRetry(tab.Id, "Remote branch delete", retry, () => _busy.Contains(tab.Id));
                 }
             });
         }
