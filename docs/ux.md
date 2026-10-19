@@ -340,6 +340,72 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 - Config can rebind guard rails too (a key for `confirm.yes` in Confirm mode, `Esc`, the quit key); it is the user's file and an entry is accepted as long as no conflict arises.
 - Problems appear as warnings at startup (the first in the status bar with a count of the others; `<space>m` keeps the first five). The loader can find the text span of any value (`ConfigKeyLocator`), which the settings screen (#465) uses to change one key and keep comments and formatting.
 
+## Settings screen (design, #465; not implemented)
+
+One screen for every option of the config file, and the only UI for them (the theme picker of #464 is an entry of it, not a second UI). It edits `config.json`; the file stays the source of truth and the screen never keeps a setting the file cannot hold.
+
+**Entry.** `<space>,` or the palette action `settings.open` (`:settings`) opens it as a large overlay (like Help: Esc closes, the tab underneath stays). `settings.open-theme` (palette only) opens it with the cursor on Appearance, Theme. Mouse: a `Settings` entry in the `Commands` menu.
+
+```
+╭─ Settings ──────────────────────────────────────────────────────╮
+│ / filter                                                         │
+│ ▌Appearance  │ Theme                         ● Catppuccin Mocha  │
+│  Keys        │   ○ Catppuccin Latte                              │
+│  Repositories│   ○ auto (follows the terminal)                   │
+│  Git         │ Frame style                         [rounded ▾]   │
+│  Tabs        │ Show branch in tab name                  [x]      │
+│              ├───────────────────────────────────────────────────│
+│              │ Theme: the colours of the interface. Written to   │
+│              │ config.json as "theme". Default: auto.            │
+├──────────────┴───────────────────────────────────────────────────┤
+│ j/k move  l/Enter edit  h back  / filter  Esc close              │
+╰──────────────────────────────────────────────────────────────────╯
+```
+
+**Layout.** Categories on the left (Appearance, Keys, Repositories, Git, Tabs), the settings of the selected category on the right, a help line under the list (what the setting does, its config key, its default) and a hint row. Under 80 columns the categories collapse into one list with category headings. The set of categories and settings is the table below; the screen is generated from it (a registry of setting id, category, control, config key, default, validation), so docs, screen and config reader cannot drift.
+
+| Category | Setting | Control | Config key | From |
+|---|---|---|---|---|
+| Appearance | Theme | choice list with live preview | `theme` | #47 |
+| Appearance | Frame style | choice | `frameStyle` | #453 |
+| Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
+| Repositories | Scan roots | path list | `scanRoots` | #453 |
+| Keys | Key reference | read-only list from the keymap | none | #50 |
+
+New options of later issues add a row here in the same change; a number control exists in the screen for them (min, max, step, typed digits).
+
+**Focus and keys.** Two columns, `h`/`l` move between them (`l` or `Enter` on a category enters it, `h` or `Esc` in the settings column goes back, `Esc` in the categories closes). `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u` move in the focused column. `/` filters settings across all categories by name and help text (Insert mode, input focused; `Esc` clears; matches show their category and `Enter` jumps to the setting). Per control:
+
+- Toggle: `Enter` or `<space>` flips it and saves at once.
+- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme the cursor move previews it live (the whole UI is repainted with that theme behind the overlay); `Esc` restores the previous theme.
+- Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
+- Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (Confirm naming the path; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
+- Key reference: read-only, grouped by view, generated from the keymap and action titles like Help; `Enter` on a row shows its config entry (`keys` snippet) in the status bar. Editing a binding in the UI is out of scope (see open choices).
+
+Keys are Normal-mode view keys of the `Settings` view, added to the keymap table by the implementing issue; no new global leader beyond `<space>,`.
+
+**Mouse.** Click a category selects it; click a setting selects it, a second click (or a click on its control) edits it: toggle flips, choice opens the list, click on an option selects and keeps it; wheel scrolls the column under the pointer; click outside the overlay (Backdrop) closes it like `Esc`; a click on a path-list `[+]`/`[x]` adds or removes. Every mouse gesture maps to the action id a key produces (`DefaultMouseMap` rows added by the implementing issue).
+
+**Persistence.**
+
+- A change is written when it is committed (toggle flip, `Enter` on a choice, number, path edit), never on each cursor move; the theme preview is not written until `Enter`. The write is applied to the running app at once, no restart.
+- The write is a minimal text edit: `ConfigKeyLocator` finds the span of the value of the key; only that span is replaced, so comments, order, indentation and trailing commas stay byte-for-byte. The file is written to a temporary file in the same directory and renamed over `config.json` (keeping its permissions), so a crash never leaves half a file.
+- A key the file lacks is inserted as a new member at the end of the top-level object, one line, indented like the other members, with a comma added after the previous last member unless it already has one. An empty file or `{}` gets the object filled in. A nested key (`tabs.showBranch`) is inserted into its parent object, which is created the same way if missing.
+- A file that does not parse (or is over 1 MB, or is not an object) is never written. The screen opens read-only with a banner naming the problem and its line, and edits are refused with the same message. A missing file is created (with the config directory) on the first change, containing only that key.
+- Unknown keys are kept untouched and not shown. Duplicate keys (the same member twice in one object): the screen edits the last one, which is the one the reader honours, and warns once that the first is shadowed; it does not delete either.
+- A value in the file that is invalid (wrong type, out of range) shows the setting with its default and a warning marker with the reason; changing it writes a valid value over the bad one.
+- The file changed on disk since it was read (compared by content hash just before the write): the screen re-reads it, shows the new values, and asks to repeat the edit; nothing is overwritten blindly. Editing the file by hand while the screen is open is therefore safe; the app does not watch the file otherwise.
+- Settings that hold a value the file cannot (read-only key reference) are not editable and show no control.
+
+**Open choices for the owner** (the default is built unless the owner says otherwise):
+
+1. Entry key: `<space>,` (default) or a different leader key; `:settings` always exists.
+2. Overlay (default) or a full-screen tab.
+3. Edit key bindings in the screen (default: no, the `keys` list stays a hand-edited file; the key reference shows what is bound).
+4. Save on commit of each control (default) or an explicit save key with a dirty marker.
+5. Theme `auto` default (follows the terminal) versus `dark`.
+6. Whether the screen offers "Open config.json in `$EDITOR`" as a last row (default: yes, it suspends the TUI like `<space>te`).
+
 ## Keymap
 
 The single source of truth for bindings. Add a row in the same change that adds a binding; no conflicts within a mode/view. A test parses this table (columns `Mode/View | Key | Action`; keys in backticks, `Picker` rows are Insert mode, `Palette` rows Command mode, the rest Normal) and checks every key is a registered default in `DefaultKeymap` with no conflicts. Notation: `Ctrl-w c` is a chord, `<space>o` a leader chord, `<lt>` a literal `<`, `:name` is an ex command and not a key. Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mode only); Visual repeats the Lists motions; global `Ctrl-`/`Alt-` rows also work in Insert; `Esc` is bound in every mode; Insert/Command `Enter` accept the input; Confirm mode has only `y` (yes), `n` (no) and `Esc` (no), so a stray `Enter` never confirms a destructive action.
