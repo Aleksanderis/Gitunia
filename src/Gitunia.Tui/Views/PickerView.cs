@@ -64,6 +64,14 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return base.OnMouseEvent(mouse);
         }
 
+        if (picker.LocatingTabId is null && position.Y == PickerHeaderButtons.Row
+            && gesture is MouseGesture.Click or MouseGesture.DoubleClick
+            && TitleButton.ViewAt(PickerHeaderButtons.Layout(Viewport.Width), position.X) is { } headerButton)
+        {
+            ButtonClicked?.Invoke(headerButton);
+            return true;
+        }
+
         var listHeight = Viewport.Height - PickerComposer.HeaderRows - (picker.Message.Length > 0 ? 1 : 0);
         var listRow = position.Y - PickerComposer.HeaderRows;
         if (listRow >= 0 && listRow < listHeight)

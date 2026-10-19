@@ -369,4 +369,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".
 
+**UI:** Clone and init (#401) live in the picker (`Alt-c`, `Alt-i`, mouse buttons) and open the result in a new tab; a cancelled or failed clone removes what it made. Credential prompts stay with #45. Details: `ux.md`, `git-layer.md`.
+
 **Architecture:** Config writer (#522): `ConfigWriter` (Core) sets one key through `ConfigTextEditor`, a pure minimal text edit on top of `ConfigKeyLocator.Locate` (last duplicate wins). Writes go through `AtomicFileWriter`; a file that does not parse is never written; a changed file (content hash) is reported as stale. Rules in `ux.md`, "Settings screen".

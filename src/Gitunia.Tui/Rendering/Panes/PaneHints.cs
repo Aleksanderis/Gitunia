@@ -164,6 +164,8 @@ public static class PaneHints
         new("Tab", "accept", [ActionIds.PickerCompletePath]),
         new("Alt-p", "pin to top", [ActionIds.PickerPin]),
         new("Alt-d", "forget", [ActionIds.PickerRemoveRecent]),
+        new("Alt-c", "clone", [ActionIds.PickerClone]),
+        new("Alt-i", "init", [ActionIds.PickerInit]),
         new("Esc", "close", [ActionIds.Cancel]),
     ];
 

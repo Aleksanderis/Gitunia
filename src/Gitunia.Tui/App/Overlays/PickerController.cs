@@ -224,7 +224,14 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
         }
     }
 
-    private string BaseDirectory() => host.Workspace.ActiveTab?.Location.RootPath ?? homeDirectory;
+    /// <summary>
+    /// Opens a repository the app just created (clone, init) in a new tab and closes the picker; the location is
+    /// known, so nothing is discovered again.
+    /// </summary>
+    public void OpenLocation(RepositoryLocation location) => Opened(++_openRequest, location, null);
+
+    /// <summary>Where relative paths are taken from: the active repository, or the home directory.</summary>
+    public string BaseDirectory() => host.Workspace.ActiveTab?.Location.RootPath ?? homeDirectory;
 
     private PickerContext CreateContext() =>
         new(host.Workspace, _discovered, homeDirectory, BaseDirectory(), _listDirectoriesFunction, IsRepository);

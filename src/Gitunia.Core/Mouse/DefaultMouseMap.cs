@@ -82,6 +82,11 @@ public static class DefaultMouseMap
 
     public const string PickerRemoveButton = "PickerButton.Remove";
 
+    /// <summary>Picker buttons on the hint line: clone a repository, initialise a directory.</summary>
+    public const string PickerCloneButton = "PickerButton.Clone";
+
+    public const string PickerInitButton = "PickerButton.Init";
+
     /// <summary>The checkboxes and the Commit button in the option row of the working-tree message box.</summary>
     public const string MessageSignOffButton = "MessageButton.SignOff";
 
@@ -228,5 +233,7 @@ public static class DefaultMouseMap
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),
         new(PickerPinButton, MouseGesture.Click, ActionIds.PickerPin),
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
+        new(PickerCloneButton, MouseGesture.Click, ActionIds.PickerClone),
+        new(PickerInitButton, MouseGesture.Click, ActionIds.PickerInit),
     ];
 }
