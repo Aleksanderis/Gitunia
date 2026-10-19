@@ -22,6 +22,8 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
     private const string GetOption = "--get";
     private const string SshCommandKey = "core.sshCommand";
 
+    private static readonly string[] SshConfigArguments = [Config, GetOption, SshCommandKey];
+
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromMinutes(2);
 
     public RemoteRunner(GitRunner runner)
@@ -86,15 +88,14 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         // Git's order is the variable, then core.sshCommand, then GIT_SSH.
         if (string.IsNullOrWhiteSpace(sshCommand))
         {
-            var arguments = new[] { Config, GetOption, SshCommandKey };
             var result = location is null
                 ? await runner
-                    .RunGlobalAsync(arguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
+                    .RunGlobalAsync(SshConfigArguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
                     .ConfigureAwait(false)
                 : await runner
                     .RunAsync(
                         location.CommandPath,
-                        arguments,
+                        SshConfigArguments,
                         GitRunOptions.ReadOnlyRunAllowingNoMatch,
                         cancellationToken)
                     .ConfigureAwait(false);

@@ -142,14 +142,14 @@ public class RepositoryCreationActionsTests
         await harness.Pump.RunUntilAsync(() => !harness.Actions.IsCloning);
 
         Assert.StartsWith("Clone failed:", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest.Severity);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest.Severity);
         Assert.False(Directory.Exists(target));
         Assert.Empty(harness.Host.Workspace.Tabs);
         Assert.True(harness.Picker.IsOpen);
     }
 
     [Fact]
-    public void GivenADirectoryWithContent_WhenChoosingTheCloneTarget_ThenThePromptStaysOpenAndNothingRuns()
+    public async Task GivenADirectoryWithContent_WhenChoosingTheCloneTarget_ThenItIsRefusedAndTheFilesStay()
     {
         using var repository = TestRepositories.WithOrigin();
         using var harness = Harness.For(repository);
@@ -163,9 +163,11 @@ public class RepositoryCreationActionsTests
         harness.Replace(target);
         harness.Run(ActionIds.PickerAccept);
 
-        Assert.Contains("is not empty", harness.Actions.Notice, StringComparison.Ordinal);
-        Assert.NotNull(harness.Actions.Popup);
-        Assert.False(harness.Actions.IsCloning);
+        await harness.Pump.RunUntilAsync(() => !harness.Actions.IsCloning);
+
+        Assert.Contains("is not empty", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest.Severity);
+        Assert.Empty(harness.Host.Workspace.Tabs);
         Assert.Equal("mine", File.ReadAllText(Path.Combine(target, "mine.txt")));
     }
 
@@ -178,7 +180,7 @@ public class RepositoryCreationActionsTests
         harness.Run(ActionIds.PickerClone);
         harness.Run(ActionIds.PickerAccept);
 
-        Assert.Equal("Type something first", harness.Actions.Notice);
+        Assert.Equal("Type something first", harness.Statuses.Log.Latest!.Text);
         Assert.Contains("URL or path", PopupText.Of(harness.Actions), StringComparison.Ordinal);
     }
 
@@ -218,7 +220,7 @@ public class RepositoryCreationActionsTests
 
         harness.Run(ActionIds.PickerClone);
 
-        Assert.Equal("Not while locating a repository", harness.Actions.Notice);
+        Assert.Equal("Not while locating a repository", harness.Statuses.Log.Latest!.Text);
         Assert.Null(harness.Actions.Popup);
     }
 
@@ -304,7 +306,7 @@ public class RepositoryCreationActionsTests
     }
 
     [Fact]
-    public void GivenAFileAsTheInitTarget_WhenInitialising_ThenTheFailureIsReportedAndNoTabOpens()
+    public async Task GivenAFileAsTheInitTarget_WhenInitialising_ThenTheFailureIsReportedAndNoTabOpens()
     {
         using var repository = TestRepositories.WithOrigin();
         using var harness = Harness.For(repository);
@@ -315,8 +317,9 @@ public class RepositoryCreationActionsTests
         harness.Replace(target);
         harness.Run(ActionIds.PickerAccept);
 
-        Assert.Contains("is a file", harness.Actions.Notice, StringComparison.Ordinal);
-        Assert.NotNull(harness.Actions.Popup);
+        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest is not null);
+
+        Assert.Contains("is a file", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Empty(harness.Host.Workspace.Tabs);
     }
 
@@ -331,7 +334,7 @@ public class RepositoryCreationActionsTests
         harness.StartClone("anywhere", harness.Target("first"));
         harness.Run(ActionIds.PickerClone);
 
-        Assert.Equal("Busy: a clone or init is still running", harness.Actions.Notice);
+        Assert.Equal("Busy: a clone or init is still running", harness.Statuses.Log.Latest!.Text);
         Assert.Null(harness.Actions.Popup);
         harness.Actions.CancelAndWait();
     }

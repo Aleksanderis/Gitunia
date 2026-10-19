@@ -41,6 +41,7 @@ public sealed class RepositoryCreationActions(
     string homeDirectory,
     Func<string> defaultParent) : IPromptHandler
 {
+    private const string PickerPrefix = "picker.";
     private const string BusyNotice = "Busy: a clone or init is still running";
     private const string LocatingNotice = "Not while locating a repository";
     private const string EmptyNotice = "Type something first";
@@ -58,7 +59,7 @@ public sealed class RepositoryCreationActions(
     private Running? _running;
     private bool _isInitRunning;
 
-    public string Notice { get; private set; } = string.Empty;
+    public string Notice => string.Empty;
 
     public string StatusLine => string.Empty;
 
@@ -96,7 +97,6 @@ public sealed class RepositoryCreationActions(
 
     public bool TryExecute(ActionId action, int? count)
     {
-        Notice = string.Empty;
         if (_kind != CreationPromptKind.None && !picker.IsOpen)
         {
             // The picker went away behind the prompt (another tab was activated): the question is void.
@@ -123,9 +123,9 @@ public sealed class RepositoryCreationActions(
             return false;
         }
 
-        Notice = state.LocatingTabId is not null ? LocatingNotice
+        Warn(state.LocatingTabId is not null ? LocatingNotice
             : _running is not null || _isInitRunning ? BusyNotice
-            : Begin(action, state);
+            : Begin(action, state));
         redraw();
         return true;
     }
@@ -182,13 +182,13 @@ public sealed class RepositoryCreationActions(
     {
         if (action == ActionIds.InputAccept || action == ActionIds.PickerAccept)
         {
-            Notice = Accept();
+            Warn(Accept());
         }
         else if (action == ActionIds.Cancel)
         {
             Close();
         }
-        else if (!action.Value.StartsWith("picker.", StringComparison.Ordinal))
+        else if (!action.Value.StartsWith(PickerPrefix, StringComparison.Ordinal))
         {
             return false;
         }
@@ -231,11 +231,6 @@ public sealed class RepositoryCreationActions(
         }
 
         var directory = PathQuery.Resolve(typed, homeDirectory, picker.BaseDirectory());
-        if (CheckDirectory(directory, _kind == CreationPromptKind.CloneTarget) is { } problem)
-        {
-            return problem;
-        }
-
         var kind = _kind;
         Close();
         if (kind == CreationPromptKind.CloneTarget)
@@ -250,17 +245,13 @@ public sealed class RepositoryCreationActions(
         return string.Empty;
     }
 
-    // A clone needs a missing or empty directory; init takes any directory. Both refuse a file.
-    private static string? CheckDirectory(string directory, bool mustBeEmpty)
+    // The notices go to the status bar: this handler claims the action, so the router never reads its Notice.
+    private void Warn(string text)
     {
-        if (File.Exists(directory))
+        if (text.Length > 0)
         {
-            return $"{directory} is a file";
+            statuses.Post(text, StatusSeverity.Warning);
         }
-
-        return mustBeEmpty && Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any()
-            ? $"{directory} is not empty: pick a new or empty folder"
-            : null;
     }
 
     private string ClonePrefix()
@@ -323,16 +314,16 @@ public sealed class RepositoryCreationActions(
             var location = await creator
                 .CloneAsync(request, progress, running.Cancellation.Token)
                 .ConfigureAwait(false);
-            postToUi(() => Finish(running, $"Cloned {Path.GetFileName(location.RootPath)}", location, false));
+            postToUi(() => Finish(running, $"Cloned {Path.GetFileName(location.RootPath)}", location, StatusSeverity.Info));
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => Finish(running, CancelledText, null, true));
+            postToUi(() => Finish(running, CancelledText, null, StatusSeverity.Warning));
         }
         catch (Exception exception) when (exception is GitException or IOException or UnauthorizedAccessException)
         {
             var text = $"Clone failed: {FailureText(exception)}";
-            postToUi(() => Finish(running, text, null, true));
+            postToUi(() => Finish(running, text, null, StatusSeverity.Error));
         }
     }
 
@@ -368,11 +359,11 @@ public sealed class RepositoryCreationActions(
         }
     }
 
-    private void Finish(Running running, string text, RepositoryLocation? location, bool isProblem)
+    private void Finish(Running running, string text, RepositoryLocation? location, StatusSeverity severity)
     {
         running.Cancellation.Dispose();
         _running = null;
-        statuses.Post(text, isProblem ? StatusSeverity.Warning : StatusSeverity.Info);
+        statuses.Post(text, severity);
         if (location is not null)
         {
             picker.OpenLocation(location);

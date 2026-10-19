@@ -12,6 +12,8 @@ public sealed class RepositoryCreator(RemoteRunner remoteRunner, GitRunner runne
     private const string Clone = "clone";
     private const string Init = "init";
     private const string MarkerName = ".git";
+    private const int RemoveAttempts = 10;
+    private static readonly TimeSpan RemoveRetryDelay = TimeSpan.FromMilliseconds(100);
 
     public async Task<RepositoryLocation> CloneAsync(
         CloneRequest request,
@@ -31,9 +33,9 @@ public sealed class RepositoryCreator(RemoteRunner remoteRunner, GitRunner runne
                 .ConfigureAwait(false);
             return await discovery.DiscoverAsync(target, cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (Exception exception)
         {
-            undo.Run();
+            await FailAsync(undo, exception).ConfigureAwait(false);
             throw;
         }
     }
@@ -62,11 +64,23 @@ public sealed class RepositoryCreator(RemoteRunner remoteRunner, GitRunner runne
             var created = await discovery.DiscoverAsync(target, cancellationToken).ConfigureAwait(false);
             return new InitResult(created, false);
         }
-        catch
+        catch (Exception exception)
         {
-            undo.Run();
+            await FailAsync(undo, exception).ConfigureAwait(false);
             throw;
         }
+    }
+
+    // Removes what the run made. A killed git may still hold files for a moment, so removal is retried; when it still
+    // fails the caller is told instead of being promised a clean state.
+    private static async Task FailAsync(TargetUndo undo, Exception original)
+    {
+        if (original is CloneTargetException || await undo.RunAsync().ConfigureAwait(false))
+        {
+            return;
+        }
+
+        throw new CloneLeftoverException(undo.Path ?? string.Empty, original);
     }
 
     // Checks the target and remembers what a failed run must remove again.
@@ -103,12 +117,26 @@ public sealed class RepositoryCreator(RemoteRunner remoteRunner, GitRunner runne
     {
         public static TargetUndo None { get; } = new(null, false);
 
-        // Best effort: a leftover that cannot be removed (a file still locked) must not hide the original error.
-        public void Run()
+        public async Task<bool> RunAsync()
+        {
+            for (var attempt = 0; attempt < RemoveAttempts; attempt++)
+            {
+                if (TryRemove())
+                {
+                    return true;
+                }
+
+                await Task.Delay(RemoveRetryDelay).ConfigureAwait(false);
+            }
+
+            return TryRemove();
+        }
+
+        private bool TryRemove()
         {
             if (Path is null || !Directory.Exists(Path))
             {
-                return;
+                return true;
             }
 
             try
@@ -121,10 +149,12 @@ public sealed class RepositoryCreator(RemoteRunner remoteRunner, GitRunner runne
                 {
                     Directory.Delete(Path, recursive: true);
                 }
+
+                return true;
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
-                // Nothing more can be done here.
+                return false;
             }
         }
 
