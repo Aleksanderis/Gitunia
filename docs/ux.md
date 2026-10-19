@@ -275,7 +275,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme later swaps the table and nothing else. The config file does not set colours yet (#47).
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting (`auto`, `dark`, `light`, #47) picks the light or dark side; named themes are #61.
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
@@ -312,16 +312,18 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 | Search match | dark text on yellow (kept on a selected row) |
 | Overlay key column | yellow, bold |
 
-**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch). Light backgrounds are recognised from `COLORFGBG` (background 7 or 15) and get darker accents and light tints; a terminal that does not set it is assumed dark. A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
+**Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch). Light backgrounds are recognised from `COLORFGBG` (background 7 or 15) and get darker accents and light tints; a terminal that does not set it is assumed dark. The `theme` setting overrides that detection (`light` or `dark`; `auto`, the default, keeps it), at every colour depth except `NO_COLOR`, which has no colours to switch. A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
 
 **Looking at it without the UI.** `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
 
 ## Config file
 
-`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (theme #47, options #453) fit beside `keys`. The file is read once at startup and never modified by the loader.
+`config.json` in the config directory (`$XDG_CONFIG_HOME/gitunia` or `~/.config/gitunia`, see `architecture.md`). JSON with comments and trailing commas, read with source-generated System.Text.Json. Unknown properties are ignored, so later sections (options #453) fit beside `keys`. The file is read once at startup and never modified by the loader.
 
 ```jsonc
 {
+  // auto (default: follow the terminal's background), dark or light.
+  "theme": "auto",
   "keys": [
     // Bind a free key (mode defaults to Normal, view to Global).
     { "view": "Graph", "key": "J", "action": "list.down" },

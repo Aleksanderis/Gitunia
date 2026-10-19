@@ -15,13 +15,19 @@ public sealed class ConfigStartup(string configDirectory)
     private const int MaximumReportedProblems = 5;
 
     /// <summary>Loads the file and applies its key entries to the default keymap. Never throws.</summary>
-    public KeymapBuildResult LoadKeymap()
+    public KeymapBuildResult LoadKeymap() => Load().Keymap;
+
+    /// <summary>Loads the file once and builds the keymap and the theme choice. Never throws.</summary>
+    public StartupConfig Load()
     {
         var defaults = DefaultKeymap.Create();
         var loaded = new ConfigLoader(configDirectory).LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         var built = KeymapConfigurator.Apply(defaults, loaded.Document.Keys);
+        var themeProblems = new List<ConfigProblem>();
+        var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems);
+        var keymap = built with { Problems = [.. loaded.Problems, .. built.Problems, .. themeProblems] };
 
-        return built with { Problems = [.. loaded.Problems, .. built.Problems] };
+        return new StartupConfig(keymap, theme);
     }
 
     /// <summary>

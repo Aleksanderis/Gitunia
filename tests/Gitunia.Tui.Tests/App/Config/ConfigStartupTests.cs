@@ -74,5 +74,31 @@ public sealed class ConfigStartupTests : IDisposable
         Assert.Equal(StatusSeverity.Warning, statuses.Current.Severity);
     }
 
+    [Theory]
+    [InlineData("""{ "theme": "light" }""", ThemeChoice.Light)]
+    [InlineData("""{ "theme": "Dark" }""", ThemeChoice.Dark)]
+    [InlineData("""{ "theme": "auto" }""", ThemeChoice.Auto)]
+    [InlineData("""{ "keys": [] }""", ThemeChoice.Auto)]
+    public void GivenAThemeSetting_WhenLoading_ThenTheChoiceFollowsItWithoutProblems(string json, ThemeChoice expected)
+    {
+        Write(json);
+
+        var config = new ConfigStartup(_directory).Load();
+
+        Assert.Equal(expected, config.Theme);
+        Assert.Empty(config.Keymap.Problems);
+    }
+
+    [Fact]
+    public void GivenAnUnknownTheme_WhenLoading_ThenAutoApplies_AndTheProblemNamesTheSetting()
+    {
+        Write("""{ "theme": "solarized" }""");
+
+        var config = new ConfigStartup(_directory).Load();
+
+        Assert.Equal(ThemeChoice.Auto, config.Theme);
+        Assert.Equal("theme", Assert.Single(config.Keymap.Problems).Path);
+    }
+
     private void Write(string content) => File.WriteAllText(Path.Combine(_directory, ConfigLoader.FileName), content);
 }

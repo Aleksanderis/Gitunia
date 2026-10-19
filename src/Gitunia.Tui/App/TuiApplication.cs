@@ -97,6 +97,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private GraphTabBinder _binder = null!;
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
+    private StartupConfig _startupConfig = null!;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
     private TagActions _tags = null!;
@@ -126,6 +127,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
+        _startupConfig = new ConfigStartup(platform.ConfigDirectory).Load();
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
@@ -259,7 +261,7 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         _binder.Switched += OnTabSwitched;
         _binder.GraphChanged += OnGraphChanged;
 
-        var configured = new ConfigStartup(platform.ConfigDirectory).LoadKeymap();
+        var configured = _startupConfig.Keymap;
         var engine = new KeymapEngine(configured.Table);
         _keys = new KeyController(engine, RouteAction);
         _fileTree = new FileTreeController(
@@ -1131,7 +1133,9 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private void ConfigurePalette()
     {
         var driver = _application.Driver;
-        var palette = PaletteSettings.Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false });
+        var palette = PaletteSettings
+            .Choose(capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
+            .WithTheme(_startupConfig.Theme);
         if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
         {
             driver.Force16Colors = true;
