@@ -72,7 +72,7 @@ public sealed class SettingsController(
     private ConfigSnapshot _snapshot = new(false, string.Empty, string.Empty);
     private KeyMode _mode = KeyMode.Normal;
     private bool _isBusy;
-    private ThemeChoice _committedTheme = ThemeChoice.Auto;
+    private ThemeChoice? _committedTheme;
     private ThemeChoice? _pendingTheme;
     private ThemeChoice? _shownTheme;
 
@@ -419,7 +419,9 @@ public sealed class SettingsController(
     private void Failed(string message)
     {
         _isBusy = false;
+        _pendingTheme = null;
         statuses.Error(message);
+        SyncTheme();
         redraw();
     }
 
@@ -559,10 +561,10 @@ public sealed class SettingsController(
     private void SyncTheme()
     {
         var wanted = State?.PreviewTheme ?? _pendingTheme ?? _committedTheme;
-        if (_shownTheme != wanted)
+        if (wanted is { } theme && _shownTheme != theme)
         {
-            _shownTheme = wanted;
-            applyTheme(wanted);
+            _shownTheme = theme;
+            applyTheme(theme);
         }
     }
 }

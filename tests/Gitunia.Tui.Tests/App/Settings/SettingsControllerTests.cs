@@ -170,6 +170,19 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenAFileThatDoesNotParse_WhenOpeningAndBrowsing_ThenNoThemeIsApplied()
+    {
+        _harness.WriteConfig("{ \"theme\": ");
+
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.NavigateBack);
+
+        Assert.Empty(_harness.Themes);
+    }
+
+    [Fact]
     public async Task GivenThePaletteActionForTheTheme_WhenOpening_ThenTheCursorIsOnTheThemeRow()
     {
         Assert.True(_harness.Settings.TryExecute(ActionIds.SettingsOpenTheme, null));

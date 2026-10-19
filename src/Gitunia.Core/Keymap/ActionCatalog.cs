@@ -275,7 +275,7 @@ public static class ActionCatalog
     public static IReadOnlySet<ActionId> Unimplemented { get; } = FrozenSet<ActionId>.Empty;
 
     /// <summary>Actions with no key: the palette lists them without keys, the mouse reaches them there.</summary>
-    public static IReadOnlySet<ActionId> PaletteOnly => PaletteOnlyActions;
+    public static IReadOnlySet<ActionId> PaletteOnly { get; } = PaletteOnlyActions.ToFrozenSet();
 
     /// <summary>True for actions that only make sense inside a modal prompt; the palette does not list them.</summary>
     public static bool IsModalOnly(ActionId action) => ModalOnly.Contains(action);
