@@ -10,14 +10,15 @@ namespace Gitunia.Tui.App.Config;
 /// defaults apply for whatever could not be used and every problem is reported in the status history.
 /// </summary>
 /// <param name="configDirectory">The directory holding <c>config.json</c>.</param>
-public sealed class ConfigStartup(string configDirectory)
+/// <param name="homeDirectory">What <c>~</c> stands for in a scan root.</param>
+public sealed class ConfigStartup(string configDirectory, string homeDirectory)
 {
     private const int MaximumReportedProblems = 5;
 
     /// <summary>Loads the file and applies its key entries to the default keymap. Never throws.</summary>
     public KeymapBuildResult LoadKeymap() => Load().Keymap;
 
-    /// <summary>Loads the file once and builds the keymap and the theme choice. Never throws.</summary>
+    /// <summary>Loads the file once and builds the keymap, the theme choice and the options. Never throws.</summary>
     public StartupConfig Load()
     {
         var defaults = DefaultKeymap.Create();
@@ -25,9 +26,10 @@ public sealed class ConfigStartup(string configDirectory)
         var built = KeymapConfigurator.Apply(defaults, loaded.Document.Keys);
         var themeProblems = new List<ConfigProblem>();
         var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems);
+        var options = OptionsConfigurator.Read(loaded.Document, homeDirectory, Directory.Exists, themeProblems);
         var keymap = built with { Problems = [.. loaded.Problems, .. built.Problems, .. themeProblems] };
 
-        return new StartupConfig(keymap, theme);
+        return new StartupConfig(keymap, theme, options);
     }
 
     /// <summary>

@@ -364,3 +364,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Theme setting (#47): `theme` in `config.json` is `auto` (default, follows the detected terminal background), `dark` or `light`; it only forces which side of the existing Catppuccin Mocha/Latte and 16-colour tables is used. Unknown values warn and mean `auto`. `auto` still uses `COLORFGBG` only; the OSC 11 query is #527. Named themes stay in #61.
 
 **UI:** Settings screen (#465): one overlay opened by `<space>,` (default, owner may change) or `:settings` edits `config.json` by a minimal text edit of the changed key (comments kept, unparsable file never written); the theme picker is an entry of it, not a second UI. Key bindings stay hand-edited. Design in `ux.md`.
+
+## 2026-10-19
+
+**UI:** Config options (#453): `frameStyle` (`rounded`/`square`), `tabs.showBranch` and `scanRoots` (replaces the conventional picker folders). A bad value or entry is reported and skipped, defaults apply; rules in `ux.md`, "Config file".

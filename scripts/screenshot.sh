@@ -232,6 +232,11 @@ render() {
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
     fi
+    if [[ -n "${GITUNIA_SCREENSHOT_CONFIG:-}" ]]; then
+      # Optional config.json for the private config directory (options such as frameStyle).
+      mkdir -p "$work/config/gitunia"
+      cp "$GITUNIA_SCREENSHOT_CONFIG" "$work/config/gitunia/config.json"
+    fi
     tmux_cmd kill-session -t shot 2>/dev/null || true
     tmux_cmd new-session -d -s shot -x "$columns" -y "$rows" "exec env COLORTERM=truecolor XDG_STATE_HOME=$(printf '%q' "$work/state") XDG_CONFIG_HOME=$(printf '%q' "$work/config") GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null $(printf '%q %q' "$binary" "$scenario_repo")"
     wait_stable "$socket"

@@ -16,7 +16,8 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
     TimeSpan? listingTimeout = null,
     Func<string, IReadOnlyList<string>>? listDirectories = null,
     TimeSpan? scanningDelay = null,
-    Func<TabId, TabId, bool>? moveDraft = null)
+    Func<TabId, TabId, bool>? moveDraft = null,
+    ImmutableArray<string>? scanRoots = null)
 {
     private static readonly TimeSpan RescanInterval = TimeSpan.FromSeconds(30);
 
@@ -309,7 +310,7 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
 
         _isScanning = true;
         _lastScan = DateTime.UtcNow;
-        var roots = RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
+        var roots = scanRoots ?? RepositoryScanner.DefaultRoots(homeDirectory, Directory.Exists);
         _ = Task.Run(() =>
         {
             var found = ImmutableArray<string>.Empty;
