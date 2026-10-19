@@ -373,4 +373,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Settings screen (#523): overlay on `<space>,`; each change is saved when committed and applied at once; a folder removal asks `y`/`n` inside the overlay. Its single letters (`x` `a` `d` `J` `K`) are keys of a modal list, so the vim-clash rule for the panes does not apply. Rules in `ux.md`.
 
-**Architecture:** The frame corner style is a settable property of the one shared `GraphGlyphSet` (the settings screen changes it while the app runs) and part of the frame-grid cache keys. Segments of one line may carry their own selection, so two columns of one overlay row can be selected independently.
+**Architecture:** The frame corner style is a settable property of the one shared `GraphGlyphSet` (the settings screen changes it while the app runs) and part of the frame-grid cache keys.

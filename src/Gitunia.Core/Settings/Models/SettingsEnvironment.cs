@@ -1,4 +1,4 @@
-namespace Gitunia.Core.Settings;
+namespace Gitunia.Core.Settings.Models;
 
 /// <summary>What the reducer needs from the machine, injected so it stays pure.</summary>
 /// <param name="HomeDirectory">What a leading <c>~</c> in a folder stands for.</param>

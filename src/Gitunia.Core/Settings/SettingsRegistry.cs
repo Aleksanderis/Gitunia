@@ -20,8 +20,11 @@ public static class SettingsRegistry
     /// <summary>The id of the row that opens the config file in the editor.</summary>
     public const string OpenConfigId = "open-config";
 
-    private const string RoundedStyle = "rounded";
-    private const string SquareStyle = "square";
+    /// <summary>The text of the rounded frame style in the file.</summary>
+    public const string RoundedStyle = "rounded";
+
+    /// <summary>The text of the square frame style in the file.</summary>
+    public const string SquareStyle = "square";
 
     /// <summary>The settings in the order they are listed inside a category.</summary>
     public static IReadOnlyList<SettingDefinition> All { get; } =

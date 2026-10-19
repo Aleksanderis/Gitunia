@@ -313,7 +313,7 @@ public static class SettingsFrameBuilder
         var room = Math.Max(0, width - 1 - rightWidth - trailing.Length - (rightWidth > 0 ? 1 : 0));
         var leftFitted = TextWidth.Fit($" {left}", room, glyphs.Ellipsis);
         var gap = Math.Max(0, width - 1 - TextWidth.Of(leftFitted) - rightWidth - trailing.Length);
-        var markerRole = marker == "!" ? SegmentRole.Error : leftRole;
+        var markerRole = marker == SettingsRowText.Warning ? SegmentRole.Error : leftRole;
         var line = new LineBuilder(width, glyphs.Ellipsis)
             .Append(marker, markerRole)
             .Append(leftFitted, leftRole)
@@ -385,7 +385,7 @@ public static class SettingsFrameBuilder
             ? string.Join(' ', wrapped.Skip(1))
             : wrapped.ElementAtOrDefault(1) ?? string.Empty;
 
-        return [wrapped[0], second];
+        return [wrapped.FirstOrDefault() ?? string.Empty, second];
     }
 
     private static string HintText(SettingsState state)

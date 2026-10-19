@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Gitunia.Core.Clipboard;
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
@@ -8,7 +9,7 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
-using Gitunia.Core.Settings;
+using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -475,8 +476,12 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
         // While an overlay is open the wheel scrolls it wherever the pointer is (other gestures on the panes behind it are ignored).
         if (IsAnyOverlayOpen() && gesture is MouseGesture.WheelUp or MouseGesture.WheelDown)
         {
+            if (viewName == MainView.OverlayGestureView)
+            {
+                _settings.FocusColumnAt(_view.Overlay.PointerColumn);
+            }
+
             viewName = OverlayViewName();
-            _settings.FocusColumnAt(_view.Overlay.PointerColumn);
         }
 
         // A click anywhere outside an open overlay closes it, like Esc.
@@ -1107,12 +1112,21 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
             Environment.GetEnvironmentVariable,
             PauseForEnter).Launch);
 
+    private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
+        current is null || other is null
+            ? current is null && other is null
+            : current.Value.SequenceEqual(other.Value);
+
     // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
     private void ApplyOptions(ConfigOptions options)
     {
         _startupConfig = _startupConfig with { Options = options };
         _glyphs.Frame = options.FrameStyle;
-        _picker.ScanRoots = options.ScanRoots;
+        if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
+        {
+            _picker.ScanRoots = options.ScanRoots;
+        }
+
         Relayout();
     }
 

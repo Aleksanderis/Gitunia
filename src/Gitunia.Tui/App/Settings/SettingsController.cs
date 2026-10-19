@@ -351,40 +351,57 @@ public sealed class SettingsController(
         ReadThen(Show);
     }
 
-    private void Show(ConfigSnapshot snapshot)
+    private void Show(SettingsRead read)
     {
-        _snapshot = snapshot;
-        var load = SettingsValueReader.Read(snapshot, environment.HomeDirectory, environment.DirectoryExists);
-        State = SettingsState.Create(_definitions, load).WithLayout(IsCollapsed());
-        ApplyOptions(load);
+        _snapshot = read.Snapshot;
+        State = SettingsState.Create(_definitions, read.Load).WithLayout(IsCollapsed());
+        ApplyOptions(read.Load);
         SyncMode();
         redraw();
     }
 
-    // Reads the file off the UI thread, then continues on it. Reads and writes never overlap.
-    private void ReadThen(Action<ConfigSnapshot> then)
+    // Reads and parses the file off the UI thread (a scan root on a slow mount must not freeze the UI), then
+    // continues on it. Reads and writes never overlap.
+    private void ReadThen(Action<SettingsRead> then)
     {
         _isBusy = true;
         _ = Task.Run(() => ReadAsync(then), CancellationToken.None);
     }
 
-    private async Task ReadAsync(Action<ConfigSnapshot> then)
+    private async Task ReadAsync(Action<SettingsRead> then)
     {
         try
         {
             var snapshot = await writer.ReadAsync(cancellationToken).ConfigureAwait(false);
-            postToUi(() => Finished(then, snapshot));
+            var read = new SettingsRead(snapshot, Parse(snapshot));
+            postToUi(() => Finished(then, read));
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _isBusy = false);
+            postToUi(Idle);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            postToUi(() => Failed($"Could not read config.json: {exception.Message}"));
         }
     }
 
-    private void Finished(Action<ConfigSnapshot> then, ConfigSnapshot snapshot)
+    private SettingsLoad Parse(ConfigSnapshot snapshot) =>
+        SettingsValueReader.Read(snapshot, environment.HomeDirectory, environment.DirectoryExists);
+
+    private void Finished(Action<SettingsRead> then, SettingsRead read)
     {
         _isBusy = false;
-        then(snapshot);
+        then(read);
+    }
+
+    private void Idle() => _isBusy = false;
+
+    private void Failed(string message)
+    {
+        _isBusy = false;
+        statuses.Error(message);
+        redraw();
     }
 
     private void OpenEditor()
@@ -406,10 +423,10 @@ public sealed class SettingsController(
         ReadThen(Reloaded);
     }
 
-    private void Reloaded(ConfigSnapshot snapshot)
+    private void Reloaded(SettingsRead read)
     {
-        _snapshot = snapshot;
-        ApplyLoad(snapshot);
+        _snapshot = read.Snapshot;
+        ApplyLoad(read.Load);
         statuses.Post("Read config.json again; key bindings apply after a restart");
         redraw();
     }
@@ -436,22 +453,32 @@ public sealed class SettingsController(
             var result = await writer
                 .SetAsync(commit.Definition.ConfigPath, json, snapshot, cancellationToken)
                 .ConfigureAwait(false);
-            postToUi(() => Written(commit, result));
+            var changed = result.Status is ConfigWriteStatus.Written or ConfigWriteStatus.Stale;
+            var read = changed ? new SettingsRead(result.Snapshot, Parse(result.Snapshot)) : null;
+            postToUi(() => Written(commit, result, read));
         }
         catch (OperationCanceledException)
         {
-            postToUi(() => _isBusy = false);
+            postToUi(Idle);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            postToUi(() => Failed($"Could not save the setting: {exception.Message}"));
         }
     }
 
-    private void Written(SettingsCommit commit, ConfigWriteResult result)
+    private void Written(SettingsCommit commit, ConfigWriteResult result, SettingsRead? read)
     {
         _isBusy = false;
+        if (read is not null)
+        {
+            _snapshot = read.Snapshot;
+            ApplyLoad(read.Load);
+        }
+
         switch (result.Status)
         {
             case ConfigWriteStatus.Written:
-                _snapshot = result.Snapshot;
-                ApplyLoad(result.Snapshot);
                 SelectWritten(commit);
                 statuses.Post($"Saved {commit.Definition.Name}");
                 if (result.Shadowed)
@@ -461,8 +488,6 @@ public sealed class SettingsController(
 
                 break;
             case ConfigWriteStatus.Stale:
-                _snapshot = result.Snapshot;
-                ApplyLoad(result.Snapshot);
                 statuses.Warning(result.Message);
                 break;
             case ConfigWriteStatus.Refused:
@@ -485,9 +510,8 @@ public sealed class SettingsController(
         }
     }
 
-    private void ApplyLoad(ConfigSnapshot snapshot)
+    private void ApplyLoad(SettingsLoad load)
     {
-        var load = SettingsValueReader.Read(snapshot, environment.HomeDirectory, environment.DirectoryExists);
         State = State?.WithLoad(load);
         ApplyOptions(load);
     }

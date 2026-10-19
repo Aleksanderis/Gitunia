@@ -44,7 +44,7 @@ public static class SettingsValueReader
 
     /// <summary>The text of a frame style as written in the file.</summary>
     /// <param name="style">The style.</param>
-    public static string StyleName(FrameStyle style) => style == FrameStyle.Square ? "square" : "rounded";
+    public static string StyleName(FrameStyle style) => style == FrameStyle.Square ? SettingsRegistry.SquareStyle : SettingsRegistry.RoundedStyle;
 
     // The list as written, so editing it never rewrites an entry the user typed (a leading ~ stays one).
     private static SettingValue ReadScanRoots(JsonElement? element)

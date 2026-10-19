@@ -11,13 +11,16 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <param name="Right">The control, empty for none.</param>
 public sealed record SettingsRowText(string Marker, string Left, string Right)
 {
-    private const string Warning = "!";
+    /// <summary>The mark before the label of a setting whose value in the file is invalid.</summary>
+    public const string Warning = "!";
     private const string NoMarker = " ";
     private const string ChoiceArrow = "▾";
     private const string AsciiChoiceArrow = "v";
     private const string Cursor = "_";
     private const string ItemIndent = "  ";
     private const string RemoveMarker = "[x]";
+    private const string CheckedBox = "[x]";
+    private const string EmptyBox = "[ ]";
 
     /// <summary>The <c>[+]</c> marker at the end of a path list's row.</summary>
     public const string AddMarker = "[+]";
@@ -73,7 +76,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         switch (definition.Control)
         {
             case SettingControl.Toggle:
-                return value.Flag ? "[x]" : "[ ]";
+                return value.Flag ? CheckedBox : EmptyBox;
             case SettingControl.Choice:
                 return $"[{value.Choice} {(glyphs.IsAscii ? AsciiChoiceArrow : ChoiceArrow)}]";
             case SettingControl.Number:

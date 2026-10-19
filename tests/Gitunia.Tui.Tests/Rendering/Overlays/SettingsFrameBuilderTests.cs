@@ -178,6 +178,24 @@ public class SettingsFrameBuilderTests
         Assert.Contains("n  keep it", frame.Lines[layout.SecondHelpLine].Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(100, 30)]
+    [InlineData(60, 20)]
+    [InlineData(40, 12)]
+    public void GivenFoldersWithWideCharacters_WhenRenderingTheListAndTheQuestion_ThenEveryLineKeepsTheFrameWidth(
+        int width,
+        int height)
+    {
+        var state = Open("{ \"scanRoots\": [\"/srv/日本語のプロジェクト\", \"/srv/ok\"] }")
+            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item);
+
+        var list = SettingsFrameBuilder.Build(state, width, height, GraphGlyphSet.Unicode)!;
+        var asked = SettingsFrameBuilder.Build(Reduce(state, SettingsCommandKind.Remove), width, height, GraphGlyphSet.Unicode)!;
+
+        Assert.All(list.Lines, line => Assert.Equal(list.Width, TextWidth.Of(line.Text)));
+        Assert.All(asked.Lines, line => Assert.Equal(asked.Width, TextWidth.Of(line.Text)));
+    }
+
     [Fact]
     public void GivenAFileThatCannotBeEdited_WhenRendering_ThenTheBannerAndTheReadOnlyTitleShow()
     {
@@ -269,7 +287,7 @@ public class SettingsFrameBuilderTests
         var remove = SettingsFrameBuilder.HitAt(state, column, 4, 100, 30, GraphGlyphSet.Unicode);
         var label = SettingsFrameBuilder.HitAt(state, 22, 4, 100, 30, GraphGlyphSet.Unicode);
 
-        Assert.Equal(new SettingsHit(SettingsHitKind.Add, 0), add);
+        Assert.Equal(new SettingsHit(SettingsHitKind.Add), add);
         Assert.Equal(new SettingsHit(SettingsHitKind.Remove, 2), remove);
         Assert.Equal(new SettingsHit(SettingsHitKind.Row, 2), label);
     }
