@@ -16,7 +16,7 @@ public class ClipboardWriterTests
 
         Assert.True(outcome.Succeeded);
         Assert.Equal("\u001b]52;c;YWJj\u001b\\", output.ToString());
-        Assert.Contains("Copied commit hash", outcome.Message, StringComparison.Ordinal);
+        Assert.Equal("Copied commit hash", outcome.Message);
     }
 
     [Fact]

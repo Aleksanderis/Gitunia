@@ -36,6 +36,6 @@ public sealed class ClipboardWriter
             return new ClipboardOutcome(false, $"Cannot copy: writing to the terminal failed ({exception.Message}).");
         }
 
-        return new ClipboardOutcome(true, $"Copied {effect.Description} (sent to the terminal; if the clipboard is unchanged, enable OSC 52 in your terminal or tmux).");
+        return new ClipboardOutcome(true, $"Copied {effect.Description}");
     }
 }
