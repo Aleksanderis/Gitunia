@@ -47,7 +47,7 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenAReorderSquashRewordAndDrop_WhenStartingAfterConfirming_ThenGitReplaysThatTodoAndTheStatusNamesTheUndo()
+    public async Task GivenAReorderFixupAndReword_WhenStartingAfterConfirming_ThenGitReplaysThatTodoAndTheStatusNamesTheUndo()
     {
         using var repository = FourCommits();
         var oldTip = repository.Head;
@@ -66,7 +66,7 @@ public class RebaseEditorControllerTests
         await harness.WaitAsync();
 
         Assert.False(harness.Controller.IsOpen);
-        Assert.Equal(["a reworded", "add c", "add b"], repository.Git("log", "--format=%s", "main..HEAD").Trim().Split('\n').Reverse());
+        Assert.Equal(["a reworded", "add c", "add b"], Subjects(repository));
         Assert.Equal("with a body", repository.Git("log", "-1", "--format=%b", "HEAD~2").Trim());
         Assert.Equal("d\n", repository.Git("show", "HEAD:d.txt").Replace("\r", string.Empty));
         Assert.Equal(StatusSeverity.Info, harness.Statuses.Log.Latest!.Severity);
@@ -101,7 +101,7 @@ public class RebaseEditorControllerTests
         harness.Answer();
         await harness.WaitAsync();
 
-        Assert.Equal(["add a", "add c"], repository.Git("log", "--format=%s", "main..HEAD").Trim().Split('\n').Reverse());
+        Assert.Equal(["add a", "add c"], Subjects(repository));
         Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
     }
 
@@ -141,7 +141,7 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenAConflictingReorder_WhenStarting_ThenARebaseIsInProgressAndTheStatusPointsToContinueAndAbort()
+    public async Task GivenAConflictingReorder_WhenStarting_ThenARebaseIsInProgressAndTheStatusNamesTheKeys()
     {
         using var repository = TestRepository.Create()
             .Commit("Initial", new TestFile("f.txt", "base\n"))
@@ -239,7 +239,7 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenAnEditedTodo_WhenPressingEscTwice_ThenTheFirstWarnsAndTheSecondClosesAndAnUneditedOneClosesAtOnce()
+    public async Task GivenAnEditedTodo_WhenPressingEscTwice_ThenTheFirstAsksAndTheSecondCloses()
     {
         using var repository = ThreeCommits();
         using var harness = await Harness.CreateAsync(repository);
@@ -274,7 +274,8 @@ public class RebaseEditorControllerTests
 
         Assert.Equal("subject line\n\nbody paragraph", harness.Controller.State!.Edit!.Editor.Text);
         Assert.Equal(KeyMode.Insert, harness.Mode);
-        Assert.Contains("body paragraph", harness.Controller.CurrentFrame()!.Lines.Select(line => line.Text).Aggregate(string.Concat), StringComparison.Ordinal);
+        var frameText = string.Concat(harness.Controller.CurrentFrame()!.Lines.Select(line => line.Text));
+        Assert.Contains("body paragraph", frameText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -399,9 +400,10 @@ public class RebaseEditorControllerTests
         Assert.Equal(2, harness.Controller.State!.SelectedIndex);
 
         var frame = harness.Controller.CurrentFrame()!;
-        var chipLine = Array.FindIndex([.. frame.Lines], line => line.Text.Contains("[p pick]", StringComparison.Ordinal));
+        var chipLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("[p pick]", StringComparison.Ordinal));
         var column = frame.Lines[chipLine].Text.IndexOf("[d drop]", StringComparison.Ordinal);
-        Assert.Equal(DefaultMouseMap.RebaseDropButton, harness.Controller.OnLineClicked(chipLine, column, out var chipHandled));
+        var view = harness.Controller.OnLineClicked(chipLine, column, out var chipHandled);
+        Assert.Equal(DefaultMouseMap.RebaseDropButton, view);
         Assert.True(chipHandled);
 
         Assert.Null(harness.Controller.OnLineClicked(0, 3, out var titleHandled));
@@ -500,6 +502,9 @@ public class RebaseEditorControllerTests
             .Commit("add a", new TestFile("a.txt", "a\n"))
             .Commit("add b", new TestFile("b.txt", "b\n"))
             .Commit("add c", new TestFile("c.txt", "c\n"));
+
+    private static IEnumerable<string> Subjects(TestRepository repository) =>
+        repository.Git("log", "--format=%s", "main..HEAD").Trim().Split('\n').Reverse();
 
     private static TestRepository FourCommits() =>
         ThreeCommits().Commit("add d", new TestFile("d.txt", "d\n"));

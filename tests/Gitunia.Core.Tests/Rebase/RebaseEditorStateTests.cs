@@ -96,7 +96,8 @@ public class RebaseEditorStateTests
         var state = State(3).SetAction(RebaseTodoAction.Drop).MoveTo(1).SetAction(RebaseTodoAction.Squash);
 
         Assert.Contains("cannot be a squash or a fixup", state.Problem, StringComparison.Ordinal);
-        Assert.Null(state.MoveTo(2).SetAction(RebaseTodoAction.Squash).MoveTo(1).SetAction(RebaseTodoAction.Pick).Problem);
+        var fixedState = state.MoveTo(1).SetAction(RebaseTodoAction.Pick);
+        Assert.Null(fixedState.Problem);
     }
 
     [Fact]
@@ -120,7 +121,8 @@ public class RebaseEditorStateTests
         Assert.Equal(RebaseTodoAction.Reword, saved.Rows[1].Action);
         Assert.Equal("new subject\n\nnew body", saved.Rows[1].Message);
         Assert.Equal("new subject", saved.Rows[1].ShownSubject);
-        Assert.Equal(new RebaseTodoEntry("c1", RebaseTodoAction.Reword, "new subject\n\nnew body"), saved.ToEntries()[1]);
+        var expected = new RebaseTodoEntry("c1", RebaseTodoAction.Reword, "new subject\n\nnew body");
+        Assert.Equal(expected, saved.ToEntries()[1]);
     }
 
     [Fact]

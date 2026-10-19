@@ -69,9 +69,13 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(State(2), 80, 24, GraphGlyphSet.Unicode);
 
         var chipRows = frame!.Lines.Skip(frame.Height - 4).Take(2).ToList();
-        Assert.Contains("[p pick]  [r reword]  [s squash]  [f fixup]  [d drop]", chipRows[0].Text, StringComparison.Ordinal);
-        Assert.Contains("[K move up]  [J move down]  [Enter start]  [Esc cancel]", chipRows[1].Text, StringComparison.Ordinal);
-        Assert.Contains(chipRows[0].Segments, segment => segment.Role == SegmentRole.Button && segment.Text == "[r reword]");
+        const string firstRow = "[p pick]  [r reword]  [s squash]  [f fixup]  [d drop]";
+        const string secondRow = "[K move up]  [J move down]  [Enter start]  [Esc cancel]";
+        Assert.Contains(firstRow, chipRows[0].Text, StringComparison.Ordinal);
+        Assert.Contains(secondRow, chipRows[1].Text, StringComparison.Ordinal);
+        Assert.Contains(
+            chipRows[0].Segments,
+            segment => segment.Role == SegmentRole.Button && segment.Text == "[r reword]");
     }
 
     [Fact]
@@ -79,18 +83,15 @@ public class RebaseEditorFrameBuilderTests
     {
         var state = State(2);
         var chipLine = 2 + RebaseEditorFrameBuilder.VisibleRows(state, 24);
-        var text = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!.Lines[chipLine].Text;
+        var frame = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!;
+        var firstRow = frame.Lines[chipLine].Text;
+        var secondRow = frame.Lines[chipLine + 1].Text;
 
-        Assert.Equal(DefaultMouseMap.RebasePickButton, RebaseEditorFrameBuilder.ChipAt(state, chipLine, text.IndexOf("[p pick]", StringComparison.Ordinal), 24));
-        Assert.Equal(DefaultMouseMap.RebaseDropButton, RebaseEditorFrameBuilder.ChipAt(state, chipLine, text.IndexOf("[d drop]", StringComparison.Ordinal) + 3, 24));
-        Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, chipLine, text.IndexOf("[p pick]", StringComparison.Ordinal) + "[p pick]".Length, 24));
-        var secondRow = RebaseEditorFrameBuilder.Build(state, 80, 24, GraphGlyphSet.Unicode)!.Lines[chipLine + 1].Text;
-        Assert.Equal(
-            DefaultMouseMap.RebaseCancelButton,
-            RebaseEditorFrameBuilder.ChipAt(state, chipLine + 1, secondRow.IndexOf("[Esc cancel]", StringComparison.Ordinal), 24));
-        Assert.Equal(
-            DefaultMouseMap.RebaseStartButton,
-            RebaseEditorFrameBuilder.ChipAt(state, chipLine + 1, secondRow.IndexOf("[Enter start]", StringComparison.Ordinal), 24));
+        Assert.Equal(DefaultMouseMap.RebasePickButton, ChipAt(state, chipLine, firstRow, "[p pick]", 0));
+        Assert.Equal(DefaultMouseMap.RebaseDropButton, ChipAt(state, chipLine, firstRow, "[d drop]", 3));
+        Assert.Null(ChipAt(state, chipLine, firstRow, "[p pick]", "[p pick]".Length));
+        Assert.Equal(DefaultMouseMap.RebaseCancelButton, ChipAt(state, chipLine + 1, secondRow, "[Esc cancel]", 0));
+        Assert.Equal(DefaultMouseMap.RebaseStartButton, ChipAt(state, chipLine + 1, secondRow, "[Enter start]", 0));
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 1, 5, 24));
     }
 
@@ -166,6 +167,9 @@ public class RebaseEditorFrameBuilderTests
 
         Assert.Contains("A reword needs a message", frame!.Lines[^2].Text, StringComparison.Ordinal);
     }
+
+    private static string? ChipAt(RebaseEditorState state, int line, string text, string chip, int offset) =>
+        RebaseEditorFrameBuilder.ChipAt(state, line, text.IndexOf(chip, StringComparison.Ordinal) + offset, 24);
 
     private static RebaseEditorState State(int count) =>
         RebaseEditorState.Create(

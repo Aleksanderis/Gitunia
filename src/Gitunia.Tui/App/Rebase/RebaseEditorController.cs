@@ -78,7 +78,7 @@ public sealed class RebaseEditorController(
     /// <summary>True while the reword's message editor is open (the keymap is in Insert mode).</summary>
     public bool IsEditingMessage => State?.Edit is not null;
 
-    /// <summary>The frame to draw, or null when the editor is closed, covered by a dialog or too big for the screen.</summary>
+    /// <summary>The frame to draw, or null when closed, covered by a dialog or the screen is too small.</summary>
     public OverlayFrame? CurrentFrame()
     {
         if (State is not { } state || isOtherOverlayOpen())
