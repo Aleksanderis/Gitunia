@@ -407,3 +407,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The settings filter also matches key reference lines by title, keys and action id, and the collapsed layout lists the Key reference last (#558). Why: the reference is ~330 rows; amends the #525 entry.
 
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
+
+**UI:** The terminal retry of #45 also covers the remote branch delete and the tag push and remote tag delete (#512): same Confirm, arguments built in `RemoteCommands` next to the writer.

@@ -791,7 +791,11 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         SetMode,
         _view.RefreshChrome,
-        BranchSelectionNow);
+        BranchSelectionNow,
+        OfferTerminalRetry);
+
+    private void OfferTerminalRetry(TabId tabId, string noun, IReadOnlyList<string> arguments) =>
+        _remote.OfferTerminalRetry(tabId, noun, arguments);
 
     private MergeActions CreateMerge(TabOperationGate gate) => new(
         _host,

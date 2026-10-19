@@ -4,6 +4,9 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Remotes;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Git.Refs.Models;
@@ -169,6 +172,49 @@ public class PushActionsTests
         Assert.Equal(0, harness.Refreshes);
     }
 
+    [Fact]
+    public async Task GivenARemoteBranchDeleteThatNeedsCredentials_WhenRetrying_ThenTheTerminalRunsTheSameDelete()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var tip = repository.Git("rev-parse", "origin/topic").Trim();
+        var writer = new FakeRemoteWriter
+        {
+            Failure = new GitCommandFailedException(["push"], 128, "git@host: Permission denied (publickey)."),
+        };
+        using var harness = await Harness.LoadAsync(repository, writer);
+
+        await harness.DeleteTopicAsync();
+        await harness.PumpUntilAsync(() => harness.Prompts.Count == 2);
+
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        var retry = harness.Prompts[1];
+        Assert.Equal("Retry in terminal", retry.YesLabel);
+        var expected = $"push --delete --force-with-lease=refs/heads/topic:{tip} -- origin refs/heads/topic";
+        Assert.Contains($"Runs: git {expected}", retry.Consequence, StringComparison.Ordinal);
+        Assert.Empty(harness.TerminalCalls);
+
+        harness.Answer(0);
+
+        Assert.Equal([$"remote branch delete|{expected}"], harness.TerminalCalls);
+    }
+
+    [Fact]
+    public async Task GivenARemoteBranchDeleteThatFailsOtherwise_WhenItFails_ThenNoTerminalIsOffered()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var writer = new FakeRemoteWriter
+        {
+            Failure = new GitCommandFailedException(["push"], 1, "! [remote rejected] topic (stale info)"),
+        };
+        using var harness = await Harness.LoadAsync(repository, writer);
+
+        await harness.DeleteTopicAsync();
+        await harness.PumpUntilAsync(() => harness.Refreshes > 0);
+
+        Assert.Single(harness.Prompts);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+    }
+
     [Theory]
     [InlineData("origin/main", "origin", "main")]
     [InlineData("origin/feature/x", "origin", "feature/x")]
@@ -207,7 +253,7 @@ public class PushActionsTests
         private readonly List<Action> _answers = [];
         private readonly List<TabSession> _sessions = [];
 
-        private Harness()
+        private Harness(IRemoteWriter writer)
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Remote = new RemoteActions(
@@ -221,11 +267,11 @@ public class PushActionsTests
                 new TabOperationGate(),
                 Confirm,
                 () => false,
-                (_, _, _) => string.Empty);
+                RunInTerminal);
             Push = new PushActions(
                 _host,
                 Remote,
-                TestGit.Services.Remote,
+                writer,
                 TestGit.Services.Tags.ListRemotesAsync,
                 Statuses,
                 Pump.Post,
@@ -250,9 +296,11 @@ public class PushActionsTests
 
         private UiPump Pump { get; }
 
-        public static async Task<Harness> LoadAsync(TestRepository repository)
+        public List<string> TerminalCalls { get; } = [];
+
+        public static async Task<Harness> LoadAsync(TestRepository repository, IRemoteWriter? writer = null)
         {
-            var harness = new Harness();
+            var harness = new Harness(writer ?? TestGit.Services.Remote);
             await harness.OpenTabAsync(repository);
             return harness;
         }
@@ -266,6 +314,19 @@ public class PushActionsTests
                 Assert.True(Push.HandleTextKey(new KeyEvent(character.ToString())));
             }
         }
+
+        public async Task DeleteTopicAsync()
+        {
+            Run(ActionIds.RemoteDeleteBranch);
+            await PumpUntilAsync(() => PopupText.Of(Push).Length > 0);
+            Run(ActionIds.InputAccept);
+            Type("topic");
+            Run(ActionIds.InputAccept);
+            Answer();
+        }
+
+        /// <summary>Presses <c>y</c> of the pending dialog number <paramref name="index"/> (the first is 0).</summary>
+        public void Answer(int index) => _answers[index]();
 
         /// <summary>Presses <c>y</c> in the open dialog.</summary>
         public void Answer()
@@ -290,6 +351,12 @@ public class PushActionsTests
             {
                 session.Dispose();
             }
+        }
+
+        private string RunInTerminal(string name, IReadOnlyList<string> arguments, RepositoryLocation location)
+        {
+            TerminalCalls.Add($"{name}|{string.Join(' ', arguments)}");
+            return string.Empty;
         }
 
         private bool CountRefresh(TabId tabId)

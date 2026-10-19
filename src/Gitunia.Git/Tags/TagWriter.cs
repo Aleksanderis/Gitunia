@@ -94,7 +94,7 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
         await remoteRunner
             .RunAsync(
                 location,
-                [Push, NoProgressOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                RemoteCommands.BuildTagPush(remote, name, true),
                 null,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -107,7 +107,7 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
         await remoteRunner
             .RunAsync(
                 location,
-                [Push, NoProgressOption, RemoteDeleteOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                RemoteCommands.BuildTagDelete(remote, name, true),
                 null,
                 cancellationToken)
             .ConfigureAwait(false);

@@ -5,6 +5,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
@@ -434,7 +435,17 @@ public sealed class PushActions(
         catch (Exception exception)
         {
             var failure = $"Could not delete the branch on the remote: {RemoteFailureText.Reason(exception)}";
-            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error, true));
+            var offer = exception is GitCommandFailedException failed
+                && RemoteAuthFailure.Matches(failed.StandardError);
+            postToUi(() =>
+            {
+                Finish(tab.Id, failure, StatusSeverity.Error, true);
+                if (offer)
+                {
+                    var retry = RemoteCommands.BuildDeleteBranch(name.Remote, name.Branch, target.CommitHash, false);
+                    remote.OfferTerminalRetry(tab.Id, "Remote branch delete", retry);
+                }
+            });
         }
     }
 

@@ -7,7 +7,9 @@ using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Refs.Models;
+using Gitunia.Git.Remotes;
 using Gitunia.Git.Tags;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.WorkingTree;
@@ -36,6 +38,10 @@ namespace Gitunia.Tui.App.Tags;
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
 /// <param name="selection">What is selected now: a sidebar row or the graph commit.</param>
+/// <param name="offerTerminal">
+/// Offers the terminal retry (tab, operation name, git arguments) when a remote tag call failed for lack of
+/// credentials (#512).
+/// </param>
 public sealed class TagActions(
     WorkspaceHost host,
     ITagWriter writer,
@@ -46,7 +52,8 @@ public sealed class TagActions(
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
     Action redraw,
-    Func<BranchSelection> selection) : IPromptHandler
+    Func<BranchSelection> selection,
+    Action<TabId, string, IReadOnlyList<string>> offerTerminal) : IPromptHandler
 {
     private const int ShortHashLength = 7;
     private const string BusyNotice = "Busy: the last tag operation is still running";
@@ -434,7 +441,7 @@ public sealed class TagActions(
             {
                 await writer.PushAsync(tab.Location, remote, name, token).ConfigureAwait(false);
                 return $"Pushed tag {name} to {remote}";
-            });
+            }, new TerminalRetry("Tag push", RemoteCommands.BuildTagPush(remote, name, false)));
             return string.Empty;
         }
 
@@ -458,21 +465,26 @@ public sealed class TagActions(
         {
             await writer.DeleteOnRemoteAsync(tab.Location, remote, name, token).ConfigureAwait(false);
             return $"Deleted tag {name} on {remote} (restore: git push {remote} refs/tags/{name})";
-        });
+        }, new TerminalRetry("Tag delete", RemoteCommands.BuildTagDelete(remote, name, false)));
     }
 
     // Own busy set, not the shared operation gate: tag writes take ref locks, never the index lock.
-    private void Start(RepositoryState tab, string failure, Func<CancellationToken, Task<string>> work)
+    private void Start(
+        RepositoryState tab,
+        string failure,
+        Func<CancellationToken, Task<string>> work,
+        TerminalRetry? retry = null)
     {
         _busy.Add(tab.Id);
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab.Id, failure, work, token), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab.Id, failure, work, retry, token), CancellationToken.None);
     }
 
     private async Task RunAsync(
         TabId tabId,
         string failure,
         Func<CancellationToken, Task<string>> work,
+        TerminalRetry? retry,
         CancellationToken token)
     {
         try
@@ -487,7 +499,16 @@ public sealed class TagActions(
         catch (Exception exception)
         {
             var text = $"{failure}: {OperationText.Reason(exception)}";
-            postToUi(() => Finish(tabId, text, StatusSeverity.Error, true));
+            var offer = retry is not null && exception is GitCommandFailedException failed
+                && RemoteAuthFailure.Matches(failed.StandardError);
+            postToUi(() =>
+            {
+                Finish(tabId, text, StatusSeverity.Error, true);
+                if (offer)
+                {
+                    offerTerminal(tabId, retry!.Noun, retry.Arguments);
+                }
+            });
         }
     }
 
@@ -500,4 +521,6 @@ public sealed class TagActions(
             refresh(tabId);
         }
     }
+
+    private sealed record TerminalRetry(string Noun, IReadOnlyList<string> Arguments);
 }

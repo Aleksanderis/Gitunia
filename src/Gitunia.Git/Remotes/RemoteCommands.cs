@@ -12,6 +12,8 @@ public static class RemoteCommands
     private const string Fetch = "fetch";
     private const string Pull = "pull";
     private const string Push = "push";
+    private const string DeleteOption = "--delete";
+    private const string NoProgressOption = "--no-progress";
     private const string SetUpstreamOption = "--set-upstream";
     private const string LeaseOption = "--force-with-lease";
     private const string AllOption = "--all";
@@ -88,6 +90,58 @@ public static class RemoteCommands
             }
         }
 
+        return arguments;
+    }
+
+    /// <summary>
+    /// Arguments of a remote branch delete guarded by a lease on the confirmed tip; <paramref name="background"/>
+    /// adds <c>--no-progress</c> for a redirected stderr (the terminal retry omits it).
+    /// </summary>
+    public static IReadOnlyList<string> BuildDeleteBranch(
+        string remote,
+        string branch,
+        string expectedHash,
+        bool background)
+    {
+        var reference = GitRefPrefixes.Heads + branch;
+        var arguments = new List<string> { Push };
+        if (background)
+        {
+            arguments.Add(NoProgressOption);
+        }
+
+        arguments.Add(DeleteOption);
+        arguments.Add($"{LeaseOption}={reference}:{expectedHash}");
+        arguments.Add(GitOptions.EndOfOptions);
+        arguments.Add(remote);
+        arguments.Add(reference);
+        return arguments;
+    }
+
+    /// <summary>Arguments of a push of one tag; <paramref name="background"/> adds <c>--no-progress</c>.</summary>
+    public static IReadOnlyList<string> BuildTagPush(string remote, string tag, bool background) =>
+        BuildTagArguments(remote, tag, background, false);
+
+    /// <summary>Arguments of a remote tag delete; <paramref name="background"/> adds <c>--no-progress</c>.</summary>
+    public static IReadOnlyList<string> BuildTagDelete(string remote, string tag, bool background) =>
+        BuildTagArguments(remote, tag, background, true);
+
+    private static List<string> BuildTagArguments(string remote, string tag, bool background, bool delete)
+    {
+        var arguments = new List<string> { Push };
+        if (background)
+        {
+            arguments.Add(NoProgressOption);
+        }
+
+        if (delete)
+        {
+            arguments.Add(DeleteOption);
+        }
+
+        arguments.Add(GitOptions.EndOfOptions);
+        arguments.Add(remote);
+        arguments.Add(GitRefPrefixes.Tags + tag);
         return arguments;
     }
 }
