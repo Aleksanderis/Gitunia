@@ -1183,7 +1183,7 @@ public sealed class TuiApplication(
             _statuses,
             Environment.GetEnvironmentVariable,
             PauseForEnter).Launch,
-        KeyReferenceBuilder.Build(_startupConfig.Keymap.Table));
+        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table));
 
     private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
         current is null || other is null

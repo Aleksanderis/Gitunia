@@ -687,7 +687,7 @@ public sealed class SettingsControllerTests : IDisposable
                 Applied.Add,
                 Themes.Add,
                 LaunchEditor,
-                KeyReferenceBuilder.Build(Keymap),
+                () => KeyReferenceBuilder.Build(Keymap),
                 cancellationToken: TestContext.Current.CancellationToken);
         }
 

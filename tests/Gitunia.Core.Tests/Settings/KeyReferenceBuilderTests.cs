@@ -34,14 +34,34 @@ public class KeyReferenceBuilderTests
         var table = DefaultKeymap.Create();
         var bound = table.Bindings
             .Where(binding => binding.Mode is KeyMode.Normal or KeyMode.Visual)
-            .Select(binding => $"{binding.Mode}|{binding.View}|{KeyFormatter.Format(binding.Sequence)}")
-            .ToHashSet();
+            .Select(binding => $"{Heading(binding)}|{KeyFormatter.Format(binding.Sequence)}")
+            .Order()
+            .ToList();
 
         var entries = KeyReferenceBuilder.Build(table);
 
-        var listed = entries.Sum(entry => entry.Keys.Split(" / ").Length);
-        Assert.Equal(bound.Count, listed);
+        var listed = entries
+            .SelectMany(entry => entry.Keys.Split(" / ").Select(keys => $"{entry.Section}|{keys}"))
+            .Order()
+            .ToList();
+        Assert.Equal(bound, listed);
     }
+
+    [Fact]
+    public void GivenTheDefaultKeymap_WhenParsingEveryListedKey_ThenItIsTheBindingsOwnSequence()
+    {
+        var table = DefaultKeymap.Create();
+
+        foreach (var binding in table.Bindings.Where(candidate => candidate.Mode is KeyMode.Normal or KeyMode.Visual))
+        {
+            var text = KeyFormatter.Format(binding.Sequence);
+            Assert.True(KeySequenceParser.TryParse(text, out var parsed), $"{text} does not parse");
+            Assert.Equal(binding.Sequence, parsed);
+        }
+    }
+
+    private static string Heading(KeyBinding binding) =>
+        binding.Mode == KeyMode.Normal ? binding.View : $"{binding.View} ({binding.Mode})";
 
     [Fact]
     public void GivenAUserRebind_WhenBuilding_ThenTheReferenceShowsTheNewKeyAndNotTheRemovedOne()

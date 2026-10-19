@@ -31,7 +31,7 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="applyOptions">Applies the options of the file to the running app.</param>
 /// <param name="applyTheme">Shows a theme in the running app: the one under the cursor, else the kept one.</param>
 /// <param name="launchEditor">Opens a file in the editor and calls back when it closes; returns why it cannot.</param>
-/// <param name="keyReference">The lines of the key reference, generated from the running keymap.</param>
+/// <param name="keyReference">Builds the key reference from the running keymap when the screen opens.</param>
 /// <param name="definitions">The settings on offer; the registry unless a test brings its own.</param>
 /// <param name="cancellationToken">Ends the file work when the app is closing.</param>
 public sealed class SettingsController(
@@ -46,7 +46,7 @@ public sealed class SettingsController(
     Action<ConfigOptions> applyOptions,
     Action<ThemeChoice> applyTheme,
     Func<string, Action, string> launchEditor,
-    IReadOnlyList<KeyReferenceEntry> keyReference,
+    Func<IReadOnlyList<KeyReferenceEntry>> keyReference,
     IReadOnlyList<SettingDefinition>? definitions = null,
     CancellationToken cancellationToken = default)
 {
@@ -374,7 +374,7 @@ public sealed class SettingsController(
     private void Show(SettingsRead read, bool atTheme)
     {
         _snapshot = read.Snapshot;
-        State = SettingsState.Create(_definitions, read.Load, keyReference).WithLayout(IsCollapsed());
+        State = SettingsState.Create(_definitions, read.Load, keyReference()).WithLayout(IsCollapsed());
         var theme = _definitions.FirstOrDefault(definition => definition.Id == SettingsRegistry.ThemeId);
         if (atTheme && theme is not null)
         {

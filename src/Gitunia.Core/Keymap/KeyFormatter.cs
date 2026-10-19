@@ -13,6 +13,11 @@ public static class KeyFormatter
             return "<space>";
         }
 
+        if (key.Name == "<" && key.Modifiers == KeyModifiers.None)
+        {
+            return "<lt>";
+        }
+
         var prefix = string.Concat(
             key.Modifiers.HasFlag(KeyModifiers.Ctrl) ? "Ctrl-" : string.Empty,
             key.Modifiers.HasFlag(KeyModifiers.Alt) ? "Alt-" : string.Empty,
