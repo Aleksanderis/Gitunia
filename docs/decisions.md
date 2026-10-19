@@ -360,3 +360,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Key config (#46): `config.json` has a `keys` list of entries (mode, view, key, action; `none` unbinds) applied over the defaults; each entry is validated alone and bad ones are skipped with a startup warning, so config never blocks startup. An entry that would make a key both complete and a chord prefix is refused (the engine always waits for a longer chord, #457). Detail in `ux.md`.
 
 **Performance:** Cold-tab eviction (#199): only the 5 most recently used tabs keep their graph; older idle tabs reload on activation (view state stays in the workspace, search and diff position do not); a tab with a running operation is never evicted. Why 5: recent tabs stay instant, RSS stays bounded. Soft row limit deferred to #515 with numbers.
+
+**UI:** Settings screen (#465): one overlay opened by `<space>,` (default, owner may change) or `:settings` edits `config.json` by a minimal text edit of the changed key (comments kept, unparsable file never written); the theme picker is an entry of it, not a second UI. Key bindings stay hand-edited. Design in `ux.md`.
