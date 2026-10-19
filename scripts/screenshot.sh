@@ -5,7 +5,7 @@
 # Windows is unsupported (no tmux): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,palette,whichkey,menu,menu-sidebar,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -17,6 +17,7 @@
 # prompt and prompt-narrow (<space>bc then feat: the new-branch prompt popup), jump and jump-narrow (<space>j then c: the quick jump labels in the graph), jump-diff (the same in the file diff, typing e) and jump-working (the same in the Unstaged list of the working-tree view), working, working-narrow, working-stage (after <space>a twice), working-hunk (the hunk of a file staged in its diff) and working-lines (a Visual range selected in the diff), working-zoom (the diff zoomed with <space>z), working-diff and working-diff-narrow (<space>s, then the diff of a file with Enter: the working-tree view of a copy of the throwaway repository with a conflict, staged and unstaged changes and untracked files; not for --repo).
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
+# rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -141,6 +142,24 @@ make_commit_repo() { # make_commit_repo SOURCE DIR HOOK: a copy with staged, uns
   fi
 }
 
+make_rebase_repo() { # make_rebase_repo SOURCE DIR: a copy of the throwaway repository with a linear branch of five commits on top of v0.1
+  local source="$1" dir="$2" index=0
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  git -C "$dir" switch -q -c cleanup v0.1
+  local subject
+  for subject in "Rename Add to Sum" "Fix typo in README" "Add Sum tests" "Remove dead code" "Update the changelog"; do
+    index=$((index + 1))
+    export GIT_AUTHOR_DATE="2026-04-0${index}T12:00:00Z" GIT_COMMITTER_DATE="2026-04-0${index}T12:00:00Z"
+    printf 'change %s\n' "$index" >"$dir/cleanup-$index.txt"
+    git -C "$dir" add -A
+    git -C "$dir" commit -q -m "$subject" -m "Longer explanation of: $subject."
+  done
+  )
+}
+
 type_message() { # types a subject, a blank line, a body line and turns SignOff on (Alt-s) in the open message box
   tmux_cmd send-keys -t shot -l "Drop stale cache entries on refresh"
   tmux_cmd send-keys -t shot Enter Enter
@@ -226,6 +245,10 @@ render() {
       status-fresh) keys="Space F" ;;
       status-settled) keys="Space F" keys_after="Space F" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
+      rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
+      rebase-reword) keys="G Space g i" keys_after="j r" ;;
+      rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;
+      rebase-narrow) columns=64 rows=24 keys="G Space g i" keys_after="j s j j d" ;;
       *) echo "unknown scenario '$scenario'" >&2; exit 2 ;;
     esac
     local scenario_repo="$repo"
@@ -235,6 +258,9 @@ render() {
     elif [[ "$scenario" == working-hook && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-hook"
       [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" hook
+    elif [[ "$scenario" == rebase-* && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-rebase"
+      [ -d "$scenario_repo" ] || make_rebase_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == working* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"

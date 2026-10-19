@@ -193,6 +193,28 @@ public static class PaneHints
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> RebaseEditor =
+    [
+        new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("p/r/s/f/d", "action", [
+            ActionIds.RebaseEditorPick,
+            ActionIds.RebaseEditorReword,
+            ActionIds.RebaseEditorSquash,
+            ActionIds.RebaseEditorFixup,
+            ActionIds.RebaseEditorDrop,
+        ]),
+        new("J/K", "reorder", [ActionIds.RebaseEditorMoveDown, ActionIds.RebaseEditorMoveUp]),
+        new("Enter", "start", [ActionIds.RebaseEditorStart]),
+        new("Esc", "cancel", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> RebaseMessage =
+    [
+        new("Alt-Enter", "keep", [ActionIds.RebaseEditorMessageSave]),
+        new("Enter", "new line", [ActionIds.RebaseEditorMessageNewLine]),
+        new("Esc", "cancel", [ActionIds.Cancel]),
+    ];
+
     private static readonly ImmutableArray<KeyHint> Settings =
     [
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
@@ -223,6 +245,12 @@ public static class PaneHints
 
     /// <summary>The hints while the reflog list is open.</summary>
     public static IReadOnlyList<KeyHint> ForReflog() => Reflog;
+
+    /// <summary>The hints while the rebase todo editor is open.</summary>
+    public static IReadOnlyList<KeyHint> ForRebaseEditor() => RebaseEditor;
+
+    /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>
+    public static IReadOnlyList<KeyHint> ForRebaseMessage() => RebaseMessage;
 
     /// <summary>The hints while the settings screen is open.</summary>
     public static IReadOnlyList<KeyHint> ForSettings() => Settings;

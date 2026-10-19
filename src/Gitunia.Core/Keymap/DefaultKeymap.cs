@@ -25,6 +25,7 @@ public static class DefaultKeymap
     public const string MessagesView = "Messages";
     public const string ConfirmView = "Confirm";
     public const string ReflogView = "Reflog";
+    public const string RebaseEditorView = "RebaseEditor";
     public const string SettingsView = "Settings";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
@@ -50,6 +51,7 @@ public static class DefaultKeymap
         [MessagesView] = ListsView,
         [ConfirmView] = KeyBindingTable.GlobalView,
         [ReflogView] = ListsView,
+        [RebaseEditorView] = ListsView,
         [SettingsView] = ListsView,
     };
 
@@ -175,6 +177,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "<space>.", ActionIds.MenuOpenForRow);
         Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
         AddReflogKeys(bindings);
+        AddRebaseEditorKeys(bindings);
         AddResetKeys(bindings, SidebarView);
         AddMergeKeys(bindings, GraphView);
         AddMergeKeys(bindings, SidebarView);
@@ -269,6 +272,7 @@ public static class DefaultKeymap
     {
         Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, view, "<space>gr", ActionIds.RebaseOnto);
+        Add(bindings, NormalOnly, view, "<space>gi", ActionIds.RebaseInteractive);
     }
 
     // Fixup, reword and drop act on the commit selected in the graph (interactive rebase engine, #459).
@@ -293,6 +297,29 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ReflogView, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, ReflogView, "<space>bc", ActionIds.BranchCreate);
         Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
+    }
+
+    // The todo editor of an interactive rebase is a modal list like the settings screen: the single letters are git's
+    // own todo words (pick, reword, squash, fixup, drop), keys of the list and not buffer commands. In Insert mode the
+    // reword's message editor takes text; only Enter, Esc and the Alt-Enter/Ctrl-g accept act.
+    private static void AddRebaseEditorKeys(List<KeyBinding> bindings)
+    {
+        const string editor = RebaseEditorView;
+        Add(bindings, NormalOnly, editor, "p", ActionIds.RebaseEditorPick);
+        Add(bindings, NormalOnly, editor, "r", ActionIds.RebaseEditorReword);
+        Add(bindings, NormalOnly, editor, "s", ActionIds.RebaseEditorSquash);
+        Add(bindings, NormalOnly, editor, "f", ActionIds.RebaseEditorFixup);
+        Add(bindings, NormalOnly, editor, "d", ActionIds.RebaseEditorDrop);
+        Add(bindings, NormalOnly, editor, "K", ActionIds.RebaseEditorMoveUp);
+        Add(bindings, NormalOnly, editor, "J", ActionIds.RebaseEditorMoveDown);
+        Add(bindings, NormalOnly, editor, "Alt-k", ActionIds.RebaseEditorMoveUp);
+        Add(bindings, NormalOnly, editor, "Alt-j", ActionIds.RebaseEditorMoveDown);
+        Add(bindings, NormalOnly, editor, "Enter", ActionIds.RebaseEditorStart);
+        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
+        Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.RebaseEditorMessageNewLine);
+        Add(bindings, [KeyMode.Insert], editor, "Alt-Enter", ActionIds.RebaseEditorMessageSave);
+        Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
 
     // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys

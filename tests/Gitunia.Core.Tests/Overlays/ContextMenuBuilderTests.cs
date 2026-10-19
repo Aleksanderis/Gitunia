@@ -21,6 +21,7 @@ public class ContextMenuBuilderTests
         Assert.Equal(RowActions.OfGraphRow, entries.Select(entry => entry.Action));
         Assert.All(entries, entry => Assert.NotEqual(string.Empty, entry.Keys));
         Assert.Equal("<space>gr", entries.Single(entry => entry.Action == ActionIds.RebaseOnto).Keys);
+        Assert.Equal("<space>gi", entries.Single(entry => entry.Action == ActionIds.RebaseInteractive).Keys);
     }
 
     [Fact]
