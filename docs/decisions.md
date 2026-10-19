@@ -398,4 +398,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.
 
-**UI:** Quick rebase actions (#459): `<space>gf` fixup, `<space>gw` reword, `<space>gd` drop on the graph commit, each behind a Confirm with the undo. Fixup melds the selected commit into the one before it (the reading "fix up into the selected commit" would need staged changes and a commit step the engine lacks); reword changes the subject only, so a multi-line message keeps its body. Details: `ux.md` workflow 3, `git-layer.md`.
+**UI:** Quick rebase (#459): `<space>gf` fixup, `<space>gw` reword, `<space>gd` drop on the graph commit, each behind a Confirm with the undo. Fixup melds the commit into the one before it (melding the next commit into the selected one would need a commit step the engine lacks). Details: `ux.md` workflow 3.

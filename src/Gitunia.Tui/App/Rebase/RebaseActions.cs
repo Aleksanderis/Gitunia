@@ -71,6 +71,8 @@ public sealed class RebaseActions(
         return true;
     }
 
+    private static string ShortHash(string hash) => RebaseGuard.ShortHash(hash);
+
     private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current, int merges)
     {
         List<string> lines =
@@ -105,7 +107,7 @@ public sealed class RebaseActions(
         {
             return new OperationReport(
                 $"Rebase of {target.BranchName} onto {target.Label} stopped on conflicts: resolve the files " +
-                $"marked !, then <space>gc (continue), <space>ga (abort, back to {RebaseGuard.ShortHash(target.OldTip)})",
+                $"marked !, then <space>gc (continue), <space>ga (abort, back to {ShortHash(target.OldTip)})",
                 StatusSeverity.Warning);
         }
 
@@ -117,8 +119,8 @@ public sealed class RebaseActions(
         }
 
         return new OperationReport(
-            $"Rebased {target.BranchName} onto {target.Label} ({RebaseGuard.ShortHash(result.Head ?? string.Empty)}), " +
-            $"was {RebaseGuard.ShortHash(target.OldTip)}; undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
+            $"Rebased {target.BranchName} onto {target.Label} ({ShortHash(result.Head ?? string.Empty)}), " +
+            $"was {ShortHash(target.OldTip)}; undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
 
@@ -141,7 +143,7 @@ public sealed class RebaseActions(
             return refusal;
         }
 
-        var label = chosen.Name ?? RebaseGuard.ShortHash(hash);
+        var label = chosen.Name ?? ShortHash(hash);
         var target = new RebaseTarget(tab.Id, hash, label, tab.Head!.BranchName!, tab.Head.CommitHash!);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
