@@ -232,7 +232,12 @@ public class IgnoreAwareWatchingTests
         using var testRepository = CreateRepositoryWithIgnoredTree();
         var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
         var lister = new FixedLister(Path.Combine(testRepository.WorkingTreePath, "src"));
-        var watcher = new RepositoryWatcher(location, new WatchBudget(), FastOptions, _ => { }, directoryLister: lister);
+        var watcher = new RepositoryWatcher(
+            location,
+            new WatchBudget(),
+            FastOptions,
+            _ => { },
+            directoryLister: lister);
         watcher.Start();
         await lister.Started.Task.WaitAsync(WaitLimit, Token);
 
