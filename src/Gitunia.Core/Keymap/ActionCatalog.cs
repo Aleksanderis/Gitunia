@@ -129,6 +129,7 @@ public static class ActionCatalog
         ["reflog.open"] = "Open the reflog of HEAD (of the branch under the sidebar cursor)",
         ["reflog.select-commit"] = "Select the reflog entry's commit in the graph",
         ["rebase.interactive"] = "Interactive rebase onto the selection (edit the todo)",
+        ["rebase.interactive-root"] = "Interactive rebase of the current branch from its root commit (the selection is ignored; edit the todo)",
         ["rebase-editor.pick"] = "Rebase todo: keep the commit as it is",
         ["rebase-editor.reword"] = "Rebase todo: keep the commit with a new message (opens the message editor)",
         ["rebase-editor.squash"] = "Rebase todo: meld the commit into the one above and keep both messages",

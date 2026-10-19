@@ -25,6 +25,20 @@ public class ContextMenuBuilderTests
     }
 
     [Fact]
+    public void GivenTheRootCommit_WhenAskingForTheGraphRowActions_ThenTheWholeHistoryRebaseFollowsTheOtherOne()
+    {
+        var root = RowActions.OfGraphRowFor(detailsVisible: true, isRootCommit: true);
+        var other = RowActions.OfGraphRowFor(detailsVisible: true, isRootCommit: false);
+
+        Assert.Equal(other.Count + 1, root.Count);
+        var interactive = root.ToList().IndexOf(ActionIds.RebaseInteractive);
+        Assert.Equal(interactive + 1, root.ToList().IndexOf(ActionIds.RebaseInteractiveRoot));
+        Assert.DoesNotContain(ActionIds.RebaseInteractiveRoot, other);
+        var entries = ContextMenuBuilder.Build(Table, DefaultKeymap.GraphView, root);
+        Assert.Equal("<space>gI", entries.Single(entry => entry.Action == ActionIds.RebaseInteractiveRoot).Keys);
+    }
+
+    [Fact]
     public void GivenTheDetailsPaneIsHidden_WhenAskingForTheGraphRowActions_ThenOpenDetailsIsLeftOut()
     {
         Assert.DoesNotContain(ActionIds.GraphOpenDetails, RowActions.OfGraphRowFor(detailsVisible: false));

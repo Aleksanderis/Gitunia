@@ -45,8 +45,23 @@ public static class RowActions
     ];
 
     /// <summary>The graph row actions; Open details is left out while the details pane is hidden (#490).</summary>
-    public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible) =>
-        detailsVisible ? OfGraphRow : [.. OfGraphRow.Where(action => action != ActionIds.GraphOpenDetails)];
+    public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible) => OfGraphRowFor(detailsVisible, false);
+
+    /// <summary>
+    /// The graph row actions. The root commit (no parents) also offers the interactive rebase of the whole history
+    /// (#561), placed after the rebase onto the commit.
+    /// </summary>
+    public static IReadOnlyList<ActionId> OfGraphRowFor(bool detailsVisible, bool isRootCommit)
+    {
+        List<ActionId> actions =
+            [.. OfGraphRow.Where(action => detailsVisible || action != ActionIds.GraphOpenDetails)];
+        if (isRootCommit)
+        {
+            actions.Insert(actions.IndexOf(ActionIds.RebaseInteractive) + 1, ActionIds.RebaseInteractiveRoot);
+        }
+
+        return actions;
+    }
 
     /// <summary>The actions on a sidebar row: a section header, a branch, a tag, a worktree or a stash.</summary>
     public static IReadOnlyList<ActionId> OfSidebarRow(SidebarRow row) => row.Kind switch
