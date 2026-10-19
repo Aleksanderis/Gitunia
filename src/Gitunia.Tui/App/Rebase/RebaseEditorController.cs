@@ -65,6 +65,7 @@ public sealed class RebaseEditorController(
     private const string SelectNotice = "Select a commit (graph) or a branch or tag (sidebar) to rebase onto";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was rebased";
     private const string ChangedNotice = "The tab changed while the todo was open: nothing was rebased";
+    private const string RootLabel = "the root";
     private const string EmptyRangeNotice = "Nothing to rebase: the branch has no commits the target lacks";
 
     private int _generation;
@@ -98,12 +99,12 @@ public sealed class RebaseEditorController(
     {
         if (State is not { } state)
         {
-            if (action != ActionIds.RebaseInteractive)
+            if (action != ActionIds.RebaseInteractive && action != ActionIds.RebaseInteractiveRoot)
             {
                 return false;
             }
 
-            Begin();
+            Begin(action == ActionIds.RebaseInteractiveRoot);
             return true;
         }
 
@@ -181,8 +182,8 @@ public sealed class RebaseEditorController(
         redraw();
     }
 
-    // Why a rebase onto the selection cannot start: the same refusals as the plain rebase.
-    private void Begin()
+    // Why a rebase onto the selection (or of the whole history) cannot start: the same refusals as the plain rebase.
+    private void Begin(bool isRoot)
     {
         if (host.Workspace.ActiveTab is not { } tab || isOtherOverlayOpen() || _isWorking)
         {
@@ -192,11 +193,13 @@ public sealed class RebaseEditorController(
         var chosen = selection();
         var isTarget = chosen.RowKind is null or SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch
             or SidebarRowKind.Tag;
-        if (!isTarget || chosen.CommitHash is not { } hash)
+        if (!isRoot && (!isTarget || chosen.CommitHash is null))
         {
             statuses.Warning(SelectNotice);
             return;
         }
+
+        var hash = isRoot ? null : chosen.CommitHash;
 
         if (gate.IsBusy(tab.Id))
         {
@@ -210,7 +213,7 @@ public sealed class RebaseEditorController(
             return;
         }
 
-        var label = chosen.Name ?? ShortHash(hash);
+        var label = isRoot ? RootLabel : chosen.Name ?? ShortHash(hash!);
         var generation = ++_generation;
         var location = tab.Location;
         var token = cancellationOf(tab.Id);
@@ -225,7 +228,7 @@ public sealed class RebaseEditorController(
     private async Task ReadRangeAsync(
         TabId tabId,
         RepositoryLocation location,
-        string targetHash,
+        string? targetHash,
         string label,
         string branchName,
         string oldTip,
@@ -234,13 +237,13 @@ public sealed class RebaseEditorController(
     {
         try
         {
-            var commits = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit(targetHash), token)
-                .ConfigureAwait(false);
+            var rebaseBase = BaseOf(targetHash);
+            var commits = await writer.ReadRangeAsync(location, rebaseBase, token).ConfigureAwait(false);
             var state = RebaseEditorState.Create(
                 tabId,
                 branchName,
                 label,
-                RebaseBase.OntoCommit(targetHash),
+                rebaseBase,
                 oldTip,
                 commits);
             postToUi(() => Show(generation, state, targetHash));
@@ -260,7 +263,7 @@ public sealed class RebaseEditorController(
         }
     }
 
-    private void Show(int generation, RebaseEditorState state, string targetHash)
+    private void Show(int generation, RebaseEditorState state, string? targetHash)
     {
         _isWorking = false;
         if (generation != _generation)
@@ -561,6 +564,9 @@ public sealed class RebaseEditorController(
             refresh(tabId);
         }
     }
+
+    private static RebaseBase BaseOf(string? targetHash) =>
+        targetHash is null ? RebaseBase.Root : RebaseBase.OntoCommit(targetHash);
 
     private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 }
