@@ -378,3 +378,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **Testing:** Startup smoke test (#532): `TuiApplication.Run` runs headless on the `ansi` driver in `dotnet test` (public `DriverName` and `ExitAfterFirstIteration`, no InternalsVisibleTo). Why: two startup crashes passed green unit tests. Details: `testing.md`.
 
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
+
+**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
