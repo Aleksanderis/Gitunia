@@ -5,7 +5,8 @@ using Gitunia.Core.Config.Models;
 namespace Gitunia.Core.Config;
 
 /// <summary>
-/// Reads <c>frameStyle</c>, <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds a problem.
+/// Reads <c>frameStyle</c>, <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds
+/// a problem.
 /// </summary>
 public static class OptionsConfigurator
 {

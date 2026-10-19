@@ -62,7 +62,7 @@ public class FrameStyleTests
     [Theory]
     [InlineData(FrameStyle.Rounded, "╰", "╯")]
     [InlineData(FrameStyle.Square, "└", "┘")]
-    public void GivenAFrameStyle_WhenDrawingAnOverlayBottom_ThenItsCornersFollow(FrameStyle style, string left, string right)
+    public void GivenAFrameStyle_WhenDrawingAnOverlayBottom_ThenCornersFollow(FrameStyle style, string left, string right)
     {
         var text = OverlayBox.Bottom(20, GraphGlyphSet.Unicode with { Frame = style }).Text;
 
