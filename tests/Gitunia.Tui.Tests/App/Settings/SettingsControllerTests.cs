@@ -631,7 +631,7 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAUserRebind_WhenReadingTheKeyReference_ThenTheKeyIsListedAndEnterShowsItsEntryWithoutWriting()
+    public async Task GivenAUserRebind_WhenReadingTheKeyReference_ThenTheKeyIsListedAndEnterShowsItsEntry()
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.ListDown);
