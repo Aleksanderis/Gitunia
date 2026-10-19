@@ -332,6 +332,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Below 14 rows (no details pane) the graph row menu omits "Open details" and `Enter` shows a notice instead of moving focus (#490). Zooming was rejected: the pane is hidden by design and the graph is the useful view there. Supersedes the "always listed" sentence of the #486 entry.
 
+**Git layer:** Interactive rebase engine (#399) writes the todo itself and hands it to git through `-c sequence.editor` pointing at `gitunia --sequence-editor` (no new env var; a set `GIT_SEQUENCE_EDITOR` is refused); rewords are `exec git commit --amend -F`. Ranges with merge commits are refused and `--root` is supported (owner, 2026-10-18); details in git-layer.md.
+
 **UI:** Merge commits (#95) keep showing the diff and file list against the first parent (what the merge brought into the branch); the Changes heading names that parent. Combined diffs and a per-parent switch were not added: a clean merge has an empty `--cc` diff, and a switch needs a new key (follow-up: #497).
 
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
@@ -354,8 +356,11 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Force push is `<space>Rf`, remote branch delete `<space>RD` (#457), not `<space>Pd`: the key engine always waits for a longer chord, so a binding that is complete and a prefix never fires. Force is only a lease behind a Confirm.
 
+**UI:** Credentials (#45): remote calls stay in the background with prompts off; on an auth failure a Confirm offers the same command with the terminal handed to git (TUI suspends like `$EDITOR`), not an inline pty. Why: ssh prompts on /dev/tty, so a pty needs a terminal emulator in the TUI. Detail: `git-layer.md`.
 
 **UI:** Graph search `body:` (#97) asks `git log --grep` on demand and filters rows by the returned hit set. Why: bodies stay out of graph rows, so load time and memory are unchanged.
+
+**Process:** Release packaging (#48) lives in `ci.yml`, tag runs only: each leg archives its AOT binary with `scripts/package.sh` (tar.gz, zip on Windows, plus SHA-256) and a `release` job attaches them to a draft release. Linux x64 and Windows x64 only; macOS and linux-arm64 follow with #455. Why: no extra workflow or build, so no extra minutes; draft so the owner publishes.
 
 **UI:** Key config (#46): `config.json` has a `keys` list of entries (mode, view, key, action; `none` unbinds) applied over the defaults; each entry is validated alone and bad ones are skipped with a startup warning, so config never blocks startup. An entry that would make a key both complete and a chord prefix is refused (the engine always waits for a longer chord, #457). Detail in `ux.md`.
 
@@ -383,6 +388,10 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Performance:** No throttle for the refresh-triggered `body:` re-run (#509): `log --grep` takes ~0.4-0.8 s on 100k commits, a restart cancels the earlier run and runs off the UI thread. Numbers: `performance.md`.
 
+**UI:** `DisplayWidth` follows Terminal.Gui per character (#503): skin tone modifiers, spacing combining marks and conjoining Hangul vowels are zero width; a test compares all code points. ZWJ sequences still differ (#547); supplements the #99 entry above.
+
 **Git layer:** Directory watchers are created outside the watcher gate (#504); empty and ignored-only directories stay unwatched. Inotify instances, not the 2048 cap, bind first (#543). Details: `git-layer.md`, `performance.md`.
 
 **Performance:** Soft row limit (#515, finishes #199 step 4): a tab loads its newest 100,000 commits and the rest on demand (`G`, search reaching the end, jumps). Measured on 1M commits: ~76 MB instead of ~390 MB until the end is asked for. Supersedes the "deferred to #515" part of the #199 entry. Details: `performance.md`.
+
+**UI:** Theme in the settings screen (#524): the cursor previews a theme, `Enter` writes `theme`, `Esc` restores; the mouse previews on the first click. `settings.open-theme` is a key-less palette action. Run-time `auto` uses `COLORFGBG` (no OSC 11 once the UI runs). See `ux.md`.

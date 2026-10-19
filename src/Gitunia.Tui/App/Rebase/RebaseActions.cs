@@ -23,7 +23,8 @@ namespace Gitunia.Tui.App.Rebase;
 /// names both sides, warns that a branch with an upstream needs a force push afterwards and shows the undo (the old
 /// tip, kept in <c>ORIG_HEAD</c> and the reflog). Refused without running git on a detached or unborn HEAD, while an
 /// operation is in progress and when tracked files have changes. A rebase that stops on conflicts is not a failure: the
-/// operation banner and continue, abort and skip of workflow 4 take over. Non-interactive only (#399 is M4).
+/// operation banner and continue, abort and skip of workflow 4 take over. Non-interactive only (the interactive
+/// engine is IInteractiveRebaseWriter, #399).
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="writer">Runs the rebase.</param>

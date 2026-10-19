@@ -5,11 +5,18 @@ namespace Gitunia.Core.Text;
 
 /// <summary>
 /// Terminal column widths of text: wide (CJK, emoji) characters take two, combining marks none. Wide means East Asian
-/// Width W or F in Unicode 16.0 (this covers emoji with default emoji presentation).
+/// Width W or F in Unicode 16.0 (this covers emoji with default emoji presentation). Per character it matches
+/// Terminal.Gui's own measure (#503, tested); sequences are summed per character, not per cluster.
 /// </summary>
 public static class DisplayWidth
 {
     private const int FirstWide = 0x1100;
+    private const int FirstSkinTone = 0x1F3FB;
+    private const int LastSkinTone = 0x1F3FF;
+    private const int FirstJungseong = 0x1160;
+    private const int LastJamo = 0x11FF;
+    private const int FirstJamoExtendedB = 0xD7B0;
+    private const int LastJamoExtendedB = 0xD7FB;
 
     // Sorted, inclusive start/end pairs: East Asian Width W and F of Unicode 16.0 (EastAsianWidth.txt, plus the default-wide
     // planes 2 and 3), regenerated from that file for a new Unicode version. Stored as constant data in the
@@ -158,12 +165,31 @@ public static class DisplayWidth
     public static int Of(Rune rune)
     {
         var category = Rune.GetUnicodeCategory(rune);
-        if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.Format)
+        if (category is UnicodeCategory.NonSpacingMark or UnicodeCategory.EnclosingMark or UnicodeCategory.Format
+            or UnicodeCategory.SpacingCombiningMark)
+        {
+            return 0;
+        }
+
+        if (IsZeroWidthLetterOrModifier(rune.Value, category))
         {
             return 0;
         }
 
         return IsWide(rune.Value) ? 2 : 1;
+    }
+
+    // Terminal.Gui draws these as part of the preceding cluster (checked in #503): skin tone modifiers and the
+    // conjoining Hangul vowels and finals.
+    private static bool IsZeroWidthLetterOrModifier(int value, UnicodeCategory category)
+    {
+        return category switch
+        {
+            UnicodeCategory.ModifierSymbol => value is >= FirstSkinTone and <= LastSkinTone,
+            UnicodeCategory.OtherLetter => value is >= FirstJungseong and <= LastJamo
+                or >= FirstJamoExtendedB and <= LastJamoExtendedB,
+            _ => false,
+        };
     }
 
     private static bool IsWide(int value)

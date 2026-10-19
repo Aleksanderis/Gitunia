@@ -6,6 +6,7 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Settings;
 using Gitunia.Core.Settings.Models;
 using Gitunia.Core.Status;
+using Gitunia.Tui.App.Config;
 using Gitunia.Tui.App.Settings;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
@@ -51,7 +52,7 @@ public sealed class SettingsControllerTests : IDisposable
         Assert.Contains("\"tabs\": { \"showBranch\": true }", text, StringComparison.Ordinal);
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
         Assert.Equal("Saved Show branch in tab name", _harness.Statuses.Log.Latest!.Text);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
     }
 
     [Fact]
@@ -75,6 +76,7 @@ public sealed class SettingsControllerTests : IDisposable
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.ListDown);
         Assert.Equal(string.Empty, _harness.ReadConfig());
@@ -87,10 +89,149 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenTheThemeList_WhenMovingTheCursor_ThenEachThemeIsPreviewedAndNothingIsWritten()
+    {
+        await _harness.OpenThemeListAsync();
+
+        _harness.Run(ActionIds.ListDown);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        _harness.Run(ActionIds.ListDown);
+        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        _harness.Run(ActionIds.ListUp);
+
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.False(File.Exists(_harness.ConfigPath));
+    }
+
+    [Fact]
+    public async Task GivenAPreviewedTheme_WhenPressingEscape_ThenThePreviousThemeIsBackAndNothingIsWritten()
+    {
+        _harness.WriteConfig("{ \"theme\": \"light\" }");
+        await _harness.OpenThemeListAsync();
+        _harness.Run(ActionIds.ListUp);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+
+        _harness.Run(ActionIds.NavigateBack);
+
+        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        Assert.True(_harness.Settings.IsOpen);
+        Assert.Equal("{ \"theme\": \"light\" }", _harness.ReadConfig());
+    }
+
+    [Fact]
+    public async Task GivenAPreviewedTheme_WhenTheScreenCloses_ThenThePreviousThemeIsBack()
+    {
+        await _harness.OpenThemeListAsync();
+        _harness.Run(ActionIds.ListDown, 2);
+        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+
+        _harness.Run(ActionIds.AppQuit);
+
+        Assert.False(_harness.Settings.IsOpen);
+        Assert.Equal(ThemeChoice.Auto, _harness.Themes.Last());
+        Assert.False(File.Exists(_harness.ConfigPath));
+    }
+
+    [Fact]
+    public async Task GivenAPreviewedTheme_WhenPressingEnter_ThenItStaysAndIsWrittenAndReadBackAtTheNextStart()
+    {
+        _harness.WriteConfig("{\n  // keep me\n  \"frameStyle\": \"square\"\n}\n");
+        await _harness.OpenThemeListAsync();
+        _harness.Run(ActionIds.ListDown);
+
+        _harness.Run(ActionIds.SettingsActivate);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        await _harness.PumpAsync();
+
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal("Saved Theme", _harness.Statuses.Log.Latest!.Text);
+        Assert.Contains("// keep me", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        var next = new ConfigStartup(Path.GetDirectoryName(_harness.ConfigPath)!, _harness.Root).Load();
+        Assert.Equal(ThemeChoice.Dark, next.Theme);
+        _harness.Run(ActionIds.AppQuit);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+    }
+
+    [Fact]
+    public async Task GivenAKeptThemeWhoseWriteIsRefused_WhenTheAnswerArrives_ThenThePreviousThemeIsRestored()
+    {
+        _harness.WriteConfig("{ \"theme\": \"light\" }");
+        await _harness.OpenThemeListAsync();
+        _harness.Run(ActionIds.ListUp);
+        _harness.WriteConfig("{ \"theme\": \"light\", \"frameStyle\": \"square\" }");
+
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        Assert.Equal("{ \"theme\": \"light\", \"frameStyle\": \"square\" }", _harness.ReadConfig());
+    }
+
+    [Fact]
+    public async Task GivenAFileThatDoesNotParse_WhenOpeningAndBrowsing_ThenNoThemeIsApplied()
+    {
+        _harness.WriteConfig("{ \"theme\": ");
+
+        await _harness.OpenAsync();
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.NavigateBack);
+
+        Assert.Empty(_harness.Themes);
+    }
+
+    [Fact]
+    public async Task GivenThePaletteActionForTheTheme_WhenOpening_ThenTheCursorIsOnTheThemeRow()
+    {
+        Assert.True(_harness.Settings.TryExecute(ActionIds.SettingsOpenTheme, null));
+        await _harness.PumpAsync();
+
+        var state = _harness.Settings.State!;
+        Assert.Equal(SettingsRegistry.ThemeId, state.Selected!.Definition.Id);
+        Assert.Equal(SettingsColumn.Settings, state.Column);
+        Assert.Equal(SettingCategory.Appearance, state.CurrentCategory);
+    }
+
+    [Fact]
+    public async Task GivenTheThemeList_WhenClickingOptionsWithTheMouse_ThenTheFirstClickPreviewsAndTheSecondKeeps()
+    {
+        await _harness.OpenThemeListAsync();
+
+        var first = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
+        Assert.Null(first);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.False(File.Exists(_harness.ConfigPath));
+        var second = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
+        _harness.Run(ActionIds.SettingsActivate);
+        await _harness.PumpAsync();
+
+        Assert.Equal(DefaultMouseMap.SettingsEditButton, second);
+        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+    }
+
+    [Fact]
+    public async Task GivenAPreviewedThemeByMouse_WhenClickingAnotherRow_ThenThePreviousThemeIsBack()
+    {
+        await _harness.OpenThemeListAsync();
+        _harness.Settings.OnLineClicked(2 + 3, 30, out _);
+        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+
+        _harness.Settings.OnLineClicked(2, 30, out _);
+
+        Assert.Equal(ThemeChoice.Auto, _harness.Themes.Last());
+        Assert.Null(_harness.Settings.State!.Choice);
+        Assert.False(File.Exists(_harness.ConfigPath));
+    }
+
+    [Fact]
     public async Task GivenAnOpenChoice_WhenGoingBack_ThenNothingIsWrittenAndTheScreenStaysOpen()
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.ListDown);
 
@@ -228,7 +369,7 @@ public sealed class SettingsControllerTests : IDisposable
 
         Assert.Equal("{ \"frameStyle\": \"square\", \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
         Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
         Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
 
         _harness.Run(ActionIds.SettingsToggle);
@@ -447,9 +588,10 @@ public sealed class SettingsControllerTests : IDisposable
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.SettingsActivate);
+        _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
 
-        var view = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
+        var view = _harness.Settings.OnLineClicked(2 + 1 + 2, 30, out _);
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
@@ -507,6 +649,7 @@ public sealed class SettingsControllerTests : IDisposable
                 mode => Mode = mode,
                 () => { },
                 Applied.Add,
+                Themes.Add,
                 LaunchEditor,
                 cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -520,6 +663,8 @@ public sealed class SettingsControllerTests : IDisposable
         public StatusChannel Statuses { get; } = new();
 
         public List<ConfigOptions> Applied { get; } = [];
+
+        public List<ThemeChoice> Themes { get; } = [];
 
         public KeyMode Mode { get; private set; } = KeyMode.Normal;
 
@@ -559,6 +704,14 @@ public sealed class SettingsControllerTests : IDisposable
             {
                 Assert.True(Settings.HandleTextKey(new KeyEvent(character.ToString())));
             }
+        }
+
+        // Opens the screen on the theme row and lists its options (the cursor on the current one).
+        public async Task OpenThemeListAsync()
+        {
+            Assert.True(Settings.TryExecute(ActionIds.SettingsOpenTheme, null));
+            await PumpAsync();
+            Run(ActionIds.SettingsActivate);
         }
 
         public async Task OpenAsync()

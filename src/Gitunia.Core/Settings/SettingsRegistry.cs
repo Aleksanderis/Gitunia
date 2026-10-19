@@ -8,6 +8,9 @@ namespace Gitunia.Core.Settings;
 /// </summary>
 public static class SettingsRegistry
 {
+    /// <summary>The id of the theme setting.</summary>
+    public const string ThemeId = "theme";
+
     /// <summary>The id of the frame style setting.</summary>
     public const string FrameStyleId = "frame-style";
 
@@ -29,6 +32,16 @@ public static class SettingsRegistry
     /// <summary>The settings in the order they are listed inside a category.</summary>
     public static IReadOnlyList<SettingDefinition> All { get; } =
     [
+        new SettingDefinition(
+            ThemeId,
+            SettingCategory.Appearance,
+            "Theme",
+            SettingControl.Choice,
+            ["theme"],
+            "The colours of the interface. auto follows the terminal's background. The cursor previews a theme, "
+                + "Enter keeps it and Esc restores the previous one.",
+            "auto",
+            ["auto", "dark", "light"]),
         new SettingDefinition(
             FrameStyleId,
             SettingCategory.Appearance,

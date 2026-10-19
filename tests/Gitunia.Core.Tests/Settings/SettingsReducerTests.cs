@@ -97,7 +97,7 @@ public class SettingsReducerTests
 
         Assert.Null(outcome.Commit);
         Assert.Equal(
-            [SettingRowKind.Setting, SettingRowKind.Option, SettingRowKind.Option],
+            [SettingRowKind.Setting, SettingRowKind.Setting, SettingRowKind.Option, SettingRowKind.Option],
             outcome.State.Rows.Select(row => row.Kind));
         Assert.Equal(1, outcome.State.Selected?.Index);
     }
@@ -107,11 +107,43 @@ public class SettingsReducerTests
     {
         var opened = OpenChoice();
 
-        var outcome = Reduce(opened.MoveTo(2), SettingsCommandKind.Activate);
+        var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Activate);
 
         Assert.Equal("square", outcome.Commit?.Value.Choice);
         Assert.Null(outcome.State.Choice);
         Assert.Equal(SettingRowKind.Setting, outcome.State.Selected?.Kind);
+    }
+
+    [Fact]
+    public void GivenTheThemeOptions_WhenMovingTheCursor_ThenThePreviewFollowsItAndEndsWhenTheListCloses()
+    {
+        var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.ThemeId)), SettingsCommandKind.Activate).State;
+
+        Assert.Equal(ThemeChoice.Auto, opened.PreviewTheme);
+        Assert.Equal(ThemeChoice.Dark, opened.MoveTo(2).PreviewTheme);
+        Assert.Equal(ThemeChoice.Light, opened.MoveTo(3).PreviewTheme);
+        Assert.Null(Reduce(opened.MoveTo(3), SettingsCommandKind.Back).State.PreviewTheme);
+    }
+
+    [Fact]
+    public void GivenAChoiceThatIsNotTheTheme_WhenTheListIsOpen_ThenThereIsNoThemePreview()
+    {
+        Assert.Null(OpenChoice().PreviewTheme);
+        Assert.Null(Open().Reveal(Definition(SettingsRegistry.ThemeId)).PreviewTheme);
+    }
+
+    [Fact]
+    public void GivenTheThemeOptions_WhenKeepingLight_ThenTheCommitWritesTheThemeKey()
+    {
+        var closed = Open("{ \"theme\": \"dark\" }").Reveal(Definition(SettingsRegistry.ThemeId));
+        var opened = Reduce(closed, SettingsCommandKind.Activate).State;
+        Assert.Equal(ThemeChoice.Dark, opened.PreviewTheme);
+
+        var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Activate);
+
+        Assert.Equal(["theme"], outcome.Commit?.Definition.ConfigPath);
+        Assert.Equal("\"light\"", outcome.Commit?.Value.ToJson(SettingControl.Choice));
+        Assert.Null(outcome.State.PreviewTheme);
     }
 
     [Fact]
@@ -130,7 +162,7 @@ public class SettingsReducerTests
     {
         var opened = OpenChoice();
 
-        var outcome = Reduce(opened.MoveTo(2), SettingsCommandKind.Back);
+        var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Back);
 
         Assert.Null(outcome.Commit);
         Assert.False(outcome.Closes);
@@ -146,8 +178,8 @@ public class SettingsReducerTests
         var down = opened.MoveTo(99);
         var up = opened.MoveTo(-5);
 
-        Assert.Equal(2, down.Cursor);
-        Assert.Equal(1, up.Cursor);
+        Assert.Equal(3, down.Cursor);
+        Assert.Equal(2, up.Cursor);
     }
 
     [Fact]
@@ -438,7 +470,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(4, collapsed.Rows.Count);
+        Assert.Equal(5, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);
