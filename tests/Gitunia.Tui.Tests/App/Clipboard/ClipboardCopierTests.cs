@@ -18,7 +18,7 @@ public class ClipboardCopierTests
 
         Assert.Equal("\u001b]52;c;YWJj\u001b\\", output.ToString());
         Assert.Equal(StatusSeverity.Info, statuses.Log.Latest?.Severity);
-        Assert.Contains("Copied commit hash", statuses.Log.Latest?.Text, StringComparison.Ordinal);
+        Assert.Equal("Copied commit hash", statuses.Log.Latest?.Text);
     }
 
     [Fact]

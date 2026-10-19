@@ -405,3 +405,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Interactive rebase editor (#458) is a modal list opened by `<space>gi` with git's todo words as single keys (`p` `r` `s` `f` `d`, `J`/`K` to move), like the settings screen's modal-list keys, not buffer commands. Why: they match what git users type in a todo. The Confirm opens over the editor so `n` keeps the todo; an edited todo needs a second `Esc` to discard.
 
 **UI:** The settings filter also matches key reference lines by title, keys and action id, and the collapsed layout lists the Key reference last (#558). Why: the reference is ~330 rows; amends the #525 entry.
+
+**UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
