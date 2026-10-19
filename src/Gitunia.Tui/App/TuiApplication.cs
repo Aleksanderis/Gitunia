@@ -852,6 +852,20 @@ public sealed class TuiApplication(
         IsAnyOverlayOpen,
         gate);
 
+    private QuickRebaseActions CreateQuickRebase(TabOperationGate gate) => new(
+        _host,
+        services.QuickRebase,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        tabId => _effects.Refresh(tabId, false),
+        SelectedCommitHash,
+        IsAnyOverlayOpen,
+        SetMode,
+        _view.RefreshChrome,
+        gate);
+
     // A focused sidebar acts on its row, any other pane on the commit selected in the graph.
     private BranchSelection BranchSelectionNow()
     {
@@ -1360,6 +1374,7 @@ public sealed class TuiApplication(
         [
             // The prompt that owns Insert mode must see Esc and Enter first, so the ref prompt comes before the search.
             new TabRenameController(_host, _keys.SetMode, _view.RefreshChrome),
+            CreateQuickRebase(gate),
             _branches,
             _tags,
             _push,

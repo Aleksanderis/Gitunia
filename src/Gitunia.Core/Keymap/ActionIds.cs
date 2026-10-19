@@ -195,6 +195,12 @@ public static class ActionIds
 
     public static ActionId RebaseOnto { get; } = new("rebase.onto");
 
+    public static ActionId RebaseFixup { get; } = new("rebase.fixup");
+
+    public static ActionId RebaseReword { get; } = new("rebase.reword");
+
+    public static ActionId RebaseDrop { get; } = new("rebase.drop");
+
     public static ActionId ReflogOpen { get; } = new("reflog.open");
 
     public static ActionId ReflogSelectCommit { get; } = new("reflog.select-commit");
