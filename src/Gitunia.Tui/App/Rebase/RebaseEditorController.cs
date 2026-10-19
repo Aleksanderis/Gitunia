@@ -204,7 +204,7 @@ public sealed class RebaseEditorController(
             return;
         }
 
-        if (RebaseActions.Refusal(tab, hash) is { } refusal)
+        if (RebaseGuard.Refusal(tab, hash) is { } refusal)
         {
             statuses.Warning(refusal);
             return;
@@ -272,7 +272,7 @@ public sealed class RebaseEditorController(
         if (host.Workspace.FindTab(state.TabId) is not { } tab
             || isOtherOverlayOpen()
             || !string.Equals(tab.Head?.CommitHash, state.OldTip, StringComparison.Ordinal)
-            || RebaseActions.Refusal(tab, targetHash) is not null)
+            || RebaseGuard.Refusal(tab, targetHash) is not null)
         {
             statuses.Warning(ChangedNotice);
             return;
@@ -500,7 +500,7 @@ public sealed class RebaseEditorController(
         }
 
         var moved = !string.Equals(tab.Head?.CommitHash, state.OldTip, StringComparison.Ordinal);
-        var refusal = RebaseActions.Refusal(tab, state.Base.Onto ?? string.Empty);
+        var refusal = RebaseGuard.Refusal(tab, state.Base.Onto);
         if (moved || refusal is not null)
         {
             statuses.Warning(refusal ?? ChangedNotice);

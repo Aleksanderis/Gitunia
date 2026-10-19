@@ -35,7 +35,7 @@ public static class RebaseEditorTexts
             }
         }
 
-        if (RebaseActions.UpstreamWarning(current) is { } warning)
+        if (RebaseGuard.UpstreamWarning(current) is { } warning)
         {
             lines.Add(warning);
         }

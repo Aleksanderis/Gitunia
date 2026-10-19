@@ -23,10 +23,10 @@ public class SettingsFrameBuilderTests
                 " Settings".PadRight(76),
                 "│ / filter                                                                 │",
                 "│  Appearance    │  Theme                                         [auto ▾] │",
-                "│  Repositories  │  Frame style                                [rounded ▾] │",
+                "│  Keys          │  Frame style                                [rounded ▾] │",
+                "│  Repositories  │                                                         │",
                 "│  Tabs          │                                                         │",
                 "│  Config file   │                                                         │",
-                "│                │                                                         │",
                 "│ ──────────────────────────────────────────────────────────────────────── │",
                 "│ Enter or l opens the category; j and k move between categories.          │",
                 "│                                                                          │",
@@ -71,7 +71,7 @@ public class SettingsFrameBuilderTests
         var state = Open().WithLayout(collapsed: true);
 
         var frame = SettingsFrameBuilder.Build(state, 60, 24, GraphGlyphSet.Unicode)!;
-        var body = frame.Lines.Skip(2).Take(8).Select(line => line.Text).ToList();
+        var body = frame.Lines.Skip(2).Take(12).Select(line => line.Text).ToList();
 
         Assert.Contains(body, line => line.Contains("Appearance", StringComparison.Ordinal));
         Assert.Contains(body, line => line.Contains("Tabs", StringComparison.Ordinal));
@@ -331,6 +331,59 @@ public class SettingsFrameBuilderTests
 
         Assert.Contains(frame.Lines, line => line.Text.Contains("/srv/35", StringComparison.Ordinal));
         Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("/srv/0 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheKeyReference_WhenRendering_ThenEachViewHasOneHeadingAndItsKeysSitOnTheRight()
+    {
+        var state = WithReference().Reveal(Definition(SettingsRegistry.KeyReferenceId));
+
+        var frame = SettingsFrameBuilder.Build(state, 100, 20, GraphGlyphSet.Unicode)!;
+        var text = frame.Lines.Select(line => line.Text).ToList();
+
+        Assert.Contains(text, line => line.Contains("Key reference", StringComparison.Ordinal)
+            && line.Contains("3 keys", StringComparison.Ordinal));
+        Assert.Equal(1, text.Count(line => line.Contains(" Graph ", StringComparison.Ordinal)));
+        Assert.Equal(1, text.Count(line => line.Contains(" Global ", StringComparison.Ordinal)));
+        Assert.Contains(text, line => line.Contains("Down", StringComparison.Ordinal)
+            && line.Contains("j / Down", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheCursorOnAKey_WhenRendering_ThenTheHelpNamesTheActionAndTheHintOffersTheConfigEntry()
+    {
+        var state = WithReference().Reveal(Definition(SettingsRegistry.KeyReferenceId), SettingRowKind.Binding, 1);
+
+        var frame = SettingsFrameBuilder.Build(state, 100, 20, GraphGlyphSet.Unicode)!;
+        var text = string.Join('\n', frame.Lines.Select(line => line.Text));
+
+        Assert.Contains("Action list.down.", text, StringComparison.Ordinal);
+        Assert.Contains("Enter show config entry", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheKeyReference_WhenListingTheBody_ThenAHeadingPrecedesEachViewAndIsNotARow()
+    {
+        var state = WithReference().Reveal(Definition(SettingsRegistry.KeyReferenceId));
+
+        var entries = SettingsFrameBuilder.BodyEntries(state);
+
+        Assert.Equal([0, -1, 1, -1, 2, 3], entries.Select(entry => entry.RowIndex));
+        Assert.Equal(["Global", "Graph"], entries.Where(entry => entry.RowIndex < 0).Select(entry => entry.Heading));
+    }
+
+    private static SettingsState WithReference()
+    {
+        var load = SettingsValueReader.Read(new ConfigSnapshot(true, "{}", "hash"), Home, _ => true);
+
+        return SettingsState.Create(
+            [.. SettingsRegistry.All],
+            load,
+            [
+                new KeyReferenceEntry("Global", "q", "Quit", "app.quit", "{ }"),
+                new KeyReferenceEntry("Graph", "j / Down", "Down", "list.down", "{ }"),
+                new KeyReferenceEntry("Graph", "k", "Up", "list.up", "{ }"),
+            ]);
     }
 
     private static SettingDefinition Definition(string id) =>

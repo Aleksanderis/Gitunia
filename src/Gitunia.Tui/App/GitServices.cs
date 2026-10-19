@@ -52,6 +52,7 @@ namespace Gitunia.Tui.App;
 /// <param name="InteractiveRebase">
 /// Rebases with a todo (pick, reword, squash, fixup, drop, reorder) prepared by the app.
 /// </param>
+/// <param name="QuickRebase">Fixup, reword and drop of one commit through the interactive rebase.</param>
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
@@ -85,6 +86,7 @@ public sealed record GitServices(
     IResetWriter Reset,
     IRebaseWriter Rebase,
     IInteractiveRebaseWriter InteractiveRebase,
+    IQuickRebaseWriter QuickRebase,
     IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
@@ -108,6 +110,13 @@ public sealed record GitServices(
         var operationDetector = new RepositoryOperationDetector();
         var operationRunner = new OperationRunner(runner, operationDetector);
         var remoteRunner = new RemoteRunner(runner);
+        var interactiveRebase = new InteractiveRebaseWriter(
+            operationRunner,
+            runner,
+            operationDetector,
+            new SequenceEditorCommand(
+                [Environment.ProcessPath ?? AppInfo.Name, SequenceEditorCommand.ModeArgument]),
+            Environment.GetEnvironmentVariable);
         return new GitServices(
             new RepositoryDiscovery(runner),
             commitLog,
@@ -130,13 +139,8 @@ public sealed record GitServices(
             new PickCommitReader(runner),
             new ResetWriter(runner),
             new RebaseWriter(operationRunner, runner),
-            new InteractiveRebaseWriter(
-                operationRunner,
-                runner,
-                operationDetector,
-                new SequenceEditorCommand(
-                    [Environment.ProcessPath ?? AppInfo.Name, SequenceEditorCommand.ModeArgument]),
-                Environment.GetEnvironmentVariable),
+            interactiveRebase,
+            new QuickRebaseWriter(runner, interactiveRebase),
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),

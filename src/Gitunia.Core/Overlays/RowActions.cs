@@ -37,6 +37,9 @@ public static class RowActions
         ActionIds.TagPush,
         ActionIds.TagDeleteRemote,
         .. Integrate,
+        ActionIds.RebaseFixup,
+        ActionIds.RebaseReword,
+        ActionIds.RebaseDrop,
         ActionIds.GraphCopyHash,
         ActionIds.GraphOpenDetails,
     ];
