@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>The words of one row of the settings column: the label on the left and the control on the right.</summary>
-/// <param name="Marker">A one-character mark before the label, <c>!</c> for a value in the file that is invalid.</param>
+/// <param name="Marker">A one-character mark before the label, <c>!</c> for an invalid value in the file.</param>
 /// <param name="Left">The label.</param>
 /// <param name="Right">The control, empty for none.</param>
 public sealed record SettingsRowText(string Marker, string Left, string Right)

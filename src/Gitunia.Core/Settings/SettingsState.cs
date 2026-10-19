@@ -163,7 +163,7 @@ public sealed record SettingsState(
         return changed.Reveal(selected.Definition, selected.Kind, selected.Index);
     }
 
-    /// <summary>Puts the cursor on a setting, or one of its folders or options, switching category when needed.</summary>
+    /// <summary>Puts the cursor on a setting, a folder or an option, switching category when needed.</summary>
     /// <param name="definition">The setting.</param>
     /// <param name="kind">The kind of row to land on.</param>
     /// <param name="index">The folder or option number for an item or option row.</param>

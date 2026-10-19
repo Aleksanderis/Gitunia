@@ -29,7 +29,8 @@ public class SettingsValueReaderTests
     public void GivenAFileWithValues_WhenReading_ThenTheScreenAndTheOptionsHoldThem()
     {
         const string text =
-            "{ \"frameStyle\": \"Square\", \"tabs\": { \"showBranch\": true }, \"scanRoots\": [\"~/Projects\", \"/srv\"] }";
+            "{ \"frameStyle\": \"Square\", \"tabs\": { \"showBranch\": true }, "
+            + "\"scanRoots\": [\"~/Projects\", \"/srv\"] }";
 
         var load = Read(new ConfigSnapshot(true, text, "h"));
 

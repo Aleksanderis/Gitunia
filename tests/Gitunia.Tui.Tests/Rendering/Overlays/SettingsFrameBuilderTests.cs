@@ -87,7 +87,9 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
 
         var row = frame.Lines[2].Segments;
-        Assert.Contains(row, segment => segment.Selection == SegmentSelection.Dim && segment.Text.Contains("Appearance"));
+        Assert.Contains(
+            row,
+            segment => segment.Selection == SegmentSelection.Dim && segment.Text.Contains("Appearance"));
         Assert.Contains(
             row,
             segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Frame style"));
