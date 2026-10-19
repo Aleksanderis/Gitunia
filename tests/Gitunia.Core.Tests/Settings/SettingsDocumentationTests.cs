@@ -10,7 +10,7 @@ public class SettingsDocumentationTests
     private const string SectionHeading = "## Settings screen";
 
     [Fact]
-    public void GivenTheSettingsTableInTheUxDoc_WhenComparedWithTheRegistry_ThenEverySettingIsDocumentedWithItsControlAndKey()
+    public void GivenTheUxSettingsTable_WhenComparedWithTheRegistry_ThenEverySettingIsDocumented()
     {
         var rows = ReadTable();
 

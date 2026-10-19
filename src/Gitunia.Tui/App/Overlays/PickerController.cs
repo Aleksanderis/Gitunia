@@ -40,8 +40,8 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
     public event Action? Changed;
 
     /// <summary>
-    /// The folders the next scan looks in, null for the conventional ones. The settings screen changes it while the app runs;
-    /// the next open of the picker rescans.
+    /// The folders the next scan looks in, null for the conventional ones. The settings screen changes it while the
+    /// app runs; the next open of the picker rescans.
     /// </summary>
     public ImmutableArray<string>? ScanRoots
     {

@@ -35,7 +35,7 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAFileWithComments_WhenFlippingAToggleByKey_ThenOnlyThatKeyIsInsertedAndTheOptionsApplyAtOnce()
+    public async Task GivenAFileWithComments_WhenFlippingAToggle_ThenOnlyThatKeyIsInsertedAndTheOptionsApply()
     {
         const string original = "{\n  // keep me\n  \"frameStyle\": \"rounded\"\n}\n";
         _harness.WriteConfig(original);
@@ -137,13 +137,13 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAFolderThatDoesNotExist_WhenAddingIt_ThenTheReasonIsReportedTheFileIsUntouchedAndTypingContinues()
+    public async Task GivenAFolderThatDoesNotExist_WhenAddingIt_ThenTheReasonIsReportedAndTypingContinues()
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.SettingsAdd);
-        _harness.Type(Path.Combine(_harness.Directory, "nowhere"));
+        _harness.Type(Path.Combine(_harness.Root, "nowhere"));
 
         _harness.Run(ActionIds.InputAccept);
 
@@ -175,7 +175,7 @@ public sealed class SettingsControllerTests : IDisposable
     {
         var first = _harness.MakeFolder("a");
         var second = _harness.MakeFolder("b");
-        _harness.WriteConfig($"{{ \"scanRoots\": [{ConfigTextEditor.StringValue(first)}, {ConfigTextEditor.StringValue(second)}] }}");
+        _harness.WriteRoots(first, second);
         await _harness.OpenAsync();
         _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
@@ -201,7 +201,7 @@ public sealed class SettingsControllerTests : IDisposable
     {
         var first = _harness.MakeFolder("a");
         var second = _harness.MakeFolder("b");
-        _harness.WriteConfig($"{{ \"scanRoots\": [{ConfigTextEditor.StringValue(first)}, {ConfigTextEditor.StringValue(second)}] }}");
+        _harness.WriteRoots(first, second);
         await _harness.OpenAsync();
         _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
@@ -346,7 +346,7 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenTheEditorRow_WhenActivating_ThenTheEditorGetsTheConfigPathAndTheFileIsReadAgainWhenItReturns()
+    public async Task GivenTheEditorRow_WhenActivating_ThenTheEditorGetsTheConfigPathAndTheFileIsReadOnReturn()
     {
         _harness.WriteConfig("{ \"tabs\": { \"showBranch\": false } }");
         await _harness.OpenAsync();
@@ -361,7 +361,7 @@ public sealed class SettingsControllerTests : IDisposable
 
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
         Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
-        Assert.Contains("key bindings apply after a restart", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("apply after a restart", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -421,7 +421,7 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAPathList_WhenClickingItsMarkers_ThenAddAndRemoveViewsReturnAndTheQuestionCanBeAnsweredByClick()
+    public async Task GivenAPathList_WhenClickingItsMarkers_ThenTheViewsReturnAndTheQuestionIsAnsweredByClick()
     {
         var folder = _harness.MakeFolder("a");
         _harness.WriteConfig($"{{ \"scanRoots\": [{ConfigTextEditor.StringValue(folder)}] }}");
@@ -495,11 +495,11 @@ public sealed class SettingsControllerTests : IDisposable
 
         public Harness()
         {
-            Directory = System.IO.Directory.CreateTempSubdirectory("gitunia-settings-").FullName;
-            ConfigPath = Path.Combine(Directory, "config", ConfigLoader.FileName);
+            Root = Directory.CreateTempSubdirectory("gitunia-settings-").FullName;
+            ConfigPath = Path.Combine(Root, "config", ConfigLoader.FileName);
             Settings = new SettingsController(
-                new ConfigWriter(Path.Combine(Directory, "config")),
-                new SettingsEnvironment(Directory, System.IO.Directory.Exists),
+                new ConfigWriter(Path.Combine(Root, "config")),
+                new SettingsEnvironment(Root, Directory.Exists),
                 Statuses,
                 Post,
                 () => Size,
@@ -511,7 +511,7 @@ public sealed class SettingsControllerTests : IDisposable
                 cancellationToken: TestContext.Current.CancellationToken);
         }
 
-        public string Directory { get; }
+        public string Root { get; }
 
         public string ConfigPath { get; }
 
@@ -537,13 +537,19 @@ public sealed class SettingsControllerTests : IDisposable
 
         public void WriteConfig(string text)
         {
-            System.IO.Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
             File.WriteAllText(ConfigPath, text);
         }
 
         public string ReadConfig() => File.Exists(ConfigPath) ? File.ReadAllText(ConfigPath) : string.Empty;
 
-        public string MakeFolder(string name) => System.IO.Directory.CreateDirectory(Path.Combine(Directory, name)).FullName;
+        public void WriteRoots(params string[] folders)
+        {
+            var list = ConfigTextEditor.StringListValue(folders);
+            WriteConfig($"{{ \"scanRoots\": {list} }}");
+        }
+
+        public string MakeFolder(string name) => Directory.CreateDirectory(Path.Combine(Root, name)).FullName;
 
         public void Run(ActionId action, int? count = null) => Assert.True(Settings.TryExecute(action, count));
 
@@ -570,9 +576,9 @@ public sealed class SettingsControllerTests : IDisposable
 
         public void Dispose()
         {
-            if (System.IO.Directory.Exists(Directory))
+            if (Directory.Exists(Root))
             {
-                System.IO.Directory.Delete(Directory, recursive: true);
+                Directory.Delete(Root, recursive: true);
             }
         }
 

@@ -56,9 +56,15 @@ public static class SettingsReducer
 
         if (state.IsEditingFilter)
         {
-            var cleared = state with { Filter = string.Empty, IsEditingFilter = false, Column = SettingsColumn.Categories };
+            var cleared = state with
+            {
+                Filter = string.Empty,
+                IsEditingFilter = false,
+                Column = SettingsColumn.Categories,
+                Cursor = 0,
+            };
 
-            return new SettingsOutcome(cleared with { Cursor = 0 });
+            return new SettingsOutcome(cleared);
         }
 
         if (state is { Choice: { } choice } && FindDefinition(state, choice.SettingId) is { } edited)
@@ -329,7 +335,8 @@ public static class SettingsReducer
 
     private static SettingsOutcome AcceptNumber(SettingsState state, SettingDefinition definition, SettingsInput input)
     {
-        var parsed = int.TryParse(input.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var number);
+        var text = input.Text.Trim();
+        var parsed = int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number);
         if (!parsed || !IsInRange(definition, number))
         {
             return Refuse(state, RangeMessage(definition));
@@ -353,8 +360,9 @@ public static class SettingsReducer
             return Refuse(state, error);
         }
 
-        var changed = input.Kind == SettingsInputKind.PathEdit ? paths.SetItem(input.ItemIndex, typed) : paths.Add(typed);
-        var select = input.Kind == SettingsInputKind.PathEdit ? input.ItemIndex : changed.Length - 1;
+        var isEdit = input.Kind == SettingsInputKind.PathEdit;
+        var changed = isEdit ? paths.SetItem(input.ItemIndex, typed) : paths.Add(typed);
+        var select = isEdit ? input.ItemIndex : changed.Length - 1;
 
         return new SettingsOutcome(state, new SettingsCommit(definition, SettingValue.OfPaths(changed), select));
     }

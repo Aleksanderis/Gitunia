@@ -752,7 +752,15 @@ public sealed class MainView : IDisposable
             : Rects();
         PaneKind? focused = isPicker ? PaneKind.Graph : Sidebar.HasFocus ? PaneKind.Sidebar : Detail.HasFocus ? PaneKind.Detail : Diff.HasFocus ? PaneKind.Diff : PaneKind.Graph;
         var title = _model().RepositoryName.Length > 0 ? _model().RepositoryName : "Repository";
-        var key = new GridKey(ScreenWidth, ScreenHeight(), rects, focused, title, isPicker, _glyphs.IsAscii, _glyphs.Frame);
+        var key = new GridKey(
+            ScreenWidth,
+            ScreenHeight(),
+            rects,
+            focused,
+            title,
+            isPicker,
+            _glyphs.IsAscii,
+            _glyphs.Frame);
         if (_grid is null || _gridKey != key)
         {
             _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");

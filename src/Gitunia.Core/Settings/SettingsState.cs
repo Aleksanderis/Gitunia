@@ -141,8 +141,8 @@ public sealed record SettingsState(
     }
 
     /// <summary>
-    /// Switches between the two-column and the collapsed layout when the screen width changes; the selected setting stays
-    /// selected.
+    /// Switches between the two-column and the collapsed layout when the screen width changes; the selected setting
+    /// stays selected.
     /// </summary>
     /// <param name="collapsed">The screen is too narrow for two columns.</param>
     public SettingsState WithLayout(bool collapsed)
@@ -155,14 +155,22 @@ public sealed record SettingsState(
         var selected = Selected;
         var changed = this with { IsCollapsed = collapsed, Column = SettingsColumn.Settings };
 
-        return selected is null ? changed.Clamped() : changed.Reveal(selected.Definition, selected.Kind, selected.Index);
+        if (selected is null)
+        {
+            return changed.Clamped();
+        }
+
+        return changed.Reveal(selected.Definition, selected.Kind, selected.Index);
     }
 
-    /// <summary>Puts the cursor on a setting (or one of its folders or options), switching category when needed.</summary>
+    /// <summary>Puts the cursor on a setting, or one of its folders or options, switching category when needed.</summary>
     /// <param name="definition">The setting.</param>
     /// <param name="kind">The kind of row to land on.</param>
     /// <param name="index">The folder or option number for an item or option row.</param>
-    public SettingsState Reveal(SettingDefinition definition, SettingRowKind kind = SettingRowKind.Setting, int index = 0)
+    public SettingsState Reveal(
+        SettingDefinition definition,
+        SettingRowKind kind = SettingRowKind.Setting,
+        int index = 0)
     {
         var categories = Categories;
         var categoryIndex = Math.Max(0, categories.ToList().IndexOf(definition.Category));

@@ -286,8 +286,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, ReflogView, "<space>bs", ActionIds.BranchSwitch);
     }
 
-    // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys of a
-    // modal list, not buffer commands, so the single letters do not clash with the Normal-mode rule of the panes.
+    // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys
+    // of a modal list, not buffer commands, so the single letters do not clash with the Normal-mode rule of the panes.
     private static void AddSettingsKeys(List<KeyBinding> bindings)
     {
         Add(bindings, NormalOnly, SettingsView, "Enter", ActionIds.SettingsActivate);

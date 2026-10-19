@@ -108,8 +108,8 @@ public static class DefaultMouseMap
 
     public const string ReflogPickerRow = "ReflogPicker";
 
-    /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523): each is a
-    /// view of its own, a click runs the action its key runs on the row the click selected.</summary>
+    /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
+    /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
 
     public const string SettingsAddButton = "SettingsButton.Add";

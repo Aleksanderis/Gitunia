@@ -45,7 +45,8 @@ public class SettingsFrameBuilderTests
             {
                 var frame = SettingsFrameBuilder.Build(Open(), width, height, GraphGlyphSet.Unicode);
 
-                Assert.True(frame is null || frame.Lines.All(line => TextWidth.Of(line.Text) == frame.Width), $"{width}x{height}");
+                var isUniform = frame is null || frame.Lines.All(line => TextWidth.Of(line.Text) == frame.Width);
+                Assert.True(isUniform, $"{width}x{height}");
                 Assert.True(frame is null || frame.Column + frame.Width <= width, $"{width}x{height} fits the screen");
             }
         }
@@ -87,7 +88,9 @@ public class SettingsFrameBuilderTests
 
         var row = frame.Lines[2].Segments;
         Assert.Contains(row, segment => segment.Selection == SegmentSelection.Dim && segment.Text.Contains("Appearance"));
-        Assert.Contains(row, segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Frame style"));
+        Assert.Contains(
+            row,
+            segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Frame style"));
         Assert.Equal(
             1,
             frame.Lines.Count(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)));
@@ -120,7 +123,8 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAPathList_WhenRendering_ThenTheFoldersAreListedWithRemoveMarkersAndTheRowHasAnAddMarker()
     {
-        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"~/code\"] }").Reveal(Definition(SettingsRegistry.ScanRootsId));
+        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"~/code\"] }")
+            .Reveal(Definition(SettingsRegistry.ScanRootsId));
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
         var text = frame.Lines.Select(line => line.Text).ToList();
@@ -145,7 +149,8 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAFolderBeingTyped_WhenRendering_ThenTheTextAndACursorShowOnTheNewRow()
     {
-        var typing = Reduce(Open().Reveal(Definition(SettingsRegistry.ScanRootsId)), SettingsCommandKind.Add).WithInputText("/sr");
+        var adding = Reduce(Open().Reveal(Definition(SettingsRegistry.ScanRootsId)), SettingsCommandKind.Add);
+        var typing = adding.WithInputText("/sr");
 
         var frame = SettingsFrameBuilder.Build(typing, 100, 30, GraphGlyphSet.Unicode)!;
 
@@ -165,8 +170,9 @@ public class SettingsFrameBuilderTests
         var frame = SettingsFrameBuilder.Build(asked, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;
 
-        Assert.Contains("Remove \"/srv/git\" from Scan roots?", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
-        Assert.Contains("The folder itself is not touched", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
+        var question = frame.Lines[layout.RuleLine + 1].Text;
+        Assert.Contains("Remove \"/srv/git\" from Scan roots?", question, StringComparison.Ordinal);
+        Assert.Contains("The folder itself is not touched", question, StringComparison.Ordinal);
         Assert.Contains("y  remove it", frame.Lines[layout.SecondHelpLine].Text, StringComparison.Ordinal);
         Assert.Contains("n  keep it", frame.Lines[layout.SecondHelpLine].Text, StringComparison.Ordinal);
     }
@@ -270,12 +276,14 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenTheRemovalQuestion_WhenHittingItsAnswerLine_ThenTheLeftHalfIsYesAndTheRightHalfIsNo()
     {
-        var state = Open("{ \"scanRoots\": [\"/a\"] }").Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
+        var state = Open("{ \"scanRoots\": [\"/a\"] }")
+            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
         var asked = Reduce(state, SettingsCommandKind.Remove);
         var layout = SettingsLayout.For(100, 30)!;
 
         var yes = SettingsFrameBuilder.HitAt(asked, 5, layout.SecondHelpLine, 100, 30, GraphGlyphSet.Unicode);
-        var no = SettingsFrameBuilder.HitAt(asked, layout.Width - 5, layout.SecondHelpLine, 100, 30, GraphGlyphSet.Unicode);
+        var noColumn = layout.Width - 5;
+        var no = SettingsFrameBuilder.HitAt(asked, noColumn, layout.SecondHelpLine, 100, 30, GraphGlyphSet.Unicode);
 
         Assert.Equal(SettingsHitKind.ConfirmYes, yes.Kind);
         Assert.Equal(SettingsHitKind.ConfirmNo, no.Kind);

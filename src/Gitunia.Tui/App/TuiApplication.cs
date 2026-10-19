@@ -590,7 +590,8 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     private void ShowOverlayFrame()
     {
         _popups.MarkShown();
-        _view.Overlay.Show(_settings.CurrentFrame() ?? _reflog.CurrentFrame() ?? _overlays.CurrentFrame() ?? MainlineFrame() ?? PopupFrame());
+        var overlay = _settings.CurrentFrame() ?? _reflog.CurrentFrame() ?? _overlays.CurrentFrame();
+        _view.Overlay.Show(overlay ?? MainlineFrame() ?? PopupFrame());
     }
 
     private PromptPopup? CurrentPopup() =>
@@ -1079,7 +1080,11 @@ public sealed class TuiApplication(GitServices services, ConsoleCapabilities cap
     }
 
     private bool IsAnyOverlayOpen() =>
-        _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen || _pick.Prompt is not null || CurrentPopup() is not null;
+        _overlays.State.IsOpen
+        || _reflog.IsOpen
+        || _settings.IsOpen
+        || _pick.Prompt is not null
+        || CurrentPopup() is not null;
 
     private string OverlayViewName() => _settings.IsOpen
         ? DefaultKeymap.SettingsView

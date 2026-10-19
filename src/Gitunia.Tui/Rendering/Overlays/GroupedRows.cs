@@ -56,7 +56,8 @@ public sealed record GroupedRows(IReadOnlyList<GroupedRow> Lines)
         var lastTop = Math.Max(0, Lines.Count - rowCount);
         var top = Math.Clamp(selectedLine - (rowCount / 2), 0, lastTop);
 
-        // A gap at the top of the window is skipped, except in the last window: skipping it would leave a blank row at the bottom.
+        // A gap at the top of the window is skipped, except in the last window: skipping it would leave a blank row
+        // at the bottom.
         if (top < selectedLine && top < lastTop && Lines[top] is { Header: null, Entry: null })
         {
             top++;

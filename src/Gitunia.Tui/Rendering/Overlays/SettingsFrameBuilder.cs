@@ -64,7 +64,7 @@ public static class SettingsFrameBuilder
     public static int VisibleRows(int screenWidth, int screenHeight) =>
         SettingsLayout.For(screenWidth, screenHeight) is { IsTooSmall: false } layout ? layout.BodyRows : 0;
 
-    /// <summary>The lines of the settings list: the rows, with a heading before each category in the collapsed layout.</summary>
+    /// <summary>The lines of the settings list: rows, plus a heading before each category when collapsed.</summary>
     /// <param name="state">The settings state.</param>
     public static IReadOnlyList<SettingsBodyEntry> BodyEntries(SettingsState state)
     {
@@ -114,7 +114,9 @@ public static class SettingsFrameBuilder
 
         if (state.Removal is not null && line == layout.SecondHelpLine)
         {
-            return new SettingsHit(inner < (layout.Width - 2) / 2 ? SettingsHitKind.ConfirmYes : SettingsHitKind.ConfirmNo);
+            var isYes = inner < (layout.Width - OverlayBox.BorderWidth) / 2;
+
+            return new SettingsHit(isYes ? SettingsHitKind.ConfirmYes : SettingsHitKind.ConfirmNo);
         }
 
         var offset = line - SettingsLayout.BodyStart;
@@ -141,7 +143,12 @@ public static class SettingsFrameBuilder
         return index < count ? new SettingsHit(SettingsHitKind.Category, index) : SettingsHit.None;
     }
 
-    private static SettingsHit RowHit(SettingsState state, SettingsLayout layout, int offset, int x, GraphGlyphSet glyphs)
+    private static SettingsHit RowHit(
+        SettingsState state,
+        SettingsLayout layout,
+        int offset,
+        int x,
+        GraphGlyphSet glyphs)
     {
         var entries = BodyEntries(state);
         var index = EntriesTop(state, entries, layout) + offset;
@@ -244,7 +251,9 @@ public static class SettingsFrameBuilder
         var isCurrent = index == state.CategoryIndex;
         var selection = isCurrent ? ColumnSelection(state, SettingsColumn.Categories) : SegmentSelection.None;
 
-        return Cell(" ", SettingsRegistry.TitleOf(categories[index]), string.Empty, width, selection, glyphs, SegmentRole.Plain);
+        var title = SettingsRegistry.TitleOf(categories[index]);
+
+        return Cell(" ", title, string.Empty, width, selection, glyphs, SegmentRole.Plain);
     }
 
     private static IReadOnlyList<StyledSegment> SettingsCell(
@@ -260,14 +269,23 @@ public static class SettingsFrameBuilder
 
         if (entry.RowIndex < 0)
         {
-            return Cell(" ", entry.Heading, string.Empty, width, SegmentSelection.None, glyphs, SegmentRole.SectionTitle);
+            return Cell(
+                " ",
+                entry.Heading,
+                string.Empty,
+                width,
+                SegmentSelection.None,
+                glyphs,
+                SegmentRole.SectionTitle);
         }
 
         var row = state.Rows[entry.RowIndex];
         var text = SettingsRowText.Of(state, row, glyphs);
         var isCurrent = entry.RowIndex == Math.Clamp(state.Cursor, 0, Math.Max(0, state.Rows.Count - 1));
         var showsCursor = state.Column == SettingsColumn.Settings || state.ListsAllCategories;
-        var selection = isCurrent && showsCursor ? ColumnSelection(state, SettingsColumn.Settings) : SegmentSelection.None;
+        var selection = isCurrent && showsCursor
+            ? ColumnSelection(state, SettingsColumn.Settings)
+            : SegmentSelection.None;
 
         return Cell(text.Marker, text.Left, text.Right, width, selection, glyphs, SegmentRole.Plain);
     }
@@ -308,19 +326,30 @@ public static class SettingsFrameBuilder
     }
 
     private static StyledLine RuleLine(SettingsLayout layout, GraphGlyphSet glyphs) =>
-        OverlayBox.Text(new string(glyphs.Horizontal, layout.Width - OverlayBox.BorderWidth - 2), layout.Width, glyphs, SegmentRole.Faint);
+        OverlayBox.Text(
+            new string(glyphs.Horizontal, layout.Width - OverlayBox.BorderWidth - 2),
+            layout.Width,
+            glyphs,
+            SegmentRole.Faint);
 
     private static List<StyledLine> HelpLines(SettingsState state, SettingsLayout layout, GraphGlyphSet glyphs)
     {
         if (state.Removal is { } removal)
         {
-            var name = state.Definitions.FirstOrDefault(definition => definition.Id == removal.SettingId)?.Name ?? string.Empty;
+            var setting = state.Definitions.FirstOrDefault(definition => definition.Id == removal.SettingId);
+            var name = setting?.Name ?? string.Empty;
             var question = $"Remove \"{removal.Path}\" from {name}? The folder itself is not touched.";
 
             return
             [
                 OverlayBox.Text(question, layout.Width, glyphs),
-                OverlayBox.TwoColumns(AnswerYes, AnswerNo, layout.Width, glyphs, SegmentRole.OverlayKey, SegmentRole.OverlayKey),
+                OverlayBox.TwoColumns(
+                    AnswerYes,
+                    AnswerNo,
+                    layout.Width,
+                    glyphs,
+                    SegmentRole.OverlayKey,
+                    SegmentRole.OverlayKey),
             ];
         }
 
@@ -352,7 +381,9 @@ public static class SettingsFrameBuilder
             ? $"! {reason}. Changing it writes a valid value. "
             : string.Empty;
         var wrapped = HelpFrameBuilder.WrapText($"{warning}{definition.Help} {definition.Detail}".Trim(), width);
-        var second = wrapped.Count > MaximumHelpLines ? string.Join(' ', wrapped.Skip(1)) : wrapped.ElementAtOrDefault(1) ?? string.Empty;
+        var second = wrapped.Count > MaximumHelpLines
+            ? string.Join(' ', wrapped.Skip(1))
+            : wrapped.ElementAtOrDefault(1) ?? string.Empty;
 
         return [wrapped[0], second];
     }

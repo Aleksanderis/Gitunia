@@ -15,10 +15,10 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Settings;
 
 /// <summary>
-/// The settings screen (ux.md, "Settings screen"): a modal overlay over every tab that edits <c>config.json</c> through the
-/// config writer and applies each change to the running app at once. It owns the keys while it is open. State changes are the
-/// pure <see cref="SettingsReducer"/>; this class reads and writes the file off the UI thread, carries out the effects and
-/// reports problems in the status bar.
+/// The settings screen (ux.md, "Settings screen"): a modal overlay over every tab that edits <c>config.json</c> through
+/// the config writer and applies each change to the running app at once. It owns the keys while it is open. State
+/// changes are the pure <see cref="SettingsReducer"/>; this class reads and writes the file off the UI thread, carries
+/// out the effects and reports problems in the status bar.
 /// </summary>
 /// <param name="writer">Reads and edits the config file.</param>
 /// <param name="environment">The home folder and the folder check the reducer needs.</param>
@@ -26,10 +26,10 @@ namespace Gitunia.Tui.App.Settings;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the overlay is drawn with.</param>
-/// <param name="setMode">Switches the keymap mode (Insert while text is typed, Confirm for the removal question).</param>
+/// <param name="setMode">Switches the keymap mode (Insert while typing, Confirm for the removal question).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="applyOptions">Applies the options of the file to the running app.</param>
-/// <param name="launchEditor">Opens a file in the user's editor and calls back when it is closed; returns why it could not.</param>
+/// <param name="launchEditor">Opens a file in the user's editor, calls back when it closes; returns why it could not.</param>
 /// <param name="definitions">The settings on offer; the registry unless a test brings its own.</param>
 /// <param name="cancellationToken">Ends the file work when the app is closing.</param>
 public sealed class SettingsController(
@@ -85,8 +85,8 @@ public sealed class SettingsController(
     }
 
     /// <summary>
-    /// Handles an action: opens the screen on <see cref="ActionIds.SettingsOpen"/> and, while it is open, consumes every
-    /// action (nothing behind it may move). Returns true when the action was consumed.
+    /// Handles an action: opens the screen on <see cref="ActionIds.SettingsOpen"/> and, while it is open, consumes
+    /// every action (nothing behind it may move). Returns true when the action was consumed.
     /// </summary>
     /// <param name="action">The bound action.</param>
     /// <param name="count">The numeric prefix, null when none was typed.</param>
@@ -116,7 +116,7 @@ public sealed class SettingsController(
         return true;
     }
 
-    /// <summary>Handles a key typed into the number box, the folder box or the filter; false when none is open.</summary>
+    /// <summary>Handles a key typed into the number box, the folder box or the filter; false when none is.</summary>
     /// <param name="key">The key.</param>
     public bool HandleTextKey(KeyEvent key)
     {
@@ -143,8 +143,8 @@ public sealed class SettingsController(
     }
 
     /// <summary>
-    /// A click on the overlay. Selects what was hit and returns the mouse view whose action finishes the job (the edit of a
-    /// row, the add or remove marker, an answer to the removal question), or null when a click only selects.
+    /// A click on the overlay. Selects what was hit and returns the mouse view whose action finishes the job (the edit
+    /// of a row, the add or remove marker, an answer to the removal question), or null when a click only selects.
     /// </summary>
     /// <param name="line">The frame line (0 is the title).</param>
     /// <param name="column">The frame column (0 is the left border).</param>
@@ -178,7 +178,8 @@ public sealed class SettingsController(
     /// <param name="column">The frame column of the pointer (0 is the left border).</param>
     public void FocusColumnAt(int column)
     {
-        if (State is not { IsCollapsed: false, IsTyping: false, Removal: null, Choice: null } state || state.IsFiltering)
+        if (State is not { IsCollapsed: false, IsTyping: false, Removal: null, Choice: null } state
+            || state.IsFiltering)
         {
             return;
         }

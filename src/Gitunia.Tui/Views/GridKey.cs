@@ -13,4 +13,12 @@ namespace Gitunia.Tui.Views;
 /// <param name="IsPicker">The repository picker is shown instead of the panes.</param>
 /// <param name="IsAscii">ASCII glyphs are in use.</param>
 /// <param name="Frame">The corner style of the frame (the settings screen changes it while the app runs).</param>
-public readonly record struct GridKey(int Width, int Height, PaneRects Rects, PaneKind? Focused, string Title, bool IsPicker, bool IsAscii, FrameStyle Frame);
+public readonly record struct GridKey(
+    int Width,
+    int Height,
+    PaneRects Rects,
+    PaneKind? Focused,
+    string Title,
+    bool IsPicker,
+    bool IsAscii,
+    FrameStyle Frame);

@@ -5,8 +5,9 @@ using Gitunia.Tui.App.ExternalTools;
 namespace Gitunia.Tui.App.Settings;
 
 /// <summary>
-/// Opens <c>config.json</c> in the user's editor (<c>$VISUAL</c>, else <c>$EDITOR</c>): suspends the UI, runs the editor on the
-/// real terminal, resumes and reports how it ended. Like the external tools of the graph, but no repository is involved.
+/// Opens <c>config.json</c> in the user's editor (<c>$VISUAL</c>, else <c>$EDITOR</c>): suspends the UI, runs the
+/// editor on the real terminal, resumes and reports how it ended. Like the external tools of the graph, but no
+/// repository is involved.
 /// The variable is split at spaces into the program and its arguments (no quoting, no shell).
 /// </summary>
 /// <param name="launcher">Runs the program on the terminal.</param>
@@ -24,6 +25,8 @@ public sealed class ConfigEditorLauncher(
     private const string VisualVariable = "VISUAL";
     private const string EditorVariable = "EDITOR";
     private const string EditorName = "Editor";
+    private const StringSplitOptions SplitOptions = StringSplitOptions.RemoveEmptyEntries
+        | StringSplitOptions.TrimEntries;
 
     private bool _running;
     private ExternalToolResult _result = new(ExternalToolResult.NotStartedExitCode, "did not run");
@@ -82,7 +85,7 @@ public sealed class ConfigEditorLauncher(
             text = environment(EditorVariable);
         }
 
-        return (text ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return (text ?? string.Empty).Split(' ', SplitOptions);
     }
 
     private void Run(ExternalToolRequest request)

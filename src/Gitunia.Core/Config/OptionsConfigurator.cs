@@ -126,7 +126,7 @@ public static class OptionsConfigurator
         return roots.Count == 0 && index > 0 ? null : roots.ToImmutable();
     }
 
-    /// <summary>The path with a leading <c>~</c> replaced by the home folder; other text is returned as it is.</summary>
+    /// <summary>The path with a leading <c>~</c> replaced by the home folder; other text stays as it is.</summary>
     /// <param name="text">A folder path as written in the file.</param>
     /// <param name="homeDirectory">What <c>~</c> stands for.</param>
     public static string ExpandHome(string text, string homeDirectory)

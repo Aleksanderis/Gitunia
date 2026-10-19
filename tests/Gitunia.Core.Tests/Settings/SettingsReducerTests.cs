@@ -9,7 +9,9 @@ public class SettingsReducerTests
 {
     private const string Home = "/home/user";
     private const string PageSizeId = "page-size";
-    private static readonly SettingsEnvironment Environment = new(Home, path => !path.Contains("missing", StringComparison.Ordinal));
+    private static readonly SettingsEnvironment Environment = new(
+        Home,
+        path => !path.Contains("missing", StringComparison.Ordinal));
 
     private static readonly SettingDefinition PageSize = new(
         PageSizeId,
@@ -30,7 +32,12 @@ public class SettingsReducerTests
         var state = Open();
 
         Assert.Equal(
-            [SettingCategory.Appearance, SettingCategory.Repositories, SettingCategory.Tabs, SettingCategory.ConfigFile],
+            [
+                SettingCategory.Appearance,
+                SettingCategory.Repositories,
+                SettingCategory.Tabs,
+                SettingCategory.ConfigFile,
+            ],
             state.Categories);
     }
 
@@ -49,7 +56,7 @@ public class SettingsReducerTests
     [Theory]
     [InlineData(SettingsCommandKind.Activate)]
     [InlineData(SettingsCommandKind.Toggle)]
-    public void GivenAToggleOffInTheFile_WhenFlippingIt_ThenTheCommitHoldsTrueAndNothingElseChanges(SettingsCommandKind command)
+    public void GivenAToggleOffInTheFile_WhenFlippingIt_ThenTheCommitHoldsTrue(SettingsCommandKind command)
     {
         var state = Open().Reveal(Definition(SettingsRegistry.ShowBranchId));
 
@@ -98,7 +105,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAnOpenChoice_WhenKeepingAnotherOption_ThenTheCommitHoldsItAndTheOptionsClose()
     {
-        var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+        var opened = OpenChoice();
 
         var outcome = Reduce(opened.MoveTo(2), SettingsCommandKind.Activate);
 
@@ -110,7 +117,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAnOpenChoice_WhenKeepingTheCurrentOption_ThenNothingIsWritten()
     {
-        var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+        var opened = OpenChoice();
 
         var outcome = Reduce(opened, SettingsCommandKind.Activate);
 
@@ -121,7 +128,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAnOpenChoice_WhenGoingBack_ThenNothingIsWrittenAndTheCursorReturnsToTheSetting()
     {
-        var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+        var opened = OpenChoice();
 
         var outcome = Reduce(opened.MoveTo(2), SettingsCommandKind.Back);
 
@@ -134,7 +141,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAnOpenChoice_WhenMovingFarPastTheOptions_ThenTheCursorStaysAmongThem()
     {
-        var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+        var opened = OpenChoice();
 
         var down = opened.MoveTo(99);
         var up = opened.MoveTo(-5);
@@ -214,7 +221,8 @@ public class SettingsReducerTests
         string typed,
         string reason)
     {
-        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"~/code\"] }").Reveal(Definition(SettingsRegistry.ScanRootsId));
+        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"~/code\"] }")
+            .Reveal(Definition(SettingsRegistry.ScanRootsId));
         var typing = Reduce(state, SettingsCommandKind.Add).State.WithInputText(typed);
 
         var outcome = Reduce(typing, SettingsCommandKind.InputAccept);
@@ -268,7 +276,8 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheOnlyFolder_WhenRemovingIt_ThenTheListBecomesEmptyAndNoItemIsSelected()
     {
-        var state = Open("{ \"scanRoots\": [\"/a\"] }").Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
+        var state = Open("{ \"scanRoots\": [\"/a\"] }")
+            .Reveal(Definition(SettingsRegistry.ScanRootsId), SettingRowKind.Item, 0);
         var asked = Reduce(state, SettingsCommandKind.Remove).State;
 
         var outcome = Reduce(asked, SettingsCommandKind.ConfirmYes);
@@ -457,6 +466,9 @@ public class SettingsReducerTests
 
         Assert.Equal(typing, outcome.State);
     }
+
+    private static SettingsState OpenChoice() =>
+        Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
 
     private static SettingsOutcome Reduce(SettingsState state, SettingsCommandKind command) =>
         SettingsReducer.Reduce(state, command, Environment);

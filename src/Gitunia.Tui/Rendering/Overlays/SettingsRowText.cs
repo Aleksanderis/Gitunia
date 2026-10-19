@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>The words of one row of the settings column: the label on the left and the control on the right.</summary>
-/// <param name="Marker">A one-character mark before the label, <c>!</c> for a value in the file that is not valid.</param>
+/// <param name="Marker">A one-character mark before the label, <c>!</c> for a value in the file that is invalid.</param>
 /// <param name="Left">The label.</param>
 /// <param name="Right">The control, empty for none.</param>
 public sealed record SettingsRowText(string Marker, string Left, string Right)
@@ -34,7 +34,7 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
         return row.Kind switch
         {
             SettingRowKind.Item => ItemText(state, row, value),
-            SettingRowKind.NewItem => new SettingsRowText(NoMarker, $"{ItemIndent}> {TypedText(state)}{Cursor}", string.Empty),
+            SettingRowKind.NewItem => NewItemText(state),
             SettingRowKind.Option => new SettingsRowText(NoMarker, OptionText(row, value, glyphs), string.Empty),
             _ => SettingText(state, definition, value, glyphs),
         };
@@ -46,6 +46,9 @@ public sealed record SettingsRowText(string Marker, string Left, string Right)
     /// <param name="ellipsis">The cut mark.</param>
     public static string FitRight(string right, int settingsWidth, string ellipsis) =>
         TextWidth.Fit(right, Math.Max(0, settingsWidth / 2), ellipsis);
+
+    private static SettingsRowText NewItemText(SettingsState state) =>
+        new(NoMarker, $"{ItemIndent}> {TypedText(state)}{Cursor}", string.Empty);
 
     private static SettingsRowText SettingText(
         SettingsState state,
