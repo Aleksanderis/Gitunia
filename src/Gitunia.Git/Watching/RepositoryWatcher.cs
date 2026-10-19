@@ -351,26 +351,41 @@ public sealed class RepositoryWatcher : IDisposable
 
     /// <summary>
     /// Watches a created directory and a few of its subdirectories (a quick <c>mkdir -p</c> or unpack); the rescan that
-    /// follows adds what git lists and drops what it ignores, so a big new tree never fills the cap.
+    /// follows adds what git lists and drops what it ignores, so a big new tree never fills the cap. The watchers are
+    /// created outside the gate; only the bookkeeping happens under it.
     /// </summary>
     private void WatchNewDirectory(string path)
     {
         var children = ListNewSubdirectories(path);
+        List<string> wanted;
         lock (_gate)
         {
-            if (_isDisposed || _pollTimer is not null || !_hasScanned || !TryWatchDirectoryLocked(path, false))
+            if (_isDisposed || _pollTimer is not null || !_hasScanned)
             {
                 return;
             }
 
-            foreach (var child in children)
+            wanted =
+            [
+                .. new[] { path }.Concat(children).Where(candidate => !_directoryWatchers.ContainsKey(candidate)),
+            ];
+        }
+
+        var created = CreateDirectoryWatchers(wanted, out var failed);
+        lock (_gate)
+        {
+            if (_isDisposed || _pollTimer is not null || !_hasScanned || failed)
             {
-                if (!TryWatchDirectoryLocked(child, false))
+                if (failed && !_isDisposed)
                 {
-                    return;
+                    FallBackToPollingLocked();
                 }
+
+                RetireWatchers([.. created.Values]);
+                return;
             }
 
+            InstallLocked(created, stopAtLimit: true);
             EnqueueLocked(RepositoryChangeKinds.WorkingTree);
         }
     }
@@ -398,41 +413,79 @@ public sealed class RepositoryWatcher : IDisposable
         return children;
     }
 
-    /// <summary>Watches one directory. False when the tab fell back to polling (limit or failure).</summary>
-    private bool TryWatchDirectoryLocked(string path, bool pollOnLimit = true)
+    /// <summary>
+    /// Creates one non-recursive watcher per path without holding the gate (an inotify call each).
+    /// A directory that vanished meanwhile is skipped; any other failure sets <paramref name="failed"/> and stops.
+    /// </summary>
+    private Dictionary<string, FileSystemWatcher> CreateDirectoryWatchers(IEnumerable<string> paths, out bool failed)
     {
-        if (_directoryWatchers.ContainsKey(path))
+        var created = new Dictionary<string, FileSystemWatcher>(StringComparer.Ordinal);
+        failed = false;
+        foreach (var path in paths)
         {
-            return true;
-        }
-
-        if (_directoryWatchers.Count >= _options.MaximumWorkingTreeDirectories)
-        {
-            if (pollOnLimit)
+            if (_disposal.IsCancellationRequested)
             {
-                FallBackToPollingLocked();
+                break;
             }
 
-            return false;
-        }
-
-        try
-        {
-            _directoryWatchers[path] = CreateWatcher(path, isRecursive: false);
-
-            return true;
-        }
-        catch (Exception exception) when (IsWatchFailure(exception))
-        {
-            if (!Directory.Exists(path))
+            try
             {
-                return true;
+                created[path] = CreateWatcher(path, isRecursive: false);
             }
-
-            FallBackToPollingLocked();
-
-            return false;
+            catch (Exception exception) when (IsWatchFailure(exception))
+            {
+                if (Directory.Exists(path))
+                {
+                    failed = true;
+                    break;
+                }
+            }
+            catch
+            {
+                // Unexpected: do not leak what was created so far (it is not tracked anywhere yet).
+                RetireWatchers([.. created.Values]);
+                throw;
+            }
         }
+
+        return created;
+    }
+
+    /// <summary>
+    /// Takes over watchers created outside the gate. Duplicates (another path watched the directory first) are retired.
+    /// At the per-tab cap, either stops quietly or falls back to polling.
+    /// </summary>
+    private int InstallLocked(Dictionary<string, FileSystemWatcher> created, bool stopAtLimit)
+    {
+        var added = 0;
+        var retired = new List<FileSystemWatcher>();
+        foreach (var (path, watcher) in created)
+        {
+            if (_directoryWatchers.ContainsKey(path))
+            {
+                retired.Add(watcher);
+            }
+            else if (_pollTimer is not null || _directoryWatchers.Count >= _options.MaximumWorkingTreeDirectories)
+            {
+                retired.Add(watcher);
+                if (!stopAtLimit)
+                {
+                    FallBackToPollingLocked();
+                }
+            }
+            else
+            {
+                _directoryWatchers[path] = watcher;
+                added++;
+            }
+        }
+
+        if (retired.Count > 0)
+        {
+            RetireWatchers([.. retired]);
+        }
+
+        return added;
     }
 
     private void RequestRescan()
@@ -513,19 +566,38 @@ public sealed class RepositoryWatcher : IDisposable
         return drops;
     }
 
-    /// <summary>Applies one listing; false when the loop should end (disposed, polling or nothing queued).</summary>
+    /// <summary>
+    /// Applies one listing in three steps so the gate is never held while watchers are created: plan under the gate,
+    /// create outside it, install under it. False when the loop should end (disposed, polling or nothing queued).
+    /// </summary>
     private bool ApplyDirectories(IReadOnlyList<string>? directories, List<string> drops)
     {
+        var additions = PlanListing(directories, drops);
+        var created = CreateDirectoryWatchers(additions, out var failed);
         lock (_gate)
         {
             if (_isDisposed)
             {
+                RetireWatchers([.. created.Values]);
                 return false;
             }
 
             if (_pollTimer is null)
             {
-                ApplyListingLocked(directories, drops);
+                if (failed)
+                {
+                    FallBackToPollingLocked();
+                }
+                else
+                {
+                    CompleteListingLocked(directories is not null, created);
+                    created.Clear();
+                }
+            }
+
+            if (created.Count > 0)
+            {
+                RetireWatchers([.. created.Values]);
             }
 
             if (!_rescanAgain || _pollTimer is not null)
@@ -541,51 +613,56 @@ public sealed class RepositoryWatcher : IDisposable
         }
     }
 
-    private void ApplyListingLocked(IReadOnlyList<string>? directories, List<string> drops)
+    /// <summary>Under the gate: handles drops; returns the directories still needing a watcher.</summary>
+    private List<string> PlanListing(IReadOnlyList<string>? directories, List<string> drops)
     {
-        if (directories is null)
+        lock (_gate)
         {
-            // A failed first listing falls back to the recursive watcher; a later failure keeps what is watched.
-            if (!_hasScanned)
+            if (_isDisposed || _pollTimer is not null)
             {
-                WatchRootRecursivelyLocked();
+                return [];
             }
 
+            if (directories is null)
+            {
+                // A failed first listing falls back to the recursive watcher; a later failure keeps what is watched.
+                if (!_hasScanned)
+                {
+                    WatchRootRecursivelyLocked();
+                }
+
+                return [];
+            }
+
+            if (directories.Count > _options.MaximumWorkingTreeDirectories)
+            {
+                FallBackToPollingLocked();
+                return [];
+            }
+
+            foreach (var path in drops)
+            {
+                if (_directoryWatchers.ContainsKey(path))
+                {
+                    RetireDirectory(path);
+                }
+            }
+
+            return [.. directories.Where(path => !_directoryWatchers.ContainsKey(path))];
+        }
+    }
+
+    private void CompleteListingLocked(bool listed, Dictionary<string, FileSystemWatcher> created)
+    {
+        if (!listed)
+        {
             return;
         }
 
-        if (directories.Count > _options.MaximumWorkingTreeDirectories)
-        {
-            FallBackToPollingLocked();
-            return;
-        }
-
-        foreach (var path in drops)
-        {
-            if (_directoryWatchers.ContainsKey(path))
-            {
-                RetireDirectory(path);
-            }
-        }
-
-        var added = 0;
-        foreach (var path in directories)
-        {
-            var isNew = !_directoryWatchers.ContainsKey(path);
-            if (!TryWatchDirectoryLocked(path))
-            {
-                return;
-            }
-
-            if (isNew && _directoryWatchers.ContainsKey(path))
-            {
-                added++;
-            }
-        }
-
+        var added = InstallLocked(created, stopAtLimit: false);
         var hadScanned = _hasScanned;
         _hasScanned = true;
-        if (hadScanned && added > 0)
+        if (hadScanned && added > 0 && _pollTimer is null)
         {
             // A file may have appeared in a directory before its watcher existed.
             EnqueueLocked(RepositoryChangeKinds.WorkingTree);

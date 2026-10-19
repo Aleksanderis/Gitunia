@@ -226,6 +226,50 @@ public class IgnoreAwareWatchingTests
         Assert.Equal(0, watcher.WorkingTreeDirectoryCount);
     }
 
+    [Fact]
+    public async Task GivenListingStillRunning_WhenDisposed_ThenNoDirectoryWatcherIsInstalled()
+    {
+        using var testRepository = CreateRepositoryWithIgnoredTree();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var lister = new FixedLister(Path.Combine(testRepository.WorkingTreePath, "src"));
+        var watcher = new RepositoryWatcher(
+            location,
+            new WatchBudget(),
+            FastOptions,
+            _ => { },
+            directoryLister: lister);
+        watcher.Start();
+        await lister.Started.Task.WaitAsync(WaitLimit, Token);
+
+        watcher.Dispose();
+        lister.Release.SetResult();
+        await Task.Delay(200, Token);
+
+        Assert.Equal(0, watcher.WorkingTreeDirectoryCount);
+    }
+
+    [Fact]
+    public async Task GivenListingWithDuplicatePaths_WhenApplied_ThenEachDirectoryIsWatchedOnce()
+    {
+        using var testRepository = CreateRepositoryWithIgnoredTree();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var source = Path.Combine(testRepository.WorkingTreePath, "src");
+        var lister = new FixedLister(source, source, Path.Combine(source, "a"));
+        using var watcher = new RepositoryWatcher(
+            location,
+            new WatchBudget(),
+            FastOptions,
+            _ => { },
+            directoryLister: lister);
+        watcher.Start();
+        await lister.Started.Task.WaitAsync(WaitLimit, Token);
+
+        lister.Release.SetResult();
+
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount > 0);
+        Assert.Equal(2, watcher.WorkingTreeDirectoryCount);
+    }
+
     private static RepositoryWatcher CreateWatcher(
         RepositoryLocation location,
         Action<RepositoryChangeKinds> onChanged) =>
@@ -257,7 +301,24 @@ public class IgnoreAwareWatchingTests
         }
     }
 
-    private sealed class FailingLister : IWorkingTreeDirectoryLister
+    private sealed class FixedLister(params string[] directories) : IWorkingTreeDirectoryLister
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyList<string>?> ListAsync(
+            string workingTreePath,
+            CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+
+            return directories;
+        }
+    }
+
+    private sealed class FailingLister: IWorkingTreeDirectoryLister
     {
         public Task<IReadOnlyList<string>?> ListAsync(string workingTreePath, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<string>?>(null);
