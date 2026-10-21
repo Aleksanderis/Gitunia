@@ -24,11 +24,25 @@ public static class DetailContentBuilder
     /// <param name="state">The loading state of the commit's details.</param>
     /// <param name="tab">The tab to build the rows of.</param>
     /// <param name="tree">The file tree to list on the Files tab; null shows it as loading.</param>
+    /// <param name="pathStyle">How the Changes tab shows the paths of the files.</param>
     public static DetailContent Build(
         GraphEntry? entry,
         CommitDetailsState state,
         BottomTab tab,
-        FileTreeView? tree = null)
+        FileTreeView? tree = null,
+        FilePathStyle pathStyle = FilePathStyle.FullPath) =>
+        BuildRows(entry, state, tab, tree) with { PathStyle = pathStyle };
+
+    /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
+    public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
+        ? $"{Mark(file)} {oldPath} -> {file.Path}"
+        : $"{Mark(file)} {file.Path}";
+
+    private static DetailContent BuildRows(
+        GraphEntry? entry,
+        CommitDetailsState state,
+        BottomTab tab,
+        FileTreeView? tree)
     {
         if (entry is null)
         {
@@ -62,11 +76,6 @@ public static class DetailContentBuilder
         var firstFileRow = tab == BottomTab.Changes && details is not null ? 1 : rows.Count;
         return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
-
-    /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
-    public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
-        ? $"{Mark(file)} {oldPath} -> {file.Path}"
-        : $"{Mark(file)} {file.Path}";
 
     private static List<DetailRow> BuildDetails(GraphEntry entry, CommitDetailsState state, CommitDetails? details)
     {
@@ -244,10 +253,9 @@ public static class DetailContentBuilder
             };
             var mark = Mark(file);
             var text = DescribeFile(file);
-            rows.Add(new DetailRow([
-                new StyledSegment(mark, role),
-                new StyledSegment(text[mark.Length..], SegmentRole.Plain),
-            ]));
+            rows.Add(new DetailRow(
+                [new StyledSegment(mark, role), new StyledSegment(text[mark.Length..], SegmentRole.Plain)],
+                new FileRowPath(file.Path, file.OldPath)));
         }
     }
 

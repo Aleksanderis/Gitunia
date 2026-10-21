@@ -355,6 +355,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
+            Add(bindings, NormalOnly, view, "<space>vp", ActionIds.FilesTogglePathStyle);
         }
 
         // Stage, unstage and discard also act on a Visual range of files.
@@ -435,6 +436,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "gd", ActionIds.DetailTabDetails);
         Add(bindings, NormalOnly, view, "gc", ActionIds.DetailTabChanges);
         Add(bindings, NormalOnly, view, "gf", ActionIds.DetailTabFiles);
+        Add(bindings, NormalOnly, view, "<space>vp", ActionIds.FilesTogglePathStyle);
     }
 
     private static void AddPicker(List<KeyBinding> bindings)

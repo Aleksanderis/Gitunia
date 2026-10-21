@@ -1,6 +1,7 @@
 using System.Drawing;
 using Gitunia.Core.Diff;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
@@ -103,6 +104,28 @@ public class ListSourceJumpTests
 
         Assert.Equal([0], first.Select(label => label.Row));
         Assert.Equal([1, 2], second.Select(label => label.Row).Order());
+    }
+
+    [Fact]
+    public void GivenAFileList_WhenThePathStyleChanges_ThenTheListIsToldAndTheLabelsFollowTheDrawnText()
+    {
+        var source = new WorkingTreeListSource(WorkingTreeSection.Unstaged, GraphGlyphSet.Unicode);
+        source.Update(Tree(Modified("src/dir/target.cs")));
+        var list = Sized(source, 40, 5);
+        var resets = 0;
+        source.CollectionChanged += (_, _) => resets++;
+
+        var nameFirst = source.JumpLabels(list, "dir");
+        var changed = source.SetPathStyle(FilePathStyle.FullPath);
+        var fullPath = source.JumpLabels(list, "dir");
+
+        Assert.True(changed);
+        Assert.Equal(1, resets);
+        Assert.Equal(FilePathStyle.FullPath, source.PathStyle);
+        Assert.Equal(15, nameFirst.Single().MatchStart);
+        Assert.Equal(4, fullPath.Single().MatchStart);
+        Assert.False(source.SetPathStyle(FilePathStyle.FullPath));
+        Assert.Equal(1, resets);
     }
 
     private static ListView Sized(IListDataSource source, int width, int height)

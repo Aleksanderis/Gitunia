@@ -18,6 +18,7 @@ public static class RepositoryReducer
         LeaveWorkingTreeCommand => state with { View = state.View with { Mode = TabViewMode.History, FocusedPane = PaneKind.Graph } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
+        TogglePathStyleCommand => state with { View = state.View with { PathStyle = Toggled(state.View.PathStyle) } },
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
         StatusLoadedCommand status => state with { Status = status.Summary },
@@ -32,6 +33,9 @@ public static class RepositoryReducer
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },
         _ => state,
     };
+
+    private static FilePathStyle Toggled(FilePathStyle style) =>
+        style == FilePathStyle.NameFirst ? FilePathStyle.FullPath : FilePathStyle.NameFirst;
 
     private static RepositoryState ReduceWorkingTree(RepositoryState state, WorkingTreeLoadedCommand loaded)
     {

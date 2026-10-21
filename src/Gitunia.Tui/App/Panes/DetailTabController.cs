@@ -5,19 +5,38 @@ using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Tui.App.Panes;
 
-/// <summary>Switches the tab of the bottom detail pane; the choice is part of the repository tab's view state, so it is saved with the session.</summary>
+/// <summary>
+/// Switches the tab of the bottom detail pane (saved with the session) and the path style of the file lists (per tab,
+/// not saved,
+/// #540): both are part of the repository tab's view state.
+/// </summary>
 /// <param name="host">The workspace the tab state lives in.</param>
 public sealed class DetailTabController(WorkspaceHost host)
 {
     private static readonly int TabCount = Enum.GetValues<BottomTab>().Length;
 
-    /// <summary>Runs the action when it is one of the tab actions.</summary>
-    /// <returns>True when the action was a tab action.</returns>
+    /// <summary>The status bar text the last action leaves, empty for none.</summary>
+    public string Notice { get; private set; } = string.Empty;
+
+    /// <summary>Runs the action when it is one of the tab actions or the path style toggle.</summary>
+    /// <returns>True when the action was one of them.</returns>
     public bool TryExecute(ActionId action)
     {
+        Notice = string.Empty;
         if (host.Workspace.ActiveTab is not { } tab)
         {
-            return IsTabAction(action);
+            return IsTabAction(action) || action == ActionIds.FilesTogglePathStyle;
+        }
+
+        if (action == ActionIds.FilesTogglePathStyle)
+        {
+            var style = tab.View.PathStyle == FilePathStyle.NameFirst
+                ? FilePathStyle.FullPath
+                : FilePathStyle.NameFirst;
+            host.Dispatch(new TabCommand(tab.Id, new TogglePathStyleCommand()));
+            Notice = style == FilePathStyle.NameFirst ? "File paths: name first" : "File paths: full path";
+
+            return true;
         }
 
         var current = tab.View.BottomTab;

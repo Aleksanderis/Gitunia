@@ -427,3 +427,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-21
 
 **UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.
+
+**UI:** File paths in the Changes tab and the working-tree lists (owner, #540): a per-tab view chip and key (`<space>vp`, not saved) switches between name first with the directory dimmed after it (default, directory cut from the left first) and the full path. Not a setting; the tree style is M5. Details: `ux.md` (Changes tab).

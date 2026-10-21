@@ -164,6 +164,27 @@ public class DetailContentBuilderTests
     }
 
     [Fact]
+    public void GivenAPathStyle_WhenBuildingTheChangesTab_ThenTheContentCarriesItAndEachFileRowItsPath()
+    {
+        var entry = Entry();
+        var files = new[]
+        {
+            new CommitFileChange("src/a.cs", null, FileChangeKind.Modified, null),
+            new CommitFileChange("lib/b.cs", "src/b.cs", FileChangeKind.Renamed, 90),
+        };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, Details("Fix", files), string.Empty);
+
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Changes, null, FilePathStyle.NameFirst);
+
+        Assert.Equal(FilePathStyle.NameFirst, content.PathStyle);
+        Assert.Equal(new FileRowPath("src/a.cs", null), content.Rows[1].File);
+        Assert.Equal(new FileRowPath("lib/b.cs", "src/b.cs"), content.Rows[2].File);
+        Assert.Null(content.Rows[0].File);
+        var empty = DetailContentBuilder.Build(null, state, BottomTab.Changes, null, FilePathStyle.NameFirst);
+        Assert.Equal(FilePathStyle.NameFirst, empty.PathStyle);
+    }
+
+    [Fact]
     public void GivenLoadedDetails_WhenBuildingTheChangesTab_ThenOnlyTheFilesAreListed()
     {
         var entry = Entry();

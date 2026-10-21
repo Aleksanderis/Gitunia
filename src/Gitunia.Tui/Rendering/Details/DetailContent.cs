@@ -19,6 +19,9 @@ public sealed record DetailContent(
     BottomTab Tab,
     int? FileCount = null)
 {
+    /// <summary>How the file rows of the Changes tab show their paths.</summary>
+    public FilePathStyle PathStyle { get; init; } = FilePathStyle.FullPath;
+
     /// <summary>On the Files tab the visible tree rows; row <c>n</c> of <see cref="Rows"/> shows <c>Tree[n]</c>. Empty
     /// while the tree is not shown (loading, failed, empty, other tabs).</summary>
     public IReadOnlyList<FileTreeRow> Tree { get; init; } = [];

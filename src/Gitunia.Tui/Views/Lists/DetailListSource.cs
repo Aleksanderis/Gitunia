@@ -76,7 +76,7 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
         var line = item >= 0 && item < Content.Rows.Count
             ? jump is { } label
                 ? DetailPaneRenderer.RenderRow(Content, item, isSelected, width, glyphs, label)
-                : DetailPaneRenderer.RenderRow(Content.Rows[item], isSelected, width, glyphs)
+                : DetailPaneRenderer.RenderRow(Content.Rows[item], isSelected, width, glyphs, Content.PathStyle)
             : DetailPaneRenderer.RenderEmpty(width, glyphs);
         LinePainter.Paint(listView, DetailPaneRenderer.OnPanel(PanePadding.Wrap(line, columns)), col, row, listView.HasFocus);
     }

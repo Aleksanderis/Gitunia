@@ -1,5 +1,6 @@
 using Gitunia.Core.Jump;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
@@ -9,14 +10,24 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <param name="section">The list.</param>
 /// <param name="width">Columns of the list's text area.</param>
 /// <param name="ellipsis">The ellipsis a cut path ends with.</param>
-public sealed class WorkingTreeJumpRows(WorkingTreeState? tree, WorkingTreeSection section, int width, string ellipsis) : IJumpRows
+/// <param name="pathStyle">How the rows show their paths.</param>
+public sealed class WorkingTreeJumpRows(
+    WorkingTreeState? tree,
+    WorkingTreeSection section,
+    int width,
+    string ellipsis,
+    FilePathStyle pathStyle = FilePathStyle.FullPath) : IJumpRows
 {
     public int Count => WorkingTreePaneRenderer.Count(tree, section);
 
     public int EllipsisWidth { get; } = TextWidth.Of(ellipsis);
 
-    public string TextOf(int row) =>
-        WorkingTreeRowRenderer.PathText((section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row], section);
+    public string TextOf(int row) => WorkingTreeRowRenderer.PathLayoutText(
+        (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row],
+        section,
+        pathStyle,
+        ColumnsOf(row),
+        ellipsis);
 
     public int ColumnsOf(int row) => Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns);
 }

@@ -79,6 +79,44 @@ public class DetailTabControllerTests
         Assert.Equal(first.View.BottomTab, host.Workspace.Tabs[0].View.BottomTab);
     }
 
+    [Fact]
+    public void GivenTheToggleAction_WhenExecuting_ThenTheActiveTabsPathStyleFlipsAndTheNoticeSaysWhich()
+    {
+        var host = HostWithTab(BottomTab.Changes);
+        var controller = new DetailTabController(host);
+
+        Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
+        Assert.Equal(FilePathStyle.FullPath, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal("File paths: full path", controller.Notice);
+
+        Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
+        Assert.Equal(FilePathStyle.NameFirst, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal("File paths: name first", controller.Notice);
+    }
+
+    [Fact]
+    public void GivenTheNoticeOfAToggle_WhenExecutingATabAction_ThenTheNoticeIsClearedAndTheBottomTabKept()
+    {
+        var host = HostWithTab(BottomTab.Changes);
+        var controller = new DetailTabController(host);
+        controller.TryExecute(ActionIds.FilesTogglePathStyle);
+
+        controller.TryExecute(ActionIds.DetailTabFiles);
+
+        Assert.Equal(string.Empty, controller.Notice);
+        Assert.Equal(BottomTab.Files, host.Workspace.ActiveTab!.View.BottomTab);
+        Assert.Equal(FilePathStyle.FullPath, host.Workspace.ActiveTab.View.PathStyle);
+    }
+
+    [Fact]
+    public void GivenNoOpenTab_WhenTogglingThePathStyle_ThenItIsHandledAsANoOp()
+    {
+        var controller = new DetailTabController(new WorkspaceHost(Workspace.Empty));
+
+        Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
+        Assert.Equal(string.Empty, controller.Notice);
+    }
+
     private static WorkspaceHost HostWithTab(BottomTab tab)
     {
         var host = new WorkspaceHost(Workspace.Empty);

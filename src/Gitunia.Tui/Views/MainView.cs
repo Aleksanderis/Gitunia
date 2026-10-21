@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Details;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -41,6 +42,8 @@ public sealed class MainView : IDisposable
     private readonly LineView _workingDiffTitle;
     private readonly LineView _stageAllButton;
     private readonly LineView _unstageAllButton;
+    private readonly LineView _unstagedPathStyleButton;
+    private readonly LineView _stagedPathStyleButton;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
     private FrameGrid? _workingGrid;
@@ -219,8 +222,10 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
         _messageOptions.Clicked += OnMessageOptionsClicked;
-        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged);
-        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged);
+        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isPathStyle: false);
+        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isPathStyle: false);
+        _unstagedPathStyleButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isPathStyle: true);
+        _stagedPathStyleButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isPathStyle: true);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -301,6 +306,8 @@ public sealed class MainView : IDisposable
             _messageOptions,
             _stageAllButton,
             _unstageAllButton,
+            _unstagedPathStyleButton,
+            _stagedPathStyleButton,
             _picker,
             _status,
             Overlay);
@@ -479,6 +486,8 @@ public sealed class MainView : IDisposable
             _messageOptions.SetNeedsDraw();
             _stageAllButton.SetNeedsDraw();
             _unstageAllButton.SetNeedsDraw();
+            _unstagedPathStyleButton.SetNeedsDraw();
+            _stagedPathStyleButton.SetNeedsDraw();
         }
     }
 
@@ -538,6 +547,8 @@ public sealed class MainView : IDisposable
         _messageOptions.Visible = working && !isPicker;
         _stageAllButton.Visible = working && !isPicker;
         _unstageAllButton.Visible = working && !isPicker;
+        _unstagedPathStyleButton.Visible = working && !isPicker;
+        _stagedPathStyleButton.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
@@ -562,21 +573,21 @@ public sealed class MainView : IDisposable
 
     // The title row of a file list is the top edge of its box, one row above the list; the button sits at its right end and is the
     // mouse path of stage all / unstage all. It has no width when the title leaves no room for it.
-    private LineView CreateListButton(WorkingTreeSection section, PaneListView list)
+    private LineView CreateListButton(WorkingTreeSection section, PaneListView list, bool isPathStyle)
     {
-        var view = new LineView(_ => ListButton(section) is { } button
-            ? WorkingListTitleButtons.Line(button, _glyphs.IsAscii)
+        var view = new LineView(_ => ListButton(section, isPathStyle) is { } button
+            ? isPathStyle ? PathStyleChip.Line(button, _glyphs) : WorkingListTitleButtons.Line(button, _glyphs.IsAscii)
             : new StyledLine([]))
         {
-            X = Pos.Func(_ => ListButtonRect(section).X),
-            Y = Pos.Func(_ => ListButtonRect(section).Y),
-            Width = Dim.Func(_ => ListButtonRect(section).Width),
-            Height = Dim.Func(_ => ListButtonRect(section).Height),
+            X = Pos.Func(_ => ListButtonRect(section, isPathStyle).X),
+            Y = Pos.Func(_ => ListButtonRect(section, isPathStyle).Y),
+            Width = Dim.Func(_ => ListButtonRect(section, isPathStyle).Width),
+            Height = Dim.Func(_ => ListButtonRect(section, isPathStyle).Height),
             Visible = false,
         };
         view.Clicked += _ =>
         {
-            if (_suppressed() || ListButton(section) is not { } button)
+            if (_suppressed() || ListButton(section, isPathStyle) is not { } button)
             {
                 return;
             }
@@ -587,20 +598,31 @@ public sealed class MainView : IDisposable
         return view;
     }
 
-    private TitleButton? ListButton(WorkingTreeSection section)
+    private TitleButton? ListButton(WorkingTreeSection section, bool isPathStyle)
     {
         var rect = ListRect(section);
         var tree = section == WorkingTreeSection.Staged ? StagedSource.Tree : UnstagedSource.Tree;
-        return rect.IsEmpty ? null : WorkingListTitleButtons.Layout(section, WorkingTreePaneRenderer.ListTitle(tree, section), rect.Width);
+        if (rect.IsEmpty)
+        {
+            return null;
+        }
+
+        var title = WorkingTreePaneRenderer.ListTitle(tree, section);
+
+        return isPathStyle
+            ? WorkingListTitleButtons.PathStyleButton(section, title, rect.Width, _model().Keys)
+            : WorkingListTitleButtons.Layout(section, title, rect.Width);
     }
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;
 
-    private PaneRect ListButtonRect(WorkingTreeSection section)
+    private PaneRect ListButtonRect(WorkingTreeSection section, bool isPathStyle)
     {
         var rect = ListRect(section);
-        return ListButton(section) is { } button ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1) : Empty;
+        return ListButton(section, isPathStyle) is { } button
+            ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1)
+            : Empty;
     }
 
     private FrameStripView CreateWorkingEdge(Func<PaneRect> rect) => new(CurrentGrid)
@@ -655,6 +677,17 @@ public sealed class MainView : IDisposable
         if (TitleButton.ViewAt(DetailTabStrip.Layout(_detailTitle.Viewport.Width, selectedTab), column) is { } tabView)
         {
             Gestured?.Invoke(tabView, MouseGesture.Click, null);
+        }
+        else if ((Detail.Source as DetailListSource)?.Content is { } content
+            && DetailPaneRenderer.PathStyleButton(
+                content,
+                _detailTitle.Viewport.Width,
+                _glyphs,
+                _model().Keys) is { } chip
+            && column >= chip.Start
+            && column < chip.Start + chip.Width)
+        {
+            Gestured?.Invoke(chip.View, MouseGesture.Click, null);
         }
     }
 
