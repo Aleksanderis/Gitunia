@@ -5,6 +5,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
+using Gitunia.Git.Tags;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Branches;
@@ -289,6 +290,57 @@ public class TagActionsTests
     }
 
     [Fact]
+    public async Task GivenATagPushThatNeedsCredentials_WhenItFails_ThenTheTerminalRetryRunsTheSamePush()
+    {
+        using var repository = TestRepositories.WithOrigin().Tag("v1");
+        var writer = new AuthFailingTagWriter(TestGit.Services.Tags, "git@host: Permission denied (publickey).");
+        using var harness = await Harness.LoadAsync(repository, writer);
+        harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
+
+        harness.Run(ActionIds.TagPush);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Equal(["Tag push|git push -- origin refs/tags/v1"], harness.Offers);
+    }
+
+    [Fact]
+    public async Task GivenATagDeleteOnTheRemoteThatNeedsCredentials_WhenItFails_ThenTheRetryIsTheSameDelete()
+    {
+        using var repository = TestRepositories.WithOrigin().Tag("v1");
+        var writer = new AuthFailingTagWriter(TestGit.Services.Tags, "fatal: Authentication failed for 'x'");
+        using var harness = await Harness.LoadAsync(repository, writer);
+        harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
+
+        harness.Run(ActionIds.TagDeleteRemote);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        harness.Run(ActionIds.InputAccept);
+        harness.Answer();
+        await harness.FinishAsync();
+
+        Assert.Equal(["Remote tag delete|git push --delete -- origin refs/tags/v1"], harness.Offers);
+    }
+
+    [Fact]
+    public async Task GivenARejectedTagPush_WhenItFails_ThenNoTerminalRetryIsOffered()
+    {
+        using var repository = TestRepositories.WithOrigin().Tag("v1");
+        repository.Git("push", "-q", "origin", "refs/tags/v1");
+        repository.Git("tag", "-f", "v1", "HEAD~1");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Git("rev-parse", "HEAD~1").Trim()));
+
+        harness.Run(ActionIds.TagPush);
+        await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Empty(harness.Offers);
+    }
+
+    [Fact]
     public async Task GivenAPushedTag_WhenDeletingOnTheRemote_ThenTheConfirmNamesRemoteAndTagAndTheLocalTagStays()
     {
         using var repository = TestRepositories.WithOrigin().Tag("v1");
@@ -331,12 +383,12 @@ public class TagActionsTests
         private readonly List<TabSession> _sessions = [];
         private BranchSelection _selection = new(null, null, null);
 
-        private Harness()
+        private Harness(ITagWriter writer)
         {
             Pump = new UiPump(TestContext.Current.CancellationToken);
             Tags = new TagActions(
                 _host,
-                TestGit.Services.Tags,
+                writer,
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
@@ -348,7 +400,8 @@ public class TagActionsTests
                 },
                 mode => Mode = mode,
                 () => { },
-                () => _selection);
+                () => _selection,
+                (_, noun, arguments, _) => Offers.Add($"{noun}|git {string.Join(' ', arguments)}"));
         }
 
         public TagActions Tags { get; }
@@ -363,9 +416,11 @@ public class TagActionsTests
 
         private UiPump Pump { get; }
 
-        public static async Task<Harness> LoadAsync(TestRepository repository)
+        public List<string> Offers { get; } = [];
+
+        public static async Task<Harness> LoadAsync(TestRepository repository, ITagWriter? writer = null)
         {
-            var harness = new Harness();
+            var harness = new Harness(writer ?? TestGit.Services.Tags);
             await harness.OpenTabAsync(repository);
             return harness;
         }

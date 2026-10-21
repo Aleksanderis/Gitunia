@@ -792,7 +792,15 @@ public sealed class TuiApplication(
         tabId => _effects.Refresh(tabId, false),
         SetMode,
         _view.RefreshChrome,
-        BranchSelectionNow);
+        BranchSelectionNow,
+        OfferTerminalRetry);
+
+    private void OfferTerminalRetry(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isBusy) =>
+        _remote.OfferTerminalRetry(tabId, noun, arguments, isBusy);
 
     private MergeActions CreateMerge(TabOperationGate gate) => new(
         _host,
@@ -990,7 +998,7 @@ public sealed class TuiApplication(
                 : null;
         }
 
-        return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
+        return view == DefaultKeymap.GraphView && SelectedCommitHash() is not null
             ? new RowMenuTarget(
                 RowActions.OfGraphRowFor(
                     DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0,
@@ -1663,6 +1671,11 @@ public sealed class TuiApplication(
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
             session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
+            RefreshDetail();
+        }
+        else if (commitIndex >= session.Graph.Count)
+        {
+            // The continues-below marker holds no commit: the detail pane must not keep showing the previous one.
             RefreshDetail();
         }
 

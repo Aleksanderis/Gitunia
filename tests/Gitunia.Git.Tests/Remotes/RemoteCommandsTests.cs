@@ -78,4 +78,30 @@ public class RemoteCommandsTests
             ["push", "--progress", "--set-upstream", "--", "origin", "topic"],
             RemoteCommands.BuildPush(new PushRequest("origin", "topic", true), true));
     }
+
+    [Fact]
+    public void GivenARemoteBranchDelete_WhenBuilt_ThenTheTerminalRetryIsTheBackgroundCommandWithoutQuietFlags()
+    {
+        Assert.Equal(
+            [
+                "push", "--no-progress", "--delete", "--force-with-lease=refs/heads/topic:abc", "--", "origin",
+                "refs/heads/topic",
+            ],
+            RemoteCommands.BuildDeleteBranch("origin", "topic", "abc", true));
+        Assert.Equal(
+            ["push", "--delete", "--force-with-lease=refs/heads/topic:abc", "--", "origin", "refs/heads/topic"],
+            RemoteCommands.BuildDeleteBranch("origin", "topic", "abc", false));
+    }
+
+    [Fact]
+    public void GivenATagPushAndDelete_WhenBuilt_ThenOnlyThatTagRefIsNamed()
+    {
+        Assert.Equal(
+            ["push", "--no-progress", "--", "origin", "refs/tags/v1"],
+            RemoteCommands.BuildTagPush("origin", "v1", true));
+        Assert.Equal(["push", "--", "origin", "refs/tags/v1"], RemoteCommands.BuildTagPush("origin", "v1", false));
+        Assert.Equal(
+            ["push", "--delete", "--", "origin", "refs/tags/v1"],
+            RemoteCommands.BuildTagDelete("origin", "v1", false));
+    }
 }
