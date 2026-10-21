@@ -46,7 +46,8 @@ public static class DiffPaneRenderer
         pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count ? HunksUpTo(pane.Document.HunkRows, pane.SelectedRow) : 0;
 
     /// <summary>
-    /// The title: the file shown and the cursor's position among its hunks, then the buttons
+    /// The title: the file shown, its position among the commit's files (`file n/m`) and the cursor's hunk of it
+    /// (`hunk n/m`), then the buttons
     /// (<see cref="DiffTitleButtons"/>) at the right end when the row is wide enough.
     /// </summary>
     public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs, ChipKeys? keys = null)
@@ -128,7 +129,10 @@ public static class DiffPaneRenderer
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);
             var position = hunksBefore.ToString(CultureInfo.InvariantCulture);
             var total = pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture);
-            builder.Append($"  hunk {position}/{total}", SegmentRole.Faint);
+            var fileNumber = pane.FileNumber.ToString(CultureInfo.InvariantCulture);
+            var fileCount = pane.FileCount.ToString(CultureInfo.InvariantCulture);
+            var files = pane.FileCount > 0 ? $"  file {fileNumber}/{fileCount}" : string.Empty;
+            builder.Append($"{files}  hunk {position}/{total}", SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
             builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);
         }

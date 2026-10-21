@@ -298,10 +298,6 @@ public sealed class WorkingDiffController : IPromptHandler
         {
             // The diff loads again with the new options.
         }
-        else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
-        {
-            Notice = "The diff shows the selected file only; pick another in the file list";
-        }
         else if (action == ActionIds.NavigateBack)
         {
             if (diff.Search.IsOpen)

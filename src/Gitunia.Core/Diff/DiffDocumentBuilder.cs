@@ -48,8 +48,16 @@ public sealed class DiffDocumentBuilder
         _filePaths.Add(file.OldPath is { } oldPath && oldPath != file.Path ? [file.Path, oldPath] : [file.Path]);
         _rows.Add(new DiffRow(DiffRowKind.FileHeader, DescribeFile(file), null, null, fileIndex));
         AddNotes(file, fileIndex);
+        var isFirstHunk = true;
         foreach (var hunk in file.Hunks)
         {
+            if (!isFirstHunk)
+            {
+                // A blank row between hunks (an empty note, which staging, copy and search treat as no content).
+                _rows.Add(Note(string.Empty, fileIndex));
+            }
+
+            isFirstHunk = false;
             var headerRow = _rows.Count;
             if (wholeFileContext is null && !groupChanges)
             {

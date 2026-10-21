@@ -73,7 +73,7 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenAnOpenDiff_WhenJumpingBetweenHunksAndFiles_ThenHunksAreVisitedAndTheFileJumpStopsAtTheEnd()
+    public async Task GivenAnOpenDiff_WhenJumpingBetweenHunks_ThenHunksAreVisitedWithinTheFile()
     {
         using var harness = await DiffHarness.LoadAsync();
         await harness.OpenAsync("a.txt");
@@ -86,12 +86,9 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffNextHunk);
         harness.Execute(ActionIds.DiffPreviousHunk);
         var back = harness.DiffList.SelectedItem;
-        harness.Execute(ActionIds.DiffNextFile);
 
         Assert.Contains(firstAfterStart!.Value, document.HunkRows);
         Assert.Equal(firstAfterStart, back);
-        Assert.Equal(firstAfterStart, harness.DiffList.SelectedItem);
-        Assert.Equal("The diff shows the selected file only; pick another in the file list", harness.Controller.Notice);
         Assert.Same(document, harness.Session.Diff.Source.Document);
     }
 
@@ -109,7 +106,7 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffNextHunk);
         var after = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
         Assert.Contains("hunk 0/1", before, StringComparison.Ordinal);
-        Assert.DoesNotContain("file 1/2", before, StringComparison.Ordinal);
+        Assert.Contains("file 2/2", before, StringComparison.Ordinal);
         Assert.Contains("hunk 1/1", after, StringComparison.Ordinal);
         harness.Execute(ActionIds.DiffNextHunk);
         Assert.Equal("No next hunk", harness.Controller.Notice);
@@ -286,26 +283,33 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenTheDiffHasFocus_WhenJumpingToTheNextFile_ThenTheDiffAndTheFileListStayOnTheSelectedFile()
+    public async Task GivenTheDiffHasFocus_WhenJumpingBetweenFiles_ThenTheDiffAndTheFileListMoveTogether()
     {
         using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
         harness.SelectFirstFile();
         harness.Controller.FollowSelection();
         await harness.WaitForDiffAsync();
         harness.Execute(ActionIds.DetailOpenDiff);
-        var document = harness.Session.Diff!.Source.Document;
-        var listCursor = harness.DetailList.SelectedItem;
+        var firstCursor = harness.DetailList.SelectedItem;
+        var firstFile = harness.Session.Diff!.Source.Document.FilePaths[0];
 
-        harness.Execute(ActionIds.ListBottom);
-        var cursor = harness.DiffList.SelectedItem;
         harness.Execute(ActionIds.DiffPreviousFile);
-        Assert.Equal(cursor, harness.DiffList.SelectedItem);
+        Assert.Equal("No previous file", harness.Controller.Notice);
+        Assert.Equal(firstCursor, harness.DetailList.SelectedItem);
         harness.Execute(ActionIds.DiffNextFile);
 
-        Assert.Equal(cursor, harness.DiffList.SelectedItem);
-        Assert.Same(document, harness.Session.Diff.Source.Document);
-        Assert.Equal(listCursor, harness.DetailList.SelectedItem);
-        Assert.Equal("The diff shows the selected file only; pick another in the file list", harness.Controller.Notice);
+        var second = harness.Session.Diff.Source.Document;
+        Assert.Single(second.FilePaths);
+        Assert.NotEqual(firstFile, second.FilePaths[0]);
+        Assert.NotEqual(firstCursor, harness.DetailList.SelectedItem);
+        var title = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        Assert.Contains("file 2/2", title, StringComparison.Ordinal);
+        harness.Execute(ActionIds.DiffNextFile);
+        Assert.Equal("No next file", harness.Controller.Notice);
+        Assert.Same(second, harness.Session.Diff.Source.Document);
+        harness.Execute(ActionIds.DiffPreviousFile);
+        Assert.Equal(firstFile, harness.Session.Diff.Source.Document.FilePaths[0]);
+        Assert.Equal(firstCursor, harness.DetailList.SelectedItem);
     }
 
     [Fact]

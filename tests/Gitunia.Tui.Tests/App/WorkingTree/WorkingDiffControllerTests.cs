@@ -94,6 +94,27 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
+    public async Task GivenTwoChangedFiles_WhenJumpingBetweenFilesInTheDiff_ThenTheSelectedFileChanges()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("base", new TestFile("a.txt", "one\n"), new TestFile("b.txt", "two\n"));
+        repository.WriteFile("a.txt", "one changed\n");
+        repository.WriteFile("b.txt", "two changed\n");
+        using var harness = await Harness.OpenAsync(repository);
+        await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);
+        Assert.Equal("a.txt", harness.Tab.WorkingTree!.Selection!.Path);
+
+        await harness.ExecuteAsync(ActionIds.DiffPreviousFile);
+        Assert.Equal("a.txt", harness.Tab.WorkingTree.Selection!.Path);
+        Assert.Equal("No previous file", harness.Handler.Message);
+        await harness.ExecuteAsync(ActionIds.DiffNextFile);
+        Assert.Equal("b.txt", harness.Tab.WorkingTree.Selection!.Path);
+        await harness.ExecuteAsync(ActionIds.DiffNextFile);
+        Assert.Equal("b.txt", harness.Tab.WorkingTree.Selection!.Path);
+        Assert.Equal("No next file", harness.Handler.Message);
+    }
+
+    [Fact]
     public async Task GivenTheDiffFocused_WhenJumpingBetweenHunks_ThenTheCursorLandsOnTheHunkHeaders()
     {
         var original = string.Concat(Enumerable.Range(1, 40).Select(number => $"line {number}\n"));

@@ -338,7 +338,11 @@ public sealed class DiffPaneController : IPromptHandler
     private DiffPaneModel ModelOf(DiffSession? diff, bool isFocused) =>
         diff is null
             ? new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused)
-            : _actions.ModelOf(diff, diff.Store.Options, isFocused);
+            : _actions.ModelOf(diff, diff.Store.Options, isFocused) with
+            {
+                FileNumber = diff.ShownFile + 1,
+                FileCount = diff.ShownFull?.FilePaths.Count ?? 0,
+            };
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
     {
@@ -366,7 +370,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
         else if (action == ActionIds.DiffNextFile || action == ActionIds.DiffPreviousFile)
         {
-            Notice = "The diff shows the selected file only; pick another in the file list";
+            MoveToFile(diff, action == ActionIds.DiffNextFile, count ?? 1);
         }
         else if (action == ActionIds.NavigateBack)
         {
@@ -505,6 +509,38 @@ public sealed class DiffPaneController : IPromptHandler
         var row = _actions.CursorRow(diff);
         var file = row >= 0 && row < document.Rows.Count ? document.Rows[row].FileIndex : -1;
         return file >= 0 && file < document.FilePaths.Count ? document.FilePaths[file][0] : null;
+    }
+
+    // ]f and [f pick the next or previous file of the commit; the pane then shows that file only. The file list's
+    // cursor follows, so the list and the diff stay on the same file. Past the first or last file nothing moves.
+    private void MoveToFile(DiffSession diff, bool forward, int count)
+    {
+        var full = diff.ShownFull;
+        var target = full is null || diff.ShownFile < 0
+            ? -1
+            : Math.Clamp(diff.ShownFile + (forward ? count : -count), 0, full.FilePaths.Count - 1);
+        if (full is null || target < 0 || target == diff.ShownFile)
+        {
+            Notice = forward ? "No next file" : "No previous file";
+            return;
+        }
+
+        var path = full.FilePaths[target][0];
+        if (_activeSession()?.DetailSource is { Content: { Tab: BottomTab.Changes } content })
+        {
+            for (var index = 0; index < content.Files.Count; index++)
+            {
+                if (content.Files[index].Path == path)
+                {
+                    _detailList.SelectedItem = content.FirstFileRow + index;
+                    _detailList.EnsureSelectedItemVisible();
+                    break;
+                }
+            }
+        }
+
+        diff.PendingFilePath = path;
+        Refresh(diff);
     }
 
     private void Close(RepositoryState tab, DiffSession diff)
