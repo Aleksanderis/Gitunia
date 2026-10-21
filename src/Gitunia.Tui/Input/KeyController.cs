@@ -55,8 +55,8 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
     /// text mode (a quick jump that matched, an accepted prompt), so the rest never runs as Normal-mode keys.
     /// </summary>
     /// <param name="text">The pasted text.</param>
-    /// <param name="multiLine">True when a message editor owns the input and keeps line breaks (see <see cref="PasteKeys"/>).</param>
-    /// <param name="view">The focused view's name in the keymap, asked again for every key (an overlay may close).</param>
+    /// <param name="multiLine">True when a message editor owns the input and keeps line breaks.</param>
+    /// <param name="view">The focused view's name in the keymap, asked for every key (an overlay may close).</param>
     /// <returns>True when the paste was taken (the mode was a text mode when it arrived).</returns>
     public bool Paste(string text, bool multiLine, Func<string> view)
     {
