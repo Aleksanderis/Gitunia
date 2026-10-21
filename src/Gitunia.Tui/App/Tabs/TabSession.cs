@@ -135,6 +135,18 @@ public sealed class TabSession : IDisposable
     public void Truncate(int total)
     {
         TruncatedTotal = total;
+        RefreshCutMarker();
+    }
+
+    // The marker shows while the log is cut and nothing loads; the item count changes with it.
+    private void RefreshCutMarker()
+    {
+        var shown = IsTruncated && !IsLoading;
+        if (shown != Source.ShowsCutMarker)
+        {
+            Source.ShowsCutMarker = shown;
+            Source.NotifyAppended();
+        }
     }
 
     /// <summary>
@@ -156,6 +168,7 @@ public sealed class TabSession : IDisposable
         }
 
         IsLoading = true;
+        RefreshCutMarker();
         Changed?.Invoke();
         ExpandRequested.Invoke();
     }
@@ -165,6 +178,7 @@ public sealed class TabSession : IDisposable
     {
         ExpansionFailed = true;
         IsLoading = false;
+        RefreshCutMarker();
         Changed?.Invoke();
         LoadFinished?.Invoke();
     }
@@ -186,6 +200,7 @@ public sealed class TabSession : IDisposable
         IsLoading = false;
         Graph.Replace(entries);
         GraphVersion++;
+        Source.ShowsCutMarker = IsTruncated;
         Source.NotifyAppended();
         GraphReplaced?.Invoke();
         Changed?.Invoke();
@@ -194,6 +209,7 @@ public sealed class TabSession : IDisposable
     public void Complete()
     {
         IsLoading = false;
+        RefreshCutMarker();
         Changed?.Invoke();
         LoadFinished?.Invoke();
     }
