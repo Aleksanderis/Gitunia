@@ -39,6 +39,22 @@ Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-c
 - Git access by running the `git` CLI and parsing plumbing/porcelain output (no libgit2 for writes).
 - TUI rendering: Terminal.Gui v2. See `docs/architecture.md`.
 
+## Install and first run
+
+Needs `git` on your `PATH`.
+
+- Release archives (linux-x64, win-x64) are built on version tags; unpack and put `gitunia` on your `PATH`. None are published yet.
+- From source: install the .NET SDK pinned in `global.json`, then `dotnet publish src/Gitunia.Tui -c Release -o out` and run `out/gitunia`.
+
+Then:
+
+```
+gitunia                 # restore the last session, or show the repository picker
+gitunia ~/Projects/foo  # open a repository (any subfolder resolves to its root)
+```
+
+In the picker type to filter repositories or type a path, `Enter` opens it in a tab. Press `?` for the keys of the current view, `:` for the command palette, `q` to quit. The user guide is `docs/user-guide.md`; the full key table is the Keymap in `docs/ux.md`.
+
 ## Docs
 
 Start with `CLAUDE.md` (rules and routing table), then `docs/`.
