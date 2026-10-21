@@ -324,7 +324,8 @@ public sealed class TuiApplication(
             () => _view.Detail.SelectedItem,
             MoveDetailCursor,
             _keys.SetMode,
-            RefreshDetail);
+            RefreshDetail,
+            _diffPane.OpenFileContent);
         _router.FileTree = _fileTree;
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(

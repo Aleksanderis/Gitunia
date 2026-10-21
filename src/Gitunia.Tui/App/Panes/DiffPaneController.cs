@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
@@ -10,6 +11,7 @@ using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -150,6 +152,18 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void FollowSelection()
     {
+        if (_activeSession() is { Diff: { IsShowingContent: true } content } open)
+        {
+            // A file of one commit's tree stays on screen only while that commit is selected.
+            if (open.Details.Current.Commit is { } onGraph && onGraph != content.ShownContentCommit)
+            {
+                CloseContent(content);
+                ReleaseHiddenFocus();
+            }
+
+            return;
+        }
+
         if (_activeSession() is not { Diff: { } diff } session
             || !IsShown(diff)
             || session.Details.Current is not { Details: { } loaded, Commit: { } commit }
@@ -171,6 +185,38 @@ public sealed class DiffPaneController : IPromptHandler
 
         var neighbours = DetailPrefetchPlan.Around(session.Graph, session.Graph.IndexOf(commit));
         diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null, neighbours);
+    }
+
+    /// <summary>
+    /// Opens the content of a file of the Files tab read-only in the diff pane's place and gives the pane focus. The
+    /// blob is read off the UI thread (size cap and binary notice: <see cref="FileContentStore"/>).
+    /// </summary>
+    /// <returns>A notice for the status bar when nothing was opened, empty otherwise.</returns>
+    public string OpenFileContent(FileTreeRow row)
+    {
+        if (_activeSession() is not { Diff: { ContentStore: { } store } diff, Tree: { } tree }
+            || _host.Workspace.ActiveTab is not { } tab
+            || tree.Store.Current.Commit is not { } commit)
+        {
+            return "The file tree is still loading";
+        }
+
+        if (row.Kind == FileTreeRowKind.Submodule || row.Blob is not { } blob)
+        {
+            return "A submodule has no content to show";
+        }
+
+        _actions.ForgetSearch(diff);
+        diff.ShownContentPath = row.Path;
+        diff.ShownContentCommit = commit;
+        diff.IsOpen = true;
+        diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
+        store.Load(commit, row.Path, blob, row.Size);
+        ShowContent(diff, store);
+        _relayout();
+        _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
+
+        return string.Empty;
     }
 
     public void OnGraphChanged()
@@ -214,6 +260,11 @@ public sealed class DiffPaneController : IPromptHandler
         if (previous?.Diff is { } old)
         {
             old.Store.Changed -= OnStoreChanged;
+            if (old.ContentStore is { } oldContent)
+            {
+                oldContent.Changed -= OnContentChanged;
+            }
+
             old.Store.ReleaseCache();
             _actions.AbandonTypedSearch(old);
         }
@@ -225,6 +276,11 @@ public sealed class DiffPaneController : IPromptHandler
             if (current?.Diff is { } diff)
             {
                 diff.Store.Changed += OnStoreChanged;
+                if (diff.ContentStore is { } content)
+                {
+                    content.Changed += OnContentChanged;
+                }
+
                 _actions.RestoreRemembered(diff);
             }
         }
@@ -233,7 +289,11 @@ public sealed class DiffPaneController : IPromptHandler
             _actions.IsRestoring = false;
         }
 
-        if (current?.Diff is { } open && IsShown(open))
+        if (current?.Diff is { IsShowingContent: true, ContentStore: { } shown })
+        {
+            ShowContent(current.Diff, shown);
+        }
+        else if (current?.Diff is { } open && IsShown(open))
         {
             // The load may have finished while the tab was in the background.
             Refresh(open);
@@ -246,6 +306,13 @@ public sealed class DiffPaneController : IPromptHandler
     private void OnWorkspaceChanged()
     {
         ReleaseStaleZoom();
+        if (_activeSession()?.Diff is { IsShowingContent: true } content
+            && _host.Workspace.ActiveTab?.View.BottomTab != BottomTab.Files)
+        {
+            // The file content belongs to the Files tab: another tab shows its own pane.
+            CloseContent(content);
+        }
+
         if (ReleaseHiddenFocus())
         {
             return;
@@ -275,7 +342,11 @@ public sealed class DiffPaneController : IPromptHandler
             return true;
         }
 
-        if (action == ActionIds.DiffLoadAnyway)
+        if (diff.IsShowingContent && (action == ActionIds.DiffLoadAnyway || IsOptionAction(diff, action)))
+        {
+            Notice = "The file content has no diff options";
+        }
+        else if (action == ActionIds.DiffLoadAnyway)
         {
             LoadAnyway(diff);
         }
@@ -378,6 +449,9 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
+    private static bool IsOptionAction(DiffSession diff, ActionId action) =>
+        DiffListActions.TryResolveOptions(diff.Store.Options, action, out _);
+
     private bool TryChangeOptions(DiffSession diff, ActionId action)
     {
         if (!DiffListActions.TryResolveOptions(diff.Store.Options, action, out var changed))
@@ -434,6 +508,9 @@ public sealed class DiffPaneController : IPromptHandler
         diff.IsOpen = false;
         diff.ZoomedPane = null;
         diff.PendingFilePath = null;
+        diff.ShownContentPath = null;
+        diff.ShownContentCommit = null;
+        diff.ContentStore?.Clear();
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
         diff.Store.Clear();
@@ -465,8 +542,59 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
+    private void OnContentChanged()
+    {
+        if (_activeSession()?.Diff is { IsShowingContent: true, ContentStore: { } store } diff
+            && store.Current.Path == diff.ShownContentPath
+            && store.Current.Commit == diff.ShownContentCommit)
+        {
+            ShowContent(diff, store);
+        }
+    }
+
+    // Puts the document of the open file (its text, or a note while it loads or when it cannot be shown) in the pane.
+    private void ShowContent(DiffSession diff, FileContentStore store)
+    {
+        if (!ReferenceEquals(diff.Source.Document, store.Current.Document))
+        {
+            _actions.ForgetSearch(diff);
+            diff.Source.Update(store.Current.Document);
+            _actions.Select(diff, 0, atTop: true);
+        }
+
+        _diffList.SetNeedsDraw();
+        _refreshChrome();
+    }
+
+    // Leaves the file content without touching the loaded diff: the pane is empty until the diff shows again.
+    private void CloseContent(DiffSession diff)
+    {
+        diff.ShownContentPath = null;
+        diff.ShownContentCommit = null;
+        diff.ContentStore?.Clear();
+        diff.IsOpen = false;
+        diff.ZoomedPane = null;
+        diff.Search = DiffSearchState.Idle;
+        diff.Source.Highlight = null;
+        diff.ShownFull = null;
+        diff.ShownDocument = DiffDocument.Empty;
+        diff.Source.Update(DiffDocument.Empty);
+        if (ShowsWithChanges())
+        {
+            Refresh(diff);
+        }
+
+        _relayout();
+        _refreshChrome();
+    }
+
     private void Refresh(DiffSession diff)
     {
+        if (diff.IsShowingContent)
+        {
+            return;
+        }
+
         var full = diff.Store.Document;
         var path = diff.Store.Status == DiffStatus.Loaded ? diff.PendingFilePath : null;
         if (path is not null)

@@ -7,6 +7,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Search;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Search;
@@ -369,9 +370,16 @@ public sealed class DiffListActions
     {
         if (row < 0
             || row >= document.Rows.Count
-            || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning))
+            || (!wholeFile && document.Rows[row].Kind is DiffRowKind.Note or DiffRowKind.Warning)
+            || (document.IsFileContent && document.Rows[row].Kind == DiffRowKind.Note))
         {
             Notice = "Nothing to copy";
+        }
+        else if (document.IsFileContent)
+        {
+            _clipboard.Copy(
+                wholeFile ? FileContentDocument.Text(document) : document.Rows[row].Text,
+                wholeFile ? "file content" : "line");
         }
         else if (!wholeFile)
         {

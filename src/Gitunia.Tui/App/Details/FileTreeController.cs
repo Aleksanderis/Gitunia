@@ -10,7 +10,8 @@ using Gitunia.Tui.Input;
 namespace Gitunia.Tui.App.Details;
 
 /// <summary>
-/// The keys of the Files tab of the detail pane: <c>Enter</c>/<c>l</c> open or close a directory, <c>h</c> closes it
+/// The keys of the Files tab of the detail pane: <c>Enter</c>/<c>l</c> open or close a directory (on a file: show its
+/// content in the diff pane's place), <c>h</c> closes it
 /// or goes to the parent row (and leaves the pane at the top), <c>/</c> filters the tree by path while typing,
 /// <c>Esc</c> clears the filter. It is also a prompt (the filter box), so it owns Insert mode while the filter is
 /// edited. Runs without a terminal.
@@ -21,17 +22,18 @@ namespace Gitunia.Tui.App.Details;
 /// <param name="moveCursor">Moves the cursor of the detail list to a row.</param>
 /// <param name="setMode">Switches the key mode (Insert while the filter is typed).</param>
 /// <param name="refresh">Rebuilds the detail pane after the tree changed.</param>
+/// <param name="openFile">Shows the content of a file row in the diff pane; returns a notice when it cannot.</param>
 public sealed class FileTreeController(
     WorkspaceHost host,
     Func<TabSession?> activeSession,
     Func<int?> selectedRow,
     Action<int> moveCursor,
     Action<KeyMode> setMode,
-    Action refresh) : IPromptHandler
+    Action refresh,
+    Func<FileTreeRow, string> openFile) : IPromptHandler
 {
     private const string FilterLabel = "/";
     private const string AppliedFilterLabel = "filter: ";
-    private const string NoContentNotice = "File contents cannot be shown yet";
     private const string WrongTabNotice = "The filter works on the Files tab of the detail pane";
 
     public string Notice { get; private set; } = string.Empty;
@@ -182,9 +184,12 @@ public sealed class FileTreeController(
 
         if (row.Kind != FileTreeRowKind.Directory)
         {
-            Notice = NoContentNotice;
+            Notice = openFile(row);
+
+            return;
         }
-        else if (!(row.IsExpanded ? tree.Collapse(row) : tree.Expand(row)))
+
+        if (!(row.IsExpanded ? tree.Collapse(row) : tree.Expand(row)))
         {
             return;
         }

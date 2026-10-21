@@ -30,6 +30,7 @@ public class FileTreeControllerTests : IDisposable
     private readonly GraphEntry _entry = CommitFactory.Graph(CommitFactory.Commit(1, "root", []))[0];
     private readonly FakeCommitTreeReader _reader = new();
     private readonly List<KeyMode> _modes = [];
+    private readonly List<string> _opened = [];
     private readonly UiPump _pump = new(TestContext.Current.CancellationToken);
     private readonly TabSession _session;
     private readonly FileTreeController _controller;
@@ -62,7 +63,12 @@ public class FileTreeControllerTests : IDisposable
             () => _cursor,
             row => _cursor = row,
             _modes.Add,
-            Refresh);
+            Refresh,
+            row =>
+            {
+                _opened.Add(row.Path);
+                return "opened";
+            });
         Refresh();
     }
 
@@ -101,7 +107,7 @@ public class FileTreeControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAFileRow_WhenOpening_ThenANoticeSaysContentsCannotBeShown()
+    public async Task GivenAFileRow_WhenOpening_ThenTheFileIsHandedToTheContentViewAndItsNoticeShows()
     {
         await LoadAsync();
         _cursor = 2;
@@ -109,7 +115,8 @@ public class FileTreeControllerTests : IDisposable
         var handled = _controller.TryExecute(ActionIds.DetailOpenDiff, null);
 
         Assert.True(handled);
-        Assert.Equal("File contents cannot be shown yet", _controller.Notice);
+        Assert.Equal(["README"], _opened);
+        Assert.Equal("opened", _controller.Notice);
         Assert.Equal(["docs/", "src/", "README"], Labels());
     }
 

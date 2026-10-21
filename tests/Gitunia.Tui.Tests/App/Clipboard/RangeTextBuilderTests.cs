@@ -45,6 +45,21 @@ public class RangeTextBuilderTests
     }
 
     [Fact]
+    public void GivenARangeOverFileContent_WhenBuildingDiffText_ThenLinesComeBackPlainWithoutAPrefix()
+    {
+        using var source = new DiffListSource(GraphGlyphSet.Unicode);
+        source.Update(new DiffDocument(
+            [new(DiffRowKind.Context, "one", null, 1, 0), new(DiffRowKind.Context, " two", null, 2, 0)],
+            [],
+            [0],
+            [["f.txt"]],
+            2,
+            "f.txt"));
+
+        Assert.Equal("one\n two\n", RangeTextBuilder.Diff(source, new RowRange(0, 1)));
+    }
+
+    [Fact]
     public void GivenAWrappedRow_WhenBuildingDiffText_ThenTheRowIsCopiedOnceAndWhole()
     {
         using var source = DiffSource(wrapped: true);

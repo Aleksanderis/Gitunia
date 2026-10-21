@@ -7,6 +7,7 @@ using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
+using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 
@@ -24,12 +25,13 @@ public sealed class TabSession : IDisposable
         CommitDetailsStore details,
         DiffStore? diffStore = null,
         WorkingDiffStore? workingDiffStore = null,
-        FileTreeSession? tree = null)
+        FileTreeSession? tree = null,
+        FileContentStore? contentStore = null)
     {
         Tree = tree;
         TabId = tabId;
         Details = details;
-        Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs);
+        Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs, contentStore);
         WorkingDiff = workingDiffStore is null ? null : new WorkingDiffSession(workingDiffStore, glyphs);
         DetailSource = new DetailListSource(glyphs);
         Graph = new CommitGraph();
