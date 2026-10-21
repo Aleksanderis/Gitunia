@@ -25,7 +25,6 @@ public static class ActionIds
 
     public static ActionId DetailPreviousTab { get; } = new("detail.previous-tab");
 
-    public static ActionId DiffMergeParent { get; } = new("diff.merge-parent");
     public static ActionId DetailRetry { get; } = new("detail.retry");
 
     public static ActionId DetailTabChanges { get; } = new("detail.tab-changes");
@@ -40,6 +39,7 @@ public static class ActionIds
 
     public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
 
+    public static ActionId DiffMergeParent { get; } = new("diff.merge-parent");
     public static ActionId DiffLessContext { get; } = new("diff.less-context");
 
     public static ActionId DiffMoreContext { get; } = new("diff.more-context");

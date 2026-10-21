@@ -65,7 +65,7 @@ public sealed class DiffStore(
     /// <param name="prefetch">Commits likely to be selected next, most likely first; their diffs are read in the background into the cache once this one is shown. Null or empty prefetches nothing.</param>
     /// <param name="isAlternateParent">
     /// <paramref name="firstParent"/> is a later parent of a merge commit the user switched to: the diff is neither
-    /// nor added to the cache, which holds the first-parent diff of each commit.
+    /// read from nor added to the cache, which holds the first-parent diff of each commit.
     /// </param>
     /// <returns>True when a load was started or the diff came from the cache.</returns>
     public bool Load(

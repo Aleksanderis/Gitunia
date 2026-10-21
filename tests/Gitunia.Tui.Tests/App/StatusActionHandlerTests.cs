@@ -179,7 +179,7 @@ public class StatusActionHandlerTests : IDisposable
         handler.TryHandle(ActionIds.DiffMergeParent);
         await pump.RunUntilAsync(() => _session.Details.Current.Details!.ParentIndex == 1);
 
-        Assert.Equal("Changes against parent 2 of 2", handler.Message);
+        Assert.Equal("Switching to parent 2 of 2...", handler.Message);
         Assert.Equal(["main.txt"], _session.Details.Current.Details!.Files.Select(file => file.Path));
     }
 
