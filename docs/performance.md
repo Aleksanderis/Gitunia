@@ -63,7 +63,7 @@ Measured on `scripts/gen-big-repo.sh <dir> 1000000` (1,000,000 commits, linear m
 | RSS once loading settled | ~383-396 MB | ~76 MB |
 | After `G` (rest loaded, ~10 s) | n/a (all loaded) | ~394 MB (as before, only when asked for) |
 
-A kernel-sized tab therefore costs what a 100k tab costs until the user asks for its end (~350 bytes per commit measured on the 1M log). The "continues below" lane marker of the issue text is not drawn: the cut row keeps its outgoing lines and the status bar says `+ of total`; registered as #555.
+A kernel-sized tab therefore costs what a 100k tab costs until the user asks for its end (~350 bytes per commit measured on the 1M log). The "continues below" marker (#555) is one extra list item after the last loaded row, `⋮ more commits below, G loads the rest` (`:` instead of `⋮` in ASCII), drawn while the log is cut and nothing loads. It holds no commit: `GraphListSource.CommitIndexOf` gives `graph.Count` for it and every consumer (copy hash, selection, range text, pick range, jumps) already bounds-checks that.
 
 ## Verified numbers (graph view)
 

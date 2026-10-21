@@ -62,7 +62,21 @@ public static class ScreenComposer
         }
         else
         {
-            AddPanes(overlays, graph, selectedItem, topItem, glyphs, detail, sidebar, highlight, diff, rects, PanePadding.ColumnsFor(width));
+            var showsCutMarker = model.TruncatedTotal is not null && !model.IsLoading;
+            var padding = PanePadding.ColumnsFor(width);
+            AddPanes(
+                overlays,
+                graph,
+                selectedItem,
+                topItem,
+                glyphs,
+                detail,
+                sidebar,
+                highlight,
+                diff,
+                rects,
+                padding,
+                showsCutMarker);
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
@@ -197,7 +211,8 @@ public static class ScreenComposer
         SearchQuery? highlight,
         DiffPaneModel? diff,
         PaneRects rects,
-        int paddingColumns)
+        int paddingColumns,
+        bool showsCutMarker)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
@@ -213,7 +228,9 @@ public static class ScreenComposer
                 var commitIndex = item - ScreenLayout.ReservedLeadingRows;
                 var graphRow = commitIndex >= 0 && commitIndex < graph.Count
                     ? GraphRowRenderer.Render(graph[commitIndex], options, item == selectedItem)
-                    : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
+                    : showsCutMarker && commitIndex == graph.Count
+                        ? GraphRowRenderer.RenderCutMarker(options, item == selectedItem)
+                        : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
                 graphLines.Add(PanePadding.Wrap(graphRow, paddingColumns));
             }
 

@@ -410,6 +410,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
 
+**UI:** A log cut at the soft row limit shows a faint, selectable `more commits below` item after the last row (#555). Why: it is a real list item so scrolling reaches it; it holds no commit and all consumers already bounds-check the index.
+
 **UI:** The terminal retry of #45 also covers the remote branch delete and the tag push and remote tag delete (#512): same Confirm, arguments built in `RemoteCommands` next to the writer.
 
 **UI:** The history diff pane shows one file, the one under the file list cursor (#537); hunk jumps and `hunk n/m` stop at its ends, `]f`/`[f` do not move. Hunk headers are rule separator rows. Supersedes 1c items 1, 2, 10 and the file jumps of the #25 and #310 entries.
@@ -419,3 +421,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
 
 **UI:** Chips show key plus label (owner, #536): tab-bar remote chips and diff title buttons share one pattern, key text from the keymap; narrow rows drop it first. Cancel chip is `<space>C cancel`. List-title and change-group chips follow in #578. Supersedes #456's label-only chips.
+
+**Process:** User guide (#50, `docs/user-guide.md`) holds a hand-written subset of the keymap and points to `docs/ux.md` for the full table, instead of generating a key reference; a rebinding of a listed key updates both.

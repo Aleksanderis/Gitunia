@@ -83,6 +83,22 @@ public static class GraphRowRenderer
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
         new LineBuilder(options.Width, options.Glyphs.Ellipsis).Build(SegmentRole.Plain, isSelected);
 
+    /// <summary>
+    /// The row under the last loaded commit of a log cut at the soft row limit (#555): a faint lane stroke and a
+    /// hint that <c>G</c> loads the rest. It holds no commit.
+    /// </summary>
+    /// <param name="options">The layout of the graph rows.</param>
+    /// <param name="isSelected">The cursor is on the row.</param>
+    public static StyledLine RenderCutMarker(GraphRowOptions options, bool isSelected)
+    {
+        var stroke = options.Glyphs.IsAscii ? ":" : "⋮";
+        var builder = new LineBuilder(options.Width, options.Glyphs.Ellipsis);
+        builder.Append(stroke, SegmentRole.Faint);
+        builder.Append(" more commits below, G loads the rest", SegmentRole.Faint);
+
+        return builder.Build(SegmentRole.Plain, isSelected);
+    }
+
     private static GraphMessageLayout MessageLayoutOf(GraphEntry entry, GraphRowOptions options)
     {
         var cells = LaneCellBuilder.Build(entry.Row, options.LaneColumns, options.Glyphs, entry.Decorations.Count > 0);

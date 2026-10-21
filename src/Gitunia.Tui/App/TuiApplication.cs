@@ -999,7 +999,7 @@ public sealed class TuiApplication(
                 : null;
         }
 
-        return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
+        return view == DefaultKeymap.GraphView && SelectedCommitHash() is not null
             ? new RowMenuTarget(
                 RowActions.OfGraphRowFor(
                     DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0,
@@ -1673,6 +1673,11 @@ public sealed class TuiApplication(
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
             session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
+            RefreshDetail();
+        }
+        else if (commitIndex >= session.Graph.Count)
+        {
+            // The continues-below marker holds no commit: the detail pane must not keep showing the previous one.
             RefreshDetail();
         }
 
