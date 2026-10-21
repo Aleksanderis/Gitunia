@@ -56,7 +56,7 @@ public class DiffSplitRendererTests
 
         var text = DiffSplitRenderer.Render(document, line, 0, 41, Digits, null, false, false, Glyphs).Text;
 
-        Assert.StartsWith("@@ -1 +1 @@", text, StringComparison.Ordinal);
+        Assert.StartsWith("── @@ -1 +1 @@ ─", text, StringComparison.Ordinal);
         Assert.DoesNotContain('│', text);
     }
 

@@ -411,3 +411,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Copy status (#538) is short, "Copied <what>", on success; the OSC 52 hint is kept only on a failed terminal write. Supersedes the best-guess hint of the #52 entry.
 
 **UI:** A log cut at the soft row limit shows a faint, selectable `more commits below` item after the last row (#555). Why: it is a real list item so scrolling reaches it; it holds no commit and all consumers already bounds-check the index.
+**UI:** The history diff pane shows one file, the one under the file list cursor (#537); hunk jumps and `hunk n/m` stop at its ends, `]f`/`[f` do not move. Hunk headers are rule separator rows. Supersedes 1c items 1, 2, 10 and the file jumps of the #25 and #310 entries.
+
+**UI:** Bare-key exception for modal lists (owner, #549): the settings screen's `x` `a` `d` `J` `K` `+` `-` (#523) and the rebase editor's `p` `r` `s` `f` `d` `J` `K` (#458) stay bare, because a modal list is not a buffer and no vim normal-mode command applies there. Supersedes the #335 rule for these two views only; every other view keeps the rule.
+
+**UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
