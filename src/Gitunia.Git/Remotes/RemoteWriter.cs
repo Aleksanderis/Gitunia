@@ -1,5 +1,4 @@
 using Gitunia.Git.Execution.Exceptions;
-using Gitunia.Git.Refs;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 
@@ -11,10 +10,6 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
     private const string Fetch = "fetch";
     private const string Merge = "merge";
     private const string UpstreamRevision = "@{upstream}";
-    private const string Push = "push";
-    private const string LeaseOption = "--force-with-lease";
-    private const string DeleteOption = "--delete";
-    private const string NoProgressOption = "--no-progress";
     private const string FastForwardOnly = "--ff-only";
     private const string UpToDateText = "Already up to date";
     private const string CannotFastForwardText = "Not possible to fast-forward";
@@ -74,21 +69,7 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
         CancellationToken cancellationToken)
     {
         // The lease makes git refuse the delete when the branch moved since the tip the user confirmed.
-        var reference = GitRefPrefixes.Heads + branch;
-        await remoteRunner
-            .RunAsync(
-                location,
-                [
-                    Push,
-                    NoProgressOption,
-                    DeleteOption,
-                    $"{LeaseOption}={reference}:{expectedHash}",
-                    GitOptions.EndOfOptions,
-                    remote,
-                    reference,
-                ],
-                null,
-                cancellationToken)
-            .ConfigureAwait(false);
+        var arguments = RemoteCommands.BuildDeleteBranch(remote, branch, expectedHash, true);
+        await remoteRunner.RunAsync(location, arguments, null, cancellationToken).ConfigureAwait(false);
     }
 }
