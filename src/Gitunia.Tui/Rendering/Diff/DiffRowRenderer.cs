@@ -8,7 +8,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Diff;
 
-/// <summary>Draws one row of the diff pane: line number gutter, change marker and the text, cut to the width, or wrapped over several screen lines (<see cref="RenderSegment"/>).</summary>
+/// <summary>Draws one row of the diff pane: line number gutter (one column for file content), change marker and the text, cut to the width, or wrapped over several screen lines (<see cref="RenderSegment"/>).</summary>
 public static class DiffRowRenderer
 {
     /// <summary>Width of a tab stop; tabs in the diff are shown as spaces up to the next stop.</summary>
@@ -24,7 +24,7 @@ public static class DiffRowRenderer
 
     /// <param name="row">The row.</param>
     /// <param name="width">Columns of the pane.</param>
-    /// <param name="gutterDigits">Digits of each of the two line number columns, from <see cref="GutterDigits"/>.</param>
+    /// <param name="gutterDigits">Digits of each line number column (two, one for file content), from <see cref="GutterDigits"/>.</param>
     /// <param name="highlight">Text to highlight (the diff search), null for none.</param>
     /// <param name="isSelected">The row is under the cursor.</param>
     /// <param name="glyphs">Supplies the ellipsis.</param>
@@ -64,8 +64,8 @@ public static class DiffRowRenderer
         _ => (2 * gutterDigits) + 3,
     };
 
-    /// <summary>A file content line (a context row with no old number): one number column, no marker.</summary>
-    private static bool IsContent(DiffRow row) => row.Kind == DiffRowKind.Context && row.OldLineNumber is null;
+    /// <summary>A file content line: one number column, no marker.</summary>
+    private static bool IsContent(DiffRow row) => row.Kind == DiffRowKind.Content;
 
     private static string Gutter(DiffRow row, int gutterDigits) => IsContent(row)
         ? $"{Number(row.NewLineNumber, gutterDigits)}  "
@@ -153,7 +153,7 @@ public static class DiffRowRenderer
                 case DiffRowKind.Note or DiffRowKind.NoNewline:
                     builder.Append("  ", textRole);
                     break;
-                case DiffRowKind.Context or DiffRowKind.Added or DiffRowKind.Removed:
+                case DiffRowKind.Context or DiffRowKind.Content or DiffRowKind.Added or DiffRowKind.Removed:
                     builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
                     if (!IsContent(row))
                     {
