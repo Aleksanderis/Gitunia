@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Git.Blobs;
 using Gitunia.Git.Blobs.Models;
 using Gitunia.Tui.Loading.Trees;
 using Xunit;
@@ -78,5 +79,16 @@ public class FileContentDocumentTests
     public void GivenALoadedDocument_WhenCopyingItsText_ThenTheLinesComeBackWithoutDiffMarkers()
     {
         Assert.Equal("one\ntwo\n", FileContentDocument.Text(Text("one\r\ntwo")));
+    }
+
+    [Fact]
+    public void GivenAMaximumSizeFileOfBlankLines_WhenBuilding_ThenEveryLineIsARowAndTheTextRoundTrips()
+    {
+        var text = new string('\n', BlobReader.MaximumBytes);
+
+        var document = Text(text);
+
+        Assert.Equal(BlobReader.MaximumBytes, document.Rows.Count);
+        Assert.Equal(text, FileContentDocument.Text(document));
     }
 }

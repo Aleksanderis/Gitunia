@@ -178,4 +178,29 @@ public class DiffRowRendererTests
         Assert.Equal(3, DiffRowRenderer.GutterDigits(5));
         Assert.Equal(6, DiffRowRenderer.GutterDigits(123456));
     }
+
+    [Fact]
+    public void GivenAFileContentRow_WhenRendering_ThenOneNumberColumnAndNoMarkerPrecedeTheText()
+    {
+        var row = new DiffRow(DiffRowKind.Context, "text", null, 7, 0);
+
+        var line = DiffRowRenderer.Render(row, 20, 3, null, false, Glyphs);
+
+        Assert.StartsWith("  7  text", line.Text);
+        Assert.Equal(5, DiffRowRenderer.PrefixWidth(row, 3));
+        Assert.Equal(20, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenAWrappedFileContentRow_WhenRenderingSegments_ThenOnlyTheFirstShowsTheNumber()
+    {
+        var row = new DiffRow(DiffRowKind.Context, "abcdefgh", null, 7, 0);
+
+        var first = DiffRowRenderer.RenderSegment(row, 0, 10, 3, null, false, Glyphs);
+        var second = DiffRowRenderer.RenderSegment(row, 1, 10, 3, null, false, Glyphs);
+
+        Assert.Equal("  7  abcde", first.Text);
+        Assert.Equal("     fgh  ", second.Text.PadRight(10));
+        Assert.Equal(2, DiffRowRenderer.SegmentCount(row, 10, 3));
+    }
 }

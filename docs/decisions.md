@@ -433,3 +433,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** A bracketed paste (Terminal.Gui's `Paste` event) is replayed key by key through the keymap in Insert and Command mode, so every text input takes it like typing (#575). Single-line inputs turn line breaks into one space and drop them at the ends, so a paste never submits; message editors keep them as new lines. Details: `ux.md` Modes.
 
 **UI:** The diff pane shows one file at a time (#537); `]c`/`[c` stop at its ends, `]f`/`[f` and the file buttons move the file list cursor, the diff follows. Reverses PR #567 dropping file switching and the no-file-buttons part of #310; details in ux.md 1c.
+
+**UI:** File content rows (#580): one line number column and no marker; no row cap beyond the 1 MiB blob limit (worst case 1M rows measured fast enough, `performance.md`).

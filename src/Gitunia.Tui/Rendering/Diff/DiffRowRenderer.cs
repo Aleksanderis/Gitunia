@@ -60,8 +60,16 @@ public static class DiffRowRenderer
         DiffRowKind.FileHeader => 0,
         DiffRowKind.HunkHeader => HunkRuleWidth + 1,
         DiffRowKind.Warning or DiffRowKind.Note or DiffRowKind.NoNewline => 2,
+        _ when IsContent(row) => gutterDigits + 2,
         _ => (2 * gutterDigits) + 3,
     };
+
+    /// <summary>A file content line (a context row with no old number): one number column, no marker.</summary>
+    private static bool IsContent(DiffRow row) => row.Kind == DiffRowKind.Context && row.OldLineNumber is null;
+
+    private static string Gutter(DiffRow row, int gutterDigits) => IsContent(row)
+        ? $"{Number(row.NewLineNumber, gutterDigits)}  "
+        : $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
 
     /// <summary>How many screen lines <paramref name="row"/> takes when its text wraps at <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffRow row, int width, int gutterDigits)
@@ -146,9 +154,13 @@ public static class DiffRowRenderer
                     builder.Append("  ", textRole);
                     break;
                 case DiffRowKind.Context or DiffRowKind.Added or DiffRowKind.Removed:
-                    builder.Append($"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ", SegmentRole.Faint);
-                    var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
-                    builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
+                    builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
+                    if (!IsContent(row))
+                    {
+                        var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
+                        builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
+                    }
+
                     break;
             }
         }
@@ -268,9 +280,12 @@ public static class DiffRowRenderer
             _ => new DiffRowStyle(' ', SegmentRole.Plain),
         };
         var role = style.Role;
-        var gutter = $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
-        builder.Append(gutter, SegmentRole.Faint);
-        builder.Append(style.Marker.ToString(),role == SegmentRole.Plain ? SegmentRole.Faint : role);
+        builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
+        if (!IsContent(row))
+        {
+            builder.Append(style.Marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
+        }
+
         AppendText(builder, row.Text, role, highlight, width, jump: jump);
     }
 
