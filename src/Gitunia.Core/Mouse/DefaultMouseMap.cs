@@ -45,6 +45,10 @@ public static class DefaultMouseMap
     public const string BackdropView = "Backdrop";
 
     /// <summary>The buttons in the diff pane's title row: each is a view of its own so the map can bind a click to its action.</summary>
+    public const string DiffPreviousFileButton = "DiffButton.PreviousFile";
+
+    public const string DiffNextFileButton = "DiffButton.NextFile";
+
     public const string DiffPreviousHunkButton = "DiffButton.PreviousHunk";
 
     public const string DiffNextHunkButton = "DiffButton.NextHunk";
@@ -280,6 +284,8 @@ public static class DefaultMouseMap
         new(ConfirmNoButton, MouseGesture.Click, ActionIds.ConfirmNo),
         new(StageAllButton, MouseGesture.Click, ActionIds.WorkingTreeStageAll),
         new(UnstageAllButton, MouseGesture.Click, ActionIds.WorkingTreeUnstageAll),
+        new(DiffPreviousFileButton, MouseGesture.Click, ActionIds.DiffPreviousFile),
+        new(DiffNextFileButton, MouseGesture.Click, ActionIds.DiffNextFile),
         new(DiffPreviousHunkButton, MouseGesture.Click, ActionIds.DiffPreviousHunk),
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),

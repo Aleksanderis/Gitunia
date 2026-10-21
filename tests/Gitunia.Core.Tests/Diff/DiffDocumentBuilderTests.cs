@@ -41,6 +41,19 @@ public class DiffDocumentBuilderTests
     }
 
     [Fact]
+    public void GivenTwoHunksInAFile_WhenBuilding_ThenABlankRowSeparatesThemAndNoneComesBeforeTheFirst()
+    {
+        var document = Build(TwoFiles);
+
+        var second = document.HunkRows[1];
+        Assert.Equal(DiffRowKind.Note, document.Rows[second - 1].Kind);
+        Assert.Equal(string.Empty, document.Rows[second - 1].Text);
+        Assert.Equal(DiffRowKind.HunkHeader, document.Rows[document.HunkRows[0]].Kind);
+        Assert.Equal(DiffRowKind.FileHeader, document.Rows[document.HunkRows[0] - 1].Kind);
+        Assert.Single(document.Rows, row => row.Kind == DiffRowKind.Note && row.Text.Length == 0);
+    }
+
+    [Fact]
     public void GivenTwoHunksAndMoreFiles_WhenTakingTheFirstFile_ThenOnlyItsRowsAndHunksRemain()
     {
         var document = Build(TwoFiles).ForFile(0);

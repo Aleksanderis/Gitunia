@@ -91,6 +91,10 @@ public sealed class WorkingTreeActionHandler(
             // q quits from every pane (#333); an active range ended first, above.
             return false;
         }
+        else if (TryFileJump(tab, action, count))
+        {
+            // ]f and [f picked another file of the list the diff follows (or said there is none).
+        }
         else if (Diff?.TryExecute(action, count) == true)
         {
             Message = Diff.Notice;
@@ -253,6 +257,31 @@ public sealed class WorkingTreeActionHandler(
         if (itemCount > 0)
         {
             Send(tab, new SelectWorkingTreeFileCommand(section, target));
+        }
+
+        return true;
+    }
+
+    // ]f and [f in the diff pick the next or previous file of the list the shown file is in; the diff then follows it.
+    private bool TryFileJump(RepositoryState tab, ActionId action, int? count)
+    {
+        if ((action != ActionIds.DiffNextFile && action != ActionIds.DiffPreviousFile)
+            || !WorkingPanes.IsDiff(tab.View.FocusedPane)
+            || tab.WorkingTree is not { Selection: { } selection } tree)
+        {
+            return false;
+        }
+
+        var forward = action == ActionIds.DiffNextFile;
+        var itemCount = selection.Section == WorkingTreeSection.Staged ? tree.Staged.Count : tree.Unstaged.Count;
+        var target = Math.Clamp(selection.Index + (forward ? count ?? 1 : -(count ?? 1)), 0, itemCount - 1);
+        if (itemCount == 0 || target == selection.Index)
+        {
+            Message = forward ? "No next file" : "No previous file";
+        }
+        else
+        {
+            Send(tab, new SelectWorkingTreeFileCommand(selection.Section, target));
         }
 
         return true;

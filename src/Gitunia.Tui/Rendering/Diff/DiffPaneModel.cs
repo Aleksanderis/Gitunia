@@ -10,6 +10,8 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <param name="Highlight">The diff search text to highlight, null for none.</param>
 /// <param name="IsWrapped">Word wrap is on (shown in the title).</param>
 /// <param name="OptionsLabel">The non-default diff options as a short title marker, empty for the defaults.</param>
+/// <param name="FileNumber">Position (1-based) of the shown file among the files of the commit, 0 for none.</param>
+/// <param name="FileCount">Files of the commit, 0 when the pane does not show a commit's files.</param>
 public sealed record DiffPaneModel(
     DiffDocument Document,
     int SelectedRow,
@@ -17,4 +19,6 @@ public sealed record DiffPaneModel(
     bool IsFocused,
     string? Highlight = null,
     bool IsWrapped = false,
-    string OptionsLabel = "");
+    string OptionsLabel = "",
+    int FileNumber = 0,
+    int FileCount = 0);
