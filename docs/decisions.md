@@ -416,4 +416,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
 
-**UI:** File content view (#511): the diff pane shows the blob with line numbers, capped at 1 MiB, binary and empty files as a note; it closes when the commit selection or the bottom tab changes, so it never shows another commit's file. Details in `ux.md` 1c item 7.
+## 2026-10-21
+
+**UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.

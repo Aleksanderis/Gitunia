@@ -206,6 +206,14 @@ public sealed class DiffPaneController : IPromptHandler
             return "A submodule has no content to show";
         }
 
+        if (diff.ShownContentPath == row.Path && diff.ShownContentCommit == commit && diff.IsOpen)
+        {
+            // Already open: only take focus, keeping the place in the file.
+            _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
+
+            return string.Empty;
+        }
+
         _actions.ForgetSearch(diff);
         diff.ShownContentPath = row.Path;
         diff.ShownContentCommit = commit;

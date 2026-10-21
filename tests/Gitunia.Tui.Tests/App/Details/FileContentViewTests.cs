@@ -238,6 +238,21 @@ public class FileContentViewTests
     }
 
     [Fact]
+    public async Task GivenTheFileAlreadyOpen_WhenOpeningItAgain_ThenTheCursorKeepsItsPlace()
+    {
+        using var harness = await Harness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var document = harness.Session.Diff!.Source.Document;
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+
+        harness.SelectFile("a.txt");
+        harness.Enter();
+
+        Assert.Same(document, harness.Session.Diff.Source.Document);
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
     public async Task GivenASubmoduleRow_WhenOpening_ThenANoticeSaysThereIsNoContent()
     {
         using var harness = await Harness.LoadAsync();

@@ -48,6 +48,8 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
 
     public void Dispose() => CancelPending();
 
+    private static string FirstLine(string text) => text.Split('\n', 2)[0].Trim();
+
     private void CancelPending()
     {
         _pending?.Cancel();
@@ -69,7 +71,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
         }
         catch (Exception exception)
         {
-            var document = FileContentDocument.Message(path, $"Cannot read the file: {exception.Message}");
+            var document = FileContentDocument.Message(path, $"Cannot read the file: {FirstLine(exception.Message)}");
             postToUi(() => Complete(commit, path, CommitDetailsStatus.Failed, document, token));
         }
     }
