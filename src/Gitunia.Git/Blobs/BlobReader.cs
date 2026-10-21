@@ -11,7 +11,7 @@ public sealed class BlobReader(GitRunner runner) : IBlobReader
     /// <summary>The largest blob that is read and shown (1 MiB).</summary>
     public const int MaximumBytes = 1024 * 1024;
 
-    /// <summary>How many leading bytes are searched for a NUL byte to tell binary from text (git looks at 8000).</summary>
+    /// <summary>Leading bytes searched for a NUL byte to tell binary from text (git looks at 8000).</summary>
     public const int BinaryProbeBytes = 8000;
 
     private const string CatFile = "cat-file";

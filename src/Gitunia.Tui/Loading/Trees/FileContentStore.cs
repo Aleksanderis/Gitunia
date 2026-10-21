@@ -8,9 +8,10 @@ namespace Gitunia.Tui.Loading.Trees;
 
 /// <summary>
 /// The content of the file opened on the Files tab of one tab, read off the UI thread with <see cref="IBlobReader"/>
-/// (which applies the size cap and the binary check). <see cref="Load"/> shows the loading state at once and cancels
-/// the read before it (the caller shows <see cref="Current"/> itself, <see cref="Changed"/> comes with the result); a result that arrives after another file was asked for, or after <see cref="Clear"/>, is
-/// dropped. UI thread only; results come back through <c>postToUi</c>.
+/// (which applies the size cap and the binary check). <see cref="Load"/> sets the loading state at once (the caller
+/// shows <see cref="Current"/> itself; <see cref="Changed"/> comes with the result) and cancels the read before it. A
+/// result that arrives after another file was asked for, or after <see cref="Clear"/>, is dropped. UI thread only;
+/// results come back through <c>postToUi</c>.
 /// </summary>
 public sealed class FileContentStore(IBlobReader reader, RepositoryLocation location, Action<Action> postToUi)
     : IDisposable
@@ -22,7 +23,8 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
 
     public FileContentState Current { get; private set; } = FileContentState.Empty;
 
-    /// <summary>Starts reading <paramref name="blob"/>, the file <paramref name="path"/> of <paramref name="commit"/>.</summary>
+    /// <summary>Starts reading <paramref name="blob"/>, the file <paramref name="path"/> of a commit.</summary>
+    /// <param name="commit">The commit the file belongs to.</param>
     /// <param name="size">The size the tree listing gave, so a file over the cap is never read.</param>
     public void Load(ObjectId commit, string path, ObjectId blob, long? size)
     {

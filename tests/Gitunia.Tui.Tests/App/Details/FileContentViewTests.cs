@@ -30,7 +30,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Details;
 
-/// <summary>Enter on a file of the Files tab through the real path: key handler, diff pane controller, stores and git.</summary>
+/// <summary>Enter on a file of the Files tab through the real path: key handler, diff pane, stores, git.</summary>
 public class FileContentViewTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -65,7 +65,8 @@ public class FileContentViewTests
         harness.Enter();
         await harness.WaitForContentAsync();
 
-        Assert.Contains("docs/guide.md", harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text, StringComparison.Ordinal);
+        var title = harness.Controller.TitleLine(80, GraphGlyphSet.Unicode).Text;
+        Assert.Contains("docs/guide.md", title, StringComparison.Ordinal);
     }
 
     [Fact]

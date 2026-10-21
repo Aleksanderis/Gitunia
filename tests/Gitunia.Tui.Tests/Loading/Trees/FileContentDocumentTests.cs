@@ -68,7 +68,8 @@ public class FileContentDocumentTests
     [Fact]
     public void GivenATooLargeBlob_WhenBuilding_ThenTheNoteNamesTheSizeAndTheLimit()
     {
-        var document = FileContentDocument.From("x.txt", new BlobContent(BlobKind.TooLarge, string.Empty, 5 * 1024 * 1024));
+        var blob = new BlobContent(BlobKind.TooLarge, string.Empty, 5 * 1024 * 1024);
+        var document = FileContentDocument.From("x.txt", blob);
 
         Assert.Equal("File too large to show (5.0 MB, the limit is 1.0 MB)", document.Rows[0].Text);
     }

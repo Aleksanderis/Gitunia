@@ -17,7 +17,8 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs, FileConte
     /// <summary>Reads the file the Files tab opened; null in sessions built without one (tests).</summary>
     public FileContentStore? ContentStore { get; } = contentStore;
 
-    /// <summary>The path of the file whose content the pane shows instead of a diff (Files tab), null for a diff.</summary>
+    /// <summary>The path of the file whose content the pane shows instead of a diff (Files tab), null for a
+    /// diff.</summary>
     public string? ShownContentPath { get; set; }
 
     /// <summary>The commit <see cref="ShownContentPath"/> is read from.</summary>

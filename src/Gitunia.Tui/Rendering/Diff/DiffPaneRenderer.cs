@@ -94,14 +94,17 @@ public static class DiffPaneRenderer
         {
             if (pane.Document.MaximumLineNumber > 0)
             {
-                var lines = pane.Document.MaximumLineNumber.ToString(CultureInfo.InvariantCulture);
-                builder.Append($"  {lines} {(pane.Document.MaximumLineNumber == 1 ? "line" : "lines")}", SegmentRole.Faint);
+                var count = pane.Document.MaximumLineNumber;
+                var unit = count == 1 ? "line" : "lines";
+                builder.Append($"  {count.ToString(CultureInfo.InvariantCulture)} {unit}", SegmentRole.Faint);
             }
 
             AppendWrapMarker(builder, pane);
             builder.Append($"  {contentPath} ", SegmentRole.Plain);
         }
-        else if (pane.Document.FileRows.Count > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
+        else if (pane.Document.FileRows.Count > 0
+            && pane.SelectedRow >= 0
+            && pane.SelectedRow < pane.Document.Rows.Count)
         {
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);

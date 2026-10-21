@@ -20,9 +20,9 @@ public static class FileContentDocument
             case BlobKind.Binary:
                 return Message(path, $"Binary file ({FileSizeText.Of(blob.Size)}): its content is not shown");
             case BlobKind.TooLarge:
-                return Message(
-                    path,
-                    $"File too large to show ({FileSizeText.Of(blob.Size)}, the limit is {FileSizeText.Of(BlobReader.MaximumBytes)})");
+                var limit = FileSizeText.Of(BlobReader.MaximumBytes);
+
+                return Message(path, $"File too large to show ({FileSizeText.Of(blob.Size)}, the limit is {limit})");
         }
 
         if (blob.Text.Length == 0)
@@ -40,7 +40,7 @@ public static class FileContentDocument
         return new DiffDocument(rows, [], [0], [[path]], lines.Count, path);
     }
 
-    /// <summary>A document of one note row (loading, a failure, a notice) for the file at <paramref name="path"/>.</summary>
+    /// <summary>A document of one note row for the file at <paramref name="path"/>.</summary>
     public static DiffDocument Message(string path, string text) =>
         new([new DiffRow(DiffRowKind.Note, text, null, null, 0)], [], [0], [[path]], 0, path);
 
@@ -48,8 +48,8 @@ public static class FileContentDocument
     public static string Text(DiffDocument document) =>
         string.Concat(document.Rows.Where(row => row.Kind == DiffRowKind.Context).Select(row => row.Text + "\n"));
 
-    // Lines end at LF; a CR before it (a CRLF file) is dropped so it never reaches the terminal. The empty piece after a
-    // final LF is not a line.
+    // Lines end at LF; a CR before it (a CRLF file) is dropped so it never reaches the terminal. The empty piece
+    // after a final LF is not a line.
     private static List<string> Lines(string text)
     {
         var lines = new List<string>();
