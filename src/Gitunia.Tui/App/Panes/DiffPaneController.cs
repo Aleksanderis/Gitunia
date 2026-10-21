@@ -6,6 +6,8 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
@@ -167,7 +169,7 @@ public sealed class DiffPaneController : IPromptHandler
         if (_activeSession() is not { Diff: { } diff } session
             || !IsShown(diff)
             || session.Details.Current is not { Details: { } loaded, Commit: { } commit }
-            || diff.Store.Commit == commit)
+            || diff.Store.IsShowing(commit, ParentToCompare(loaded)))
         {
             return;
         }
@@ -184,7 +186,7 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var neighbours = DetailPrefetchPlan.Around(session.Graph, session.Graph.IndexOf(commit));
-        diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null, neighbours);
+        diff.Store.Load(commit, ParentToCompare(loaded), neighbours, loaded.ParentIndex > 0);
     }
 
     /// <summary>
@@ -447,7 +449,7 @@ public sealed class DiffPaneController : IPromptHandler
         diff.IsOpen = !ShowsWithChanges();
         diff.PendingFilePath = source.Content.Files[index].Path;
         diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
-        var started = diff.Store.Load(commit, loaded.Parents.Count > 0 ? loaded.Parents[0] : null);
+        var started = diff.Store.Load(commit, ParentToCompare(loaded), isAlternateParent: loaded.ParentIndex > 0);
         _relayout();
         _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
         if (!started)
@@ -456,6 +458,10 @@ public sealed class DiffPaneController : IPromptHandler
             Refresh(diff);
         }
     }
+
+    /// <summary>The parent the diff is read against: the first one, or the one a merge was switched to.</summary>
+    private static ObjectId? ParentToCompare(CommitDetails details) =>
+        details.Parents.Count > details.ParentIndex ? details.Parents[details.ParentIndex] : null;
 
     private static bool IsOptionAction(DiffSession diff, ActionId action) =>
         DiffListActions.TryResolveOptions(diff.Store.Options, action, out _);

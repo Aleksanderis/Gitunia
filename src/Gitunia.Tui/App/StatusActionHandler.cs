@@ -6,8 +6,9 @@ using Gitunia.Tui.App.Tabs;
 namespace Gitunia.Tui.App;
 
 /// <summary>
-/// The actions that deal with the status message and the failed detail load: dismiss, Esc dismiss and retry. Kept out
-/// of the <see cref="ActionRouter"/> so they run without a terminal.
+/// The actions that deal with the status message, the failed detail load and the merge parent switch: dismiss, Esc
+/// dismiss, retry and the parent of a merge commit. Kept out of the <see cref="ActionRouter"/> so they run without a
+/// terminal.
 /// </summary>
 /// <param name="statuses">The channel whose latest message is dismissed.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
@@ -32,6 +33,16 @@ public sealed class StatusActionHandler(StatusChannel statuses, Func<TabSession?
             var retried = session?.Details.Retry() == true;
             retried |= session?.Tree?.Store.Retry() == true;
             Message = retried ? "retrying..." : "nothing to retry";
+            return true;
+        }
+
+        if (action == ActionIds.DiffMergeParent)
+        {
+            var details = activeSession()?.Details;
+            var parents = details?.Current.Details?.Parents.Count ?? 0;
+            Message = details?.CycleParent() is { } index
+                ? $"Switching to parent {index + 1} of {parents}..."
+                : "Not a merge commit (or still loading)";
             return true;
         }
 

@@ -70,6 +70,24 @@ public class CommitDetailsReaderTests
     }
 
     [Fact]
+    public async Task GivenMergeCommit_WhenReadingFilesAgainstTheSecondParent_ThenTheyDifferFromTheFirstParentList()
+    {
+        using var testRepository = TestRepositories.WithMergedFeatureBranch();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        var details = await ReadAsync(testRepository, "HEAD");
+
+        var secondParent = details.Parents[1];
+        var files = await CommitDetails.ReadFilesAsync(location, details.Id, secondParent, cancellationToken: Token);
+
+        var expected = testRepository
+            .Git("diff-tree", "-r", "--name-only", "--no-commit-id", secondParent.ToString(), "HEAD")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(expected.Order(), files.Select(file => file.Path).Order());
+        Assert.NotEqual(details.Files.Select(file => file.Path).Order(), files.Select(file => file.Path).Order());
+        Assert.Equal(0, details.ParentIndex);
+    }
+
+    [Fact]
     public async Task GivenCommitWithEmptyChange_WhenReading_ThenNoFiles()
     {
         using var testRepository = TestRepository.Create().Commit("root", new TestFile("a.txt", "a\n")).Commit("empty");

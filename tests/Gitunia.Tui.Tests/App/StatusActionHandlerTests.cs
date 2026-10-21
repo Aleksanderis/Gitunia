@@ -150,6 +150,40 @@ public class StatusActionHandlerTests : IDisposable
     }
 
     [Fact]
+    public void GivenNoSession_WhenSwitchingTheMergeParent_ThenItSaysThereIsNoMerge()
+    {
+        var handler = new StatusActionHandler(new StatusChannel(), () => null);
+
+        Assert.True(handler.TryHandle(ActionIds.DiffMergeParent));
+
+        Assert.Equal("Not a merge commit (or still loading)", handler.Message);
+    }
+
+    [Fact]
+    public async Task GivenALoadedMergeCommit_WhenSwitchingTheMergeParent_ThenTheStatusNamesTheParent()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var pump = new UiPump(Token);
+        _session = await CreateSessionAsync(pump, testRepository);
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "HEAD").Trim(), out var merge));
+        _session.Details.Select(merge);
+        await pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Loaded);
+        var handler = new StatusActionHandler(new StatusChannel(), () => _session);
+
+        handler.TryHandle(ActionIds.DiffMergeParent);
+        await pump.RunUntilAsync(() => _session.Details.Current.Details!.ParentIndex == 1);
+
+        Assert.Equal("Switching to parent 2 of 2...", handler.Message);
+        Assert.Equal(["main.txt"], _session.Details.Current.Details!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
     public async Task GivenAFailedFileTree_WhenRetrying_ThenTheTreeLoadStartsAgain()
     {
         var pump = new UiPump(Token);

@@ -427,3 +427,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-21
 
 **UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.
+
+**UI:** Merge parent switch (#497): `<space>vp` cycles a merge commit's parent for the Changes list and the diff; per selected commit, first parent stays the default, `--cc` still not offered, difftool stays first-parent. Details: `ux.md` Changes tab.

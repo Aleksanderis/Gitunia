@@ -218,6 +218,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "<space>vw", ActionIds.DiffToggleWrap);
         Add(bindings, NormalOnly, DiffView, "<space>vl", ActionIds.DiffLoadAnyway);
+        Add(bindings, NormalOnly, DiffView, "<space>vp", ActionIds.DiffMergeParent);
         Add(bindings, NormalOnly, DiffView, "+", ActionIds.DiffMoreContext);
         Add(bindings, NormalOnly, DiffView, "-", ActionIds.DiffLessContext);
         Add(bindings, NormalOnly, DiffView, "<space>vf", ActionIds.DiffToggleWholeFile);
@@ -435,6 +436,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "gd", ActionIds.DetailTabDetails);
         Add(bindings, NormalOnly, view, "gc", ActionIds.DetailTabChanges);
         Add(bindings, NormalOnly, view, "gf", ActionIds.DetailTabFiles);
+        Add(bindings, NormalOnly, view, "<space>vp", ActionIds.DiffMergeParent);
     }
 
     private static void AddPicker(List<KeyBinding> bindings)

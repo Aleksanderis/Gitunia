@@ -251,9 +251,19 @@ public static class DetailContentBuilder
         }
     }
 
-    /// <summary>A merge commit lists its changes against the first parent, like the diff pane; say so.</summary>
-    private static string MergeNote(CommitDetails details) =>
-        details.Parents.Count > 1 ? $" (merge: against first parent {ShortHash(details.Parents[0])})" : string.Empty;
+    /// <summary>A merge commit lists its changes against one parent, like the diff pane; name it.</summary>
+    private static string MergeNote(CommitDetails details)
+    {
+        if (details.Parents.Count <= 1)
+        {
+            return string.Empty;
+        }
+
+        var number = (details.ParentIndex + 1).ToString(CultureInfo.InvariantCulture);
+        var which = details.ParentIndex == 0 ? "first parent" : $"parent {number}";
+
+        return $" (merge: against {which} {ShortHash(details.Parents[details.ParentIndex])})";
+    }
 
     private static string FilesHeading(int count) => count switch
     {

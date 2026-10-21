@@ -12,6 +12,7 @@ public sealed class FakeCommitDetailsReader : ICommitDetailsReader
     private static readonly DateTimeOffset CommitTime = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private readonly Dictionary<ObjectId, CommitDetails> _commits = [];
+    private readonly Dictionary<(ObjectId Commit, ObjectId Parent), IReadOnlyList<CommitFileChange>> _files = [];
 
     /// <summary>A location that is never touched on disk; the fake ignores it.</summary>
     public static RepositoryLocation Location { get; } = new(
@@ -23,6 +24,9 @@ public sealed class FakeCommitDetailsReader : ICommitDetailsReader
 
     /// <summary>The ids made by <see cref="Chain"/>, newest first (index 0 is the tip, index n is its n-th ancestor).</summary>
     public IReadOnlyList<ObjectId> Commits { get; private set; } = [];
+
+    /// <summary>The number of <see cref="ReadFilesAsync"/> calls so far.</summary>
+    public int ReadFilesCount { get; private set; }
 
     /// <summary>The number of reads so far.</summary>
     public int ReadCount { get; private set; }
@@ -51,6 +55,29 @@ public sealed class FakeCommitDetailsReader : ICommitDetailsReader
         return id;
     }
 
+    /// <summary>Adds a merge commit of these parents (first parent first); returns its new id.</summary>
+    public ObjectId AddMerge(string subject, params ObjectId[] parents)
+    {
+        var id = FakeObjectIds.Of(_commits.Count + 1);
+        _commits[id] = new CommitDetails(
+            id,
+            parents,
+            "Author",
+            "author@example.com",
+            CommitTime,
+            "Author",
+            "author@example.com",
+            CommitTime,
+            subject,
+            []);
+        return id;
+    }
+
+    /// <summary>Sets the files <see cref="ReadFilesAsync"/> returns for this commit against this parent.</summary>
+    public void SetFiles(ObjectId commit, ObjectId parent, params string[] paths) =>
+        _files[(commit, parent)] =
+            [.. paths.Select(path => new CommitFileChange(path, null, FileChangeKind.Modified, null))];
+
     /// <summary>An id that no added commit has.</summary>
     public static ObjectId MissingId() => FakeObjectIds.Of(int.MaxValue);
 
@@ -61,5 +88,17 @@ public sealed class FakeCommitDetailsReader : ICommitDetailsReader
         return _commits.TryGetValue(id, out var details)
             ? Task.FromResult<CommitDetails?>(details)
             : throw new GitException($"unknown commit {id}");
+    }
+
+    public Task<IReadOnlyList<CommitFileChange>> ReadFilesAsync(
+        RepositoryLocation location,
+        ObjectId id,
+        ObjectId? parent,
+        ICollection<string>? warnings = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ReadFilesCount++;
+        return Task.FromResult(parent is { } known && _files.TryGetValue((id, known), out var files) ? files : []);
     }
 }

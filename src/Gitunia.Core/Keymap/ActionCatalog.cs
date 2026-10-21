@@ -160,6 +160,7 @@ public static class ActionCatalog
         ["diff.copy-file"] = "Copy the displayed rows of the current file",
         ["diff.copy-line"] = "Copy the current diff line",
         ["diff.load-anyway"] = "Load the whole diff (lift the size limits)",
+        ["diff.merge-parent"] = "Switch the merge commit's parent",
         ["diff.less-context"] = "Show fewer lines around the changes in the diff",
         ["diff.more-context"] = "Show more lines around the changes in the diff",
         ["diff.next-file"] = "Next file",

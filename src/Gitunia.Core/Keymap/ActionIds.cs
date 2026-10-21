@@ -39,6 +39,7 @@ public static class ActionIds
 
     public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
 
+    public static ActionId DiffMergeParent { get; } = new("diff.merge-parent");
     public static ActionId DiffLessContext { get; } = new("diff.less-context");
 
     public static ActionId DiffMoreContext { get; } = new("diff.more-context");

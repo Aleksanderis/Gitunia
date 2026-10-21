@@ -44,6 +44,7 @@ public static class PaneHints
         new("l", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("h", "back", [ActionIds.DetailCollapse]),
+        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
         new("<space>r", "retry", [ActionIds.DetailRetry]),
     ];
 
@@ -62,6 +63,7 @@ public static class PaneHints
         new("<space>vi", "ignore space", [ActionIds.DiffToggleIgnoreWhitespace]),
         new("<space>vs", "side by side", [ActionIds.DiffToggleSideBySide]),
         new("<space>vl", "load all", [ActionIds.DiffLoadAnyway]),
+        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 

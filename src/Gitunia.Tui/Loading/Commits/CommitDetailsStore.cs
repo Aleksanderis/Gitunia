@@ -24,6 +24,8 @@ public sealed class CommitDetailsStore : IDisposable
     private readonly TimeProvider _timeProvider;
     private readonly CommitDetailsCache _cache;
     private CancellationTokenSource? _pending;
+    private CancellationTokenSource? _parentPending;
+    private int _requestedParent;
     private long? _lastSelectTimestamp;
 
     /// <param name="reader">Reads the details of a commit.</param>
@@ -73,6 +75,8 @@ public sealed class CommitDetailsStore : IDisposable
         var isFresh = _lastSelectTimestamp is not { } last || _timeProvider.GetElapsedTime(last, now) >= _debounce;
         _lastSelectTimestamp = now;
         CancelPending();
+        CancelParentPending();
+        _requestedParent = 0;
         var wanted = WantedForPrefetch(commit, prefetch);
         if (_cache.TryGet(commit, out var known))
         {
@@ -104,7 +108,81 @@ public sealed class CommitDetailsStore : IDisposable
         return true;
     }
 
-    public void Dispose() => CancelPending();
+    /// <summary>
+    /// Switches the loaded merge commit to its next parent (wrapping to the first): the files are read against that
+    /// parent and replace <see cref="CommitDetailsState.Details"/>' file list when they arrive, with
+    /// <see cref="CommitDetails.ParentIndex"/> set. The choice is per selected commit: selecting another starts at
+    /// the first parent again, and the cache keeps the first-parent files.
+    /// </summary>
+    /// <returns>The parent index asked for, or null when nothing started (no loaded merge commit).</returns>
+    public int? CycleParent()
+    {
+        if (Current is not
+            { Status: CommitDetailsStatus.Loaded, Commit: { } commit, Details: { Parents.Count: > 1 } details })
+        {
+            return null;
+        }
+
+        _requestedParent = (_requestedParent + 1) % details.Parents.Count;
+        CancelParentPending();
+        _parentPending = new CancellationTokenSource();
+        var token = _parentPending.Token;
+        var index = _requestedParent;
+        _ = Task.Run(() => LoadParentAsync(commit, details, index, token), CancellationToken.None);
+        return index;
+    }
+
+    public void Dispose()
+    {
+        CancelPending();
+        CancelParentPending();
+    }
+
+    private void CancelParentPending()
+    {
+        _parentPending?.Cancel();
+        _parentPending?.Dispose();
+        _parentPending = null;
+    }
+
+    private async Task LoadParentAsync(ObjectId commit, CommitDetails details, int index, CancellationToken token)
+    {
+        try
+        {
+            var parent = details.Parents[index];
+            var files = await _reader.ReadFilesAsync(_location, commit, parent, null, token).ConfigureAwait(false);
+            var switched = details with { Files = files, ParentIndex = index };
+            _postToUi(() => CompleteParent(commit, switched, token));
+        }
+        catch (OperationCanceledException)
+        {
+            // Another parent or commit was asked for.
+        }
+        catch (Exception)
+        {
+            // The files of the parent shown stay on screen; the next press tries again.
+            _postToUi(() => ResetRequestedParent(commit, details.ParentIndex, token));
+        }
+    }
+
+    private void ResetRequestedParent(ObjectId commit, int index, CancellationToken token)
+    {
+        if (!token.IsCancellationRequested && Current.Commit == commit)
+        {
+            _requestedParent = index;
+        }
+    }
+
+    private void CompleteParent(ObjectId commit, CommitDetails details, CancellationToken token)
+    {
+        if (token.IsCancellationRequested || Current.Commit != commit)
+        {
+            return;
+        }
+
+        Current = new CommitDetailsState(commit, CommitDetailsStatus.Loaded, details, string.Empty);
+        Changed?.Invoke();
+    }
 
     private void CancelPending()
     {
