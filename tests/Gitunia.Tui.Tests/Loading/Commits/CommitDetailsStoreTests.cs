@@ -1,5 +1,8 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git;
+using Gitunia.Git.Commits;
+using Gitunia.Git.Commits.Models;
+using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Tests.App;
@@ -250,10 +253,152 @@ public class CommitDetailsStoreTests
         Assert.Equal(["main.txt"], store.Current.Details!.Files.Select(file => file.Path));
     }
 
+    [Fact]
+    public async Task GivenAParentReadInFlight_WhenCyclingAgain_ThenTheFirstReadIsCancelledAndItsLateResultDropped()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var first = reader.Add("first");
+        var second = reader.Add("second");
+        var third = reader.Add("third");
+        var merge = reader.AddMerge("merge", first, second, third);
+        reader.SetFiles(merge, second, "from-second.txt");
+        reader.SetFiles(merge, third, "from-third.txt");
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelledSeen = new StrongBox<bool>();
+        var blocking = new BlockingFilesReader(reader, async (parent, token) =>
+        {
+            if (parent != second)
+            {
+                return await reader.ReadFilesAsync(FakeCommitDetailsReader.Location, merge, parent, null, token);
+            }
+
+            started.TrySetResult();
+            await release.Task;
+            cancelledSeen.Value = token.IsCancellationRequested;
+            return await reader.ReadFilesAsync(
+                FakeCommitDetailsReader.Location, merge, parent, null, CancellationToken.None);
+        });
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            blocking,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        Assert.Equal(1, store.CycleParent());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+
+        Assert.Equal(2, store.CycleParent());
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 2);
+        release.SetResult();
+        await pump.RunPostsAsync(1);
+
+        Assert.True(cancelledSeen.Value);
+        Assert.Equal(2, store.Current.Details!.ParentIndex);
+        Assert.Equal(["from-third.txt"], store.Current.Details.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public async Task GivenAParentReadInFlight_WhenSelectingAnotherCommit_ThenTheStaleResultIsDropped()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var main = reader.Add("main");
+        var side = reader.Add("side");
+        var merge = reader.AddMerge("merge", main, side);
+        reader.SetFiles(merge, side, "from-side.txt");
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var blocking = new BlockingFilesReader(reader, async (parent, _) =>
+        {
+            started.TrySetResult();
+            await release.Task;
+            return await reader.ReadFilesAsync(
+                FakeCommitDetailsReader.Location, merge, parent, null, CancellationToken.None);
+        });
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            blocking,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        store.CycleParent();
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
+        store.Select(main);
+        await WaitForSettledAsync(pump, store, main);
+
+        release.SetResult();
+        await pump.RunPostsAsync(1);
+
+        Assert.Equal(main, store.Current.Commit);
+        Assert.Equal("main", store.Current.Details!.Subject);
+        Assert.Equal(0, store.Current.Details.ParentIndex);
+    }
+
+    [Fact]
+    public async Task GivenAFailedParentRead_WhenCyclingAgain_ThenTheOldFilesStayAndTheSameParentIsRetried()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var main = reader.Add("main");
+        var side = reader.Add("side");
+        var merge = reader.AddMerge("merge", main, side);
+        reader.SetFiles(merge, main, "from-main.txt");
+        reader.SetFiles(merge, side, "from-side.txt");
+        var failNext = new StrongBox<bool>(true);
+        var blocking = new BlockingFilesReader(reader, (parent, token) =>
+            failNext.Value
+                ? throw new InvalidOperationException("boom")
+                : reader.ReadFilesAsync(FakeCommitDetailsReader.Location, merge, parent, null, token));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            blocking,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        var before = store.Current;
+        Assert.Equal(1, store.CycleParent());
+        await pump.RunPostsAsync(1);
+
+        Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
+        Assert.Equal(before.Details, store.Current.Details);
+
+        failNext.Value = false;
+        Assert.Equal(1, store.CycleParent());
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 1);
+
+        Assert.Equal(["from-side.txt"], store.Current.Details!.Files.Select(file => file.Path));
+    }
+
     private static async Task<CommitDetailsState> WaitForSettledAsync(UiPump pump, CommitDetailsStore store, ObjectId commit)
     {
         await pump.RunUntilAsync(() => store.Current.Commit == commit && store.Current.Status is CommitDetailsStatus.Loaded or CommitDetailsStatus.Failed);
         return store.Current;
+    }
+
+    /// <summary>Delegates reads to a fake, but lets a test decide how each file read behaves (block, fail).</summary>
+    private sealed class BlockingFilesReader(
+        FakeCommitDetailsReader inner,
+        Func<ObjectId, CancellationToken, Task<IReadOnlyList<CommitFileChange>>> files) : ICommitDetailsReader
+    {
+        public Task<CommitDetails?> ReadAsync(
+            RepositoryLocation location,
+            ObjectId id,
+            ICollection<string>? warnings = null,
+            CancellationToken cancellationToken = default) =>
+            inner.ReadAsync(location, id, warnings, cancellationToken);
+
+        public Task<IReadOnlyList<CommitFileChange>> ReadFilesAsync(
+            RepositoryLocation location,
+            ObjectId id,
+            ObjectId? parent,
+            ICollection<string>? warnings = null,
+            CancellationToken cancellationToken = default) =>
+            files(parent!.Value, cancellationToken);
     }
 
     private sealed class ChangeRecorder
