@@ -418,4 +418,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
 
-**UI:** Chips show key plus label (owner, #536): the tab-bar remote chips and the diff title buttons share one pattern, `<space>F fetch`, key text generated from the keymap (never hand-written). A narrow row drops the key text first, then buttons by the existing order; the cancel chip is `<space>C cancel` (was `Esc cancel`). Supersedes the label-only chips of #456.
+**UI:** Chips show key plus label (owner, #536): tab-bar remote chips and diff title buttons share one pattern, key text from the keymap; narrow rows drop it first. Cancel chip is `<space>C cancel`. List-title and change-group chips follow in #578. Supersedes #456's label-only chips.

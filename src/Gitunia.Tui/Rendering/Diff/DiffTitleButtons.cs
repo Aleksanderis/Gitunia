@@ -8,7 +8,8 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// The buttons at the right end of the diff pane's title row: previous and next hunk, fewer and more context, whole file,
 /// ignore whitespace, side by side, word wrap and zoom, drawn as
 /// padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see <see cref="ButtonLabel"/>). They are the
-/// mouse path of <c>[c</c> <c>]c</c> <c>-</c> <c>+</c> <c>F</c> <c>W</c> <c>S</c> <c>w</c> and <c>&lt;space&gt;z</c>. Narrow panes show only the
+/// mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before each label (#536).
+/// Narrow panes show only the
 /// most useful ones (zoom, wrap and the hunk buttons last to go) (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box:
 /// a column of line follows each button.
 /// </summary>
@@ -64,8 +65,7 @@ public static class DiffTitleButtons
     /// The buttons of the working-tree diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
     /// and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side), so a narrow row keeps what the pane is for.
     /// Each button shows its key before the label (<c>[c ‹ hunk</c>) when the buttons that fit also fit with their
-    /// keys;
-    /// otherwise the key text goes first, then the buttons in the drop order.
+    /// keys; otherwise the key text goes first, then the buttons in the drop order.
     /// </summary>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="staging">Which side of the working tree the diff shows.</param>
