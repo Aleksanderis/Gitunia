@@ -1,4 +1,6 @@
 using Gitunia.Core.Jump;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;
@@ -16,7 +18,7 @@ public sealed class DetailJumpRows(DetailContent content, int width, string elli
 
     public int EllipsisWidth { get; } = TextWidth.Of(ellipsis);
 
-    public string TextOf(int row) => TextOf(content, row);
+    public string TextOf(int row) => TextOf(content, row, width, ellipsis);
 
     public int ColumnsOf(int row) => Math.Max(0, width - MarkColumns(content, row));
 
@@ -26,6 +28,23 @@ public sealed class DetailJumpRows(DetailContent content, int width, string elli
         var text = string.Concat(content.Rows[row].Segments.Select(segment => segment.Text));
 
         return text[MarkColumns(content, row)..];
+    }
+
+    /// <summary>
+    /// The text of a row as drawn in <paramref name="width"/> columns: a file row in the name-first style is laid out
+    /// for that width,
+    /// so the label lands on what is on screen.
+    /// </summary>
+    public static string TextOf(DetailContent content, int row, int width, string ellipsis)
+    {
+        if (content.Rows[row].File is { } file && content.PathStyle == FilePathStyle.NameFirst)
+        {
+            var columns = Math.Max(0, width - MarkColumns(content, row));
+
+            return PathRowLayout.Text(content.PathStyle, file.Path, file.OldPath, columns, ellipsis);
+        }
+
+        return TextOf(content, row);
     }
 
     /// <summary>The columns before <see cref="TextOf(DetailContent, int)"/> starts: the change mark and its space on a file row.</summary>

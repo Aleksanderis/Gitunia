@@ -58,4 +58,34 @@ public class TextWidthTests
     {
         Assert.Equal(string.Empty, TextWidth.Fit("hello", 0, "…"));
     }
+
+    [Fact]
+    public void GivenTextThatFits_WhenFittingTheStart_ThenItIsUnchanged()
+    {
+        Assert.Equal("src/a", TextWidth.FitStart("src/a", 5, "…"));
+    }
+
+    [Fact]
+    public void GivenTextThatDoesNotFit_WhenFittingTheStart_ThenTheEndStaysUnderALeadingEllipsis()
+    {
+        Assert.Equal("…o/bar", TextWidth.FitStart("foo/bar", 6, "…"));
+    }
+
+    [Fact]
+    public void GivenAWideCharacterAtTheCut_WhenFittingTheStart_ThenItIsNotSplit()
+    {
+        Assert.Equal("…正", TextWidth.FitStart("修正修正", 3, "…"));
+    }
+
+    [Fact]
+    public void GivenACombiningMarkAtTheCut_WhenFittingTheStart_ThenItDoesNotLeadTheResult()
+    {
+        Assert.Equal("…b", TextWidth.FitStart("ae\u0301b", 2, "…"));
+    }
+
+    [Fact]
+    public void GivenNoColumns_WhenFittingTheStart_ThenTheResultIsEmpty()
+    {
+        Assert.Equal(string.Empty, TextWidth.FitStart("abc", 0, "…"));
+    }
 }

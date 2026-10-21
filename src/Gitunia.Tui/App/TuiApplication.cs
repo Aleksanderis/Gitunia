@@ -418,7 +418,7 @@ public sealed class TuiApplication(
         _view.WorkingUnstaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.WorkingStaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
-        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+        SubscribeInput();
 
         if (restored.Detail is { Length: > 0 } restoreNotice)
         {
@@ -1172,7 +1172,7 @@ public sealed class TuiApplication(
         finally
         {
             CreateApplication();
-            _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+            SubscribeInput();
             _uiInvoker.Resume(_application.Invoke);
             if (resumed is not null)
             {
@@ -1550,7 +1550,7 @@ public sealed class TuiApplication(
     {
         var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
         var isFocused = _view.Detail.HasFocus;
-        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs);
+        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs, _chipKeys);
     }
 
     private void OnGraphChanged()
@@ -1598,9 +1598,32 @@ public sealed class TuiApplication(
     private bool HandleKey(Key key)
     {
         var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
-        var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
-        return _keys.Handle(key, view) || isPickerShowing;
+        return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }
+
+    private void SubscribeInput()
+    {
+        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+        _application.Paste += (_, paste) => OnPaste(paste);
+    }
+
+    /// <summary>
+    /// A bracketed paste types its text, key by key, into whatever text input has Insert or Command mode; elsewhere it
+    /// is ignored.
+    /// </summary>
+    private void OnPaste(PasteEventArgs paste)
+    {
+        if (string.IsNullOrEmpty(paste.Text))
+        {
+            return;
+        }
+
+        var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage;
+        paste.Handled = _keys.Paste(paste.Text, multiLine, FocusedViewName);
+    }
+
+    private string FocusedViewName() =>
+        _picker.IsOpen && !IsAnyOverlayOpen() ? DefaultKeymap.PickerView : OverlayViewName();
 
     private void OnTextKey(KeyEvent keyEvent)
     {
@@ -1691,7 +1714,10 @@ public sealed class TuiApplication(
     // The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows follow.
     private void OnBottomTabMaybeChanged()
     {
-        if (ActiveSession() is { } session && _host.Workspace.ActiveTab is { } tab && session.DetailSource.Content.Tab != tab.View.BottomTab)
+        if (ActiveSession() is { } session
+            && _host.Workspace.ActiveTab is { } tab
+            && (session.DetailSource.Content.Tab != tab.View.BottomTab
+                || session.DetailSource.Content.PathStyle != tab.View.PathStyle))
         {
             RefreshDetail();
         }
@@ -1735,7 +1761,8 @@ public sealed class TuiApplication(
             entry,
             session.Details.Current,
             tab,
-            FileTreeViewOf(session, entry, tab));
+            FileTreeViewOf(session, entry, tab),
+            _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst);
         session.DetailSource.Update(content);
 
         var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;

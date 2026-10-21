@@ -1,5 +1,9 @@
 using System.Globalization;
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Mouse;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -19,7 +23,12 @@ public static class DetailPaneRenderer
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
             lines.Add(OnPanel(PanePadding.Wrap(
                 row >= 0 && row < pane.Content.Rows.Count
-                    ? RenderRow(pane.Content.Rows[row], pane.IsFocused && row == pane.SelectedRow, textWidth, glyphs)
+                    ? RenderRow(
+                        pane.Content.Rows[row],
+                        pane.IsFocused && row == pane.SelectedRow,
+                        textWidth,
+                        glyphs,
+                        pane.Content.PathStyle)
                     : RenderEmpty(textWidth, glyphs),
                 paddingColumns)));
         }
@@ -31,9 +40,70 @@ public static class DetailPaneRenderer
     /// The title row, which is the top edge of the pane's box: a stretch of line, the tabs, the commit and its file count, and line
     /// again to the end (the line is <see cref="SegmentRole.Rule"/>, drawn by the frame in the colour of the focus).
     /// </summary>
-    public static StyledLine RenderTitle(DetailContent content, bool isFocused, int width, GraphGlyphSet glyphs)
+    /// <param name="content">The rows and the selected tab.</param>
+    /// <param name="isFocused">Whether the pane has focus.</param>
+    /// <param name="width">Columns of the title row.</param>
+    /// <param name="glyphs">The glyph set.</param>
+    /// <param name="keys">Where the key text of the path-style chip comes from; null uses the default keymap.</param>
+    public static StyledLine RenderTitle(
+        DetailContent content,
+        bool isFocused,
+        int width,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
+        AppendTitleText(builder, content, isFocused, width, glyphs);
+        if (PathStyleButton(content, width, glyphs, keys) is not { } chip)
+        {
+            return builder.BuildRule(glyphs.Horizontal);
+        }
+
+        var used = width - builder.Remaining;
+        builder.Append(new string(glyphs.Horizontal, chip.Start - used), SegmentRole.Rule);
+        builder.Append(PathStyleChip.Line(chip, glyphs));
+
+        return builder.BuildRule(glyphs.Horizontal);
+    }
+
+    /// <summary>
+    /// The path-style chip at the right end of the title row, or null when the Changes tab is not selected or the row
+    /// has no room.
+    /// </summary>
+    /// <param name="content">The rows and the selected tab.</param>
+    /// <param name="width">Columns of the title row.</param>
+    /// <param name="glyphs">The glyph set.</param>
+    /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    public static TitleButton? PathStyleButton(
+        DetailContent content,
+        int width,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
+    {
+        if (content.Tab != BottomTab.Changes)
+        {
+            return null;
+        }
+
+        var probe = new LineBuilder(width, glyphs.Ellipsis);
+        AppendTitleText(probe, content, false, width, glyphs);
+
+        // One column of line follows the chip, then the corner of the box.
+        return PathStyleChip.Layout(
+            DefaultMouseMap.DetailPathStyleButton,
+            DefaultKeymap.DetailView,
+            width - probe.Remaining,
+            width - 2,
+            keys);
+    }
+
+    private static void AppendTitleText(
+        LineBuilder builder,
+        DetailContent content,
+        bool isFocused,
+        int width,
+        GraphGlyphSet glyphs)
+    {
         var strip = DetailTabStrip.Layout(width, content.Tab);
         var column = 0;
         foreach (var button in strip)
@@ -51,13 +121,37 @@ public static class DetailPaneRenderer
             builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
             builder.Append($" {FileCountText(content.FileCount)} ", SegmentRole.Faint);
         }
-
-        return builder.BuildRule(glyphs.Horizontal);
     }
 
-    public static StyledLine RenderRow(DetailRow row, bool isSelected, int width, GraphGlyphSet glyphs)
+    /// <summary>A row of the pane; a file row of the Changes tab is laid out in <paramref name="pathStyle"/> for the
+    /// width it gets.</summary>
+    /// <param name="row">The row.</param>
+    /// <param name="isSelected">Whether the cursor is on the row.</param>
+    /// <param name="width">Columns of the text area.</param>
+    /// <param name="glyphs">The glyph set.</param>
+    /// <param name="pathStyle">How a file row shows its path.</param>
+    public static StyledLine RenderRow(
+        DetailRow row,
+        bool isSelected,
+        int width,
+        GraphGlyphSet glyphs,
+        FilePathStyle pathStyle = FilePathStyle.FullPath)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
+        if (row.File is { } file && pathStyle == FilePathStyle.NameFirst)
+        {
+            var mark = row.Segments[0];
+            builder.Append(mark.Text + " ", mark.Role, mark.ColorIndex);
+            var columns = builder.Remaining;
+            var segments = PathRowLayout.Segments(pathStyle, file.Path, file.OldPath, columns, glyphs.Ellipsis);
+            foreach (var segment in segments)
+            {
+                builder.Append(segment.Text, segment.Role);
+            }
+
+            return builder.Build(SegmentRole.Plain, isSelected);
+        }
+
         foreach (var segment in row.Segments)
         {
             builder.Append(segment.Text, segment.Role, segment.ColorIndex);
@@ -82,7 +176,8 @@ public static class DetailPaneRenderer
             builder.Append(mark.Text + " ", mark.Role, mark.ColorIndex);
         }
 
-        JumpOverlay.Append(builder, DetailJumpRows.TextOf(content, index), SegmentRole.Plain, jump);
+        var text = DetailJumpRows.TextOf(content, index, width, glyphs.Ellipsis);
+        JumpOverlay.Append(builder, text, SegmentRole.Plain, jump);
 
         return builder.Build(SegmentRole.Plain, isSelected);
     }

@@ -1,7 +1,9 @@
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -31,27 +33,55 @@ public static class WorkingTreeRowRenderer
     /// <param name="isSelected">The row is the cursor of its list.</param>
     /// <param name="glyphs">The character set.</param>
     /// <param name="jump">The quick-jump label of the row, null for none.</param>
-    public static StyledLine Render(StatusEntry entry, WorkingTreeSection section, int width, bool isSelected, GraphGlyphSet glyphs, JumpLabel? jump = null)
+    /// <param name="pathStyle">How the path is shown: the full path, or the name first with the directory dimmed
+    /// after it.</param>
+    public static StyledLine Render(
+        StatusEntry entry,
+        WorkingTreeSection section,
+        int width,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump = null,
+        FilePathStyle pathStyle = FilePathStyle.FullPath)
     {
         var mark = MarkOf(entry, section);
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         builder.Append(mark, RoleOf(mark)).Append(" ", SegmentRole.Plain);
+        var conflict = entry.Kind == StatusEntryKind.Unmerged ? $"  {ConflictText(entry.Conflict)}" : string.Empty;
         if (jump is { } target)
         {
-            JumpOverlay.Append(builder, PathText(entry, section), SegmentRole.Plain, target);
+            var shown = PathLayoutText(entry, section, pathStyle, builder.Remaining, glyphs.Ellipsis);
+            JumpOverlay.Append(builder, shown, SegmentRole.Plain, target);
         }
-        else
+        else if (pathStyle == FilePathStyle.FullPath)
         {
             builder.Append(PathText(entry, section), SegmentRole.Plain);
         }
-
-        if (entry.Kind == StatusEntryKind.Unmerged)
+        else
         {
-            builder.Append($"  {ConflictText(entry.Conflict)}", SegmentRole.Faint);
+            // The conflict text keeps its columns: the directory is what gives way.
+            var columns = Math.Max(0, builder.Remaining - TextWidth.Of(conflict));
+            foreach (var segment in PathSegments(entry, section, pathStyle, columns, glyphs.Ellipsis))
+            {
+                builder.Append(segment.Text, segment.Role);
+            }
         }
+
+        builder.Append(conflict, SegmentRole.Faint);
 
         return builder.Build(isSelected: isSelected);
     }
+
+    /// <summary>The text of the path as <paramref name="style"/> lays it out in <paramref name="columns"/>, for the
+    /// quick jump.</summary>
+    public static string PathLayoutText(
+        StatusEntry entry,
+        WorkingTreeSection section,
+        FilePathStyle style,
+        int columns,
+        string ellipsis) => style == FilePathStyle.FullPath
+            ? PathText(entry, section)
+            : string.Concat(PathSegments(entry, section, style, columns, ellipsis).Select(segment => segment.Text));
 
     /// <summary>The status letter of an entry in a list: <c>!</c> for a conflict, <c>?</c> for an untracked path, else the change's letter.</summary>
     public static string MarkOf(StatusEntry entry, WorkingTreeSection section)
@@ -78,6 +108,18 @@ public static class WorkingTreeRowRenderer
         section == WorkingTreeSection.Staged && entry.OriginalPath is { } original
             ? $"{Printable(original)}{RenameArrow}{Printable(entry.Path)}"
             : Printable(entry.Path);
+
+    private static IReadOnlyList<StyledSegment> PathSegments(
+        StatusEntry entry,
+        WorkingTreeSection section,
+        FilePathStyle style,
+        int columns,
+        string ellipsis)
+    {
+        var original = section == WorkingTreeSection.Staged && entry.OriginalPath is { } old ? Printable(old) : null;
+
+        return PathRowLayout.Segments(style, Printable(entry.Path), original, columns, ellipsis);
+    }
 
     /// <summary>The text with every lone surrogate replaced by the replacement character, so a terminal never gets a broken string.</summary>
     public static string Printable(string text)

@@ -84,7 +84,7 @@ public sealed class FramePrinter
         var treeView = tab == BottomTab.Files && selected is not null
             ? await ReadTreeAsync(location, selected, glyphs, cancellationToken)
             : null;
-        var content = DetailContentBuilder.Build(selected, detailState, tab, treeView);
+        var content = DetailContentBuilder.Build(selected, detailState, tab, treeView, FilePathStyle.NameFirst);
         var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),

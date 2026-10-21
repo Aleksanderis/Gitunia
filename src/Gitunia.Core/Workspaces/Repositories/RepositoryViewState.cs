@@ -14,6 +14,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="DetailWidth">Columns of the detail pane beside an open diff the user set, null for automatic.</param>
 /// <param name="BottomTab">The tab of the bottom detail pane that is showing.</param>
 /// <param name="Mode">The view the tab shows, the history or the working tree. Not saved with the session.</param>
+/// <param name="PathStyle">How the file lists show a path (name first or the full path). Not saved with the
+/// session.</param>
 public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -23,7 +25,8 @@ public sealed record RepositoryViewState(
     int? BottomHeight = null,
     int? DetailWidth = null,
     BottomTab BottomTab = BottomTab.Changes,
-    TabViewMode Mode = TabViewMode.History)
+    TabViewMode Mode = TabViewMode.History,
+    FilePathStyle PathStyle = FilePathStyle.NameFirst)
 {
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
     public static RepositoryViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);

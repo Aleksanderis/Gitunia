@@ -1,5 +1,7 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
@@ -19,6 +21,28 @@ public static class WorkingListTitleButtons
 
     // One column of line stays between the button and the corner of the box.
     private const int EndGap = 1;
+
+    /// <summary>The path-style chip of a list, left of its stage all button, or null when the title row has no room
+    /// for it.</summary>
+    /// <param name="section">The list.</param>
+    /// <param name="title">The title text of the list.</param>
+    /// <param name="paneWidth">Columns of the list's content.</param>
+    /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    /// <returns>The chip, with its start column counted from the first content column.</returns>
+    public static TitleButton? PathStyleButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
+    {
+        var stage = Layout(section, title, paneWidth);
+
+        // One column of line stays between the two chips, or between the chip and the corner of the box.
+        var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
+
+        return PathStyleChip.Layout(
+            DefaultMouseMap.ListPathStyleButton,
+            section == WorkingTreeSection.Staged ? DefaultKeymap.WorkingStagedView : DefaultKeymap.WorkingUnstagedView,
+            TextWidth.Of(title) + TitleOverhead,
+            rightEdge,
+            keys);
+    }
 
     /// <summary>The chip of a button, in the ASCII tier with brackets in place of its padding.</summary>
     public static StyledLine Line(TitleButton button, bool isAscii) =>
