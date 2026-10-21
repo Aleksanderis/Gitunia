@@ -38,6 +38,9 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// </summary>
     public Func<WorkingTreeButtons> GroupButtons { get; set; } = () => WorkingTreeButtons.None;
 
+    /// <summary>Where the staging buttons' key text comes from; null uses the default keymap.</summary>
+    public Func<ChipKeys?> GroupKeys { get; set; } = () => null;
+
     /// <summary>The diff search text to highlight, null for none.</summary>
     public string? Highlight { get; set; }
 
@@ -265,7 +268,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             return null;
         }
 
-        return ChangeGroupButtons.Layout(width, columns, GroupButtons());
+        return ChangeGroupButtons.Layout(width, columns, GroupButtons(), GroupKeys());
     }
 
     private DiffWrapMap? Map()

@@ -131,7 +131,7 @@ public class WorkingTreePathStyleTests
     [Fact]
     public void GivenAListWithRoomForOnlyOneChip_WhenLayingOut_ThenTheChipDropsItsKeyThenGoes()
     {
-        var plain = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 40, null);
+        var plain = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 34, null);
 
         Assert.Equal(" path ", plain!.Label);
         Assert.Null(WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 30, null));

@@ -26,8 +26,8 @@ public static class PathStyleChip
     public static TitleButton? Layout(string mouseView, string keyView, int titleColumns, int rightEdge, ChipKeys? keys)
     {
         var key = (keys ?? ChipKeys.Default).For(mouseView, keyView);
-        var keyed = key is null ? null : new TitleButton(mouseView, $" {key} {Description} ", 0, key.Length);
-        var plain = new TitleButton(mouseView, $" {Description} ", 0);
+        var keyed = key is null ? null : KeyedChip.Keyed(mouseView, Description, key);
+        var plain = KeyedChip.Plain(mouseView, Description);
         foreach (var candidate in (TitleButton?[])[keyed, plain])
         {
             if (candidate is not null && rightEdge - candidate.Width >= titleColumns + TitleGap)
@@ -41,11 +41,5 @@ public static class PathStyleChip
 
     /// <summary>The chip as drawn: its key in the key style, the rest like the tabs; in the ASCII tier with
     /// brackets.</summary>
-    public static StyledLine Line(TitleButton button, GraphGlyphSet glyphs) => new(ChipSegments.Split(
-        ButtonLabel.For(button.Label, glyphs.IsAscii),
-        button.KeyLength,
-        SegmentRole.RepositoryTab,
-        SegmentRole.RepositoryTab,
-        SegmentRole.RepositoryTabKey,
-        SegmentRole.RepositoryTab));
+    public static StyledLine Line(TitleButton button, GraphGlyphSet glyphs) => new(KeyedChip.Segments(button, glyphs));
 }

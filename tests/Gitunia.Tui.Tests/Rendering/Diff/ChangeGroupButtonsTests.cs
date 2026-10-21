@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -90,13 +91,60 @@ public class ChangeGroupButtonsTests
     [Fact]
     public void GivenAnAsciiTier_WhenOverlayingButtons_ThenTheChipsUseBrackets()
     {
-        var plain = new StyledLine([new StyledSegment(new string('x', 60), SegmentRole.Plain)]);
+        var plain = new StyledLine([new StyledSegment(new string('x', 45), SegmentRole.Plain)]);
         var line = PanePadding.Wrap(plain);
-        var buttons = ChangeGroupButtons.Layout(60, Padding, WorkingTreeButtons.Staged);
+        var buttons = ChangeGroupButtons.Layout(45, Padding, WorkingTreeButtons.Staged);
 
         var result = ChangeGroupButtons.Overlay(line, buttons, Padding, GraphGlyphSet.Ascii);
 
         Assert.Contains("[unstage]", result.Text);
-        Assert.Equal(62, TextWidth.Of(result.Text));
+        Assert.Equal(47, TextWidth.Of(result.Text));
+    }
+
+    [Fact]
+    public void GivenARowWideEnoughForKeys_WhenLayingOut_ThenEachButtonShowsItsKeyFromTheKeymap()
+    {
+        var buttons = ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.Unstaged);
+
+        Assert.Equal([" <space>a stage ", " <space>d discard "], buttons.Select(button => button.Label));
+        Assert.All(buttons, button => Assert.True(button.KeyLength > 0));
+        Assert.Equal(Padding + 80, buttons[^1].Start + buttons[^1].Width);
+    }
+
+    [Fact]
+    public void GivenAStagedRowWideEnoughForKeys_WhenLayingOut_ThenUnstageShowsItsKey()
+    {
+        var buttons = ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.Staged);
+
+        Assert.Equal(" <space>u unstage ", buttons.Single().Label);
+    }
+
+    [Theory]
+    [InlineData(66, 2, 2)]
+    [InlineData(65, 2, 0)]
+    [InlineData(50, 2, 0)]
+    [InlineData(46, 1, 0)]
+    public void GivenARowThatFitsTheButtonsOnlyPlain_WhenLayingOut_ThenTheKeysGoBeforeAnyButton(
+        int textWidth, int count, int keyed)
+    {
+        var buttons = ChangeGroupButtons.Layout(textWidth, Padding, WorkingTreeButtons.Unstaged);
+
+        Assert.Equal(count, buttons.Count);
+        Assert.Equal(keyed, buttons.Count(button => button.KeyLength > 0));
+    }
+
+    [Fact]
+    public void GivenARebinding_WhenLayingOut_ThenTheGroupButtonShowsTheNewKey()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.WorkingTreeStage
+                && binding.View == DefaultKeymap.WorkingUnstagedDiffView
+                    ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-s") }
+                    : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+
+        var buttons = ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.Unstaged, keys);
+
+        Assert.Equal(" Ctrl-s stage ", buttons[0].Label);
     }
 }
