@@ -278,9 +278,32 @@ public sealed class RemoteActions(
         redraw();
     }
 
-    private void OfferTerminal(TabId tabId, Running running)
+    /// <summary>
+    /// Offers the terminal retry for a git command that failed for lack of credentials (also used by the remote branch
+    /// delete and the tag pushes, which run outside this class). <paramref name="noun"/> names the operation
+    /// ("Tag push"); <paramref name="arguments"/> are exactly what failed (built by the same
+    /// <see cref="RemoteCommands"/> method as the writer, minus background-only options);
+    /// <paramref name="isCallerBusy"/> is re-checked on <c>y</c> so the terminal never races a newer operation of the
+    /// caller.
+    /// </summary>
+    public void OfferTerminalRetry(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isCallerBusy)
     {
-        var command = $"git {string.Join(' ', running.TerminalArguments)}";
+        if (host.Workspace.FindTab(tabId) is not null)
+        {
+            Offer(tabId, noun, arguments, isCallerBusy);
+        }
+    }
+
+    private void OfferTerminal(TabId tabId, Running running) =>
+        Offer(tabId, running.Words.Noun, running.TerminalArguments, () => false);
+
+    private void Offer(TabId tabId, string noun, IReadOnlyList<string> arguments, Func<bool> isCallerBusy)
+    {
+        var command = $"git {string.Join(' ', arguments)}";
         var repository = Path.GetFileName(host.Workspace.FindTab(tabId)!.Location.RootPath);
 
         // An unsolicited Confirm must not replace something the user is typing in or belong to a tab they left.
@@ -288,20 +311,24 @@ public sealed class RemoteActions(
         var prompt = new ConfirmPrompt(
             "Credentials needed",
             [
-                $"{running.Words.Noun} in {repository} needs a passphrase, credentials or a host key answer, "
+                $"{noun} in {repository} needs a passphrase, credentials or a host key answer, "
                 + "which the background run cannot give.",
                 "Run it again in the terminal? Gitunia hands the terminal to git and takes it back when git ends.",
             ],
             $"Runs: {command} (the same command as the one that failed).",
             "Retry in terminal");
-        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, running)))
+        if (!canAsk || !confirm(prompt, () => RetryInTerminal(tabId, noun, arguments, isCallerBusy)))
         {
             statuses.Warning(
-                $"{running.Words.Noun} in {repository} needs credentials: run `{command}` in a terminal");
+                $"{noun} in {repository} needs credentials: run `{command}` in a terminal");
         }
     }
 
-    private void RetryInTerminal(TabId tabId, Running running)
+    private void RetryInTerminal(
+        TabId tabId,
+        string noun,
+        IReadOnlyList<string> arguments,
+        Func<bool> isCallerBusy)
     {
         if (host.Workspace.FindTab(tabId) is not { } tab)
         {
@@ -309,13 +336,13 @@ public sealed class RemoteActions(
         }
 
         // Another operation may have started while the Confirm was open; the terminal must not race it.
-        if (_running.ContainsKey(tabId) || gate.IsBusy(tabId))
+        if (_running.ContainsKey(tabId) || gate.IsBusy(tabId) || isCallerBusy())
         {
             statuses.Warning(BusyNotice);
             return;
         }
 
-        var notice = runInTerminal(running.Words.Noun.ToLowerInvariant(), running.TerminalArguments, tab.Location);
+        var notice = runInTerminal(noun.ToLowerInvariant(), arguments, tab.Location);
         if (notice.Length > 0)
         {
             statuses.Warning(notice);

@@ -12,7 +12,6 @@ namespace Gitunia.Git.Tags;
 public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITagWriter
 {
     private const string Tag = "tag";
-    private const string Push = "push";
     private const string Remote = "remote";
     private const string CheckRefFormat = "check-ref-format";
     private const string ConfigOption = "-c";
@@ -20,8 +19,6 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
     private const string AnnotateOption = "-a";
     private const string MessageOption = "-m";
     private const string DeleteOption = "-d";
-    private const string RemoteDeleteOption = "--delete";
-    private const string NoProgressOption = "--no-progress";
     private const string EndOfOptions = "--";
     private const string LeadingDash = "-";
     private const char LineSeparator = '\n';
@@ -94,7 +91,7 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
         await remoteRunner
             .RunAsync(
                 location,
-                [Push, NoProgressOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                RemoteCommands.BuildTagPush(remote, name, true),
                 null,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -107,7 +104,7 @@ public sealed class TagWriter(GitRunner runner, RemoteRunner remoteRunner) : ITa
         await remoteRunner
             .RunAsync(
                 location,
-                [Push, NoProgressOption, RemoteDeleteOption, EndOfOptions, remote, $"{GitRefPrefixes.Tags}{name}"],
+                RemoteCommands.BuildTagDelete(remote, name, true),
                 null,
                 cancellationToken)
             .ConfigureAwait(false);
