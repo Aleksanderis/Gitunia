@@ -1,4 +1,6 @@
 using Gitunia.Core.Diff;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -193,5 +195,94 @@ public class DiffTitleButtonsTests
         Assert.Contains(GraphGlyphSet.Unicode.Ellipsis, title.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("file.txt", title.Text, StringComparison.Ordinal);
         Assert.Equal(120, TextWidth.Of(title.Text));
+    }
+
+    [Fact]
+    public void GivenAVeryWideRow_WhenLayingOut_ThenEveryButtonShowsTheKeyTheKeymapBindsInTheDiffView()
+    {
+        var table = DefaultKeymap.Create();
+        var actions = DefaultMouseMap.CreateBindings()
+            .Where(binding => binding.Gesture == MouseGesture.Click)
+            .GroupBy(binding => binding.View)
+            .ToDictionary(group => group.Key, group => group.First().Action);
+
+        var buttons = DiffTitleButtons.Layout(300);
+
+        Assert.Equal(9, buttons.Count);
+        Assert.All(buttons, button =>
+        {
+            var binding = table.EffectiveBindings(KeyMode.Normal, DefaultKeymap.DiffView)
+                .Where(candidate => candidate.Action == actions[button.View])
+                .MinBy(candidate => candidate.Sequence.Length)!;
+            var key = KeyFormatter.Format(binding.Sequence);
+            Assert.Equal(key.Length, button.KeyLength);
+            Assert.StartsWith($" {key} ", button.Label, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void GivenARowThatFitsAllButtonsOnlyWithoutKeys_WhenLayingOut_ThenTheKeysAreDroppedBeforeAnyButton()
+    {
+        var plain = DiffTitleButtons.Layout(100);
+
+        Assert.Equal(9, plain.Count);
+        Assert.All(plain, button => Assert.Equal(0, button.KeyLength));
+    }
+
+    [Fact]
+    public void GivenARowThatFitsSomeButtonsOnlyWithoutKeys_WhenLayingOut_ThenTheSameButtonsStayWithoutKeys()
+    {
+        var keyed = DiffTitleButtons.Layout(300).Select(button => button.View).ToList();
+        var narrow = DiffTitleButtons.Layout(50);
+
+        Assert.All(narrow, button => Assert.Equal(0, button.KeyLength));
+        Assert.All(narrow, button => Assert.Contains(button.View, keyed));
+        Assert.Equal([" wrap ", " zoom "], narrow.Select(button => button.Label));
+    }
+
+    [Fact]
+    public void GivenARebinding_WhenLayingOutAWideRow_ThenTheButtonShowsTheNewKey()
+    {
+        var bindings = DefaultKeymap.CreateBindings()
+            .Select(binding => binding.Action == ActionIds.DiffToggleWrap && binding.View == DefaultKeymap.DiffView
+                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-w") }
+                : binding);
+        var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
+
+        var wrap = DiffTitleButtons.Layout(300, keys).Single(button => button.View == DefaultMouseMap.DiffWrapButton);
+
+        Assert.Equal(" Ctrl-w wrap ", wrap.Label);
+    }
+
+    [Theory]
+    [InlineData(WorkingTreeButtons.Unstaged, DefaultMouseMap.DiffStageButton, "<space>a")]
+    [InlineData(WorkingTreeButtons.Unstaged, DefaultMouseMap.DiffDiscardButton, "<space>d")]
+    [InlineData(WorkingTreeButtons.Staged, DefaultMouseMap.DiffUnstageButton, "<space>u")]
+    public void GivenAWorkingTreeSide_WhenLayingOutAWideRow_ThenTheStagingButtonShowsItsKey(
+        WorkingTreeButtons side, string view, string key)
+    {
+        var button = DiffTitleButtons.Layout(300, side).Single(candidate => candidate.View == view);
+
+        Assert.StartsWith($" {key} ", button.Label, StringComparison.Ordinal);
+        Assert.Equal(key.Length, button.KeyLength);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GivenKeyedButtons_WhenRenderingTheTitle_ThenTheKeyHasItsOwnRoleAndTheZonesMatchWhatIsDrawn(bool isAscii)
+    {
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var buttons = DiffTitleButtons.Layout(300);
+
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, 0, 0, true), 300, glyphs);
+
+        Assert.Equal(300, TextWidth.Of(title.Text));
+        Assert.Equal(9, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTabKey));
+        Assert.All(buttons, button =>
+            Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Text.Substring(button.Start, button.Width)));
+        Assert.Contains(
+            title.Segments,
+            segment => segment.Text == "<space>z" && segment.Role == SegmentRole.RepositoryTabKey);
     }
 }

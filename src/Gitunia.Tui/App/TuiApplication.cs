@@ -109,6 +109,7 @@ public sealed class TuiApplication(
     private string _homeDirectory = string.Empty;
     private readonly StatusChannel _statuses = new();
     private StartupConfig _startupConfig = null!;
+    private ChipKeys _chipKeys = null!;
     private ConsoleCapabilities _capabilities = detectedCapabilities;
     private CommitActions _commits = null!;
     private BranchActions _branches = null!;
@@ -153,6 +154,7 @@ public sealed class TuiApplication(
     {
         _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
+        _chipKeys = new ChipKeys(_startupConfig.Keymap.Table);
         var queriedLight = _startupConfig.Theme == ThemeChoice.Auto
             ? platform.QueryLightBackground(_capabilities)
             : null;
@@ -194,7 +196,7 @@ public sealed class TuiApplication(
             sidebarSource,
             () => _sidebar.Chrome,
             () => _diffPane.Arrangement(),
-            width => _diffPane.TitleLine(width, glyphs),
+            width => _diffPane.TitleLine(width, glyphs, _chipKeys),
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
@@ -1117,6 +1119,7 @@ public sealed class TuiApplication(
         with
         {
             RemoteBusy = RemoteIsBusy(),
+            Keys = _chipKeys,
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
                 ? null
                 : _statuses.Current?.Severity,

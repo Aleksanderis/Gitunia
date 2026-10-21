@@ -23,6 +23,9 @@ public enum SegmentRole
 
     /// <summary>A tab that is not the selected one, in the tab row or the bottom pane's title row: a button, a tinted chip on the bar (underlined where there are no colours, #240).</summary>
     RepositoryTab,
+
+    /// <summary>The key text inside a <see cref="RepositoryTab"/> chip, in bold.</summary>
+    RepositoryTabKey,
     StatusMode,
 
     /// <summary>The keys of a status bar hint (the description is <see cref="Status"/>).</summary>

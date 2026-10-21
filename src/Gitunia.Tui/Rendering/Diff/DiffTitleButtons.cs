@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -54,15 +55,22 @@ public static class DiffTitleButtons
     ];
 
     /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one column of line between them.</summary>
-    public static IReadOnlyList<TitleButton> Layout(int width) => Layout(width, WorkingTreeButtons.None);
+    /// <param name="width">Columns of the title row.</param>
+    /// <param name="keys">Where the key text of each button comes from; null uses the default keymap.</param>
+    public static IReadOnlyList<TitleButton> Layout(int width, ChipKeys? keys = null) =>
+        Layout(width, WorkingTreeButtons.None, keys);
 
     /// <summary>
     /// The buttons of the working-tree diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
     /// and <c>discard</c> on the Unstaged side, <c>unstage</c> on the Staged side), so a narrow row keeps what the pane is for.
+    /// Each button shows its key before the label (<c>[c ‹ hunk</c>) when the buttons that fit also fit with their
+    /// keys;
+    /// otherwise the key text goes first, then the buttons in the drop order.
     /// </summary>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="staging">Which side of the working tree the diff shows.</param>
-    public static IReadOnlyList<TitleButton> Layout(int width, WorkingTreeButtons staging)
+    /// <param name="keys">Where the key text of each button comes from; null uses the default keymap.</param>
+    public static IReadOnlyList<TitleButton> Layout(int width, WorkingTreeButtons staging, ChipKeys? keys = null)
     {
         var chosen = new List<ButtonSpecification>();
         var used = 0;
@@ -78,16 +86,36 @@ public static class DiffTitleButtons
             used += needed;
         }
 
+        var keyView = KeyViewOf(staging);
+        var lookup = keys ?? ChipKeys.Default;
+        var chips = chosen.Select(button => WithKey(button, lookup.For(button.View, keyView))).ToList();
+        var keyedUsed = chips.Sum(chip => chip.Width) + Math.Max(0, chips.Count - 1);
+        var showKeys = width - 2 - keyedUsed >= MinimumTitleWidth;
         var buttons = new List<TitleButton>(chosen.Count);
-        var column = width - 2 - used;
-        foreach (var button in chosen.OrderBy(candidate => Array.IndexOf(DisplayOrder, candidate.View)))
+        var column = width - 2 - (showKeys ? keyedUsed : used);
+        foreach (var chip in chips.OrderBy(candidate => Array.IndexOf(DisplayOrder, candidate.View)))
         {
-            buttons.Add(new TitleButton(button.View, button.Label, column));
-            column += TextWidth.Of(button.Label) + 1;
+            var button = showKeys ? chip : chip with { Label = PlainLabel(chosen, chip.View), KeyLength = 0 };
+            buttons.Add(button with { Start = column });
+            column += button.Width + 1;
         }
 
         return buttons;
     }
+
+    private static string KeyViewOf(WorkingTreeButtons staging) => staging switch
+    {
+        WorkingTreeButtons.Unstaged => DefaultKeymap.WorkingUnstagedDiffView,
+        WorkingTreeButtons.Staged => DefaultKeymap.WorkingStagedDiffView,
+        _ => DefaultKeymap.DiffView,
+    };
+
+    private static TitleButton WithKey(ButtonSpecification button, string? key) => key is null
+        ? new TitleButton(button.View, button.Label, 0)
+        : new TitleButton(button.View, $" {key} {button.Label.Trim()} ", 0, key.Length);
+
+    private static string PlainLabel(List<ButtonSpecification> chosen, string view) =>
+        chosen.First(button => button.View == view).Label;
 
     private static IEnumerable<ButtonSpecification> Prioritized(WorkingTreeButtons staging)
     {

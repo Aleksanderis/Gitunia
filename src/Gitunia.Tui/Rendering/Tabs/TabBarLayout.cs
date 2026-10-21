@@ -41,11 +41,15 @@ public static class TabBarLayout
     public static bool IsOnNewTab(IReadOnlyList<TabCell> cells, int column) => column >= NewTabStart(cells) && column < NewTabStart(cells) + NewTabLabel.Length;
 
     /// <summary>The cells visible in a row of <paramref name="width"/> columns, in order, with their start columns.</summary>
-    public static IReadOnlyList<TabCell> Layout(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs)
+    public static IReadOnlyList<TabCell> Layout(
+        IReadOnlyList<TabLabel> labels,
+        int width,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         // The new tab button follows the last tab, so its room is kept free.
         // The remote chips (#456) sit left of the commands button, so they take room from the tabs too.
-        var available = (RemoteChips.Start(width) ?? CommandsStart(width) ?? width)
+        var available = (RemoteChips.Start(width, keys) ?? CommandsStart(width) ?? width)
             - GapColumns - NewTabLabel.Length - GapColumns;
         var described = labels.Select(label => Describe(label, glyphs)).ToList();
         var texts = described.Select(item => item.Text).ToList();

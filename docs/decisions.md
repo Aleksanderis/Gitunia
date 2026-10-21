@@ -417,3 +417,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Bare-key exception for modal lists (owner, #549): the settings screen's `x` `a` `d` `J` `K` `+` `-` (#523) and the rebase editor's `p` `r` `s` `f` `d` `J` `K` (#458) stay bare, because a modal list is not a buffer and no vim normal-mode command applies there. Supersedes the #335 rule for these two views only; every other view keeps the rule.
 
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
+
+**UI:** Chips show key plus label (owner, #536): the tab-bar remote chips and the diff title buttons share one pattern, `<space>F fetch`, key text generated from the keymap (never hand-written). A narrow row drops the key text first, then buttons by the existing order; the cancel chip is `<space>C cancel` (was `Esc cancel`). Supersedes the label-only chips of #456.

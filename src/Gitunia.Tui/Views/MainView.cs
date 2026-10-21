@@ -666,7 +666,7 @@ public sealed class MainView : IDisposable
         }
 
         FocusFromTitle(Diff);
-        var buttons = DiffTitleButtons.Layout(_diffTitle.Viewport.Width);
+        var buttons = DiffTitleButtons.Layout(_diffTitle.Viewport.Width, _model().Keys);
         if (TitleButton.ViewAt(buttons, column) is { } buttonView)
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
@@ -681,7 +681,7 @@ public sealed class MainView : IDisposable
         }
 
         FocusFromTitle(WorkingDiff);
-        var buttons = DiffTitleButtons.Layout(_workingDiffTitle.Viewport.Width, WorkingDiffButtons());
+        var buttons = DiffTitleButtons.Layout(_workingDiffTitle.Viewport.Width, WorkingDiffButtons(), _model().Keys);
         if (TitleButton.ViewAt(buttons, column) is { } buttonView)
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);
@@ -696,7 +696,8 @@ public sealed class MainView : IDisposable
             WorkingPanes.IsDiff(WorkingFocus()),
             WorkingDiffButtons(),
             width,
-            _glyphs);
+            _glyphs,
+            _model().Keys);
 
         return CurrentGrid().ResolveRules(line, rect.Y - 1, rect.X);
     }

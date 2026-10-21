@@ -17,7 +17,7 @@ public static class ChromeBuilder
     {
         if (model.Tabs is { Count: > 0 } labels)
         {
-            return TabRow(labels, width, glyphs, model.RemoteBusy);
+            return TabRow(labels, width, glyphs, model.RemoteBusy, model.Keys);
         }
 
         if (model.TabCount == 0)
@@ -85,9 +85,14 @@ public static class ChromeBuilder
         HintRenderer.Append(builder, hints, HintGap);
     }
 
-    private static StyledLine TabRow(IReadOnlyList<TabLabel> labels, int width, GraphGlyphSet glyphs, bool remoteBusy)
+    private static StyledLine TabRow(
+        IReadOnlyList<TabLabel> labels,
+        int width,
+        GraphGlyphSet glyphs,
+        bool remoteBusy,
+        ChipKeys? keys)
     {
-        var cells = TabBarLayout.Layout(labels, width, glyphs);
+        var cells = TabBarLayout.Layout(labels, width, glyphs, keys);
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(new string(' ', TabBarLayout.LeftMargin), SegmentRole.Status);
         if (cells.Count > 0 && cells[0].Number > 1)
         {
@@ -104,9 +109,9 @@ public static class ChromeBuilder
 
         builder.Append(" ", SegmentRole.Status);
         builder.Append(TabBarLayout.NewTabLabel, SegmentRole.BarButton);
-        if (RemoteChips.Start(width) is { } chipsStart)
+        if (RemoteChips.Start(width, keys) is { } chipsStart)
         {
-            AppendRemoteChips(builder, width, chipsStart, remoteBusy, glyphs);
+            AppendRemoteChips(builder, width, chipsStart, remoteBusy, glyphs, keys);
         }
 
         if (TabBarLayout.CommandsStart(width) is { } commandsStart)
@@ -118,14 +123,33 @@ public static class ChromeBuilder
         return builder.Build(SegmentRole.Status);
     }
 
-    private static void AppendRemoteChips(LineBuilder builder, int width, int start, bool isBusy, GraphGlyphSet glyphs)
+    private static void AppendRemoteChips(
+        LineBuilder builder,
+        int width,
+        int start,
+        bool isBusy,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys)
     {
         builder.Append(new string(' ', Math.Max(0, start - (width - builder.Remaining))), SegmentRole.Status);
         var first = true;
-        foreach (var chip in RemoteChips.Shown(isBusy))
+        foreach (var chip in RemoteChips.Shown(width, isBusy, keys))
         {
             builder.Append(first ? string.Empty : " ", SegmentRole.Status);
-            builder.Append(ButtonLabel.For(chip.Label, glyphs.IsAscii), SegmentRole.BarButton);
+
+            // The key is styled like a status bar hint: bold accent key, plain description.
+            var pieces = ChipSegments.Split(
+                ButtonLabel.For(chip.Label, glyphs.IsAscii),
+                chip.KeyLength,
+                SegmentRole.BarButton,
+                glyphs.IsAscii ? SegmentRole.BarButton : SegmentRole.Status,
+                SegmentRole.StatusKey,
+                SegmentRole.Status);
+            foreach (var piece in pieces)
+            {
+                builder.Append(piece.Text, piece.Role);
+            }
+
             first = false;
         }
     }
