@@ -107,6 +107,59 @@ public class DiffRowRendererTests
         Assert.Equal(["Foo", "FOO"], matches);
     }
 
+    [Fact]
+    public void GivenAHunkHeader_WhenRendering_ThenItIsARuleSeparatorAcrossTheWholeWidth()
+    {
+        var row = new DiffRow(DiffRowKind.HunkHeader, "@@ -1 +1 @@ Foo", null, null, 0);
+
+        var line = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs);
+
+        Assert.Equal("── @@ -1 +1 @@ Foo ───────────", line.Text);
+        Assert.Equal(SegmentRole.Faint, line.Segments[0].Role);
+        Assert.Equal(SegmentRole.Faint, line.Segments[^1].Role);
+        Assert.Equal(30, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenAHunkHeaderInTheAsciiSet_WhenRendering_ThenTheSeparatorUsesPlainDashes()
+    {
+        var row = new DiffRow(DiffRowKind.HunkHeader, "@@ -1 +1 @@", null, null, 0);
+
+        var line = DiffRowRenderer.Render(row, 24, 3, null, false, GraphGlyphSet.Ascii);
+
+        Assert.Equal("-- @@ -1 +1 @@ ---------", line.Text);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(14)]
+    public void GivenAHunkHeaderAndATinyWidth_WhenRendering_ThenTheLineHasExactlyTheWidth(int width)
+    {
+        var row = new DiffRow(DiffRowKind.HunkHeader, "@@ -1 +1 @@ Foo", null, null, 0);
+
+        var line = DiffRowRenderer.Render(row, width, 3, null, false, Glyphs);
+
+        Assert.Equal(width, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenALongHunkHeaderWhenWrapped_WhenRenderingItsSegments_ThenOnlyTheLastOneClosesWithTheRule()
+    {
+        var row = new DiffRow(DiffRowKind.HunkHeader, "@@ -1 +1 @@ alpha beta gam", null, null, 0);
+        var count = DiffRowRenderer.SegmentCount(row, 20, 3);
+
+        var first = DiffRowRenderer.RenderSegment(row, 0, 20, 3, null, false, Glyphs);
+        var last = DiffRowRenderer.RenderSegment(row, count - 1, 20, 3, null, false, Glyphs);
+
+        Assert.True(count > 1);
+        Assert.StartsWith("── @@", first.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("──────", first.Text, StringComparison.Ordinal);
+        Assert.EndsWith("─", last.Text, StringComparison.Ordinal);
+        Assert.All(new[] { first, last }, line => Assert.Equal(20, TextWidth.Of(line.Text)));
+    }
+
     [Theory]
     [InlineData(DiffRowKind.FileHeader, SegmentRole.DiffFile)]
     [InlineData(DiffRowKind.HunkHeader, SegmentRole.DiffHunk)]

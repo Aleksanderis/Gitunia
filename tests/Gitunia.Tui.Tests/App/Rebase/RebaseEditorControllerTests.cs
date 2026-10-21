@@ -47,6 +47,44 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenNoSelection_WhenOpeningTheRootEditor_ThenTheWholeHistoryIsListedAndRewordingTheRootWorks()
+    {
+        using var repository = ThreeCommits();
+        using var harness = await Harness.CreateAsync(repository, target: null);
+
+        await harness.OpenRootAsync();
+
+        var state = harness.Controller.State!;
+        Assert.True(state.Base.IsRoot);
+        Assert.Equal(["Initial", "add a", "add b", "add c"], state.Rows.Select(row => row.Subject));
+        await harness.RewordAsync("root reworded");
+        harness.Run(ActionIds.RebaseEditorStart);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains("Rebase topic onto the root with this todo?", prompt.Lines, StringComparer.Ordinal);
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(
+            ["root reworded", "add a", "add b", "add c"],
+            repository.Git("log", "--format=%s", "--reverse").Trim().Split('\n'));
+        Assert.Equal(StatusSeverity.Info, harness.Statuses.Log.Latest!.Severity);
+    }
+
+    [Fact]
+    public async Task GivenUncommittedChanges_WhenOpeningTheRootEditor_ThenItIsRefusedLikeTheOtherRebase()
+    {
+        using var repository = ThreeCommits();
+        using var harness = await Harness.CreateAsync(repository, target: null);
+        File.WriteAllText(Path.Combine(repository.WorkingTreePath, "a.txt"), "dirty\n");
+        await harness.ReloadAsync();
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.RebaseInteractiveRoot, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("uncommitted changes", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenReorderFixupAndReword_WhenConfirmed_ThenGitReplaysTheTodoAndTheStatusNamesTheUndo()
     {
         using var repository = FourCommits();
@@ -619,6 +657,13 @@ public class RebaseEditorControllerTests
         public void Open() => Assert.True(Controller.TryExecute(ActionIds.RebaseInteractive, null));
 
         // Opening reads the range on a worker: wait until the editor shows or the status reported a refusal.
+        public async Task OpenRootAsync()
+        {
+            Assert.True(Controller.TryExecute(ActionIds.RebaseInteractiveRoot, null));
+            await Pump.RunUntilAsync(() => Controller.IsOpen || Statuses.Log.Latest is not null);
+            Assert.True(Controller.IsOpen, Statuses.Log.Latest?.Text);
+        }
+
         public async Task OpenAsync()
         {
             Open();

@@ -197,6 +197,8 @@ public static class ActionIds
 
     public static ActionId RebaseInteractive { get; } = new("rebase.interactive");
 
+    public static ActionId RebaseInteractiveRoot { get; } = new("rebase.interactive-root");
+
     public static ActionId RebaseEditorPick { get; } = new("rebase-editor.pick");
 
     public static ActionId RebaseEditorReword { get; } = new("rebase-editor.reword");

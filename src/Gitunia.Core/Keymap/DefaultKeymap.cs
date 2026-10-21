@@ -273,6 +273,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>gx", ActionIds.ResetBranch);
         Add(bindings, NormalOnly, view, "<space>gr", ActionIds.RebaseOnto);
         Add(bindings, NormalOnly, view, "<space>gi", ActionIds.RebaseInteractive);
+        Add(bindings, NormalOnly, view, "<space>gI", ActionIds.RebaseInteractiveRoot);
     }
 
     // Fixup, reword and drop act on the commit selected in the graph (interactive rebase engine, #459).

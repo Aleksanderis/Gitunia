@@ -62,7 +62,7 @@ public class DiffRowJumpTests
         Assert.Equal(3, jump.Count);
         Assert.Equal("a   b", jump.TextOf(0));
         Assert.Equal(40 - ((2 * 3) + 3), jump.ColumnsOf(0));
-        Assert.Equal(40, jump.ColumnsOf(1));
+        Assert.Equal(37, jump.ColumnsOf(1));
         Assert.Equal(38, jump.ColumnsOf(2));
         Assert.Equal(1, jump.EllipsisWidth);
     }
@@ -84,7 +84,7 @@ public class DiffRowJumpTests
         Assert.Equal(40 - 5, jump.ColumnsOf(0));
         Assert.Equal(40 - 5, jump.ColumnsOf(1));
         Assert.Equal(40 - 5, jump.ColumnsOf(2));
-        Assert.Equal(81, jump.ColumnsOf(3));
+        Assert.Equal(78, jump.ColumnsOf(3));
         Assert.Equal("old", jump.TextOf(0));
         Assert.Equal("new", jump.TextOf(1));
         Assert.Equal("same", jump.TextOf(2));

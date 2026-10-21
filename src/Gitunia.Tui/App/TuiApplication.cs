@@ -999,7 +999,9 @@ public sealed class TuiApplication(
 
         return view == DefaultKeymap.GraphView && (_view.Graph.Source?.Count ?? 0) > 0
             ? new RowMenuTarget(
-                RowActions.OfGraphRowFor(DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0),
+                RowActions.OfGraphRowFor(
+                    DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0,
+                    IsSelectedCommitRoot()),
                 AnchorOf(_view.Graph))
             : null;
     }
@@ -1342,6 +1344,18 @@ public sealed class TuiApplication(
         var graph = ActiveSession()?.Graph;
 
         return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
+    }
+
+    // The root commit has no parents, so no outgoing edge; its menu also offers the rebase of the whole history (#561).
+    private bool IsSelectedCommitRoot()
+    {
+        var index = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
+        var graph = ActiveSession()?.Graph;
+
+        return graph is not null
+            && index >= 0
+            && index < graph.Count
+            && graph[index].Row.Edges.All(edge => edge.Kind != GraphEdgeKind.Outgoing);
     }
 
     // Added to the wait for a message to age, so the clock is surely past the threshold when the timeout fires.
