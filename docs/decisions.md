@@ -419,3 +419,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Bare-key exception for modal lists (owner, #549): the settings screen's `x` `a` `d` `J` `K` `+` `-` (#523) and the rebase editor's `p` `r` `s` `f` `d` `J` `K` (#458) stay bare, because a modal list is not a buffer and no vim normal-mode command applies there. Supersedes the #335 rule for these two views only; every other view keeps the rule.
 
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
+
+**Process:** User guide (#50, `docs/user-guide.md`) holds a hand-written subset of the keymap and points to `docs/ux.md` for the full table, instead of generating a key reference; a rebinding of a listed key updates both.
