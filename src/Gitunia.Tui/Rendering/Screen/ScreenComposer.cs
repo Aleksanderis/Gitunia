@@ -142,7 +142,8 @@ public static class ScreenComposer
                 WorkingPanes.IsDiff(working.Focused),
                 WorkingTreePaneRenderer.StagingButtons(tree),
                 rects.Diff.Width,
-                glyphs);
+                glyphs,
+                model.Keys);
             overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y - 1, [titleLine], SegmentSelection.None));
         }
 

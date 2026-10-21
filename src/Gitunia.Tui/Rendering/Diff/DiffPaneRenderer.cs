@@ -9,9 +9,15 @@ namespace Gitunia.Tui.Rendering.Diff;
 public static class DiffPaneRenderer
 {
     /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at <see cref="DiffPaneModel.TopRow"/>; the rows are padded (<see cref="PanePadding"/>).</summary>
-    public static IReadOnlyList<StyledLine> RenderPane(DiffPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
+    public static IReadOnlyList<StyledLine> RenderPane(
+        DiffPaneModel pane,
+        int width,
+        int contentHeight,
+        GraphGlyphSet glyphs,
+        int paddingColumns = PanePadding.Columns,
+        ChipKeys? keys = null)
     {
-        var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs) };
+        var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane, width, glyphs, keys) };
         lines.AddRange(RenderRows(pane, width, contentHeight, glyphs, paddingColumns));
         return lines;
     }
@@ -43,9 +49,9 @@ public static class DiffPaneRenderer
     /// The title: the file shown and the cursor's position among its hunks, then the buttons
     /// (<see cref="DiffTitleButtons"/>) at the right end when the row is wide enough.
     /// </summary>
-    public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs)
+    public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs, ChipKeys? keys = null)
     {
-        var buttons = DiffTitleButtons.Layout(width);
+        var buttons = DiffTitleButtons.Layout(width, keys);
         if (buttons.Count == 0)
         {
             return RenderTitleText(pane, width, glyphs);
@@ -56,11 +62,17 @@ public static class DiffPaneRenderer
 
     /// <summary>
     /// The title row of the working-tree diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
-    /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons)"/>) when the row is wide enough.
+    /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons, ChipKeys)"/>) when the row is wide enough.
     /// </summary>
-    public static StyledLine RenderWorkingTitle(string title, bool isFocused, WorkingTreeButtons staging, int width, GraphGlyphSet glyphs)
+    public static StyledLine RenderWorkingTitle(
+        string title,
+        bool isFocused,
+        WorkingTreeButtons staging,
+        int width,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
-        var buttons = DiffTitleButtons.Layout(width, staging);
+        var buttons = DiffTitleButtons.Layout(width, staging, keys);
         var textWidth = buttons.Count > 0 ? buttons[0].Start - 1 : width;
         var text = new LineBuilder(textWidth, glyphs.Ellipsis)
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
@@ -75,7 +87,13 @@ public static class DiffPaneRenderer
         var segments = new List<StyledSegment>(text.Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
         foreach (var button in buttons)
         {
-            segments.Add(new StyledSegment(ButtonLabel.For(button.Label, glyphs.IsAscii), SegmentRole.RepositoryTab));
+            segments.AddRange(ChipSegments.Split(
+                ButtonLabel.For(button.Label, glyphs.IsAscii),
+                button.KeyLength,
+                SegmentRole.RepositoryTab,
+                SegmentRole.RepositoryTab,
+                SegmentRole.RepositoryTabKey,
+                SegmentRole.RepositoryTab));
             segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         }
 

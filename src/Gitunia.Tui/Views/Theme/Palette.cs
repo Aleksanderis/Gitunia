@@ -100,6 +100,9 @@ public static class Palette
                 new RoleAppearance(colors.ChipForeground, colors.Bad, colors.ChipStyle, true),
             SegmentRole.StatusMode or SegmentRole.ActiveTab or SegmentRole.OverlayTitle or SegmentRole.Cursor or SegmentRole.JumpLabel => new RoleAppearance(colors.ChipForeground, colors.ChipBackground, colors.ChipStyle, true),
             SegmentRole.RepositoryTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle, true),
+            SegmentRole.RepositoryTabKey =>
+                new RoleAppearance(
+                    Color.None, colors.TabButtonBackground, colors.SelectionDimStyle | TextStyle.Bold, true),
             SegmentRole.InactiveTab => new RoleAppearance(Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
             SegmentRole.SelectedTab => new RoleAppearance(Color.None, colors.TabButtonBackground, colors.SelectionDimStyle | TextStyle.Bold, true),
             SegmentRole.Error => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),

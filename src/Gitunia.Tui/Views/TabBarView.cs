@@ -51,13 +51,13 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return true;
         }
 
-        if (RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X) is { } chipView)
+        if (RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X, model().Keys) is { } chipView)
         {
             RemoteChipClicked?.Invoke(chipView);
             return true;
         }
 
-        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs);
+        var cells = TabBarLayout.Layout(labels, Viewport.Width, glyphs, model().Keys);
         if (TabBarLayout.IsOnNewTab(cells, position.X))
         {
             NewTabClicked?.Invoke();

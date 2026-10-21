@@ -205,8 +205,8 @@ public sealed class DiffPaneController : IPromptHandler
     }
 
     /// <summary>The diff pane's title row for the active tab.</summary>
-    public StyledLine TitleLine(int width, GraphGlyphSet glyphs) =>
-        DiffPaneRenderer.RenderTitle(ModelOf(_activeSession()?.Diff, _diffList.HasFocus), width, glyphs);
+    public StyledLine TitleLine(int width, GraphGlyphSet glyphs, ChipKeys? keys = null) =>
+        DiffPaneRenderer.RenderTitle(ModelOf(_activeSession()?.Diff, _diffList.HasFocus), width, glyphs, keys);
 
     /// <summary>Call when the shown tab changed: hooks the new tab's diff store and restores its cursor.</summary>
     public void OnTabSwitched(TabSession? previous, TabSession? current)
