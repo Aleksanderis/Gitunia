@@ -205,7 +205,7 @@ public class DiffRowRendererTests
     }
 
     [Fact]
-    public void GivenACombinedDiffContextRowWithNoOldNumber_WhenRendering_ThenItKeepsTheFullGutterAndAlignsWithAddedRows()
+    public void GivenACombinedDiffContextRowWithNoOldNumber_WhenRendering_ThenItKeepsTheFullGutterAndAlignsWithAdded()
     {
         var context = new DiffRow(DiffRowKind.Context, "same", null, 5, 0);
         var added = new DiffRow(DiffRowKind.Added, "same", null, 6, 0);
