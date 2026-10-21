@@ -200,7 +200,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => WorkingRects().Diff.Width),
             Height = Dim.Func(_ => WorkingRects().Diff.Height),
             CanFocus = true,
-            Source = new DiffListSource(glyphs),
+            Source = new DiffListSource(glyphs) { GroupKeys = () => _model().Keys },
             Visible = false,
         };
         WorkingMessage = new PaneListView
@@ -576,7 +576,7 @@ public sealed class MainView : IDisposable
     private LineView CreateListButton(WorkingTreeSection section, PaneListView list, bool isPathStyle)
     {
         var view = new LineView(_ => ListButton(section, isPathStyle) is { } button
-            ? isPathStyle ? PathStyleChip.Line(button, _glyphs) : WorkingListTitleButtons.Line(button, _glyphs.IsAscii)
+            ? PathStyleChip.Line(button, _glyphs)
             : new StyledLine([]))
         {
             X = Pos.Func(_ => ListButtonRect(section, isPathStyle).X),
@@ -611,7 +611,7 @@ public sealed class MainView : IDisposable
 
         return isPathStyle
             ? WorkingListTitleButtons.PathStyleButton(section, title, rect.Width, _model().Keys)
-            : WorkingListTitleButtons.Layout(section, title, rect.Width);
+            : WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys);
     }
 
     private PaneRect ListRect(WorkingTreeSection section) =>

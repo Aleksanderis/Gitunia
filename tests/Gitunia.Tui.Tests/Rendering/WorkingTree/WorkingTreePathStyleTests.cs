@@ -137,6 +137,26 @@ public class WorkingTreePathStyleTests
         Assert.Null(WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 30, null));
     }
 
+    [Theory]
+    [InlineData(WorkingTreeSection.Staged, "Staged 3")]
+    [InlineData(WorkingTreeSection.Unstaged, "Unstaged 12")]
+    public void GivenAnyWidthThatFitBothChipsPlain_WhenLayingOut_ThenTheStageAllKeyGoesBeforeThePathChip(
+        WorkingTreeSection section, string title)
+    {
+        var titleColumns = TextWidth.Of(title) + 4;
+        var plainStageWidth = section == WorkingTreeSection.Staged ? " unstage all ".Length : " stage all ".Length;
+        var plainPathWidth = " path ".Length;
+        for (var width = 20; width <= 80; width++)
+        {
+            var stageStart = width - plainStageWidth - 1;
+            var bothFitPlain = stageStart >= titleColumns + 1 && stageStart - 1 - plainPathWidth >= titleColumns + 1;
+            if (bothFitPlain)
+            {
+                Assert.NotNull(WorkingListTitleButtons.PathStyleButton(section, title, width, null));
+            }
+        }
+    }
+
     [Fact]
     public void GivenAListTooNarrowForStageAll_WhenLayingOutTheChip_ThenItCanStillTakeTheRightEnd()
     {
