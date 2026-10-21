@@ -45,11 +45,14 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
     /// <returns>True when the key was consumed; false lets the focused widget have it.</returns>
     public bool Handle(Key key, string view)
     {
-        if (!KeyTranslator.TryTranslate(key, out var keyEvent))
-        {
-            return false;
-        }
+        return KeyTranslator.TryTranslate(key, out var keyEvent) && Handle(keyEvent, view);
+    }
 
+    /// <summary>Feeds an already translated key (a pasted character, see <see cref="PasteKeys"/>).</summary>
+    /// <param name="keyEvent">The key.</param>
+    /// <param name="view">The focused view's name in the keymap.</param>
+    public bool Handle(KeyEvent keyEvent, string view)
+    {
         var result = engine.Process(_state, keyEvent, view);
         _state = result.State;
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })

@@ -418,7 +418,7 @@ public sealed class TuiApplication(
         _view.WorkingUnstaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.WorkingStaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
-        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+        SubscribeInput();
 
         if (restored.Detail is { Length: > 0 } restoreNotice)
         {
@@ -1172,7 +1172,7 @@ public sealed class TuiApplication(
         finally
         {
             CreateApplication();
-            _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+            SubscribeInput();
             _uiInvoker.Resume(_application.Invoke);
             if (resumed is not null)
             {
@@ -1600,6 +1600,34 @@ public sealed class TuiApplication(
         var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
         var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
         return _keys.Handle(key, view) || isPickerShowing;
+    }
+
+    private void SubscribeInput()
+    {
+        _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
+        _application.Paste += (_, paste) => OnPaste(paste);
+    }
+
+    /// <summary>
+    /// A bracketed paste types its text, key by key, into whatever text input has Insert or Command mode; elsewhere it
+    /// is ignored.
+    /// </summary>
+    private void OnPaste(PasteEventArgs paste)
+    {
+        if (_keys.Mode is not (KeyMode.Insert or KeyMode.Command) || string.IsNullOrEmpty(paste.Text))
+        {
+            return;
+        }
+
+        var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
+        var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
+        var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage;
+        foreach (var key in PasteKeys.FromText(paste.Text, multiLine))
+        {
+            _keys.Handle(key, view);
+        }
+
+        paste.Handled = true;
     }
 
     private void OnTextKey(KeyEvent keyEvent)
