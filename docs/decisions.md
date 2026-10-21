@@ -334,7 +334,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Interactive rebase engine (#399) writes the todo itself and hands it to git through `-c sequence.editor` pointing at `gitunia --sequence-editor` (no new env var; a set `GIT_SEQUENCE_EDITOR` is refused); rewords are `exec git commit --amend -F`. Ranges with merge commits are refused and `--root` is supported (owner, 2026-10-18); details in git-layer.md.
 
-**UI:** Merge commits (#95) keep showing the diff and file list against the first parent (what the merge brought into the branch); the Changes heading names that parent. Combined diffs and a per-parent switch were not added: a clean merge has an empty `--cc` diff, and a switch needs a new key (follow-up: #497).
+**UI:** Merge commits (#95) keep showing the diff and file list against the first parent (what the merge brought into the branch); the Changes heading names that parent. Combined diffs and a per-parent switch were not added: a clean merge has an empty `--cc` diff, and a switch needs a new key. The switch came with #497.
 
 **Git:** Remote calls (#44) set `GIT_SSH_COMMAND` with `-o BatchMode=yes` (the one env var beyond `LC_ALL` and `GIT_TERMINAL_PROMPT`): ssh prompts on the tty, not stdin. Pull is always `--no-rebase --ff-only`. Detail in `git-layer.md`.
 
@@ -427,3 +427,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-21
 
 **UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.
+
+**UI:** Merge parent switch (#497): `<space>vp` cycles a merge commit's parent for the Changes list and the diff; per selected commit, first parent stays the default, `--cc` still not offered, difftool stays first-parent. Details: `ux.md` Changes tab.

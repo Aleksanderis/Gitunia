@@ -60,6 +60,32 @@ public class DiffStoreTests
     }
 
     [Fact]
+    public async Task GivenAMergeCommit_WhenSwitchingToTheSecondParent_ThenTheDiffIsAgainstItAndTheCacheKeepsTheFirst()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var pump = new UiPump(Token);
+        using var store = await CreateStoreAsync(pump, testRepository);
+        var merge = IdOf(testRepository, "HEAD");
+        await LoadAsync(pump, store, testRepository, "HEAD", "HEAD^1");
+
+        store.Load(merge, IdOf(testRepository, "HEAD^2"), isAlternateParent: true);
+        var secondParent = IdOf(testRepository, "HEAD^2");
+        await pump.RunUntilAsync(() => store.Status is DiffStatus.Loaded && store.IsShowing(merge, secondParent));
+        var second = store.Document.FilePaths.Select(names => names[0]).ToArray();
+        var again = await LoadAsync(pump, store, testRepository, "HEAD", "HEAD^1");
+
+        Assert.Equal(["main.txt"], second);
+        Assert.Equal(["side.txt"], [.. again.FilePaths.Select(names => names[0])]);
+        Assert.Equal(1, store.CachedCount);
+    }
+
+    [Fact]
     public async Task GivenARenameAndABinaryFile_WhenLoading_ThenBothAreDescribed()
     {
         using var testRepository = TestRepository.Create()

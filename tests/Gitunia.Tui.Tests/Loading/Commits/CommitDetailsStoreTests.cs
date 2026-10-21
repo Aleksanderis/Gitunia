@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git;
+using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Tests.App;
 using Gitunia.Tui.Tests.Fakes;
@@ -145,6 +146,108 @@ public class CommitDetailsStoreTests
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(30), Token);
 
         Assert.Equal(0, Volatile.Read(ref posted.Value));
+    }
+
+    [Fact]
+    public async Task GivenAMergeCommit_WhenCyclingTheParent_ThenFilesComeFromEachParentAndWrapToTheFirst()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var main = reader.Add("main");
+        var side = reader.Add("side");
+        var merge = reader.AddMerge("merge", main, side);
+        reader.SetFiles(merge, main, "from-main.txt");
+        reader.SetFiles(merge, side, "from-side.txt");
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+
+        Assert.Equal(1, store.CycleParent());
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 1);
+        Assert.Equal(["from-side.txt"], store.Current.Details!.Files.Select(file => file.Path));
+
+        Assert.Equal(0, store.CycleParent());
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 0);
+        Assert.Equal(["from-main.txt"], store.Current.Details!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public async Task GivenAPlainCommit_WhenCyclingTheParent_ThenNothingStarts()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var commit = reader.Add("one", reader.Add("root"));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+
+        Assert.Null(store.CycleParent());
+        store.Select(commit);
+        await WaitForSettledAsync(pump, store, commit);
+
+        Assert.Null(store.CycleParent());
+        Assert.Equal(0, reader.ReadFilesCount);
+    }
+
+    [Fact]
+    public async Task GivenASwitchedMerge_WhenSelectingAnotherCommitAndBack_ThenTheFirstParentIsShownAgain()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var main = reader.Add("main");
+        var side = reader.Add("side");
+        var merge = reader.AddMerge("merge", main, side);
+        reader.SetFiles(merge, side, "from-side.txt");
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        store.CycleParent();
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 1);
+
+        store.Select(main);
+        await WaitForSettledAsync(pump, store, main);
+        store.Select(merge);
+
+        Assert.Equal(0, store.Current.Details!.ParentIndex);
+        Assert.Equal(1, store.CycleParent());
+    }
+
+    [Fact]
+    public async Task GivenARealMergeCommit_WhenCyclingTheParent_ThenFilesAreAgainstTheSecondParent()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"))
+            .Merge("side");
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "HEAD").Trim(), out var merge));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            TestGit.Services.CommitDetails,
+            location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        Assert.Equal(["side.txt"], store.Current.Details!.Files.Select(file => file.Path));
+
+        store.CycleParent();
+        await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 1);
+
+        Assert.Equal(["main.txt"], store.Current.Details!.Files.Select(file => file.Path));
     }
 
     private static async Task<CommitDetailsState> WaitForSettledAsync(UiPump pump, CommitDetailsStore store, ObjectId commit)

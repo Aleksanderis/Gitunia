@@ -25,6 +25,7 @@ public static class ActionIds
 
     public static ActionId DetailPreviousTab { get; } = new("detail.previous-tab");
 
+    public static ActionId DiffMergeParent { get; } = new("diff.merge-parent");
     public static ActionId DetailRetry { get; } = new("detail.retry");
 
     public static ActionId DetailTabChanges { get; } = new("detail.tab-changes");

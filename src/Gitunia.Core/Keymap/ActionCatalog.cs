@@ -150,6 +150,7 @@ public static class ActionCatalog
         ["detail.collapse"] = "Back to the graph (Files tab: close the directory or go to its parent)",
         ["detail.copy-path"] = "Copy the file path",
         ["detail.filter"] = "Filter the file tree by path (Files tab)",
+        ["diff.merge-parent"] = "Switch the merge commit's parent",
         ["detail.next-tab"] = "Next bottom pane tab",
         ["detail.open-diff"] = "Go to the file diff",
         ["detail.previous-tab"] = "Previous bottom pane tab",
