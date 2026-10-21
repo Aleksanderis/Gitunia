@@ -1598,8 +1598,7 @@ public sealed class TuiApplication(
     private bool HandleKey(Key key)
     {
         var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
-        var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
-        return _keys.Handle(key, view) || isPickerShowing;
+        return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }
 
     private void SubscribeInput()
@@ -1614,21 +1613,17 @@ public sealed class TuiApplication(
     /// </summary>
     private void OnPaste(PasteEventArgs paste)
     {
-        if (_keys.Mode is not (KeyMode.Insert or KeyMode.Command) || string.IsNullOrEmpty(paste.Text))
+        if (string.IsNullOrEmpty(paste.Text))
         {
             return;
         }
 
-        var isPickerShowing = _picker.IsOpen && !IsAnyOverlayOpen();
-        var view = isPickerShowing ? DefaultKeymap.PickerView : OverlayViewName();
         var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage;
-        foreach (var key in PasteKeys.FromText(paste.Text, multiLine))
-        {
-            _keys.Handle(key, view);
-        }
-
-        paste.Handled = true;
+        paste.Handled = _keys.Paste(paste.Text, multiLine, FocusedViewName);
     }
+
+    private string FocusedViewName() =>
+        _picker.IsOpen && !IsAnyOverlayOpen() ? DefaultKeymap.PickerView : OverlayViewName();
 
     private void OnTextKey(KeyEvent keyEvent)
     {
