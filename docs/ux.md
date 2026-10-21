@@ -22,6 +22,8 @@ Spec for workflows and keys. Keyboard and mouse are both fully supported: every 
 
 Normal (navigate, act), Visual (select a range of lines, commits or files), Insert (text input: commit message, filters, prompts), Command (`:` palette), Confirm (y/n dialogs).
 
+**Paste** (#575). A terminal paste works in every text input (prompt popups such as the clone URL, the picker and path filter, tree and search filters, the `:` palette, the message editors). A bracketed paste (`ESC[200~ ... ESC[201~`) is replayed as the keys typing it would have sent, so each input uses its normal typing path; a terminal without bracketed paste sends plain keys, a line break as `Enter`, which cannot be told from a typed one (so there a pasted `url` plus newline accepts the prompt; known limit). In a single-line input a run of line breaks becomes one space and breaks at either end are dropped (a pasted `url\n` never submits); the message editors keep line breaks as new lines; tabs become spaces and other control characters are dropped. Outside Insert and Command mode a paste does nothing.
+
 **Confirm mode** is used by every destructive action. A centred dialog holds a title, what will happen, what cannot be undone or how to undo it (in the warning colour) and the name of `y`.
 - Only `y` runs the action, after the dialog has closed. `n` and `Esc` drop it. Every other key is swallowed: never `Enter`, and nothing behind the dialog moves.
 - The two answers are rows of the dialog and clickable; a click anywhere else closes it like `n`.
