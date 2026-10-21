@@ -8,7 +8,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Diff;
 
-/// <summary>Draws one row of the diff pane: line numbers, change marker and the text, cut or wrapped (<see cref="RenderSegment"/>).</summary>
+/// <summary>Draws one row of the diff pane: line numbers, change marker and text, cut or wrapped.</summary>
 public static class DiffRowRenderer
 {
     /// <summary>Width of a tab stop; tabs in the diff are shown as spaces up to the next stop.</summary>
