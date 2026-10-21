@@ -1,3 +1,5 @@
+using Gitunia.Git;
+
 namespace Gitunia.Core.FileTree;
 
 /// <summary>One visible row of the file tree of a commit.</summary>
@@ -10,6 +12,7 @@ namespace Gitunia.Core.FileTree;
 /// <param name="Size">Size of a file in bytes, null for directories and submodules.</param>
 /// <param name="FileCount">Number of files below a directory (all of them, also while it is collapsed); 0 for other
 /// rows.</param>
+/// <param name="Blob">The blob of a file, so its content can be read; null for directories.</param>
 public sealed record FileTreeRow(
     FileTreeRowKind Kind,
     string Path,
@@ -17,4 +20,5 @@ public sealed record FileTreeRow(
     int Depth,
     bool IsExpanded,
     long? Size,
-    int FileCount);
+    int FileCount,
+    ObjectId? Blob = null);

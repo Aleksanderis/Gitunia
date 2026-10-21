@@ -234,6 +234,6 @@ public sealed class FileTreeModel
             _ => FileTreeRowKind.File,
         };
 
-        return new FileTreeRow(kind, file.Path, file.Name, depth, false, entry.Size, 0);
+        return new FileTreeRow(kind, file.Path, file.Name, depth, false, entry.Size, 0, entry.Id);
     }
 }

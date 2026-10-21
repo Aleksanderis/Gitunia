@@ -28,6 +28,7 @@ public static class RangeTextBuilder
     /// <summary>
     /// The diff rows the range touches, one per line with their <c>+</c>, <c>-</c> or space prefix and no gutter. The range is in screen lines;
     /// with word wrap on, a row that wraps over several lines is copied once; side by side, the rows between the first row of the range's first line and the last row of its last line are copied in diff order. Notes and warnings are left out.
+    /// For the content of a file (Files tab) the rows are plain text, without the space prefix.
     /// </summary>
     public static string Diff(DiffListSource source, RowRange range)
     {
@@ -39,7 +40,8 @@ public static class RangeTextBuilder
         {
             if (rows[row].Kind is not (DiffRowKind.Note or DiffRowKind.Warning))
             {
-                builder.Append(DiffTextWriter.Line(rows[row])).Append('\n');
+                var text = source.Document.IsFileContent ? rows[row].Text : DiffTextWriter.Line(rows[row]);
+                builder.Append(text).Append('\n');
             }
         }
 

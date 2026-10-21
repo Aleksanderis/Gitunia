@@ -423,3 +423,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Chips show key plus label (owner, #536): tab-bar remote chips and diff title buttons share one pattern, key text from the keymap; narrow rows drop it first. Cancel chip is `<space>C cancel`. List-title and change-group chips follow in #578. Supersedes #456's label-only chips.
 
 **Process:** User guide (#50, `docs/user-guide.md`) holds a hand-written subset of the keymap and points to `docs/ux.md` for the full table, instead of generating a key reference; a rebinding of a listed key updates both.
+
+## 2026-10-21
+
+**UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.

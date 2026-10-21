@@ -147,7 +147,8 @@ public sealed class EffectRunner : IDisposable
             new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
             new DiffStore(_services.Diff, tab.Location, _postToUi),
             new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
-            new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)));
+            new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
+            new FileContentStore(_services.Blob, tab.Location, _postToUi));
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;

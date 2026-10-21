@@ -6,14 +6,20 @@ namespace Gitunia.Core.Diff;
 /// <param name="FileRows">Row index of every file header, ascending; file <c>n</c> starts at <c>FileRows[n]</c>.</param>
 /// <param name="FilePaths">Per file the paths it is known by (new path, then old path when different), for finding it from the file list.</param>
 /// <param name="MaximumLineNumber">The largest line number in any row, so the gutter can be as wide as it needs to be.</param>
+/// <param name="ContentPath">The path of the file whose content (not a diff) the document shows, null for a
+/// diff.</param>
 public sealed record DiffDocument(
     IReadOnlyList<DiffRow> Rows,
     IReadOnlyList<int> HunkRows,
     IReadOnlyList<int> FileRows,
     IReadOnlyList<IReadOnlyList<string>> FilePaths,
-    int MaximumLineNumber)
+    int MaximumLineNumber,
+    string? ContentPath = null)
 {
     public static DiffDocument Empty { get; } = new([], [], [], [], 0);
+
+    /// <summary>The document shows the content of a file, not a diff.</summary>
+    public bool IsFileContent => ContentPath is not null;
 
     /// <summary>A document of one remark row ("Loading...", an error, "no changes").</summary>
     public static DiffDocument Message(string text) =>

@@ -105,8 +105,24 @@ public static class DiffPaneRenderer
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
-            .Append(" Diff ", pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
-        if (pane.Document.FileRows.Count > 0 && pane.SelectedRow >= 0 && pane.SelectedRow < pane.Document.Rows.Count)
+            .Append(
+                pane.Document.IsFileContent ? " File " : " Diff ",
+                pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
+        if (pane.Document.ContentPath is { } contentPath)
+        {
+            if (pane.Document.MaximumLineNumber > 0)
+            {
+                var count = pane.Document.MaximumLineNumber;
+                var unit = count == 1 ? "line" : "lines";
+                builder.Append($"  {count.ToString(CultureInfo.InvariantCulture)} {unit}", SegmentRole.Faint);
+            }
+
+            AppendWrapMarker(builder, pane);
+            builder.Append($"  {contentPath} ", SegmentRole.Plain);
+        }
+        else if (pane.Document.FileRows.Count > 0
+            && pane.SelectedRow >= 0
+            && pane.SelectedRow < pane.Document.Rows.Count)
         {
             var fileIndex = Math.Max(0, pane.Document.Rows[pane.SelectedRow].FileIndex);
             var hunksBefore = HunksUpTo(pane.Document.HunkRows, pane.SelectedRow);

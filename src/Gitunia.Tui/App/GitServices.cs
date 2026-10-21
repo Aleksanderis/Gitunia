@@ -1,4 +1,5 @@
 using Gitunia.Core;
+using Gitunia.Git.Blobs;
 using Gitunia.Git.Branches;
 using Gitunia.Git.Merge;
 using Gitunia.Git.Rebase;
@@ -35,6 +36,7 @@ namespace Gitunia.Tui.App;
 /// <param name="CommitMessages">Finds commits by their whole message (graph search <c>body:</c>).</param>
 /// <param name="CommitDetails">Reads one commit's details.</param>
 /// <param name="CommitTree">Lists the files of a commit's tree.</param>
+/// <param name="Blob">Reads the content of a file of a commit (Files tab).</param>
 /// <param name="Diff">Reads diffs.</param>
 /// <param name="Refs">Reads HEAD, refs and worktrees.</param>
 /// <param name="Status">Reads the working tree status.</param>
@@ -69,6 +71,7 @@ public sealed record GitServices(
     ICommitMessageSearcher CommitMessages,
     ICommitDetailsReader CommitDetails,
     ICommitTreeReader CommitTree,
+    IBlobReader Blob,
     IDiffReader Diff,
     IRefReader Refs,
     IStatusReader Status,
@@ -123,6 +126,7 @@ public sealed record GitServices(
             new CommitMessageSearcher(runner),
             new CommitDetailsReader(runner),
             new CommitTreeReader(runner),
+            new BlobReader(runner),
             new DiffReader(runner),
             refs,
             status,

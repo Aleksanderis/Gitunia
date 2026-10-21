@@ -67,11 +67,12 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
 
-    /// <summary>The side-by-side view is switched on (it shows only while the pane is wide enough, see <see cref="ShowsSideBySide"/>).</summary>
+    /// <summary>The side-by-side view is switched on (it shows only while the pane is wide enough and shows a diff,
+    /// see <see cref="ShowsSideBySide"/>).</summary>
     public bool IsSideBySide { get; private set; }
 
     /// <summary>Rows are drawn as old and new side by side: switched on and the pane has the <see cref="DiffSplitRenderer.MinimumWidth"/> columns it needs.</summary>
-    public bool ShowsSideBySide => IsSideBySide && Width >= DiffSplitRenderer.MinimumWidth;
+    public bool ShowsSideBySide => IsSideBySide && !Document.IsFileContent && Width >= DiffSplitRenderer.MinimumWidth;
 
     /// <summary>Screen lines: one per row, or fewer or more when side by side or wrapped.</summary>
     public int Count => ShowsSideBySide ? SplitMap().Count : Map()?.Count ?? Document.Rows.Count;
