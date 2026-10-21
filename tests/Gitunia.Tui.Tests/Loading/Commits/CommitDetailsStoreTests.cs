@@ -347,9 +347,9 @@ public class CommitDetailsStoreTests
         var merge = reader.AddMerge("merge", main, side);
         reader.SetFiles(merge, main, "from-main.txt");
         reader.SetFiles(merge, side, "from-side.txt");
-        var failNext = true;
+        var failNext = new StrongBox<bool>(true);
         var blocking = new BlockingFilesReader(reader, (parent, token) =>
-            failNext
+            failNext.Value
                 ? throw new InvalidOperationException("boom")
                 : reader.ReadFilesAsync(FakeCommitDetailsReader.Location, merge, parent, null, token));
         var pump = new UiPump(Token);
@@ -367,7 +367,7 @@ public class CommitDetailsStoreTests
         Assert.Equal(CommitDetailsStatus.Loaded, store.Current.Status);
         Assert.Equal(before.Details, store.Current.Details);
 
-        failNext = false;
+        failNext.Value = false;
         Assert.Equal(1, store.CycleParent());
         await pump.RunUntilAsync(() => store.Current.Details!.ParentIndex == 1);
 
