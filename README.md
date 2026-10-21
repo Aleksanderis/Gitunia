@@ -41,10 +41,10 @@ Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-c
 
 ## Install and first run
 
-Needs `git` on your `PATH`.
+Needs `git` 2.43 or newer on your `PATH`.
 
 - Release archives (linux-x64, win-x64) are built on version tags; unpack and put `gitunia` on your `PATH`. None are published yet.
-- From source: install the .NET SDK pinned in `global.json`, then `dotnet publish src/Gitunia.Tui -c Release -o out` and run `out/gitunia`.
+- From source: install the .NET SDK pinned in `global.json`, then the Native AOT prerequisites (Linux: `clang`, `zlib1g-dev`; Windows: the "Desktop development with C++" workload), then `dotnet publish src/Gitunia.Tui -c Release -o publish` and run `publish/gitunia`. Details: `docs/user-guide.md`.
 
 Then:
 

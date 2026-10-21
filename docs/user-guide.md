@@ -4,18 +4,18 @@ How to install and use Gitunia. The complete key list is the Keymap table in `do
 
 ## Install
 
-Requirements: `git` on your `PATH`, and a terminal with 256 colours or more (Unicode is used when available, with an ASCII fallback).
+Requirements: `git` 2.43 or newer on your `PATH`. Any terminal works; truecolor or 256 colours look best, with a fallback to 16 colours or plain styles (and ASCII when Unicode is missing).
 
 **From a release archive.** Release archives for linux-x64 and win-x64 are attached to the draft releases built on version tags (see `docs/architecture.md`; none are published yet while the project is in development). Unpack the archive and put the `gitunia` binary (`gitunia.exe` on Windows) on your `PATH`. The `.sha256` file next to the archive lets you check the download.
 
-**From source.** Install the .NET SDK version pinned in `global.json` (.NET 10), then from the repository root:
+**From source.** Install the .NET SDK version pinned in `global.json` (.NET 10) and the Native AOT build prerequisites (Linux: `clang` and the zlib development headers, e.g. `zlib1g-dev`; Windows: the Visual Studio "Desktop development with C++" workload). Then from the repository root:
 
 ```
-dotnet publish src/Gitunia.Tui -c Release -o out
-./out/gitunia
+dotnet publish src/Gitunia.Tui -c Release -o publish
+./publish/gitunia
 ```
 
-The publish produces a single Native AOT binary; copy it anywhere on your `PATH`. `dotnet build` and `dotnet test` run the build and the tests.
+The publish produces a single Native AOT binary (`gitunia.exe` on Windows); copy it anywhere on your `PATH`. `dotnet build` and `dotnet test` run the build and the tests.
 
 ## Start and open a repository
 
@@ -42,7 +42,7 @@ Gitunia is modal and vim-style. Normal mode navigates and runs chords; `<space>`
 | `Esc` | Cancel a chord, a search or Insert mode |
 | `q` | Close an overlay, else quit |
 
-Frequent actions (`<space>` first):
+Frequent actions (`<space>` first). Branch, merge, rebase, reset and reflog chords work from the graph and the sidebar, `Sa` `Sp` act on the stash selected in the sidebar, the stage chords in the working-tree view:
 
 | Keys | Does |
 |---|---|
@@ -69,7 +69,7 @@ The actions menu and the palette reach every action without remembering a chord,
 - **Branches, tags, worktrees, stashes.** Select the branch, tag, worktree or stash in the sidebar (or a commit in the graph) and use the `<space>b`, `<space>T`, `<space>w` and `<space>S` chords, or open the actions menu with `<space>.`.
 - **Rebase interactively.** `<space>gi` opens the todo editor: `p r s f d` set the action, `K` / `J` move the commit, `Enter` starts after a confirmation.
 - **Operation in progress.** A merge, rebase, cherry-pick or revert shows a banner; `<space>gc` continues, `<space>ga` aborts, `<space>gk` skips.
-- **Undo.** Destructive actions ask for a confirmation that names the undo. The reflog (`<space>l`) lets you check out or reset to an earlier state of HEAD or a branch.
+- **Undo.** Destructive actions ask for a confirmation that names the undo where one exists (discarding changes cannot be undone). The reflog (`<space>l`) lets you check out or reset to an earlier state of HEAD or a branch.
 
 ## Configuration
 
@@ -81,7 +81,9 @@ Remap a key by adding an entry to `keys`:
 { "keys": [ { "view": "Graph", "key": "J", "action": "list.down" } ] }
 ```
 
-Gitunia uses your own git configuration, hooks, credential helpers and editor; it never writes to a repository's config on its own.
+Gitunia uses your own git configuration, hooks, credential helpers and editor; it changes a repository's config only when you ask (upstream, remotes, clone).
+
+This guide keeps a hand-written subset of the Keymap in `docs/ux.md`; when you rebind a key listed here, update both.
 
 ## Not in the MVP
 
