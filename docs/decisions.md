@@ -414,8 +414,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The terminal retry of #45 also covers the remote branch delete and the tag push and remote tag delete (#512): same Confirm, arguments built in `RemoteCommands` next to the writer.
 
-**UI:** The diff pane shows one file at a time (#537); `]c`/`[c` stop at its ends, `]f`/`[f` and the file buttons move the file list cursor, the diff follows. Reverses PR #567 dropping file switching and the no-file-buttons part of #310; details in ux.md 1c.
-
 **UI:** Bare-key exception for modal lists (owner, #549): the settings screen's `x` `a` `d` `J` `K` `+` `-` (#523) and the rebase editor's `p` `r` `s` `f` `d` `J` `K` (#458) stay bare, because a modal list is not a buffer and no vim normal-mode command applies there. Supersedes the #335 rule for these two views only; every other view keeps the rule.
 
 **UI:** Files tab shows file content (owner, #511): `Enter` on a file opens the blob read-only in the diff pane's place (size cap, binary notice). Supersedes the "listing only" scope; implementation is #511.
@@ -429,3 +427,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.
 
 **UI:** Merge parent switch (#497): `<space>vp` cycles a merge commit's parent for the Changes list and the diff; per selected commit, first parent stays the default, `--cc` still not offered, difftool stays first-parent. Details: `ux.md` Changes tab.
+
+**UI:** The diff pane shows one file at a time (#537); `]c`/`[c` stop at its ends, `]f`/`[f` and the file buttons move the file list cursor, the diff follows. Reverses PR #567 dropping file switching and the no-file-buttons part of #310; details in ux.md 1c.

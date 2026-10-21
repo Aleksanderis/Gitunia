@@ -125,6 +125,19 @@ public class FileContentViewTests
     }
 
     [Fact]
+    public async Task GivenAnOpenFile_WhenJumpingToTheNextFile_ThenNothingMovesAndNoFileWaitsToBeShown()
+    {
+        using var harness = await Harness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var document = harness.Session.Diff!.Source.Document;
+
+        harness.Execute(ActionIds.DiffNextFile);
+
+        Assert.Same(document, harness.Session.Diff.Source.Document);
+        Assert.Null(harness.Session.Diff.PendingFilePath);
+    }
+
+    [Fact]
     public async Task GivenAnOpenFile_WhenAnotherCommitIsSelected_ThenTheContentCloses()
     {
         using var harness = await Harness.LoadAsync();

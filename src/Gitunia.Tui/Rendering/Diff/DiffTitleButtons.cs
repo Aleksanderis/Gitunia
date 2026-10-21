@@ -79,9 +79,20 @@ public static class DiffTitleButtons
     {
         var chosen = new List<ButtonSpecification>();
         var used = 0;
-        foreach (var candidate in Prioritized(staging))
+        var candidates = Prioritized(staging).ToList();
+        for (var index = 0; index < candidates.Count; index++)
         {
+            var candidate = candidates[index];
             var needed = TextWidth.Of(candidate.Label) + (chosen.Count > 0 ? 1 : 0);
+
+            // The file buttons come and go as a pair: a lone "file ›" would offer no way back.
+            if (candidate.View == DefaultMouseMap.DiffNextFileButton
+                && width - 2 - used - (needed + 1 + TextWidth.Of(candidates[index + 1].Label)) < MinimumTitleWidth)
+            {
+                index++;
+                continue;
+            }
+
             if (width - 2 - used - needed < MinimumTitleWidth)
             {
                 break;

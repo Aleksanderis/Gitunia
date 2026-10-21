@@ -36,11 +36,11 @@ public class DiffTitleButtonsTests
     }
 
     [Fact]
-    public void GivenATypicalPaneWidth_WhenLayingOut_ThenTheFileAndHunkButtonsStayAheadOfTheOptionButtons()
+    public void GivenATypicalPaneWidth_WhenLayingOut_ThenTheFileButtonsAreDroppedTogetherAndTheOptionsStay()
     {
         var buttons = DiffTitleButtons.Layout(80);
 
-        Assert.Equal([" file › ", " ‹ hunk ", " hunk › ", " wrap ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal([" ‹ hunk ", " hunk › ", " -w ", " split ", " wrap ", " zoom "], buttons.Select(button => button.Label));
     }
 
     [Fact]

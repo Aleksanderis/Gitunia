@@ -515,6 +515,12 @@ public sealed class DiffPaneController : IPromptHandler
     // cursor follows, so the list and the diff stay on the same file. Past the first or last file nothing moves.
     private void MoveToFile(DiffSession diff, bool forward, int count)
     {
+        if (diff.IsShowingContent)
+        {
+            Notice = "A file's content has no other files to jump to";
+            return;
+        }
+
         var full = diff.ShownFull;
         var target = full is null || diff.ShownFile < 0
             ? -1

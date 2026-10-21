@@ -53,7 +53,7 @@ public sealed class DiffDocumentBuilder
         {
             if (!isFirstHunk)
             {
-                // A blank row between hunks (an empty note, which staging, copy and search treat as no content).
+                // A blank row between hunks (an empty note, which staging and range copy skip).
                 _rows.Add(Note(string.Empty, fileIndex));
             }
 
