@@ -25,13 +25,30 @@ public sealed class CommitDetailsReader : ICommitDetailsReader
         }
 
         var firstParent = details.Parents.Count > 0 ? details.Parents[0] : (ObjectId?)null;
-        var files = await _runner.RunAsync(location.CommandPath, CommitDetailsFormat.FileArguments(id, firstParent), GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
+        var changes = await ReadFilesAsync(location, id, firstParent, collected, cancellationToken)
+            .ConfigureAwait(false);
+
+        return details with { Files = changes };
+    }
+
+    public async Task<IReadOnlyList<CommitFileChange>> ReadFilesAsync(
+        RepositoryLocation location,
+        ObjectId id,
+        ObjectId? parent,
+        ICollection<string>? warnings = null,
+        CancellationToken cancellationToken = default)
+    {
+        var files = await _runner.RunAsync(
+            location.CommandPath,
+            CommitDetailsFormat.FileArguments(id, parent),
+            GitRunOptions.ReadOnlyRun,
+            cancellationToken).ConfigureAwait(false);
         var changes = CommitFileChangeParser.Parse(files.StandardOutput);
         foreach (var warning in changes.Warnings)
         {
-            collected.Add(warning);
+            warnings?.Add(warning);
         }
 
-        return details with { Files = changes.Items };
+        return changes.Items;
     }
 }

@@ -43,6 +43,19 @@ public class RepositoryCreationActionsTests
     }
 
     [Fact]
+    public void GivenAPastedUrl_WhenInTheClonePrompt_ThenItIsInsertedAndALineBreakDoesNotSubmit()
+    {
+        using var repository = TestRepositories.WithOrigin();
+        using var harness = Harness.For(repository);
+
+        harness.Run(ActionIds.PickerClone);
+        harness.Paste(repository.OriginPath + "\r\n");
+
+        Assert.Contains($"> {repository.OriginPath}_", PopupText.Of(harness.Actions), StringComparison.Ordinal);
+        Assert.Contains("URL or path", PopupText.Of(harness.Actions), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenASourceName_WhenAskingForTheDirectory_ThenItIsPrefilledWithTheRepositoryName()
     {
         using var repository = TestRepositories.WithOrigin();
@@ -418,6 +431,14 @@ public class RepositoryCreationActionsTests
             foreach (var character in text)
             {
                 Assert.True(Actions.HandleTextKey(new KeyEvent(character.ToString())));
+            }
+        }
+
+        public void Paste(string text)
+        {
+            foreach (var key in PasteKeys.FromText(text, multiLine: false))
+            {
+                Assert.True(Actions.HandleTextKey(key));
             }
         }
 

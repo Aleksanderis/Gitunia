@@ -74,6 +74,18 @@ public class DetailContentBuilderTests
     }
 
     [Fact]
+    public void GivenMergeSwitchedToTheSecondParent_WhenBuildingChanges_ThenHeadingNamesThatParent()
+    {
+        var entry = Entry();
+        var merge = Details("merge") with { Parents = [CommitFactory.Id(1), CommitFactory.Id(3)], ParentIndex = 1 };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, merge, string.Empty);
+
+        var lines = Lines(DetailContentBuilder.Build(entry, state, BottomTab.Changes));
+
+        Assert.Equal($"no files changed (merge: against parent 2 {CommitFactory.Id(3).ToString()[..7]})", lines[0]);
+    }
+
+    [Fact]
     public void GivenNoSelection_WhenBuilding_ThenContentIsEmpty()
     {
         var content = DetailContentBuilder.Build(null, CommitDetailsState.Empty, BottomTab.Files);

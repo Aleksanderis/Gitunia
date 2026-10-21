@@ -23,6 +23,12 @@ public sealed record CommitDetails(
     string Message,
     IReadOnlyList<CommitFileChange> Files)
 {
+    /// <summary>
+    /// Index in <see cref="Parents"/> of the parent <see cref="Files"/> are against: 0 (the first parent) unless
+    /// switched a merge commit to another parent.
+    /// </summary>
+    public int ParentIndex { get; init; }
+
     /// <summary>The first line of the message.</summary>
     public string Subject
     {

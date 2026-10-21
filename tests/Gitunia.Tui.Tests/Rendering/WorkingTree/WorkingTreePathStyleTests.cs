@@ -124,7 +124,7 @@ public class WorkingTreePathStyleTests
         var chip = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Unstaged, "Unstaged 12", 60, null)!;
 
         Assert.Equal(DefaultMouseMap.ListPathStyleButton, chip.View);
-        Assert.Equal(" <space>vp path ", chip.Label);
+        Assert.Equal(" <space>vn path ", chip.Label);
         Assert.Equal(stage.Start - 1, chip.Start + chip.Width);
     }
 
@@ -151,7 +151,7 @@ public class WorkingTreePathStyleTests
     [InlineData(DefaultKeymap.WorkingStagedView)]
     public void GivenTheListChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle(string view)
     {
-        Assert.Equal("<space>vp", ChipKeys.Default.For(DefaultMouseMap.ListPathStyleButton, view));
+        Assert.Equal("<space>vn", ChipKeys.Default.For(DefaultMouseMap.ListPathStyleButton, view));
     }
 
     [Theory]
@@ -159,7 +159,7 @@ public class WorkingTreePathStyleTests
     [InlineData(DefaultKeymap.GraphView)]
     public void GivenTheDetailChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle(string view)
     {
-        Assert.Equal("<space>vp", ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, view));
+        Assert.Equal("<space>vn", ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, view));
     }
 
     [Fact]

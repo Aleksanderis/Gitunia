@@ -66,8 +66,10 @@ public static class DetailPaneRenderer
         return builder.BuildRule(glyphs.Horizontal);
     }
 
-    /// <summary>The path-style chip at the right end of the title row, or null when the Changes tab is not selected or the row
-    /// has no room.</summary>
+    /// <summary>
+    /// The path-style chip at the right end of the title row, or null when the Changes tab is not selected or the row
+    /// has no room.
+    /// </summary>
     /// <param name="content">The rows and the selected tab.</param>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="glyphs">The glyph set.</param>

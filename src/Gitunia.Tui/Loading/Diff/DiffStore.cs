@@ -39,6 +39,7 @@ public sealed class DiffStore(
     private CancellationTokenSource? _prefetching;
     private IReadOnlyList<ObjectId> _wanted = [];
     private ObjectId? _firstParent;
+    private bool _isAlternateParent;
     private bool _isUnlimited;
     private bool _isReleased;
 
@@ -62,10 +63,18 @@ public sealed class DiffStore(
     /// <param name="commit">The commit.</param>
     /// <param name="firstParent">The first parent to compare against, null for a root commit.</param>
     /// <param name="prefetch">Commits likely to be selected next, most likely first; their diffs are read in the background into the cache once this one is shown. Null or empty prefetches nothing.</param>
+    /// <param name="isAlternateParent">
+    /// <paramref name="firstParent"/> is a later parent of a merge commit the user switched to: the diff is neither
+    /// read from nor added to the cache, which holds the first-parent diff of each commit.
+    /// </param>
     /// <returns>True when a load was started or the diff came from the cache.</returns>
-    public bool Load(ObjectId commit, ObjectId? firstParent, IReadOnlyList<ObjectId>? prefetch = null)
+    public bool Load(
+        ObjectId commit,
+        ObjectId? firstParent,
+        IReadOnlyList<ObjectId>? prefetch = null,
+        bool isAlternateParent = false)
     {
-        if (Commit == commit && Status != DiffStatus.Failed)
+        if (IsShowing(commit, firstParent) && Status != DiffStatus.Failed)
         {
             return false;
         }
@@ -73,7 +82,8 @@ public sealed class DiffStore(
         _isUnlimited = false;
         _isReleased = false;
         _wanted = prefetch ?? [];
-        if (_cache.TryGet(commit, out var known))
+        _isAlternateParent = isAlternateParent;
+        if (!isAlternateParent && _cache.TryGet(commit, out var known))
         {
             CancelPending();
             CancelPrefetch();
@@ -90,6 +100,9 @@ public sealed class DiffStore(
         Start(commit, firstParent);
         return true;
     }
+
+    /// <summary>The diff of <paramref name="commit"/> against <paramref name="parent"/> is shown or loading.</summary>
+    public bool IsShowing(ObjectId commit, ObjectId? parent) => Commit == commit && _firstParent == parent;
 
     /// <summary>How diffs are read (context, whole files, whitespace); changed with <see cref="SetOptions"/>.</summary>
     public DiffOptions Options { get; private set; } = DiffOptions.Default;
@@ -157,6 +170,7 @@ public sealed class DiffStore(
         _wanted = [];
         Commit = null;
         _firstParent = null;
+        _isAlternateParent = false;
         IsCut = false;
         Status = DiffStatus.None;
         Document = DiffDocument.Empty;
@@ -311,7 +325,7 @@ public sealed class DiffStore(
             Status = DiffStatus.Loaded;
             IsCut = isCut;
             Document = Present(document);
-            if (!isCut && !_isReleased)
+            if (!isCut && !_isReleased && !_isAlternateParent)
             {
                 _cache.Add(commit, document);
             }

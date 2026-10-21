@@ -21,6 +21,8 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
     public KeyMode Mode => _state.Mode;
 
+    private bool IsTextMode => _state.Mode is KeyMode.Insert or KeyMode.Command;
+
     /// <summary>
     /// Gets the keys typed in Insert or Command mode that the keymap does not bind (printable text, <c>Backspace</c>,
     /// <c>Ctrl-u</c> ...); returns true when it consumed the key.
@@ -45,11 +47,43 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
     /// <returns>True when the key was consumed; false lets the focused widget have it.</returns>
     public bool Handle(Key key, string view)
     {
-        if (!KeyTranslator.TryTranslate(key, out var keyEvent))
+        return KeyTranslator.TryTranslate(key, out var keyEvent) && Handle(keyEvent, view);
+    }
+
+    /// <summary>
+    /// Types a bracketed paste, key by key, while Insert or Command mode lasts: it stops as soon as a key leaves the
+    /// text mode (a quick jump that matched, an accepted prompt), so the rest never runs as Normal-mode keys.
+    /// </summary>
+    /// <param name="text">The pasted text.</param>
+    /// <param name="multiLine">True when a message editor owns the input and keeps line breaks.</param>
+    /// <param name="view">The focused view's name in the keymap, asked for every key (an overlay may close).</param>
+    /// <returns>True when the paste was taken (the mode was a text mode when it arrived).</returns>
+    public bool Paste(string text, bool multiLine, Func<string> view)
+    {
+        if (!IsTextMode)
         {
             return false;
         }
 
+        foreach (var key in PasteKeys.FromText(text, multiLine))
+        {
+            if (!IsTextMode)
+            {
+                break;
+            }
+
+            Handle(key, view());
+        }
+
+        return true;
+    }
+
+    /// <summary>Feeds an already translated key (a pasted character, see <see cref="PasteKeys"/>).</summary>
+    /// <param name="keyEvent">The key.</param>
+    /// <param name="view">The focused view's name in the keymap.</param>
+    /// <returns>True when the key was consumed.</returns>
+    public bool Handle(KeyEvent keyEvent, string view)
+    {
         var result = engine.Process(_state, keyEvent, view);
         _state = result.State;
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })

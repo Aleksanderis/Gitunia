@@ -108,10 +108,10 @@ public class DetailPathStyleTests
         var line = DetailPaneRenderer.RenderTitle(content, true, 100, GraphGlyphSet.Unicode);
 
         Assert.Equal(100, TextWidth.Of(line.Text));
-        Assert.Contains(" <space>vp path ", line.Text, StringComparison.Ordinal);
+        Assert.Contains(" <space>vn path ", line.Text, StringComparison.Ordinal);
         Assert.Contains(
             line.Segments,
-            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "<space>vp");
+            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "<space>vn");
         var button = DetailPaneRenderer.PathStyleButton(content, 100, GraphGlyphSet.Unicode);
         Assert.Equal(DefaultMouseMap.DetailPathStyleButton, button!.View);
         Assert.Equal(98, button.Start + button.Width);
@@ -144,7 +144,7 @@ public class DetailPathStyleTests
     {
         var line = DetailPaneRenderer.RenderTitle(NameFirst(Deep), true, 100, GraphGlyphSet.Ascii);
 
-        Assert.Contains("[<space>vp path]", line.Text, StringComparison.Ordinal);
+        Assert.Contains("[<space>vn path]", line.Text, StringComparison.Ordinal);
     }
 
     private static StyledLine Render(DetailContent content, int row, int width) =>
