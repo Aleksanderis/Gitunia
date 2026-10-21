@@ -1,6 +1,7 @@
 using System.Globalization;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -56,13 +57,22 @@ public static class WorkingTreePaneRenderer
     /// <param name="isSelected">The row is the cursor of its list.</param>
     /// <param name="glyphs">The character set.</param>
     /// <param name="jump">The quick-jump label of the row, null for none.</param>
-    public static StyledLine RenderRow(WorkingTreeState? tree, WorkingTreeSection section, int item, int width, bool isSelected, GraphGlyphSet glyphs, JumpLabel? jump = null)
+    /// <param name="pathStyle">How a file row shows its path.</param>
+    public static StyledLine RenderRow(
+        WorkingTreeState? tree,
+        WorkingTreeSection section,
+        int item,
+        int width,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump = null,
+        FilePathStyle pathStyle = FilePathStyle.FullPath)
     {
         var count = Count(tree, section);
         if (tree is not null && item >= 0 && item < count)
         {
             var entries = section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged;
-            return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs, jump);
+            return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs, jump, pathStyle);
         }
 
         var builder = new LineBuilder(width, glyphs.Ellipsis);
@@ -102,6 +112,7 @@ public static class WorkingTreePaneRenderer
     /// <param name="hasCursor">The list holds the selection, so its row is highlighted.</param>
     /// <param name="padding">Blank columns on each side.</param>
     /// <param name="glyphs">The character set.</param>
+    /// <param name="pathStyle">How a file row shows its path.</param>
     public static IReadOnlyList<StyledLine> ListLines(
         WorkingTreeState? tree,
         WorkingTreeSection section,
@@ -109,7 +120,8 @@ public static class WorkingTreePaneRenderer
         int top,
         bool hasCursor,
         int padding,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        FilePathStyle pathStyle = FilePathStyle.FullPath)
     {
         var width = PanePadding.TextWidth(rect.Width, padding);
         var cursor = hasCursor && tree?.Selection is { } selection && selection.Section == section ? selection.Index : -1;
@@ -117,7 +129,8 @@ public static class WorkingTreePaneRenderer
         for (var offset = 0; offset < rect.Height; offset++)
         {
             var item = top + offset;
-            lines.Add(PanePadding.Wrap(RenderRow(tree, section, item, width, item == cursor, glyphs), padding));
+            var row = RenderRow(tree, section, item, width, item == cursor, glyphs, null, pathStyle);
+            lines.Add(PanePadding.Wrap(row, padding));
         }
 
         return lines;

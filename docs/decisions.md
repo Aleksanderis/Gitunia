@@ -428,6 +428,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The file content view (#511) lives in the diff pane and belongs to the commit and tab it was opened on; it closes when either changes. Details: `ux.md` 1c item 11.
 
+**UI:** File paths in the Changes tab and the working-tree lists (owner, #540): a per-tab view chip and key (`<space>vn`, not saved) switches between name first with the directory dimmed after it (default, directory cut from the left first) and the full path. Not a setting; the tree style is M5. Details: `ux.md` (Changes tab).
+
 **UI:** Merge parent switch (#497): `<space>vp` cycles a merge commit's parent for the Changes list and the diff; per selected commit, first parent stays the default, `--cc` still not offered, difftool stays first-parent. Details: `ux.md` Changes tab.
 
 **UI:** A bracketed paste (Terminal.Gui's `Paste` event) is replayed key by key through the keymap in Insert and Command mode, so every text input takes it like typing (#575). Single-line inputs turn line breaks into one space and drop them at the ends, so a paste never submits; message editors keep them as new lines. Details: `ux.md` Modes.

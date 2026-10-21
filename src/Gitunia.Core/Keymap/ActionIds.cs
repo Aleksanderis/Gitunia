@@ -33,6 +33,8 @@ public static class ActionIds
 
     public static ActionId DetailTabFiles { get; } = new("detail.tab-files");
 
+    public static ActionId FilesTogglePathStyle { get; } = new("files.toggle-path-style");
+
     public static ActionId DiffCopyFile { get; } = new("diff.copy-file");
 
     public static ActionId DiffCopyLine { get; } = new("diff.copy-line");

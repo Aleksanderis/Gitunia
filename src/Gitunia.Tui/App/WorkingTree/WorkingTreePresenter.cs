@@ -2,6 +2,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Views;
 
@@ -40,6 +41,9 @@ public sealed class WorkingTreePresenter
         _isSyncing = true;
         try
         {
+            var pathStyle = tab?.View.PathStyle ?? FilePathStyle.NameFirst;
+            _view.UnstagedSource.SetPathStyle(pathStyle);
+            _view.StagedSource.SetPathStyle(pathStyle);
             _view.UnstagedSource.Update(tab?.WorkingTree);
             _view.StagedSource.Update(tab?.WorkingTree);
             _view.ShowWorkingTree(isShown);

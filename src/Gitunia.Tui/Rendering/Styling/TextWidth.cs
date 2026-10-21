@@ -48,4 +48,44 @@ public static class TextWidth
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// The end of <paramref name="text"/> that fits <paramref name="columns"/>, led by <paramref name="ellipsis"/>
+    /// when something
+    /// was cut off the start. A wide character is never split and the cut never leaves a lone combining mark at the
+    /// start.
+    /// </summary>
+    public static string FitStart(string text, int columns, string ellipsis)
+    {
+        if (columns <= 0)
+        {
+            return string.Empty;
+        }
+
+        if (Of(text) <= columns)
+        {
+            return text;
+        }
+
+        var limit = Math.Max(0, columns - Of(ellipsis));
+        var kept = new List<Rune>();
+        var width = 0;
+        foreach (var rune in text.EnumerateRunes().Reverse())
+        {
+            var runeWidth = Of(rune);
+            if (width + runeWidth > limit)
+            {
+                break;
+            }
+
+            kept.Add(rune);
+            width += runeWidth;
+        }
+
+        kept.Reverse();
+        var start = kept.FindIndex(rune => Of(rune) > 0);
+        var tail = start < 0 ? string.Empty : string.Concat(kept.Skip(start));
+
+        return columns >= Of(ellipsis) ? $"{ellipsis}{tail}" : tail;
+    }
 }

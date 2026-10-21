@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.WorkingTree;
@@ -16,6 +17,7 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
 {
     private readonly JumpLabelCache _jump = new();
     private WorkingTreeState? _tree;
+    private FilePathStyle _pathStyle = FilePathStyle.NameFirst;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -38,6 +40,9 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         get => _jump.Text;
         set => _jump.Text = value;
     }
+
+    /// <summary>How the rows show their paths; set from the tab's view state.</summary>
+    public FilePathStyle PathStyle => _pathStyle;
 
     public RowRange? Range { get; set; }
 
@@ -63,6 +68,25 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         return true;
     }
 
+    /// <summary>Shows the rows in another path style. Returns true when the style changed.</summary>
+    /// <param name="style">The style of the active tab.</param>
+    public bool SetPathStyle(FilePathStyle style)
+    {
+        if (style == _pathStyle)
+        {
+            return false;
+        }
+
+        _pathStyle = style;
+        _jump.Invalidate();
+        if (!SuspendCollectionChangedEvent)
+        {
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
+
+        return true;
+    }
+
     /// <summary>The quick-jump targets of <paramref name="text"/> among the files in view of <paramref name="listView"/>, nearest the cursor first.</summary>
     /// <param name="listView">The list this source is shown in.</param>
     /// <param name="text">The typed text.</param>
@@ -71,7 +95,11 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
         var width = PanePadding.TextWidth(listView.Viewport.Width, ScreenPadding.Columns(listView));
         var window = new JumpWindow(listView.Viewport.Y, listView.Viewport.Height, listView.SelectedItem ?? 0);
 
-        return _jump.Labels(text, window, width, () => new WorkingTreeJumpRows(_tree, section, width, glyphs.Ellipsis));
+        return _jump.Labels(
+            text,
+            window,
+            width,
+            () => new WorkingTreeJumpRows(_tree, section, width, glyphs.Ellipsis, _pathStyle));
     }
 
     public bool IsMarked(int item) => false;
@@ -86,7 +114,16 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     {
         var padding = ScreenPadding.Columns(listView);
         var textWidth = PanePadding.TextWidth(width, padding);
-        var line = WorkingTreePaneRenderer.RenderRow(_tree, section, item, textWidth, selected || Range?.Contains(item) == true, glyphs, JumpLabelOf(listView, item));
+        var isSelected = selected || Range?.Contains(item) == true;
+        var line = WorkingTreePaneRenderer.RenderRow(
+            _tree,
+            section,
+            item,
+            textWidth,
+            isSelected,
+            glyphs,
+            JumpLabelOf(listView, item),
+            _pathStyle);
         LinePainter.Paint(listView, PanePadding.Wrap(line, padding), col, row, listView.HasFocus);
     }
 

@@ -239,6 +239,11 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         if (DetailTabs?.TryExecute(action) == true)
         {
+            if (DetailTabs.Notice.Length > 0)
+            {
+                Message = DetailTabs.Notice;
+            }
+
             return;
         }
 

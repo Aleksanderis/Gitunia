@@ -369,6 +369,21 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
+    public void GivenATab_WhenTogglingThePathStyle_ThenOnlyThatTabSwitchesBetweenNameFirstAndFullPath()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta");
+        var alpha = IdOf(workspace, "alpha");
+        Assert.Equal(FilePathStyle.NameFirst, workspace.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
+
+        var toggled = WorkspaceReducer.Reduce(workspace, new TabCommand(alpha, new TogglePathStyleCommand())).Workspace;
+        var back = WorkspaceReducer.Reduce(toggled, new TabCommand(alpha, new TogglePathStyleCommand())).Workspace;
+
+        Assert.Equal(FilePathStyle.FullPath, toggled.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
+        Assert.Equal(FilePathStyle.NameFirst, toggled.Tabs.Single(tab => tab.Id != alpha).View.PathStyle);
+        Assert.Equal(FilePathStyle.NameFirst, back.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
+    }
+
+    [Fact]
     public void GivenTabWithViewState_WhenSwitchingWorktree_ThenLocationChangesViewStaysAndOldStatusGoes()
     {
         var workspace = Open(Workspace.Empty, "alpha");
