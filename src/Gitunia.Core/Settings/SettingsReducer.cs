@@ -395,7 +395,8 @@ public static class SettingsReducer
         var expanded = Normalize(typed, environment);
         if (!Path.IsPathFullyQualified(expanded))
         {
-            return $"\"{typed}\" is not an absolute path (start it with ~ or /)";
+            var starts = OperatingSystem.IsWindows() ? @"~ or C:\" : "~ or /";
+            return $"\"{typed}\" is not an absolute path (start it with {starts})";
         }
 
         if (!environment.DirectoryExists(expanded))
