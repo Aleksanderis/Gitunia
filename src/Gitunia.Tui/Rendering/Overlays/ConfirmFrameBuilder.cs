@@ -11,7 +11,8 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class ConfirmFrameBuilder
 {
-    private const int MaximumWidth = 64;
+    private const int MaximumWidth = 96;
+    private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
     private const int AnswerRows = 2;
     private const string YesKey = "y";
@@ -22,7 +23,8 @@ public static class ConfirmFrameBuilder
     /// <summary>The dialog for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(ConfirmPrompt prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var widest = prompt.Lines.Append(prompt.Consequence).Select(TextWidth.Of).DefaultIfEmpty(0).Max();
+        var width = OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;

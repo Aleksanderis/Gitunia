@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>Lays out the help overlay: the keys of the focused view, one section per view in its inheritance chain, scrollable.</summary>
 public static class HelpFrameBuilder
 {
-    private const int MaximumWidth = 64;
+    private const int MaximumWidth = 96;
     private const int MaximumKeysWidth = 20;
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;

@@ -110,4 +110,16 @@ public class PromptPopupFrameBuilderTests
         Assert.False(first.SameText(typed));
         Assert.False(first.SameText(null));
     }
+
+    [Fact]
+    public void GivenAWideScreenAndALongContext_WhenBuilding_ThenTheContextIsNotWrapped()
+    {
+        var context = "Create a branch from the commit abc1234 and check it out in the linked worktree afterwards";
+        var prompt = PromptPopup.ForText("New branch", context, "feat", "create");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains(context, StringComparison.Ordinal));
+        Assert.True(frame.Width > 64 && frame.Width <= 96);
+    }
 }

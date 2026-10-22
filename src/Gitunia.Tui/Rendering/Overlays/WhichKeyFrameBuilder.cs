@@ -8,7 +8,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>Lays out the which-key popup: the keys that can follow the pending prefix, docked above the status bar.</summary>
 public static class WhichKeyFrameBuilder
 {
-    private const int MaximumWidth = 56;
+    private const int MaximumWidth = 96;
     private const int ChromeRows = 2;
     private const int ScreenMargin = 1;
     private const int KeyGap = 2;

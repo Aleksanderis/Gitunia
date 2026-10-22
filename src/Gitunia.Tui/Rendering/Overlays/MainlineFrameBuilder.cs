@@ -12,7 +12,9 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class MainlineFrameBuilder
 {
-    private const int MaximumWidth = 72;
+    private const int MaximumWidth = 96;
+    private const int MinimumPopupWidth = 72;
+    private const int UnavailableSuffixWidth = 16;
     private const int ScreenMargin = 2;
     private const string Hint = "Esc or a click outside cancels";
 
@@ -25,7 +27,8 @@ public static class MainlineFrameBuilder
         GraphGlyphSet glyphs,
         int usableParents)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var widest = parents.Select(TextWidth.Of).DefaultIfEmpty(0).Max();
+        var width = OverlayBox.FitWidth(widest + UnavailableSuffixWidth, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
         var height = parents.Count + 3;
         if (width < OverlayBox.MinimumWidth || height > screenHeight - ScreenMargin)
         {
