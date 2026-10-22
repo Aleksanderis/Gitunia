@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure a Gitunia-style TUI binary inside a private tmux server (Linux/macOS, bash >= 5, tmux).
+# Measure a Gitunia-style TUI binary inside a private tmux server (Linux/macOS, bash >= 5, tmux; Windows: measure.ps1).
 # Contract the binary must meet is documented in docs/testing.md ("Measurement harness").
 #
 # Usage: scripts/measure.sh <binary> <repo> [options]
