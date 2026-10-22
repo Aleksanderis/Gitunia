@@ -88,13 +88,7 @@ public static class DiffPaneRenderer
         var segments = new List<StyledSegment>(text.Segments) { new(glyphs.Horizontal.ToString(), SegmentRole.Rule) };
         foreach (var button in buttons)
         {
-            segments.AddRange(ChipSegments.Split(
-                ButtonLabel.For(button.Label, glyphs.IsAscii),
-                button.KeyLength,
-                SegmentRole.RepositoryTab,
-                SegmentRole.RepositoryTab,
-                SegmentRole.RepositoryTabKey,
-                SegmentRole.RepositoryTab));
+            segments.AddRange(KeyedChip.Segments(button, glyphs));
             segments.Add(new StyledSegment(glyphs.Horizontal.ToString(), SegmentRole.Rule));
         }
 

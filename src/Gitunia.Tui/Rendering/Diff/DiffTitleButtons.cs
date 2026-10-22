@@ -119,16 +119,16 @@ public static class DiffTitleButtons
         return buttons;
     }
 
-    private static string KeyViewOf(WorkingTreeButtons staging) => staging switch
+    /// <summary>The keymap view the buttons of a diff on <paramref name="staging"/> take their keys from.</summary>
+    public static string KeyViewOf(WorkingTreeButtons staging) => staging switch
     {
         WorkingTreeButtons.Unstaged => DefaultKeymap.WorkingUnstagedDiffView,
         WorkingTreeButtons.Staged => DefaultKeymap.WorkingStagedDiffView,
         _ => DefaultKeymap.DiffView,
     };
 
-    private static TitleButton WithKey(ButtonSpecification button, string? key) => key is null
-        ? new TitleButton(button.View, button.Label, 0)
-        : new TitleButton(button.View, $" {key} {button.Label.Trim()} ", 0, key.Length);
+    private static TitleButton WithKey(ButtonSpecification button, string? key) =>
+        KeyedChip.Keyed(button.View, button.Label, key);
 
     private static string PlainLabel(List<ButtonSpecification> chosen, string view) =>
         chosen.First(button => button.View == view).Label;
