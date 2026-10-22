@@ -3,9 +3,10 @@ using Gitunia.Git.Execution;
 namespace Gitunia.Git.Tests.Fixtures;
 
 /// <summary>
-/// A <see cref="GitRunner"/> for tests that run production git code on a <see cref="TestRepository"/>: the user's and runner's
-/// global and system git config is replaced by one with neutral defaults, so settings like <c>core.autocrlf=true</c> cannot
-/// change what is written. A test can still override a default in the repository config.
+/// A <see cref="GitRunner"/> for tests that run production git code on a <see cref="TestRepository"/>: the user's and
+/// runner's global and system git config is replaced by one with neutral defaults, so settings like
+/// <c>core.autocrlf=true</c> cannot change what is written.
+/// A test can still override a default in the repository config.
 /// </summary>
 public static class IsolatedGit
 {
