@@ -434,4 +434,6 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** The diff pane shows one file at a time (#537); `]c`/`[c` stop at its ends, `]f`/`[f` and the file buttons move the file list cursor, the diff follows. Reverses PR #567 dropping file switching and the no-file-buttons part of #310; details in ux.md 1c.
 
+**UI:** File content rows (#580): one line number column and no marker; no row cap beyond the 1 MiB blob limit (worst case 1M rows measured fast enough, `performance.md`).
+
 **UI:** Keyed chips (#578): the `stage all`/`unstage all` list title chips and the change-group staging chips show their keys like the tab bar and diff title chips, dropped first when narrow (before any chip is dropped).

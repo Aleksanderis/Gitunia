@@ -6,7 +6,7 @@ using Gitunia.Tui.Rendering.Details;
 namespace Gitunia.Tui.Loading.Trees;
 
 /// <summary>
-/// Builds the document the diff pane shows for the content of one file (Files tab): the lines as context rows
+/// Builds the document the diff pane shows for the content of one file (Files tab): the lines as content rows
 /// numbered on the new side, so scrolling, search and copy work as in a diff. A binary or oversized file, an empty one
 /// and a load in progress are a single note row.
 /// </summary>
@@ -34,7 +34,7 @@ public static class FileContentDocument
         var rows = new List<DiffRow>(lines.Count);
         for (var index = 0; index < lines.Count; index++)
         {
-            rows.Add(new DiffRow(DiffRowKind.Context, lines[index], null, index + 1, 0));
+            rows.Add(new DiffRow(DiffRowKind.Content, lines[index], null, index + 1, 0));
         }
 
         return new DiffDocument(rows, [], [0], [[path]], lines.Count, path);
@@ -46,7 +46,7 @@ public static class FileContentDocument
 
     /// <summary>The text of the file, one line per row, for the clipboard.</summary>
     public static string Text(DiffDocument document) =>
-        string.Concat(document.Rows.Where(row => row.Kind == DiffRowKind.Context).Select(row => row.Text + "\n"));
+        string.Concat(document.Rows.Where(row => row.Kind == DiffRowKind.Content).Select(row => row.Text + "\n"));
 
     // Lines end at LF; a CR before it (a CRLF file) is dropped so it never reaches the terminal. The empty piece
     // after a final LF is not a line.

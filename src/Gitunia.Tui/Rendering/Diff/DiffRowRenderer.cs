@@ -8,7 +8,7 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Diff;
 
-/// <summary>Draws one row of the diff pane: line number gutter, change marker and the text, cut to the width, or wrapped over several screen lines (<see cref="RenderSegment"/>).</summary>
+/// <summary>Draws one row of the diff pane: line numbers, change marker and text, cut or wrapped.</summary>
 public static class DiffRowRenderer
 {
     /// <summary>Width of a tab stop; tabs in the diff are shown as spaces up to the next stop.</summary>
@@ -24,7 +24,7 @@ public static class DiffRowRenderer
 
     /// <param name="row">The row.</param>
     /// <param name="width">Columns of the pane.</param>
-    /// <param name="gutterDigits">Digits of each of the two line number columns, from <see cref="GutterDigits"/>.</param>
+    /// <param name="gutterDigits">Digits of each line number column, from <see cref="GutterDigits"/>.</param>
     /// <param name="highlight">Text to highlight (the diff search), null for none.</param>
     /// <param name="isSelected">The row is under the cursor.</param>
     /// <param name="glyphs">Supplies the ellipsis.</param>
@@ -60,8 +60,16 @@ public static class DiffRowRenderer
         DiffRowKind.FileHeader => 0,
         DiffRowKind.HunkHeader => HunkRuleWidth + 1,
         DiffRowKind.Warning or DiffRowKind.Note or DiffRowKind.NoNewline => 2,
+        _ when IsContent(row) => gutterDigits + 2,
         _ => (2 * gutterDigits) + 3,
     };
+
+    /// <summary>A file content line: one number column, no marker.</summary>
+    private static bool IsContent(DiffRow row) => row.Kind == DiffRowKind.Content;
+
+    private static string Gutter(DiffRow row, int gutterDigits) => IsContent(row)
+        ? $"{Number(row.NewLineNumber, gutterDigits)}  "
+        : $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
 
     /// <summary>How many screen lines <paramref name="row"/> takes when its text wraps at <paramref name="width"/> columns.</summary>
     public static int SegmentCount(DiffRow row, int width, int gutterDigits)
@@ -145,10 +153,14 @@ public static class DiffRowRenderer
                 case DiffRowKind.Note or DiffRowKind.NoNewline:
                     builder.Append("  ", textRole);
                     break;
-                case DiffRowKind.Context or DiffRowKind.Added or DiffRowKind.Removed:
-                    builder.Append($"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ", SegmentRole.Faint);
-                    var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
-                    builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
+                case DiffRowKind.Context or DiffRowKind.Content or DiffRowKind.Added or DiffRowKind.Removed:
+                    builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
+                    if (!IsContent(row))
+                    {
+                        var marker = row.Kind == DiffRowKind.Added ? "+" : row.Kind == DiffRowKind.Removed ? "-" : " ";
+                        builder.Append(marker, textRole == SegmentRole.Plain ? SegmentRole.Faint : textRole);
+                    }
+
                     break;
             }
         }
@@ -268,9 +280,12 @@ public static class DiffRowRenderer
             _ => new DiffRowStyle(' ', SegmentRole.Plain),
         };
         var role = style.Role;
-        var gutter = $"{Number(row.OldLineNumber, gutterDigits)} {Number(row.NewLineNumber, gutterDigits)} ";
-        builder.Append(gutter, SegmentRole.Faint);
-        builder.Append(style.Marker.ToString(),role == SegmentRole.Plain ? SegmentRole.Faint : role);
+        builder.Append(Gutter(row, gutterDigits), SegmentRole.Faint);
+        if (!IsContent(row))
+        {
+            builder.Append(style.Marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
+        }
+
         AppendText(builder, row.Text, role, highlight, width, jump: jump);
     }
 

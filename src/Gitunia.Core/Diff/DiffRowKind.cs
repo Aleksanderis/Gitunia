@@ -18,6 +18,9 @@ public enum DiffRowKind
     Added,
     Removed,
 
+    /// <summary>A line of a file shown as content (Files tab): one line number column, no change marker.</summary>
+    Content,
+
     /// <summary>The <c>\ No newline at end of file</c> marker.</summary>
     NoNewline,
 }
