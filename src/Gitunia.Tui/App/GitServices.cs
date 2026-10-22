@@ -10,6 +10,7 @@ using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Config;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
@@ -96,6 +97,7 @@ public sealed record GitServices(
     IWorktreeWriter Worktrees,
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
+    IGitConfigReader Config,
     IRepositoryRefresher Refresher,
     IWorkingTreeDirectoryLister WatchedDirectories,
     GraphLoader GraphLoader,
@@ -151,6 +153,7 @@ public sealed record GitServices(
             new WorktreeWriter(runner),
             new OperationWriter(operationRunner),
             new OperationInfoReader(),
+            new GitConfigReader(runner),
             new RepositoryRefresher(refs, status, operationDetector),
             new WorkingTreeDirectoryLister(runner),
             graphLoader,

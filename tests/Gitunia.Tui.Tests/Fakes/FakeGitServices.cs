@@ -20,6 +20,7 @@ public sealed class FakeGitServices
             Refs = Refs,
             Status = Status,
             Stashes = Stashes,
+            Config = Config,
             Refresher = refresher,
             GraphLoader = graphLoader,
             IncrementalGraphLoader = new IncrementalGraphLoader(CommitLog, graphLoader),
@@ -38,6 +39,8 @@ public sealed class FakeGitServices
     public FakeStatusReader Status { get; } = new();
 
     public FakeStashReader Stashes { get; } = new();
+
+    public FakeGitConfigReader Config { get; } = new();
 
     /// <summary>The services to hand to the code under test.</summary>
     public GitServices Services { get; }

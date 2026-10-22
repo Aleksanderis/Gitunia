@@ -28,6 +28,7 @@ public static class RepositoryReducer
         WorktreeStatusesLoadedCommand statuses => state with { WorktreeStatuses = statuses.Statuses },
         StashesLoadedCommand stashes => state with { Stashes = stashes.Stashes },
         OperationLoadedCommand operation => state with { Operation = operation.Operation },
+        RebaseAutoStashLoadedCommand autoStash => state with { RebaseAutoStash = autoStash.IsOn },
         SidebarCommand sidebar => SidebarReducer.Reduce(state, sidebar),
         SetTabNameCommand rename => state with { CustomName = RepositoryState.NormalizeName(rename.Name) },
         SetMissingCommand missing => state with { IsMissing = missing.IsMissing },

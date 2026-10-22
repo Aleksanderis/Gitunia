@@ -20,7 +20,8 @@ public static class RebaseGuard
 
     /// <summary>
     /// Why a rebase must not start in this tab, or null: an operation is in progress, HEAD is not on a branch with
-    /// commits, <paramref name="sameCommit"/> is where the branch already is, or tracked files have changes.
+    /// commits, <paramref name="sameCommit"/> is where the branch already is, or tracked files have changes
+    /// (unless the user's <c>rebase.autoStash</c> lets git carry them over).
     /// </summary>
     public static string? Refusal(RepositoryState tab, string? sameCommit)
     {
@@ -43,6 +44,11 @@ public static class RebaseGuard
         if (sameCommit is not null && string.Equals(tab.Head.CommitHash, sameCommit, StringComparison.Ordinal))
         {
             return $"{tab.Head.BranchName} is already at that commit: nothing to rebase";
+        }
+
+        if (tab.RebaseAutoStash)
+        {
+            return null;
         }
 
         var changed = tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;

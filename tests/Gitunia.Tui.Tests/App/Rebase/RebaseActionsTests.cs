@@ -5,6 +5,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Config;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
@@ -150,6 +151,22 @@ public class RebaseActionsTests
             "1 file with uncommitted changes: commit or stash them before a rebase",
             untracked.Notice);
         Assert.Empty(untracked.Prompts);
+    }
+
+    [Fact]
+    public async Task GivenRebaseAutoStash_WhenRebasingWithTrackedChanges_ThenTheConfirmOpens()
+    {
+        using var repository = Diverged();
+        var mainTip = repository.Git("rev-parse", "main").Trim();
+        repository.Git("config", "rebase.autoStash", "true");
+        repository.WriteFile("topic.txt", "edited");
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Select(mainTip);
+
+        await harness.ExecuteAsync();
+
+        Assert.Single(harness.Prompts);
+        Assert.Equal(string.Empty, harness.Notice);
     }
 
     [Fact]
@@ -492,6 +509,7 @@ public class RebaseActionsTests
             Send(new WorkingTreeLoadedCommand(status));
             var operation = new RepositoryOperationDetector().Detect(Location);
             Send(new OperationLoadedCommand(await new OperationInfoReader().ReadAsync(Location, operation, token)));
+            Send(new RebaseAutoStashLoadedCommand(await new GitConfigReader(Runner).ReadRebaseAutoStashAsync(Location, token)));
         }
 
         public RepositoryOperation Detect() => new RepositoryOperationDetector().Detect(Location);

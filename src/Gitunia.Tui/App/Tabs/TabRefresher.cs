@@ -2,6 +2,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Git.Config;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Repositories;
@@ -30,6 +31,7 @@ public sealed class TabRefresher : IDisposable
     private readonly IRepositoryRefresher _refresher;
     private readonly IStashReader _stashes;
     private readonly IOperationInfoReader _operations;
+    private readonly IGitConfigReader? _config;
     private readonly IncrementalGraphLoader _graphLoader;
     private readonly WorkspaceHost _host;
     private readonly TabSession _session;
@@ -63,8 +65,10 @@ public sealed class TabRefresher : IDisposable
         RepositoryWatcherOptions options,
         Action<GraphReload>? graphReloaded = null,
         IOperationInfoReader? operations = null,
-        IWorkingTreeDirectoryLister? directoryLister = null)
+        IWorkingTreeDirectoryLister? directoryLister = null,
+        IGitConfigReader? config = null)
     {
+        _config = config;
         _operations = operations ?? new OperationInfoReader();
         _graphReloaded = graphReloaded;
         _refresher = refresher;
@@ -196,6 +200,10 @@ public sealed class TabRefresher : IDisposable
             var result = await _refresher.RefreshAsync(_location, previous, kinds, token).ConfigureAwait(false);
             var refsMoved = kinds.HasFlag(RepositoryChangeKinds.Head) || kinds.HasFlag(RepositoryChangeKinds.Refs) || previous is null;
             var stashes = refsMoved ? (await _stashes.ReadStashesAsync(_location, token).ConfigureAwait(false)).Items : null;
+            // A change of the repository config reads as a refs change; a manual refresh also picks up a global one.
+            var autoStash = (refsMoved || isManual) && _config is not null
+                ? await _config.ReadRebaseAutoStashAsync(_location, token).ConfigureAwait(false)
+                : (bool?)null;
             var operation = await _operations
                 .ReadAsync(_location, result.Snapshot.Operation, token)
                 .ConfigureAwait(false);
@@ -211,7 +219,7 @@ public sealed class TabRefresher : IDisposable
                 reload = await _graphLoader.ReloadAsync(_location, previousRows, isCapped, token).ConfigureAwait(false);
             }
 
-            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation));
+            _postToUi(() => Apply(previous is null, isManual, result, stashes, reload, ReadsStatus(kinds), operation, autoStash));
         }
         catch (OperationCanceledException)
         {
@@ -230,7 +238,8 @@ public sealed class TabRefresher : IDisposable
         IReadOnlyList<StashEntry>? stashes,
         GraphReload? reload,
         bool readStatus,
-        OperationInfo? operation)
+        OperationInfo? operation,
+        bool? autoStash)
     {
         _isRunning = false;
         var applied = TakeInFlight();
@@ -272,6 +281,12 @@ public sealed class TabRefresher : IDisposable
             if (_host.Workspace.FindTab(tabId) is { } operationTab && operationTab.Operation != operation)
             {
                 _host.Dispatch(new TabCommand(tabId, new OperationLoadedCommand(operation)));
+            }
+
+            if (autoStash is { } isOn && _host.Workspace.FindTab(tabId) is { } autoStashTab
+                && autoStashTab.RebaseAutoStash != isOn)
+            {
+                _host.Dispatch(new TabCommand(tabId, new RebaseAutoStashLoadedCommand(isOn)));
             }
 
             if (stashes is not null && _host.Workspace.FindTab(tabId) is { } tab && !tab.Stashes.SequenceEqual(stashes))

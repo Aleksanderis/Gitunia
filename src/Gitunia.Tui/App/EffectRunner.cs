@@ -168,6 +168,7 @@ public sealed class EffectRunner : IDisposable
                 _watchBudget,
                 _watcherOptions,
                 operations: _services.OperationInfo,
+                config: _services.Config,
                 directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null);
             _refreshers[load.TabId] = refresher;
             refresher.Start();

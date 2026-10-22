@@ -26,6 +26,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// read.</param>
 /// <param name="Operation">The merge, rebase, cherry-pick or revert that is stopped in this tab, null when none
 /// (#37).</param>
+/// <param name="RebaseAutoStash">The user's <c>rebase.autoStash</c>: git carries uncommitted changes over a rebase, so
+/// the guard does not refuse a dirty tree.</param>
 public sealed record RepositoryState(
     TabId Id,
     RepositoryLocation Location,
@@ -40,7 +42,8 @@ public sealed record RepositoryState(
     string? CustomName = null,
     WorkingTreeState? WorkingTree = null,
     ImmutableDictionary<string, WorktreeStatus>? WorktreeStatuses = null,
-    OperationInfo? Operation = null)
+    OperationInfo? Operation = null,
+    bool RebaseAutoStash = false)
 {
     /// <summary>The path git commands for this tab run against.</summary>
     public string CommandPath => Location.CommandPath;
