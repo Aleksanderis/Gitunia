@@ -17,3 +17,5 @@ Recurring groups (distinct PRs): missing/weak tests 27, stale docs 14, decisions
 Applied: P1 and P2 (`check-diff.sh`: append-only and dated decisions, test hygiene), P6 and P7 (reviewer demotions), S1 (cleanup script rebases a local-ahead main), S2 (work-task: no rebase of pushed branches, clean screenshot dir), S4 (lean prompt: merge when review is clean), S5 (`.gitattributes` union merge for decisions.md). Declined/dropped: P3, P4, P8 (duplicates of existing rules or poor return). Held: P5.
 
 Line counts: CLAUDE.md 74, csharp-style 64, git-layer 19, ui-changes 32, reviewer 40, work-task 78, work-orchestrator 71, work-readiness 44, testing 85, performance 70, screenshots 15, retrospective 47 (total 639).
+
+Owner-approved docs-reduction: (1) decisions entries only for non-obvious choices or overrides, replacing 'log every behaviour change' and the reviewer's 'decisions entry missing' check; (2) user guide key tables replaced by a pointer to the in-app Key reference and the Keymap in `docs/ux.md`, replacing the keep-in-sync note; (3) reviewer checks docs only where the diff changes behaviour, replacing whole-doc stale sweeps.

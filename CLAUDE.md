@@ -22,7 +22,7 @@ Design docs are in `docs/` (architecture, git-layer, ux, testing, roadmap, decis
 - Respect the user's git config, hooks, credential helpers and worktree layout (`docs/git-layer.md` lists the only env vars we set).
 - Code style, naming, folders, static vs instance and AOT rules: `.claude/rules/csharp-style.md`, loaded when you touch `.cs` files. Git layer rules: `.claude/rules/git-layer.md`. UI, keys and colour rules: `.claude/rules/ui-changes.md`. Read them before writing code there.
 - Scripts (bash and PowerShell) live in `scripts/`; `tools/` holds small C# helper programs.
-- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/decisions.md` (format in its header) if it shaped a decision.
+- Don't copy code from other projects verbatim. Ideas and git command patterns are fine; note the source in `docs/decisions.md` only if it shaped a non-obvious decision.
 
 ## Git conventions
 

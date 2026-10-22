@@ -1,6 +1,6 @@
 # Decisions
 
-Short dated log of settled choices that cut across docs. Agents follow these without asking. Open questions live in `roadmap.md`.
+Short dated log of non-obvious settled choices that cut across docs. Add an entry only when the choice is not already evident from `ux.md`, `architecture.md` or the code, or when it overrides an earlier decision; a behaviour change documented in `ux.md` needs none. Agents follow these without asking. Open questions live in `roadmap.md`.
 
 Format: dated heading, entries appended at the end, each starting with a bold topic tag (**Stack**, **Git layer**, **UI**, **Testing**, **Process**, **Code structure**), one or two lines (decision and why), a blank line between entries. The full text of long entries, implementation detail, measurements and limits live in `docs/history/` (moved there, same wording), the area docs (`architecture.md`, `git-layer.md`, `ux.md`, `testing.md`), or the issue or PR. When a decision changes, append a new entry that supersedes the old one.
 

@@ -1,6 +1,6 @@
 # Gitunia user guide
 
-How to install and use Gitunia. The complete key list is the Keymap table in `docs/ux.md` (the single source of truth); inside the app, `?` shows the keys of the focused view and `:` or `Ctrl-p` opens the command palette, which lists every action with its binding. This guide covers the common paths only.
+How to install and use Gitunia. This guide covers the common paths only; for keys see "Keys" below.
 
 ## Install
 
@@ -28,38 +28,9 @@ The publish produces a single Native AOT binary (`gitunia.exe` on Windows); copy
 
 History view: sidebar on the left (branches, remotes, tags, stashes, worktrees), commit graph in the centre, detail pane at the bottom (Details, Changes, Files). Move between panes with `Tab` or `Ctrl-w h/j/k/l`; `<space>z` zooms the focused pane. `<space>s` switches to the working-tree view of the tab and back.
 
-## Keys in short
+## Keys
 
-Gitunia is modal and vim-style. Normal mode navigates and runs chords; `<space>` is the leader key.
-
-| Keys | Does |
-|---|---|
-| `j` `k` `gg` `G` `Ctrl-d` `Ctrl-u` | Move, top, bottom, half page (arrows and PageUp/Down also work; counts like `5j`) |
-| `/` `n` `N` | Search, next, previous |
-| `?` | Keys of the current view |
-| `:` / `Ctrl-p` | Command palette |
-| `v` then `y` | Select a range, copy it (OSC 52 clipboard) |
-| `Esc` | Cancel a chord, a search or Insert mode |
-| `q` | Close an overlay, else quit |
-
-Frequent actions (`<space>` first). Branch, merge, rebase, reset and reflog chords work from the graph and the sidebar, `Sa` `Sp` act on the stash selected in the sidebar, the stage chords in the working-tree view:
-
-| Keys | Does |
-|---|---|
-| `bs` `bc` | Switch branch, create a branch |
-| `F` `L` `P` | Fetch (with prune), pull (fast-forward only), push |
-| `s` | Working-tree view |
-| `a` `A` `u` `U` | Stage file, stage all, unstage file, unstage all (working-tree lists) |
-| `c` | Write the commit message; `Alt-Enter` or `Ctrl-g` commits |
-| `Ss` `Sa` `Sp` | Stash, apply, pop |
-| `gm` `gr` `gi` | Merge, rebase, interactive rebase onto the selected commit |
-| `gp` `gv` | Cherry-pick, revert |
-| `gx` | Reset the current branch to the selected commit (soft, mixed, hard) |
-| `l` | Reflog |
-| `.` | Actions menu of the row under the cursor |
-| `,` | Settings |
-
-The actions menu and the palette reach every action without remembering a chord, and the mouse works everywhere (click, double-click, wheel, drag dividers), but nothing requires it.
+Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys of the focused view, `:` or `Ctrl-p` opens the command palette, `<space>,` opens the settings screen whose Key reference category lists every binding (rebinds included), `q` closes an overlay or quits. The complete table is the Keymap section of `docs/ux.md`.
 
 ## Everyday tasks
 
@@ -82,8 +53,6 @@ Remap a key by adding an entry to `keys`:
 ```
 
 Gitunia uses your own git configuration, hooks, credential helpers and editor; it changes a repository's config only when you ask (upstream, remotes, clone).
-
-This guide keeps a hand-written subset of the Keymap in `docs/ux.md`; when you rebind a key listed here, update both.
 
 ## Not in the MVP
 
