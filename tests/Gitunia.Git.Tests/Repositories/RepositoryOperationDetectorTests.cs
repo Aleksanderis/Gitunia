@@ -8,7 +8,7 @@ namespace Gitunia.Git.Tests.Repositories;
 
 public class RepositoryOperationDetectorTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly RepositoryOperationDetector Detector = new();
 

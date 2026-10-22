@@ -13,7 +13,7 @@ namespace Gitunia.Git.Tests.Diff;
 
 public class WorkingDiffReaderTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly DiffReader Diff = new(Runner);
     private static readonly StatusReader Status = new(Runner);

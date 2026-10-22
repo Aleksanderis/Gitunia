@@ -15,7 +15,7 @@ namespace Gitunia.Git.Tests.Discard;
 /// <summary>Real git readers and small builders shared by the discard tests; every repository is a throwaway temp repository.</summary>
 public static class DiscardSupport
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly StatusReader Status = new(Runner);
 
