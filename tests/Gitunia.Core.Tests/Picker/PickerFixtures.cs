@@ -7,7 +7,8 @@ namespace Gitunia.Core.Tests.Picker;
 /// <summary>A fake file system and workspace for picker tests: paths under one root, no disk access.</summary>
 public static class PickerFixtures
 {
-    public static string Home { get; } = Path.Combine(Path.GetTempPath(), "picker-tests", "home");
+    // Under the drive root: a Windows temp path ("...\AppData\Local\Temp") would match short queries.
+    public static string Home { get; } = Path.Combine(Path.GetPathRoot(Path.GetTempPath())!, "picker-tests", "home");
 
     public static string PathOf(params string[] segments) => Path.Combine([Home, .. segments]);
 

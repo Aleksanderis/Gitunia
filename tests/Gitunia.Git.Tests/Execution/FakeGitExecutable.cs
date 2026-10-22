@@ -30,7 +30,8 @@ public sealed class FakeGitExecutable : IDisposable
         if (OperatingSystem.IsWindows())
         {
             path = Path.Combine(directory, "fakegit.cmd");
-            File.WriteAllText(path, $"@echo off\r\n{windowsBody}\r\n");
+            // The final exit keeps the status of `set /p` (1 on empty input) from becoming the script's exit code.
+            File.WriteAllText(path, $"@echo off\r\n{windowsBody}\r\nexit /b 0\r\n");
         }
         else
         {

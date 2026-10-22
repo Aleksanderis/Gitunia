@@ -30,7 +30,11 @@ public class PathCompleterTests
             var candidates = PathCompleter.Candidates("~/projects/myrepo/al", context);
 
             Assert.Equal(["Alpha", "alpine"], candidates.Select(candidate => candidate.Name));
-            Assert.Equal(Path.Combine(root, "Projects", "MyRepo", "Alpha"), candidates[0].Path);
+            // A case-insensitive file system lists a wrongly cased directory as typed; that path is as valid.
+            Assert.Equal(
+                Path.Combine(root, "Projects", "MyRepo", "Alpha"),
+                candidates[0].Path,
+                ignoreCase: OperatingSystem.IsWindows());
         }
         finally
         {

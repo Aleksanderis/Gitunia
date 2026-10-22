@@ -20,6 +20,8 @@ public class DiffReaderTests
     [Fact]
     public async Task GivenOddPathsRenamesBinariesAndModeChanges_WhenReadingStagedDiff_ThenWritingBackReproducesGitOutput()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain a tab.");
+
         using var testRepository = TestRepository.Create()
             .Commit(
                 "base",

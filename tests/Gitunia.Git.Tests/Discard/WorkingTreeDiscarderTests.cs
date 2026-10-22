@@ -45,6 +45,8 @@ public class WorkingTreeDiscarderTests
     [Fact]
     public async Task GivenNamesWithGlobCharacters_WhenRestoring_ThenOnlyTheNamedFileIsRestored()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
+
         using var repository = TestRepository.Create()
             .Commit("Initial", new TestFile("star*.txt", "1\n"), new TestFile("starry.txt", "2\n"));
         repository.WriteFile("star*.txt", "1 edited\n").WriteFile("starry.txt", "2 edited\n");
@@ -88,6 +90,8 @@ public class WorkingTreeDiscarderTests
     [Fact]
     public async Task GivenAGlobCharacterInAnUntrackedName_WhenDeleting_ThenOnlyThatFileIsGone()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
+
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("star*.txt", "1\n").WriteFile("starry.txt", "2\n");
         var location = await DiscardSupport.LocationOfAsync(repository);

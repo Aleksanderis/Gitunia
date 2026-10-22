@@ -18,7 +18,7 @@ public class WorktreeParserTests
         Assert.Equal(2, worktrees.Count);
         Assert.True(worktrees[0].IsMain);
         Assert.False(worktrees[1].IsMain);
-        Assert.Equal("/work/wt with space", worktrees[1].Path);
+        Assert.Equal(Path.Combine(Path.DirectorySeparatorChar.ToString(), "work", "wt with space"), worktrees[1].Path);
         Assert.Equal("refs/heads/feature", worktrees[1].BranchFullName);
     }
 

@@ -244,9 +244,12 @@ public sealed class TestRepository : IDisposable
         return new GitRunner(new GitRunnerOptions(EnvironmentOverrides: environment));
     }
 
-    public void Dispose()
+    public void Dispose() => DeleteDirectory(_rootDirectory);
+
+    /// <summary>Best effort removal of a temp directory that may hold a repository (read-only object files).</summary>
+    public static void DeleteDirectory(string directory)
     {
-        if (!Directory.Exists(_rootDirectory))
+        if (!Directory.Exists(directory))
         {
             return;
         }
@@ -255,7 +258,7 @@ public sealed class TestRepository : IDisposable
         // which .NET cannot address.
         if (OperatingSystem.IsWindows())
         {
-            foreach (var file in Directory.EnumerateFiles(_rootDirectory, "*", SearchOption.AllDirectories))
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
             {
                 File.SetAttributes(file, FileAttributes.Normal);
             }
@@ -263,7 +266,7 @@ public sealed class TestRepository : IDisposable
 
         try
         {
-            Directory.Delete(_rootDirectory, recursive: true);
+            Directory.Delete(directory, recursive: true);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

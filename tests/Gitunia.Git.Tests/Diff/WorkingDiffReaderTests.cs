@@ -146,6 +146,8 @@ public class WorkingDiffReaderTests
     [Fact]
     public async Task GivenPathWithGlobCharacters_WhenReadingUnstaged_ThenOnlyThatFileIsRead()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
+
         using var testRepository = TestRepository.Create()
             .Commit("base", new TestFile("a*.txt", "1\n"), new TestFile("ab.txt", "1\n"));
         testRepository.WriteFile("a*.txt", "star\n").WriteFile("ab.txt", "b\n");
