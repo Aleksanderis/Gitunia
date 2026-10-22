@@ -153,6 +153,56 @@ public class ContextMenuFrameBuilderTests
         Assert.NotEmpty(RowActions.OfSidebarRow(Row(kind, section)));
     }
 
+    public static TheoryData<string, int> EveryMenuAtEveryWidth()
+    {
+        var data = new TheoryData<string, int>();
+        foreach (var name in MenuNames)
+        {
+            foreach (var width in new[] { 100, 120, 160 })
+            {
+                data.Add(name, width);
+            }
+        }
+
+        return data;
+    }
+
+    private static readonly string[] MenuNames =
+        ["graph", "graph-root", "local", "remote-branch", "tag", "worktree", "stash", .. Enum.GetValues<SidebarSection>().Select(section => "section-" + section)];
+
+    private static (string View, IReadOnlyList<ActionId> Actions) ActionsOf(string name) => name switch
+    {
+        "graph" => (DefaultKeymap.GraphView, RowActions.OfGraphRowFor(true, false)),
+        "graph-root" => (DefaultKeymap.GraphView, RowActions.OfGraphRowFor(true, true)),
+        "local" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.LocalBranch, SidebarSection.Branches))),
+        "remote-branch" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.RemoteBranch, SidebarSection.Remotes))),
+        "tag" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Tag, SidebarSection.Tags))),
+        "worktree" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Worktree, SidebarSection.Worktrees))),
+        "stash" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Stash, SidebarSection.Stashes))),
+        _ => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Section, Enum.Parse<SidebarSection>(name[8..])))),
+    };
+
+    [Theory]
+    [MemberData(nameof(EveryMenuAtEveryWidth))]
+    public void GivenAnyRowMenu_WhenBuildingOnAWideScreen_ThenNoRowIsCut(string name, int width)
+    {
+        var (view, actions) = ActionsOf(name);
+        var entries = ContextMenuBuilder.Build(Table, view, actions);
+        if (entries.Count == 0)
+        {
+            return;
+        }
+
+        var frame = ContextMenuFrameBuilder.Build(new PaletteState(entries, SelectedIndex: 0), new MenuAnchor(0, 0), width, 60, GraphGlyphSet.Unicode)!;
+        var text = string.Join('\n', frame.Lines.Select(line => line.Text));
+
+        Assert.True(frame.Width <= width);
+        if (width >= 120)
+        {
+            Assert.DoesNotContain("\u2026", text, StringComparison.Ordinal);
+        }
+    }
+
     // The actions the dropped header chips ran, per section.
     private static readonly Dictionary<SidebarSection, ActionId[]> ChipActions = new()
     {
