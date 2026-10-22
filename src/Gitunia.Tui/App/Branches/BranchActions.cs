@@ -131,6 +131,10 @@ public sealed class BranchActions(
         {
             Notice = BeginOperation(tab) ?? UnsetUpstream(tab);
         }
+        else if (action == ActionIds.BranchFastForward)
+        {
+            Notice = BeginOperation(tab) ?? FastForward(tab);
+        }
         else
         {
             return false;
@@ -406,6 +410,57 @@ public sealed class BranchActions(
         {
             await writer.UnsetUpstreamAsync(tab.Location, name, token).ConfigureAwait(false);
             return $"{name} no longer tracks {shown} (restore: git branch --set-upstream-to={shown} {name})";
+        });
+        return string.Empty;
+    }
+
+    // Moves a local branch that is not checked out to its upstream as last fetched; git is the backstop for
+    // the same refusals the refs already tell.
+    private string FastForward(RepositoryState tab)
+    {
+        if (ResolveLocalBranch(tab, out var branch) is { } refusal)
+        {
+            return refusal;
+        }
+
+        var name = branch!.Name;
+        if (branch.IsCurrent)
+        {
+            return $"{name} is checked out: pull it with <space>L instead";
+        }
+
+        if (branch.CheckedOutIn is { } path)
+        {
+            return $"{name} is checked out in {path}: use that worktree (<space>ws)";
+        }
+
+        if (branch.UpstreamFullName is not { } upstream)
+        {
+            return $"{name} has no upstream";
+        }
+
+        var upstreamRef = tab.Refs.FirstOrDefault(reference => reference.FullName == upstream);
+        if (branch.IsUpstreamGone || upstreamRef is null)
+        {
+            return $"The upstream of {name} is gone: nothing changed";
+        }
+
+        if (upstreamRef.CommitHash == branch.CommitHash)
+        {
+            return $"{name} is up to date with its upstream";
+        }
+
+        if (branch.Ahead is > 0)
+        {
+            return $"{name} has commits its upstream lacks (diverged): nothing changed";
+        }
+
+        var old = branch.CommitHash;
+        Start(tab, "Could not fast-forward", async token =>
+        {
+            await writer.FastForwardAsync(tab.Location, name, upstream, token).ConfigureAwait(false);
+            return $"Fast-forwarded {name} from {ShortHash(old)} to {ShortHash(upstreamRef.CommitHash)} "
+                + $"(undo: git update-ref {GitRefPrefixes.Heads}{name} {old})";
         });
         return string.Empty;
     }

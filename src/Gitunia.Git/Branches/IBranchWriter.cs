@@ -62,6 +62,18 @@ public interface IBranchWriter
     /// <summary>Removes the upstream configuration of a local branch; git refuses when it has none.</summary>
     Task UnsetUpstreamAsync(RepositoryLocation location, string name, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Moves the local branch to <paramref name="upstreamFullName"/> (a full ref such as
+    /// <c>refs/remotes/origin/topic</c>) without checking it out, as <c>git fetch . upstream:branch</c>: only a
+    /// fast-forward is accepted, and git refuses a branch checked out in any worktree. Nothing is fetched from a
+    /// remote.
+    /// </summary>
+    Task FastForwardAsync(
+        RepositoryLocation location,
+        string name,
+        string upstreamFullName,
+        CancellationToken cancellationToken);
+
     /// <summary>Deletes a local branch; without <paramref name="force"/> git refuses when it is not merged.</summary>
     Task DeleteAsync(RepositoryLocation location, string name, bool force, CancellationToken cancellationToken);
 }

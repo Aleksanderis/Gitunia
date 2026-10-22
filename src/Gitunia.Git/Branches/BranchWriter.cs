@@ -22,6 +22,8 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
     private const string FirstOnly = "-1";
     private const string SetUpstreamOption = "--set-upstream-to=";
     private const string UnsetUpstreamOption = "--unset-upstream";
+    private const string Fetch = "fetch";
+    private const string LocalSource = ".";
     private const string LeadingDash = "-";
 
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(2);
@@ -124,6 +126,21 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
 
     public Task UnsetUpstreamAsync(RepositoryLocation location, string name, CancellationToken cancellationToken) =>
         RunWriteAsync(location, [Branch, UnsetUpstreamOption, name], cancellationToken);
+
+    public Task FastForwardAsync(
+        RepositoryLocation location,
+        string name,
+        string upstreamFullName,
+        CancellationToken cancellationToken) =>
+        // A fetch from this repository with a refspec that has no leading '+': git itself refuses anything but a
+        // fast-forward and a branch that is checked out in any worktree. No network, no FETCH_HEAD, no tags.
+        RunWriteAsync(
+            location,
+            [
+                Fetch, "--no-tags", "--no-prune", "--no-write-fetch-head", "--no-recurse-submodules", LocalSource,
+                $"{upstreamFullName}:{GitRefPrefixes.Heads}{name}",
+            ],
+            cancellationToken);
 
     public Task DeleteAsync(
         RepositoryLocation location,
