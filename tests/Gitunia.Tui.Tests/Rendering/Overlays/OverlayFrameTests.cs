@@ -539,11 +539,12 @@ public class OverlayFrameTests
     {
         var palette = Palette();
 
-        foreach (var entry in palette.Entries)
+        for (var index = 0; index < palette.Entries.Count; index++)
         {
-            var filtered = palette with { Query = entry.Title };
-            var frame = PaletteFrameBuilder.Build(filtered, 120, 30, GraphGlyphSet.Unicode)!;
+            var scrolled = palette with { SelectedIndex = index };
+            var frame = PaletteFrameBuilder.Build(scrolled, 120, 30, GraphGlyphSet.Unicode)!;
 
+            Assert.Contains(palette.Entries[index].Title, Text(frame), StringComparison.Ordinal);
             Assert.DoesNotContain(frame.Lines, line => line.Text.Contains('\u2026', StringComparison.Ordinal));
         }
     }
@@ -559,13 +560,14 @@ public class OverlayFrameTests
     }
 
     [Fact]
-    public void GivenARoomForOneRowOnly_WhenRenderingMixedRows_ThenTheRuleDoesNotCrowdOutAnAction()
+    public void GivenARoomForOneRowOnly_WhenRenderingMixedRows_ThenNoRuleIsDrawnAndBothRowsShow()
     {
         WhichKeyRow[] rows = [new("a", "Alpha"), new("b", "+more")];
 
         var frame = WhichKeyFrameBuilder.Build("<space>", rows, 60, 6, GraphGlyphSet.Unicode)!;
 
         Assert.Contains("Alpha", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("+more", Text(frame), StringComparison.Ordinal);
         Assert.True(frame.Row + frame.Height <= 6);
     }
 

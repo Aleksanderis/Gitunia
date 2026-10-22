@@ -24,7 +24,7 @@ public static class WhichKeyFrameBuilder
 
         // A rule between the plain actions and the "+more" groups; it takes a row, so it only shows when both fit.
         var firstGroup = rows.ToList().FindIndex(IsGroup);
-        var withRule = firstGroup > 0 && firstGroup < capacity;
+        var withRule = firstGroup > 0 && firstGroup < capacity - 1;
         var shown = rows.Take(withRule ? capacity - 1 : capacity).ToList();
         if (shown.Count < 1)
         {
