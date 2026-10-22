@@ -18,7 +18,7 @@ namespace Gitunia.Tui.App.Overlays;
 public sealed class OverlayController
 {
     /// <summary>How long a chord stays pending before the which-key popup appears.</summary>
-    public static readonly TimeSpan WhichKeyDelay = TimeSpan.FromMilliseconds(500);
+    public static readonly TimeSpan WhichKeyDelay = TimeSpan.FromMilliseconds(250);
 
     private readonly KeymapEngine _engine;
     private readonly KeyController _keys;

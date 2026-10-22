@@ -52,7 +52,7 @@ public sealed class KeymapEngine(KeyBindingTable table)
 
     /// <summary>
     /// The keys that can follow the pending prefix in <paramref name="state"/> (or the first keys when nothing
-    /// is pending), for the which-key popup. The renderer decides when to show it (500 ms after the prefix).
+    /// is pending), for the which-key popup. The renderer decides when to show it (250 ms after the prefix).
     /// </summary>
     public IReadOnlyList<Continuation> Continuations(KeymapState state, string view)
     {
