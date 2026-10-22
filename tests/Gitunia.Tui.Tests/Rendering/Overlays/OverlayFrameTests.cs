@@ -655,7 +655,9 @@ public class OverlayFrameTests
     {
         var description = "Toggle the name-first or the full file paths in every changed files list";
 
-        var frame = WhichKeyFrameBuilder.Build("<space>v", [new WhichKeyRow("n", description)], 120, 30, GraphGlyphSet.Unicode)!;
+        var rows = new[] { new WhichKeyRow("n", description) };
+
+        var frame = WhichKeyFrameBuilder.Build("<space>v", rows, 120, 30, GraphGlyphSet.Unicode)!;
 
         Assert.Contains(frame.Lines, line => line.Text.Contains(description, StringComparison.Ordinal));
         Assert.True(frame.Width > 56);
