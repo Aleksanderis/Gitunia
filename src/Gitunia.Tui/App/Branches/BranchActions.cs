@@ -438,7 +438,7 @@ public sealed class BranchActions(
 
         if (branch.CheckedOutIn is { } path)
         {
-            return $"{name} is checked out in {path}: use that worktree (<space>ws)";
+            return $"{name} is checked out in {path}";
         }
 
         if (branch.UpstreamFullName is not { } upstream)
@@ -629,7 +629,7 @@ public sealed class BranchActions(
 
         if (candidate.CheckedOutIn is { } path)
         {
-            return $"{candidate.Label} is checked out in {path}: use that worktree (<space>ws)";
+            return $"{candidate.Label} is checked out in {path}";
         }
 
         var target = candidate.Target;
@@ -686,7 +686,7 @@ public sealed class BranchActions(
 
         if (branch.CheckedOutIn is { } path)
         {
-            return $"{branch.Name} is checked out in {path}: use that worktree (<space>ws)";
+            return $"{branch.Name} is checked out in {path}";
         }
 
         var prompt = new ConfirmPrompt(

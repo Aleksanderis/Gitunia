@@ -910,7 +910,7 @@ public class BranchActionsTests
     }
 
     [Fact]
-    public async Task GivenABranchInAnotherWorktree_WhenFastForwarding_ThenTheWorktreeKeyIsPointedTo()
+    public async Task GivenABranchInAnotherWorktree_WhenFastForwarding_ThenItIsRefusedNamingTheWorktree()
     {
         using var repository = TrackingBehind(0, 1);
         repository.AddWorktree("wt-topic", "topic");
@@ -921,7 +921,6 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchFastForward);
 
         Assert.Contains("is checked out in", harness.Branches.Notice, StringComparison.Ordinal);
-        Assert.Contains("<space>ws", harness.Branches.Notice, StringComparison.Ordinal);
         Assert.Equal(old, repository.Git("rev-parse", "refs/heads/topic").Trim());
         Assert.Equal(0, harness.Refreshes);
     }

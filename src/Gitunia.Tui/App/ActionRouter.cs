@@ -141,6 +141,15 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         ? DefaultKeymap.DetailChangesView
         : DefaultKeymap.DetailView;
 
+    // A refusal ("Busy", "is checked out in ...") is a warning: it gets the warning colour and joins the history.
+    private void Refuse(string notice)
+    {
+        if (notice.Length > 0)
+        {
+            statuses.Warning(notice);
+        }
+    }
+
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
@@ -165,49 +174,49 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         if (Branches?.TryExecute(action, count) == true)
         {
-            Message = Branches.Notice;
+            Refuse(Branches.Notice);
             return;
         }
 
         if (Tags?.TryExecute(action, count) == true)
         {
-            Message = Tags.Notice;
+            Refuse(Tags.Notice);
             return;
         }
 
         if (Push?.TryExecute(action, count) == true)
         {
-            Message = Push.Notice;
+            Refuse(Push.Notice);
             return;
         }
 
         if (RemoteManagement?.TryExecute(action, count) == true)
         {
-            Message = RemoteManagement.Notice;
+            Refuse(RemoteManagement.Notice);
             return;
         }
 
         if (Merge?.TryExecute(action, count) == true)
         {
-            Message = Merge.Notice;
+            Refuse(Merge.Notice);
             return;
         }
 
         if (Pick?.TryExecute(action, count) == true)
         {
-            Message = Pick.Notice;
+            Refuse(Pick.Notice);
             return;
         }
 
         if (Reset?.TryExecute(action, count) == true)
         {
-            Message = Reset.Notice;
+            Refuse(Reset.Notice);
             return;
         }
 
         if (Rebase?.TryExecute(action, count) == true)
         {
-            Message = Rebase.Notice;
+            Refuse(Rebase.Notice);
             return;
         }
 
@@ -253,7 +262,7 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
         if (WorktreeSwitch?.TryExecute(action) == true)
         {
-            Message = WorktreeSwitch.Notice;
+            Refuse(WorktreeSwitch.Notice);
             return;
         }
 
