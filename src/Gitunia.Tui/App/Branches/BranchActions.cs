@@ -121,6 +121,12 @@ public sealed class BranchActions(
         }
         else if (action == ActionIds.BranchDelete)
         {
+            // A remote branch row is deleted on its remote by PushActions.
+            if (selection() is { RowKind: SidebarRowKind.RemoteBranch })
+            {
+                return false;
+            }
+
             Notice = BeginOperation(tab) ?? AskDelete(tab);
         }
         else if (action == ActionIds.BranchSetUpstream)

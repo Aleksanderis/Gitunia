@@ -85,6 +85,7 @@ public static class RowActions
             ActionIds.BranchSwitch,
             ActionIds.BranchCreate,
             ActionIds.BranchCreateOnly,
+            ActionIds.RemoteDeleteBranch,
             .. Integrate,
         ],
         SidebarRowKind.Tag =>

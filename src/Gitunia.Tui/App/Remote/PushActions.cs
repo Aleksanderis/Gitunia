@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -12,6 +13,7 @@ using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Core.Search;
+using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.Input;
 
 // Core.Overlays has a FuzzyMatcher too (ConfirmPrompt lives there); the pickers use the Search one.
@@ -38,6 +40,7 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="refresh">Reads a tab again; false when it cannot.</param>
 /// <param name="setMode">Switches the keymap mode (Insert while a prompt is open).</param>
 /// <param name="redraw">Redraws the status bar.</param>
+/// <param name="selection">What the cursor is on: a remote branch row is deleted without the pickers.</param>
 public sealed class PushActions(
     WorkspaceHost host,
     RemoteActions remote,
@@ -49,7 +52,8 @@ public sealed class PushActions(
     Func<ConfirmPrompt, Action, bool> confirm,
     Func<TabId, bool> refresh,
     Action<KeyMode> setMode,
-    Action redraw) : IPromptHandler
+    Action redraw,
+    Func<BranchSelection> selection) : IPromptHandler
 {
     private const int ShortHashLength = 7;
     private const string DefaultRemote = "origin";
@@ -67,6 +71,7 @@ public sealed class PushActions(
     private IReadOnlyList<string> _options = [];
     private List<string> _candidates = [];
     private int _index;
+    private string? _directName;
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -114,8 +119,10 @@ public sealed class PushActions(
         {
             Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, CurrentBranchOf(tab));
         }
-        else if (action == ActionIds.RemoteDeleteBranch)
+        else if (action == ActionIds.RemoteDeleteBranch || action == ActionIds.BranchDelete && OnRemoteBranchRow())
         {
+            // On a remote branch row the cursor already names the branch: no remote or branch picker.
+            _directName = OnRemoteBranchRow() ? selection().Name : null;
             Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, null);
         }
         else
@@ -167,6 +174,8 @@ public sealed class PushActions(
 
         return step != 0;
     }
+
+    private bool OnRemoteBranchRow() => selection() is { RowKind: SidebarRowKind.RemoteBranch, Name: not null };
 
     private static GitRef? CurrentBranchOf(RepositoryState tab) =>
         tab.Refs.FirstOrDefault(reference => reference.Kind == RefKind.LocalBranch && reference.IsCurrent);
@@ -319,6 +328,13 @@ public sealed class PushActions(
     private void OpenDeleteRemote(RepositoryState tab, IReadOnlyList<string> remotes)
     {
         _branches = RemoteBranchesOf(tab, remotes);
+        if (_directName is { } direct)
+        {
+            _directName = null;
+            AskDeleteRow(tab, remotes, direct);
+            return;
+        }
+
         var withBranches = _branches.Select(branch => branch.Name.Remote).Distinct().ToList();
         if (withBranches.Count == 0)
         {
@@ -327,6 +343,22 @@ public sealed class PushActions(
         }
 
         Open(PushPromptKind.DeleteRemote, tab, withBranches);
+    }
+
+    private void AskDeleteRow(RepositoryState tab, IReadOnlyList<string> remotes, string rowName)
+    {
+        var name = RemoteBranchName.Split(rowName, remotes);
+        if (name is null || !_branches.Any(item => item.Name == name))
+        {
+            statuses.Warning($"{rowName} is not a branch on a remote: nothing to delete");
+            return;
+        }
+
+        _chosenRemote = name.Remote;
+        if (AskDelete(tab, name.Branch) is { Length: > 0 } notice)
+        {
+            statuses.Warning(notice);
+        }
     }
 
     private static List<RemoteBranchRef> RemoteBranchesOf(RepositoryState tab, IReadOnlyList<string> remotes)

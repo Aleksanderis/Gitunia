@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
+using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
@@ -9,6 +10,7 @@ using Gitunia.Git.Remotes;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Branches;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Tabs;
@@ -155,6 +157,25 @@ public class PushActionsTests
         Assert.Contains(tip, harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GivenTheCursorOnARemoteBranchRow_WhenDeleting_ThenOnlyTheConfirmComesFirst(bool viaBranchDelete)
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var tip = repository.Git("rev-parse", "origin/topic").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Selection = new BranchSelection(SidebarRowKind.RemoteBranch, "origin/topic", tip);
+
+        harness.Run(viaBranchDelete ? ActionIds.BranchDelete : ActionIds.RemoteDeleteBranch);
+        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains("topic", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("origin", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
     [Fact]
     public async Task GivenTheDeleteConfirmIsRefused_WhenNotAnswered_ThenTheRemoteBranchStays()
     {
@@ -279,8 +300,11 @@ public class PushActionsTests
                 Confirm,
                 CountRefresh,
                 mode => Mode = mode,
-                () => { });
+                () => { },
+                () => Selection);
         }
+
+        public BranchSelection Selection { get; set; } = new(null, null, null);
 
         public RemoteActions Remote { get; }
 

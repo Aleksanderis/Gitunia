@@ -958,7 +958,8 @@ public sealed class TuiApplication(
         ShowConfirm,
         tabId => _effects.Refresh(tabId, false),
         SetMode,
-        _view.RefreshChrome);
+        _view.RefreshChrome,
+        BranchSelectionNow);
 
     private OperationController CreateOperations(TabOperationGate gate) => new(
         _host,
