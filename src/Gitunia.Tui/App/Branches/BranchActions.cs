@@ -65,6 +65,7 @@ public sealed class BranchActions(
     private string? _commitHash;
     private IReadOnlyList<SwitchCandidate> _candidates = [];
     private int _index;
+    private IReadOnlySet<string>? _onlyBranches;
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -320,13 +321,49 @@ public sealed class BranchActions(
         return string.Empty;
     }
 
+    // The branch under the cursor is checked out at once; a prompt opens only when the cursor names none, or
+    // several (a graph commit with more than one branch label: the prompt lists just those).
     private string OpenSwitch(RepositoryState tab)
     {
         var chosen = selection();
+        _onlyBranches = null;
+        if (BranchUnderCursor(tab, chosen) is { } label)
+        {
+            if (SwitchCandidates.Build(tab.Refs, null, string.Empty, new HashSet<string> { label }) is [var candidate])
+            {
+                return CheckoutCandidate(tab, candidate);
+            }
+        }
+
+        if (chosen.RowKind is null && chosen.CommitHash is { } hash)
+        {
+            var here = SwitchCandidates.BranchesAt(tab.Refs, hash);
+            _onlyBranches = here.Count > 1 ? here : null;
+        }
+
         _commitHash = chosen.RowKind is null ? chosen.CommitHash : null;
         Open(BranchPromptKind.Switch, tab, string.Empty);
         RefreshCandidates();
         return string.Empty;
+    }
+
+    // The label of the one branch the cursor names: a sidebar branch row, or the only branch label of the commit.
+    private static string? BranchUnderCursor(RepositoryState tab, BranchSelection chosen)
+    {
+        if (chosen.RowKind is SidebarRowKind.LocalBranch or SidebarRowKind.RemoteBranch && chosen.Name is { } name)
+        {
+            var hasTwin = tab.Refs.Any(reference =>
+                reference.Kind == RefKind.LocalBranch && reference.Name == SwitchCandidates.LocalNameOf(name));
+            return chosen.RowKind == SidebarRowKind.RemoteBranch && hasTwin ? SwitchCandidates.LocalNameOf(name) : name;
+        }
+
+        if (chosen.RowKind is null && chosen.CommitHash is { } hash)
+        {
+            var here = SwitchCandidates.BranchesAt(tab.Refs, hash);
+            return here.Count == 1 ? here.First() : null;
+        }
+
+        return null;
     }
 
     private string OpenUpstream(RepositoryState tab)
@@ -398,7 +435,7 @@ public sealed class BranchActions(
         var refs = host.Workspace.FindTab(_tabId)?.Refs ?? [];
         _candidates = _kind == BranchPromptKind.Upstream
             ? SwitchCandidates.BuildRemote(refs, _text)
-            : SwitchCandidates.Build(refs, _commitHash, _text);
+            : SwitchCandidates.Build(refs, _commitHash, _text, _onlyBranches);
         _index = 0;
     }
 
@@ -519,7 +556,11 @@ public sealed class BranchActions(
             return "No matching branch";
         }
 
-        var candidate = _candidates[_index];
+        return CheckoutCandidate(tab, _candidates[_index]);
+    }
+
+    private string CheckoutCandidate(RepositoryState tab, SwitchCandidate candidate)
+    {
         if (candidate.IsCurrent)
         {
             return $"Already on {candidate.Label}";

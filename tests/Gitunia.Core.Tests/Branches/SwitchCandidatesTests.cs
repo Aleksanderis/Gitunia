@@ -24,6 +24,32 @@ public class SwitchCandidatesTests
     }
 
     [Fact]
+    public void GivenOnlyBranches_WhenBuilding_ThenOtherBranchesAreLeftOutAndTheDetachedEntryStays()
+    {
+        var refs = new[] { Branch("a", RefKind.LocalBranch), Branch("b", RefKind.LocalBranch) };
+
+        var labels = SwitchCandidates.Build(refs, Hash, string.Empty, new HashSet<string> { "b" })
+            .Select(candidate => candidate.Label);
+
+        Assert.Equal(["b", "detached at 0123456"], labels);
+    }
+
+    [Fact]
+    public void GivenRefsAtACommit_WhenAskingForBranchesAt_ThenLocalsAndTwinlessRemotesAreReturned()
+    {
+        var refs = new[]
+        {
+            Branch("topic", RefKind.LocalBranch),
+            Branch("origin/topic", RefKind.RemoteBranch),
+            Branch("origin/other", RefKind.RemoteBranch),
+        };
+
+        var labels = SwitchCandidates.BranchesAt(refs, Hash);
+
+        Assert.Equal(new HashSet<string> { "topic", "origin/other" }, labels);
+    }
+
+    [Fact]
     public void GivenMixedRefs_WhenBuildingRemote_ThenOnlyMatchingRemoteBranchesAreListedBestFirst()
     {
         var refs = new[]
