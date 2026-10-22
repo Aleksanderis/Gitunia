@@ -134,7 +134,7 @@ public sealed class PickerController(RepositoryDiscovery discovery, WorkspaceHos
 
         if (state.HighlightedRow is not { } row)
         {
-            Apply(new SetMessageCommand("nothing to open: type a path such as ~/projects/app"));
+            Apply(new SetMessageCommand($"nothing to open: type a path such as {PathDisplay.ExamplePath(OperatingSystem.IsWindows())}"));
             return;
         }
 

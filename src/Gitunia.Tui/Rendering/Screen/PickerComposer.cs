@@ -1,5 +1,4 @@
 using Gitunia.Core.Picker;
-using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -37,7 +36,7 @@ public static class PickerComposer
         {
             var headerButtons = picker.LocatingTabId is null ? PickerHeaderButtons.Layout(width) : [];
             var hint = new LineBuilder(headerButtons.Count > 0 ? headerButtons[0].Start - 1 : width, glyphs.Ellipsis)
-                .Append(" type to filter, or a path starting with / ~/ ./ ../ (Tab accepts)", SegmentRole.Faint)
+                .Append($" type to filter, or a path starting with {PathDisplay.PathStartsHint(OperatingSystem.IsWindows())} (Tab accepts)", SegmentRole.Faint)
                 .Build();
             lines.Add(WithButtons(hint, headerButtons));
         }
@@ -136,21 +135,6 @@ public static class PickerComposer
         return string.Join(' ', tags);
     }
 
-    private static string Abbreviate(string path, string homeDirectory)
-    {
-        if (homeDirectory.Length == 0)
-        {
-            return path;
-        }
-
-        var home = Path.TrimEndingDirectorySeparator(homeDirectory);
-        if (RepositoryPathComparer.Instance.Equals(path, home))
-        {
-            return "~";
-        }
-
-        var prefix = home + Path.DirectorySeparatorChar;
-        var comparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        return path.StartsWith(prefix, comparison) ? $"~{Path.DirectorySeparatorChar}{path[prefix.Length..]}" : path;
-    }
+    private static string Abbreviate(string path, string homeDirectory) =>
+        PathDisplay.Abbreviate(path, homeDirectory, OperatingSystem.IsWindows());
 }

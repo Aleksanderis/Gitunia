@@ -411,8 +411,9 @@ public class RepositoryCreationActionsTests
             return Path.Combine(_root, "targets", name);
         }
 
-        // The prompts show a path below the home folder (the test root) as ~/...
-        public string Shown(string path) => $"~{Path.DirectorySeparatorChar}{Path.GetRelativePath(_root, path)}";
+        // The prompts show a path below the home folder (the test root) as ~/..., except on Windows (native path).
+        public string Shown(string path) =>
+            OperatingSystem.IsWindows() ? path : $"~{Path.DirectorySeparatorChar}{Path.GetRelativePath(_root, path)}";
 
         public void Run(ActionId action) => Assert.True(Actions.TryExecute(action, null), action.Value);
 
