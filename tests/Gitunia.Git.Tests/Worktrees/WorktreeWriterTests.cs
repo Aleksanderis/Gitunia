@@ -171,9 +171,9 @@ public class WorktreeWriterTests
 
         var remaining = (await Refs.ReadWorktreesAsync(location, Token)).Items;
         Assert.DoesNotContain(remaining, worktree => worktree.IsPrunable);
-        Assert.DoesNotContain(remaining, worktree => worktree.Path == prunablePath);
-        Assert.Contains(remaining, worktree => worktree.Path == lockedPath && worktree.IsLocked);
-        Assert.Contains(remaining, worktree => worktree.Path == dirtyPath);
+        Assert.DoesNotContain(remaining, worktree => SamePath(worktree.Path, prunablePath));
+        Assert.Contains(remaining, worktree => SamePath(worktree.Path, lockedPath) && worktree.IsLocked);
+        Assert.Contains(remaining, worktree => SamePath(worktree.Path, dirtyPath));
         Assert.Single(removed);
         Assert.Contains("wt-prunable", removed[0], StringComparison.Ordinal);
     }
@@ -188,6 +188,9 @@ public class WorktreeWriterTests
 
         Assert.Empty(removed);
     }
+
+    // Git reports forward slashes on Windows.
+    private static bool SamePath(string left, string right) => Path.GetFullPath(left) == Path.GetFullPath(right);
 
     private static async Task<WorktreeInfo> ReadLockableAsync(RepositoryLocation location)
     {

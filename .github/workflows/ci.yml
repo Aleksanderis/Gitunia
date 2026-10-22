@@ -93,8 +93,6 @@ jobs:
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
       - name: Test
-        # TEMPORARILY DISABLED until the 43 Windows test failures (#494) are fixed; re-enable by removing `if: false`.
-        if: false
         run: dotnet test -c Release --no-build
       - name: AOT publish (any IL* warning fails)
         run: |

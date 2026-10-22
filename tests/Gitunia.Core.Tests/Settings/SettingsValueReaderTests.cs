@@ -7,7 +7,12 @@ namespace Gitunia.Core.Tests.Settings;
 
 public class SettingsValueReaderTests
 {
-    private const string Home = "/home/user";
+    private static readonly string Root = Path.GetPathRoot(Path.GetTempPath())!;
+    private static readonly string Home = Path.Combine(Root, "home", "user");
+    private static readonly string Srv = Path.Combine(Root, "srv");
+    private static readonly string Missing = Path.Combine(Root, "missing");
+
+    private static string Json(string path) => path.Replace("\\", "\\\\", StringComparison.Ordinal);
 
     [Theory]
     [InlineData(false, "")]
@@ -55,17 +60,17 @@ public class SettingsValueReaderTests
     [Fact]
     public void GivenAFileWithValues_WhenReading_ThenTheScreenAndTheOptionsHoldThem()
     {
-        const string text =
+        var text =
             "{ \"tabs\": { \"showBranch\": true }, "
-            + "\"scanRoots\": [\"~/Projects\", \"/srv\"] }";
+            + $"\"scanRoots\": [\"~/Projects\", \"{Json(Srv)}\"] }}";
 
         var load = Read(new ConfigSnapshot(true, text, "h"));
 
         Assert.True(load.Values[SettingsRegistry.ShowBranchId].Flag);
-        Assert.Equal(["~/Projects", "/srv"], load.Values[SettingsRegistry.ScanRootsId].Paths);
+        Assert.Equal(["~/Projects", Srv], load.Values[SettingsRegistry.ScanRootsId].Paths);
         Assert.False(load.Values[SettingsRegistry.ScanRootsId].IsDefault);
         Assert.True(load.Options.ShowBranchInTab);
-        Assert.Equal([$"{Home}/Projects", "/srv"], load.Options.ScanRoots);
+        Assert.Equal([Path.Combine(Home, "Projects"), Srv], load.Options.ScanRoots);
     }
 
     [Fact]
@@ -98,16 +103,16 @@ public class SettingsValueReaderTests
     [Fact]
     public void GivenBadValues_WhenReading_ThenEachSettingGetsAWarningAndItsDefault()
     {
-        const string text = "{ \"theme\": \"round\", \"tabs\": 5, \"scanRoots\": [\"/srv\", \"/missing\"] }";
+        var text = $"{{ \"theme\": \"round\", \"tabs\": 5, \"scanRoots\": [\"{Json(Srv)}\", \"{Json(Missing)}\"] }}";
 
         var load = Read(new ConfigSnapshot(true, text, "h"));
 
         Assert.Contains("theme", load.Warnings[SettingsRegistry.ThemeId], StringComparison.Ordinal);
         Assert.Contains("tabs", load.Warnings[SettingsRegistry.ShowBranchId], StringComparison.Ordinal);
-        Assert.Contains("/missing", load.Warnings[SettingsRegistry.ScanRootsId], StringComparison.Ordinal);
+        Assert.Contains(Missing, load.Warnings[SettingsRegistry.ScanRootsId], StringComparison.Ordinal);
         Assert.Equal("auto", load.Values[SettingsRegistry.ThemeId].Choice);
         Assert.False(load.Values[SettingsRegistry.ShowBranchId].Flag);
-        Assert.Equal(["/srv", "/missing"], load.Values[SettingsRegistry.ScanRootsId].Paths);
+        Assert.Equal([Srv, Missing], load.Values[SettingsRegistry.ScanRootsId].Paths);
     }
 
     private static SettingsLoad Read(ConfigSnapshot snapshot) =>

@@ -281,6 +281,8 @@ public class WorkingDiffControllerTests
     [Fact]
     public async Task GivenAFileWithAGlobInItsName_WhenSelected_ThenOnlyThatFilesDiffShows()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain *.");
+
         using var repository = TestRepository.Create().Commit("base", new TestFile("a*.txt", "1\n"), new TestFile("ab.txt", "1\n"));
         repository.WriteFile("a*.txt", "star\n").WriteFile("ab.txt", "b\n");
         using var harness = await Harness.OpenAsync(repository);

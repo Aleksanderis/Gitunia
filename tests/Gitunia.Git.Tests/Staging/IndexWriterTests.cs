@@ -109,6 +109,8 @@ public class IndexWriterTests
     [Fact]
     public async Task GivenNamesWithGlobCharactersAndColon_WhenStaging_ThenOnlyTheNamedFilesAreStaged()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "Windows file names cannot contain * or :.");
+
         using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
         repository.WriteFile("star*.txt", "1\n").WriteFile("starry.txt", "2\n").WriteFile(":colon.txt", "3\n");
         var location = await LocateAsync(repository);

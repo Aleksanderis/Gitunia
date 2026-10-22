@@ -451,7 +451,7 @@ public class RepositoryCreationActionsTests
         public void Dispose()
         {
             Actions.CancelAndWait();
-            Directory.Delete(_root, recursive: true);
+            TestRepository.DeleteDirectory(_root);
         }
     }
 }

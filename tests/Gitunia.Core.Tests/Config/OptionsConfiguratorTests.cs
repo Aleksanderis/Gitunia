@@ -116,9 +116,9 @@ public sealed class OptionsConfiguratorTests
     public void GivenARootThatIsRootedButNotFullyQualified_WhenParsing_ThenItIsSkippedAndReported()
     {
         var problems = new List<ConfigProblem>();
-        var rootedOnly = OperatingSystem.IsWindows() ? "\\\\srv\\git" : "relative";
+        var rootedOnly = OperatingSystem.IsWindows() ? "\\srv\\git" : "relative";
 
-        var roots = OptionsConfigurator.ParseScanRoots(Json($"[\"{rootedOnly}\"]"), Home, _ => true, problems);
+        var roots = OptionsConfigurator.ParseScanRoots(Json($"[{Quote(rootedOnly)}]"), Home, _ => true, problems);
 
         Assert.Null(roots);
         Assert.Equal("scanRoots[0]", Assert.Single(problems).Path);

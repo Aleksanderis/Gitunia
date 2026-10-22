@@ -7,7 +7,11 @@ namespace Gitunia.Core.Tests.Settings;
 
 public class SettingsReducerTests
 {
-    private const string Home = "/home/user";
+    private static readonly string Root = Path.GetPathRoot(Path.GetTempPath())!;
+    private static readonly string Home = Path.Combine(Root, "home", "user");
+    private static readonly string SrvGit = Path.Combine(Root, "srv", "git");
+    private static readonly string SrvOther = Path.Combine(Root, "srv", "other");
+    private static readonly string SrvNew = Path.Combine(Root, "srv", "new");
     private const string PageSizeId = "page-size";
     private static readonly SettingsEnvironment Environment = new(
         Home,
@@ -25,6 +29,8 @@ public class SettingsReducerTests
         Minimum: 5,
         Maximum: 50,
         Step: 5);
+
+    private static string Quote(string path) => $"\"{path.Replace("\\", "\\\\", StringComparison.Ordinal)}\"";
 
     [Fact]
     public void GivenTheRegistry_WhenListingCategories_ThenOnlyThoseWithSettingsAppearInDisplayOrder()
@@ -226,28 +232,30 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAPathList_WhenAddingAnExistingFolder_ThenItIsAppendedAsTypedAndSelectedAfterTheWrite()
     {
-        var state = Open("{ \"scanRoots\": [\"/srv/git\"] }").Reveal(Definition(SettingsRegistry.ScanRootsId));
+        var state = Open($"{{ \"scanRoots\": [{Quote(SrvGit)}] }}").Reveal(Definition(SettingsRegistry.ScanRootsId));
 
         var typing = Reduce(state, SettingsCommandKind.Add).State;
         Assert.Equal(SettingRowKind.NewItem, typing.Selected?.Kind);
         var outcome = Reduce(typing.WithInputText("~/Projects"), SettingsCommandKind.InputAccept);
 
-        Assert.Equal(["/srv/git", "~/Projects"], outcome.Commit?.Value.Paths);
+        Assert.Equal([SrvGit, "~/Projects"], outcome.Commit?.Value.Paths);
         Assert.Equal(1, outcome.Commit?.SelectItem);
-        Assert.Equal("[\"/srv/git\", \"~/Projects\"]", outcome.Commit?.Value.ToJson(SettingControl.PathList));
+        Assert.Equal($"[{Quote(SrvGit)}, \"~/Projects\"]", outcome.Commit?.Value.ToJson(SettingControl.PathList));
     }
 
     [Theory]
     [InlineData("", "Type a folder path")]
     [InlineData("relative/dir", "not an absolute path")]
-    [InlineData("/srv/missing", "not an existing folder")]
-    [InlineData("/srv/git/", "already in the list")]
+    [InlineData("<root>srv<sep>missing", "not an existing folder")]
+    [InlineData("<root>srv<sep>git<sep>", "already in the list")]
     [InlineData("~/code", "already in the list")]
     public void GivenAPathList_WhenAddingAFolderThatCannotBeUsed_ThenItIsRefusedWithTheReasonAndNothingIsWritten(
         string typed,
         string reason)
     {
-        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"~/code\"] }")
+        typed = typed.Replace("<root>", Root, StringComparison.Ordinal)
+            .Replace("<sep>", Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal);
+        var state = Open($"{{ \"scanRoots\": [{Quote(SrvGit)}, \"~/code\"] }}")
             .Reveal(Definition(SettingsRegistry.ScanRootsId));
         var typing = Reduce(state, SettingsCommandKind.Add).State.WithInputText(typed);
 
@@ -261,15 +269,15 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAFolderOfTheList_WhenEditingItToTheSamePath_ThenItIsNotADuplicateOfItself()
     {
-        var state = Open("{ \"scanRoots\": [\"/srv/git\", \"/srv/other\"] }").Reveal(
+        var state = Open($"{{ \"scanRoots\": [{Quote(SrvGit)}, {Quote(SrvOther)}] }}").Reveal(
             Definition(SettingsRegistry.ScanRootsId),
             SettingRowKind.Item);
 
         var typing = Reduce(state, SettingsCommandKind.Activate).State;
-        Assert.Equal("/srv/git", typing.Input?.Text);
-        var outcome = Reduce(typing.WithInputText("/srv/new"), SettingsCommandKind.InputAccept);
+        Assert.Equal(SrvGit, typing.Input?.Text);
+        var outcome = Reduce(typing.WithInputText(SrvNew), SettingsCommandKind.InputAccept);
 
-        Assert.Equal(["/srv/new", "/srv/other"], outcome.Commit?.Value.Paths);
+        Assert.Equal([SrvNew, SrvOther], outcome.Commit?.Value.Paths);
         Assert.Equal(0, outcome.Commit?.SelectItem);
     }
 

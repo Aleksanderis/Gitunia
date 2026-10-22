@@ -49,7 +49,8 @@ public static class WorktreeParser
             switch (parsed.Key)
             {
                 case "worktree":
-                    path = value;
+                    // Git prints forward slashes on Windows; the rest of the app compares native paths.
+                    path = value.Replace('/', Path.DirectorySeparatorChar);
                     break;
                 case "HEAD":
                     head = value.Trim('0').Length == 0 ? null : value;
