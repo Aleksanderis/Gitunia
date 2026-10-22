@@ -74,7 +74,7 @@ public class WorkingTreeJumpTests
     }
 
     [Fact]
-    public void GivenAJumpLabelOnAConflictedRow_WhenRendering_ThenTheConflictTextKeepsItsColumnsAndThePathMatchesTheJumpText()
+    public void GivenAJumpLabelOnAConflictedRow_WhenRendering_ThenTheConflictTextKeepsItsColumns()
     {
         var entry = Conflict("src/some/deep/directory/file.cs");
         var rows = new WorkingTreeJumpRows(Tree(entry), WorkingTreeSection.Unstaged, 30, "…", FilePathStyle.NameFirst);
