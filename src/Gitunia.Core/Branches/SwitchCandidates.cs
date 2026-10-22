@@ -15,7 +15,14 @@ public static class SwitchCandidates
     /// <param name="refs">The tab's refs.</param>
     /// <param name="commitHash">The graph's selected commit, null when none (or the sidebar has the focus).</param>
     /// <param name="query">What was typed; matched fuzzily against the labels.</param>
-    public static IReadOnlyList<SwitchCandidate> Build(IEnumerable<GitRef> refs, string? commitHash, string query)
+    /// <param name="onlyBranches">
+    /// When set, only the branches with these labels are listed (the detached entry stays); null lists all.
+    /// </param>
+    public static IReadOnlyList<SwitchCandidate> Build(
+        IEnumerable<GitRef> refs,
+        string? commitHash,
+        string query,
+        IReadOnlySet<string>? onlyBranches = null)
     {
         var all = refs.Where(reference => reference.SymbolicTarget is null).ToList();
         var localNames = all.Where(reference => reference.Kind == RefKind.LocalBranch)
@@ -24,6 +31,11 @@ public static class SwitchCandidates
         var candidates = new List<SwitchCandidate>();
         foreach (var reference in all)
         {
+            if (onlyBranches is not null && !IsWanted(onlyBranches, LabelOf(reference, localNames)))
+            {
+                continue;
+            }
+
             if (reference.Kind == RefKind.LocalBranch)
             {
                 var elsewhere = reference.IsCurrent ? null : reference.CheckedOutIn;
@@ -61,6 +73,23 @@ public static class SwitchCandidates
             .ToList();
     }
 
+    /// <summary>
+    /// The labels of the branches a checkout can pick at <paramref name="commitHash"/>: the local branches there and
+    /// the remote branches there that have no local twin.
+    /// </summary>
+    public static IReadOnlySet<string> BranchesAt(IEnumerable<GitRef> refs, string commitHash)
+    {
+        var all = refs.Where(reference => reference.SymbolicTarget is null).ToList();
+        var localNames = all.Where(reference => reference.Kind == RefKind.LocalBranch)
+            .Select(reference => reference.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        return all
+            .Where(reference => reference.CommitHash == commitHash)
+            .Select(reference => LabelOf(reference, localNames))
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     /// <summary>The remote branches (not <c>origin/HEAD</c>) matching <paramref name="query"/>, best first.</summary>
     public static IReadOnlyList<SwitchCandidate> BuildRemote(IEnumerable<GitRef> refs, string query)
     {
@@ -83,4 +112,14 @@ public static class SwitchCandidates
         var slash = remoteBranch.IndexOf(RemoteSeparator, StringComparison.Ordinal);
         return slash < 0 ? remoteBranch : remoteBranch[(slash + 1)..];
     }
+
+    private static bool IsWanted(IReadOnlySet<string> only, string? label) => label is not null && only.Contains(label);
+
+    // The label a branch has in the list, or null for a ref that is not listed (a remote branch with a local twin).
+    private static string? LabelOf(GitRef reference, HashSet<string> localNames) => reference.Kind switch
+    {
+        RefKind.LocalBranch => reference.Name,
+        RefKind.RemoteBranch when !localNames.Contains(LocalNameOf(reference.Name)) => reference.Name,
+        _ => null,
+    };
 }

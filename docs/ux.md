@@ -227,7 +227,7 @@ Planned keys, written here and not yet in the keymap table: each implementing is
 
 **Branches** (`<space>b` + key; implemented in #35 and #36):
 1. `bc` create: prompt for the name, start point the selected commit (graph) or branch (sidebar); the new branch is checked out. `bC` creates without checking out. A name in use is refused before git runs; an invalid name is refused by `git check-ref-format` and shown as an error.
-2. `bs` switch (checkout): a type-to-filter prompt (`Up`/`Down`/`Tab` choose, `Enter` runs) listing local branches, remote branches that have no local twin (a tracking branch is created) and, from a graph commit, a detached checkout there. In the sidebar `Enter` still only selects, so `bs` is the explicit checkout. The current branch and one held by another worktree are refused (the message names the worktree path and points to `<space>ws`). A dirty tree that conflicts with the target fails with git's message; nothing is stashed behind the user's back.
+2. `bs` switch (checkout), context based (#571): the branch under the cursor is checked out at once, no prompt. A sidebar local branch row checks that branch out; a remote branch row creates the tracking branch and checks it out (a remote branch that has a local twin checks the twin out). In the graph, a commit with exactly one branch label (a local branch, or a remote branch without a local twin) checks that branch out; with several labels a type-to-filter prompt (`Up`/`Down`/`Tab` choose, `Enter` runs) lists only those plus a detached checkout of the commit; with none, or on any other row (tag, stash), the prompt lists all local branches, remote branches that have no local twin and, from a graph commit, a detached checkout there. In the sidebar `Enter` still only selects. The current branch and one held by another worktree are refused with no prompt (the message names the worktree path and points to `<space>ws`). A dirty tree that conflicts with the target fails with git's message; nothing is stashed behind the user's back.
 3. `br` rename the selected branch (prompt prefilled with its name). `bd` delete: Confirm naming the branch and its tip with the undo command; when the branch has commits that neither HEAD nor its upstream reach, a second, explicit Confirm says its commits become unreachable and prints `git branch <name> <hash>`. The current branch and one held by another worktree are refused. From the graph, `br` and `bd` act on the one local branch at the selected commit (several: pick one in the sidebar).
 4. `bu` set the upstream of the selected local branch (type-to-filter picker of remote branches, nothing is fetched), `bU` unset it (the status line prints the `git branch --set-upstream-to=` command that restores it). Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
 5. Mouse: the actions menu of a branch row (`<space>.`, or the `...` marker of the selected sidebar row) lists create, switch, rename, delete and the upstream actions, and the Branches header menu offers create and create-only; there are no header chips (dropped in #469). After create, switch, rename or delete the graph cursor moves to the created or checked-out branch's commit (after a delete, to the commit of the current branch).
@@ -498,7 +498,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>te` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `<space>te` does the same) |
 | Graph | `<space>bc` | Create a branch at the selected commit and check it out (prompt popup) |
 | Graph | `<space>bC` | Create a branch at the selected commit without checking it out |
-| Graph | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch; the selected commit can be checked out detached) |
+| Graph | `<space>bs` | Check out the commit's branch (one label: at once; several: a picker of those plus detached; none: the prompt of all branches and a detached checkout) |
 | Graph | `<space>br` | Rename the local branch at the selected commit (prefilled prompt) |
 | Graph | `<space>bd` | Delete the local branch at the selected commit after a Confirm (a second one when it is unmerged) |
 | Graph | `<space>bu` | Set the upstream of the local branch at the selected commit (type-to-filter picker of remote branches) |
@@ -617,7 +617,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Sidebar | `/` | Filter entries |
 | Sidebar | `<space>bc` | Create a branch starting at the selected branch and check it out (prompt popup) |
 | Sidebar | `<space>bC` | Create a branch starting at the selected branch without checking it out |
-| Sidebar | `<space>bs` | Switch to a branch (type-to-filter prompt; a remote branch gets a tracking branch) |
+| Sidebar | `<space>bs` | Check out the branch row at once (a remote branch gets a tracking branch); other rows open the type-to-filter prompt |
 | Sidebar | `<space>br` | Rename the selected local branch (prefilled prompt) |
 | Sidebar | `<space>bd` | Delete the selected local branch after a Confirm (a second one when it is unmerged) |
 | Sidebar | `<space>bu` | Set the upstream of the selected local branch (type-to-filter picker of remote branches) |

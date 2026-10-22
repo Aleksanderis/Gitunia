@@ -93,7 +93,7 @@ public class BranchActionsTests
         using var repository = TestRepositories.Conflicted();
         var head = repository.Head;
         using var harness = await Harness.LoadAsync(repository);
-        harness.Select(new BranchSelection(null, null, head));
+        harness.Select(new BranchSelection(null, null, null));
         harness.Run(ActionIds.BranchSwitch);
         harness.Type("other");
         await harness.LoadOperationAsync();
@@ -243,6 +243,236 @@ public class BranchActionsTests
         Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
         Assert.Equal(string.Empty, repository.Git("branch", "--list", "nope").Trim());
         Assert.False(harness.Branches.TryExecute(ActionIds.Cancel, null));
+    }
+
+    [Fact]
+    public async Task GivenASidebarLocalBranchRow_WhenSwitching_ThenItIsCheckedOutAtOnceWithoutAPrompt()
+    {
+        using var repository = RepositoryWithTopic().Branch("release");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "release", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal("release", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenTheCurrentBranchRow_WhenSwitching_ThenTheNoticeSaysAlreadyThereAndNoPromptOpens()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "main", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.Equal("Already on main", harness.Branches.Notice);
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenABranchRowHeldByAnotherWorktree_WhenSwitching_ThenItIsRefusedWithoutAPrompt()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.AddWorktree("wt-topic", "topic");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.Contains("is checked out in", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenASidebarRemoteBranchRowWithoutTwin_WhenSwitching_ThenATrackingBranchIsCreatedAtOnce()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.AddOrigin();
+        repository.Git("push", "-q", "origin", "topic");
+        repository.Git("branch", "-D", "topic");
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.RemoteBranch, "origin/topic", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal("topic", repository.Git("branch", "--show-current").Trim());
+        Assert.Equal("origin/topic", repository.Git("rev-parse", "--abbrev-ref", "topic@{upstream}").Trim());
+    }
+
+    [Fact]
+    public async Task GivenASidebarRemoteBranchRowWithALocalTwin_WhenSwitching_ThenTheLocalBranchIsCheckedOut()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.AddOrigin();
+        repository.Git("push", "-q", "origin", "topic");
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.RemoteBranch, "origin/topic", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+        await harness.FinishAsync();
+
+        Assert.Equal("topic", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenATagRow_WhenSwitching_ThenThePromptOpensAsBefore()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Tag, "v1", repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.NotNull(harness.Branches.Popup);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithOneBranchLabel_WhenSwitching_ThenThatBranchIsCheckedOutAtOnce()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchSwitch);
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal("old", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithSeveralBranchLabels_WhenSwitching_ThenThePickerListsOnlyThoseAndDetached()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        repository.Git("branch", "older", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchSwitch);
+        var text = PopupText.Of(harness.Branches);
+        harness.Type("older");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Contains("(1/3)", text, StringComparison.Ordinal);
+        Assert.Equal("older", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithSeveralBranchLabels_WhenFilteringForAnotherBranch_ThenNothingMatches()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        repository.Git("branch", "older", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("topic");
+
+        Assert.Contains("No matching branch", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithoutBranchLabels_WhenSwitching_ThenThePromptListsAllBranches()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("topic");
+
+        Assert.Contains("topic (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenSeveralBranchLabels_WhenChoosingTheDetachedEntry_ThenHeadIsDetachedAtTheCommit()
+    {
+        using var repository = RepositoryWithTopic();
+        var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
+        repository.Git("branch", "old", first);
+        repository.Git("branch", "older", first);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, first));
+
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Type("detached");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(first, repository.Head);
+        Assert.Equal(string.Empty, repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithOnlyARemoteLabel_WhenSwitching_ThenATrackingBranchIsCreatedAtOnce()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .CheckoutNewBranch("topic")
+            .Commit("two", new TestFile("a.txt", "2"));
+        repository.AddOrigin();
+        repository.Git("push", "-q", "origin", "topic");
+        repository.Git("checkout", "-q", "main");
+        repository.Git("branch", "-D", "topic");
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Git("rev-parse", "origin/topic").Trim()));
+
+        harness.Run(ActionIds.BranchSwitch);
+        await harness.FinishAsync();
+
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal("topic", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWhoseOnlyLabelIsTheCurrentBranch_WhenSwitching_ThenTheNoticeSaysAlreadyThere()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("one", new TestFile("a.txt", "1"))
+            .Commit("two", new TestFile("a.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Head));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.Equal("Already on main", harness.Branches.Notice);
+        Assert.Null(harness.Branches.Popup);
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWhoseOnlyLabelIsHeldByAnotherWorktree_WhenSwitching_ThenItIsRefused()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.Commit("three", new TestFile("a.txt", "3"));
+        repository.AddWorktree("wt-topic", "topic");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Git("rev-parse", "topic").Trim()));
+
+        harness.Run(ActionIds.BranchSwitch);
+
+        Assert.Contains("is checked out in", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Null(harness.Branches.Popup);
+        Assert.Equal(0, harness.Refreshes);
     }
 
     [Fact]
@@ -629,7 +859,7 @@ public class BranchActionsTests
         var first = repository.Git("rev-list", "--max-parents=0", "HEAD").Trim();
         repository.Git("branch", "old", first);
         using var harness = await Harness.LoadAsync(repository);
-        harness.Select(new BranchSelection(null, null, repository.Head));
+        harness.Select(new BranchSelection(null, null, null));
 
         harness.Run(ActionIds.BranchSwitch);
         harness.Type("old");
