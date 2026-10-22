@@ -32,7 +32,8 @@ public static class WhichKeyFrameBuilder
         }
 
         var keysWidth = shown.Max(row => TextWidth.Of(row.Key));
-        var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + shown.Max(row => TextWidth.Of(row.Description)) + 1;
+        var descriptionWidth = shown.Max(row => TextWidth.Of(row.Description));
+        var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + descriptionWidth + 1;
         var width = Math.Clamp(wanted, OverlayBox.MinimumWidth, Math.Min(MaximumWidth, screenWidth));
 
         var lines = new List<StyledLine> { OverlayBox.Title($"{pending}-", width, glyphs) };

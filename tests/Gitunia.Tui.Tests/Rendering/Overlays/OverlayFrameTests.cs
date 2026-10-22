@@ -15,6 +15,13 @@ public class OverlayFrameTests
     private static string Text(OverlayFrame? frame) =>
         frame is null ? "<none>" : string.Join('\n', frame.Lines.Select(line => line.Text));
 
+    private static bool IsRule(string line, GraphGlyphSet glyphs)
+    {
+        var inner = line.Trim('|', '\u2502', ' ');
+
+        return inner.Length > 0 && inner.All(character => character == glyphs.Horizontal);
+    }
+
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
     private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
@@ -519,7 +526,7 @@ public class OverlayFrameTests
 
         var frame = WhichKeyFrameBuilder.Build("<space>", rows, 80, 40, glyphs)!;
         var body = frame.Lines.Skip(1).Take(frame.Height - 2).Select(line => line.Text).ToList();
-        var ruleIndex = body.FindIndex(line => line.Trim('|', '\u2502', ' ').Length > 0 && line.Trim('|', '\u2502', ' ').All(c => c == glyphs.Horizontal));
+        var ruleIndex = body.FindIndex(line => IsRule(line, glyphs));
 
         Assert.True(ruleIndex > 0);
         Assert.DoesNotContain("+more", body[ruleIndex - 1], StringComparison.Ordinal);
@@ -534,7 +541,8 @@ public class OverlayFrameTests
 
         foreach (var entry in palette.Entries)
         {
-            var frame = PaletteFrameBuilder.Build(palette with { Query = entry.Title }, 120, 30, GraphGlyphSet.Unicode)!;
+            var filtered = palette with { Query = entry.Title };
+            var frame = PaletteFrameBuilder.Build(filtered, 120, 30, GraphGlyphSet.Unicode)!;
 
             Assert.DoesNotContain(frame.Lines, line => line.Text.Contains('\u2026', StringComparison.Ordinal));
         }
@@ -543,7 +551,9 @@ public class OverlayFrameTests
     [Fact]
     public void GivenAPopupWithOnlyActions_WhenRendering_ThenThereIsNoRule()
     {
-        var frame = WhichKeyFrameBuilder.Build("g", [new WhichKeyRow("g", "Go to the top")], 60, 20, GraphGlyphSet.Unicode)!;
+        WhichKeyRow[] rows = [new("g", "Go to the top")];
+
+        var frame = WhichKeyFrameBuilder.Build("g", rows, 60, 20, GraphGlyphSet.Unicode)!;
 
         Assert.Equal(3, frame.Height);
     }

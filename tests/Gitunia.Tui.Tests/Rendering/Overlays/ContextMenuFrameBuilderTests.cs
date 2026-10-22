@@ -168,32 +168,41 @@ public class ContextMenuFrameBuilderTests
     }
 
     private static readonly string[] MenuNames =
-        ["graph", "graph-root", "local", "remote-branch", "tag", "worktree", "stash", .. Enum.GetValues<SidebarSection>().Select(section => "section-" + section)];
+    [
+        "graph", "graph-root", "local", "remote-branch", "tag", "worktree", "stash",
+        .. Enum.GetValues<SidebarSection>().Select(section => $"section-{section}"),
+    ];
 
-    private static (string View, IReadOnlyList<ActionId> Actions) ActionsOf(string name) => name switch
+    private static string ViewOf(string name) =>
+        name.StartsWith("graph", StringComparison.Ordinal) ? DefaultKeymap.GraphView : DefaultKeymap.SidebarView;
+
+    private static IReadOnlyList<ActionId> ActionsOf(string name) => name switch
     {
-        "graph" => (DefaultKeymap.GraphView, RowActions.OfGraphRowFor(true, false)),
-        "graph-root" => (DefaultKeymap.GraphView, RowActions.OfGraphRowFor(true, true)),
-        "local" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.LocalBranch, SidebarSection.Branches))),
-        "remote-branch" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.RemoteBranch, SidebarSection.Remotes))),
-        "tag" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Tag, SidebarSection.Tags))),
-        "worktree" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Worktree, SidebarSection.Worktrees))),
-        "stash" => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Stash, SidebarSection.Stashes))),
-        _ => (DefaultKeymap.SidebarView, RowActions.OfSidebarRow(Row(SidebarRowKind.Section, Enum.Parse<SidebarSection>(name[8..])))),
+        "graph" => RowActions.OfGraphRowFor(true, false),
+        "graph-root" => RowActions.OfGraphRowFor(true, true),
+        "local" => SidebarActions(SidebarRowKind.LocalBranch, SidebarSection.Branches),
+        "remote-branch" => SidebarActions(SidebarRowKind.RemoteBranch, SidebarSection.Remotes),
+        "tag" => SidebarActions(SidebarRowKind.Tag, SidebarSection.Tags),
+        "worktree" => SidebarActions(SidebarRowKind.Worktree, SidebarSection.Worktrees),
+        "stash" => SidebarActions(SidebarRowKind.Stash, SidebarSection.Stashes),
+        _ => SidebarActions(SidebarRowKind.Section, Enum.Parse<SidebarSection>(name["section-".Length..])),
     };
+
+    private static IReadOnlyList<ActionId> SidebarActions(SidebarRowKind kind, SidebarSection section) =>
+        RowActions.OfSidebarRow(Row(kind, section));
 
     [Theory]
     [MemberData(nameof(EveryMenuAtEveryWidth))]
     public void GivenAnyRowMenu_WhenBuildingOnAWideScreen_ThenNoRowIsCut(string name, int width)
     {
-        var (view, actions) = ActionsOf(name);
-        var entries = ContextMenuBuilder.Build(Table, view, actions);
+        var entries = ContextMenuBuilder.Build(Table, ViewOf(name), ActionsOf(name));
         if (entries.Count == 0)
         {
             return;
         }
 
-        var frame = ContextMenuFrameBuilder.Build(new PaletteState(entries, SelectedIndex: 0), new MenuAnchor(0, 0), width, 60, GraphGlyphSet.Unicode)!;
+        var menu = new PaletteState(entries, SelectedIndex: 0);
+        var frame = ContextMenuFrameBuilder.Build(menu, new MenuAnchor(0, 0), width, 60, GraphGlyphSet.Unicode)!;
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
 
         Assert.True(frame.Width <= width);
