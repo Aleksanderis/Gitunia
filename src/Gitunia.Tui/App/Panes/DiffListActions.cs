@@ -136,6 +136,10 @@ public sealed class DiffListActions
         {
             Copy(document, row, action == ActionIds.DiffCopyFile);
         }
+        else if ((action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk) && document.IsFileContent)
+        {
+            Notice = "The file content has no changes to jump to";
+        }
         else if (action == ActionIds.DiffNextHunk || action == ActionIds.DiffPreviousHunk)
         {
             Jump(diff, document.HunkRows, row, action == ActionIds.DiffNextHunk, count, _anchorName);

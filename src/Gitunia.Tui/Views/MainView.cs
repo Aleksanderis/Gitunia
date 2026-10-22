@@ -699,7 +699,10 @@ public sealed class MainView : IDisposable
         }
 
         FocusFromTitle(Diff);
-        var buttons = DiffTitleButtons.Layout(_diffTitle.Viewport.Width, _model().Keys);
+        var buttons = DiffTitleButtons.Layout(
+            _diffTitle.Viewport.Width,
+            _model().Keys,
+            Diff.Source is DiffListSource { Document.IsFileContent: true });
         if (TitleButton.ViewAt(buttons, column) is { } buttonView)
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);

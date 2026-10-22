@@ -1135,7 +1135,9 @@ public sealed class TuiApplication(
                     ? PaneHints.ForReflog()
                     : _commits.IsEditing
                     ? PaneHints.ForMessageEditing()
-                    : PaneHints.For(_host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph),
+                    : PaneHints.For(
+                        _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+                        _diffPane.IsShowingContent),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };

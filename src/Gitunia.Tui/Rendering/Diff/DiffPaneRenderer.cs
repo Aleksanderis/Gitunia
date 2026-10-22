@@ -52,7 +52,7 @@ public static class DiffPaneRenderer
     /// </summary>
     public static StyledLine RenderTitle(DiffPaneModel pane, int width, GraphGlyphSet glyphs, ChipKeys? keys = null)
     {
-        var buttons = DiffTitleButtons.Layout(width, keys);
+        var buttons = DiffTitleButtons.Layout(width, keys, pane.Document.IsFileContent);
         if (buttons.Count == 0)
         {
             return RenderTitleText(pane, width, glyphs);
@@ -63,7 +63,7 @@ public static class DiffPaneRenderer
 
     /// <summary>
     /// The title row of the working-tree diff: <paramref name="title"/> as the pane's chip, then the buttons at the right end
-    /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons, ChipKeys)"/>) when the row is wide enough.
+    /// (<see cref="DiffTitleButtons.Layout(int, WorkingTreeButtons, ChipKeys, bool)"/>) when the row is wide enough.
     /// </summary>
     public static StyledLine RenderWorkingTitle(
         string title,

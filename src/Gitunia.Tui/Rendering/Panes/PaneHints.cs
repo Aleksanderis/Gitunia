@@ -67,6 +67,19 @@ public static class PaneHints
         new("h", "back", [ActionIds.NavigateBack]),
     ];
 
+    private static readonly ImmutableArray<KeyHint> FileContent =
+    [
+        .. Pinned,
+        new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
+        new("/", "search", [ActionIds.DiffSearchOpen]),
+        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
+        new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
+        new("y", "copy line", [ActionIds.DiffCopyLine]),
+        new("Y", "copy file", [ActionIds.DiffCopyFile]),
+        new("h", "back", [ActionIds.NavigateBack]),
+    ];
+
     private static readonly KeyHint PaneJumps = new(
         "<space>1/2/3/4",
         "panes",
@@ -225,6 +238,10 @@ public static class PaneHints
         new("/", "filter", [ActionIds.SettingsFilter]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
+
+    /// <summary>The hints of the focused <paramref name="pane"/>; file content has its own.</summary>
+    public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent) =>
+        pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
 
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {

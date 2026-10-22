@@ -59,6 +59,19 @@ public class DiffFrameTests
     }
 
     [Fact]
+    public void GivenFileContent_WhenRenderingTheTitle_ThenNoHunkOrFileChipsShow()
+    {
+        var document = new DiffDocument([new DiffRow(DiffRowKind.Context, "x", 1, 1, 0)], [], [], [], 1, "a.txt");
+
+        var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(document, 0, 0, true), 160, GraphGlyphSet.Unicode);
+
+        Assert.Contains(" File ", title.Text, StringComparison.Ordinal);
+        Assert.Contains(" wrap ", title.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunk", title.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("ctx", title.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAnOpenDiff_WhenComposingAt80Columns_ThenTheBottomPanesKeepOneBlankColumn()
     {
         var lines = Compose(80, 24, new PaneArrangement(true, null));
