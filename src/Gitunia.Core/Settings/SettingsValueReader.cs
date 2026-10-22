@@ -37,17 +37,11 @@ public static class SettingsValueReader
         var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems);
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
-        values[SettingsRegistry.FrameStyleId] = SettingValue.OfChoice(StyleName(options.FrameStyle));
         values[SettingsRegistry.ShowBranchId] = SettingValue.OfFlag(options.ShowBranchInTab);
         values[SettingsRegistry.ScanRootsId] = ReadScanRoots(document.ScanRoots);
 
         return new SettingsLoad(values.ToImmutable(), WarningsOf(problems), banner, options, theme);
     }
-
-    /// <summary>The text of a frame style as written in the file.</summary>
-    /// <param name="style">The style.</param>
-    public static string StyleName(FrameStyle style) =>
-        style == FrameStyle.Square ? SettingsRegistry.SquareStyle : SettingsRegistry.RoundedStyle;
 
     /// <summary>The text of a theme as written in the file.</summary>
     /// <param name="theme">The theme.</param>

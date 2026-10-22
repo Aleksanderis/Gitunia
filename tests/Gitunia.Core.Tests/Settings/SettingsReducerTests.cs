@@ -81,7 +81,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenARowThatIsNotAToggle_WhenPressingToggle_ThenNothingHappens()
     {
-        var state = Open().Reveal(Definition(SettingsRegistry.FrameStyleId));
+        var state = Open().Reveal(Definition(SettingsRegistry.ThemeId));
 
         var outcome = Reduce(state, SettingsCommandKind.Toggle);
 
@@ -92,15 +92,15 @@ public class SettingsReducerTests
     [Fact]
     public void GivenAChoice_WhenActivating_ThenItsOptionsAreListedWithTheCursorOnTheCurrentOne()
     {
-        var state = Open("{ \"frameStyle\": \"square\" }").Reveal(Definition(SettingsRegistry.FrameStyleId));
+        var state = Open("{ \"theme\": \"light\" }").Reveal(Definition(SettingsRegistry.ThemeId));
 
         var outcome = Reduce(state, SettingsCommandKind.Activate);
 
         Assert.Null(outcome.Commit);
         Assert.Equal(
-            [SettingRowKind.Setting, SettingRowKind.Setting, SettingRowKind.Option, SettingRowKind.Option],
+            [SettingRowKind.Setting, SettingRowKind.Option, SettingRowKind.Option, SettingRowKind.Option],
             outcome.State.Rows.Select(row => row.Kind));
-        Assert.Equal(1, outcome.State.Selected?.Index);
+        Assert.Equal(2, outcome.State.Selected?.Index);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class SettingsReducerTests
 
         var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Activate);
 
-        Assert.Equal("square", outcome.Commit?.Value.Choice);
+        Assert.Equal("light", outcome.Commit?.Value.Choice);
         Assert.Null(outcome.State.Choice);
         Assert.Equal(SettingRowKind.Setting, outcome.State.Selected?.Kind);
     }
@@ -124,13 +124,6 @@ public class SettingsReducerTests
         Assert.Equal(ThemeChoice.Dark, opened.MoveTo(2).PreviewTheme);
         Assert.Equal(ThemeChoice.Light, opened.MoveTo(3).PreviewTheme);
         Assert.Null(Reduce(opened.MoveTo(3), SettingsCommandKind.Back).State.PreviewTheme);
-    }
-
-    [Fact]
-    public void GivenAChoiceThatIsNotTheTheme_WhenTheListIsOpen_ThenThereIsNoThemePreview()
-    {
-        Assert.Null(OpenChoice().PreviewTheme);
-        Assert.Null(Open().Reveal(Definition(SettingsRegistry.ThemeId)).PreviewTheme);
     }
 
     [Fact]
@@ -180,7 +173,7 @@ public class SettingsReducerTests
         var up = opened.MoveTo(-5);
 
         Assert.Equal(3, down.Cursor);
-        Assert.Equal(2, up.Cursor);
+        Assert.Equal(1, up.Cursor);
     }
 
     [Fact]
@@ -343,11 +336,11 @@ public class SettingsReducerTests
         var state = Reduce(Open(), SettingsCommandKind.FilterOpen).State;
         Assert.True(state.IsEditingFilter);
 
-        var byName = state.WithFilterText("frame");
+        var byName = state.WithFilterText("theme");
         var byHelp = state.WithFilterText("PICKER");
         var none = state.WithFilterText("zzz");
 
-        Assert.Equal([SettingsRegistry.FrameStyleId], byName.Rows.Select(row => row.Definition.Id));
+        Assert.Equal([SettingsRegistry.ThemeId], byName.Rows.Select(row => row.Definition.Id));
         Assert.Equal([SettingsRegistry.ScanRootsId], byHelp.Rows.Select(row => row.Definition.Id));
         Assert.Empty(none.Rows);
     }
@@ -396,7 +389,7 @@ public class SettingsReducerTests
     [Fact]
     public void GivenTheSettingsColumn_WhenGoingBackTwice_ThenTheCategoriesGetTheCursorAndThenTheScreenCloses()
     {
-        var state = Open().Reveal(Definition(SettingsRegistry.FrameStyleId));
+        var state = Open().Reveal(Definition(SettingsRegistry.ThemeId));
 
         var first = Reduce(state, SettingsCommandKind.Back);
         var second = Reduce(first.State, SettingsCommandKind.Back);
@@ -471,7 +464,7 @@ public class SettingsReducerTests
         var collapsed = state.WithLayout(collapsed: true);
         var expanded = collapsed.WithLayout(collapsed: false);
 
-        Assert.Equal(6, collapsed.Rows.Count);
+        Assert.Equal(5, collapsed.Rows.Count);
         Assert.Equal(SettingsRegistry.ShowBranchId, collapsed.Selected?.Definition.Id);
         Assert.Equal(SettingsRegistry.ShowBranchId, expanded.Selected?.Definition.Id);
         Assert.Equal(SettingCategory.Tabs, expanded.CurrentCategory);
@@ -500,7 +493,7 @@ public class SettingsReducerTests
     }
 
     private static SettingsState OpenChoice() =>
-        Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate).State;
+        Reduce(Open().Reveal(Definition(SettingsRegistry.ThemeId)), SettingsCommandKind.Activate).State;
 
     [Fact]
     public void GivenAKeyReferenceRow_WhenActivating_ThenTheStatusShowsItsKeysEntryAndNothingIsWritten()

@@ -439,3 +439,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Keyed chips (#578): the `stage all`/`unstage all` list title chips and the change-group staging chips show their keys like the tab bar and diff title chips, dropped first when narrow (before any chip is dropped).
 
 **UI:** File content wording (#579): while the diff pane shows a file's content, hints and title chips name no hunk, file or diff option (only `zoom` and `wrap` chips remain); hunk and file jumps explain there is nothing to jump to.
+
+**UI:** The `frameStyle` option (rounded/square, #453) is removed: it only swapped the frame and overlay corners, which the owner could not tell apart. Frames stay rounded; an old `frameStyle` key in `config.json` is ignored like any unknown key.
+
+**UI:** The bottom pane no longer has its own panel background (owner review): it looked like an unexplained second tone next to the other panes. The frame line and the tab buttons separate it; `PaletteTable.PanelBackground` and `StyledSegment.OnPanel` are gone.

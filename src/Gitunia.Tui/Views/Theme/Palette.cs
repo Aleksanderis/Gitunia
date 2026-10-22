@@ -21,12 +21,12 @@ public static class Palette
     }
 
     /// <summary>
-    /// The scheme of a view whose content sits on the panel background: the toolkit clears everything the rows do not paint (the lines below the
-    /// last row, which it also repaints with the normal colours when the cursor reaches the last row) with the normal colour of the view's scheme.
+    /// The scheme of a view that paints rows: the toolkit clears everything the rows do not paint (the lines below the last row, which it also
+    /// repaints with the normal colours when the cursor reaches the last row) with the normal colour of the view's scheme.
     /// </summary>
-    public static Scheme PanelScheme() => PanelScheme(table);
+    public static Scheme BaseScheme() => BaseScheme(table);
 
-    public static Scheme PanelScheme(PaletteTable colors) => new(new Attribute(colors.BaseForeground, colors.PanelBackground != Color.None ? colors.PanelBackground : colors.BaseBackground));
+    public static Scheme BaseScheme(PaletteTable colors) => new(new Attribute(colors.BaseForeground, colors.BaseBackground));
 
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
@@ -70,8 +70,7 @@ public static class Palette
             return colors.GroupBackground;
         }
 
-        // The group tint above wins over the panel background when both apply.
-        return segment.OnPanel ? colors.PanelBackground : background;
+        return background;
     }
 
     // Foreground, background, style, and whether the background stays when the row is selected (chips, search matches).

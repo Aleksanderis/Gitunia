@@ -62,9 +62,9 @@ public static class OverlayBox
     {
         var rule = glyphs.Horizontal;
         var ascii = glyphs.IsAscii;
-        var text = (ascii ? '+' : glyphs.FrameLine(LineDirections.Up | LineDirections.Right))
+        var text = (ascii ? '+' : glyphs.For(LineDirections.Up | LineDirections.Right))
             + new string(rule, Math.Max(0, width - BorderWidth))
-            + (ascii ? '+' : glyphs.FrameLine(LineDirections.Up | LineDirections.Left));
+            + (ascii ? '+' : glyphs.For(LineDirections.Up | LineDirections.Left));
         return new LineBuilder(width, glyphs.Ellipsis).Append(text, SegmentRole.FocusedBorder).Build();
     }
 

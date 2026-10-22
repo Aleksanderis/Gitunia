@@ -5,19 +5,18 @@ using Gitunia.Core.Config.Models;
 namespace Gitunia.Core.Config;
 
 /// <summary>
-/// Reads <c>frameStyle</c>, <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds
+/// Reads <c>tabs.showBranch</c> and <c>scanRoots</c>; a bad value keeps its default and adds
 /// a problem.
 /// </summary>
 public static class OptionsConfigurator
 {
-    private const string FrameStyleKey = "frameStyle";
     private const string TabsKey = "tabs";
     private const string ShowBranchKey = "tabs.showBranch";
     private const string ScanRootsKey = "scanRoots";
     private const string ShowBranchProperty = "showBranch";
     private const char HomeMarker = '~';
 
-    /// <summary>Validates the three options.</summary>
+    /// <summary>Validates the options.</summary>
     /// <param name="document">The parsed file.</param>
     /// <param name="homeDirectory">What a leading <c>~</c> in a scan root stands for.</param>
     /// <param name="directoryExists">Whether a directory exists (injected, so this stays pure).</param>
@@ -28,31 +27,8 @@ public static class OptionsConfigurator
         Func<string, bool> directoryExists,
         ICollection<ConfigProblem> problems) =>
         new(
-            ParseFrameStyle(document.FrameStyle, problems),
             ParseShowBranch(document.Tabs, problems),
             ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems));
-
-    /// <summary>The style for a setting value; unknown values give rounded.</summary>
-    public static FrameStyle ParseFrameStyle(JsonElement? value, ICollection<ConfigProblem> problems)
-    {
-        if (value is null or { ValueKind: JsonValueKind.Null })
-        {
-            return FrameStyle.Rounded;
-        }
-
-        var text = value.Value.ValueKind == JsonValueKind.String ? value.Value.GetString() ?? string.Empty : null;
-        switch (text?.Trim().ToLowerInvariant())
-        {
-            case "rounded":
-                return FrameStyle.Rounded;
-            case "square":
-                return FrameStyle.Square;
-            default:
-                var message = "frameStyle must be \"rounded\" or \"square\", using rounded";
-                problems.Add(new ConfigProblem(FrameStyleKey, message));
-                return FrameStyle.Rounded;
-        }
-    }
 
     /// <summary>The <c>tabs.showBranch</c> flag from the <c>tabs</c> object; anything else gives false.</summary>
     public static bool ParseShowBranch(JsonElement? tabs, ICollection<ConfigProblem> problems)

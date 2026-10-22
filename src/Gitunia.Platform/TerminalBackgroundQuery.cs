@@ -28,6 +28,10 @@ public static class TerminalBackgroundQuery
 
         try
         {
+            // Reading the keyboard state first makes .NET put the tty in no-echo mode: a reply that arrives before
+            // that is echoed onto the screen as ^[]11;rgb:... instead of being read.
+            _ = Console.KeyAvailable;
+
             // The DA1 query behind it (ESC [ c) is answered by every terminal, in order: its reply ends the wait.
             Console.Out.Write("\u001b]11;?\u001b\\\u001b[c");
             Console.Out.Flush();

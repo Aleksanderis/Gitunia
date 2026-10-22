@@ -163,7 +163,7 @@ public sealed class TuiApplication(
             _capabilities = _capabilities with { IsLightBackground = isLight };
         }
 
-        var glyphs = GraphGlyphSet.For(_capabilities.Unicode) with { Frame = _startupConfig.Options.FrameStyle };
+        var glyphs = GraphGlyphSet.For(_capabilities.Unicode);
         _glyphs = glyphs;
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -1274,7 +1274,6 @@ public sealed class TuiApplication(
     private void ApplyOptions(ConfigOptions options)
     {
         _startupConfig = _startupConfig with { Options = options };
-        _glyphs.Frame = options.FrameStyle;
         if (!SameRoots(_picker.ScanRoots, options.ScanRoots))
         {
             _picker.ScanRoots = options.ScanRoots;

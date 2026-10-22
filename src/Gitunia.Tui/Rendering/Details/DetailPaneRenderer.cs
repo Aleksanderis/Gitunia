@@ -21,7 +21,7 @@ public static class DetailPaneRenderer
         {
             var row = pane.TopRow + offset;
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
-            lines.Add(OnPanel(PanePadding.Wrap(
+            lines.Add(PanePadding.Wrap(
                 row >= 0 && row < pane.Content.Rows.Count
                     ? RenderRow(
                         pane.Content.Rows[row],
@@ -30,7 +30,7 @@ public static class DetailPaneRenderer
                         glyphs,
                         pane.Content.PathStyle)
                     : RenderEmpty(textWidth, glyphs),
-                paddingColumns)));
+                paddingColumns));
         }
 
         return lines;
@@ -185,10 +185,6 @@ public static class DetailPaneRenderer
     /// <summary>A row past the last one: blank.</summary>
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Build();
-
-    /// <summary>The line marked as part of the panel background; the one place both the text frame and the live list view use.</summary>
-    public static StyledLine OnPanel(StyledLine line) =>
-        line with { Segments = [.. line.Segments.Select(segment => segment with { OnPanel = true })] };
 
     // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static string FileCountText(int? count) => count switch

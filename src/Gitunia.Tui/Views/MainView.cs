@@ -1,4 +1,3 @@
-using Gitunia.Core.Config.Models;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
@@ -145,7 +144,7 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Detail.Height),
             CanFocus = true,
         };
-        Detail.SetScheme(Palette.PanelScheme());
+        Detail.SetScheme(Palette.BaseScheme());
         _bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),
@@ -494,7 +493,7 @@ public sealed class MainView : IDisposable
     /// <summary>Repaints every view after the palette changed (the settings screen previews a theme).</summary>
     public void RefreshPalette()
     {
-        Detail.SetScheme(Palette.PanelScheme());
+        Detail.SetScheme(Palette.BaseScheme());
         RefreshChrome();
         Window.SetNeedsDraw();
         Graph.SetNeedsDraw();
@@ -776,8 +775,7 @@ public sealed class MainView : IDisposable
             unstagedTitle,
             stagedTitle,
             messageTitle,
-            _glyphs.IsAscii,
-            _glyphs.Frame);
+            _glyphs.IsAscii);
         if (_workingGrid is null || _workingGridKey != key)
         {
             _workingGrid = FrameGrid.Build(
@@ -811,8 +809,7 @@ public sealed class MainView : IDisposable
             focused,
             title,
             isPicker,
-            _glyphs.IsAscii,
-            _glyphs.Frame);
+            _glyphs.IsAscii);
         if (_grid is null || _gridKey != key)
         {
             _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, isPicker ? string.Empty : title, isPicker ? string.Empty : "History");
@@ -830,8 +827,7 @@ public sealed class MainView : IDisposable
         string UnstagedTitle,
         string StagedTitle,
         string MessageTitle,
-        bool IsAscii,
-        FrameStyle Frame);
+        bool IsAscii);
 
     private StyledLine OptionsLine(int width) =>
         MessageBoxRenderer.OptionsLine(ActiveDraft(), width, PanePadding.ColumnsFor(ScreenWidth), _glyphs);

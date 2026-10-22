@@ -11,9 +11,6 @@ public static class SettingsRegistry
     /// <summary>The id of the theme setting.</summary>
     public const string ThemeId = "theme";
 
-    /// <summary>The id of the frame style setting.</summary>
-    public const string FrameStyleId = "frame-style";
-
     /// <summary>The id of the tab branch setting.</summary>
     public const string ShowBranchId = "tabs-show-branch";
 
@@ -25,12 +22,6 @@ public static class SettingsRegistry
 
     /// <summary>The id of the row that opens the config file in the editor.</summary>
     public const string OpenConfigId = "open-config";
-
-    /// <summary>The text of the rounded frame style in the file.</summary>
-    public const string RoundedStyle = "rounded";
-
-    /// <summary>The text of the square frame style in the file.</summary>
-    public const string SquareStyle = "square";
 
     /// <summary>The settings in the order they are listed inside a category.</summary>
     public static IReadOnlyList<SettingDefinition> All { get; } =
@@ -45,15 +36,6 @@ public static class SettingsRegistry
                 + "Enter keeps it and Esc restores the previous one.",
             "auto",
             ["auto", "dark", "light"]),
-        new SettingDefinition(
-            FrameStyleId,
-            SettingCategory.Appearance,
-            "Frame style",
-            SettingControl.Choice,
-            ["frameStyle"],
-            "The corners of the pane frames and the overlays. The ASCII character set always draws + - |.",
-            RoundedStyle,
-            [RoundedStyle, SquareStyle]),
         new SettingDefinition(
             ScanRootsId,
             SettingCategory.Repositories,

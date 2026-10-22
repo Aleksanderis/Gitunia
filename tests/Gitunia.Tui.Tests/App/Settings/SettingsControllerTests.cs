@@ -24,21 +24,20 @@ public sealed class SettingsControllerTests : IDisposable
     [Fact]
     public async Task GivenAFileWithValues_WhenOpening_ThenTheScreenShowsThemAndTheOptionsAreApplied()
     {
-        _harness.WriteConfig("{ \"frameStyle\": \"square\", \"tabs\": { \"showBranch\": true } }");
+        _harness.WriteConfig("{ \"tabs\": { \"showBranch\": true } }");
 
         await _harness.OpenAsync();
 
         Assert.True(_harness.Settings.IsOpen);
         Assert.NotNull(_harness.Settings.CurrentFrame());
         Assert.Equal(KeyMode.Normal, _harness.Mode);
-        Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
     }
 
     [Fact]
     public async Task GivenAFileWithComments_WhenFlippingAToggle_ThenOnlyThatKeyIsInsertedAndTheOptionsApply()
     {
-        const string original = "{\n  // keep me\n  \"frameStyle\": \"rounded\"\n}\n";
+        const string original = "{\n  // keep me\n  \"theme\": \"auto\"\n}\n";
         _harness.WriteConfig(original);
         await _harness.OpenAsync();
 
@@ -48,11 +47,11 @@ public sealed class SettingsControllerTests : IDisposable
         await _harness.PumpAsync();
 
         var text = _harness.ReadConfig();
-        Assert.StartsWith("{\n  // keep me\n  \"frameStyle\": \"rounded\",\n", text, StringComparison.Ordinal);
+        Assert.StartsWith("{\n  // keep me\n  \"theme\": \"auto\",\n", text, StringComparison.Ordinal);
         Assert.Contains("\"tabs\": { \"showBranch\": true }", text, StringComparison.Ordinal);
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
         Assert.Equal("Saved Show branch in tab name", _harness.Statuses.Log.Latest!.Text);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
     }
 
     [Fact]
@@ -72,11 +71,10 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAChoice_WhenKeepingAnotherOption_ThenTheFileAndTheRunningFrameStyleChange()
+    public async Task GivenAChoice_WhenKeepingAnOption_ThenTheFileAndTheRunningThemeChange()
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.SettingsActivate);
-        _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
         _harness.Run(ActionIds.ListDown);
         Assert.Equal(string.Empty, _harness.ReadConfig());
@@ -84,8 +82,8 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
-        Assert.Equal("{\n  \"frameStyle\": \"square\"\n}\n", _harness.ReadConfig());
-        Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
+        Assert.Equal("{\n  \"theme\": \"dark\"\n}\n", _harness.ReadConfig());
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
     }
 
     [Fact]
@@ -135,7 +133,7 @@ public sealed class SettingsControllerTests : IDisposable
     [Fact]
     public async Task GivenAPreviewedTheme_WhenPressingEnter_ThenItStaysAndIsWrittenAndReadBackAtTheNextStart()
     {
-        _harness.WriteConfig("{\n  // keep me\n  \"frameStyle\": \"square\"\n}\n");
+        _harness.WriteConfig("{\n  // keep me\n  \"tabs\": { \"showBranch\": false }\n}\n");
         await _harness.OpenThemeListAsync();
         _harness.Run(ActionIds.ListDown);
 
@@ -159,14 +157,14 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.WriteConfig("{ \"theme\": \"light\" }");
         await _harness.OpenThemeListAsync();
         _harness.Run(ActionIds.ListUp);
-        _harness.WriteConfig("{ \"theme\": \"light\", \"frameStyle\": \"square\" }");
+        _harness.WriteConfig("{ \"theme\": \"light\", \"tabs\": { \"showBranch\": true } }");
 
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
         Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
         Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
-        Assert.Equal("{ \"theme\": \"light\", \"frameStyle\": \"square\" }", _harness.ReadConfig());
+        Assert.Equal("{ \"theme\": \"light\", \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
     }
 
     [Fact]
@@ -358,19 +356,18 @@ public sealed class SettingsControllerTests : IDisposable
     [Fact]
     public async Task GivenTheFileChangedOnDisk_WhenChangingASetting_ThenNothingIsOverwrittenAndTheNewValuesShow()
     {
-        _harness.WriteConfig("{ \"frameStyle\": \"rounded\" }");
+        _harness.WriteConfig("{ \"tabs\": { \"showBranch\": false } }");
         await _harness.OpenAsync();
-        _harness.WriteConfig("{ \"frameStyle\": \"square\", \"tabs\": { \"showBranch\": true } }");
+        _harness.WriteConfig("{ \"tabs\": { \"showBranch\": true } }");
         _harness.Run(ActionIds.ListDown, 3);
         _harness.Run(ActionIds.SettingsActivate);
 
         _harness.Run(ActionIds.SettingsToggle);
         await _harness.PumpAsync();
 
-        Assert.Equal("{ \"frameStyle\": \"square\", \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
+        Assert.Equal("{ \"tabs\": { \"showBranch\": true } }", _harness.ReadConfig());
         Assert.Contains("changed on disk", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[3]).Flag);
-        Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
+        Assert.True(_harness.Settings.State!.ValueOf(SettingsRegistry.All[2]).Flag);
 
         _harness.Run(ActionIds.SettingsToggle);
         await _harness.PumpAsync();
@@ -381,7 +378,7 @@ public sealed class SettingsControllerTests : IDisposable
     [Fact]
     public async Task GivenAFileThatDoesNotParse_WhenOpeningAndChanging_ThenTheScreenIsReadOnlyAndNothingIsWritten()
     {
-        const string broken = "{ \"frameStyle\": ";
+        const string broken = "{ \"tabs\": ";
         _harness.WriteConfig(broken);
         var appliedBefore = _harness.Applied.Count;
 
@@ -496,12 +493,11 @@ public sealed class SettingsControllerTests : IDisposable
 
         _harness.Run(ActionIds.SettingsActivate);
         Assert.Equal(_harness.ConfigPath, _harness.EditorFile);
-        _harness.WriteConfig("{ \"tabs\": { \"showBranch\": true }, \"frameStyle\": \"square\" }");
+        _harness.WriteConfig("{ \"tabs\": { \"showBranch\": true }, \"scanRoots\": [] }");
         _harness.EditorReturned!();
         await _harness.PumpAsync();
 
         Assert.True(_harness.Applied.Last().ShowBranchInTab);
-        Assert.Equal(FrameStyle.Square, _harness.Applied.Last().FrameStyle);
         Assert.Contains("apply after a restart", _harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
@@ -584,19 +580,21 @@ public sealed class SettingsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAnOpenChoice_WhenClickingAnOption_ThenItSelectsAndKeepsInOneClick()
+    public async Task GivenTheThemeOptions_WhenClickingAnOptionTwice_ThenTheFirstClickPreviewsAndTheSecondKeeps()
     {
         await _harness.OpenAsync();
         _harness.Run(ActionIds.SettingsActivate);
-        _harness.Run(ActionIds.ListDown);
         _harness.Run(ActionIds.SettingsActivate);
 
-        var view = _harness.Settings.OnLineClicked(2 + 1 + 2, 30, out _);
+        var first = _harness.Settings.OnLineClicked(2 + 1 + 1, 30, out _);
+        Assert.Null(first);
+        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        var second = _harness.Settings.OnLineClicked(2 + 1 + 1, 30, out _);
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
-        Assert.Equal(DefaultMouseMap.SettingsEditButton, view);
-        Assert.Contains("\"frameStyle\": \"square\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(DefaultMouseMap.SettingsEditButton, second);
+        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
     }
 
     [Fact]

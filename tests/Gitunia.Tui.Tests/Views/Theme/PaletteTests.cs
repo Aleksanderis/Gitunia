@@ -24,17 +24,6 @@ public class PaletteTests
 
     [Theory]
     [MemberData(nameof(Variants))]
-    public void GivenTrueColorScheme_WhenAskingForThePanelScheme_ThenItsNormalColourIsThePanelBackground(bool isLight)
-    {
-        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
-
-        var scheme = Palette.PanelScheme(colors);
-
-        Assert.Equal(colors.PanelBackground, scheme.Normal.Background);
-    }
-
-    [Theory]
-    [MemberData(nameof(Variants))]
     public void GivenTrueColorScheme_WhenColouringTheCursorGroup_ThenTextIsReadableOnTheGroupTint(bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
@@ -208,15 +197,13 @@ public class PaletteTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void GivenTrueColorScheme_WhenDrawingThePanelAndTabButtons_ThenThePanelHasABackgroundAndAButtonDiffersFromPlainText(bool isLight)
+    public void GivenTrueColorScheme_WhenDrawingATabButton_ThenItDiffersFromPlainText(bool isLight)
     {
         var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
 
-        var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
         var button = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
 
-        Assert.NotEqual(plain.Background, panel.Background);
         Assert.NotEqual(plain.Background, button.Background);
     }
 
@@ -266,15 +253,13 @@ public class PaletteTests
     [Theory]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
-    public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsUnderlinedAndThePanelHasNoBackground(ColorDepth depth)
+    public void GivenAColourlessScheme_WhenDrawingATabButton_ThenItIsUnderlined(ColorDepth depth)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, false));
 
         var button = Palette.For(new StyledSegment(" Files ", SegmentRole.RepositoryTab), false, false, colors);
-        var panel = Palette.For(new StyledSegment("x", SegmentRole.Plain, OnPanel: true), false, false, colors);
 
         Assert.True(button.Style.HasFlag(TextStyle.Underline));
-        Assert.Equal(Color.None, panel.Background);
     }
 
     [Theory]

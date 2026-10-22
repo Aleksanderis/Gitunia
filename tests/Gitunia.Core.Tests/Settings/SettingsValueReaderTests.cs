@@ -18,10 +18,10 @@ public class SettingsValueReaderTests
         var load = Read(new ConfigSnapshot(exists, text, string.Empty));
 
         Assert.Equal(string.Empty, load.Banner);
-        Assert.Equal("rounded", load.Values[SettingsRegistry.FrameStyleId].Choice);
+        Assert.Equal("auto", load.Values[SettingsRegistry.ThemeId].Choice);
         Assert.False(load.Values[SettingsRegistry.ShowBranchId].Flag);
         Assert.True(load.Values[SettingsRegistry.ScanRootsId].IsDefault);
-        Assert.Equal(ConfigOptions.Default.FrameStyle, load.Options.FrameStyle);
+        Assert.Equal(ConfigOptions.Default, load.Options);
         Assert.Empty(load.Warnings);
     }
 
@@ -56,16 +56,14 @@ public class SettingsValueReaderTests
     public void GivenAFileWithValues_WhenReading_ThenTheScreenAndTheOptionsHoldThem()
     {
         const string text =
-            "{ \"frameStyle\": \"Square\", \"tabs\": { \"showBranch\": true }, "
+            "{ \"tabs\": { \"showBranch\": true }, "
             + "\"scanRoots\": [\"~/Projects\", \"/srv\"] }";
 
         var load = Read(new ConfigSnapshot(true, text, "h"));
 
-        Assert.Equal("square", load.Values[SettingsRegistry.FrameStyleId].Choice);
         Assert.True(load.Values[SettingsRegistry.ShowBranchId].Flag);
         Assert.Equal(["~/Projects", "/srv"], load.Values[SettingsRegistry.ScanRootsId].Paths);
         Assert.False(load.Values[SettingsRegistry.ScanRootsId].IsDefault);
-        Assert.Equal(FrameStyle.Square, load.Options.FrameStyle);
         Assert.True(load.Options.ShowBranchInTab);
         Assert.Equal([$"{Home}/Projects", "/srv"], load.Options.ScanRoots);
     }
@@ -82,7 +80,7 @@ public class SettingsValueReaderTests
     [Fact]
     public void GivenInvalidJson_WhenReading_ThenTheBannerNamesTheProblemAndItsLine()
     {
-        var load = Read(new ConfigSnapshot(true, "{\n  \"frameStyle\": \n", "h"));
+        var load = Read(new ConfigSnapshot(true, "{\n  \"theme\": \n", "h"));
 
         Assert.StartsWith("config.json cannot be edited:", load.Banner, StringComparison.Ordinal);
         Assert.Contains("line", load.Banner, StringComparison.Ordinal);
@@ -100,14 +98,14 @@ public class SettingsValueReaderTests
     [Fact]
     public void GivenBadValues_WhenReading_ThenEachSettingGetsAWarningAndItsDefault()
     {
-        const string text = "{ \"frameStyle\": \"round\", \"tabs\": 5, \"scanRoots\": [\"/srv\", \"/missing\"] }";
+        const string text = "{ \"theme\": \"round\", \"tabs\": 5, \"scanRoots\": [\"/srv\", \"/missing\"] }";
 
         var load = Read(new ConfigSnapshot(true, text, "h"));
 
-        Assert.Contains("frameStyle", load.Warnings[SettingsRegistry.FrameStyleId], StringComparison.Ordinal);
+        Assert.Contains("theme", load.Warnings[SettingsRegistry.ThemeId], StringComparison.Ordinal);
         Assert.Contains("tabs", load.Warnings[SettingsRegistry.ShowBranchId], StringComparison.Ordinal);
         Assert.Contains("/missing", load.Warnings[SettingsRegistry.ScanRootsId], StringComparison.Ordinal);
-        Assert.Equal("rounded", load.Values[SettingsRegistry.FrameStyleId].Choice);
+        Assert.Equal("auto", load.Values[SettingsRegistry.ThemeId].Choice);
         Assert.False(load.Values[SettingsRegistry.ShowBranchId].Flag);
         Assert.Equal(["/srv", "/missing"], load.Values[SettingsRegistry.ScanRootsId].Paths);
     }

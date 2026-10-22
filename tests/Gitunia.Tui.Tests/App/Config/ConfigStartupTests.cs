@@ -110,7 +110,6 @@ public sealed class ConfigStartupTests : IDisposable
 
         var options = new ConfigStartup(_directory, _directory).Load().Options;
 
-        Assert.Equal(FrameStyle.Square, options.FrameStyle);
         Assert.True(options.ShowBranchInTab);
         Assert.Equal([_directory], options.ScanRoots);
     }
@@ -118,12 +117,12 @@ public sealed class ConfigStartupTests : IDisposable
     [Fact]
     public void GivenBadOptions_WhenLoading_ThenDefaultsApplyAndEveryProblemIsReported()
     {
-        Write("""{ "frameStyle": "dotted", "tabs": 3, "scanRoots": "x" }""");
+        Write("""{ "tabs": 3, "scanRoots": "x" }""");
 
         var config = new ConfigStartup(_directory, _directory).Load();
 
         Assert.Equal(ConfigOptions.Default, config.Options);
-        Assert.Equal(["frameStyle", "tabs", "scanRoots"], config.Keymap.Problems.Select(problem => problem.Path));
+        Assert.Equal(["tabs", "scanRoots"], config.Keymap.Problems.Select(problem => problem.Path));
     }
 
     private void Write(string content) => File.WriteAllText(Path.Combine(_directory, ConfigLoader.FileName), content);

@@ -78,7 +78,7 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
                 ? DetailPaneRenderer.RenderRow(Content, item, isSelected, width, glyphs, label)
                 : DetailPaneRenderer.RenderRow(Content.Rows[item], isSelected, width, glyphs, Content.PathStyle)
             : DetailPaneRenderer.RenderEmpty(width, glyphs);
-        LinePainter.Paint(listView, DetailPaneRenderer.OnPanel(PanePadding.Wrap(line, columns)), col, row, listView.HasFocus);
+        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
     }
 
     public void Dispose()

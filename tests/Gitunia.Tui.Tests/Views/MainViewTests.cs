@@ -15,12 +15,12 @@ public class MainViewTests
     private static readonly ScreenModel EmptyModel = new("repository", null, 1, 1, "Normal", string.Empty, 0, 0, false, string.Empty);
 
     [Fact]
-    public void GivenTheMainView_WhenBuilt_ThenTheDetailViewHasItsOwnPanelScheme()
+    public void GivenTheMainView_WhenBuilt_ThenTheDetailViewHasItsOwnScheme()
     {
         using var view = CreateView();
 
         Assert.True(view.Detail.HasScheme, "Without its own scheme the toolkit paints the blank cells below the rows with the terminal default.");
-        Assert.Equal(Palette.PanelScheme().Normal, view.Detail.GetScheme().Normal);
+        Assert.Equal(Palette.BaseScheme().Normal, view.Detail.GetScheme().Normal);
     }
 
     [Fact]

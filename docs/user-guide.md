@@ -44,7 +44,7 @@ Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys 
 
 ## Configuration
 
-Config is a hand-editable JSON file with comments, `config.json` in `~/.config/gitunia` (`$XDG_CONFIG_HOME/gitunia` overrides). Session state lives in `~/.local/state/gitunia` (`$XDG_STATE_HOME`). The settings screen (`<space>,`) edits the same file and lists every key and action id. Options (theme, frame style, scan folders, key bindings) and the file format are described in "Config file" in `docs/ux.md`.
+Config is a hand-editable JSON file with comments, `config.json` in `~/.config/gitunia` (`$XDG_CONFIG_HOME/gitunia` overrides). Session state lives in `~/.local/state/gitunia` (`$XDG_STATE_HOME`). The settings screen (`<space>,`) edits the same file and lists every key and action id. Options (theme, scan folders, key bindings) and the file format are described in "Config file" in `docs/ux.md`.
 
 Remap a key by adding an entry to `keys`:
 

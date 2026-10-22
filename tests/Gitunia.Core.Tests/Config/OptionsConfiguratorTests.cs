@@ -17,42 +17,6 @@ public sealed class OptionsConfiguratorTests
     private static bool Exists(string path) => path == Existing || path == Path.Combine(Home, "code");
 
     [Theory]
-    [InlineData("\"rounded\"", FrameStyle.Rounded)]
-    [InlineData("\"square\"", FrameStyle.Square)]
-    [InlineData("\" Square \"", FrameStyle.Square)]
-    [InlineData("\"SQUARE\"", FrameStyle.Square)]
-    [InlineData("null", FrameStyle.Rounded)]
-    public void GivenAValidFrameStyle_WhenParsing_ThenItIsReturnedWithoutProblems(string json, FrameStyle expected)
-    {
-        var problems = new List<ConfigProblem>();
-
-        Assert.Equal(expected, OptionsConfigurator.ParseFrameStyle(Json(json), problems));
-        Assert.Empty(problems);
-    }
-
-    [Theory]
-    [InlineData("\"heavy\"")]
-    [InlineData("\"\"")]
-    [InlineData("3")]
-    [InlineData("true")]
-    public void GivenAnInvalidFrameStyle_WhenParsing_ThenRoundedWithAProblemOnTheKey(string json)
-    {
-        var problems = new List<ConfigProblem>();
-
-        Assert.Equal(FrameStyle.Rounded, OptionsConfigurator.ParseFrameStyle(Json(json), problems));
-        Assert.Equal("frameStyle", Assert.Single(problems).Path);
-    }
-
-    [Fact]
-    public void GivenNoFrameStyle_WhenParsing_ThenRoundedWithoutProblems()
-    {
-        var problems = new List<ConfigProblem>();
-
-        Assert.Equal(FrameStyle.Rounded, OptionsConfigurator.ParseFrameStyle(null, problems));
-        Assert.Empty(problems);
-    }
-
-    [Theory]
     [InlineData("{ \"showBranch\": true }", true)]
     [InlineData("{ \"showBranch\": false }", false)]
     [InlineData("{ \"showBranch\": null }", false)]
@@ -194,7 +158,6 @@ public sealed class OptionsConfiguratorTests
 
         var options = OptionsConfigurator.Read(document, Home, Exists, problems);
 
-        Assert.Equal(FrameStyle.Square, options.FrameStyle);
         Assert.True(options.ShowBranchInTab);
         Assert.Equal([Existing], options.ScanRoots);
         Assert.Empty(problems);

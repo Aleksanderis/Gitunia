@@ -10,7 +10,6 @@ using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
-using Gitunia.Tui.App.Config;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
 using Gitunia.Tui.Loading.Trees;
@@ -34,13 +33,6 @@ public sealed class FramePrinter
     {
         _services = services;
     }
-
-    /// <summary>The glyphs the app would start with: the terminal's set with the config's <c>frameStyle</c>.</summary>
-    public static GraphGlyphSet GlyphsFor(bool unicode, string configDirectory, string homeDirectory) =>
-        GraphGlyphSet.For(unicode) with
-        {
-            Frame = new ConfigStartup(configDirectory, homeDirectory).Load().Options.FrameStyle,
-        };
 
     public async Task PrintAsync(
         RepositoryLocation location,

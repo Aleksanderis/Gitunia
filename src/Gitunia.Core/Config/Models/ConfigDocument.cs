@@ -17,9 +17,6 @@ public sealed record ConfigDocument
     /// </summary>
     public JsonElement? Theme { get; init; }
 
-    /// <summary><c>rounded</c> (default) or <c>square</c>, read by <c>OptionsConfigurator</c>.</summary>
-    public JsonElement? FrameStyle { get; init; }
-
     /// <summary>The <c>tabs</c> object (<c>showBranch</c>), read by <c>OptionsConfigurator</c>.</summary>
     public JsonElement? Tabs { get; init; }
 

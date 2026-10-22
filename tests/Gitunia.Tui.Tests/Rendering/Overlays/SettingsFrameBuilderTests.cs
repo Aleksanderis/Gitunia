@@ -23,7 +23,7 @@ public class SettingsFrameBuilderTests
                 " Settings".PadRight(78),
                 "│ / filter                                                                   │",
                 "│  Appearance    │  Theme                                           [auto ▾] │",
-                "│  Keys          │  Frame style                                  [rounded ▾] │",
+                "│  Keys          │                                                           │",
                 "│  Repositories  │                                                           │",
                 "│  Tabs          │                                                           │",
                 "│  Config file   │                                                           │",
@@ -82,7 +82,7 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenTheCursorInTheSettingsColumn_WhenRendering_ThenOnlyThatRowIsSelectedAndTheCategoryIsDim()
     {
-        var state = Open().Reveal(Definition(SettingsRegistry.FrameStyleId));
+        var state = Open().Reveal(Definition(SettingsRegistry.ThemeId));
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
 
@@ -90,8 +90,8 @@ public class SettingsFrameBuilderTests
             frame.Lines[2].Segments,
             segment => segment.Selection == SegmentSelection.Dim && segment.Text.Contains("Appearance"));
         Assert.Contains(
-            frame.Lines[3].Segments,
-            segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Frame style"));
+            frame.Lines[2].Segments,
+            segment => segment.Selection == SegmentSelection.Focused && segment.Text.Contains("Theme"));
         Assert.Equal(
             1,
             frame.Lines.Count(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused)));
@@ -100,25 +100,25 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAnOpenChoice_WhenRendering_ThenTheOptionsFollowTheRowWithTheCurrentOneMarked()
     {
-        var state = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate);
+        var state = Reduce(Open().Reveal(Definition(SettingsRegistry.ThemeId)), SettingsCommandKind.Activate);
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
         var text = frame.Lines.Select(line => line.Text).ToList();
 
-        Assert.Contains("● rounded", text[4], StringComparison.Ordinal);
-        Assert.Contains("○ square", text[5], StringComparison.Ordinal);
+        Assert.Contains("● auto", text[3], StringComparison.Ordinal);
+        Assert.Contains("○ dark", text[4], StringComparison.Ordinal);
         Assert.Contains("Esc restore", text[^2], StringComparison.Ordinal);
     }
 
     [Fact]
     public void GivenTheAsciiGlyphSet_WhenRenderingAChoice_ThenNoBoxDrawingOrArrowCharactersAppear()
     {
-        var state = Reduce(Open().Reveal(Definition(SettingsRegistry.FrameStyleId)), SettingsCommandKind.Activate);
+        var state = Reduce(Open().Reveal(Definition(SettingsRegistry.ThemeId)), SettingsCommandKind.Activate);
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Ascii)!;
 
         Assert.All(frame.Lines, line => Assert.True(line.Text.All(character => character < 128), line.Text));
-        Assert.Contains("(*) rounded", frame.Lines[4].Text, StringComparison.Ordinal);
+        Assert.Contains("(*) auto", frame.Lines[3].Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -208,13 +208,13 @@ public class SettingsFrameBuilderTests
     [Fact]
     public void GivenAValueThatIsNotValid_WhenRendering_ThenTheRowCarriesAWarningMarkerAndTheHelpLineTheReason()
     {
-        var state = Open("{ \"frameStyle\": \"round\" }").Reveal(Definition(SettingsRegistry.FrameStyleId));
+        var state = Open("{ \"theme\": \"round\" }").Reveal(Definition(SettingsRegistry.ThemeId));
 
         var frame = SettingsFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
         var layout = SettingsLayout.For(100, 30)!;
 
-        Assert.Contains("! Frame style", frame.Lines[3].Text, StringComparison.Ordinal);
-        Assert.Contains("! frameStyle must be", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
+        Assert.Contains("! Theme", frame.Lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("is not a theme", frame.Lines[layout.RuleLine + 1].Text, StringComparison.Ordinal);
     }
 
     [Fact]

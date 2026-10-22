@@ -256,17 +256,6 @@ public class DetailPaneComposerTests
     }
 
     [Fact]
-    public void GivenALoadedPane_WhenRendering_ThenEveryContentCellIsOnThePanelButTheTitleIsNot()
-    {
-        var content = LoadedContent(TwoCommits());
-
-        var lines = DetailPaneRenderer.RenderPane(new DetailPaneModel(content, 0, 0, false), 40, 4, GraphGlyphSet.Unicode);
-
-        Assert.DoesNotContain(lines[0].Segments, segment => segment.OnPanel);
-        Assert.All(lines.Skip(1), line => Assert.All(line.Segments, segment => Assert.True(segment.OnPanel)));
-    }
-
-    [Fact]
     public void GivenScrolledAndFocusedPane_WhenComposing_ThenRowsStartAtTheTopRowAndOnlyTheCursorRowIsSelected()
     {
         var graph = TwoCommits();
@@ -350,7 +339,6 @@ public class DetailPaneComposerTests
         var lines = DetailPaneRenderer.RenderPane(new DetailPaneModel(content, selectedRow, 0, true), 50, 10, GraphGlyphSet.Unicode);
 
         Assert.Equal(11, lines.Count);
-        Assert.All(lines.Skip(1), line => Assert.All(line.Segments, segment => Assert.True(segment.OnPanel)));
         Assert.True(lines[selectedRow + 1].IsSelected);
     }
 
