@@ -15,7 +15,7 @@ public static class PathCompleter
     /// <summary>Like <see cref="Candidates"/>, but stops with <see cref="OperationCanceledException"/> when cancelled (checked between entries).</summary>
     public static IReadOnlyList<PickerRow> ListCandidates(string text, PickerContext context, CancellationToken cancellationToken)
     {
-        SplitTyped(text, out var directoryText, out var namePrefix);
+        SplitTyped(text, OperatingSystem.IsWindows(), out var directoryText, out var namePrefix);
         var typedDirectory = PathQuery.Resolve(directoryText.Length == 0 ? "." : directoryText, context.HomeDirectory, context.BaseDirectory);
         var directory = ResolveCaseInsensitive(typedDirectory, context, cancellationToken);
         var matches = new List<string>();
@@ -50,13 +50,19 @@ public static class PathCompleter
     /// when that adds nothing, completed to the highlighted candidate. Unchanged when there are no candidates.
     /// </summary>
     public static string Complete(string text, IReadOnlyList<PickerRow> candidates, int highlight)
+        => Complete(text, candidates, highlight, OperatingSystem.IsWindows());
+
+    /// <summary>
+    /// Like the overload without a platform; <paramref name="windows"/> makes a bare <c>~</c> continue with <c>\</c>.
+    /// </summary>
+    public static string Complete(string text, IReadOnlyList<PickerRow> candidates, int highlight, bool windows)
     {
         if (candidates.Count == 0)
         {
             return text;
         }
 
-        SplitTyped(text, out var directoryText, out var namePrefix);
+        SplitTyped(text, windows, out var directoryText, out var namePrefix);
         directoryText = RealCaseDirectoryText(directoryText, candidates[0].Path);
         var common = CommonPrefix([.. candidates.Select(candidate => candidate.Name)], StringComparison.OrdinalIgnoreCase);
         if (common.Length > namePrefix.Length && !candidates.All(candidate => candidate.Name.StartsWith(common, StringComparison.Ordinal)))
@@ -67,11 +73,11 @@ public static class PathCompleter
 
         if (common.Length > namePrefix.Length)
         {
-            return directoryText + common + (candidates.Count == 1 ? Separator(text) : string.Empty);
+            return directoryText + common + (candidates.Count == 1 ? Separator(text, windows) : string.Empty);
         }
 
         var chosen = candidates[Math.Clamp(highlight, 0, candidates.Count - 1)];
-        return directoryText + chosen.Name + Separator(text);
+        return directoryText + chosen.Name + Separator(text, windows);
     }
 
     private static string ResolveCaseInsensitive(string fullPath, PickerContext context, CancellationToken cancellationToken)
@@ -147,13 +153,13 @@ public static class PathCompleter
         return result;
     }
 
-    private static void SplitTyped(string text, out string directoryText, out string namePrefix)
+    private static void SplitTyped(string text, bool windows, out string directoryText, out string namePrefix)
     {
         var lastSeparator = text.LastIndexOfAny(['/', '\\']);
         if (lastSeparator < 0)
         {
             // "~", ".", "..": the directory itself, the user has not typed a separator yet.
-            directoryText = text is "~" or "." or ".." ? $"{text}/" : string.Empty;
+            directoryText = text is "~" or "." or ".." ? $"{text}{NativeSeparator(windows)}" : string.Empty;
             namePrefix = string.Empty;
             return;
         }
@@ -162,7 +168,11 @@ public static class PathCompleter
         namePrefix = text[(lastSeparator + 1)..];
     }
 
-    private static string Separator(string text) => text.Contains('\\') ? "\\" : "/";
+    // A separator the user already typed wins; otherwise the platform's own.
+    private static string Separator(string text, bool windows) =>
+        text.Contains('\\') ? "\\" : text.Contains('/') ? "/" : NativeSeparator(windows);
+
+    private static string NativeSeparator(bool windows) => windows ? "\\" : "/";
 
     private static bool CharactersEqual(char left, char right, StringComparison comparison) =>
         comparison == StringComparison.Ordinal ? left == right : char.ToLowerInvariant(left) == char.ToLowerInvariant(right);

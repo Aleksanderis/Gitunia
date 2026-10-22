@@ -268,14 +268,7 @@ public sealed class RepositoryCreationActions(
 
     private string ResolveTyped(string query) => PathQuery.Resolve(query, homeDirectory, picker.BaseDirectory());
 
-    private string Abbreviate(string path)
-    {
-        var home = Path.TrimEndingDirectorySeparator(homeDirectory);
-        var prefix = $"{home}{Path.DirectorySeparatorChar}";
-        return path.StartsWith(prefix, StringComparison.Ordinal)
-            ? $"~{Path.DirectorySeparatorChar}{path[prefix.Length..]}"
-            : path;
-    }
+    private string Abbreviate(string path) => PathDisplay.Abbreviate(path, homeDirectory, OperatingSystem.IsWindows());
 
     private void Close()
     {
