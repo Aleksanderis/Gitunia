@@ -452,7 +452,7 @@ public sealed class BranchActions(
 
         if (branch.Ahead is > 0)
         {
-            return $"{name} has diverged from its upstream: nothing changed";
+            return $"{name} has commits its upstream lacks (diverged): nothing changed";
         }
 
         var old = branch.CommitHash;
@@ -461,7 +461,7 @@ public sealed class BranchActions(
             await writer.FastForwardAsync(tab.Location, name, upstream, token).ConfigureAwait(false);
             return $"Fast-forwarded {name} from {ShortHash(old)} to {ShortHash(upstreamRef.CommitHash)} "
                 + $"(undo: git update-ref {GitRefPrefixes.Heads}{name} {old})";
-        }, CommitOf(tab, upstream));
+        });
         return string.Empty;
     }
 

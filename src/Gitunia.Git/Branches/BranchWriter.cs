@@ -137,7 +137,7 @@ public sealed class BranchWriter(GitRunner runner) : IBranchWriter
         RunWriteAsync(
             location,
             [
-                Fetch, "--no-tags", "--no-write-fetch-head", "--no-recurse-submodules", LocalSource,
+                Fetch, "--no-tags", "--no-prune", "--no-write-fetch-head", "--no-recurse-submodules", LocalSource,
                 $"{upstreamFullName}:{GitRefPrefixes.Heads}{name}",
             ],
             cancellationToken);

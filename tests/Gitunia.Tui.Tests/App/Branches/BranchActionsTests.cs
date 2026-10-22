@@ -877,7 +877,7 @@ public class BranchActionsTests
 
         harness.Run(ActionIds.BranchFastForward);
 
-        Assert.Equal("topic has diverged from its upstream: nothing changed", harness.Branches.Notice);
+        Assert.Equal("topic has commits its upstream lacks (diverged): nothing changed", harness.Branches.Notice);
         Assert.Equal(old, repository.Git("rev-parse", "refs/heads/topic").Trim());
         Assert.Equal(0, harness.Refreshes);
     }
