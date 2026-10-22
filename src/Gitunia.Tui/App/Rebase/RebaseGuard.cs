@@ -51,10 +51,23 @@ public static class RebaseGuard
             return null;
         }
 
-        var changed = tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;
+        var changed = ChangedCount(tab);
         return changed == 0
             ? null
             : $"{OperationText.Plural(changed, "file")} with uncommitted changes: commit or stash them before a rebase";
+    }
+
+    /// <summary>
+    /// The Confirm line saying git carries the uncommitted changes over the rebase, or null when
+    /// <c>rebase.autoStash</c> is off or there is nothing to carry.
+    /// </summary>
+    public static string? AutoStashNote(RepositoryState? tab)
+    {
+        var changed = tab is { RebaseAutoStash: true } ? ChangedCount(tab) : 0;
+        return changed == 0
+            ? null
+            : $"{OperationText.Plural(changed, "file")} with uncommitted changes: git stashes them (rebase.autoStash) " +
+                "and restores them afterwards; if that conflicts, the stash is kept.";
     }
 
     /// <summary>The force-push warning for a branch that tracks an upstream, or null.</summary>
@@ -68,6 +81,9 @@ public static class RebaseGuard
         var pushed = current.Ahead == 0 ? "All of its commits are already on" : "It tracks";
         return $"{pushed} {ShortRef(upstream)}: the history is rewritten and a force push is needed afterwards.";
     }
+
+    private static int ChangedCount(RepositoryState tab) =>
+        tab.WorkingTree?.Snapshot.Entries.Count(IsTrackedChange) ?? 0;
 
     private static bool IsTrackedChange(StatusEntry entry) =>
         entry.Kind is not (StatusEntryKind.Untracked or StatusEntryKind.Ignored);

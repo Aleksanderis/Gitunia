@@ -38,7 +38,7 @@ public class QuickRebaseActionsTests
         Assert.Equal("Drop commit", prompt.Title);
         Assert.Contains("\"Three\"", prompt.Lines[0], StringComparison.Ordinal);
         Assert.Contains("1 later commit of main is replayed and gets", prompt.Lines[1], StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {oldTip}", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(oldTip, repository.Head);
 
         harness.Answer();
@@ -46,7 +46,7 @@ public class QuickRebaseActionsTests
 
         Assert.Equal(["One", "Two", "Four"], Subjects(repository));
         Assert.Equal(StatusSeverity.Info, harness.Statuses.Log.Latest!.Severity);
-        Assert.Contains($"git reset --hard {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
     }

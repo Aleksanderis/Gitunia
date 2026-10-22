@@ -139,7 +139,7 @@ public sealed class QuickRebaseActions(
     private static string Quoted(QuickRebasePlan plan) =>
         $"{RebaseGuard.ShortHash(plan.Commit)} \"{plan.Subject}\"";
 
-    private static ConfirmPrompt PromptFor(QuickRebaseTarget target, GitRef? current)
+    private static ConfirmPrompt PromptFor(QuickRebaseTarget target, GitRef? current, string? autoStashNote)
     {
         var plan = target.Plan;
         var branch = target.BranchName;
@@ -173,10 +173,15 @@ public sealed class QuickRebaseActions(
             lines.Add(warning);
         }
 
+        if (autoStashNote is not null)
+        {
+            lines.Add(autoStashNote);
+        }
+
         return new ConfirmPrompt(
             title,
             lines,
-            $"Undo: git reset --hard {plan.Head} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"Undo: git reset --keep {plan.Head} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             yes);
     }
@@ -209,7 +214,7 @@ public sealed class QuickRebaseActions(
 
         return new OperationReport(
             $"{done} {Quoted(plan)} on {target.BranchName} ({RebaseGuard.ShortHash(result.Head ?? string.Empty)}), " +
-            $"was {RebaseGuard.ShortHash(result.OriginalHead)}; undo: git reset --hard {result.OriginalHead} " +
+            $"was {RebaseGuard.ShortHash(result.OriginalHead)}; undo: git reset --keep {result.OriginalHead} " +
             "(or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
@@ -369,7 +374,7 @@ public sealed class QuickRebaseActions(
         var target = new QuickRebaseTarget(tabId, plan, tab.Head!.BranchName!, newSubject);
         var current = tab.Refs.FirstOrDefault(
             candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
-        if (!confirm(PromptFor(target, current), () => Start(target)))
+        if (!confirm(PromptFor(target, current, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
         {
             statuses.Warning(TooSmallNotice);
         }

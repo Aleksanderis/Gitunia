@@ -16,7 +16,10 @@ public static class RebaseEditorTexts
     private const int NamedDropLimit = 5;
 
     /// <summary>The Confirm before the rebase starts: what is kept, which commits are dropped, the undo.</summary>
-    public static ConfirmPrompt ConfirmFor(RebaseEditorState state, GitRef? current)
+    /// <param name="state">The editor state.</param>
+    /// <param name="current">The checked-out branch.</param>
+    /// <param name="autoStashNote">The line about carried uncommitted changes, null for none.</param>
+    public static ConfirmPrompt ConfirmFor(RebaseEditorState state, GitRef? current, string? autoStashNote)
     {
         List<string> lines =
         [
@@ -40,10 +43,15 @@ public static class RebaseEditorTexts
             lines.Add(warning);
         }
 
+        if (autoStashNote is not null)
+        {
+            lines.Add(autoStashNote);
+        }
+
         return new ConfirmPrompt(
             "Interactive rebase",
             lines,
-            $"Undo: git reset --hard {state.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"Undo: git reset --keep {state.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             "Rebase");
     }
@@ -62,7 +70,7 @@ public static class RebaseEditorTexts
         return new OperationReport(
             $"Rebased {state.BranchName} onto {state.TargetLabel} interactively " +
             $"({ShortHash(result.Head ?? string.Empty)}), was {ShortHash(result.OriginalHead)}; " +
-            $"undo: git reset --hard {result.OriginalHead} (or ORIG_HEAD, the reflog)",
+            $"undo: git reset --keep {result.OriginalHead} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
 

@@ -480,9 +480,11 @@ public sealed class RebaseEditorController(
             return;
         }
 
-        var current = host.Workspace.FindTab(state.TabId)?.Refs
+        var tab = host.Workspace.FindTab(state.TabId);
+        var current = tab?.Refs
             .FirstOrDefault(candidate => candidate.IsCurrent && candidate.Kind == RefKind.LocalBranch);
-        if (!confirm(RebaseEditorTexts.ConfirmFor(state, current), () => Start(state)))
+        var note = RebaseGuard.AutoStashNote(tab);
+        if (!confirm(RebaseEditorTexts.ConfirmFor(state, current, note), () => Start(state)))
         {
             statuses.Warning(TooSmallNotice);
         }

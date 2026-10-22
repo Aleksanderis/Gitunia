@@ -108,7 +108,7 @@ public class RebaseEditorControllerTests
         Assert.Equal("with a body", repository.Git("log", "-1", "--format=%b", "HEAD~2").Trim());
         Assert.Equal("d\n", repository.Git("show", "HEAD:d.txt").Replace("\r", string.Empty));
         Assert.Equal(StatusSeverity.Info, harness.Statuses.Log.Latest!.Severity);
-        Assert.Contains($"git reset --hard {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
         Assert.Equal(RepositoryOperation.None, harness.Detect());
@@ -132,7 +132,7 @@ public class RebaseEditorControllerTests
         Assert.Contains($"Rebase topic onto {targetLabel} with this todo?", prompt.Lines, StringComparer.Ordinal);
         Assert.Contains("2 of 3 commits kept, 1 dropped", prompt.Lines, StringComparer.Ordinal);
         Assert.Contains(prompt.Lines, line => line.Contains("add b", StringComparison.Ordinal));
-        Assert.Contains($"git reset --hard {oldTip}", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains("ORIG_HEAD", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(oldTip, repository.Head);
 

@@ -41,7 +41,7 @@ public class RebaseActionsTests
         var prompt = Assert.Single(harness.Prompts);
         Assert.Equal("Rebase", prompt.Title);
         Assert.Contains($"Rebase topic onto {mainTip[..7]}?", prompt.Lines, StringComparer.Ordinal);
-        Assert.Contains($"git reset --hard {oldTip}", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", prompt.Consequence, StringComparison.Ordinal);
         Assert.Contains("ORIG_HEAD", prompt.Consequence, StringComparison.Ordinal);
         Assert.Equal(oldTip, repository.Head);
 
@@ -51,7 +51,7 @@ public class RebaseActionsTests
         Assert.Equal(mainTip, repository.Git("rev-parse", "HEAD~1").Trim());
         Assert.Equal(StatusSeverity.Info, harness.Statuses.Log.Latest!.Severity);
         Assert.Contains($"was {oldTip[..7]}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
-        Assert.Contains($"git reset --hard {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains($"git reset --keep {oldTip}", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
         Assert.False(harness.Gate.IsBusy(harness.TabId));
     }
@@ -165,8 +165,9 @@ public class RebaseActionsTests
 
         await harness.ExecuteAsync();
 
-        Assert.Single(harness.Prompts);
+        var prompt = Assert.Single(harness.Prompts);
         Assert.Equal(string.Empty, harness.Notice);
+        Assert.Contains(prompt.Lines, line => line.Contains("git stashes them (rebase.autoStash)", StringComparison.Ordinal));
     }
 
     [Fact]

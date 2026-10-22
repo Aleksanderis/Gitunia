@@ -129,7 +129,7 @@ public class PushActionsTests
     }
 
     [Fact]
-    public async Task GivenARemoteBranch_WhenDeletingIt_ThenBothPickersAndTheConfirmComeFirst()
+    public async Task GivenARemoteBranch_WhenDeletingIt_ThenTheBranchPickerAndTheConfirmComeFirst()
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
         var tip = repository.Git("rev-parse", "origin/topic").Trim();
@@ -137,9 +137,7 @@ public class PushActionsTests
 
         harness.Run(ActionIds.RemoteDeleteBranch);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Push).Length > 0);
-        Assert.Contains("Remote to delete a branch from", PopupText.Of(harness.Push), StringComparison.Ordinal);
-        harness.Run(ActionIds.InputAccept);
-        Assert.Contains("Branch to delete on origin", PopupText.Of(harness.Push), StringComparison.Ordinal);
+        Assert.Contains("branch to delete on origin", PopupText.Of(harness.Push), StringComparison.Ordinal);
         harness.Type("topic");
         harness.Run(ActionIds.InputAccept);
 
@@ -176,6 +174,27 @@ public class PushActionsTests
         Assert.Equal(KeyMode.Normal, harness.Mode);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GivenAGraphCommitWithOnlyARemoteBranch_WhenDeleting_ThenOnlyTheConfirmComesFirst(
+        bool viaBranchDelete)
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var tip = repository.Git("rev-parse", "origin/topic").Trim();
+        repository.Git("checkout", "-q", "main");
+        repository.Git("branch", "-D", "topic");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Selection = new BranchSelection(null, null, tip);
+
+        harness.Run(viaBranchDelete ? ActionIds.BranchDelete : ActionIds.RemoteDeleteBranch);
+        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains("topic", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+    }
+
     [Fact]
     public async Task GivenTheDeleteConfirmIsRefused_WhenNotAnswered_ThenTheRemoteBranchStays()
     {
@@ -184,7 +203,6 @@ public class PushActionsTests
 
         harness.Run(ActionIds.RemoteDeleteBranch);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Push).Length > 0);
-        harness.Run(ActionIds.InputAccept);
         harness.Type("topic");
         harness.Run(ActionIds.InputAccept);
 
@@ -343,7 +361,6 @@ public class PushActionsTests
         {
             Run(ActionIds.RemoteDeleteBranch);
             await PumpUntilAsync(() => PopupText.Of(Push).Length > 0);
-            Run(ActionIds.InputAccept);
             Type("topic");
             Run(ActionIds.InputAccept);
             Answer();

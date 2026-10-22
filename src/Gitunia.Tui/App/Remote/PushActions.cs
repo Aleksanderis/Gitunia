@@ -2,7 +2,6 @@ using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
-using Gitunia.Core.Sidebar;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -83,7 +82,7 @@ public sealed class PushActions(
         {
             PushPromptKind.FirstPushRemote => FilterPopup("Push and set upstream", $"Remote to push {_branch} to"),
             PushPromptKind.DeleteRemote => FilterPopup("Delete remote branch", "Remote to delete a branch from"),
-            _ => FilterPopup("Delete remote branch", $"Branch to delete on {_chosenRemote}"),
+            _ => FilterPopup("Delete remote branch", $"Type to filter, Enter picks the branch to delete on {_chosenRemote}"),
         };
 
     public bool TryExecute(ActionId action, int? count)
@@ -119,10 +118,12 @@ public sealed class PushActions(
         {
             Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, CurrentBranchOf(tab));
         }
-        else if (action == ActionIds.RemoteDeleteBranch || action == ActionIds.BranchDelete && OnRemoteBranchRow())
+        else if (action == ActionIds.RemoteDeleteBranch || action == ActionIds.BranchDelete
+            && RemoteDeleteTarget.IsRemoteOnly(tab, selection()))
         {
-            // On a remote branch row the cursor already names the branch: no remote or branch picker.
-            _directName = OnRemoteBranchRow() ? selection().Name : null;
+            // When the cursor names one remote branch (its row, or the one on the graph commit) there is no picker.
+            var named = RemoteDeleteTarget.Names(tab, selection());
+            _directName = named.Count == 1 ? named[0] : null;
             Notice = _busy.Contains(tab.Id) ? BusyNotice : LoadRemotes(tab, action, null);
         }
         else
@@ -174,8 +175,6 @@ public sealed class PushActions(
 
         return step != 0;
     }
-
-    private bool OnRemoteBranchRow() => selection() is { RowKind: SidebarRowKind.RemoteBranch, Name: not null };
 
     private static GitRef? CurrentBranchOf(RepositoryState tab) =>
         tab.Refs.FirstOrDefault(reference => reference.Kind == RefKind.LocalBranch && reference.IsCurrent);
@@ -339,6 +338,15 @@ public sealed class PushActions(
         if (withBranches.Count == 0)
         {
             statuses.Warning("No remote branches known: fetch first");
+            return;
+        }
+
+        if (withBranches is [var only])
+        {
+            // One remote has branches: asking for it first is a step without a choice.
+            _chosenRemote = only;
+            var names = _branches.Where(branch => branch.Name.Remote == only).Select(branch => branch.Name.Branch);
+            Open(PushPromptKind.DeleteBranch, tab, [.. names]);
             return;
         }
 

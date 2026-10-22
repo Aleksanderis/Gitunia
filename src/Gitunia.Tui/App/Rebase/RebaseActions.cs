@@ -71,7 +71,7 @@ public sealed class RebaseActions(
         return true;
     }
 
-    private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current, int merges)
+    private static ConfirmPrompt PromptFor(RebaseTarget target, GitRef? current, int merges, string? autoStashNote)
     {
         List<string> lines =
         [
@@ -91,10 +91,15 @@ public sealed class RebaseActions(
             lines.Add(warning);
         }
 
+        if (autoStashNote is not null)
+        {
+            lines.Add(autoStashNote);
+        }
+
         return new ConfirmPrompt(
             "Rebase",
             lines,
-            $"Undo: git reset --hard {target.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
+            $"Undo: git reset --keep {target.OldTip} (also ORIG_HEAD, the reflog). A stop on conflicts leaves a " +
             "rebase in progress: <space>gc continues, <space>ga aborts.",
             "Rebase");
     }
@@ -121,7 +126,7 @@ public sealed class RebaseActions(
         var was = RebaseGuard.ShortHash(target.OldTip);
         return new OperationReport(
             $"Rebased {target.BranchName} onto {target.Label} ({head}), was {was}; " +
-            $"undo: git reset --hard {target.OldTip} (or ORIG_HEAD, the reflog)",
+            $"undo: git reset --keep {target.OldTip} (or ORIG_HEAD, the reflog)",
             StatusSeverity.Info);
     }
 
@@ -201,7 +206,7 @@ public sealed class RebaseActions(
             return;
         }
 
-        if (!confirm(PromptFor(target, current, merges), () => Start(target)))
+        if (!confirm(PromptFor(target, current, merges, RebaseGuard.AutoStashNote(tab)), () => Start(target)))
         {
             statuses.Warning(TooSmallNotice);
         }

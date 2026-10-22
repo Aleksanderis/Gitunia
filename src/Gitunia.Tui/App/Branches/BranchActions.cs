@@ -15,6 +15,7 @@ using Gitunia.Git.Branches;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.Input;
 
 namespace Gitunia.Tui.App.Branches;
@@ -121,8 +122,8 @@ public sealed class BranchActions(
         }
         else if (action == ActionIds.BranchDelete)
         {
-            // A remote branch row is deleted on its remote by PushActions.
-            if (selection() is { RowKind: SidebarRowKind.RemoteBranch })
+            // A remote branch (its row, or a graph commit that has only remote ones) is deleted by PushActions.
+            if (RemoteDeleteTarget.IsRemoteOnly(tab, selection()))
             {
                 return false;
             }
