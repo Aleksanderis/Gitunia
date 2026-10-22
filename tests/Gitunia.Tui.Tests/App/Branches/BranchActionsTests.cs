@@ -845,7 +845,10 @@ public class BranchActionsTests
 
         Assert.Equal(tip, repository.Git("rev-parse", "refs/heads/topic").Trim());
         Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
-        Assert.Contains($"git update-ref refs/heads/topic {old}", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains(
+            $"git update-ref refs/heads/topic {old}",
+            harness.Statuses.Log.Latest!.Text,
+            StringComparison.Ordinal);
         Assert.Equal(1, harness.Refreshes);
     }
 

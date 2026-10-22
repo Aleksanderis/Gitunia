@@ -65,7 +65,8 @@ public interface IBranchWriter
     /// <summary>
     /// Moves the local branch to <paramref name="upstreamFullName"/> (a full ref such as
     /// <c>refs/remotes/origin/topic</c>) without checking it out, as <c>git fetch . upstream:branch</c>: only a
-    /// fast-forward is accepted, and git refuses a branch checked out in any worktree. Nothing is fetched from a remote.
+    /// fast-forward is accepted, and git refuses a branch checked out in any worktree. Nothing is fetched from a
+    /// remote.
     /// </summary>
     Task FastForwardAsync(
         RepositoryLocation location,
