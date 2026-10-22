@@ -31,7 +31,14 @@ if [ -d "$worktree_path" ]; then
 fi
 
 git fetch -p -q
-git pull -q --ff-only || { sleep 2; git fetch -q; git pull -q --ff-only; }
+if ! git pull -q --ff-only 2>/dev/null; then
+  sleep 2
+  git fetch -q
+  if ! git pull -q --ff-only 2>/dev/null; then
+    # Local main is ahead (unpushed commits): rebase, never merge or bare pull.
+    git rebase -q origin/main >/dev/null 2>&1 || { git rebase --abort 2>/dev/null || true; echo "PR #$pull_request merged; rebase of main onto origin/main conflicts, resolve by hand"; exit 1; }
+  fi
+fi
 
 kept=""
 for branch in "$feature_branch" "$harness_branch"; do

@@ -9,3 +9,11 @@ Recurring groups (distinct PRs): long lines 18, decisions entry missing/stale 15
 Applied (owner approved all): P1 line-length wording, P2 decisions item first with trigger, P3-P6 reviewer demotions, P7 PR number on review comments, A1 `destructive` label removed, A2 stale #196, A3-A6 four memory files deleted (restated repo rules).
 
 Line counts: CLAUDE.md 73, csharp-style 64, git-layer 19, ui-changes 32, reviewer 40, work-task 76, work-orchestrator 71, work-readiness 44, testing 83, performance 70, screenshots 15, retrospective 47 (total 634). Memory: 7 files down to 3.
+
+## 2026-10-22 (PRs #518-#593, 40 PRs; #407-#517 not covered)
+
+Recurring groups (distinct PRs): missing/weak tests 27, stale docs 14, decisions hygiene 11, races 11, scope-gap follow-ups 11, unmeasured perf 10, style nits 10, long lines 8, test hygiene 6, UI-thread IO 4, bare keys 2. No owner comments; 4 misposted review comments.
+
+Applied: P1 and P2 (`check-diff.sh`: append-only and dated decisions, test hygiene), P6 and P7 (reviewer demotions), S1 (cleanup script rebases a local-ahead main), S2 (work-task: no rebase of pushed branches, clean screenshot dir), S4 (lean prompt: merge when review is clean), S5 (`.gitattributes` union merge for decisions.md). Declined/dropped: P3, P4, P8 (duplicates of existing rules or poor return). Held: P5.
+
+Line counts: CLAUDE.md 74, csharp-style 64, git-layer 19, ui-changes 32, reviewer 40, work-task 78, work-orchestrator 71, work-readiness 44, testing 85, performance 70, screenshots 15, retrospective 47 (total 639).
