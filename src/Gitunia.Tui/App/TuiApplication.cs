@@ -340,6 +340,7 @@ public sealed class TuiApplication(
             () => _router.ViewName,
             _statuses);
         _overlays.Changed += RefreshOverlay;
+        _overlays.OperationInProgress = () => _host.Workspace.ActiveTab?.Operation is not null;
         _overlays.MenuTarget = view => MenuTargetOf(view, sidebarSource);
         _creation = new RepositoryCreationActions(
             services.Creator,

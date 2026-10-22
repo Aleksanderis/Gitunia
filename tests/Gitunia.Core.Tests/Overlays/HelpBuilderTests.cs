@@ -97,6 +97,28 @@ public class HelpBuilderTests
     }
 
     [Theory]
+    [InlineData(false, new[] { "m", "M", "p", "r", "i", "x", "v" }, new[] { "a", "c", "k", "s", "f", "w", "d", "I" })]
+    [InlineData(true, new[] { "m", "a", "c", "k" }, new[] { "s", "f", "w", "d", "I" })]
+    public void GivenTheGitPrefix_WhenBuildingWhichKeyRows_ThenOnlyTheListedKeysShow(
+        bool operationInProgress,
+        string[] listed,
+        string[] hidden)
+    {
+        var engine = new KeymapEngine(Table);
+        var feeder = new KeyFeeder(engine);
+        feeder.Feed("<space>");
+        feeder.Feed("g");
+
+        var keys = WhichKeyBuilder.Build(
+            engine.Continuations(feeder.State, DefaultKeymap.GraphView),
+            feeder.State.PendingSequence,
+            operationInProgress).Select(row => row.Key).ToList();
+
+        Assert.All(listed, key => Assert.Contains(key, keys));
+        Assert.All(hidden, key => Assert.DoesNotContain(key, keys));
+    }
+
+    [Theory]
     [InlineData("b", "+more (branch operations)")]
     [InlineData("g", "+more (merge, rebase, reset, pick)")]
     [InlineData("T", "+more (tag operations)")]

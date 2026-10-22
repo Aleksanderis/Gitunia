@@ -73,6 +73,9 @@ public sealed class OverlayController
     /// </summary>
     public Func<string, RowMenuTarget?> MenuTarget { get; set; } = _ => null;
 
+    /// <summary>Whether the active tab has a merge, rebase, cherry-pick or revert stopped (the which-key popup then lists continue, abort and skip).</summary>
+    public Func<bool> OperationInProgress { get; set; } = () => false;
+
     /// <summary>The keymap view that is focused: the overlay's own while one is open, else the base view.</summary>
     public string ViewName => State.Kind switch
     {
@@ -92,7 +95,7 @@ public sealed class OverlayController
         var height = size.Height;
         var pending = _keys.State.PendingSequence;
         var rows = State.WhichKeyVisible
-            ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending)
+            ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending, OperationInProgress())
             : [];
         return OverlayFrameFactory.Create(State, _helpSections, _keys.PendingText, rows, width, height, _glyphs);
     }
