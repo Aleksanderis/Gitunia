@@ -27,6 +27,17 @@ public class DiffTitleButtonsTests
     }
 
     [Fact]
+    public void GivenAFilesContent_WhenLayingOut_ThenOnlyWrapAndZoomRemainAndNoHunkOrFileChips()
+    {
+        var buttons = DiffTitleButtons.Layout(120, isFileContent: true);
+
+        Assert.Equal(
+            [DefaultMouseMap.DiffWrapButton, DefaultMouseMap.DiffZoomButton],
+            buttons.Select(button => button.View));
+        Assert.DoesNotContain(buttons, button => button.Label.Contains("hunk") || button.Label.Contains("file"));
+    }
+
+    [Fact]
     public void GivenANarrowTitleRow_WhenLayingOut_ThenOnlyTheMostUsefulButtonsRemainAndTheTitleKeepsItsWidth()
     {
         var buttons = DiffTitleButtons.Layout(50);

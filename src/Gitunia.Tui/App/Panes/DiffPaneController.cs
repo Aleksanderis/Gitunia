@@ -85,6 +85,9 @@ public sealed class DiffPaneController : IPromptHandler
         private set => _actions.Notice = value;
     }
 
+    /// <summary>The active tab's diff pane shows a file's content, not a diff.</summary>
+    public bool IsShowingContent => _activeSession()?.Diff is { IsShowingContent: true };
+
     public string StatusLine => _actions.StatusLine(_activeSession()?.Diff);
 
     /// <summary>The panes' arrangement for the active tab; a zoom that does not match the focused pane is not part of it. Has no side effects (see <see cref="ReleaseStaleZoom"/>).</summary>
@@ -517,7 +520,7 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (diff.IsShowingContent)
         {
-            Notice = "A file's content has no other files to jump to";
+            Notice = "The file content has no other files to jump to";
             return;
         }
 

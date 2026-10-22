@@ -226,6 +226,39 @@ public class FileContentViewTests
     }
 
     [Fact]
+    public async Task GivenAnOpenFile_WhenJumpingToAHunk_ThenTheNoticeDoesNotTalkAboutHunks()
+    {
+        using var harness = await Harness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+
+        harness.Execute(ActionIds.DiffNextHunk);
+
+        Assert.Equal("The file content has no changes to jump to", harness.Controller.Notice);
+    }
+
+    [Fact]
+    public async Task GivenAnOpenFile_WhenJumpingToAnotherFile_ThenTheNoticeSaysTheContentHasNone()
+    {
+        using var harness = await Harness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+
+        harness.Execute(ActionIds.DiffNextFile);
+
+        Assert.Equal("The file content has no other files to jump to", harness.Controller.Notice);
+    }
+
+    [Fact]
+    public async Task GivenAnOpenFile_WhenAsked_ThenThePaneReportsItShowsContent()
+    {
+        using var harness = await Harness.LoadAsync();
+        Assert.False(harness.Controller.IsShowingContent);
+
+        await harness.OpenAsync("a.txt");
+
+        Assert.True(harness.Controller.IsShowingContent);
+    }
+
+    [Fact]
     public async Task GivenAnOpenFile_WhenSwitchingSideBySide_ThenTheContentStaysOneColumn()
     {
         using var harness = await Harness.LoadAsync();

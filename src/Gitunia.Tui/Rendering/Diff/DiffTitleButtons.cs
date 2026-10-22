@@ -41,6 +41,9 @@ public static class DiffTitleButtons
         new(DefaultMouseMap.DiffLessContextButton, " ctx- "),
     ];
 
+    // The first Candidates entries (zoom, wrap) are the ones a file's content has.
+    private const int ContentButtonCount = 2;
+
     // Left to right on the row.
     private static readonly string[] DisplayOrder =
     [
@@ -63,8 +66,9 @@ public static class DiffTitleButtons
     /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one column of line between them.</summary>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="keys">Where the key text of each button comes from; null uses the default keymap.</param>
-    public static IReadOnlyList<TitleButton> Layout(int width, ChipKeys? keys = null) =>
-        Layout(width, WorkingTreeButtons.None, keys);
+    /// <param name="isFileContent">The pane shows a file's content: only zoom and wrap apply.</param>
+    public static IReadOnlyList<TitleButton> Layout(int width, ChipKeys? keys = null, bool isFileContent = false) =>
+        Layout(width, WorkingTreeButtons.None, keys, isFileContent);
 
     /// <summary>
     /// The buttons of the working-tree diff: the staging ones come first in the drop order for the stage side (<c>stage</c>
@@ -75,11 +79,17 @@ public static class DiffTitleButtons
     /// <param name="width">Columns of the title row.</param>
     /// <param name="staging">Which side of the working tree the diff shows.</param>
     /// <param name="keys">Where the key text of each button comes from; null uses the default keymap.</param>
-    public static IReadOnlyList<TitleButton> Layout(int width, WorkingTreeButtons staging, ChipKeys? keys = null)
+    /// <param name="isFileContent">The pane shows a file's content: only zoom and wrap apply.</param>
+    public static IReadOnlyList<TitleButton> Layout(
+        int width,
+        WorkingTreeButtons staging,
+        ChipKeys? keys = null,
+        bool isFileContent = false)
     {
         var chosen = new List<ButtonSpecification>();
         var used = 0;
-        var candidates = Prioritized(staging).ToList();
+        List<ButtonSpecification> candidates =
+            isFileContent ? [.. Candidates.Take(ContentButtonCount)] : [.. Prioritized(staging)];
         for (var index = 0; index < candidates.Count; index++)
         {
             var candidate = candidates[index];

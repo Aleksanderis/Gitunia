@@ -62,6 +62,17 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenAFilesContentInTheDiffPane_WhenHintsAreAsked_ThenNoHunkFileOrDiffOptionHintsShow()
+    {
+        var hints = PaneHints.For(PaneKind.Diff, showsFileContent: true);
+
+        string[] diffOnly = ["hunk", "file", "context", "whole file", "side by side", "ignore space"];
+        Assert.DoesNotContain(hints, hint => diffOnly.Contains(hint.Description));
+        Assert.Contains(hints, hint => hint.Description == "copy file");
+        Assert.Equal(PaneHints.For(PaneKind.Diff), PaneHints.For(PaneKind.Diff, showsFileContent: false));
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
     {
         foreach (var hint in PaneHints.ForPicker())
