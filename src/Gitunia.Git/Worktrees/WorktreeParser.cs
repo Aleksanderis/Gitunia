@@ -3,6 +3,8 @@ namespace Gitunia.Git.Worktrees;
 /// <summary>Parses <c>git worktree list --porcelain -z</c>: NUL-terminated attributes, an extra NUL ends each record.</summary>
 public static class WorktreeParser
 {
+    private const char GitSeparator = '/';
+
     public static ParseResult<WorktreeInfo> Parse(string output)
     {
         var worktrees = new List<WorktreeInfo>();
@@ -50,7 +52,7 @@ public static class WorktreeParser
             {
                 case "worktree":
                     // Git prints forward slashes on Windows; the rest of the app compares native paths.
-                    path = value.Replace('/', Path.DirectorySeparatorChar);
+                    path = value.Replace(GitSeparator, Path.DirectorySeparatorChar);
                     break;
                 case "HEAD":
                     head = value.Trim('0').Length == 0 ? null : value;
