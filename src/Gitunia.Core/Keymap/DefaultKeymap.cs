@@ -412,11 +412,11 @@ public static class DefaultKeymap
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
     }
 
-    // The file lists scroll the diff beside them without taking focus (Alt, so no vim key is shadowed).
+    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list, Alt for the half pages).
     private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
     {
-        Add(bindings, NormalOnly, view, "Alt-j", ActionIds.DiffScrollDown);
-        Add(bindings, NormalOnly, view, "Alt-k", ActionIds.DiffScrollUp);
+        Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);
+        Add(bindings, NormalOnly, view, "K", ActionIds.DiffScrollUp);
         Add(bindings, NormalOnly, view, "Alt-d", ActionIds.DiffScrollHalfPageDown);
         Add(bindings, NormalOnly, view, "Alt-u", ActionIds.DiffScrollHalfPageUp);
     }
