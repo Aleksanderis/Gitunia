@@ -1,4 +1,5 @@
 using Gitunia.Core.Diff;
+using Gitunia.Git.Blobs;
 using Gitunia.Git.Blobs.Models;
 using Gitunia.Tui.Loading.Trees;
 using Xunit;
@@ -17,7 +18,7 @@ public class FileContentDocumentTests
 
         Assert.Equal(["one", "two"], document.Rows.Select(row => row.Text));
         Assert.Equal([1, 2], document.Rows.Select(row => row.NewLineNumber!.Value));
-        Assert.All(document.Rows, row => Assert.Equal(DiffRowKind.Context, row.Kind));
+        Assert.All(document.Rows, row => Assert.Equal(DiffRowKind.Content, row.Kind));
         Assert.Equal(2, document.MaximumLineNumber);
         Assert.Equal("src/a.txt", document.ContentPath);
         Assert.True(document.IsFileContent);
@@ -43,7 +44,7 @@ public class FileContentDocumentTests
         var document = Text("\n");
 
         Assert.Single(document.Rows);
-        Assert.Equal(DiffRowKind.Context, document.Rows[0].Kind);
+        Assert.Equal(DiffRowKind.Content, document.Rows[0].Kind);
     }
 
     [Fact]
@@ -78,5 +79,16 @@ public class FileContentDocumentTests
     public void GivenALoadedDocument_WhenCopyingItsText_ThenTheLinesComeBackWithoutDiffMarkers()
     {
         Assert.Equal("one\ntwo\n", FileContentDocument.Text(Text("one\r\ntwo")));
+    }
+
+    [Fact]
+    public void GivenAMaximumSizeFileOfBlankLines_WhenBuilding_ThenEveryLineIsARowAndTheTextRoundTrips()
+    {
+        var text = new string('\n', BlobReader.MaximumBytes);
+
+        var document = Text(text);
+
+        Assert.Equal(BlobReader.MaximumBytes, document.Rows.Count);
+        Assert.Equal(text, FileContentDocument.Text(document));
     }
 }

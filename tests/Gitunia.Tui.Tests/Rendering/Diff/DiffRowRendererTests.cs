@@ -178,4 +178,45 @@ public class DiffRowRendererTests
         Assert.Equal(3, DiffRowRenderer.GutterDigits(5));
         Assert.Equal(6, DiffRowRenderer.GutterDigits(123456));
     }
+
+    [Fact]
+    public void GivenAFileContentRow_WhenRendering_ThenOneNumberColumnAndNoMarkerPrecedeTheText()
+    {
+        var row = new DiffRow(DiffRowKind.Content, "text", null, 7, 0);
+
+        var line = DiffRowRenderer.Render(row, 20, 3, null, false, Glyphs);
+
+        Assert.StartsWith("  7  text", line.Text);
+        Assert.Equal(5, DiffRowRenderer.PrefixWidth(row, 3));
+        Assert.Equal(20, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenAWrappedFileContentRow_WhenRenderingSegments_ThenOnlyTheFirstShowsTheNumber()
+    {
+        var row = new DiffRow(DiffRowKind.Content, "abcdefgh", null, 7, 0);
+
+        var first = DiffRowRenderer.RenderSegment(row, 0, 10, 3, null, false, Glyphs);
+        var second = DiffRowRenderer.RenderSegment(row, 1, 10, 3, null, false, Glyphs);
+
+        Assert.Equal("  7  abcde", first.Text);
+        Assert.Equal("     fgh  ", second.Text);
+        Assert.Equal(2, DiffRowRenderer.SegmentCount(row, 10, 3));
+    }
+
+    [Fact]
+    public void GivenACombinedDiffContextRowWithNoOldNumber_WhenRendering_ThenItKeepsTheFullGutterAndAlignsWithAdded()
+    {
+        var context = new DiffRow(DiffRowKind.Context, "same", null, 5, 0);
+        var added = new DiffRow(DiffRowKind.Added, "same", null, 6, 0);
+
+        var contextLine = DiffRowRenderer.Render(context, 20, 3, null, false, Glyphs);
+        var addedLine = DiffRowRenderer.Render(added, 20, 3, null, false, Glyphs);
+
+        Assert.StartsWith("      5  same", contextLine.Text);
+        Assert.Equal(DiffRowRenderer.PrefixWidth(added, 3), DiffRowRenderer.PrefixWidth(context, 3));
+        Assert.Equal(
+            contextLine.Text.IndexOf("same", StringComparison.Ordinal),
+            addedLine.Text.IndexOf("same", StringComparison.Ordinal));
+    }
 }
