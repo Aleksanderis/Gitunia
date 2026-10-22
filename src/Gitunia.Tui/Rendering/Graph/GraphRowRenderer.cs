@@ -34,13 +34,14 @@ public static class GraphRowRenderer
 
         // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
         var message = new LineBuilder(layout.MessageWidth, ellipsis);
-        AppendDecorations(message, entry.Decorations, options);
+        var decorations = DecorationSegments(entry.Decorations, options);
         if (jump is { } target)
         {
-            JumpOverlay.Append(message, entry.Subject, SegmentRole.Plain, target);
+            JumpOverlay.Append(message, [.. decorations, new StyledSegment(entry.Subject, SegmentRole.Plain)], target);
         }
         else
         {
+            AppendAll(message, decorations);
             AppendSubject(message, entry.Subject, isMatch ? options.Highlight : null);
         }
 
@@ -68,16 +69,16 @@ public static class GraphRowRenderer
         return builder.Build(SegmentRole.Plain, isSelected);
     }
 
-    /// <summary>Columns the subject of a row can use: the message column less the ref labels in front of it (what a quick jump label must fit in).</summary>
+    /// <summary>Columns the message of a row (ref labels and subject) can use: what a quick jump label must fit in.</summary>
     /// <param name="entry">The commit.</param>
     /// <param name="options">The layout of the graph rows.</param>
-    public static int SubjectColumns(GraphEntry entry, GraphRowOptions options)
-    {
-        var message = new LineBuilder(MessageLayoutOf(entry, options).MessageWidth, options.Glyphs.Ellipsis);
-        AppendDecorations(message, entry.Decorations, options);
+    public static int MessageColumns(GraphEntry entry, GraphRowOptions options) => MessageLayoutOf(entry, options).MessageWidth;
 
-        return message.Remaining;
-    }
+    /// <summary>The message of a row as plain text, ref labels then subject: the text a quick jump matches against.</summary>
+    /// <param name="entry">The commit.</param>
+    /// <param name="options">The layout of the graph rows.</param>
+    public static string MessageText(GraphEntry entry, GraphRowOptions options) =>
+        string.Concat(DecorationSegments(entry.Decorations, options).Select(segment => segment.Text)) + entry.Subject;
 
     /// <summary>A row without a commit: the slot reserved for the working-tree pseudo-row, and rows past the loaded end.</summary>
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
@@ -167,60 +168,69 @@ public static class GraphRowRenderer
         }
     }
 
-    private static void AppendDecorations(
-        LineBuilder builder,
-        IReadOnlyList<CommitDecoration> decorations,
-        GraphRowOptions options)
+    private static void AppendAll(LineBuilder builder, List<StyledSegment> segments)
+    {
+        foreach (var segment in segments)
+        {
+            builder.Append(segment.Text, segment.Role);
+        }
+    }
+
+    private static List<StyledSegment> DecorationSegments(IReadOnlyList<CommitDecoration> decorations, GraphRowOptions options)
     {
         var glyphs = options.Glyphs;
         var labels = RefLabelBuilder.Build(decorations, options.UpstreamGoneBranches);
+        var builder = new List<StyledSegment>();
         if (labels.Count == 0)
         {
-            return;
+            return builder;
         }
 
-        builder.Append("(", SegmentRole.Punctuation);
+        builder.Add(new StyledSegment("(", SegmentRole.Punctuation));
         for (var index = 0; index < labels.Count; index++)
         {
             if (index > 0)
             {
-                builder.Append(", ", SegmentRole.Punctuation);
+                builder.Add(new StyledSegment(", ", SegmentRole.Punctuation));
             }
 
             var label = labels[index];
             switch (label.Kind)
             {
                 case RefKind.LocalBranch when label.IsCurrent:
-                    builder.Append(glyphs.CurrentBranch, SegmentRole.CurrentBranch).Append(label.Name, SegmentRole.CurrentBranch);
+                    builder.Add(new StyledSegment(glyphs.CurrentBranch, SegmentRole.CurrentBranch));
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.CurrentBranch));
                     break;
                 case RefKind.LocalBranch:
-                    builder.Append(label.Name, SegmentRole.LocalBranch);
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.LocalBranch));
                     break;
                 case RefKind.RemoteBranch:
-                    builder.Append(label.Name, SegmentRole.RemoteBranch);
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.RemoteBranch));
                     break;
                 case RefKind.Tag:
-                    builder.Append($"tag: {label.Name}", SegmentRole.Tag);
+                    builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
                     break;
                 case RefKind.Head:
-                    builder.Append("HEAD", SegmentRole.CurrentBranch);
+                    builder.Add(new StyledSegment("HEAD", SegmentRole.CurrentBranch));
                     break;
                 default:
-                    builder.Append(label.Name, SegmentRole.Faint);
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.Faint));
                     break;
             }
 
             if (label.HasRemote)
             {
-                builder.Append(glyphs.Remote, SegmentRole.RemoteBranch);
+                builder.Add(new StyledSegment(glyphs.Remote, SegmentRole.RemoteBranch));
             }
 
             if (label.IsUpstreamGone)
             {
-                builder.Append(glyphs.UpstreamGone, SegmentRole.Faint);
+                builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
             }
         }
 
-        builder.Append(") ", SegmentRole.Punctuation);
+        builder.Add(new StyledSegment(") ", SegmentRole.Punctuation));
+
+        return builder;
     }
 }

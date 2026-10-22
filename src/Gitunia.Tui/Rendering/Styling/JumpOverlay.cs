@@ -41,4 +41,57 @@ public static class JumpOverlay
 
         builder.Append(shown[(end + consumed)..], role);
     }
+
+    /// <summary>
+    /// Appends the <paramref name="parts"/> (one row's text in several roles) as <see cref="Append(LineBuilder, string, SegmentRole, JumpLabel)"/> does for
+    /// one run: the label offsets count over the parts joined.
+    /// </summary>
+    /// <param name="builder">The line the text goes into.</param>
+    /// <param name="parts">The text as shown, the one the label was worked out for.</param>
+    /// <param name="jump">The label.</param>
+    public static void Append(LineBuilder builder, IReadOnlyList<StyledSegment> parts, JumpLabel jump)
+    {
+        var shown = string.Concat(parts.Select(part => part.Text));
+        var start = Math.Min(jump.MatchStart, shown.Length);
+        var end = Math.Min(shown.Length, jump.MatchStart + jump.MatchLength);
+        var replaced = 0;
+        var padding = 0;
+        if (jump.HasLetter && end < shown.Length)
+        {
+            Rune.DecodeFromUtf16(shown.AsSpan(end), out var rune, out replaced);
+            padding = Math.Max(0, TextWidth.Of(rune) - 1);
+        }
+
+        var offset = 0;
+        foreach (var part in parts)
+        {
+            var cuts = new[] { 0, start - offset, end - offset, end + replaced - offset, part.Text.Length }
+                .Select(cut => Math.Clamp(cut, 0, part.Text.Length)).Distinct().Order().ToArray();
+            for (var index = 0; index + 1 < cuts.Length; index++)
+            {
+                var from = offset + cuts[index];
+                var piece = part.Text[cuts[index]..cuts[index + 1]];
+                if (jump.HasLetter && replaced > 0 && from == end)
+                {
+                    builder.Append(jump.Letter.ToString(), SegmentRole.JumpLabel);
+                    builder.Append(new string(' ', padding), part.Role);
+                }
+                else if (from >= start && from < end)
+                {
+                    builder.Append(piece, SegmentRole.SearchMatch);
+                }
+                else
+                {
+                    builder.Append(piece, part.Role);
+                }
+            }
+
+            offset += part.Text.Length;
+        }
+
+        if (jump.HasLetter && replaced == 0)
+        {
+            builder.Append(jump.Letter.ToString(), SegmentRole.JumpLabel);
+        }
+    }
 }
