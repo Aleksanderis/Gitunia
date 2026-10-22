@@ -90,7 +90,7 @@ public class GraphRefCheckTests
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
-        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, null, CancellationToken.None))
+        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.ByDate, null, CancellationToken.None))
         {
             entries.AddRange(batch);
         }

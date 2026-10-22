@@ -47,7 +47,7 @@ public sealed class FramePrinter
     {
         var graph = new CommitGraph();
         var wanted = ScreenLayout.GraphHeight(height);
-        await foreach (var batch in _services.GraphLoader.StreamAsync(location, CommitOrder.Topological, wanted, cancellationToken))
+        await foreach (var batch in _services.GraphLoader.StreamAsync(location, CommitOrder.ByDate, wanted, cancellationToken))
         {
             graph.AddRange(batch);
         }

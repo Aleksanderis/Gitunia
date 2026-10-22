@@ -226,7 +226,7 @@ public class IncrementalGraphLoaderTests
 
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var commits = new List<CommitInfo>();
-        await foreach (var commit in TestGit.Services.CommitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: CancellationToken.None))
+        await foreach (var commit in TestGit.Services.CommitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: CancellationToken.None))
         {
             commits.Add(commit);
         }
@@ -335,7 +335,7 @@ public class IncrementalGraphLoaderTests
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
     {
         var entries = new List<GraphEntry>();
-        await foreach (var batch in new GraphLoader(commitLog).StreamAsync(FakeStatusReader.LocationOf("incremental"), CommitOrder.Topological, null, CancellationToken.None))
+        await foreach (var batch in new GraphLoader(commitLog).StreamAsync(FakeStatusReader.LocationOf("incremental"), CommitOrder.ByDate, null, CancellationToken.None))
         {
             entries.AddRange(batch);
         }
@@ -390,7 +390,7 @@ public class IncrementalGraphLoaderTests
     {
         var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
-        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.Topological, null, CancellationToken.None))
+        await foreach (var batch in TestGit.Services.GraphLoader.StreamAsync(location, CommitOrder.ByDate, null, CancellationToken.None))
         {
             entries.AddRange(batch);
         }

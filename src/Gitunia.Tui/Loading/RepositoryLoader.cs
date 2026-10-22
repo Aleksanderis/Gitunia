@@ -103,7 +103,7 @@ public sealed class RepositoryLoader
         var seen = 0;
         try
         {
-            var stream = _graphLoader.StreamAsync(location, CommitOrder.Topological, null, token);
+            var stream = _graphLoader.StreamAsync(location, CommitOrder.ByDate, null, token);
             await foreach (var batch in stream.ConfigureAwait(false))
             {
                 var skip = Math.Clamp(shownCount - seen, 0, batch.Count);

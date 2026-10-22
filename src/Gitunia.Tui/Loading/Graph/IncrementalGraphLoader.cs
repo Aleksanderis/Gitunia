@@ -45,7 +45,7 @@ public sealed class IncrementalGraphLoader
         GraphLayoutBuilder? builder = null;
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
-        await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.Topological, [], cancellationToken: cancellationToken).ConfigureAwait(false))
+        await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             builder ??= GraphLayoutBuilder.For(await headTask.ConfigureAwait(false));
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
@@ -87,7 +87,7 @@ public sealed class IncrementalGraphLoader
         var cut = new GraphCut();
         var stream = isCapped
             ? _graphLoader.StreamCappedAsync(location, cut, cancellationToken)
-            : _graphLoader.StreamAsync(location, CommitOrder.Topological, null, cancellationToken);
+            : _graphLoader.StreamAsync(location, CommitOrder.ByDate, null, cancellationToken);
         await foreach (var batch in stream.ConfigureAwait(false))
         {
             entries.AddRange(batch);

@@ -49,7 +49,7 @@ public sealed class GraphLoader
         // One row more than the limit tells whether there is more.
         var kept = 0;
         var exceeded = false;
-        var stream = StreamAsync(location, CommitOrder.Topological, limit + 1, cancellationToken);
+        var stream = StreamAsync(location, CommitOrder.ByDate, limit + 1, cancellationToken);
         await foreach (var batch in stream.ConfigureAwait(false))
         {
             var room = limit - kept;
