@@ -25,7 +25,8 @@ public static class DiffTitleButtons
 
     private static readonly ButtonSpecification Discard = new(DefaultMouseMap.DiffDiscardButton, " discard ");
 
-    // Most useful first: when the row is narrow the later ones are dropped.
+    // Most useful first: when the row is narrow the later ones are dropped. The first ContentButtonCount entries
+    // (zoom, wrap) are the ones a file's content shows.
     private static readonly ButtonSpecification[] Candidates =
     [
         new(DefaultMouseMap.DiffZoomButton, " zoom "),
