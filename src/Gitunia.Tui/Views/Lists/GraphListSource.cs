@@ -20,6 +20,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
 {
     private readonly JumpLabelCache _jump = new();
     private GraphRowOptions? _cachedOptions;
+    private IReadOnlySet<string>? _upstreamGoneBranches;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -39,7 +40,17 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     public SearchQuery? Highlight { get; set; }
 
     /// <summary>Local branches whose upstream is gone; their graph labels get a marker. Null for none.</summary>
-    public IReadOnlySet<string>? UpstreamGoneBranches { get; set; }
+    public IReadOnlySet<string>? UpstreamGoneBranches
+    {
+        get => _upstreamGoneBranches;
+        set
+        {
+            _upstreamGoneBranches = value;
+
+            // The marker changes the width of the ref labels, so quick-jump labels worked out before are stale.
+            _jump.Invalidate();
+        }
+    }
 
     /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
     public string? JumpText

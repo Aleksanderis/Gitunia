@@ -149,17 +149,17 @@ public class SidebarFrameTests
     }
 
     [Theory]
-    [InlineData(12)]
-    [InlineData(16)]
-    [InlineData(24)]
-    public void GivenGoneUpstreamAndLongName_WhenRenderingNarrow_ThenTheNameIsNotPushedOut(int width)
+    [InlineData(12, "    feature~")]
+    [InlineData(16, "    feature~ (x)")]
+    [InlineData(24, "    feature/a-very-~ (x)")]
+    public void GivenGoneUpstreamAndLongName_WhenRenderingNarrow_ThenTheNameIsNotPushedOut(int width, string expected)
     {
         var row = Branch("feature/a-very-long-branch-name") with { IsUpstreamGone = true };
 
         var line = SidebarRowRenderer.Render(row, width, false, GraphGlyphSet.Ascii);
 
         Assert.Equal(width, TextWidth.Of(line.Text));
-        Assert.Contains("fea", line.Text, StringComparison.Ordinal);
+        Assert.Equal(expected, line.Text.TrimEnd());
     }
 
     [Fact]
