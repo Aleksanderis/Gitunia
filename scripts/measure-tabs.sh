@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure cold start and RSS of gitunia restoring many tabs (Linux/macOS, bash >= 5, tmux, git).
+# Measure cold start and RSS of gitunia restoring many tabs (Linux/macOS, bash >= 5, tmux, git; Windows: measure-tabs.ps1).
 # Builds throwaway repos and a session file in a temp state directory; never touches real repos or state.
 #
 # Usage: scripts/measure-tabs.sh <binary> [options]
