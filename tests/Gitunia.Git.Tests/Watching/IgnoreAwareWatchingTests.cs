@@ -11,7 +11,7 @@ namespace Gitunia.Git.Tests.Watching;
 
 public class IgnoreAwareWatchingTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly WorkingTreeDirectoryLister Lister = new(Runner);
     private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(20);

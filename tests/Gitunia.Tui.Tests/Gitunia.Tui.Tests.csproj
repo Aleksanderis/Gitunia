@@ -12,6 +12,7 @@
   <ItemGroup>
     <!-- Shared fixture builder: one source file, linked instead of a project reference between test projects. -->
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepository.cs" Link="Fixtures\TestRepository.cs" />
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\IsolatedGit.cs" Link="Fixtures\IsolatedGit.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestFile.cs" Link="Fixtures\TestFile.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestRepositories.cs" Link="Fixtures\TestRepositories.cs" />
     <Compile Include="..\Gitunia.Git.Tests\Execution\FakeGitExecutable.cs" Link="Fixtures\FakeGitExecutable.cs" />

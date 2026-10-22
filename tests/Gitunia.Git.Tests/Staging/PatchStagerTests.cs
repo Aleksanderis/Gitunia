@@ -15,7 +15,7 @@ namespace Gitunia.Git.Tests.Staging;
 
 public class PatchStagerTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly StatusReader Status = new(Runner);
     private static readonly DiffReader Diff = new(Runner);

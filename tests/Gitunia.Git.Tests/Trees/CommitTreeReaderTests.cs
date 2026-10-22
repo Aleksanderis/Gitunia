@@ -9,7 +9,7 @@ namespace Gitunia.Git.Tests.Trees;
 
 public class CommitTreeReaderTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly CommitTreeReader Reader = new(Runner);
 

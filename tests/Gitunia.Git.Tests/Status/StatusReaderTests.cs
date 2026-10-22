@@ -11,7 +11,7 @@ namespace Gitunia.Git.Tests.Status;
 
 public class StatusReaderTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly StatusReader Status = new(Runner);
 

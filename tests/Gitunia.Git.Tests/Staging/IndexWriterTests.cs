@@ -14,7 +14,7 @@ namespace Gitunia.Git.Tests.Staging;
 
 public class IndexWriterTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly StatusReader Status = new(Runner);
     private static readonly IndexWriter Writer = new(Runner);

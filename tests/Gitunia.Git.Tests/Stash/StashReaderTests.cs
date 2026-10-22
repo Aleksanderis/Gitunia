@@ -8,7 +8,7 @@ namespace Gitunia.Git.Tests.Stash;
 
 public class StashReaderTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly StashReader Stashes = new(Runner);
 

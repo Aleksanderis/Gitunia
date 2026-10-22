@@ -12,7 +12,7 @@ namespace Gitunia.Git.Tests.Worktrees;
 
 public class WorktreeWriterTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly WorktreeWriter Writer = new(Runner);
     private static readonly RefReader Refs = new(Runner);

@@ -12,7 +12,7 @@ namespace Gitunia.Git.Tests.Commits;
 
 public class CommitLogReaderTests
 {
-    private static readonly GitRunner Runner = new();
+    private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly CommitLogReader CommitLog = new(Runner);
 
