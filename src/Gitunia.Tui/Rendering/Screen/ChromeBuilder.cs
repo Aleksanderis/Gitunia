@@ -71,10 +71,10 @@ public static class ChromeBuilder
     }
 
     // One role per severity, a filled chip while the message is fresh. No severity (a key's own notice, progress)
-    // keeps the plain bar style.
+    // keeps the plain bar style, except progress of a running remote operation.
     private static SegmentRole MessageRole(ScreenModel model) => model.MessageSeverity switch
     {
-        null => SegmentRole.Status,
+        null => model.RemoteBusy ? SegmentRole.StatusProgress : SegmentRole.Status,
         StatusSeverity.Error => model.MessageIsFresh ? SegmentRole.StatusErrorFresh : SegmentRole.StatusError,
         StatusSeverity.Warning => model.MessageIsFresh ? SegmentRole.StatusWarningFresh : SegmentRole.StatusWarning,
         _ => model.MessageIsFresh ? SegmentRole.StatusNoticeFresh : SegmentRole.StatusNotice,

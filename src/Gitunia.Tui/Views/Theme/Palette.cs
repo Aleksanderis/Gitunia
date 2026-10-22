@@ -91,6 +91,7 @@ public static class Palette
             SegmentRole.StatusKey => new RoleAppearance(colors.Accent, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusError => new RoleAppearance(colors.Bad, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusNotice => new RoleAppearance(colors.Good, colors.BarBackground, TextStyle.Bold, true),
+            SegmentRole.StatusProgress => new RoleAppearance(colors.Info, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusWarning => new RoleAppearance(colors.Warn, colors.BarBackground, TextStyle.Bold, true),
             SegmentRole.StatusNoticeFresh =>
                 new RoleAppearance(colors.ChipForeground, colors.Good, colors.ChipStyle, true),

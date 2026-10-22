@@ -41,6 +41,9 @@ public enum SegmentRole
     /// <summary>A success or info notice in the status bar.</summary>
     StatusNotice,
 
+    /// <summary>A running operation's progress in the status bar.</summary>
+    StatusProgress,
+
     /// <summary>A warning notice in the status bar.</summary>
     StatusWarning,
 

@@ -412,13 +412,13 @@ public static class DefaultKeymap
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
     }
 
-    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list, Alt for the half pages).
+    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list; `Ctrl-d`/`Ctrl-u` take over the half pages from the list, `PageDown`/`PageUp` still move it).
     private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
     {
         Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);
         Add(bindings, NormalOnly, view, "K", ActionIds.DiffScrollUp);
-        Add(bindings, NormalOnly, view, "Alt-d", ActionIds.DiffScrollHalfPageDown);
-        Add(bindings, NormalOnly, view, "Alt-u", ActionIds.DiffScrollHalfPageUp);
+        Add(bindings, NormalOnly, view, "Ctrl-d", ActionIds.DiffScrollHalfPageDown);
+        Add(bindings, NormalOnly, view, "Ctrl-u", ActionIds.DiffScrollHalfPageUp);
     }
 
     // The message box: Normal mode is its own view of the keymap, Insert mode types into the editor (its editing keys are not in
