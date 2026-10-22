@@ -77,7 +77,7 @@ public static class WorkingTreeRowRenderer
         return builder.Build(isSelected: isSelected);
     }
 
-    /// <summary>Columns the conflict text of an entry takes after its path; 0 for a row that is not conflicted.</summary>
+    /// <summary>Columns the conflict text of an entry takes after its path; 0 when it is not conflicted.</summary>
     public static int ConflictColumns(StatusEntry entry) => TextWidth.Of(ConflictSuffix(entry));
 
     private static string ConflictSuffix(StatusEntry entry) =>

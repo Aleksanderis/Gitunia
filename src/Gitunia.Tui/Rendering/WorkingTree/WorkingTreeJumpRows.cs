@@ -30,9 +30,11 @@ public sealed class WorkingTreeJumpRows(
         ColumnsOf(row),
         ellipsis);
 
-    /// <summary>The columns left for the path: the row's text area less the mark and a conflict row's conflict text.</summary>
+    /// <summary>The columns left for the path: the text area less the mark and a conflicted row's conflict
+    /// text.</summary>
     public int ColumnsOf(int row) =>
         Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
 
-    private StatusEntry EntryOf(int row) => (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row];
+    private StatusEntry EntryOf(int row) =>
+        (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row];
 }
