@@ -47,10 +47,15 @@ public static class WorkingTreeRowRenderer
         var mark = MarkOf(entry, section);
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         builder.Append(mark, RoleOf(mark)).Append(" ", SegmentRole.Plain);
-        var conflict = entry.Kind == StatusEntryKind.Unmerged ? $"  {ConflictText(entry.Conflict)}" : string.Empty;
+        var conflict = ConflictSuffix(entry);
         if (jump is { } target)
         {
-            var shown = PathLayoutText(entry, section, pathStyle, builder.Remaining, glyphs.Ellipsis);
+            var shown = PathLayoutText(
+                entry,
+                section,
+                pathStyle,
+                Math.Max(0, builder.Remaining - TextWidth.Of(conflict)),
+                glyphs.Ellipsis);
             JumpOverlay.Append(builder, shown, SegmentRole.Plain, target);
         }
         else if (pathStyle == FilePathStyle.FullPath)
@@ -71,6 +76,12 @@ public static class WorkingTreeRowRenderer
 
         return builder.Build(isSelected: isSelected);
     }
+
+    /// <summary>Columns the conflict text of an entry takes after its path; 0 for a row that is not conflicted.</summary>
+    public static int ConflictColumns(StatusEntry entry) => TextWidth.Of(ConflictSuffix(entry));
+
+    private static string ConflictSuffix(StatusEntry entry) =>
+        entry.Kind == StatusEntryKind.Unmerged ? $"  {ConflictText(entry.Conflict)}" : string.Empty;
 
     /// <summary>The text of the path as <paramref name="style"/> lays it out in <paramref name="columns"/>, for the
     /// quick jump.</summary>

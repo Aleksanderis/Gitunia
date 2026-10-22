@@ -1,6 +1,7 @@
 using Gitunia.Core.Jump;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Status.Models;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
@@ -23,11 +24,15 @@ public sealed class WorkingTreeJumpRows(
     public int EllipsisWidth { get; } = TextWidth.Of(ellipsis);
 
     public string TextOf(int row) => WorkingTreeRowRenderer.PathLayoutText(
-        (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row],
+        EntryOf(row),
         section,
         pathStyle,
         ColumnsOf(row),
         ellipsis);
 
-    public int ColumnsOf(int row) => Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns);
+    /// <summary>The columns left for the path: the row's text area less the mark and a conflict row's conflict text.</summary>
+    public int ColumnsOf(int row) =>
+        Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+
+    private StatusEntry EntryOf(int row) => (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row];
 }
