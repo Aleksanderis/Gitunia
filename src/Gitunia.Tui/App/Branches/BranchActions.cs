@@ -22,7 +22,8 @@ namespace Gitunia.Tui.App.Branches;
 /// <summary>
 /// Create, switch, rename, delete branches and set or unset their upstream (ux.md, workflow 3, "Branches").
 /// A name is typed in a prompt popup,
-/// a switch target is chosen in a type-to-filter prompt, and a delete goes through the Confirm dialog (a second one
+/// a switch checks out the branch under the cursor at once and asks in a type-to-filter prompt only when the cursor
+/// names no single branch, and a delete goes through the Confirm dialog (a second one
 /// when the branch holds commits that nothing else reaches). Refusals that need no git (the current branch, a branch
 /// held by another worktree, a name in use) are decided from the tab refs and run nothing; everything else runs off
 /// the UI thread, one operation per tab, and the tab is refreshed afterwards. What the action acts on is fixed when
@@ -327,12 +328,10 @@ public sealed class BranchActions(
     {
         var chosen = selection();
         _onlyBranches = null;
-        if (BranchUnderCursor(tab, chosen) is { } label)
+        if (BranchUnderCursor(tab, chosen) is { } label
+            && SwitchCandidates.Build(tab.Refs, null, string.Empty, new HashSet<string> { label }) is [var candidate])
         {
-            if (SwitchCandidates.Build(tab.Refs, null, string.Empty, new HashSet<string> { label }) is [var candidate])
-            {
-                return CheckoutCandidate(tab, candidate);
-            }
+            return CheckoutCandidate(tab, candidate);
         }
 
         if (chosen.RowKind is null && chosen.CommitHash is { } hash)
