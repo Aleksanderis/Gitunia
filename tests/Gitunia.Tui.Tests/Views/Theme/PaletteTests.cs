@@ -459,6 +459,23 @@ public class PaletteTests
         Assert.NotEqual(PaletteTable.For(PaletteSettings.Default).Accent, forced.Accent);
     }
 
+    [Theory]
+    [InlineData(ThemeChoice.Light, false, true)]
+    [InlineData(ThemeChoice.Dark, true, true)]
+    [InlineData(ThemeChoice.Light, true, false)]
+    [InlineData(ThemeChoice.Auto, false, false)]
+    public void GivenAForcedTheme_WhenItDiffersFromTheTerminal_ThenPlainTextGetsTheBaseColours(
+        ThemeChoice theme,
+        bool detectedLight,
+        bool paintsBase)
+    {
+        var table = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, detectedLight).WithTheme(theme));
+        var plain = Palette.For(new StyledSegment("x", SegmentRole.Hash), false, false, table);
+
+        Assert.Equal(paintsBase, table.BaseBackground != Color.None);
+        Assert.Equal(paintsBase, plain.Background != Color.None);
+    }
+
     private static bool IsNamedOrDefault(Color color, HashSet<Color> named) => color == Color.None || named.Contains(color);
 
     private static int ToRgb(Color color) => (color.R << 16) | (color.G << 8) | color.B;

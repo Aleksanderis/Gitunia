@@ -67,6 +67,12 @@ public sealed class PaletteTable
     /// <summary>Background of a search match.</summary>
     public required Color MatchBackground { get; init; }
 
+    /// <summary>Text colour of the whole interface where a theme is forced against the terminal's own background, <see cref="Color.None"/> for the terminal default.</summary>
+    public Color BaseForeground { get; init; } = Color.None;
+
+    /// <summary>Background of the whole interface where a theme is forced against the terminal's own background, <see cref="Color.None"/> for the terminal default.</summary>
+    public Color BaseBackground { get; init; } = Color.None;
+
     /// <summary>The colours graph lanes cycle through.</summary>
     public required Color[] Lanes { get; init; }
 
@@ -92,12 +98,12 @@ public sealed class PaletteTable
     public static PaletteTable For(PaletteSettings settings) => settings.Depth switch
     {
         ColorDepth.None => Monochrome(),
-        ColorDepth.Ansi16 => settings.IsLightBackground ? Ansi16Light() : Ansi16Dark(),
-        _ => settings.IsLightBackground ? TrueColorLight() : TrueColorDark(),
+        ColorDepth.Ansi16 => settings.IsLightBackground ? Ansi16Light(settings.PaintsBase) : Ansi16Dark(settings.PaintsBase),
+        _ => settings.IsLightBackground ? TrueColorLight(settings.PaintsBase) : TrueColorDark(settings.PaintsBase),
     };
 
     // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/decisions.md).
-    private static PaletteTable TrueColorDark() => new()
+    private static PaletteTable TrueColorDark(bool paintsBase) => new()
     {
         Accent = Rgb(0x89b4fa),
         Good = Rgb(0xa6e3a1),
@@ -118,10 +124,12 @@ public sealed class PaletteTable
         ChipBackground = Rgb(0x89b4fa),
         MatchForeground = Rgb(0x11111b),
         MatchBackground = Rgb(0xf9e2af),
+        BaseForeground = paintsBase ? Rgb(0xcdd6f4) : Color.None,
+        BaseBackground = paintsBase ? Rgb(0x1e1e2e) : Color.None,
         Lanes = Rgbs(0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5, 0xfab387, 0xf5c2e7, 0x74c7ec, 0xb4befe, 0xeba0ac, 0xf2cdcd),
     };
 
-    private static PaletteTable TrueColorLight() => new()
+    private static PaletteTable TrueColorLight(bool paintsBase) => new()
     {
         Accent = Rgb(0x1a59d7),
         Good = Rgb(0x2c6f1e),
@@ -142,13 +150,15 @@ public sealed class PaletteTable
         ChipBackground = Rgb(0x1a59d7),
         MatchForeground = Rgb(0x232634),
         MatchBackground = Rgb(0xf2c97a),
+        BaseForeground = paintsBase ? Rgb(0x4c4f69) : Color.None,
+        BaseBackground = paintsBase ? Rgb(0xeff1f5) : Color.None,
         Lanes = Rgbs(0x1a59d7, 0x2c6f1e, 0x8a5811, 0x7f35e0, 0xc30d35, 0x116d72, 0xa74107, 0x91497d, 0x156c7b, 0x4d5bac, 0xb1353f, 0x914f4f),
     };
 
     // The 16 named colours: the terminal's theme maps them, so they stay readable whatever it is. The selection uses
     // bright black on a dark terminal and the light grey on a light one; the unfocused selection is underlined, since
     // no second background is safe on every theme.
-    private static PaletteTable Ansi16Dark() => new()
+    private static PaletteTable Ansi16Dark(bool paintsBase) => new()
     {
         Accent = Named(ColorName16.BrightBlue),
         Good = Named(ColorName16.BrightGreen),
@@ -169,12 +179,14 @@ public sealed class PaletteTable
         ChipBackground = Named(ColorName16.BrightBlue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
+        BaseForeground = paintsBase ? Named(ColorName16.Gray) : Color.None,
+        BaseBackground = paintsBase ? Named(ColorName16.Black) : Color.None,
         Lanes = Named(ColorName16.BrightBlue, ColorName16.BrightGreen, ColorName16.BrightYellow, ColorName16.BrightMagenta, ColorName16.BrightRed, ColorName16.BrightCyan),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,
     };
 
-    private static PaletteTable Ansi16Light() => new()
+    private static PaletteTable Ansi16Light(bool paintsBase) => new()
     {
         Accent = Named(ColorName16.Blue),
         Good = Named(ColorName16.Green),
@@ -195,6 +207,8 @@ public sealed class PaletteTable
         ChipBackground = Named(ColorName16.Blue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
+        BaseForeground = paintsBase ? Named(ColorName16.Black) : Color.None,
+        BaseBackground = paintsBase ? Named(ColorName16.White) : Color.None,
         Lanes = Named(ColorName16.Blue, ColorName16.Green, ColorName16.Magenta, ColorName16.Red, ColorName16.Cyan, ColorName16.DarkGray),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,

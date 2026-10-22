@@ -9,7 +9,8 @@ namespace Gitunia.Tui.Views.Theme;
 /// <see cref="ColorDepth.Ansi16"/> only the 16 named colours (the terminal's own theme decides what they look like), <see cref="ColorDepth.None"/> text styles only.
 /// </param>
 /// <param name="IsLightBackground">The terminal has a light background (darker accents, light selection tints).</param>
-public sealed record PaletteSettings(ColorDepth Depth, bool IsLightBackground)
+/// <param name="PaintsBase">The scheme paints its own base text and background colours because the theme was forced against the terminal's background.</param>
+public sealed record PaletteSettings(ColorDepth Depth, bool IsLightBackground, bool PaintsBase = false)
 {
     /// <summary>The scheme used before the terminal is known: 24-bit colours for a dark background.</summary>
     public static PaletteSettings Default { get; } = new(ColorDepth.TrueColor, false);
@@ -21,8 +22,8 @@ public sealed record PaletteSettings(ColorDepth Depth, bool IsLightBackground)
     /// <param name="theme">The configured choice.</param>
     public PaletteSettings WithTheme(ThemeChoice theme) => theme switch
     {
-        ThemeChoice.Dark => this with { IsLightBackground = false },
-        ThemeChoice.Light => this with { IsLightBackground = true },
+        ThemeChoice.Dark => this with { IsLightBackground = false, PaintsBase = IsLightBackground },
+        ThemeChoice.Light => this with { IsLightBackground = true, PaintsBase = !IsLightBackground },
         _ => this,
     };
 

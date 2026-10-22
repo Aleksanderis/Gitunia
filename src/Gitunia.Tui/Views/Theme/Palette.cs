@@ -26,7 +26,7 @@ public static class Palette
     /// </summary>
     public static Scheme PanelScheme() => PanelScheme(table);
 
-    public static Scheme PanelScheme(PaletteTable colors) => new(new Attribute(Color.None, colors.PanelBackground));
+    public static Scheme PanelScheme(PaletteTable colors) => new(new Attribute(colors.BaseForeground, colors.PanelBackground != Color.None ? colors.PanelBackground : colors.BaseBackground));
 
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
@@ -37,12 +37,13 @@ public static class Palette
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused, PaletteTable colors)
     {
         var role = Role(segment, colors);
-        var foreground = role.Foreground;
+        var foreground = role.Foreground == Color.None ? colors.BaseForeground : role.Foreground;
         var background = role.Background;
         var style = role.Style;
         if (!isSelected)
         {
-            return new Attribute(foreground, BackgroundOf(segment, background, colors), style);
+            var plain = BackgroundOf(segment, background, colors);
+            return new Attribute(foreground, plain == Color.None ? colors.BaseBackground : plain, style);
         }
 
         if (!role.KeepsBackground)
