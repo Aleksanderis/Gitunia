@@ -35,8 +35,9 @@ public static class PickerComposer
         if (height > 1)
         {
             var headerButtons = picker.LocatingTabId is null ? PickerHeaderButtons.Layout(width) : [];
+            var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
             var hint = new LineBuilder(headerButtons.Count > 0 ? headerButtons[0].Start - 1 : width, glyphs.Ellipsis)
-                .Append($" type to filter, or a path starting with {PathDisplay.PathStartsHint(OperatingSystem.IsWindows())} (Tab accepts)", SegmentRole.Faint)
+                .Append($" type to filter, or a path starting with {starts} (Tab accepts)", SegmentRole.Faint)
                 .Build();
             lines.Add(WithButtons(hint, headerButtons));
         }

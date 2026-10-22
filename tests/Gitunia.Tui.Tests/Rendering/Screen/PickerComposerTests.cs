@@ -12,7 +12,8 @@ namespace Gitunia.Tui.Tests.Rendering.Screen;
 
 public class PickerComposerTests
 {
-    private static readonly string Home = OperatingSystem.IsWindows() ? @"C:\h" : Path.Combine(Path.GetTempPath(), "composer-home");
+    private static readonly string Home =
+        OperatingSystem.IsWindows() ? @"C:\h" : Path.Combine(Path.GetTempPath(), "composer-home");
 
     private static PickerRow Row(string name, PickerTags tags) => new(Path.Combine(Home, "code", name), name, tags);
 
@@ -41,12 +42,13 @@ public class PickerComposerTests
             null);
 
         var frame = Frame(picker, 70, 8);
+        var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
 
         Assert.Equal(
             string.Join(
                 '\n',
                 " Open repository: _",
-                $" type to filter, or a path starting with {PathDisplay.PathStartsHint(OperatingSystem.IsWindows())} (Tab accepts)",
+                $" type to filter, or a path starting with {starts} (Tab accepts)",
                 $" alpha  open            {Shown("code/alpha")}",
                 $"{$" beta   pinned          {Shown("code/beta")}".PadRight(62)}[unpin]",
                 $" gamma  recent          {Shown("code/gamma")}",

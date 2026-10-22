@@ -52,7 +52,9 @@ public static class PathCompleter
     public static string Complete(string text, IReadOnlyList<PickerRow> candidates, int highlight)
         => Complete(text, candidates, highlight, OperatingSystem.IsWindows());
 
-    /// <summary>Like the overload without a platform; <paramref name="windows"/> makes a bare <c>~</c> continue with <c>\</c>.</summary>
+    /// <summary>
+    /// Like the overload without a platform; <paramref name="windows"/> makes a bare <c>~</c> continue with <c>\</c>.
+    /// </summary>
     public static string Complete(string text, IReadOnlyList<PickerRow> candidates, int highlight, bool windows)
     {
         if (candidates.Count == 0)

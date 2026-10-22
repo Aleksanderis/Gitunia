@@ -2,10 +2,14 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Picker;
 
-/// <summary>How paths are shown to the user: native on Windows (no <c>~</c> shortcut), home-abbreviated on Linux and macOS.</summary>
+/// <summary>
+/// How paths are shown to the user: native on Windows (no <c>~</c> shortcut), home-abbreviated on Linux and macOS.
+/// </summary>
 public static class PathDisplay
 {
-    /// <summary>The path for display. On Windows it is returned as is; elsewhere the home directory becomes <c>~</c>.</summary>
+    /// <summary>
+    /// The path for display. On Windows it is returned as is; elsewhere the home directory becomes <c>~</c>.
+    /// </summary>
     public static string Abbreviate(string path, string homeDirectory, bool windows)
     {
         if (windows || homeDirectory.Length == 0)
