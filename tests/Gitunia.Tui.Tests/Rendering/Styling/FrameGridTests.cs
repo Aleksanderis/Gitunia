@@ -77,7 +77,7 @@ public class FrameGridTests
 
         Assert.Equal("─ repo ─", grid.Row(ScreenLayout.FrameTop, 1, 8).Text);
         Assert.Equal(SegmentRole.ActiveTab, grid.Cell(3, ScreenLayout.FrameTop).Role);
-        Assert.Equal(SegmentRole.InactiveTab, grid.Cell(PaneLayout.Compute(Width, Height, true, null).Graph.X + 2, ScreenLayout.FrameTop).Role);
+        Assert.Equal(SegmentRole.SelectedTab, grid.Cell(PaneLayout.Compute(Width, Height, true, null).Graph.X + 2, ScreenLayout.FrameTop).Role);
     }
 
     [Fact]

@@ -363,14 +363,14 @@ public class PaletteTests
         var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Plain), false, false, colors);
 
-        foreach (var role in new[] { SegmentRole.SearchMatch, SegmentRole.ActiveTab, SegmentRole.InactiveTab, SegmentRole.SelectedTab, SegmentRole.FocusedBorder, SegmentRole.CurrentBranch, SegmentRole.StatusMode })
+        foreach (var role in new[] { SegmentRole.SearchMatch, SegmentRole.ActiveTab, SegmentRole.SelectedTab, SegmentRole.FocusedBorder, SegmentRole.CurrentBranch, SegmentRole.StatusMode })
         {
             Assert.NotEqual(plain, Palette.For(new StyledSegment("x", role), false, false, colors));
         }
 
         Assert.NotEqual(
             Palette.For(new StyledSegment("x", SegmentRole.ActiveTab), false, false, colors),
-            Palette.For(new StyledSegment("x", SegmentRole.InactiveTab), false, false, colors));
+            Palette.For(new StyledSegment("x", SegmentRole.SelectedTab), false, false, colors));
         Assert.NotEqual(
             Palette.For(new StyledSegment("x", SegmentRole.LocalBranch), false, false, colors),
             Palette.For(new StyledSegment("x", SegmentRole.CurrentBranch), false, false, colors));

@@ -77,7 +77,7 @@ public static class DiffPaneRenderer
         var textWidth = buttons.Count > 0 ? buttons[0].Start - 1 : width;
         var text = new LineBuilder(textWidth, glyphs.Ellipsis)
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
-            .Append($" {title} ", isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab)
+            .Append($" {title} ", isFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab)
             .BuildRule(glyphs.Horizontal);
 
         return buttons.Count == 0 ? text : WithButtons(text, buttons, glyphs);
@@ -102,7 +102,7 @@ public static class DiffPaneRenderer
             .Append(glyphs.Horizontal.ToString(), SegmentRole.Rule)
             .Append(
                 pane.Document.IsFileContent ? " File " : " Diff ",
-                pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab);
+                pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab);
         if (pane.Document.ContentPath is { } contentPath)
         {
             if (pane.Document.MaximumLineNumber > 0)

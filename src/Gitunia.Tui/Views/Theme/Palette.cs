@@ -103,7 +103,6 @@ public static class Palette
             SegmentRole.RepositoryTabKey =>
                 new RoleAppearance(
                     Color.None, colors.TabButtonBackground, colors.SelectionDimStyle | TextStyle.Bold, true),
-            SegmentRole.InactiveTab => new RoleAppearance(Color.None, colors.SelectionDim, colors.SelectionDimStyle, true),
             SegmentRole.SelectedTab =>
                 new RoleAppearance(
                     colors.Accent, colors.SelectionFocused, colors.SelectionDimStyle | TextStyle.Bold, true),

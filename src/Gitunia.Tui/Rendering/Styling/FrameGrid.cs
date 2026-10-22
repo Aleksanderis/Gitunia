@@ -208,7 +208,7 @@ public sealed class FrameGrid
             return;
         }
 
-        var role = isFocused ? SegmentRole.ActiveTab : SegmentRole.InactiveTab;
+        var role = isFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab;
         var column = left + 2;
         var counter = new WidthCounter();
         var textIndex = -1;
