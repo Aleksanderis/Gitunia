@@ -77,6 +77,7 @@ public static class RowActions
             ActionIds.BranchSetUpstream,
             ActionIds.BranchUnsetUpstream,
             ActionIds.BranchFastForward,
+            ActionIds.WorktreeOpen,
             .. Integrate,
         ],
         SidebarRowKind.RemoteBranch =>

@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Worktrees;
 using Gitunia.Tui.App.WorkingTree;
@@ -15,7 +16,8 @@ namespace Gitunia.Tui.App.Worktrees;
 /// <summary>
 /// Moves between worktrees (ux.md, workflow 6): <c>ws</c> points the active tab at the selected worktree in place, so
 /// its view state stays and only HEAD, status and graph are read again; <c>wt</c> opens the worktree as its own tab (or
-/// focuses the tab that already shows it). Nothing here changes the process working directory: the new location is
+/// focuses the tab that already shows it); on a local branch row <c>wt</c> opens the worktree that holds the branch.
+/// Nothing here changes the process working directory: the new location is
 /// resolved by path and every git call keeps taking the tab's own path. Refusals run no git and say why.
 /// </summary>
 /// <param name="host">The workspace.</param>
@@ -49,12 +51,27 @@ public sealed class WorktreeSwitchActions(
             return false;
         }
 
-        if (host.Workspace.ActiveTab is { } tab)
+        if (host.Workspace.ActiveTab is not { } tab)
         {
-            Notice = Begin(tab, isSwitch);
+            return true;
         }
 
+        if (!isSwitch && IsBranchWithoutWorktree(tab))
+        {
+            return false;
+        }
+
+        Notice = Begin(tab, isSwitch);
         return true;
+    }
+
+    /// <summary>Opens the worktree at a path as its own tab (or focuses the tab that shows it), reporting failures.</summary>
+    /// <param name="tabId">The tab whose cancellation ends the work.</param>
+    /// <param name="path">The worktree directory.</param>
+    public void OpenPath(TabId tabId, string path)
+    {
+        var token = cancellationOf(tabId);
+        _ = Task.Run(() => DiscoverAsync(tabId, path, false, token), CancellationToken.None);
     }
 
     private string Begin(RepositoryState tab, bool isSwitch)
@@ -76,7 +93,7 @@ public sealed class WorktreeSwitchActions(
         }
 
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => DiscoverAsync(tab.Id, worktree, isSwitch, token), CancellationToken.None);
+        _ = Task.Run(() => DiscoverAsync(tab.Id, worktree.Path, isSwitch, token), CancellationToken.None);
         return string.Empty;
     }
 
@@ -105,11 +122,11 @@ public sealed class WorktreeSwitchActions(
         return string.Empty;
     }
 
-    private async Task DiscoverAsync(TabId tabId, WorktreeInfo worktree, bool isSwitch, CancellationToken token)
+    private async Task DiscoverAsync(TabId tabId, string path, bool isSwitch, CancellationToken token)
     {
         try
         {
-            var location = await discovery.DiscoverAsync(worktree.Path, token).ConfigureAwait(false);
+            var location = await discovery.DiscoverAsync(path, token).ConfigureAwait(false);
             postToUi(() => Apply(tabId, location, isSwitch));
         }
         catch (OperationCanceledException)
@@ -119,7 +136,7 @@ public sealed class WorktreeSwitchActions(
         catch (Exception exception)
         {
             var verb = isSwitch ? "switch to" : "open";
-            postToUi(() => statuses.Error($"Could not {verb} {worktree.Path}: {OperationText.Reason(exception)}"));
+            postToUi(() => statuses.Error($"Could not {verb} {path}: {OperationText.Reason(exception)}"));
         }
     }
 
@@ -158,8 +175,29 @@ public sealed class WorktreeSwitchActions(
         host.Workspace.Tabs.FirstOrDefault(
             other => other.Id != tab.Id && RepositoryPathComparer.Instance.Equals(other.Location.RootPath, path));
 
-    private WorktreeInfo? TargetOf(RepositoryState tab) =>
-        selectedRow() is { Kind: SidebarRowKind.Worktree, Path: { } path }
-            ? tab.Worktrees.FirstOrDefault(worktree => RepositoryPathComparer.Instance.Equals(worktree.Path, path))
-            : null;
+    private bool IsBranchWithoutWorktree(RepositoryState tab) =>
+        selectedRow() is { Kind: SidebarRowKind.LocalBranch } && HolderOf(tab) is null;
+
+    private WorktreeInfo? TargetOf(RepositoryState tab)
+    {
+        var path = selectedRow() switch
+        {
+            { Kind: SidebarRowKind.Worktree, Path: { } worktreePath } => worktreePath,
+            { Kind: SidebarRowKind.LocalBranch } => HolderOf(tab),
+            _ => null,
+        };
+
+        return path is null
+            ? null
+            : tab.Worktrees.FirstOrDefault(worktree => RepositoryPathComparer.Instance.Equals(worktree.Path, path));
+    }
+
+    // The path of the worktree that has the selected local branch checked out, null when none has.
+    private string? HolderOf(RepositoryState tab)
+    {
+        var name = selectedRow()?.Label;
+        var reference = tab.Refs.FirstOrDefault(
+            candidate => candidate.Kind == RefKind.LocalBranch && candidate.Name == name);
+        return reference?.CheckedOutIn ?? (reference?.IsCurrent == true ? tab.CommandPath : null);
+    }
 }

@@ -284,6 +284,7 @@ public sealed class TuiApplication(
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
         _router.WorktreeSwitch = CreateWorktreeSwitch(operationGate, sidebarSource);
+        _worktrees.OpenWorktree = _router.WorktreeSwitch.OpenPath;
         _router.Operations = CreateOperations(operationGate);
         _push = CreatePush();
         _router.Push = _push;

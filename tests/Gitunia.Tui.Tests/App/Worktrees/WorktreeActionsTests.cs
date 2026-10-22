@@ -311,6 +311,43 @@ public sealed class WorktreeActionsTests
         Assert.Equal(repository.Head, repository.GitIn(expected, ["rev-parse", "HEAD"]).Trim());
     }
 
+    [Fact]
+    public async Task GivenFreeBranchRow_WhenOpening_ThenOnlyThePathIsAskedAndTheNewWorktreeIsOpened()
+    {
+        using var repository = TestRepositories.Linear(2).Branch("free");
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath, null, null, BranchRow("free"));
+        var expected = WorktreeTexts.DefaultPath(repository.WorkingTreePath, "free");
+
+        harness.Execute(ActionIds.WorktreeOpen);
+        Assert.Contains(expected, PopupText.Of(harness.Actions), StringComparison.Ordinal);
+        Assert.Empty(harness.Opened);
+        await harness.AcceptAsync();
+
+        Assert.Equal("free", repository.GitIn(expected, ["branch", "--show-current"]).Trim());
+        Assert.Equal(expected, Assert.Single(harness.Opened));
+    }
+
+    [Fact]
+    public async Task GivenWorktreeRow_WhenOpening_ThenThisControllerLeavesItToTheSwitchActions()
+    {
+        using var repository = TestRepositories.WithWorktree(out var path);
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath, path);
+
+        Assert.False(harness.Actions.TryExecute(ActionIds.WorktreeOpen, null));
+    }
+
+    private static SidebarRow BranchRow(string name) => new(
+        SidebarRowKind.LocalBranch,
+        SidebarSection.Branches,
+        name,
+        string.Empty,
+        null,
+        false,
+        false,
+        0,
+        null,
+        null);
+
     private static SidebarRow StashRow() => new(
         SidebarRowKind.Stash,
         SidebarSection.Stashes,
@@ -354,7 +391,10 @@ public sealed class WorktreeActionsTests
                 () => Row,
                 () => selectedCommit,
                 mode => Mode = mode,
-                () => { });
+                () => { })
+            {
+                OpenWorktree = (_, path) => Opened.Add(path),
+            };
         }
 
         public WorktreeActions Actions { get; }
@@ -362,6 +402,8 @@ public sealed class WorktreeActionsTests
         public StatusChannel Statuses { get; } = new();
 
         public List<ConfirmPrompt> Prompts { get; } = [];
+
+        public List<string> Opened { get; } = [];
 
         public KeyMode Mode { get; private set; } = KeyMode.Normal;
 

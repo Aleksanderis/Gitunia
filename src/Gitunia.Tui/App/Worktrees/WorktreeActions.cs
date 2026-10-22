@@ -62,6 +62,7 @@ public sealed class WorktreeActions(
     private string? _startPoint;
     private string? _selectedStart;
     private string _target = string.Empty;
+    private bool _openAfterAdd;
 
     private enum PromptStage
     {
@@ -70,6 +71,9 @@ public sealed class WorktreeActions(
         Path,
         LockReason,
     }
+
+    /// <summary>Opens a new worktree as its own tab; set by the composition root.</summary>
+    public Action<TabId, string>? OpenWorktree { get; set; }
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -105,6 +109,10 @@ public sealed class WorktreeActions(
         if (action == ActionIds.WorktreeAdd)
         {
             BeginAdd(tab);
+        }
+        else if (action == ActionIds.WorktreeOpen && selectedRow() is { Kind: SidebarRowKind.LocalBranch } branch)
+        {
+            BeginAddForBranch(tab, branch.Label);
         }
         else if (action == ActionIds.WorktreeRemove)
         {
@@ -210,8 +218,24 @@ public sealed class WorktreeActions(
             return;
         }
 
+        _openAfterAdd = false;
         _selectedStart = StartPointOf();
         Open(PromptStage.Branch, tab, string.Empty);
+    }
+
+    // A local branch without a worktree: ask for the path only, then open the new worktree in its own tab.
+    private void BeginAddForBranch(RepositoryState tab, string name)
+    {
+        if (gate.IsBusy(tab.Id))
+        {
+            Notice = BusyNotice;
+            return;
+        }
+
+        _openAfterAdd = true;
+        _branch = name;
+        _startPoint = null;
+        Open(PromptStage.Path, tab, WorktreeTexts.DefaultPath(tab.Location.RootPath, name));
     }
 
     private void Open(PromptStage stage, RepositoryState tab, string text)
@@ -265,7 +289,8 @@ public sealed class WorktreeActions(
         var path = Path.GetFullPath(text, parent);
         var request = new WorktreeAddRequest(path, _branch, _startPoint);
         var done = $"Added worktree {path} on {_branch}";
-        Start(tab, token => writer.AddAsync(tab.Location, request, token), done, "add the worktree");
+        Action? afterAdd = _openAfterAdd ? () => OpenWorktree?.Invoke(tab.Id, path) : null;
+        Start(tab, token => writer.AddAsync(tab.Location, request, token), done, "add the worktree", afterAdd);
     }
 
     private string Remove(RepositoryState tab)
@@ -454,7 +479,12 @@ public sealed class WorktreeActions(
         }
     }
 
-    private void Start(RepositoryState tab, Func<CancellationToken, Task> work, string success, string verb)
+    private void Start(
+        RepositoryState tab,
+        Func<CancellationToken, Task> work,
+        string success,
+        string verb,
+        Action? afterSuccess = null)
     {
         if (!BeginOperation(tab))
         {
@@ -462,7 +492,7 @@ public sealed class WorktreeActions(
         }
 
         var token = cancellationOf(tab.Id);
-        _ = Task.Run(() => RunAsync(tab.Id, work, success, verb, token), CancellationToken.None);
+        _ = Task.Run(() => RunAsync(tab.Id, work, success, verb, afterSuccess, token), CancellationToken.None);
     }
 
     private async Task RunAsync(
@@ -470,12 +500,17 @@ public sealed class WorktreeActions(
         Func<CancellationToken, Task> work,
         string success,
         string verb,
+        Action? afterSuccess,
         CancellationToken token)
     {
         try
         {
             await work(token).ConfigureAwait(false);
             postToUi(() => Finish(tabId, success, StatusSeverity.Info));
+            if (afterSuccess is not null)
+            {
+                postToUi(afterSuccess);
+            }
         }
         catch (OperationCanceledException)
         {

@@ -286,7 +286,7 @@ public static class ActionCatalog
         ["working-tree.unstage-all"] = "Unstage all files",
         ["worktree.add"] = "Add a worktree (branch, then path)",
         ["worktree.lock"] = "Lock the selected worktree (optional reason)",
-        ["worktree.open"] = "Open the selected worktree in its own tab",
+        ["worktree.open"] = "Open the selected worktree (or the branch's, made if needed) in its own tab",
         ["worktree.prune"] = "Prune worktrees whose directory is gone",
         ["worktree.remove"] = "Remove the selected worktree (asks first)",
         ["worktree.switch"] = "Switch this tab to the selected worktree",

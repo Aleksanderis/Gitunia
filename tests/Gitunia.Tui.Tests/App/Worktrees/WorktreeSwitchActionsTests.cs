@@ -144,11 +144,45 @@ public sealed class WorktreeSwitchActionsTests
         Assert.False(harness.Actions.TryExecute(ActionIds.WorktreeAdd));
     }
 
+    [Fact]
+    public async Task GivenBranchHeldByWorktree_WhenOpening_ThenTheWorktreeGetsItsOwnTab()
+    {
+        using var repository = TestRepositories.WithWorktree(out var path);
+        var harness = await Harness.LoadAsync(repository.WorkingTreePath, null, "wt-branch");
+
+        var notice = harness.Execute(ActionIds.WorktreeOpen);
+        await Harness.WaitForAsync(() => harness.Host.Workspace.Tabs.Length == 2);
+
+        Assert.Equal(string.Empty, notice);
+        Assert.Equal(path, harness.Tab.Location.RootPath);
+    }
+
+    [Fact]
+    public async Task GivenBranchWithoutWorktree_WhenOpening_ThenItIsLeftToTheAddFlow()
+    {
+        using var repository = TestRepositories.Linear(2).Branch("free");
+        var harness = await Harness.LoadAsync(repository.WorkingTreePath, null, "free");
+
+        Assert.False(harness.Actions.TryExecute(ActionIds.WorktreeOpen));
+    }
+
     private sealed class Harness
     {
-        private Harness(string? rowPath)
+        private Harness(string? rowPath, string? branchName)
         {
-            Row = rowPath is null
+            Row = branchName is not null
+                ? new SidebarRow(
+                    SidebarRowKind.LocalBranch,
+                    SidebarSection.Branches,
+                    branchName,
+                    string.Empty,
+                    null,
+                    false,
+                    false,
+                    0,
+                    null,
+                    null)
+                : rowPath is null
                 ? null
                 : new SidebarRow(
                     SidebarRowKind.Worktree,
@@ -193,9 +227,9 @@ public sealed class WorktreeSwitchActionsTests
 
         public RepositoryState Tab => Host.Workspace.ActiveTab!;
 
-        public static async Task<Harness> LoadAsync(string tabPath, string? rowPath)
+        public static async Task<Harness> LoadAsync(string tabPath, string? rowPath, string? branchName = null)
         {
-            var harness = new Harness(rowPath);
+            var harness = new Harness(rowPath, branchName);
             await harness.OpenTabAsync(tabPath);
             return harness;
         }
