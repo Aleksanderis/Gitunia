@@ -15,6 +15,13 @@ public class OverlayFrameTests
     private static string Text(OverlayFrame? frame) =>
         frame is null ? "<none>" : string.Join('\n', frame.Lines.Select(line => line.Text));
 
+    private static bool IsRule(string line, GraphGlyphSet glyphs)
+    {
+        var inner = line.Trim('|', '\u2502', ' ');
+
+        return inner.Length > 0 && inner.All(character => character == glyphs.Horizontal);
+    }
+
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
     private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
@@ -200,23 +207,23 @@ public class OverlayFrameTests
         Assert.Equal(
             string.Join(
                 '\n',
-                " : _                                                                    ",
-                "│ Branch                                                               │",
-                "│ Create a branch and check it out                           <space>bc │",
-                "│ Create a branch without checking out                       <space>bC │",
-                "│ Switch to a branch (check out)                             <space>bs │",
-                "│ Rename the branch                                          <space>br │",
-                "│ Delete the branch (asks first)                             <space>bd │",
-                "│ Set the branch upstream                                    <space>bu │",
-                "│ Unset the branch upstream                                  <space>bU │",
-                "│ Fast-forward the branch to its upstream (no checkout)      <space>bf │",
-                "│                                                                      │",
-                "│ Merge and rebase                                                     │",
-                "│ Reset the current branch to the selected commit (soft, m…  <space>gx │",
-                "│ 1/158 Ctrl-j/k move  Enter run  Esc close                            │",
-                "╰──────────────────────────────────────────────────────────────────────╯"),
+                " : _                                                                          ",
+                "│ Branch                                                                     │",
+                "│ Create a branch and check it out                                 <space>bc │",
+                "│ Create a branch without checking out                             <space>bC │",
+                "│ Switch to a branch (check out)                                   <space>bs │",
+                "│ Rename the branch                                                <space>br │",
+                "│ Delete the branch (asks first)                                   <space>bd │",
+                "│ Set the branch upstream                                          <space>bu │",
+                "│ Unset the branch upstream                                        <space>bU │",
+                "│ Fast-forward the branch to its upstream (no checkout)            <space>bf │",
+                "│                                                                            │",
+                "│ Merge and rebase                                                           │",
+                "│ Reset the current branch to the selection                        <space>gx │",
+                "│ 1/158 Ctrl-j/k move  Enter run  Esc close                                  │",
+                "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal(4, frame!.Column);
+        Assert.Equal(1, frame!.Column);
     }
 
     [Fact]
@@ -321,7 +328,7 @@ public class OverlayFrameTests
                 "│ Go to tab 2 (same as 2gt)                        Alt-2 │",
                 "│ Go to tab 3 (same as 3gt)                        Alt-3 │",
                 "│ Go to tab 4 (same as 4gt)                        Alt-4 │",
-                "│ 2/40 Ctrl-j/k move  Enter run  Esc close               │",
+                "│ 2/38 Ctrl-j/k move  Enter run  Esc close               │",
                 "╰────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal([false, false, true, false], [.. frame!.Lines.Skip(1).Take(4).Select(line => line.IsSelected)]);
@@ -450,7 +457,7 @@ public class OverlayFrameTests
                 "│  <space>vp            │ Switch the merge commit's parent     │",
                 "│  <space>bc            │ Create a branch and check it out     │",
                 "│  <space>bC            │ Create a branch without checking out │",
-                "│ 1-19/141  list keys scroll  Esc close                        │",
+                "│ 1-19/137  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -505,6 +512,63 @@ public class OverlayFrameTests
         Assert.Contains("+more (branch operations)", text, StringComparison.Ordinal);
         Assert.Contains("+more (tag operations)", text, StringComparison.Ordinal);
         Assert.All(text.Split('\n'), line => Assert.True(line.Length <= 60));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void GivenTheLeaderPopup_WhenRendering_ThenARuleSeparatesTheActionsFromTheMoreGroups(bool unicode)
+    {
+        var engine = new KeymapEngine(Table);
+        var state = engine.Process(KeymapState.Initial, new KeyEvent(" "), DefaultKeymap.GraphView).State;
+        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
+        var glyphs = GraphGlyphSet.For(unicode);
+
+        var frame = WhichKeyFrameBuilder.Build("<space>", rows, 80, 40, glyphs)!;
+        var body = frame.Lines.Skip(1).Take(frame.Height - 2).Select(line => line.Text).ToList();
+        var ruleIndex = body.FindIndex(line => IsRule(line, glyphs));
+
+        Assert.True(ruleIndex > 0);
+        Assert.DoesNotContain("+more", body[ruleIndex - 1], StringComparison.Ordinal);
+        Assert.Contains("+more", body[ruleIndex + 1], StringComparison.Ordinal);
+        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenEveryPaletteEntry_WhenRenderingAt120Columns_ThenItsRowIsNotCut()
+    {
+        var palette = Palette();
+
+        for (var index = 0; index < palette.Entries.Count; index++)
+        {
+            var scrolled = palette with { SelectedIndex = index };
+            var frame = PaletteFrameBuilder.Build(scrolled, 120, 30, GraphGlyphSet.Unicode)!;
+
+            Assert.Contains(palette.Entries[index].Title, Text(frame), StringComparison.Ordinal);
+            Assert.DoesNotContain(frame.Lines, line => line.Text.Contains('\u2026', StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void GivenAPopupWithOnlyActions_WhenRendering_ThenThereIsNoRule()
+    {
+        WhichKeyRow[] rows = [new("g", "Go to the top")];
+
+        var frame = WhichKeyFrameBuilder.Build("g", rows, 60, 20, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(3, frame.Height);
+    }
+
+    [Fact]
+    public void GivenARoomForOneRowOnly_WhenRenderingMixedRows_ThenNoRuleIsDrawnAndBothRowsShow()
+    {
+        WhichKeyRow[] rows = [new("a", "Alpha"), new("b", "+more")];
+
+        var frame = WhichKeyFrameBuilder.Build("<space>", rows, 60, 6, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("Alpha", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("+more", Text(frame), StringComparison.Ordinal);
+        Assert.True(frame.Row + frame.Height <= 6);
     }
 
     [Theory]

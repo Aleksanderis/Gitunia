@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 public static class ContextMenuFrameBuilder
 {
     private const string Title = "Actions";
-    private const int MaximumWidth = 72;
+    private const int MaximumWidth = 96;
     private const int ChromeRows = 2;
     private const int ScreenMargin = 1;
     private const int KeyGap = 3;

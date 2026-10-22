@@ -16,19 +16,36 @@ public static class WhichKeyFrameBuilder
     /// <summary>The popup for <paramref name="pending"/>, or null when there is nothing to show or no room.</summary>
     public static OverlayFrame? Build(string pending, IReadOnlyList<WhichKeyRow> rows, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var rowCount = Math.Min(rows.Count, screenHeight - ChromeRows - ScreenMargin - 1);
-        if (rowCount < 1 || screenWidth < OverlayBox.MinimumWidth)
+        var capacity = screenHeight - ChromeRows - ScreenMargin - 1;
+        if (capacity < 1 || screenWidth < OverlayBox.MinimumWidth)
         {
             return null;
         }
 
-        var keysWidth = rows.Take(rowCount).Max(row => TextWidth.Of(row.Key));
-        var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + rows.Take(rowCount).Max(row => TextWidth.Of(row.Description)) + 1;
+        // A rule between the plain actions and the "+more" groups; it takes a row, so it only shows when both fit.
+        var firstGroup = rows.ToList().FindIndex(IsGroup);
+        var withRule = firstGroup > 0 && firstGroup < capacity - 1;
+        var shown = rows.Take(withRule ? capacity - 1 : capacity).ToList();
+        if (shown.Count < 1)
+        {
+            return null;
+        }
+
+        var keysWidth = shown.Max(row => TextWidth.Of(row.Key));
+        var descriptionWidth = shown.Max(row => TextWidth.Of(row.Description));
+        var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + descriptionWidth + 1;
         var width = Math.Clamp(wanted, OverlayBox.MinimumWidth, Math.Min(MaximumWidth, screenWidth));
 
         var lines = new List<StyledLine> { OverlayBox.Title($"{pending}-", width, glyphs) };
-        foreach (var row in rows.Take(rowCount))
+        for (var index = 0; index < shown.Count; index++)
         {
+            if (withRule && index == firstGroup)
+            {
+                var rule = new string(glyphs.Horizontal, OverlayBox.InnerWidth(width) - 2);
+                lines.Add(OverlayBox.Text(rule, width, glyphs, SegmentRole.Faint));
+            }
+
+            var row = shown[index];
             var keys = row.Key + new string(' ', keysWidth - TextWidth.Of(row.Key));
             var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
                 .Append($" {keys}", SegmentRole.OverlayKey)
@@ -39,4 +56,6 @@ public static class WhichKeyFrameBuilder
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame(screenWidth - width, ScreenLayout.StatusRow(screenHeight) - lines.Count, lines);
     }
+
+    private static bool IsGroup(WhichKeyRow row) => row.Description.StartsWith("+more", StringComparison.Ordinal);
 }

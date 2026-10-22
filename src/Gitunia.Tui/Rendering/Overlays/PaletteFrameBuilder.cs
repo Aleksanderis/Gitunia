@@ -9,7 +9,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>Lays out the command palette: a query bar, the matching actions with their bindings, a footer.</summary>
 public static class PaletteFrameBuilder
 {
-    private const int MaximumWidth = 72;
+    private const int MaximumWidth = 100;
     private const int MaximumRows = 12;
     private const int ChromeRows = 3;
     private const int ScreenMargin = 2;
