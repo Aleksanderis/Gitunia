@@ -114,6 +114,7 @@ public static class ActionCatalog
         ["branch.create"] = "Create a branch and check it out",
         ["branch.create-only"] = "Create a branch without checking out",
         ["branch.delete"] = "Delete the branch (asks first)",
+        ["branch.fast-forward"] = "Fast-forward the branch to its upstream (no checkout)",
         ["branch.rename"] = "Rename the branch",
         ["branch.set-upstream"] = "Set the branch upstream",
         ["branch.unset-upstream"] = "Unset the branch upstream",

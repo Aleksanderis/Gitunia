@@ -208,6 +208,68 @@ public class BranchWriterTests
             () => WriterFor(repository).UnsetUpstreamAsync(location, "lonely", Token));
     }
 
+    private static TestRepository TrackingBehind(int ahead, int behind)
+    {
+        var repository = TestRepositories.WithTrackingBranch(ahead, behind);
+        repository.Git("switch", "main");
+        repository.Git("fetch", "-q");
+        return repository;
+    }
+
+    [Fact]
+    public async Task GivenBranchBehindItsUpstream_WhenFastForwarding_ThenItMovesWithoutCheckout()
+    {
+        using var repository = TrackingBehind(0, 2);
+        var location = await LocateAsync(repository);
+        var upstreamTip = repository.Git("rev-parse", "refs/remotes/origin/topic").Trim();
+
+        await WriterFor(repository).FastForwardAsync(location, "topic", "refs/remotes/origin/topic", Token);
+
+        Assert.Equal(upstreamTip, repository.Git("rev-parse", "refs/heads/topic").Trim());
+        Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
+    }
+
+    [Fact]
+    public async Task GivenDivergedBranch_WhenFastForwarding_ThenGitRefusesAndNothingMoves()
+    {
+        using var repository = TrackingBehind(1, 1);
+        var location = await LocateAsync(repository);
+        var before = repository.Git("rev-parse", "refs/heads/topic").Trim();
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).FastForwardAsync(location, "topic", "refs/remotes/origin/topic", Token));
+
+        Assert.Equal(before, repository.Git("rev-parse", "refs/heads/topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenCurrentBranch_WhenFastForwarding_ThenGitRefuses()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 1);
+        repository.Git("fetch", "-q");
+        var location = await LocateAsync(repository);
+        var before = repository.Git("rev-parse", "refs/heads/topic").Trim();
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).FastForwardAsync(location, "topic", "refs/remotes/origin/topic", Token));
+
+        Assert.Equal(before, repository.Git("rev-parse", "refs/heads/topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenBranchInAnotherWorktree_WhenFastForwarding_ThenGitRefuses()
+    {
+        using var repository = TrackingBehind(0, 1);
+        repository.AddWorktree("wt-topic", "topic");
+        var location = await LocateAsync(repository);
+        var before = repository.Git("rev-parse", "refs/heads/topic").Trim();
+
+        await Assert.ThrowsAsync<GitCommandFailedException>(
+            () => WriterFor(repository).FastForwardAsync(location, "topic", "refs/remotes/origin/topic", Token));
+
+        Assert.Equal(before, repository.Git("rev-parse", "refs/heads/topic").Trim());
+    }
+
     [Fact]
     public async Task GivenMergedBranch_WhenDeleting_ThenItIsGone()
     {

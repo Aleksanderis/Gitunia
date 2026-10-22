@@ -162,6 +162,7 @@ public class ContextMenuFrameBuilderTests
             ActionIds.BranchDelete, ActionIds.BranchCreateOnly, ActionIds.MergeBranchNoFastForward,
             ActionIds.MergeBranchSquash, ActionIds.RebaseOnto, ActionIds.ResetBranch, ActionIds.PickCherry,
             ActionIds.PickRevert, ActionIds.BranchSetUpstream, ActionIds.BranchUnsetUpstream,
+            ActionIds.BranchFastForward,
         ],
         [SidebarSection.Tags] =
         [

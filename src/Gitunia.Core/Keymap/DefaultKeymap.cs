@@ -242,6 +242,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>bd", ActionIds.BranchDelete);
         Add(bindings, NormalOnly, view, "<space>bu", ActionIds.BranchSetUpstream);
         Add(bindings, NormalOnly, view, "<space>bU", ActionIds.BranchUnsetUpstream);
+        Add(bindings, NormalOnly, view, "<space>bf", ActionIds.BranchFastForward);
     }
 
     // The tag operations act on the selected commit (graph) or the selected row (sidebar).

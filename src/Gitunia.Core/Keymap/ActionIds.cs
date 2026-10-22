@@ -148,6 +148,8 @@ public static class ActionIds
 
     public static ActionId BranchUnsetUpstream { get; } = new("branch.unset-upstream");
 
+    public static ActionId BranchFastForward { get; } = new("branch.fast-forward");
+
     public static ActionId BranchSwitch { get; } = new("branch.switch");
 
     public static ActionId TagCreate { get; } = new("tag.create");

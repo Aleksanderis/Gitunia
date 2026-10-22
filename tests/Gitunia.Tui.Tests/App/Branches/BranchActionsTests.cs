@@ -823,6 +823,121 @@ public class BranchActionsTests
         Assert.Equal(1, harness.Refreshes);
     }
 
+    private static TestRepository TrackingBehind(int ahead, int behind)
+    {
+        var repository = TestRepositories.WithTrackingBranch(ahead, behind);
+        repository.Git("switch", "main");
+        repository.Git("fetch", "-q");
+        return repository;
+    }
+
+    [Fact]
+    public async Task GivenABranchBehindItsUpstream_WhenFastForwarding_ThenItMovesAtOnceAndTheUndoIsShown()
+    {
+        using var repository = TrackingBehind(0, 2);
+        var old = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        var tip = repository.Git("rev-parse", "refs/remotes/origin/topic").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", old));
+
+        harness.Run(ActionIds.BranchFastForward);
+        await harness.FinishAsync();
+
+        Assert.Equal(tip, repository.Git("rev-parse", "refs/heads/topic").Trim());
+        Assert.Equal("main", repository.Git("branch", "--show-current").Trim());
+        Assert.Contains($"git update-ref refs/heads/topic {old}", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(1, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenAGraphCommitWithTheBehindBranch_WhenFastForwarding_ThenItMoves()
+    {
+        using var repository = TrackingBehind(0, 1);
+        var old = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        var tip = repository.Git("rev-parse", "refs/remotes/origin/topic").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, old));
+
+        harness.Run(ActionIds.BranchFastForward);
+        await harness.FinishAsync();
+
+        Assert.Equal(tip, repository.Git("rev-parse", "refs/heads/topic").Trim());
+    }
+
+    [Fact]
+    public async Task GivenADivergedBranch_WhenFastForwarding_ThenItIsRefusedWithoutRunningGit()
+    {
+        using var repository = TrackingBehind(1, 1);
+        var old = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", old));
+
+        harness.Run(ActionIds.BranchFastForward);
+
+        Assert.Equal("topic has diverged from its upstream: nothing changed", harness.Branches.Notice);
+        Assert.Equal(old, repository.Git("rev-parse", "refs/heads/topic").Trim());
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenAnUpToDateBranch_WhenFastForwarding_ThenItSaysSo()
+    {
+        using var repository = TrackingBehind(0, 0);
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchFastForward);
+
+        Assert.Equal("topic is up to date with its upstream", harness.Branches.Notice);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenTheCurrentBranch_WhenFastForwarding_ThenThePullKeyIsPointedTo()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 1);
+        repository.Git("fetch", "-q");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", repository.Head));
+
+        harness.Run(ActionIds.BranchFastForward);
+
+        Assert.Equal("topic is checked out: pull it with <space>L instead", harness.Branches.Notice);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenABranchInAnotherWorktree_WhenFastForwarding_ThenTheWorktreeKeyIsPointedTo()
+    {
+        using var repository = TrackingBehind(0, 1);
+        repository.AddWorktree("wt-topic", "topic");
+        var old = repository.Git("rev-parse", "refs/heads/topic").Trim();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "topic", old));
+
+        harness.Run(ActionIds.BranchFastForward);
+
+        Assert.Contains("is checked out in", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Contains("<space>ws", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Equal(old, repository.Git("rev-parse", "refs/heads/topic").Trim());
+        Assert.Equal(0, harness.Refreshes);
+    }
+
+    [Fact]
+    public async Task GivenABranchWithoutUpstream_WhenFastForwarding_ThenItIsRefused()
+    {
+        using var repository = TestRepositories.WithoutUpstreamBranch();
+        var lonely = repository.Head;
+        repository.Git("switch", "main");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.LocalBranch, "lonely", lonely));
+
+        harness.Run(ActionIds.BranchFastForward);
+
+        Assert.Equal("lonely has no upstream", harness.Branches.Notice);
+        Assert.Equal(0, harness.Refreshes);
+    }
+
     [Fact]
     public async Task GivenABranchWithoutUpstream_WhenUnsetting_ThenGitIsNotRun()
     {
