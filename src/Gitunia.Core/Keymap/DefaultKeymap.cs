@@ -193,6 +193,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DetailView, "/", ActionIds.DetailFilter);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
         AddBottomTabKeys(bindings, DetailView);
+        Add(bindings, NormalOnly, DetailView, "<space>vn", ActionIds.FilesTogglePathStyle);
+        Add(bindings, NormalOnly, DetailView, "<space>vp", ActionIds.DiffMergeParent);
 
         Add(bindings, NormalOnly, SidebarView, "l", ActionIds.SidebarExpand);
         Add(bindings, NormalOnly, SidebarView, "Enter", ActionIds.SidebarActivate);
@@ -438,8 +440,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "gd", ActionIds.DetailTabDetails);
         Add(bindings, NormalOnly, view, "gc", ActionIds.DetailTabChanges);
         Add(bindings, NormalOnly, view, "gf", ActionIds.DetailTabFiles);
-        Add(bindings, NormalOnly, view, "<space>vn", ActionIds.FilesTogglePathStyle);
-        Add(bindings, NormalOnly, view, "<space>vp", ActionIds.DiffMergeParent);
     }
 
     private static void AddPicker(List<KeyBinding> bindings)

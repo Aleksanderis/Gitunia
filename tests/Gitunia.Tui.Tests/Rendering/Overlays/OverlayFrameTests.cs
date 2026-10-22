@@ -453,11 +453,11 @@ public class OverlayFrameTests
                 "│  gd                   │ Show the Details tab                 │",
                 "│  gc                   │ Show the Changes tab                 │",
                 "│  gf                   │ Show the Files tab                   │",
-                "│  <space>vn            │ Toggle name-first or full file paths │",
-                "│  <space>vp            │ Switch the merge commit's parent     │",
                 "│  <space>bc            │ Create a branch and check it out     │",
                 "│  <space>bC            │ Create a branch without checking out │",
-                "│ 1-19/137  list keys scroll  Esc close                        │",
+                "│  <space>bs            │ Switch to a branch (check out)       │",
+                "│  <space>br            │ Rename the branch                    │",
+                "│ 1-19/135  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

@@ -174,12 +174,12 @@ public class WorkingTreePathStyleTests
         Assert.Equal("<space>vn", ChipKeys.Default.For(DefaultMouseMap.ListPathStyleButton, view));
     }
 
-    [Theory]
-    [InlineData(DefaultKeymap.DetailView)]
-    [InlineData(DefaultKeymap.GraphView)]
-    public void GivenTheDetailChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle(string view)
+    [Fact]
+    public void GivenTheDetailChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle()
     {
-        Assert.Equal("<space>vn", ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, view));
+        Assert.Equal(
+            "<space>vn",
+            ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, DefaultKeymap.DetailView));
     }
 
     [Fact]
