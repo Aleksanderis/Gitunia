@@ -137,6 +137,31 @@ public class SidebarFrameTests
         Assert.DoesNotContain("[", line.Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false, "    old ✗")]
+    [InlineData(true, "    old (x)")]
+    public void GivenGoneUpstreamBranch_WhenRendering_ThenTheMarkerFollowsTheName(bool isAscii, string expected)
+    {
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+        var row = Branch("old") with { IsUpstreamGone = true };
+
+        Assert.Equal(expected, SidebarRowRenderer.Render(row, 40, false, glyphs).Text.TrimEnd());
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(16)]
+    [InlineData(24)]
+    public void GivenGoneUpstreamAndLongName_WhenRenderingNarrow_ThenTheNameIsNotPushedOut(int width)
+    {
+        var row = Branch("feature/a-very-long-branch-name") with { IsUpstreamGone = true };
+
+        var line = SidebarRowRenderer.Render(row, width, false, GraphGlyphSet.Ascii);
+
+        Assert.Equal(width, TextWidth.Of(line.Text));
+        Assert.Contains("fea", line.Text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GivenSelectedSidebarRow_WhenRenderingIt_ThenTheLineIsMarkedSelected()
     {

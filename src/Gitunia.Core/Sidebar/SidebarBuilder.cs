@@ -75,7 +75,8 @@ public static class SidebarBuilder
                 false,
                 0,
                 reference.Ahead,
-                reference.Behind));
+                reference.Behind,
+                IsUpstreamGone: rowKind == SidebarRowKind.LocalBranch && reference.IsUpstreamGone));
 
     private static SidebarRow WorktreeRow(RepositoryState tab, WorktreeInfo worktree)
     {

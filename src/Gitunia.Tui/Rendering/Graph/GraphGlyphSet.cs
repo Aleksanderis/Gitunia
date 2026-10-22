@@ -10,7 +10,16 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Ellipsis">Shown where text was cut.</param>
 /// <param name="CurrentBranch">Before the label of the branch HEAD is on.</param>
 /// <param name="Remote">After a branch label that also stands for its remote-tracking branch.</param>
-public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, string Lines, string Ellipsis, string CurrentBranch, string Remote)
+/// <param name="UpstreamGone">After the label of a local branch whose upstream no longer exists.</param>
+public sealed record GraphGlyphSet(
+    char Node,
+    char MergeNode,
+    char LineNode,
+    string Lines,
+    string Ellipsis,
+    string CurrentBranch,
+    string Remote,
+    string UpstreamGone)
 {
     private const char SquareTopLeft = '┌';
     private const char SquareTopRight = '┐';
@@ -18,9 +27,10 @@ public sealed record GraphGlyphSet(char Node, char MergeNode, char LineNode, str
     private const char SquareBottomRight = '┘';
 
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", " ");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", " ", " ✗");
 
-    public static GraphGlyphSet Ascii { get; } = new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)");
+    public static GraphGlyphSet Ascii { get; } =
+        new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)", " (x)");
 
     /// <summary>
     /// The corners of pane frames and overlays (the graph's own curves are not affected). Settable because the

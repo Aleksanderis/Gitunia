@@ -105,6 +105,11 @@ public static class SidebarRowRenderer
             extras.Add(new SidebarExtra(tracking, SegmentRole.Punctuation));
         }
 
+        if (row.IsUpstreamGone)
+        {
+            extras.Add(new SidebarExtra(sidebarGlyphs.UpstreamGone, SegmentRole.Faint));
+        }
+
         if (row.Changes is { IsDirty: true } changes)
         {
             extras.Add(new SidebarExtra(ChangesText(changes), SegmentRole.FileChanged));

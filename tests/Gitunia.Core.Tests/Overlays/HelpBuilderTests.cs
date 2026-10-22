@@ -15,7 +15,19 @@ public class HelpBuilderTests
     {
         var sections = HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
-        Assert.Equal(["Graph", "Lists", "Global"], sections.Select(section => section.Title));
+        Assert.Equal(["Graph", "Lists", "Global", "Markers"], sections.Select(section => section.Title));
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.SidebarView)]
+    public void GivenGraphOrSidebar_WhenBuilding_ThenTheMarkersSectionExplainsTheUpstreamGoneMark(string view)
+    {
+        var markers = Assert.Single(HelpBuilder.Build(Table, view), section => section.Title == "Markers");
+
+        Assert.Contains(
+            markers.Rows,
+            row => row.Keys == "✗ / (x)" && row.Description.StartsWith("Upstream gone", StringComparison.Ordinal));
     }
 
     [Fact]

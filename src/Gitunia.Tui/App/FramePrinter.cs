@@ -97,8 +97,22 @@ public sealed class FramePrinter
             graph.Count,
             false,
             string.Empty);
-        var sidebar = await ReadSidebarAsync(location, head, cancellationToken);
-        var lines = ScreenComposer.Compose(model, graph, ScreenLayout.ReservedLeadingRows, 0, width, height, glyphs, detail, sidebar, null, diff, diff is null ? null : arrangement);
+        var repositoryState = await ReadTabAsync(location, head, cancellationToken);
+        var sidebar = new SidebarModel(SidebarBuilder.Build(repositoryState), 0, 0, string.Empty, false, false);
+        var lines = ScreenComposer.Compose(
+            model,
+            graph,
+            ScreenLayout.ReservedLeadingRows,
+            0,
+            width,
+            height,
+            glyphs,
+            detail,
+            sidebar,
+            null,
+            diff,
+            diff is null ? null : arrangement,
+            UpstreamGoneBranches.Of(repositoryState.Refs));
         if (colors is not null)
         {
             await output.WriteAsync(AnsiFrameWriter.Render(lines, colors).AsMemory(), cancellationToken);
@@ -151,7 +165,10 @@ public sealed class FramePrinter
         return new DiffPaneModel(builder.Build(warnings), 0, 0, false);
     }
 
-    private async Task<SidebarModel> ReadSidebarAsync(RepositoryLocation location, HeadState head, CancellationToken cancellationToken)
+    private async Task<RepositoryState> ReadTabAsync(
+        RepositoryLocation location,
+        HeadState head,
+        CancellationToken cancellationToken)
     {
         var refs = await _services.Refs.ReadRefsAsync(location, cancellationToken);
         var worktrees = await _services.Refs.ReadWorktreesAsync(location, cancellationToken);
@@ -168,6 +185,6 @@ public sealed class FramePrinter
             tab = RepositoryReducer.Reduce(tab, command);
         }
 
-        return new SidebarModel(SidebarBuilder.Build(tab), 0, 0, string.Empty, false, false);
+        return tab;
     }
 }

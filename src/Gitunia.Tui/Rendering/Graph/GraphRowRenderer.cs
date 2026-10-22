@@ -34,7 +34,7 @@ public static class GraphRowRenderer
 
         // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
         var message = new LineBuilder(layout.MessageWidth, ellipsis);
-        AppendDecorations(message, entry.Decorations, options.Glyphs);
+        AppendDecorations(message, entry.Decorations, options);
         if (jump is { } target)
         {
             JumpOverlay.Append(message, entry.Subject, SegmentRole.Plain, target);
@@ -74,7 +74,7 @@ public static class GraphRowRenderer
     public static int SubjectColumns(GraphEntry entry, GraphRowOptions options)
     {
         var message = new LineBuilder(MessageLayoutOf(entry, options).MessageWidth, options.Glyphs.Ellipsis);
-        AppendDecorations(message, entry.Decorations, options.Glyphs);
+        AppendDecorations(message, entry.Decorations, options);
 
         return message.Remaining;
     }
@@ -167,9 +167,13 @@ public static class GraphRowRenderer
         }
     }
 
-    private static void AppendDecorations(LineBuilder builder, IReadOnlyList<CommitDecoration> decorations, GraphGlyphSet glyphs)
+    private static void AppendDecorations(
+        LineBuilder builder,
+        IReadOnlyList<CommitDecoration> decorations,
+        GraphRowOptions options)
     {
-        var labels = RefLabelBuilder.Build(decorations);
+        var glyphs = options.Glyphs;
+        var labels = RefLabelBuilder.Build(decorations, options.UpstreamGoneBranches);
         if (labels.Count == 0)
         {
             return;
@@ -209,6 +213,11 @@ public static class GraphRowRenderer
             if (label.HasRemote)
             {
                 builder.Append(glyphs.Remote, SegmentRole.RemoteBranch);
+            }
+
+            if (label.IsUpstreamGone)
+            {
+                builder.Append(glyphs.UpstreamGone, SegmentRole.Faint);
             }
         }
 

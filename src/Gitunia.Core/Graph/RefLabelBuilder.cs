@@ -11,9 +11,12 @@ public static class RefLabelBuilder
     /// <summary>
     /// Hides the symbolic remote HEAD (<c>origin/HEAD</c>) and folds a remote-tracking branch into the local branch of the same
     /// name on the same commit. A remote branch without such a local branch stays separate, as does one on another commit
-    /// (it is not in the list of this commit at all). Order of the input is kept.
+    /// (it is not in the list of this commit at all). Order of the input is kept. A local branch named in
+    /// <paramref name="upstreamGoneBranches"/> is flagged.
     /// </summary>
-    public static IReadOnlyList<RefLabel> Build(IReadOnlyList<CommitDecoration> decorations)
+    public static IReadOnlyList<RefLabel> Build(
+        IReadOnlyList<CommitDecoration> decorations,
+        IReadOnlySet<string>? upstreamGoneBranches = null)
     {
         if (decorations.Count == 0)
         {
@@ -32,7 +35,9 @@ public static class RefLabelBuilder
             }
 
             var hasRemote = decoration.Kind == RefKind.LocalBranch && HasRemoteBranch(decorations, decoration);
-            labels.Add(new RefLabel(decoration.Name, decoration.Kind, decoration.IsCurrent, hasRemote));
+            var isGone = decoration.Kind == RefKind.LocalBranch
+                && upstreamGoneBranches?.Contains(decoration.Name) == true;
+            labels.Add(new RefLabel(decoration.Name, decoration.Kind, decoration.IsCurrent, hasRemote, isGone));
         }
 
         return labels;

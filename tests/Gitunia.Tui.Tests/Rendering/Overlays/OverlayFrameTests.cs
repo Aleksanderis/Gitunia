@@ -449,7 +449,7 @@ public class OverlayFrameTests
                 "│  <space>vp            │ Switch the merge commit's parent     │",
                 "│  <space>bc            │ Create a branch and check it out     │",
                 "│  <space>bC            │ Create a branch without checking out │",
-                "│ 1-19/135  list keys scroll  Esc close                        │",
+                "│ 1-19/139  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -462,7 +462,7 @@ public class OverlayFrameTests
 
         var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
-        Assert.Contains("Cancel", Text(frame), StringComparison.Ordinal);
+        Assert.Contains("pruned", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
     }
 

@@ -7,7 +7,13 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="LaneColumns">Lanes shown on the left, the same for every row so columns stay put while scrolling.</param>
 /// <param name="Glyphs">The characters to draw with.</param>
 /// <param name="Highlight">The active graph search, whose matches are highlighted; null when none.</param>
-public sealed record GraphRowOptions(int Width, int LaneColumns, GraphGlyphSet Glyphs, SearchQuery? Highlight = null)
+/// <param name="UpstreamGoneBranches">Local branches whose upstream is gone (marked in labels); null for none.</param>
+public sealed record GraphRowOptions(
+    int Width,
+    int LaneColumns,
+    GraphGlyphSet Glyphs,
+    SearchQuery? Highlight = null,
+    IReadOnlySet<string>? UpstreamGoneBranches = null)
 {
     /// <summary>Where the columns of the row sit, computed once per options instead of once per row; build a new instance instead of using <c>with</c> on Width or LaneColumns.</summary>
     public GraphColumns Columns { get; } = GraphColumnLayout.Compute(Width, LaneColumns);

@@ -38,6 +38,9 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     /// <summary>The active graph search whose matches are highlighted, null when none.</summary>
     public SearchQuery? Highlight { get; set; }
 
+    /// <summary>Local branches whose upstream is gone; their graph labels get a marker. Null for none.</summary>
+    public IReadOnlySet<string>? UpstreamGoneBranches { get; set; }
+
     /// <summary>The text of an open quick jump, whose targets in view get labels; null when none is open.</summary>
     public string? JumpText
     {
@@ -131,9 +134,13 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     private GraphRowOptions OptionsFor(int width)
     {
         var laneColumns = GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, width);
-        if (_cachedOptions is null || _cachedOptions.Width != width || _cachedOptions.LaneColumns != laneColumns || _cachedOptions.Highlight != Highlight)
+        if (_cachedOptions is null
+            || _cachedOptions.Width != width
+            || _cachedOptions.LaneColumns != laneColumns
+            || _cachedOptions.Highlight != Highlight
+            || !ReferenceEquals(_cachedOptions.UpstreamGoneBranches, UpstreamGoneBranches))
         {
-            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight);
+            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight, UpstreamGoneBranches);
         }
 
         return _cachedOptions;

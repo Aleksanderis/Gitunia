@@ -27,6 +27,7 @@ public static class ScreenComposer
     /// <param name="detail">The commit detail pane below the graph, or null to leave it out (it is also left out on short screens).</param>
     /// <param name="diff">The diff pane, or null when none is open (then <paramref name="arrangement"/> must not open or zoom the diff).</param>
     /// <param name="arrangement">Whether the diff is open and which pane is zoomed, null for the normal layout.</param>
+    /// <param name="upstreamGoneBranches">Local branches whose upstream is gone (marked); null if none.</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -39,7 +40,8 @@ public static class ScreenComposer
         SidebarModel? sidebar = null,
         SearchQuery? highlight = null,
         DiffPaneModel? diff = null,
-        PaneArrangement? arrangement = null)
+        PaneArrangement? arrangement = null,
+        IReadOnlySet<string>? upstreamGoneBranches = null)
     {
         var lines = new List<StyledLine>(height);
         if (height > ScreenLayout.TabRow)
@@ -76,7 +78,8 @@ public static class ScreenComposer
                 diff,
                 rects,
                 padding,
-                showsCutMarker);
+                showsCutMarker,
+                upstreamGoneBranches);
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
@@ -212,7 +215,8 @@ public static class ScreenComposer
         DiffPaneModel? diff,
         PaneRects rects,
         int paddingColumns,
-        bool showsCutMarker)
+        bool showsCutMarker,
+        IReadOnlySet<string>? upstreamGoneBranches)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
@@ -220,7 +224,12 @@ public static class ScreenComposer
         {
             var graphHeight = rects.Graph.Height;
             var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns);
-            var options = new GraphRowOptions(textWidth, GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth), glyphs, highlight);
+            var options = new GraphRowOptions(
+                textWidth,
+                GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth),
+                glyphs,
+                highlight,
+                upstreamGoneBranches);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
             {

@@ -18,6 +18,7 @@ namespace Gitunia.Core.Sidebar;
 /// <param name="Behind">Commits behind the upstream, null when unknown or without upstream.</param>
 /// <param name="Path">For a worktree, its absolute path; null for every other row.</param>
 /// <param name="Changes">For a worktree, the status read there (changes, ahead, behind); null until read.</param>
+/// <param name="IsUpstreamGone">For a local branch, its upstream no longer exists (a candidate for pruning).</param>
 public sealed record SidebarRow(
     SidebarRowKind Kind,
     SidebarSection Section,
@@ -30,7 +31,8 @@ public sealed record SidebarRow(
     int? Ahead,
     int? Behind,
     string? Path = null,
-    WorktreeStatus? Changes = null)
+    WorktreeStatus? Changes = null,
+    bool IsUpstreamGone = false)
 {
     /// <summary>The row is a section header.</summary>
     public bool IsSection => Kind == SidebarRowKind.Section;
