@@ -163,6 +163,23 @@ public sealed class DiffListActions
         return true;
     }
 
+    /// <summary>Moves the diff's cursor for a scroll key pressed in the file list beside it; false for any other action.</summary>
+    public bool TryScroll(IDiffViewState diff, ActionId action, int? count)
+    {
+        ActionId? motion = action == ActionIds.DiffScrollDown ? ActionIds.ListDown
+            : action == ActionIds.DiffScrollUp ? ActionIds.ListUp
+            : action == ActionIds.DiffScrollHalfPageDown ? ActionIds.ListHalfPageDown
+            : action == ActionIds.DiffScrollHalfPageUp ? ActionIds.ListHalfPageUp
+            : null;
+        if (motion is null || !ListMotion.TryMove(motion.Value, count, _diffList.SelectedItem ?? 0, diff.Source.Count, _diffList.Viewport.Height, out var target))
+        {
+            return false;
+        }
+
+        SelectLine(target);
+        return true;
+    }
+
     /// <summary>Runs the keys of the search box (accept or cancel), false for any other key.</summary>
     public bool ExecuteInSearchBox(IDiffViewState diff, ActionId action)
     {

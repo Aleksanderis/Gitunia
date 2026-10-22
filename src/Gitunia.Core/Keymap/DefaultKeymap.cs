@@ -200,6 +200,7 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, DetailView);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vn", ActionIds.FilesTogglePathStyle);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vp", ActionIds.DiffMergeParent);
+        AddDiffScrollKeys(bindings, DetailChangesView);
 
         Add(bindings, NormalOnly, SidebarView, "l", ActionIds.SidebarExpand);
         Add(bindings, NormalOnly, SidebarView, "Enter", ActionIds.SidebarActivate);
@@ -365,6 +366,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
             Add(bindings, NormalOnly, view, "<space>vn", ActionIds.FilesTogglePathStyle);
+            AddDiffScrollKeys(bindings, view);
         }
 
         // Stage, unstage and discard also act on a Visual range of files.
@@ -408,6 +410,15 @@ public static class DefaultKeymap
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
+    }
+
+    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list, Alt for the half pages).
+    private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);
+        Add(bindings, NormalOnly, view, "K", ActionIds.DiffScrollUp);
+        Add(bindings, NormalOnly, view, "Alt-d", ActionIds.DiffScrollHalfPageDown);
+        Add(bindings, NormalOnly, view, "Alt-u", ActionIds.DiffScrollHalfPageUp);
     }
 
     // The message box: Normal mode is its own view of the keymap, Insert mode types into the editor (its editing keys are not in

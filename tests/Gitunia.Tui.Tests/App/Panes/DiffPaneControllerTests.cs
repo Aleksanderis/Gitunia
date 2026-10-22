@@ -73,6 +73,22 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenTheFileListFocused_WhenScrollingTheDiff_ThenTheDiffCursorMovesAndFocusStays()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.SelectFirstFile();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        var before = harness.DiffList.SelectedItem ?? 0;
+
+        var handled = harness.Controller.TryExecute(ActionIds.DiffScrollDown, null);
+
+        Assert.True(handled);
+        Assert.Equal(before + 1, harness.DiffList.SelectedItem);
+        Assert.Equal(PaneKind.Detail, harness.Host.Workspace.ActiveTab!.View.FocusedPane);
+    }
+
+    [Fact]
     public async Task GivenAnOpenDiff_WhenJumpingBetweenHunks_ThenHunksAreVisitedWithinTheFile()
     {
         using var harness = await DiffHarness.LoadAsync();

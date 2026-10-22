@@ -131,6 +131,11 @@ public sealed class DiffPaneController : IPromptHandler
             return true;
         }
 
+        if (focused == PaneKind.Detail && ShowsWithChanges() && _actions.TryScroll(diff, action, count))
+        {
+            return true;
+        }
+
         if (action == ActionIds.DetailOpenDiff && focused == PaneKind.Detail)
         {
             OpenSelectedFile(tab, diff);

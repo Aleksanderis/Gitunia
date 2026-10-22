@@ -100,6 +100,14 @@ public sealed class WorkingDiffController : IPromptHandler
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
+        if (_activeSession()?.WorkingDiff is { } shown
+            && _host.Workspace.ActiveTab is { View.Mode: TabViewMode.WorkingTree } listTab
+            && WorkingPanes.IsList(listTab.View.FocusedPane)
+            && _actions.TryScroll(shown, action, count))
+        {
+            return true;
+        }
+
         if (_activeSession()?.WorkingDiff is not { } diff
             || _host.Workspace.ActiveTab is not { View.Mode: TabViewMode.WorkingTree } tab
             || (!WorkingPanes.IsDiff(tab.View.FocusedPane) && diff.Search.Phase != DiffSearchPhase.Editing))

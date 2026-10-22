@@ -54,6 +54,14 @@ public static class ActionIds
 
     public static ActionId DiffPreviousHunk { get; } = new("diff.previous-hunk");
 
+    public static ActionId DiffScrollDown { get; } = new("diff.scroll-down");
+
+    public static ActionId DiffScrollHalfPageDown { get; } = new("diff.scroll-half-page-down");
+
+    public static ActionId DiffScrollHalfPageUp { get; } = new("diff.scroll-half-page-up");
+
+    public static ActionId DiffScrollUp { get; } = new("diff.scroll-up");
+
     public static ActionId DiffSearchNext { get; } = new("diff.search-next");
 
     public static ActionId DiffSearchOpen { get; } = new("diff.search-open");
