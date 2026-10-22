@@ -530,8 +530,8 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Detail | `<space>r` | Retry loading the commit details after a failure |
 | Detail | `]` `[` | Next / previous tab of the detail pane (Details, Changes, Files; wraps) |
 | Detail | `gd` `gc` `gf` | Show the Details / Changes / Files tab |
-| Detail | `<space>vn` | Toggle the file path style: name first with the directory dimmed, or the full path (title chip `path`) |
-| Detail | `<space>vp` | Show a merge commit against its next parent (Changes tab and diff; wraps to the first; per selected commit) |
+| DetailChanges | `<space>vn` | Toggle the file path style: name first with the directory dimmed, or the full path (title chip `path`) |
+| DetailChanges | `<space>vp` | Show a merge commit against its next parent (Changes tab and diff; wraps to the first; per selected commit) |
 | Detail | `h` | Back to graph (Files tab: close the open directory, else move to the parent row; back to graph at the top) |
 | Detail | `Esc` | Back to graph (Files tab: first clears an active filter) |
 | WorkingUnstaged | `<space>j` | Quick jump: type text, labels appear on the files in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |

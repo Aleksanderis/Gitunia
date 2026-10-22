@@ -91,7 +91,7 @@ public static class DetailPaneRenderer
         // One column of line follows the chip, then the corner of the box.
         return PathStyleChip.Layout(
             DefaultMouseMap.DetailPathStyleButton,
-            DefaultKeymap.DetailView,
+            DefaultKeymap.DetailChangesView,
             width - probe.Remaining,
             width - 2,
             keys);

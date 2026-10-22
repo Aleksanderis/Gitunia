@@ -582,6 +582,7 @@ public sealed class TuiApplication(
     private static bool IsRangePane(string viewName) =>
         viewName is DefaultKeymap.GraphView
             or DefaultKeymap.DetailView
+            or DefaultKeymap.DetailChangesView
             or DefaultKeymap.DiffView
             or DefaultKeymap.WorkingUnstagedView
             or DefaultKeymap.WorkingStagedView
@@ -1136,12 +1137,17 @@ public sealed class TuiApplication(
                     ? PaneHints.ForReflog()
                     : _commits.IsEditing
                     ? PaneHints.ForMessageEditing()
+                    : DetailChangesFocused()
+                    ? PaneHints.ForDetailChanges()
                     : PaneHints.For(
                         _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
                         _diffPane.IsShowingContent),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };
+
+    private bool DetailChangesFocused() =>
+        _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes };
 
     private string RemoteProgressNow() =>
         FirstNotEmpty(

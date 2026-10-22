@@ -44,8 +44,14 @@ public static class PaneHints
         new("l", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("h", "back", [ActionIds.DetailCollapse]),
-        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
         new("<space>r", "retry", [ActionIds.DetailRetry]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> DetailChanges =
+    [
+        .. Detail,
+        new("<space>vn", "path", [ActionIds.FilesTogglePathStyle]),
+        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
     ];
 
     private static readonly ImmutableArray<KeyHint> Diff =
@@ -242,6 +248,9 @@ public static class PaneHints
     /// <summary>The hints of the focused <paramref name="pane"/>; file content has its own.</summary>
     public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent) =>
         pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+
+    /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
+    public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
 
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {

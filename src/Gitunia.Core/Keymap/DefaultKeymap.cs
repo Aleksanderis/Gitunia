@@ -11,6 +11,10 @@ public static class DefaultKeymap
     public const string ListsView = "Lists";
     public const string GraphView = "Graph";
     public const string DetailView = "Detail";
+
+    /// <summary>The Detail pane while its Changes tab is selected: adds the keys that only act on a changed file list.</summary>
+    public const string DetailChangesView = "DetailChanges";
+
     public const string SidebarView = "Sidebar";
     public const string DiffView = "Diff";
     public const string WorkingUnstagedView = "WorkingUnstaged";
@@ -37,6 +41,7 @@ public static class DefaultKeymap
     {
         [GraphView] = ListsView,
         [DetailView] = ListsView,
+        [DetailChangesView] = DetailView,
         [SidebarView] = ListsView,
         [DiffView] = ListsView,
         [WorkingUnstagedView] = ListsView,
@@ -193,8 +198,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DetailView, "/", ActionIds.DetailFilter);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
         AddBottomTabKeys(bindings, DetailView);
-        Add(bindings, NormalOnly, DetailView, "<space>vn", ActionIds.FilesTogglePathStyle);
-        Add(bindings, NormalOnly, DetailView, "<space>vp", ActionIds.DiffMergeParent);
+        Add(bindings, NormalOnly, DetailChangesView, "<space>vn", ActionIds.FilesTogglePathStyle);
+        Add(bindings, NormalOnly, DetailChangesView, "<space>vp", ActionIds.DiffMergeParent);
 
         Add(bindings, NormalOnly, SidebarView, "l", ActionIds.SidebarExpand);
         Add(bindings, NormalOnly, SidebarView, "Enter", ActionIds.SidebarActivate);

@@ -228,6 +228,25 @@ public class KeymapEngineTests
     [Theory]
     [InlineData(DefaultKeymap.GraphView)]
     [InlineData(DefaultKeymap.DetailView)]
+    public void GivenAViewWithoutAChangedFileList_WhenPressingThePathStyleKeys_ThenNothingIsBound(string view)
+    {
+        Assert.NotEqual(ActionIds.FilesTogglePathStyle, CreateFeeder(view).Feed("<space>vn").Action);
+        Assert.NotEqual(ActionIds.DiffMergeParent, CreateFeeder(view).Feed("<space>vp").Action);
+    }
+
+    [Fact]
+    public void GivenTheDetailChangesView_WhenPressingThePathStyleKeys_ThenTheyActAndDetailKeysStillWork()
+    {
+        var feeder = CreateFeeder(DefaultKeymap.DetailChangesView);
+
+        Assert.Equal(ActionIds.FilesTogglePathStyle, feeder.Feed("<space>vn").Action);
+        Assert.Equal(ActionIds.DiffMergeParent, feeder.Feed("<space>vp").Action);
+        Assert.Equal(ActionIds.DetailCollapse, CreateFeeder(DefaultKeymap.DetailChangesView).Feed("h").Action);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.DetailView)]
     [InlineData(DefaultKeymap.SidebarView)]
     [InlineData(DefaultKeymap.DiffView)]
     public void GivenAnyPane_WhenQIsPressed_ThenItQuitsInsteadOfGoingBack(string view)

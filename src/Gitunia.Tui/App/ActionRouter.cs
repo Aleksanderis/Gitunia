@@ -134,8 +134,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         PaneKind.WorkingUnstagedDiff => DefaultKeymap.WorkingUnstagedDiffView,
         PaneKind.WorkingStagedDiff => DefaultKeymap.WorkingStagedDiffView,
         PaneKind.WorkingMessage => DefaultKeymap.WorkingMessageView,
-        _ => FocusedPane == PaneKind.Detail ? DefaultKeymap.DetailView : DefaultKeymap.GraphView,
+        _ => FocusedPane == PaneKind.Detail ? DetailViewName() : DefaultKeymap.GraphView,
     };
+
+    private string DetailViewName() => host.Workspace.ActiveTab?.View.BottomTab == BottomTab.Changes
+        ? DefaultKeymap.DetailChangesView
+        : DefaultKeymap.DetailView;
 
     public void Execute(ActionId action, int? count)
     {

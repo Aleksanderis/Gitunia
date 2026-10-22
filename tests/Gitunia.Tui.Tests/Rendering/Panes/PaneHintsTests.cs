@@ -131,6 +131,15 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenTheDetailChangesHints_WhenCheckingThem_ThenTheViewOptionsAreOnlyThereAndTheirKeysAreBound()
+    {
+        Assert.DoesNotContain(PaneHints.For(PaneKind.Detail), hint => hint.Keys is "<space>vn" or "<space>vp");
+        Assert.Contains(PaneHints.ForDetailChanges(), hint => hint.Keys == "<space>vn");
+        Assert.Contains(PaneHints.ForDetailChanges(), hint => hint.Keys == "<space>vp");
+        AssertKeysTriggerActions(PaneHints.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
+    }
+
+    [Fact]
     public void GivenTheMessageEditingHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheMessageViewInInsertMode()
     {
         AssertKeysTriggerActions(PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);

@@ -179,7 +179,7 @@ public class WorkingTreePathStyleTests
     {
         Assert.Equal(
             "<space>vn",
-            ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, DefaultKeymap.DetailView));
+            ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, DefaultKeymap.DetailChangesView));
     }
 
     [Fact]
