@@ -79,4 +79,15 @@ public class MainlineFrameBuilderTests
         Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 10, 24, GraphGlyphSet.Unicode, 2));
         Assert.Null(MainlineFrameBuilder.Build(Title, Parents, 80, 6, GraphGlyphSet.Unicode, 2));
     }
+
+    [Fact]
+    public void GivenALongParentAtWidth120_WhenBuilding_ThenItIsShownInFullAndTheFrameGrows()
+    {
+        string[] parents = ["aaaaaaa " + new string('x', 70), "bbbbbbb topic two"];
+
+        var frame = MainlineFrameBuilder.Build(Title, parents, 120, 40, GraphGlyphSet.Unicode, 2)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains(parents[0], StringComparison.Ordinal));
+        Assert.True(frame.Width > 72 && frame.Width <= 96);
+    }
 }

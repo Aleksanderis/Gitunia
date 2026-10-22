@@ -12,7 +12,8 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class PromptPopupFrameBuilder
 {
-    private const int MaximumWidth = 64;
+    private const int MaximumWidth = 96;
+    private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
     private const string Marker = "> ";
     private const string Cursor = "_";
@@ -20,7 +21,13 @@ public static class PromptPopupFrameBuilder
     /// <summary>The popup for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(PromptPopup prompt, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var widest = prompt.Lines
+            .Concat(prompt.Details)
+            .Append(prompt.Hint)
+            .Select(TextWidth.Of)
+            .DefaultIfEmpty(0)
+            .Max();
+        var width = OverlayBox.FitWidth(widest, MinimumPopupWidth, MaximumWidth, screenWidth, ScreenMargin);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;

@@ -13,27 +13,27 @@ public class SettingsFrameBuilderTests
     private const string Home = "/home/user";
 
     [Fact]
-    public void GivenTheDefaultSettings_WhenRenderingAt100x14_ThenTheCategoriesAndTheFirstSettingsShow()
+    public void GivenTheDefaultSettings_WhenRenderingAt80x14_ThenTheCategoriesAndTheFirstSettingsShow()
     {
-        var frame = SettingsFrameBuilder.Build(Open(), 100, 14, GraphGlyphSet.Unicode)!;
+        var frame = SettingsFrameBuilder.Build(Open(), 80, 14, GraphGlyphSet.Unicode)!;
 
         Assert.Equal(
             string.Join(
                 '\n',
-                " Settings".PadRight(76),
-                "│ / filter                                                                 │",
-                "│  Appearance    │  Theme                                         [auto ▾] │",
-                "│  Keys          │  Frame style                                [rounded ▾] │",
-                "│  Repositories  │                                                         │",
-                "│  Tabs          │                                                         │",
-                "│  Config file   │                                                         │",
-                "│ ──────────────────────────────────────────────────────────────────────── │",
-                "│ Enter or l opens the category; j and k move between categories.          │",
-                "│                                                                          │",
-                "│ j/k move  l/Enter open  / filter  Esc close                              │",
-                "╰──────────────────────────────────────────────────────────────────────────╯"),
+                " Settings".PadRight(78),
+                "│ / filter                                                                   │",
+                "│  Appearance    │  Theme                                           [auto ▾] │",
+                "│  Keys          │  Frame style                                  [rounded ▾] │",
+                "│  Repositories  │                                                           │",
+                "│  Tabs          │                                                           │",
+                "│  Config file   │                                                           │",
+                "│ ────────────────────────────────────────────────────────────────────────── │",
+                "│ Enter or l opens the category; j and k move between categories.            │",
+                "│                                                                            │",
+                "│ j/k move  l/Enter open  / filter  Esc close                                │",
+                "╰────────────────────────────────────────────────────────────────────────────╯"),
             string.Join('\n', frame.Lines.Select(line => line.Text)));
-        Assert.Equal(12, frame.Column);
+        Assert.Equal(1, frame.Column);
     }
 
     [Fact]
@@ -398,4 +398,13 @@ public class SettingsFrameBuilderTests
 
     private static SettingsState Reduce(SettingsState state, SettingsCommandKind command) =>
         SettingsReducer.Reduce(state, command, new SettingsEnvironment(Home, _ => true)).State;
+
+    [Fact]
+    public void GivenAScreenOf120Columns_WhenRendering_ThenTheFrameUsesTheWiderLimit()
+    {
+        var frame = SettingsFrameBuilder.Build(Open(), 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(100, frame.Width);
+        Assert.Equal(10, frame.Column);
+    }
 }

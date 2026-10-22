@@ -23,7 +23,7 @@ public sealed record SettingsLayout(int Width, int BodyRows, int CategoryWidth, 
     /// <summary>Rows around the lists: title, filter line, rule, two help lines, hint line and bottom edge.</summary>
     public const int ChromeRows = 7;
 
-    private const int MaximumWidth = 76;
+    private const int MaximumWidth = 100;
     private const int MaximumBodyRows = 16;
     private const int CategoriesInnerWidth = 16;
     private const int ScreenMargin = 2;

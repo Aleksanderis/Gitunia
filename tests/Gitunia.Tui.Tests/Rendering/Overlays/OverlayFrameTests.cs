@@ -33,11 +33,11 @@ public class OverlayFrameTests
         "Discard changes");
 
     [Fact]
-    public void GivenConfirmDialog_WhenRenderingAt80x24_ThenItIsCentredAndNamesWhatIsLost()
+    public void GivenConfirmDialog_WhenRenderingAt66x24_ThenItIsCentredAndNamesWhatIsLost()
     {
         var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
 
-        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 80, 24, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 66, 24, GraphGlyphSet.Unicode);
 
         Assert.Equal(
             string.Join(
@@ -54,7 +54,7 @@ public class OverlayFrameTests
                 "│ n  Cancel (Esc does the same)                                │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
-        Assert.Equal(8, frame!.Column);
+        Assert.Equal(1, frame!.Column);
         Assert.Equal(6, frame.Row);
     }
 
@@ -430,9 +430,9 @@ public class OverlayFrameTests
     }
 
     [Fact]
-    public void GivenHelpForTheGraph_WhenRenderingAt80x24_ThenItListsTheViewsKeysFromTheKeymap()
+    public void GivenHelpForTheGraph_WhenRenderingAt66x24_ThenItListsTheViewsKeysFromTheKeymap()
     {
-        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 80, 24, GraphGlyphSet.Unicode);
+        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 66, 24, GraphGlyphSet.Unicode);
 
         Assert.Equal(
             string.Join(
@@ -616,5 +616,50 @@ public class OverlayFrameTests
     public void GivenNoOverlayAndNoPopup_WhenCreatingAFrame_ThenThereIsNone()
     {
         Assert.Null(OverlayFrameFactory.Create(OverlayState.None, [], string.Empty, [], 80, 24, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenAWideScreen_WhenRenderingHelp_ThenItIsWiderThanTheOldLimit()
+    {
+        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(96, frame.Width);
+        Assert.All(frame.Lines, line => Assert.Equal(96, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenAWideScreen_WhenRenderingConfirm_ThenALongLineIsNotWrapped()
+    {
+        var state = OverlayState.OpenConfirm(DiscardPrompt(), KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains(DiscardPrompt().Lines[0], StringComparison.Ordinal));
+        Assert.Contains(frame.Lines, line => line.Text.Contains(DiscardPrompt().Consequence, StringComparison.Ordinal));
+        Assert.True(frame.Width > 64 && frame.Width <= 96);
+    }
+
+    [Fact]
+    public void GivenAWideScreen_WhenRenderingAShortConfirm_ThenItKeepsTheCompactWidth()
+    {
+        var prompt = new ConfirmPrompt("Delete", ["Delete branch x?"], "Cannot be undone.", "Delete");
+        var state = OverlayState.OpenConfirm(prompt, KeyMode.Normal);
+
+        var frame = OverlayFrameFactory.Create(state, [], string.Empty, [], 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(64, frame.Width);
+    }
+
+    [Fact]
+    public void GivenAWideScreen_WhenRenderingWhichKey_ThenALongDescriptionIsNotCut()
+    {
+        var description = "Toggle the name-first or the full file paths in every changed files list";
+
+        var rows = new[] { new WhichKeyRow("n", description) };
+
+        var frame = WhichKeyFrameBuilder.Build("<space>v", rows, 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains(description, StringComparison.Ordinal));
+        Assert.True(frame.Width > 56);
     }
 }
