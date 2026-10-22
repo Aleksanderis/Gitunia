@@ -1,6 +1,9 @@
+using System.Collections.Immutable;
+using Gitunia.Core.Graph;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views.Lists;
 using Terminal.Gui.Views;
@@ -13,6 +16,8 @@ namespace Gitunia.Tui.App.Tabs;
 /// </summary>
 public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, ListView graph, GraphListSource emptySource, Action redraw)
 {
+    private TabSession? _goneSession;
+    private ImmutableArray<GitRef> _goneRefs;
     private bool _hasShown;
     private TabId? _shownTabId;
     private TabSession? _shownSession;
@@ -34,6 +39,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     {
         var activeId = host.Workspace.ActiveTabId;
         var session = activeId is { } shownId ? effects.SessionOf(shownId) : null;
+        ShowUpstreamGone(session);
 
         // A tab pointed at another worktree gets a new session under the same id: its graph is shown from here on.
         if (_hasShown && activeId == _shownTabId && session == _shownSession)
@@ -74,6 +80,22 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
         GraphChanged?.Invoke();
         redraw();
+    }
+
+    // The branches whose upstream is gone come from the tab's refs; rebuilt only when the refs were replaced.
+    private void ShowUpstreamGone(TabSession? session)
+    {
+        if (session is null
+            || host.Workspace.ActiveTab is not { } tab
+            || (ReferenceEquals(session, _goneSession) && tab.Refs == _goneRefs))
+        {
+            return;
+        }
+
+        _goneSession = session;
+        _goneRefs = tab.Refs;
+        session.Source.UpstreamGoneBranches = UpstreamGoneBranches.Of(tab.Refs);
+        graph.SetNeedsDraw();
     }
 
     private void OnGraphReplacing()

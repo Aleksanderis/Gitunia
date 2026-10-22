@@ -7,4 +7,5 @@ namespace Gitunia.Core.Graph;
 /// <param name="Kind">What the label stands for; a merged local and remote branch is a <see cref="RefKind.LocalBranch"/>.</param>
 /// <param name="IsCurrent">HEAD is on this branch.</param>
 /// <param name="HasRemote">A remote-tracking branch of the same name points at the same commit and is folded into this label.</param>
-public sealed record RefLabel(string Name, RefKind Kind, bool IsCurrent, bool HasRemote);
+/// <param name="IsUpstreamGone">The branch has an upstream that no longer exists (a candidate for pruning).</param>
+public sealed record RefLabel(string Name, RefKind Kind, bool IsCurrent, bool HasRemote, bool IsUpstreamGone = false);
