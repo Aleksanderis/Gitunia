@@ -11,7 +11,11 @@ param(
     [int]$Runs = 5, [int]$Keys = 20, [string]$Marker = '', [string]$Oldest = '',
     [string]$Size = '120x40', [switch]$OnlyStart, [int]$Timeout = 10)
 
+#requires -Version 7
 $ErrorActionPreference = 'Stop'
+# The environment changes below live in the caller's process: snapshot them and restore them in `finally`.
+$savedEnv = @{}
+foreach ($name in 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'XDG_STATE_HOME', 'XDG_CONFIG_HOME') { $savedEnv[$name] = [Environment]::GetEnvironmentVariable($name) }
 if (-not (Get-Command psmux -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine("missing tool 'psmux': winget install marlocarlo.psmux"); exit 3 }
 $Binary = (Resolve-Path $Binary).Path
 $Repo = (Resolve-Path $Repo).Path
@@ -74,8 +78,9 @@ function Write-Stats($prefix, [double[]]$values, [switch]$Full) {
 function Get-AppRssKib { # RSS of the app: the pane pid, or its gitunia child when the pane runs a shell
     $panePid = [int](T display-message -t m -p '#{pane_pid}')
     $proc = Get-Process -Id $panePid -ErrorAction SilentlyContinue
-    if ($proc -and $proc.ProcessName -notlike 'gitunia*') {
-        $child = Get-CimInstance Win32_Process -Filter "ParentProcessId=$panePid AND Name='gitunia.exe'" | Select-Object -First 1
+    $appName = [System.IO.Path]::GetFileNameWithoutExtension($Binary)
+    if ($proc -and $proc.ProcessName -ne $appName) {
+        $child = Get-CimInstance Win32_Process -Filter "ParentProcessId=$panePid AND Name='$appName.exe'" | Select-Object -First 1
         $proc = if ($child) { Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue }
     }
     if ($proc) { [long]($proc.WorkingSet64 / 1024) } else { 'nan' }
@@ -190,5 +195,6 @@ try {
 }
 finally {
     T kill-server 2>$null | Out-Null
+    foreach ($name in $savedEnv.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnv[$name]) }
     Remove-Item -Recurse -Force $isolated, $emptyConfig -ErrorAction SilentlyContinue
 }
