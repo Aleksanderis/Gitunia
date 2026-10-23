@@ -90,19 +90,25 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-      - name: Faster temp directory (#624, unverified on the runner)
-        # The tests create thousands of throwaway repositories under the temp directory. D: is the runner's faster
-        # temporary disk, and Defender scanning every object file git writes is a likely reason a Windows run takes
-        # several times as long as the Linux one. Neither effect is measured yet: compare the Test step time in the
-        # next run and drop this step if it does not help. Only the temp directory is excluded, and a failing
-        # exclusion never fails the job.
+      - name: Faster temp, build output and package cache (#624, unverified for the build)
+        # The tests create thousands of throwaway repositories under the temp directory, and a build writes thousands
+        # of small files. D: is the runner's faster temporary disk, and Defender scanning every small file is a likely
+        # reason a Windows run takes several times as long as the Linux one. The temp directory made Core.Tests about
+        # 10x faster (#580); the build output (artifacts layout) and the NuGet cache move there too, not yet measured:
+        # compare the Build step time in the next run and drop what does not help. Only these directories are
+        # excluded, and a failing exclusion never fails the job.
         shell: pwsh
         run: |
           if (Test-Path D:\) {
-            New-Item -ItemType Directory -Force D:\gitunia-tmp | Out-Null
+            foreach ($directory in "D:\gitunia-tmp", "D:\gitunia-artifacts", "D:\gitunia-nuget") {
+              New-Item -ItemType Directory -Force $directory | Out-Null
+              try { Add-MpPreference -ExclusionPath $directory -ErrorAction Stop } catch { Write-Warning $_ }
+            }
             "TMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
             "TEMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
-            try { Add-MpPreference -ExclusionPath "D:\gitunia-tmp" -ErrorAction Stop } catch { Write-Warning $_ }
+            "UseArtifactsOutput=true" >> $env:GITHUB_ENV
+            "ArtifactsPath=D:\gitunia-artifacts" >> $env:GITHUB_ENV
+            "NUGET_PACKAGES=D:\gitunia-nuget" >> $env:GITHUB_ENV
           }
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
@@ -124,8 +130,6 @@ jobs:
           echo "$frame"
           echo "$frame" | grep -q "Gitunia"
           echo "$frame" | grep -q "NORMAL"
-      - name: Note that Windows tests are disabled
-        run: echo "::warning::Windows test step is temporarily disabled until #494 is fixed"
       - name: Package (release tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         run: scripts/package.sh win-x64 out "${GITHUB_REF_NAME#v}" dist
