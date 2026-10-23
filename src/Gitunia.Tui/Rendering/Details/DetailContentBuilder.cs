@@ -21,7 +21,7 @@ public static class DetailContentBuilder
     private const string Indent = "  ";
     private const string EmptyTree = "The commit has no files";
     private const string NoMatch = "No file matches the filter";
-    private const int TreeIndent = 1;
+    internal const int TreeIndent = 1;
     private const int ChangesTreeIndent = 2;
 
     /// <param name="entry">The selected graph row, null when nothing is selected. Its subject and refs show before the details arrive.</param>
@@ -242,7 +242,7 @@ public static class DetailContentBuilder
                 segments.Add(new StyledSegment($"  {FileCountText(row.FileCount)}", SegmentRole.Faint));
             }
 
-            return new DetailRow(segments);
+            return new DetailRow(segments, Tree: new FileTreeLine(row, chevron, string.Empty));
         }
 
         // Files line up with the names of directories, which start after their chevron.
@@ -254,13 +254,15 @@ public static class DetailContentBuilder
             _ => $"  {FileSizeText.Of(row.Size ?? 0)}",
         };
 
-        return new DetailRow([
-            new StyledSegment($"{indent}  {row.Label}", SegmentRole.Plain),
-            new StyledSegment(suffix, SegmentRole.Faint),
-        ]);
+        return new DetailRow(
+            [
+                new StyledSegment($"{indent}  {row.Label}", SegmentRole.Plain),
+                new StyledSegment(suffix, SegmentRole.Faint),
+            ],
+            Tree: new FileTreeLine(row, ' ', $" {suffix.TrimStart()}"));
     }
 
-    private static string FileCountText(int count) =>
+    internal static string FileCountText(int count) =>
         count == 1 ? "1 file" : $"{count.ToString(CultureInfo.InvariantCulture)} files";
 
     private static DetailRow Faint(string text) => new([new StyledSegment(text, SegmentRole.Faint)]);
