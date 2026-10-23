@@ -21,7 +21,8 @@ public static class DetailContentBuilder
     private const string Indent = "  ";
     private const string EmptyTree = "The commit has no files";
     private const string NoMatch = "No file matches the filter";
-    private const int TreeIndent = 2;
+    private const int TreeIndent = 1;
+    private const int ChangesTreeIndent = 2;
 
     /// <param name="entry">The selected graph row, null when nothing is selected. Its subject and refs show before the details arrive.</param>
     /// <param name="state">The loading state of the commit's details.</param>
@@ -167,7 +168,7 @@ public static class DetailContentBuilder
     {
         foreach (var row in ChangesTree.Rows(files, collapsed))
         {
-            var indent = new string(' ', row.Depth * TreeIndent);
+            var indent = new string(' ', row.Depth * ChangesTreeIndent);
             if (row.IsFolder)
             {
                 var segments = new List<StyledSegment> { new($"{indent}{row.Name}/", SegmentRole.SectionTitle) };

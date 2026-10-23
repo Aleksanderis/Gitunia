@@ -88,4 +88,17 @@ public class TextWidthTests
     {
         Assert.Equal(string.Empty, TextWidth.FitStart("abc", 0, "…"));
     }
+
+    [Theory]
+    [InlineData("worktree-agent-a6435a5cab5", 14, "worktre~a5cab5")]
+    [InlineData("short", 14, "short")]
+    [InlineData("abcdefghij", 5, "ab~ij")]
+    [InlineData("abcdefghij", 3, "ab~")]
+    public void GivenText_WhenFittingInTheMiddle_ThenHeadAndTailStay(string text, int columns, string expected)
+    {
+        var fitted = TextWidth.FitMiddle(text, columns, "~");
+
+        Assert.True(TextWidth.Of(fitted) <= columns);
+        Assert.Equal(expected, fitted);
+    }
 }
