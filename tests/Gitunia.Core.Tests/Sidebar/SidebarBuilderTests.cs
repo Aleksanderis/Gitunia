@@ -35,7 +35,10 @@ public class SidebarBuilderTests
         var rows = SidebarBuilder.Build(tab);
 
         Assert.Equal(
-            ["Branches", "Alpha", "zeta", "Remotes", "origin/main", "Tags", "v1", "Worktrees", "repo", "Stashes", "stash@{0}"],
+            [
+                "Branches", "Alpha", "zeta", "Remotes", "origin", "origin/main", "Tags", "v1", "Worktrees", "repo",
+                "Stashes", "stash@{0}"
+            ],
             Labels(rows));
         Assert.Equal(2, rows[0].Count);
     }
@@ -84,8 +87,84 @@ public class SidebarBuilderTests
 
         var rows = SidebarBuilder.Build(tab);
 
-        Assert.Equal(["Branches", "feature/login", "Remotes", "origin/feature/search"], Labels(rows));
+        Assert.Equal(["Branches", "feature", "feature/login", "Remotes", "origin", "feature", "origin/feature/search"],
+            Labels(rows));
         Assert.All(rows.Where(row => row.IsSection), row => Assert.True(row.IsExpanded));
+    }
+
+    [Fact]
+    public void GivenPrefixedBranches_WhenBuilding_ThenFoldersAreClosedWithCountsAndFlatBranchesStayTopLevel()
+    {
+        var tab = Tab(
+            refs: [Branch("main", isCurrent: true), Branch("feature/a"), Branch("feature/ui/b"), Branch("fix/c")]);
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal(["Branches", "feature", "fix", "main"], Labels(rows).Take(4));
+        var feature = rows.Single(row => row.Label == "feature");
+        Assert.Equal(SidebarRowKind.Folder, feature.Kind);
+        Assert.Equal(2, feature.Count);
+        Assert.False(feature.IsExpanded);
+        Assert.Equal(0, feature.Depth);
+        Assert.Equal(4, rows[0].Count);
+    }
+
+    [Fact]
+    public void GivenCurrentBranchInAFolder_WhenBuilding_ThenItsFoldersAreOpenAndOthersClosed()
+    {
+        var tab = Tab(
+            refs:
+            [
+                Branch("feature/ui/x", isCurrent: true),
+                Branch("feature/ui/y"),
+                Branch("feature/z"),
+                Branch("fix/c"),
+            ]);
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal(
+            ["Branches", "feature", "ui", "feature/ui/x", "feature/ui/y", "feature/z", "fix"],
+            Labels(rows).Take(7));
+        Assert.Equal([-1, 0, 1, 2, 2, 1, 0], rows.Take(7).Select(row => row.Depth));
+        Assert.Equal("x", rows[3].ShortName);
+        Assert.Equal("feature/ui/x", rows[3].Label);
+    }
+
+    [Fact]
+    public void GivenToggledFolder_WhenBuilding_ThenItFlipsItsDefault()
+    {
+        var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/a"), Branch("fix/c")]);
+        var key = SidebarFolders.KeyOf(SidebarSection.Branches, "feature");
+        tab = tab with { Sidebar = tab.Sidebar with { ToggledFolders = [key] } };
+
+        Assert.Equal(["Branches", "feature", "feature/a", "fix", "main"], Labels(SidebarBuilder.Build(tab)).Take(5));
+    }
+
+    [Fact]
+    public void GivenRemoteBranches_WhenBuilding_ThenTheRemoteIsTheFirstFolderAndOpenAndPrefixFoldersClosed()
+    {
+        var tab = Unfolded(Tab(refs: [Remote("origin/main"), Remote("origin/feature/x"), Remote("up/main")]));
+
+        var rows = SidebarBuilder.Build(tab)
+            .SkipWhile(row => row.Label != "Remotes")
+            .TakeWhile(row => row.Label != "Tags")
+            .ToList();
+
+        Assert.Equal(["Remotes", "origin", "feature", "origin/main", "up", "up/main"], Labels(rows));
+        Assert.Equal([0, 1], rows.Where(row => row.IsFolder).Take(2).Select(row => row.Depth));
+    }
+
+    [Fact]
+    public void GivenFilter_WhenBuildingPrefixedBranches_ThenFoldersWithAMatchAreUnfolded()
+    {
+        var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/ui/needle"), Branch("fix/other")]);
+        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "needle" } };
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal(["Branches", "feature", "ui", "feature/ui/needle"], Labels(rows));
+        Assert.All(rows.Where(row => row.IsContainer), row => Assert.True(row.IsExpanded));
     }
 
     [Fact]

@@ -68,6 +68,7 @@ public static class RowActions
     public static IReadOnlyList<ActionId> OfSidebarRow(SidebarRow row) => row.Kind switch
     {
         SidebarRowKind.Section => OfSection(row.Section),
+        SidebarRowKind.Folder => [],
         SidebarRowKind.LocalBranch =>
         [
             ActionIds.BranchSwitch,
