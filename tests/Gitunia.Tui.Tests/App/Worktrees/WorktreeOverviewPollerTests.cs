@@ -66,6 +66,27 @@ public sealed class WorktreeOverviewPollerTests
         Assert.Null(host.Workspace.ActiveTab!.WorktreeStatuses);
     }
 
+    [Fact]
+    public async Task GivenStartedPollerWithPendingWake_WhenTheActiveTabChangesAgain_ThenNothingThrows()
+    {
+        using var repository = TestRepositories.WithWorktree(out _);
+        var host = await OpenAsync(repository.WorkingTreePath);
+        using var poller = new WorktreeOverviewPoller(
+            TestGit.Services.Status,
+            host,
+            InlineUi.Post,
+            TimeSpan.FromHours(1));
+        poller.Start();
+
+        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
+        for (var i = 0; i < 20; i++)
+        {
+            host.Dispatch(new OpenRepositoryCommand(location));
+        }
+
+        Assert.NotNull(host.Workspace.ActiveTab);
+    }
+
     private static async Task<WorkspaceHost> OpenAsync(string path)
     {
         var host = new WorkspaceHost(Workspace.Empty);

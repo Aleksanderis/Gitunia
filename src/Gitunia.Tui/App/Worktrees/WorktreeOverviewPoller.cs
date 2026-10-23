@@ -162,9 +162,21 @@ public sealed class WorktreeOverviewPoller : IDisposable
         _watchedTabId = tab?.Id;
         _watchedWorktrees = tab?.Worktrees ?? default;
         _watchedPath = tab?.CommandPath;
-        if (_wake.CurrentCount == 0)
+        WakeLoop();
+    }
+
+    // The semaphore holds at most one wake; a second wake changes nothing. Changed fires on the UI
+    // thread only, but a check of CurrentCount before Release would be a race if that ever changed, so Release is
+    // simply allowed to report that the wake is already pending.
+    private void WakeLoop()
+    {
+        try
         {
             _wake.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            // A wake is already pending; the loop will see the latest state when it runs.
         }
     }
 
