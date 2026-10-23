@@ -16,11 +16,11 @@ public class PaneHintsTests
     [InlineData(PaneKind.Graph, "gg/G")]
     [InlineData(PaneKind.Sidebar, "/")]
     [InlineData(PaneKind.Detail, "l")]
-    [InlineData(PaneKind.Diff, "<space>vw")]
-    [InlineData(PaneKind.WorkingUnstaged, "y")]
-    [InlineData(PaneKind.WorkingStaged, "y")]
+    [InlineData(PaneKind.Diff, "<space>v")]
+    [InlineData(PaneKind.WorkingUnstaged, "<space>c")]
+    [InlineData(PaneKind.WorkingStaged, "<space>c")]
     [InlineData(PaneKind.WorkingUnstagedDiff, "]c/[c")]
-    [InlineData(PaneKind.WorkingStagedDiff, "<space>vw")]
+    [InlineData(PaneKind.WorkingStagedDiff, "<space>v")]
     public void GivenAPane_WhenAskingForHints_ThenTheyMentionThatPanesKeys(PaneKind pane, string expectedKeys)
     {
         Assert.Contains(PaneHints.For(pane), hint => hint.Keys == expectedKeys);
@@ -96,7 +96,33 @@ public class PaneHintsTests
         var text = StatusText(model);
 
         Assert.Contains("]c/[c hunk", text, StringComparison.Ordinal);
-        Assert.Contains("w wrap", text, StringComparison.Ordinal);
+        Assert.Contains("view options", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingUnstagedDiff)]
+    [InlineData(PaneKind.WorkingStagedDiff)]
+    public void GivenADiffPane_WhenAskingForHints_ThenTheViewOptionsAreOneGroupHintAndTheirKeysStayBound(PaneKind pane)
+    {
+        var hints = PaneHints.For(pane);
+
+        Assert.Single(hints, hint => hint.Keys == "<space>v");
+        Assert.DoesNotContain(
+            hints,
+            hint => hint.Description is "wrap" or "context" or "whole file" or "ignore space" or "side by side"
+                or "load all");
+        var bindings = DefaultKeymap.Create().EffectiveBindings(KeyMode.Normal, ViewFor(pane));
+        ActionId[] options =
+        [
+            ActionIds.DiffToggleWrap,
+            ActionIds.DiffToggleWholeFile,
+            ActionIds.DiffToggleIgnoreWhitespace,
+            ActionIds.DiffToggleSideBySide,
+            ActionIds.DiffLoadAnyway,
+            ActionIds.DiffMoreContext,
+        ];
+        Assert.All(options, option => Assert.Contains(bindings, binding => binding.Action == option));
     }
 
     [Fact]
@@ -133,9 +159,12 @@ public class PaneHintsTests
     [Fact]
     public void GivenTheDetailChangesHints_WhenCheckingThem_ThenTheViewOptionsAreOnlyThereAndTheirKeysAreBound()
     {
-        Assert.DoesNotContain(PaneHints.For(PaneKind.Detail), hint => hint.Keys is "<space>vn" or "<space>vp");
-        Assert.Contains(PaneHints.ForDetailChanges(), hint => hint.Keys == "<space>vn");
-        Assert.Contains(PaneHints.ForDetailChanges(), hint => hint.Keys == "<space>vp");
+        Assert.DoesNotContain(
+            PaneHints.For(PaneKind.Detail),
+            hint => hint.Keys.StartsWith("<space>v", StringComparison.Ordinal));
+        Assert.Contains(
+            PaneHints.ForDetailChanges(),
+            hint => hint.Keys == "<space>v" && hint.Description == "view options");
         AssertKeysTriggerActions(PaneHints.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
     }
 
@@ -205,6 +234,17 @@ public class PaneHintsTests
         var bindings = DefaultKeymap.Create().EffectiveBindings(mode, view);
         foreach (var hint in hints)
         {
+            if (hint.Actions.IsEmpty)
+            {
+                var prefix = KeySequenceParser.Parse(hint.Keys);
+                Assert.True(
+                    bindings.Any(
+                        candidate => candidate.Sequence.Length > prefix.Length
+                            && candidate.Sequence.StartsWith(prefix)),
+                    $"The group hint '{hint.Keys} {hint.Description}' has no binding below it in the {view} view.");
+                continue;
+            }
+
             var alternatives = ExpandAlternatives(hint.Keys).ToList();
             Assert.True(alternatives.Count == hint.Actions.Length, $"The hint '{hint.Keys} {hint.Description}' lists {alternatives.Count} keys but names {hint.Actions.Length} actions.");
             for (var index = 0; index < alternatives.Count; index++)
