@@ -128,7 +128,8 @@ public class OverlayFrameTests
         Assert.Contains("Status messages", text, StringComparison.Ordinal);
         Assert.Contains("error │ repo: could not read the stashes", text, StringComparison.Ordinal);
         Assert.Contains("Esc close", text, StringComparison.Ordinal);
-        Assert.NotNull(OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
+        var tiny = OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 20, 6, GraphGlyphSet.Unicode);
+        Assert.NotNull(tiny);
     }
 
     [Fact]
