@@ -422,6 +422,17 @@ public sealed class OverlayControllerTests : IDisposable
     }
 
     [Fact]
+    public void GivenNoTargetForTheViewDropdown_WhenOpeningIt_ThenTheStatusBarSaysThereAreNoViewOptions()
+    {
+        _baseView = DefaultKeymap.DiffView;
+
+        _overlays.Handle(ActionIds.DiffOpenViewOptions, null);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Contains("No view options", _statuses.Log.History[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAScreenTooSmallForTheDropdown_WhenOpeningIt_ThenTheStatusBarSaysSoAndNothingOpens()
     {
         _baseView = DefaultKeymap.DiffView;

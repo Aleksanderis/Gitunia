@@ -234,7 +234,7 @@ public sealed class OverlayController
 
         if (action == ActionIds.MenuOpenForRow || action == ActionIds.DiffOpenViewOptions)
         {
-            OpenContextMenu();
+            OpenContextMenu(action);
             return true;
         }
 
@@ -250,11 +250,16 @@ public sealed class OverlayController
         }
     }
 
-    private void OpenContextMenu()
+    private void OpenContextMenu(ActionId action)
     {
         var view = _baseView();
         if (MenuTarget(view) is not { } target)
         {
+            if (action == ActionIds.DiffOpenViewOptions)
+            {
+                _statuses.Post("No view options for a file's content");
+            }
+
             return;
         }
 
