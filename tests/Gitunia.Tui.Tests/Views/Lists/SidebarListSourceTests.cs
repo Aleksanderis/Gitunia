@@ -11,6 +11,22 @@ namespace Gitunia.Tui.Tests.Views.Lists;
 public class SidebarListSourceTests
 {
     [Fact]
+    public async Task GivenPrefixFolder_WhenItIsOpenedAndClosed_ThenTheRowsAreRebuilt()
+    {
+        using var repository = TestRepositories.Linear().Branch("feature/x");
+        using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
+        var folder = harness.Source.Rows.ToList().FindIndex(row => row.IsFolder);
+        Assert.DoesNotContain(harness.Source.Rows, row => row.Label == "feature/x");
+        harness.Send(new SetSidebarCursorCommand(folder));
+
+        harness.Send(new ExpandSidebarCommand());
+        Assert.Contains(harness.Source.Rows, row => row.Label == "feature/x");
+
+        harness.Send(new CollapseSidebarCommand());
+        Assert.DoesNotContain(harness.Source.Rows, row => row.Label == "feature/x");
+    }
+
+    [Fact]
     public async Task GivenLoadedSidebar_WhenOverviewArrivesAndOwnStatusChanges_ThenWorktreeRowsAreRebuilt()
     {
         using var repository = TestRepositories.WithWorktree(out var path);

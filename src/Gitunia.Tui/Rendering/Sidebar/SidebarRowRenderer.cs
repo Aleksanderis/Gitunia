@@ -10,6 +10,9 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 public static class SidebarRowRenderer
 {
     private const int MinimumLabelWidth = 8;
+    private const int EntryIndent = 2;
+    private const int DepthIndent = 2;
+    private const char FolderSuffix = '/';
     private const string WorktreeMarker = "wt:";
     private const char StagedLetter = 'S';
     private const char ChangedLetter = 'M';
@@ -32,21 +35,52 @@ public static class SidebarRowRenderer
             return builder.Build(isSelected: isSelected);
         }
 
-        const string indent = "  ";
+        var indent = new string(' ', EntryIndent + (row.Depth * DepthIndent));
+        if (row.IsFolder)
+        {
+            return RenderFolder(row, indent, width, isSelected, glyphs, sidebarGlyphs);
+        }
+
+        var label = row.ShortName ?? row.Label;
         var prefix = $"{indent}{(row.IsCurrent ? "*" : " ")} ";
         var extras = ExtrasOf(row, sidebarGlyphs);
         var extrasWidth = extras.Sum(extra => 1 + TextWidth.Of(extra.Text));
         var available = width - TextWidth.Of(prefix);
-        var labelBudget = Math.Max(Math.Min(TextWidth.Of(row.Label), Math.Max(MinimumLabelWidth, available / 2)), available - extrasWidth);
+        var labelBudget = Math.Max(
+            Math.Min(TextWidth.Of(label), Math.Max(MinimumLabelWidth, available / 2)),
+            available - extrasWidth);
+
         builder
             .Append(prefix, SegmentRole.Plain)
-            .Append(TextWidth.Fit(row.Label, labelBudget, glyphs.Ellipsis), LabelRole(row));
+            .Append(TextWidth.Fit(label, labelBudget, glyphs.Ellipsis), LabelRole(row));
         foreach (var extra in extras)
         {
             builder.Append(" ", SegmentRole.Plain).Append(extra.Text, extra.Role);
         }
 
         return builder.Build(isSelected: isSelected);
+    }
+
+    // A prefix folder: marker, name with a trailing slash (reads without colour) and its entry count.
+    private static StyledLine RenderFolder(
+        SidebarRow row,
+        string indent,
+        int width,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        SidebarGlyphs sidebarGlyphs)
+    {
+        var marker = row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed;
+        var count = $" {row.Count.ToString(CultureInfo.InvariantCulture)}";
+        var available = width - TextWidth.Of($"{indent}{marker} ") - TextWidth.Of(count);
+
+        return new LineBuilder(width, glyphs.Ellipsis)
+            .Append($"{indent}{marker} ", SegmentRole.Plain)
+            .Append(
+                TextWidth.Fit($"{row.Label}{FolderSuffix}", Math.Max(1, available), glyphs.Ellipsis),
+                SegmentRole.SectionTitle)
+            .Append(count, SegmentRole.Faint)
+            .Build(isSelected: isSelected);
     }
 
     /// <summary>The last row of the sidebar: the filter being typed or the active one, blank otherwise.</summary>

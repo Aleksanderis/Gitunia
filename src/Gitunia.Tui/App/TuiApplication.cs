@@ -936,7 +936,7 @@ public sealed class TuiApplication(
     private BranchSelection BranchSelectionNow()
     {
         var inSidebar = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar;
-        if (inSidebar && _sidebar.CursorRow is { IsSection: false } row)
+        if (inSidebar && _sidebar.CursorRow is { IsContainer: false } row)
         {
             return new BranchSelection(row.Kind, row.Label, row.CommitHash);
         }
@@ -1050,7 +1050,7 @@ public sealed class TuiApplication(
 
         if (view == DefaultKeymap.SidebarView)
         {
-            return SelectedSidebarRow(sidebarSource) is { } row
+            return SelectedSidebarRow(sidebarSource) is { IsFolder: false } row
                 ? new RowMenuTarget(RowActions.OfSidebarRow(row), AnchorOf(_view.Sidebar))
                 : null;
         }

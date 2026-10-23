@@ -20,6 +20,57 @@ public class SidebarFrameTests
     private static SidebarRow Branch(string name, string worktree = "", bool isCurrent = false, int? ahead = null, int? behind = null) =>
         new(SidebarRowKind.LocalBranch, SidebarSection.Branches, name, worktree, null, isCurrent, false, 0, ahead, behind);
 
+    private static SidebarRow Folder(string name, int count, bool isExpanded, int depth) =>
+        new(
+            SidebarRowKind.Folder,
+            SidebarSection.Branches,
+            name,
+            string.Empty,
+            null,
+            false,
+            isExpanded,
+            count,
+            null,
+            null,
+            Depth: depth);
+
+    [Theory]
+    [InlineData(false, true, 0, "  ▾ feature/ 2")]
+    [InlineData(false, false, 1, "    ▸ feature/ 2")]
+    [InlineData(true, true, 0, "  v feature/ 2")]
+    [InlineData(true, false, 0, "  > feature/ 2")]
+    public void GivenFolderRow_WhenRendering_ThenMarkerNameWithSlashAndCountShowInBothGlyphSets(
+        bool isAscii,
+        bool isExpanded,
+        int depth,
+        string expected)
+    {
+        var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
+
+        var line = SidebarRowRenderer.Render(Folder("feature", 2, isExpanded, depth), 40, false, glyphs);
+
+        Assert.Equal(expected, line.Text.TrimEnd());
+    }
+
+    [Fact]
+    public void GivenBranchBelowFolder_WhenRendering_ThenItIsIndentedByDepthAndShowsTheShortName()
+    {
+        var row = Branch("feature/ui/x", isCurrent: true) with { Depth = 2, ShortName = "x" };
+
+        Assert.Equal("      * x", SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd());
+    }
+
+    [Fact]
+    public void GivenLongFolderNameOnNarrowWidth_WhenRendering_ThenLineHasExactWidthAndKeepsTheCount()
+    {
+        var row = Folder("a-very-long-folder-name", 12, true, 1);
+
+        var line = SidebarRowRenderer.Render(row, 16, false, GraphGlyphSet.Unicode);
+
+        Assert.Equal(16, TextWidth.Of(line.Text));
+        Assert.EndsWith(" 12", line.Text.TrimEnd());
+    }
+
     [Fact]
     public void GivenWorktreeRowsWithStatus_WhenRendered_ThenCountsAndTrackingShowAndCleanOnesStayPlain()
     {

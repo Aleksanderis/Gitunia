@@ -18,6 +18,9 @@ namespace Gitunia.Core.Sidebar;
 /// <param name="Behind">Commits behind the upstream, null when unknown or without upstream.</param>
 /// <param name="Path">For a worktree, its absolute path; null for every other row.</param>
 /// <param name="Changes">For a worktree, the status read there (changes, ahead, behind); null until read.</param>
+/// <param name="Depth">Folder nesting of an entry (0 at the top of its section); -1 for a section header.</param>
+/// <param name="Key">For a folder, its key in <see cref="SidebarState.OpenedFolders"/>.</param>
+/// <param name="ShortName">For a branch below a folder, the name after the folder (<c>x</c> of <c>a/x</c>).</param>
 /// <param name="IsUpstreamGone">For a local branch, its upstream no longer exists (a candidate for pruning).</param>
 public sealed record SidebarRow(
     SidebarRowKind Kind,
@@ -32,8 +35,20 @@ public sealed record SidebarRow(
     int? Behind,
     string? Path = null,
     WorktreeStatus? Changes = null,
-    bool IsUpstreamGone = false)
+    bool IsUpstreamGone = false,
+    int Depth = 0,
+    string? Key = null,
+    string? ShortName = null)
 {
+    /// <summary>The <see cref="Depth"/> of a section header: one level above the top-level entries.</summary>
+    public const int SectionDepth = -1;
+
+    /// <summary>The row is a prefix folder.</summary>
+    public bool IsFolder => Kind == SidebarRowKind.Folder;
+
+    /// <summary>The row is a section header or a folder: it holds entries, selects no commit and folds.</summary>
+    public bool IsContainer => Kind is SidebarRowKind.Section or SidebarRowKind.Folder;
+
     /// <summary>The row is a section header.</summary>
     public bool IsSection => Kind == SidebarRowKind.Section;
 }

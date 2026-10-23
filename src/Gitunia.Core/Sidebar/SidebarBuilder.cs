@@ -27,10 +27,23 @@ public static class SidebarBuilder
             }
 
             var isExpanded = state.HasFilter || !state.CollapsedSections.Contains(section);
-            rows.Add(new SidebarRow(SidebarRowKind.Section, section, Title(section), string.Empty, null, false, isExpanded, entries.Count, null, null));
+            rows.Add(new SidebarRow(
+                SidebarRowKind.Section,
+                section,
+                Title(section),
+                string.Empty,
+                null,
+                false,
+                isExpanded,
+                entries.Count,
+                null,
+                null,
+                Depth: SidebarRow.SectionDepth));
+
             if (isExpanded)
             {
-                rows.AddRange(entries);
+                var isGrouped = section is SidebarSection.Branches or SidebarSection.Remotes;
+                rows.AddRange(isGrouped ? SidebarFolders.Group(entries, state) : entries);
             }
         }
 

@@ -114,7 +114,7 @@ public sealed class SidebarActionHandler(
         }
 
         var row = rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
-        if (row.IsSection)
+        if (row.IsContainer)
         {
             Send(tab, new ToggleSidebarSectionCommand());
             return;
@@ -257,7 +257,7 @@ public sealed class SidebarActionHandler(
         }
 
         var row = rows[SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length)];
-        if (row.IsSection)
+        if (row.IsContainer)
         {
             Message = "Select an entry to copy";
         }

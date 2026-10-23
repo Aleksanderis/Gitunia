@@ -35,14 +35,14 @@ public static class SidebarReducer
         }
 
         var row = rows[cursor];
-        if (!row.IsSection)
+        if (!row.IsContainer)
         {
             return tab with { View = tab.View with { FocusedPane = PaneKind.Graph } };
         }
 
         if (!row.IsExpanded)
         {
-            return SetFolded(tab, row.Section, folded: false);
+            return SetOpen(tab, row, open: true);
         }
 
         return cursor + 1 < rows.Length && !rows[cursor + 1].IsSection ? WithCursor(tab, cursor + 1) : tab;
@@ -56,14 +56,15 @@ public static class SidebarReducer
         }
 
         var row = rows[cursor];
-        if (row.IsSection)
+        if (row.IsContainer && row.IsExpanded && !tab.Sidebar.HasFilter)
         {
-            return tab.Sidebar.HasFilter ? tab : SetFolded(tab, row.Section, folded: true);
+            return SetOpen(tab, row, open: false);
         }
 
+        // A leaf or a closed folder: step to the enclosing folder or section header.
         for (var index = cursor - 1; index >= 0; index--)
         {
-            if (rows[index].IsSection)
+            if (rows[index].IsContainer && rows[index].Depth < row.Depth)
             {
                 return WithCursor(tab, index);
             }
@@ -74,13 +75,36 @@ public static class SidebarReducer
 
     private static RepositoryState Toggle(RepositoryState tab, ImmutableArray<SidebarRow> rows, int cursor)
     {
-        if (rows.IsEmpty || !rows[cursor].IsSection || tab.Sidebar.HasFilter)
+        if (rows.IsEmpty || !rows[cursor].IsContainer || tab.Sidebar.HasFilter)
         {
             return tab;
         }
 
         var row = rows[cursor];
-        return SetFolded(tab, row.Section, folded: row.IsExpanded);
+        return SetOpen(tab, row, open: !row.IsExpanded);
+    }
+
+    private static RepositoryState SetOpen(RepositoryState tab, SidebarRow row, bool open)
+    {
+        if (row.IsSection)
+        {
+            return SetFolded(tab, row.Section, folded: !open);
+        }
+
+        // The choice is kept explicitly, so it survives a change of the current branch (which moves the default).
+        var key = row.Key ?? string.Empty;
+        var opened = tab.Sidebar.OpenedFolders.Remove(key);
+        var closed = tab.Sidebar.ClosedFolders.Remove(key);
+        if (open)
+        {
+            opened = opened.Add(key);
+        }
+        else
+        {
+            closed = closed.Add(key);
+        }
+
+        return tab with { Sidebar = tab.Sidebar with { OpenedFolders = opened, ClosedFolders = closed } };
     }
 
     private static RepositoryState SetFolded(RepositoryState tab, SidebarSection section, bool folded)
