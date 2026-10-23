@@ -24,7 +24,7 @@ public class OverlayFrameTests
 
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
-    private static IReadOnlyList<HelpSection> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
+    private static IReadOnlyList<HelpTab> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
     private static ConfirmPrompt DiscardPrompt() => new(
         "Discard changes",
@@ -120,13 +120,13 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", "repo: could not read the stashes"), new HelpRow("info", "ok")]) };
         var state = OverlayState.OpenMessages(KeyMode.Normal);
 
-        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
 
         var text = Text(frame);
         Assert.Contains("Status messages", text, StringComparison.Ordinal);
         Assert.Contains("error │ repo: could not read the stashes", text, StringComparison.Ordinal);
         Assert.Contains("Esc close", text, StringComparison.Ordinal);
-        Assert.NotNull(OverlayFrameFactory.Create(state, sections, string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
+        Assert.NotNull(OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Output of git commit", [new HelpRow(string.Empty, "pre-commit: forbidden word"), new HelpRow(string.Empty, "  indented")]) };
         var state = OverlayState.OpenOutput("Commit failed", KeyMode.Insert);
 
-        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 70, 12, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 70, 12, GraphGlyphSet.Unicode);
 
         var text = Text(frame);
         Assert.Contains("Commit failed", text, StringComparison.Ordinal);
@@ -151,7 +151,7 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", message)]) };
         var state = OverlayState.OpenMessages(KeyMode.Normal);
 
-        var frame = OverlayFrameFactory.Create(state, sections, string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
 
         var lines = Text(frame!).Split('\n');
         Assert.All(lines, line => Assert.True(line.Length <= 40));
@@ -337,7 +337,7 @@ public class OverlayFrameTests
     [Fact]
     public void GivenHelpForTheGraph_WhenRendering_ThenEveryRowSeparatesKeysFromDescription()
     {
-        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 80, 24, GraphGlyphSet.Ascii);
+        var frame = HelpFrameBuilder.Build(Help(), 0, DefaultKeymap.GraphView, 0, 80, 24, GraphGlyphSet.Ascii);
 
         var rows = Text(frame).Split('\n').Skip(1).Where(line => line.StartsWith("|  ", StringComparison.Ordinal) && line.Trim('|', ' ').Length > 0).ToList();
         Assert.NotEmpty(rows);
@@ -430,34 +430,34 @@ public class OverlayFrameTests
     }
 
     [Fact]
-    public void GivenHelpForTheGraph_WhenRenderingAt66x24_ThenItListsTheViewsKeysFromTheKeymap()
+    public void GivenHelpForTheGraph_WhenRenderingAt66x24_ThenItShowsTheTabRowAndTheFirstTabUnderGroupSubheaders()
     {
-        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 66, 24, GraphGlyphSet.Unicode);
+        var frame = HelpFrameBuilder.Build(Help(), 0, DefaultKeymap.GraphView, 0, 66, 24, GraphGlyphSet.Unicode);
 
         Assert.Equal(
             string.Join(
                 '\n',
                 " Keys: Graph                                                    ",
-                "│ Graph                                                        │",
-                "│  <space>h             │ Jump to HEAD                         │",
-                "│  <space>f             │ Jump to a ref or hash                │",
-                "│  <space>j             │ Quick jump to a visible row          │",
-                "│  Enter                │ Focus the commit details             │",
-                "│  y                    │ Copy the commit hash                 │",
-                "│  <space>=             │ Mark or compare a commit             │",
-                "│  <space>r             │ Refresh the repository               │",
-                "│  <space>td            │ Open the commit in the difftool      │",
-                "│  <space>tm            │ Resolve conflicts in the mergetool   │",
-                "│  <space>te            │ Commit the staged changes in $EDITOR │",
-                "│  ]                    │ Next bottom pane tab                 │",
-                "│  [                    │ Previous bottom pane tab             │",
-                "│  gd                   │ Show the Details tab                 │",
-                "│  gc                   │ Show the Changes tab                 │",
-                "│  gf                   │ Show the Files tab                   │",
+                "│ [Graph]  Lists   Global   Markers                            │",
+                "│ Branch                                                       │",
                 "│  <space>bc            │ Create a branch and check it out     │",
                 "│  <space>bC            │ Create a branch without checking out │",
                 "│  <space>bs            │ Switch to a branch (check out)       │",
-                "│ 1-19/136  list keys scroll  Esc close                        │",
+                "│  <space>br            │ Rename the branch                    │",
+                "│  <space>bd            │ Delete the branch (asks first)       │",
+                "│  <space>bu            │ Set the branch upstream              │",
+                "│  <space>bU            │ Unset the branch upstream            │",
+                "│  <space>bf            │ Fast-forward the branch to its       │",
+                "│                       │ upstream (no checkout)               │",
+                "│                                                              │",
+                "│ Merge and rebase                                             │",
+                "│  <space>gx            │ Reset the current branch to the      │",
+                "│                       │ selection                            │",
+                "│  <space>gr            │ Rebase the current branch onto the   │",
+                "│                       │ selection                            │",
+                "│  <space>gi            │ Interactive rebase onto the selection│",
+                "│                       │ (edit the todo)                      │",
+                "│ 1-18/71  list keys scroll  Tab next tab  Esc close           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -466,9 +466,9 @@ public class OverlayFrameTests
     public void GivenHelpScrolledToTheEnd_WhenRenderingAt40x10_ThenTheLastRowsShow()
     {
         var sections = Help();
-        var maximum = HelpFrameBuilder.MaximumScroll(sections, 40, 10);
+        var maximum = HelpFrameBuilder.MaximumScroll(sections, 3, 40, 10);
 
-        var frame = HelpFrameBuilder.Build(sections, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
+        var frame = HelpFrameBuilder.Build(sections, 3, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
 
         Assert.Contains("pruned", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
@@ -583,7 +583,7 @@ public class OverlayFrameTests
         var frames = new[]
         {
             PaletteFrameBuilder.Build(Palette(), width, height, GraphGlyphSet.Unicode),
-            HelpFrameBuilder.Build(Help(), "Graph", 0, width, height, GraphGlyphSet.Unicode),
+            HelpFrameBuilder.Build(Help(), 0, "Graph", 0, width, height, GraphGlyphSet.Unicode),
             WhichKeyFrameBuilder.Build("g", [new WhichKeyRow("g", "Go to the top")], width, height, GraphGlyphSet.Unicode),
         };
 
@@ -618,10 +618,56 @@ public class OverlayFrameTests
         Assert.Null(OverlayFrameFactory.Create(OverlayState.None, [], string.Empty, [], 80, 24, GraphGlyphSet.Unicode));
     }
 
+    [Theory]
+    [InlineData(80)]
+    [InlineData(100)]
+    [InlineData(120)]
+    public void GivenGraphHelp_WhenRenderingEachTab_ThenTheTabRowNamesAllFourAndMarksTheActiveOne(int width)
+    {
+        var tabs = Help();
+
+        for (var tab = 0; tab < tabs.Count; tab++)
+        {
+            var row = HelpFrameBuilder.Build(tabs, tab, DefaultKeymap.GraphView, 0, width, 30, GraphGlyphSet.Ascii)!.Lines[1].Text;
+
+            Assert.Contains($"[{tabs[tab].Title}]", row, StringComparison.Ordinal);
+            Assert.All(tabs, other => Assert.Contains(other.Title, row, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void GivenNarrowScreen_WhenRenderingHelp_ThenTheTabRowCollapsesToTheActiveLabelWithItsPosition()
+    {
+        var frame = HelpFrameBuilder.Build(Help(), 1, DefaultKeymap.GraphView, 0, 30, 20, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains("[Lists] 2/4", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Equal(2, HelpFrameBuilder.TabAt(Help(), 1, 30, 1, 3));
+    }
+
+    [Fact]
+    public void GivenTheTabRow_WhenAskingWhatALabelColumnHits_ThenItIsThatTabAndNothingElseIs()
+    {
+        var tabs = Help();
+
+        Assert.Equal(0, HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 3));
+        Assert.Equal(1, HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 12));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 2, 3));
+        Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 70));
+    }
+
+    [Fact]
+    public void GivenSinglePage_WhenRenderingHelp_ThenThereIsNoTabRow()
+    {
+        var frame = HelpFrameBuilder.Build([new HelpSection("S", [new HelpRow("k", "does a thing")])], string.Empty, 0, 60, 12, GraphGlyphSet.Ascii)!;
+
+        Assert.DoesNotContain("[", frame.Lines[1].Text, StringComparison.Ordinal);
+        Assert.Null(HelpFrameBuilder.TabAt([new HelpTab("S", [])], 0, 60, 1, 3));
+    }
+
     [Fact]
     public void GivenAWideScreen_WhenRenderingHelp_ThenItIsWiderThanTheOldLimit()
     {
-        var frame = HelpFrameBuilder.Build(Help(), DefaultKeymap.GraphView, 0, 120, 30, GraphGlyphSet.Unicode)!;
+        var frame = HelpFrameBuilder.Build(Help(), 0, DefaultKeymap.GraphView, 0, 120, 30, GraphGlyphSet.Unicode)!;
 
         Assert.Equal(96, frame.Width);
         Assert.All(frame.Lines, line => Assert.Equal(96, TextWidth.Of(line.Text)));

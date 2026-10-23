@@ -78,6 +78,7 @@ public static class DefaultKeymap
         AddPicker(bindings);
         AddPalette(bindings);
         AddContextMenu(bindings);
+        AddHelp(bindings);
         AddModals(bindings);
         return bindings;
     }
@@ -504,6 +505,14 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-j", ActionIds.PaletteNext);
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-k", ActionIds.PalettePrevious);
         Add(bindings, [KeyMode.Command], PaletteView, "Ctrl-l", ActionIds.CommandExecute);
+    }
+
+    private static void AddHelp(List<KeyBinding> bindings)
+    {
+        Add(bindings, NormalOnly, HelpView, "Tab", ActionIds.HelpTabNext);
+        Add(bindings, NormalOnly, HelpView, "l", ActionIds.HelpTabNext);
+        Add(bindings, NormalOnly, HelpView, "Shift-Tab", ActionIds.HelpTabPrevious);
+        Add(bindings, NormalOnly, HelpView, "h", ActionIds.HelpTabPrevious);
     }
 
     private static void AddContextMenu(List<KeyBinding> bindings)

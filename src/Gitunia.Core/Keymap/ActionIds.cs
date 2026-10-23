@@ -104,6 +104,12 @@ public static class ActionIds
 
     public static ActionId HelpShow { get; } = new("help.show");
 
+    public static ActionId HelpTabNext { get; } = new("help.tab-next");
+
+    public static ActionId HelpTabPrevious { get; } = new("help.tab-previous");
+
+    public static ActionId HelpTabSelect { get; } = new("help.tab-select");
+
     public static ActionId InputAccept { get; } = new("input.accept");
 
     public static ActionId ListBottom { get; } = new("list.bottom");

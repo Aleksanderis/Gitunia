@@ -7,7 +7,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 public static class OverlayFrameFactory
 {
     /// <param name="state">The overlay state.</param>
-    /// <param name="helpSections">The help content, used while the help is open.</param>
+    /// <param name="helpTabs">The help content, used while the help is open.</param>
     /// <param name="pendingKeys">The unfinished chord, used for the which-key popup.</param>
     /// <param name="whichKeyRows">The keys that can follow the chord.</param>
     /// <param name="screenWidth">Terminal columns.</param>
@@ -15,7 +15,7 @@ public static class OverlayFrameFactory
     /// <param name="glyphs">The characters to draw rules with.</param>
     public static OverlayFrame? Create(
         OverlayState state,
-        IReadOnlyList<HelpSection> helpSections,
+        IReadOnlyList<HelpTab> helpTabs,
         string pendingKeys,
         IReadOnlyList<WhichKeyRow> whichKeyRows,
         int screenWidth,
@@ -24,9 +24,9 @@ public static class OverlayFrameFactory
     {
         return state.Kind switch
         {
-            OverlayKind.Help => HelpFrameBuilder.Build(helpSections, state.HelpView, state.HelpScroll, screenWidth, screenHeight, glyphs),
-            OverlayKind.Messages => HelpFrameBuilder.Build(helpSections, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, "Status messages"),
-            OverlayKind.Output => HelpFrameBuilder.Build(helpSections, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, state.HelpView),
+            OverlayKind.Help => HelpFrameBuilder.Build(helpTabs, state.HelpTab, state.HelpView, state.HelpScroll, screenWidth, screenHeight, glyphs),
+            OverlayKind.Messages => HelpFrameBuilder.Build(helpTabs, 0, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, "Status messages"),
+            OverlayKind.Output => HelpFrameBuilder.Build(helpTabs, 0, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, state.HelpView),
             OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
             OverlayKind.ContextMenu when state is { Palette: { } menu, MenuAnchor: { } anchor } =>
