@@ -342,7 +342,8 @@ public sealed class TuiApplication(
             _statuses,
             () => ActiveSession()?.DetailSource,
             () => _view.Detail.SelectedItem,
-            IsMessageFocused);
+            IsMessageFocused,
+            InvokeOnUi);
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,

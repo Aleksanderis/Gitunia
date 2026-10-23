@@ -17,6 +17,7 @@ namespace Gitunia.Tui.App.Details;
 /// <param name="statuses">Where the outcome goes.</param>
 /// <param name="source">The detail pane's content of the active tab, null when there is none.</param>
 /// <param name="selectedRow">The selected row of the detail list.</param>
+/// <param name="postToUi">Runs an action on the UI thread; the opener runs off it and reports back here.</param>
 /// <param name="isMessageFocused">The detail pane has focus and shows the Details tab.</param>
 public sealed class IssueLinkActions(
     IUrlOpener opener,
@@ -24,8 +25,11 @@ public sealed class IssueLinkActions(
     StatusChannel statuses,
     Func<DetailListSource?> source,
     Func<int?> selectedRow,
-    Func<bool> isMessageFocused)
+    Func<bool> isMessageFocused,
+    Action<Action> postToUi)
 {
+    private static readonly UrlOpenResult OpenerFailed = new(false, "the opener failed");
+
     public bool TryExecute(ActionId action, int? count)
     {
         var isOpenLink = action == ActionIds.DetailOpenLink;
@@ -68,9 +72,20 @@ public sealed class IssueLinkActions(
             : [];
     }
 
+    // Starting the opener can stall (ShellExecute on a cold start), so it never runs on the UI thread.
     private void Open(string url)
     {
-        var result = opener.Open(url);
+        statuses.Post($"Opening {url}");
+        _ = Task.Run(() => opener.Open(url), CancellationToken.None)
+            .ContinueWith(
+                task => postToUi(() => Report(url, task.IsCompletedSuccessfully ? task.Result : OpenerFailed)),
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+    }
+
+    private void Report(string url, UrlOpenResult result)
+    {
         if (result.Opened)
         {
             statuses.Post($"Opened {url}");

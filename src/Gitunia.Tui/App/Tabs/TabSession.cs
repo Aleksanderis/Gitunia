@@ -65,7 +65,7 @@ public sealed class TabSession : IDisposable
     /// <summary>The rules of the repository's tracker file; none until read, and when the file is missing.</summary>
     public IssueTrackerLinks IssueLinks { get; private set; } = IssueTrackerLinks.None;
 
-    /// <summary>Replaces the tracker rules (read when the tab loads).</summary>
+    /// <summary>Replaces the tracker rules (read when the tab loads and on a manual refresh).</summary>
     public void SetIssueLinks(IssueTrackerLinks links)
     {
         IssueLinks = links;
