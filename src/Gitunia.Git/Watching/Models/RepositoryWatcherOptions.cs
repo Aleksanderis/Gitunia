@@ -8,11 +8,17 @@ namespace Gitunia.Git.Watching.Models;
 /// Most non-ignored working tree directories one tab watches (one inotify watch each on Linux);
 /// a bigger tree polls instead.
 /// </param>
+/// <param name="UseFileWatchers">
+/// Opt-in live watching with <see cref="RepositoryWatcher"/> (config <c>watchFiles</c>). Off by default: each .NET
+/// <c>FileSystemWatcher</c> takes an inotify instance, a scarce per-user resource, so tabs poll instead
+/// (see <c>TabPoller</c>). Only <c>TabRefresher</c> reads this flag; <see cref="RepositoryWatcher"/> always watches.
+/// </param>
 public sealed record RepositoryWatcherOptions(
     TimeSpan Debounce,
     TimeSpan MaximumDelay,
     TimeSpan PollInterval,
-    int MaximumWorkingTreeDirectories = RepositoryWatcherOptions.DefaultMaximumWorkingTreeDirectories)
+    int MaximumWorkingTreeDirectories = RepositoryWatcherOptions.DefaultMaximumWorkingTreeDirectories,
+    bool UseFileWatchers = false)
 {
     /// <summary>
     /// Linux defaults to at least 8192 watches per user, shared by every process, so a tab takes at most a quarter.

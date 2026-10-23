@@ -14,6 +14,10 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
+    // A hint without actions names a chord group (the which-key popup lists its continuations): the test checks the
+    // keymap binds something below the prefix instead of one action per key.
+    private static readonly KeyHint ViewOptions = new("<space>v", "view options", []);
+
     private static readonly ImmutableArray<KeyHint> Graph =
     [
         .. Pinned,
@@ -23,6 +27,14 @@ public static class PaneHints
         new("Ctrl-d/u", "page", [ActionIds.ListHalfPageDown, ActionIds.ListHalfPageUp]),
         new("<space>h", "HEAD", [ActionIds.GraphJumpToHead]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> GraphComparing =
+    [
+        .. Pinned,
+        new("<space>=", "move mark", [ActionIds.GraphCompare]),
+        new("Esc", "end compare", [ActionIds.Cancel]),
+        .. Graph.Skip(Pinned.Length),
     ];
 
     private static readonly ImmutableArray<KeyHint> Sidebar =
@@ -44,15 +56,13 @@ public static class PaneHints
         new("l", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("h", "back", [ActionIds.DetailCollapse]),
-        new("<space>r", "retry", [ActionIds.DetailRetry]),
     ];
 
     private static readonly ImmutableArray<KeyHint> DetailChanges =
     [
         .. Detail,
         new("za", "fold", [ActionIds.DetailToggleFolder]),
-        new("<space>vn", "path", [ActionIds.FilesTogglePathStyle]),
-        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
+        ViewOptions,
     ];
 
     private static readonly ImmutableArray<KeyHint> Diff =
@@ -62,16 +72,9 @@ public static class PaneHints
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
-        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
-        new("<space>j", "quick jump", [ActionIds.QuickJump]),
-        new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
-        new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
-        new("<space>vf", "whole file", [ActionIds.DiffToggleWholeFile]),
-        new("<space>vi", "ignore space", [ActionIds.DiffToggleIgnoreWhitespace]),
-        new("<space>vs", "side by side", [ActionIds.DiffToggleSideBySide]),
-        new("<space>vl", "load all", [ActionIds.DiffLoadAnyway]),
-        new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
+        ViewOptions,
         new("h", "back", [ActionIds.NavigateBack]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
     ];
 
     private static readonly ImmutableArray<KeyHint> FileContent =
@@ -79,7 +82,6 @@ public static class PaneHints
         .. Pinned,
         new("j/k", "scroll", [ActionIds.ListDown, ActionIds.ListUp]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
-        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
         new("y", "copy line", [ActionIds.DiffCopyLine]),
@@ -101,17 +103,10 @@ public static class PaneHints
     [
         new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
-        new("n/N", "next/prev match", [ActionIds.DiffSearchNext, ActionIds.DiffSearchPrevious]),
-        new("<space>j", "quick jump", [ActionIds.QuickJump]),
-        new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
-        new("+/-", "context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
-        new("<space>vf", "whole file", [ActionIds.DiffToggleWholeFile]),
-        new("<space>vi", "ignore space", [ActionIds.DiffToggleIgnoreWhitespace]),
-        new("<space>vs", "side by side", [ActionIds.DiffToggleSideBySide]),
-        new("<space>vl", "load all", [ActionIds.DiffLoadAnyway]),
-        new("y", "copy line", [ActionIds.DiffCopyLine]),
-        PaneJumps,
+        ViewOptions,
         new("h", "back", [ActionIds.NavigateBack]),
+        new("<space>j", "quick jump", [ActionIds.QuickJump]),
+        PaneJumps,
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiff =
@@ -144,8 +139,6 @@ public static class PaneHints
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
-        new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
-        new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
@@ -158,8 +151,6 @@ public static class PaneHints
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,
-        new("y", "copy path", [ActionIds.WorkingTreeCopyPath]),
-        new("<space>r", "refresh", [ActionIds.RepositoryRefresh]),
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingMessage =
@@ -252,6 +243,9 @@ public static class PaneHints
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
+
+    /// <summary>The hints of the graph while a commit is marked for a comparison (#636).</summary>
+    public static IReadOnlyList<KeyHint> ForGraphComparing() => GraphComparing;
 
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
     {

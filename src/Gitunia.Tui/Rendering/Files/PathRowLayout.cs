@@ -45,7 +45,7 @@ public static class PathRowLayout
         var cut = path.TrimEnd(Separator).LastIndexOf(Separator);
         var directory = cut < 0 ? string.Empty : path[..cut];
         var name = path[(cut + 1)..];
-        var segments = new List<StyledSegment> { new(name, SegmentRole.Plain) };
+        var segments = new List<StyledSegment> { new(name, SegmentRole.FileName) };
         var remaining = columns - TextWidth.Of(name);
         var isDirectoryWhole = true;
         if (directory.Length > 0)

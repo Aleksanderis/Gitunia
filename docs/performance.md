@@ -24,7 +24,11 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 
 Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB (bounded to 5 loaded tabs, see below). Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
 
-## Working tree watching (#504)
+## Polling the active tab (#543)
+
+Watching is opt-in, so by default the active tab polls (`docs/git-layer.md`, "Polling"): a fingerprint every 2 s and a `git status --porcelain=v2 -z` (read-only, `GIT_OPTIONAL_LOCKS=0`) every 5 s, backed off to at least 5 times the last refresh up to 60 s. Measured on Linux with this repository's checkout (1276 tracked files), mean of 10 runs: one status read takes ~54 ms, so the steady state is one such process per 5 s, about 1% of a core while the tab is active, and nothing for a hidden tab. A repository whose status takes 2 s polls every 10 s (about 20%, the back-off keeps it from growing). The fingerprint only lists the git directory root, `refs/` and `worktrees/`; it was not timed separately (tens of entries here, a repository with thousands of refs enumerates them every 2 s). The timer wakes the process once per refs interval (2 s) while a tab is visible. Idle CPU of the whole app was not re-measured with the poller and the large `testing`-skill repository was not used; the numbers above are estimates from the status run (follow-up measurement welcome).
+
+## Working tree watching (#504, opt-in since #543)
 
 Measured with a throwaway repo (git init, no remote), Linux, Debug build of the watcher tests project, `RepositoryWatcher` with `WorkingTreeDirectoryLister` against the old recursive mode. Tree: 450 tracked source directories (2 levels, one file each) plus an ignored `node_modules` of 1500 packages x 4 nested directories (9922 directories on disk in all).
 
@@ -105,5 +109,7 @@ With `theme = auto` startup writes one OSC 11 query followed by a DA1 query (`ES
 Measured with a throwaway pty harness (a Python script that forks the Native AOT linux-x64 binary on a 120x40 pty and replies like a terminal; not committed; single runs, a few ms of floor) as time to the first frame: a terminal answering OSC 11 and DA1, or DA1 only, ~26 ms; a terminal that never answers ~75-80 ms (the full timeout), still inside the 100 ms budget. Skipped for `theme` light or dark, no tty, `NO_COLOR`, Windows and `TERM` unset, dumb or linux.
 
 ## File content view, worst case (#580)
+
+Since #635 the content follows the tree cursor: the worst case below applies per rest of the cursor on a big file, not per `Enter`. Reads are cancelled when the cursor moves on and start only after 40 ms of rest (not measured separately; the cost per rest is the one below, a held `j` reads only where it stops).
 
 A 1 MiB blob of `"\n"` lines (the 1 MiB blob limit gives 1,048,576 rows, no row cap). Measured with a throwaway xUnit test (not committed; JIT, not the AOT binary), one run, this machine; the rows then share one empty string, and a file of `a` lines has half the rows with separate strings (not measured): building the document 50 ms and about 56 MB of rows; the wrap map at 100 columns 23 ms; searching for a string that never matches 11 ms; copying the whole file 16 ms. Scrolling was not timed: a frame renders the visible rows only, and the wrap map is the one per-document pass (rebuilt on a width change). The committed test only checks the row count and the copied text. No row cap was added: the numbers are well inside the budget and the memory is held only while the file is shown. Revisit if the blob limit is raised.

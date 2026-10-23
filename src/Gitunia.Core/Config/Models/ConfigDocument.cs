@@ -22,4 +22,9 @@ public sealed record ConfigDocument
 
     /// <summary>The folders the repository picker scans, read by <c>OptionsConfigurator</c>.</summary>
     public JsonElement? ScanRoots { get; init; }
+
+    /// <summary>
+    /// <c>true</c> turns on live file watching (off by default: tabs poll), read by <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? WatchFiles { get; init; }
 }

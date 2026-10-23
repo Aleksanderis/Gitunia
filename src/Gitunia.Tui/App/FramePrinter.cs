@@ -65,7 +65,7 @@ public sealed class FramePrinter
 
         // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
         arrangement ??= PaneArrangement.Normal;
-        if (PaneLayout.ShowsDiffWithChanges(width, height, tab))
+        if (tab == BottomTab.Changes && PaneLayout.ShowsDiffWithChanges(width, height, tab))
         {
             arrangement = arrangement with { IsDiffOpen = true };
         }

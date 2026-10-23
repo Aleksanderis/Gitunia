@@ -25,7 +25,8 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
-/// Runs the diff pane of the active tab. The diff is part of the Changes tab: where the screen has room the pane is always shown
+/// Runs the diff pane of the active tab (on the Files tab: the file content beside the tree, following its cursor).
+/// The diff is part of the Changes tab: where the screen has room the pane is always shown
 /// beside the file list and follows its cursor (see <see cref="PaneLayout.ShowsDiffWithChanges"/>); on narrow or short screens
 /// <c>Enter</c> opens it on demand. It scrolls and jumps through the diff, searches it and zooms panes. It is also the diff's search prompt (the box in Insert mode), so it plugs into the same prompt list as the
 /// graph search. Everything it changes about focus goes through workspace commands.
@@ -33,6 +34,11 @@ namespace Gitunia.Tui.App.Panes;
 public sealed class DiffPaneController : IPromptHandler
 {
     private const string SideBySideHint = " (zoom with <space>z)";
+    private const string FilePlaceholder = "Select a file to view its contents";
+    private const string SubmodulePlaceholder = "A submodule has no content to show";
+
+    // Long enough that a cursor held down the tree reads only where it rests, short enough not to be felt.
+    private static readonly TimeSpan ContentFollowDelay = TimeSpan.FromMilliseconds(40);
 
     private readonly WorkspaceHost _host;
     private readonly Func<TabSession?> _activeSession;
@@ -86,7 +92,7 @@ public sealed class DiffPaneController : IPromptHandler
     }
 
     /// <summary>The active tab's diff pane shows a file's content, not a diff.</summary>
-    public bool IsShowingContent => _activeSession()?.Diff is { IsShowingContent: true };
+    public bool IsShowingContent => _activeSession()?.Diff is { ShowsFilesPane: true };
 
     public string StatusLine => _actions.StatusLine(_activeSession()?.Diff);
 
@@ -98,8 +104,10 @@ public sealed class DiffPaneController : IPromptHandler
             return PaneArrangement.Normal with { Sizes = SizesOfActiveTab() };
         }
 
-        var zoomed = diff.ZoomedPane == _host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;
-        return new PaneArrangement(IsShown(diff), zoomed, SizesOfActiveTab());
+        var focused = _host.Workspace.ActiveTab?.View.FocusedPane;
+        var together = KeepsZoomTogether(diff.ZoomedPane, focused);
+        var zoomed = together || diff.ZoomedPane == focused ? focused : null;
+        return new PaneArrangement(IsShown(diff), zoomed, SizesOfActiveTab(), together);
     }
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
@@ -108,7 +116,9 @@ public sealed class DiffPaneController : IPromptHandler
     /// <summary>Forgets the active tab's zoom when focus moved to another pane, so returning to the zoomed pane does not zoom it again. Runs after every workspace command.</summary>
     public void ReleaseStaleZoom()
     {
-        if (_activeSession()?.Diff is { ZoomedPane: { } zoomed } diff && zoomed != _host.Workspace.ActiveTab?.View.FocusedPane)
+        if (_activeSession()?.Diff is { ZoomedPane: { } zoomed } diff
+            && zoomed != _host.Workspace.ActiveTab?.View.FocusedPane
+            && !KeepsZoomTogether(zoomed, _host.Workspace.ActiveTab?.View.FocusedPane))
         {
             diff.ZoomedPane = null;
         }
@@ -162,6 +172,13 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void FollowSelection()
     {
+        if (_activeSession() is { Diff: { } beside } filesSession && IsFilesBeside())
+        {
+            SyncContent(filesSession, beside);
+
+            return;
+        }
+
         if (_activeSession() is { Diff: { IsShowingContent: true } content } open)
         {
             // A file of one commit's tree stays on screen only while that commit is selected.
@@ -219,7 +236,8 @@ public sealed class DiffPaneController : IPromptHandler
             return "A submodule has no content to show";
         }
 
-        if (diff.ShownContentPath == row.Path && diff.ShownContentCommit == commit && diff.IsOpen)
+        var beside = IsFilesBeside();
+        if (diff.ShownContentPath == row.Path && diff.ShownContentCommit == commit && (diff.IsOpen || beside))
         {
             // Already open: only take focus, keeping the place in the file.
             _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
@@ -230,8 +248,9 @@ public sealed class DiffPaneController : IPromptHandler
         _actions.ForgetSearch(diff);
         diff.ShownContentPath = row.Path;
         diff.ShownContentCommit = commit;
-        diff.IsOpen = true;
-        diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
+        diff.IsContentPlaceholder = false;
+        diff.IsOpen = !beside;
+        diff.ZoomedPane = ZoomAfterOpening(diff);
         store.Load(commit, row.Path, blob, row.Size);
         ShowContent(diff, store);
         _relayout();
@@ -257,6 +276,13 @@ public sealed class DiffPaneController : IPromptHandler
     /// </summary>
     public void OnDetailCursorMoved()
     {
+        if (_activeSession() is { Diff: { } beside } filesSession && IsFilesBeside())
+        {
+            SyncContent(filesSession, beside);
+
+            return;
+        }
+
         if (_activeSession() is not { Diff: { } diff } session
             || !ShowsWithChanges()
             || !SetPendingFromCursor(diff))
@@ -328,11 +354,17 @@ public sealed class DiffPaneController : IPromptHandler
     private void OnWorkspaceChanged()
     {
         ReleaseStaleZoom();
-        if (_activeSession()?.Diff is { IsShowingContent: true } content
+        if (_activeSession()?.Diff is { ShowsFilesPane: true } content
             && _host.Workspace.ActiveTab?.View.BottomTab != BottomTab.Files)
         {
             // The file content belongs to the Files tab: another tab shows its own pane.
             CloseContent(content);
+        }
+
+        if (_activeSession() is { Diff: { } shown } filesSession && IsFilesBeside())
+        {
+            // The Files tab was selected: the pane shows what is under the tree's cursor.
+            SyncContent(filesSession, shown);
         }
 
         if (ReleaseHiddenFocus())
@@ -371,7 +403,7 @@ public sealed class DiffPaneController : IPromptHandler
             return true;
         }
 
-        if (diff.IsShowingContent && (action == ActionIds.DiffLoadAnyway || IsOptionAction(diff, action)))
+        if (diff.ShowsFilesPane && (action == ActionIds.DiffLoadAnyway || IsOptionAction(diff, action)))
         {
             Notice = "The file content has no diff options";
         }
@@ -418,8 +450,20 @@ public sealed class DiffPaneController : IPromptHandler
         return true;
     }
 
+    // Changes (or Files) and the diff beside it zoom as one view: focus moving between them keeps the zoom (#632).
+    private bool KeepsZoomTogether(PaneKind? zoomed, PaneKind? focused) =>
+        zoomed is { } z && focused is { } f && PaneZoom.IsZoomPair(z, f) && ShowsWithChanges();
+
+    // Opening a file keeps a zoom of the pair; on a screen too short for the strip the diff opens zoomed.
+    private PaneKind? ZoomAfterOpening(DiffSession diff) =>
+        !PaneLayout.CanOpenDiff(_screenSize().Height) ? PaneKind.Diff
+        : KeepsZoomTogether(diff.ZoomedPane, PaneKind.Diff) ? diff.ZoomedPane : null;
+
     /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
     private bool IsShown(DiffSession diff) => diff.IsOpen || ShowsWithChanges();
+
+    private bool IsFilesBeside() =>
+        _host.Workspace.ActiveTab?.View.BottomTab == BottomTab.Files && ShowsWithChanges();
 
     private bool ShowsWithChanges()
     {
@@ -509,7 +553,7 @@ public sealed class DiffPaneController : IPromptHandler
 
         // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
         diff.IsOpen = !ShowsWithChanges();
-        diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
+        diff.ZoomedPane = ZoomAfterOpening(diff);
         var started = diff.Store.Load(
             DiffCommit(loaded, commit),
             ParentToCompare(loaded),
@@ -582,9 +626,10 @@ public sealed class DiffPaneController : IPromptHandler
     // cursor follows, so the list and the diff stay on the same file. Past the first or last file nothing moves.
     private void MoveToFile(DiffSession diff, bool forward, int count)
     {
-        if (diff.IsShowingContent)
+        if (diff.ShowsFilesPane)
         {
-            Notice = "The file content has no other files to jump to";
+            MoveToFileRow(diff, forward, count);
+
             return;
         }
 
@@ -645,7 +690,6 @@ public sealed class DiffPaneController : IPromptHandler
         {
             // The diff belongs to the Changes tab and stays: going back only returns to the file list.
             diff.IsOpen = false;
-            diff.ZoomedPane = null;
             _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Detail)));
             _relayout();
             return;
@@ -659,6 +703,7 @@ public sealed class DiffPaneController : IPromptHandler
         diff.BuiltFolderPath = null;
         diff.ShownContentPath = null;
         diff.ShownContentCommit = null;
+        diff.IsContentPlaceholder = false;
         diff.ContentStore?.Clear();
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
@@ -720,9 +765,10 @@ public sealed class DiffPaneController : IPromptHandler
     {
         diff.ShownContentPath = null;
         diff.ShownContentCommit = null;
+        diff.IsContentPlaceholder = false;
         diff.ContentStore?.Clear();
         diff.IsOpen = false;
-        diff.ZoomedPane = null;
+        diff.ZoomedPane = ShowsWithChanges() ? diff.ZoomedPane : null;
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
         diff.ShownFull = null;
@@ -737,9 +783,103 @@ public sealed class DiffPaneController : IPromptHandler
         _refreshChrome();
     }
 
+    // The Files tab beside the tree shows what is under its cursor: a file's content (read off the UI thread; the old
+    // content stays until the new one arrives), else a placeholder.
+    private void SyncContent(TabSession session, DiffSession diff)
+    {
+        if (diff.ContentStore is not { } store)
+        {
+            return;
+        }
+
+        var row = TreeRowUnderCursor(session);
+        var commit = session.Tree?.Store.Current.Commit;
+        if (row is { Kind: not FileTreeRowKind.Directory and not FileTreeRowKind.Submodule, Blob: { } blob }
+            && commit is { } shown
+            && session.Details.Current.Commit == shown)
+        {
+            if (diff.ShownContentPath == row.Path && diff.ShownContentCommit == shown)
+            {
+                return;
+            }
+
+            diff.ShownContentPath = row.Path;
+            diff.ShownContentCommit = shown;
+            diff.IsContentPlaceholder = false;
+            store.Load(shown, row.Path, blob, row.Size, ContentFollowDelay);
+            _refreshChrome();
+
+            return;
+        }
+
+        ShowPlaceholder(diff, row?.Kind == FileTreeRowKind.Submodule ? SubmodulePlaceholder : FilePlaceholder);
+    }
+
+    private void ShowPlaceholder(DiffSession diff, string text)
+    {
+        if (diff.IsContentPlaceholder && diff.Source.Document.Rows is [{ } only] && only.Text == text)
+        {
+            return;
+        }
+
+        diff.ShownContentPath = null;
+        diff.ShownContentCommit = null;
+        diff.IsContentPlaceholder = true;
+        diff.ContentStore?.Clear();
+        _actions.ForgetSearch(diff);
+        diff.Source.Update(FileContentDocument.Placeholder(text));
+        _actions.Select(diff, 0, atTop: true);
+        _diffList.SetNeedsDraw();
+        _refreshChrome();
+    }
+
+    private FileTreeRow? TreeRowUnderCursor(TabSession session)
+    {
+        var rows = session.DetailSource.Content is { Tab: BottomTab.Files } content ? content.Tree : [];
+        var index = _detailList.SelectedItem ?? -1;
+
+        return index >= 0 && index < rows.Count ? rows[index] : null;
+    }
+
+    // ]f and [f in the file content pane: the tree's cursor moves to the next or previous file row, the pane follows.
+    private void MoveToFileRow(DiffSession diff, bool forward, int count)
+    {
+        if (_activeSession() is not { } session || !IsFilesBeside())
+        {
+            Notice = "The file content has no other files to jump to";
+
+            return;
+        }
+
+        var rows = session.DetailSource.Content.Tree;
+        var step = forward ? 1 : -1;
+        var target = -1;
+        var remaining = count;
+        var start = _detailList.SelectedItem ?? -1;
+        for (var next = start + step; next >= 0 && next < rows.Count && remaining > 0; next += step)
+        {
+            if (rows[next].Kind is not (FileTreeRowKind.Directory or FileTreeRowKind.Submodule))
+            {
+                target = next;
+                remaining--;
+            }
+        }
+
+        if (target < 0)
+        {
+            Notice = forward ? "No next file" : "No previous file";
+
+            return;
+        }
+
+        _detailList.SelectedItem = target;
+        _detailList.EnsureSelectedItemVisible();
+        SyncContent(session, diff);
+    }
+
     private void Refresh(DiffSession diff)
     {
-        if (diff.IsShowingContent)
+        if (diff.ShowsFilesPane || IsFilesBeside())
         {
             return;
         }

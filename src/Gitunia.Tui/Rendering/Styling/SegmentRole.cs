@@ -32,6 +32,9 @@ public enum SegmentRole
     Status,
     Faint,
 
+    /// <summary>The file name of a name-first file row: bold, so the dimmed directory after it recedes.</summary>
+    FileName,
+
     /// <summary>A failure notice.</summary>
     Error,
 

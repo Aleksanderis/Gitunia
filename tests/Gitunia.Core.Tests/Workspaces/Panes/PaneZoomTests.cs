@@ -26,4 +26,15 @@ public class PaneZoomTests
     {
         Assert.Null(PaneZoom.Toggle(PaneKind.Diff, PaneKind.Diff));
     }
+
+    [Theory]
+    [InlineData(PaneKind.Detail, PaneKind.Diff, true)]
+    [InlineData(PaneKind.Diff, PaneKind.Detail, true)]
+    [InlineData(PaneKind.Diff, PaneKind.Diff, true)]
+    [InlineData(PaneKind.Graph, PaneKind.Diff, false)]
+    [InlineData(PaneKind.Detail, PaneKind.Graph, false)]
+    public void GivenTwoPanes_WhenPairing_ThenOnlyDetailAndDiffDo(PaneKind a, PaneKind b, bool expected)
+    {
+        Assert.Equal(expected, PaneZoom.IsZoomPair(a, b));
+    }
 }

@@ -144,9 +144,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         _ => FocusedPane == PaneKind.Detail ? DetailViewName() : DefaultKeymap.GraphView,
     };
 
-    private string DetailViewName() => host.Workspace.ActiveTab?.View.BottomTab == BottomTab.Changes
-        ? DefaultKeymap.DetailChangesView
-        : DefaultKeymap.DetailView;
+    private string DetailViewName() => host.Workspace.ActiveTab?.View.BottomTab switch
+    {
+        BottomTab.Changes => DefaultKeymap.DetailChangesView,
+        BottomTab.Files => DefaultKeymap.DetailFilesView,
+        _ => DefaultKeymap.DetailView,
+    };
 
     // A refusal ("Busy", "is checked out in ...") is a warning: it gets the warning colour and joins the history.
     private void Refuse(string notice)

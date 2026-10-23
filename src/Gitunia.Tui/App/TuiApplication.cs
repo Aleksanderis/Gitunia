@@ -22,6 +22,8 @@ using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
+using Gitunia.Git.Watching;
+using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Platform.Urls;
@@ -177,7 +179,13 @@ public sealed class TuiApplication(
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new WorkspaceHost(Workspace.Empty);
-        _effects = new EffectRunner(services, _host, InvokeOnUi, glyphs, _statuses);
+        _effects = new EffectRunner(
+            services,
+            _host,
+            InvokeOnUi,
+            glyphs,
+            _statuses,
+            watcherOptions: WatcherOptionsFor(_startupConfig.Options));
 
         var clipboard = CreateClipboard();
         var sidebarSource = new SidebarListSource(glyphs);
@@ -600,6 +608,7 @@ public sealed class TuiApplication(
         viewName is DefaultKeymap.GraphView
             or DefaultKeymap.DetailView
             or DefaultKeymap.DetailChangesView
+            or DefaultKeymap.DetailFilesView
             or DefaultKeymap.DiffView
             or DefaultKeymap.WorkingUnstagedView
             or DefaultKeymap.WorkingStagedView
@@ -746,7 +755,13 @@ public sealed class TuiApplication(
     private PaneRects CurrentPaneRects()
     {
         var arrangement = _diffPane.Arrangement();
-        return PaneLayout.Compute(_view.Window.Viewport.Width, _view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
+        return PaneLayout.Compute(
+            _view.Window.Viewport.Width,
+            _view.Window.Viewport.Height,
+            arrangement.IsDiffOpen,
+            arrangement.Zoomed,
+            arrangement.Sizes,
+            arrangement.ZoomBoth);
     }
 
     private void Relayout()
@@ -1157,12 +1172,17 @@ public sealed class TuiApplication(
                     ? PaneHints.ForMessageEditing()
                     : DetailChangesFocused()
                     ? PaneHints.ForDetailChanges()
+                    : GraphComparing()
+                    ? PaneHints.ForGraphComparing()
                     : PaneHints.For(
                         _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
                         _diffPane.IsShowingContent),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };
+
+    private bool GraphComparing() =>
+        _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };
 
     private bool DetailChangesFocused() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes };
@@ -1298,6 +1318,21 @@ public sealed class TuiApplication(
         current is null || other is null
             ? current is null && other is null
             : current.Value.SequenceEqual(other.Value);
+
+    // Polling is the default; watching is opt-in and capped by the inotify instance limit (read at startup only).
+    private static RepositoryWatcherOptions WatcherOptionsFor(ConfigOptions options)
+    {
+        var defaults = RepositoryWatcherOptions.Default;
+        if (!options.WatchFiles)
+        {
+            return defaults;
+        }
+
+        var instances = InotifyLimit.ReadMaximumInstances();
+        var cap = InotifyLimit.DirectoryCap(instances, defaults.MaximumWorkingTreeDirectories);
+
+        return defaults with { UseFileWatchers = true, MaximumWorkingTreeDirectories = cap };
+    }
 
     // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
     private void ApplyOptions(ConfigOptions options)
@@ -1607,6 +1642,7 @@ public sealed class TuiApplication(
         if (previous is not null)
         {
             previous.Details.Changed -= RefreshDetail;
+            previous.Details.Changed -= _router.Compare!.Follow;
             previous.IssueLinksChanged -= RefreshDetail;
             if (previous.Tree is { IsEditingFilter: true } editing)
             {
@@ -1628,6 +1664,7 @@ public sealed class TuiApplication(
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
+            current.Details.Changed += _router.Compare!.Follow;
             current.IssueLinksChanged += RefreshDetail;
             if (current.Tree is { } currentTree)
             {

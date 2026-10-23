@@ -310,6 +310,169 @@ public class FileContentViewTests
         Assert.False(harness.Session.Diff!.IsOpen);
     }
 
+    [Fact]
+    public async Task GivenAWideScreen_WhenTheFilesTabShows_ThenThePlaceholderIsThereBeforeAnyKey()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.Controller.FollowSelection();
+
+        var diff = harness.Session.Diff!;
+        Assert.Equal(["Select a file to view its contents"], diff.Source.Document.Rows.Select(row => row.Text));
+        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+        Assert.False(diff.IsOpen);
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAWideScreen_WhenTheCursorMovesOverFiles_ThenTheContentFollowsWithoutEnter()
+    {
+        using var harness = await Harness.LoadAsync(120);
+
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+        Assert.Equal(["one", "two", "three"], harness.Session.Diff!.Source.Document.Rows.Select(row => row.Text));
+
+        harness.SelectFile("docs/guide.md");
+        await harness.WaitForContentAsync("docs/guide.md");
+        Assert.Equal(["# Guide"], harness.Session.Diff.Source.Document.Rows.Select(row => row.Text));
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAFileShown_WhenTheCursorMovesToAFolder_ThenThePlaceholderReplacesIt()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+
+        harness.SelectFile("docs");
+
+        var diff = harness.Session.Diff!;
+        Assert.True(diff.IsContentPlaceholder);
+        Assert.Null(diff.ShownContentPath);
+        Assert.Equal("Select a file to view its contents", diff.Source.Document.Rows[0].Text);
+    }
+
+    [Fact]
+    public async Task GivenAFileShown_WhenTheCursorMovesOn_ThenTheOldContentStaysUntilTheNewOneArrives()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+
+        harness.SelectFile("docs/guide.md");
+
+        Assert.Equal(["one", "two", "three"], harness.Session.Diff!.Source.Document.Rows.Select(row => row.Text));
+        await harness.WaitForContentAsync("docs/guide.md");
+    }
+
+    [Fact]
+    public async Task GivenTheCursorMovesFastOverFiles_WhenTheLastOneLoads_ThenOnlyItsContentShows()
+    {
+        using var harness = await Harness.LoadAsync(120);
+
+        harness.SelectFile("a.txt");
+        harness.SelectFile("docs/guide.md");
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync("a.txt");
+
+        Assert.Equal(["one", "two", "three"], harness.Session.Diff!.Source.Document.Rows.Select(row => row.Text));
+    }
+
+    [Fact]
+    public async Task GivenAFileShownBesideTheTree_WhenPressingTheScrollKeys_ThenTheContentScrollsAndFocusStays()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+        var diffList = harness.DiffList;
+        diffList.SelectedItem = 0;
+
+        harness.Execute(ActionIds.DiffScrollDown);
+        Assert.Equal(1, diffList.SelectedItem);
+        harness.Execute(ActionIds.DiffScrollDown);
+        harness.Execute(ActionIds.DiffScrollUp);
+        Assert.Equal(1, diffList.SelectedItem);
+        harness.Execute(ActionIds.DiffScrollHalfPageDown);
+        Assert.Equal(2, diffList.SelectedItem);
+        harness.Execute(ActionIds.DiffScrollHalfPageUp);
+        Assert.Equal(0, diffList.SelectedItem);
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAFileShownBesideTheTree_WhenPressingEnterAndGoingBack_ThenFocusMovesAndTheContentStays()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+
+        harness.Enter();
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+        harness.Execute(ActionIds.NavigateBack);
+
+        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+        Assert.Equal(3, harness.Session.Diff!.Source.Document.Rows.Count);
+        Assert.True(harness.Controller.Arrangement().IsDiffOpen);
+    }
+
+    [Fact]
+    public async Task GivenAFileShownBesideTheTree_WhenJumpingToTheNextFile_ThenTheTreeCursorAndContentMove()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+
+        harness.Execute(ActionIds.DiffNextFile);
+        await harness.WaitForContentAsync(harness.PathUnderCursor());
+
+        var rows = harness.Session.DetailSource.Content.Tree;
+        Assert.NotEqual("a.txt", rows[harness.DetailList.SelectedItem!.Value].Path);
+        Assert.NotEqual(FileTreeRowKind.Directory, rows[harness.DetailList.SelectedItem.Value].Kind);
+        Assert.Equal(rows[harness.DetailList.SelectedItem.Value].Path, harness.Session.Diff!.ShownContentPath);
+    }
+
+    [Fact]
+    public async Task GivenTheLastFile_WhenJumpingToTheNextFile_ThenTheNoticeSaysThereIsNone()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        var rows = harness.Session.DetailSource.Content.Tree;
+        harness.SelectFile(rows[^1].Path);
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+
+        harness.Execute(ActionIds.DiffNextFile);
+
+        Assert.Equal("No next file", harness.Controller.Notice);
+    }
+
+    [Fact]
+    public async Task GivenAFileShownBesideTheTree_WhenSwitchingToChanges_ThenThePlaceholderIsGone()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+
+        harness.Send(new SetBottomTabCommand(BottomTab.Changes));
+
+        var diff = harness.Session.Diff!;
+        Assert.False(diff.ShowsFilesPane);
+        Assert.False(diff.Source.Document.IsFileContent);
+    }
+
+    [Fact]
+    public async Task GivenAWideScreenWithAnotherCommit_WhenSelectingIt_ThenThePlaceholderShowsUntilItsTreeLoads()
+    {
+        using var harness = await Harness.LoadAsync(120);
+        harness.SelectFile("a.txt");
+        await harness.WaitForContentAsync();
+
+        await harness.SelectCommitAsync(harness.OtherCommit);
+        harness.Controller.FollowSelection();
+
+        Assert.True(harness.Session.Diff!.IsContentPlaceholder);
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly TestRepository _repository;
@@ -318,29 +481,38 @@ public class FileContentViewTests
         private KeyMode _mode = KeyMode.Normal;
         private int _cursor;
 
-        private Harness(WorkspaceHost host, TabSession session, UiPump pump, TestRepository repository, ObjectId other)
+        private Harness(
+            WorkspaceHost host,
+            TabSession session,
+            UiPump pump,
+            TestRepository repository,
+            ObjectId other,
+            int width)
         {
             Host = host;
             Session = session;
             _pump = pump;
             _repository = repository;
             OtherCommit = other;
-            var detailList = new ListView { Source = session.DetailSource };
+            DetailList = new ListView { Source = session.DetailSource };
+            var detailList = DetailList;
             var diffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             diffList.SetRelativeLayout(new Size(80, 24));
+            DiffList = diffList;
             Controller = new DiffPaneController(
                 host,
                 () => Session,
                 detailList,
                 diffList,
                 mode => _mode = mode,
-                () => new ScreenSize(60, 40),
+                () => new ScreenSize(width, 40),
                 () => { },
                 () => { },
                 new ClipboardCopier(
                     new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)),
                     new StatusChannel()));
             Controller.OnTabSwitched(null, session);
+            DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
             _fileTree = new FileTreeController(
                 host,
                 () => Session,
@@ -352,6 +524,8 @@ public class FileContentViewTests
         }
 
         public WorkspaceHost Host { get; }
+
+        public ListView DetailList { get; }
 
         public TabSession Session { get; }
 
@@ -365,7 +539,7 @@ public class FileContentViewTests
 
         public string FileTreeNotice => _fileTree.Notice;
 
-        public static async Task<Harness> LoadAsync()
+        public static async Task<Harness> LoadAsync(int width = 60)
         {
             var repository = TestRepository.Create()
                 .Commit("root", new TestFile("a.txt", "one\ntwo\nthree\n"))
@@ -396,7 +570,7 @@ public class FileContentViewTests
                 InlineUi.Post,
                 session.Cancellation.Token);
             var head = session.Graph[0].Id;
-            var harness = new Harness(host, session, pump, repository, session.Graph[1].Id);
+            var harness = new Harness(host, session, pump, repository, session.Graph[1].Id, width);
             host.Dispatch(new TabCommand(tabId, new SetBottomTabCommand(BottomTab.Files)));
             await harness.SelectCommitAsync(head);
             session.Tree!.Store.Select(head);
@@ -424,6 +598,7 @@ public class FileContentViewTests
             var index = rows.ToList().FindIndex(row => row.Path == path);
             Assert.True(index >= 0, $"{path} is not listed");
             _cursor = index;
+            DetailList.SelectedItem = index;
         }
 
         public void Enter() => Assert.True(_fileTree.TryExecute(ActionIds.DetailOpenDiff, null));
@@ -435,8 +610,19 @@ public class FileContentViewTests
             await WaitForContentAsync();
         }
 
+        public ListView DiffList { get; }
+
         public async Task WaitForContentAsync() =>
             await _pump.RunUntilAsync(() => Session.Diff!.ContentStore!.Current.Status == CommitDetailsStatus.Loaded);
+
+        public async Task WaitForContentAsync(string path) =>
+            await _pump.RunUntilAsync(
+                () => Session.Diff!.ContentStore!.Current is { Status: CommitDetailsStatus.Loaded } state
+                    && state.Path == path
+                    && ReferenceEquals(Session.Diff.Source.Document, state.Document));
+
+        public string PathUnderCursor() => Session.DetailSource.Content.Tree[DetailList.SelectedItem!.Value].Path;
+
 
         public void Execute(ActionId action) => Assert.True(Controller.TryExecute(action, null));
 

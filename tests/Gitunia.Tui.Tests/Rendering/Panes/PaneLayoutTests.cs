@@ -90,6 +90,34 @@ public class PaneLayoutTests
         Assert.False(PaneLayout.Compute(100, 10, true, PaneKind.Diff).Diff.IsEmpty);
     }
 
+    [Theory]
+    [InlineData(PaneKind.Detail)]
+    [InlineData(PaneKind.Diff)]
+    public void GivenBothPanesZoomed_WhenComputing_ThenTheyShareTheWholeAreaSideBySide(PaneKind zoomed)
+    {
+        var rects = PaneLayout.Compute(100, 30, true, zoomed, zoomBoth: true);
+
+        var area = ScreenLayout.GraphHeight(30);
+        Assert.True(rects.Sidebar.IsEmpty);
+        Assert.True(rects.Graph.IsEmpty);
+        Assert.Equal(area, rects.Detail.Height);
+        Assert.Equal(area, rects.Diff.Height);
+        Assert.Equal(1, rects.DetailTitle.Y);
+        Assert.Equal(1, rects.DiffTitle.Y);
+        Assert.Equal(98, rects.Detail.Width + 1 + rects.Diff.Width);
+        Assert.Equal(rects.Detail.Width + 2, rects.Diff.X);
+        Assert.Equal(area + 1, rects.BottomDivider.Height);
+    }
+
+    [Fact]
+    public void GivenBothZoomedOnAScreenTooNarrowForSideBySide_WhenComputing_ThenOnlyTheDiffZooms()
+    {
+        var rects = PaneLayout.Compute(60, 30, true, PaneKind.Diff, zoomBoth: true);
+
+        Assert.True(rects.Detail.IsEmpty);
+        Assert.Equal(58, rects.Diff.Width);
+    }
+
     [Fact]
     public void GivenTheSidebarIsZoomed_WhenComputing_ThenTheNormalLayoutStays()
     {

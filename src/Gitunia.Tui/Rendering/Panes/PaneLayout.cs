@@ -93,21 +93,41 @@ public static class PaneLayout
     public static bool CanOpenDiff(int screenHeight) => DetailLayout.PaneHeight(screenHeight) > 0;
 
     /// <summary>
-    /// The Changes tab always shows the diff of the selected file beside its file list, as long as the screen has room for both
-    /// (see <see cref="MinimumWidthForSideBySide"/>) and for the bottom strip. Narrower or shorter screens open the diff on demand instead.
+    /// The Changes tab always shows the diff of the selected file beside its file list, and the Files tab the content
+    /// of the file under its cursor, as long as the screen has room for both (see
+    /// <see cref="MinimumWidthForSideBySide"/>) and for the bottom strip. Narrower or shorter screens open the pane
+    /// on demand instead.
     /// </summary>
     public static bool ShowsDiffWithChanges(int screenWidth, int screenHeight, BottomTab tab) =>
-        tab == BottomTab.Changes && screenWidth >= MinimumWidthForSideBySide && CanOpenDiff(screenHeight);
+        tab is BottomTab.Changes or BottomTab.Files
+        && screenWidth >= MinimumWidthForSideBySide
+        && CanOpenDiff(screenHeight);
 
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="isDiffOpen">The diff pane is open.</param>
     /// <param name="zoomed">The zoomed pane, null for none.</param>
     /// <param name="sizes">The sizes the user chose, null for all automatic.</param>
-    public static PaneRects Compute(int screenWidth, int screenHeight, bool isDiffOpen, PaneKind? zoomed, PaneSizes? sizes = null)
+    /// <param name="zoomBoth">With a zoomed detail or diff pane with the diff beside it: both fill the area.</param>
+    public static PaneRects Compute(
+        int screenWidth,
+        int screenHeight,
+        bool isDiffOpen,
+        PaneKind? zoomed,
+        PaneSizes? sizes = null,
+        bool zoomBoth = false)
     {
         var top = ScreenLayout.GraphTop;
         var area = ScreenLayout.GraphHeight(screenHeight);
+        if (zoomBoth
+            && (zoomed is PaneKind.Detail or PaneKind.Diff)
+            && isDiffOpen
+            && DetailWidth(screenWidth, true, sizes) > 0
+            && CanOpenDiff(screenHeight))
+        {
+            return ZoomedBoth(screenWidth, top, area, sizes);
+        }
+
         if (zoomed is { } zoomedPane && PaneZoom.CanZoom(zoomedPane))
         {
             return Zoomed(zoomedPane, screenWidth, top, area);
@@ -136,6 +156,27 @@ public static class PaneLayout
             showDiff && detailWidth > 0 ? new PaneRect(detailWidth + 1, bottomTop, 1, paneHeight) : none,
             showDiff ? new PaneRect(diffLeft, bottomTop, diffWidth, 1) : none,
             showDiff ? new PaneRect(diffLeft, bottomTop + 1, diffWidth, contentHeight) : none);
+    }
+
+    // Both panes share the whole area, the detail pane keeping its width, each with its title on the top edge row.
+    private static PaneRects ZoomedBoth(int width, int top, int area, PaneSizes? sizes)
+    {
+        var none = new PaneRect(0, 0, 0, 0);
+        var inner = ScreenLayout.InnerWidth(width);
+        var detailWidth = DetailWidth(width, true, sizes);
+        var diffLeft = detailWidth + 2;
+        var diffWidth = Math.Max(0, inner - detailWidth - 1);
+        var titleRow = area > 0 ? 1 : 0;
+        return new PaneRects(
+            none,
+            none,
+            none,
+            none,
+            new PaneRect(1, ScreenLayout.FrameTop, detailWidth, titleRow),
+            new PaneRect(1, top, detailWidth, area),
+            new PaneRect(detailWidth + 1, ScreenLayout.FrameTop, 1, area + titleRow),
+            new PaneRect(diffLeft, ScreenLayout.FrameTop, diffWidth, titleRow),
+            new PaneRect(diffLeft, top, diffWidth, area));
     }
 
     // The zoomed detail and diff panes use the top edge row as their title row.
