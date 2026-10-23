@@ -15,6 +15,7 @@ try {
     $include = @()
     if ($Changed) {
         $base = git merge-base HEAD origin/main 2>$null
+        if (-not $base) { $base = git merge-base HEAD main 2>$null }
         if (-not $base) { $base = 'HEAD' }
         $files = @(git diff --name-only $base -- '*.cs')
         if ($files.Count -eq 0) { Write-Output '0 issue(s)'; exit 0 }
