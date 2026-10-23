@@ -13,11 +13,12 @@ public static class TerminalFocusReporting
     private const string Disable = "\x1b[?1004l";
 
     /// <summary>
-    /// True where the VT input stream of the Unix driver carries the sequences (Linux, macOS). Windows is unsupported
-    /// on purpose: its console driver reads native input records (with their own focus record) and the sequences are
-    /// not verified there; every other OS is unsupported too. Unsupported means focus never triggers a refresh.
+    /// True where the driver's VT input stream carries the sequences (Linux, macOS, and Windows, where the driver turns
+    /// on Virtual Terminal Input mode and parses ANSI like the Unix one; checked on Windows 11). Every other OS is
+    /// unsupported: focus never triggers a refresh there.
     /// </summary>
-    public static bool IsSupported => OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
+    public static bool IsSupported =>
+        OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows();
 
     /// <summary>
     /// Starts reporting on <paramref name="driver"/>; <paramref name="gained"/> runs on the input thread when the
