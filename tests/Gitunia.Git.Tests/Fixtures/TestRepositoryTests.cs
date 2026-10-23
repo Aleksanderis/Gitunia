@@ -65,22 +65,17 @@ public class TestRepositoryTests
         Assert.Equal("true", repository.GitIn(repository.OriginPath, ["rev-parse", "--is-bare-repository"]).Trim());
     }
 
-    [Fact]
-    public void GivenDivergedTrackingBranch_WhenCounting_ThenAheadAndBehindMatch()
+    [Theory]
+    [InlineData(2, 3)]
+    [InlineData(1, 0)]
+    [InlineData(0, 2)]
+    public void GivenTrackingBranch_WhenCounting_ThenAheadAndBehindMatch(int ahead, int behind)
     {
-        using var repository = TestRepositories.WithTrackingBranch(ahead: 2, behind: 3);
+        using var repository = TestRepositories.WithTrackingBranch(ahead: ahead, behind: behind);
 
-        Assert.Equal("2\t3", repository.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
-    }
-
-    [Fact]
-    public void GivenAheadOnlyAndBehindOnly_WhenCounting_ThenOtherSideIsZero()
-    {
-        using var ahead = TestRepositories.WithTrackingBranch(ahead: 1, behind: 0);
-        using var behind = TestRepositories.WithTrackingBranch(ahead: 0, behind: 2);
-
-        Assert.Equal("1\t0", ahead.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
-        Assert.Equal("0\t2", behind.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
+        Assert.Equal(
+            $"{ahead}\t{behind}",
+            repository.Git("rev-list", "--left-right", "--count", "topic...origin/topic").Trim());
     }
 
     [Fact]

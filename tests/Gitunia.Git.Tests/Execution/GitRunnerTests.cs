@@ -12,11 +12,15 @@ public class GitRunnerTests
     private static readonly string AnyDirectory = Path.GetTempPath();
 
     // The runner's timer also covers process start-up, which can exceed a few hundred ms under CPU load; the fake must have recorded its id before the kill.
-    private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(OperatingSystem.IsWindows() ? 2 : 1);
 
     private static readonly TimeSpan CancelDelayWithoutProcessId = TimeSpan.FromMilliseconds(300);
-    private static readonly TimeSpan SlowConsumerTimeout = TimeSpan.FromMilliseconds(1500);
-    private static readonly TimeSpan SlowConsumerDelay = TimeSpan.FromMilliseconds(3000);
+    // Windows keeps the wide margins of #634 (slow start-up on small runners); Unix runs the short ones.
+    private static readonly TimeSpan SlowConsumerTimeout =
+        TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 1500 : 1000);
+
+    private static readonly TimeSpan SlowConsumerDelay =
+        TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 3000 : 1500);
 
     // Only bounds a hang.
     private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
@@ -80,13 +84,13 @@ public class GitRunnerTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "The fake prints with sh.");
         using var fake = FakeGitExecutable.Create(
-            "i=0; while [ $i -lt 5 ]; do echo x >&2; sleep 0.5; i=$((i+1)); done",
+            "i=0; while [ $i -lt 8 ]; do echo x >&2; sleep 0.2; i=$((i+1)); done",
             "rem");
 
         var result = await RunnerFor(fake).RunAsync(
             AnyDirectory,
             ["fetch"],
-            new GitRunOptions(Timeout: TimeSpan.FromSeconds(1.5), OnStandardErrorLine: _ => { }),
+            new GitRunOptions(Timeout: TimeSpan.FromSeconds(1), OnStandardErrorLine: _ => { }),
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, result.ExitCode);
@@ -184,7 +188,8 @@ public class GitRunnerTests
         });
     }
 
-    // The idle timer also covers process start-up before the first chunk, so the timeout needs a wide margin under CPU load.
+    // The idle timer also covers process start-up before the first chunk, so the timeout keeps a margin
+    // over a loaded machine's start time.
     [Fact]
     public async Task GivenStalledStream_WhenIdleTimeoutElapses_ThenTimeoutAfterFirstChunk()
     {
@@ -196,7 +201,7 @@ public class GitRunnerTests
             await foreach (var unused in RunnerFor(fake).StreamAsync(
                 AnyDirectory,
                 ["log"],
-                new GitRunOptions(Timeout: TimeSpan.FromSeconds(8)),
+                new GitRunOptions(Timeout: TimeSpan.FromSeconds(OperatingSystem.IsWindows() ? 8 : 1)),
                 TestContext.Current.CancellationToken))
             {
                 chunks += unused.Length > 0 ? 1 : 0;
