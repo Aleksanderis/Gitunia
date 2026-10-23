@@ -261,7 +261,7 @@ public static class PaneHints
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;
 
-    /// <summary>The hints of the graph while a commit is marked for a comparison (#636): how to move and end it.</summary>
+    /// <summary>The hints of the graph while a commit is marked for a comparison (#636).</summary>
     public static IReadOnlyList<KeyHint> ForGraphComparing() => GraphComparing;
 
     public static IReadOnlyList<KeyHint> For(PaneKind pane) => pane switch
