@@ -54,14 +54,15 @@ public sealed class IssueTrackerLinks
         }
 
         var found = new List<IssueReference>();
-        foreach (var rule in _rules)
+        foreach (var rule in _rules.Where(candidate => !candidate.IsDisabled))
         {
             AddMatches(rule, line, found);
         }
 
-        found.Sort(static (left, right) => left.Start.CompareTo(right.Start));
         var kept = new List<IssueReference>();
-        foreach (var reference in found)
+
+        // A stable sort, so of two matches at one place the earlier rule stays first.
+        foreach (var reference in found.OrderBy(candidate => candidate.Start))
         {
             if (kept.Count == 0 || reference.Start >= kept[^1].Start + kept[^1].Length)
             {
@@ -89,7 +90,8 @@ public sealed class IssueTrackerLinks
         }
         catch (RegexMatchTimeoutException)
         {
-            // A runaway pattern makes no links rather than freezing the pane.
+            // A runaway pattern makes no links rather than freezing the pane, now or on the next line.
+            rule.IsDisabled = true;
         }
     }
 
@@ -116,5 +118,13 @@ public sealed class IssueTrackerLinks
         return builder.ToString();
     }
 
-    private sealed record CompiledRule(Regex Pattern, string UrlTemplate);
+    private sealed class CompiledRule(Regex pattern, string urlTemplate)
+    {
+        public Regex Pattern { get; } = pattern;
+
+        public string UrlTemplate { get; } = urlTemplate;
+
+        /// <summary>Set after the pattern timed out once: it makes no more links, so it cannot stall again.</summary>
+        public bool IsDisabled { get; set; }
+    }
 }

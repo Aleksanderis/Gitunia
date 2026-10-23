@@ -32,16 +32,44 @@ public sealed class UrlOpener : IUrlOpener
         var startInfo = OperatingSystem.IsWindows() ? WindowsStartInfo(url) : OpenerStartInfo(url);
         try
         {
-            using var process = Process.Start(startInfo);
+            var process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return OperatingSystem.IsWindows()
+                    ? new UrlOpenResult(true)
+                    : new UrlOpenResult(false, $"could not start {startInfo.FileName}");
+            }
 
-            return process is null && !OperatingSystem.IsWindows()
-                ? new UrlOpenResult(false, $"could not start {startInfo.FileName}")
-                : new UrlOpenResult(true);
+            if (startInfo.RedirectStandardOutput)
+            {
+                Drain(process);
+            }
+            else
+            {
+                process.Dispose();
+            }
+
+            return new UrlOpenResult(true);
         }
         catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
         {
             return new UrlOpenResult(false, $"could not start {startInfo.FileName} ({exception.Message})");
         }
+    }
+
+    // A browser started by the opener inherits the pipes, so they stay open and read (and thrown away) until the opener
+    // ends; closing them early could make the browser fail when it logs.
+    private static void Drain(Process process)
+    {
+        process.OutputDataReceived += static (_, _) => { };
+        process.ErrorDataReceived += static (_, _) => { };
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        _ = Task.Run(() =>
+        {
+            process.WaitForExit();
+            process.Dispose();
+        });
     }
 
     // The shell resolves the default browser; no cmd.exe is involved, so the address is never parsed as a command.

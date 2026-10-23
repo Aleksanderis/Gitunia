@@ -62,6 +62,21 @@ public class IssueTrackerReaderTests
     }
 
     [Fact]
+    public async Task GivenASectionWithoutAName_WhenReading_ThenItIsIgnoredWithoutAnError()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        WriteFile(testRepository, "[issuetracker]\n\tregex = x\n\turl = https://a/$1\n");
+
+        Assert.Empty(await ReadAsync(testRepository));
+    }
+
+    [Fact]
+    public void GivenKeysWithoutASubsectionName_WhenParsing_ThenTheyAreIgnored()
+    {
+        Assert.Empty(IssueTrackerParser.Parse("issuetracker.regex\nx\0issuetracker.url\nhttps://a/$1\0"));
+    }
+
+    [Fact]
     public void GivenARepeatedKey_WhenParsing_ThenTheLastValueWins()
     {
         var rules = IssueTrackerParser.Parse(

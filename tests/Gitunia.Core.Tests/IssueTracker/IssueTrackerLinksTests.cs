@@ -91,6 +91,36 @@ public class IssueTrackerLinksTests
     }
 
     [Fact]
+    public void GivenARunawayRegex_WhenFindingAgain_ThenTheRuleIsSkippedAtOnce()
+    {
+        var links = new IssueTrackerLinks([new IssueTrackerRule("slow", "^(a+)+$", "https://x.org/$1")]);
+        var slow = new string('a', 40) + "!";
+        links.Find(slow);
+
+        var started = DateTime.UtcNow;
+        for (var count = 0; count < 100; count++)
+        {
+            links.Find(slow);
+        }
+
+        Assert.True(DateTime.UtcNow - started < TimeSpan.FromMilliseconds(500));
+    }
+
+    [Fact]
+    public void GivenManyMatchesAndTwoRulesAtTheSamePlace_WhenFinding_ThenTheEarlierRuleStillWins()
+    {
+        var first = new IssueTrackerRule("a", "(#\\d+)", "https://a.example.org/$1");
+        var second = new IssueTrackerRule("b", "(#\\d+)", "https://b.example.org/$1");
+        var links = new IssueTrackerLinks([first, second]);
+        var line = string.Join(' ', Enumerable.Range(1, 30).Select(number => $"#{number}"));
+
+        var found = links.Find(line);
+
+        Assert.Equal(30, found.Count);
+        Assert.All(found, reference => Assert.StartsWith("https://a.", reference.Url, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenNoRulesOrNoText_WhenFinding_ThenThereAreNoReferences()
     {
         Assert.True(IssueTrackerLinks.None.IsEmpty);

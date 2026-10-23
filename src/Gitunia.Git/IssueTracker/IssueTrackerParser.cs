@@ -30,11 +30,15 @@ public static class IssueTrackerParser
 
             var key = entry[..split];
             var value = entry[(split + 1)..];
-            if (key.EndsWith(RegexSuffix, StringComparison.Ordinal))
+
+            // A section without a subname (`[issuetracker]`) has no name to link the two keys by.
+            if (key.Length > SectionPrefix.Length + RegexSuffix.Length
+                && key.EndsWith(RegexSuffix, StringComparison.Ordinal))
             {
                 Store(key[SectionPrefix.Length..^RegexSuffix.Length], value, patterns, order);
             }
-            else if (key.EndsWith(UrlSuffix, StringComparison.Ordinal))
+            else if (key.Length > SectionPrefix.Length + UrlSuffix.Length
+                && key.EndsWith(UrlSuffix, StringComparison.Ordinal))
             {
                 Store(key[SectionPrefix.Length..^UrlSuffix.Length], value, urls, order);
             }
