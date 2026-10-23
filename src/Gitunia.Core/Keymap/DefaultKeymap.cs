@@ -32,6 +32,7 @@ public static class DefaultKeymap
     public const string ConfirmView = "Confirm";
     public const string ReflogView = "Reflog";
     public const string RebaseEditorView = "RebaseEditor";
+    public const string ConflictEditorView = "ConflictEditor";
     public const string SettingsView = "Settings";
 
     private static readonly KeyMode[] Navigation = [KeyMode.Normal, KeyMode.Visual];
@@ -60,6 +61,7 @@ public static class DefaultKeymap
         [ConfirmView] = KeyBindingTable.GlobalView,
         [ReflogView] = ListsView,
         [RebaseEditorView] = ListsView,
+        [ConflictEditorView] = ListsView,
         [SettingsView] = ListsView,
     };
 
@@ -188,6 +190,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, SidebarView, "<space>l", ActionIds.ReflogOpen);
         AddReflogKeys(bindings);
         AddRebaseEditorKeys(bindings);
+        AddConflictEditorKeys(bindings);
         AddResetKeys(bindings, SidebarView);
         AddMergeKeys(bindings, GraphView);
         AddMergeKeys(bindings, SidebarView);
@@ -345,6 +348,22 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
 
+    // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t and
+    // b pick a side, u undoes the pick) are keys of the modal, not buffer commands, and shadow Lists' search keys there.
+    private static void AddConflictEditorKeys(List<KeyBinding> bindings)
+    {
+        const string editor = ConflictEditorView;
+        Add(bindings, NormalOnly, editor, "n", ActionIds.ConflictEditorNext);
+        Add(bindings, NormalOnly, editor, "N", ActionIds.ConflictEditorPrevious);
+        Add(bindings, NormalOnly, editor, "o", ActionIds.ConflictEditorOurs);
+        Add(bindings, NormalOnly, editor, "t", ActionIds.ConflictEditorTheirs);
+        Add(bindings, NormalOnly, editor, "b", ActionIds.ConflictEditorBoth);
+        Add(bindings, NormalOnly, editor, "u", ActionIds.ConflictEditorUndo);
+        Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
+        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
+    }
+
     // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys
     // of a modal list, not buffer commands, so the single letters do not clash with the Normal-mode rule of the panes.
     private static void AddSettingsKeys(List<KeyBinding> bindings)
@@ -387,6 +406,7 @@ public static class DefaultKeymap
         // Stage, unstage and discard also act on a Visual range of files.
         Add(bindings, Navigation, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
+        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, Navigation, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);

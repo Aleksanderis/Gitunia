@@ -34,6 +34,7 @@ using Gitunia.Tui.App.Merge;
 using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reflog;
+using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
@@ -132,6 +133,7 @@ public sealed class TuiApplication(
     private ResetActions _reset = null!;
     private ReflogController _reflog = null!;
     private RebaseEditorController _rebaseEditor = null!;
+    private ConflictEditorController _conflictEditor = null!;
     private SettingsController _settings = null!;
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
@@ -296,6 +298,7 @@ public sealed class TuiApplication(
             () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
         _reflog = CreateReflog(glyphs);
         _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
+        _conflictEditor = CreateConflictEditor(glyphs, operationGate, staging);
         _settings = CreateSettings(glyphs);
         _worktrees = CreateWorktrees(operationGate, sidebarSource);
         _router.Worktrees = _worktrees;
@@ -530,12 +533,13 @@ public sealed class TuiApplication(
     {
         // The settings do not open over another overlay (help, palette, a dialog, the reflog).
         if ((action == ActionIds.SettingsOpen || action == ActionIds.SettingsOpenTheme)
-            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen))
+            && (_overlays.State.IsOpen || _reflog.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen))
         {
             return;
         }
 
         if (_settings.TryExecute(action, count)
+            || _conflictEditor.TryExecute(action, count)
             || _rebaseEditor.TryExecute(action, count)
             || _reflog.TryExecute(action, count))
         {
@@ -646,12 +650,21 @@ public sealed class TuiApplication(
         var settingsView = _settings.OnLineClicked(line, _view.Overlay.PointerColumn, out var settingsHandled);
         var reflogView = _reflog.OnLineClicked(line, out var reflogHandled);
         var rebaseView = _rebaseEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var rebaseHandled);
+        var conflictView = _conflictEditor.OnLineClicked(line, _view.Overlay.PointerColumn, out var conflictHandled);
         if (settingsHandled)
         {
             _overlayClickTicks = Environment.TickCount64;
             if (settingsView is not null)
             {
                 _mouse.Handle(settingsView, MouseGesture.Click);
+            }
+        }
+        else if (conflictHandled)
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            if (conflictView is not null)
+            {
+                _mouse.Handle(conflictView, MouseGesture.Click);
             }
         }
         else if (rebaseHandled)
@@ -710,6 +723,7 @@ public sealed class TuiApplication(
     {
         _popups.MarkShown();
         var overlay = _settings.CurrentFrame()
+            ?? _conflictEditor.CurrentFrame()
             ?? _rebaseEditor.CurrentFrame()
             ?? _reflog.CurrentFrame()
             ?? _overlays.CurrentFrame();
@@ -1209,6 +1223,8 @@ public sealed class TuiApplication(
                 ? PaneHints.ForConfirm()
                 : _settings.IsOpen
                     ? PaneHints.ForSettings()
+                    : _conflictEditor.IsOpen
+                    ? PaneHints.ForConflictEditor()
                     : _rebaseEditor.IsOpen
                     ? (_rebaseEditor.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor())
                     : _reflog.IsOpen
@@ -1330,9 +1346,9 @@ public sealed class TuiApplication(
 
     // The overlays a mainline question or a prompt popup hides behind.
     private bool IsMainlineCovered() =>
-        _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen || _rebaseEditor.IsOpen;
+        _overlays.State.IsOpen || _reflog.IsOpen || _settings.IsOpen || _rebaseEditor.IsOpen || _conflictEditor.IsOpen;
 
-    private bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || IsOtherThanRebaseEditorOpen();
+    private bool IsAnyOverlayOpen() => _rebaseEditor.IsOpen || _conflictEditor.IsOpen || IsOtherThanRebaseEditorOpen();
 
     // The rebase editor is covered by these (its Confirm above all) and must not take their keys.
     private bool IsOtherThanRebaseEditorOpen() =>
@@ -1342,8 +1358,13 @@ public sealed class TuiApplication(
         || _pick.Prompt is not null
         || CurrentPopup() is not null;
 
+    // The conflict editor is covered by these (its Confirm above all) and must not take their keys.
+    private bool IsOtherThanConflictEditorOpen() => _rebaseEditor.IsOpen || IsOtherThanRebaseEditorOpen();
+
     private string OverlayViewName() => _settings.IsOpen
         ? DefaultKeymap.SettingsView
+        : _conflictEditor.IsOpen && !_overlays.State.IsOpen
+        ? DefaultKeymap.ConflictEditorView
         : _rebaseEditor.IsOpen && !_overlays.State.IsOpen
             ? DefaultKeymap.RebaseEditorView
             : _reflog.IsOpen ? DefaultKeymap.ReflogView : _overlays.ViewName;
@@ -1429,6 +1450,25 @@ public sealed class TuiApplication(
         () => _view.ScreenSize,
         glyphs,
         SetMode,
+        RefreshOverlay,
+        gate);
+
+    private ConflictEditorController CreateConflictEditor(
+        GraphGlyphSet glyphs,
+        TabOperationGate gate,
+        StagingActions staging) => new(
+        _host,
+        services.Conflicts,
+        services.ConflictWriter,
+        _statuses,
+        InvokeOnUi,
+        tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
+        ShowConfirm,
+        staging.AskResolvedFor,
+        tabId => _effects.Refresh(tabId, false),
+        IsOtherThanConflictEditorOpen,
+        () => _view.ScreenSize,
+        glyphs,
         RefreshOverlay,
         gate);
 

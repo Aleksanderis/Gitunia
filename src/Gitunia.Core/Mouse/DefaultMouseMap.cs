@@ -136,6 +136,24 @@ public static class DefaultMouseMap
 
     public const string RebaseCancelButton = "RebaseButton.Cancel";
 
+    /// <summary>The chips under the conflict editor (#689): each is a view of its own, a click runs the action its
+    /// key runs on the hunk under the cursor.</summary>
+    public const string ConflictOursButton = "ConflictButton.Ours";
+
+    public const string ConflictTheirsButton = "ConflictButton.Theirs";
+
+    public const string ConflictBothButton = "ConflictButton.Both";
+
+    public const string ConflictUndoButton = "ConflictButton.Undo";
+
+    public const string ConflictNextButton = "ConflictButton.Next";
+
+    public const string ConflictPreviousButton = "ConflictButton.Previous";
+
+    public const string ConflictSaveButton = "ConflictButton.Save";
+
+    public const string ConflictCancelButton = "ConflictButton.Cancel";
+
     /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
     /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
@@ -190,6 +208,15 @@ public static class DefaultMouseMap
         RebaseMoveDownButton,
         RebaseStartButton,
         RebaseCancelButton,
+        DefaultKeymap.ConflictEditorView,
+        ConflictOursButton,
+        ConflictTheirsButton,
+        ConflictBothButton,
+        ConflictUndoButton,
+        ConflictNextButton,
+        ConflictPreviousButton,
+        ConflictSaveButton,
+        ConflictCancelButton,
         DefaultKeymap.SettingsView,
         SettingsEditButton,
         SettingsAddButton,
@@ -264,6 +291,16 @@ public static class DefaultMouseMap
         new(RebaseMoveDownButton, MouseGesture.Click, ActionIds.RebaseEditorMoveDown),
         new(RebaseStartButton, MouseGesture.Click, ActionIds.RebaseEditorStart),
         new(RebaseCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
+        new(DefaultKeymap.ConflictEditorView, MouseGesture.WheelUp, ActionIds.ConflictEditorPrevious, 1),
+        new(DefaultKeymap.ConflictEditorView, MouseGesture.WheelDown, ActionIds.ConflictEditorNext, 1),
+        new(ConflictOursButton, MouseGesture.Click, ActionIds.ConflictEditorOurs),
+        new(ConflictTheirsButton, MouseGesture.Click, ActionIds.ConflictEditorTheirs),
+        new(ConflictBothButton, MouseGesture.Click, ActionIds.ConflictEditorBoth),
+        new(ConflictUndoButton, MouseGesture.Click, ActionIds.ConflictEditorUndo),
+        new(ConflictNextButton, MouseGesture.Click, ActionIds.ConflictEditorNext),
+        new(ConflictPreviousButton, MouseGesture.Click, ActionIds.ConflictEditorPrevious),
+        new(ConflictSaveButton, MouseGesture.Click, ActionIds.ConflictEditorSave),
+        new(ConflictCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(SettingsEditButton, MouseGesture.Click, ActionIds.SettingsActivate),

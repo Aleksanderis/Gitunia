@@ -150,6 +150,18 @@ public sealed class StagingActions(
         return string.Empty;
     }
 
+    /// <summary>
+    /// Opens the "mark resolved" Confirm for the conflicted <paramref name="path"/> of <paramref name="tab"/> (what
+    /// <c>&lt;space&gt;a</c> asks), for the conflict editor after it saved. Returns a notice when nothing was asked.
+    /// </summary>
+    public string AskResolvedFor(RepositoryState tab, string path)
+    {
+        var entry = tab.WorkingTree?.Unstaged
+            .FirstOrDefault(candidate => candidate.Path == path && candidate.Kind == StatusEntryKind.Unmerged);
+
+        return entry is null ? string.Empty : AskResolved(tab, entry);
+    }
+
     private static StatusEntry? ConflictedUnderCursor(WorkingTreeState tree) =>
         tree.Selection is { Section: WorkingTreeSection.Unstaged } selection
             ? tree.Unstaged.FirstOrDefault(entry => entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged)

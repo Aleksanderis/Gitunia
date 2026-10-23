@@ -12,6 +12,7 @@ using Gitunia.Git.IssueTracker;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Config;
+using Gitunia.Git.Conflicts;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Reflog;
 using Gitunia.Git.Refs;
@@ -62,6 +63,8 @@ namespace Gitunia.Tui.App;
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
 /// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
 /// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
+/// <param name="Conflicts">Reads a conflicted file into hunks for the conflict editor.</param>
+/// <param name="ConflictWriter">Writes the conflict editor's result into the working tree.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="WatchedDirectories">Lists the non-ignored working tree directories a tab watches.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
@@ -98,6 +101,8 @@ public sealed record GitServices(
     IWorktreeWriter Worktrees,
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
+    IConflictReader Conflicts,
+    IConflictWriter ConflictWriter,
     IGitConfigReader Config,
     IIssueTrackerReader IssueTracker,
     IRepositoryRefresher Refresher,
@@ -155,6 +160,8 @@ public sealed record GitServices(
             new WorktreeWriter(runner),
             new OperationWriter(operationRunner),
             new OperationInfoReader(),
+            new ConflictReader(runner),
+            new ConflictWriter(),
             new GitConfigReader(runner),
             new IssueTrackerReader(runner),
             new RepositoryRefresher(refs, status, operationDetector),

@@ -31,7 +31,7 @@ In:
 - Issue links in commit messages from a `.issuetracker` file (VS Code style regex and URL sections), opened in the browser. A link from the message only: no hosting-provider integration, no network access, no API.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
-Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
+Out until after MVP (ask before adding): submodules, LFS UI, blame view, free editing in the merge-conflict editor (hunk-wise picks are in), hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
 
 ## Stack
 
