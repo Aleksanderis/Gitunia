@@ -42,7 +42,8 @@ public sealed class ThemeFileContrastTests
                 var minimum = role is SegmentRole.Border ? DecorationRatio : ReadableRatio;
                 if (ratio < minimum)
                 {
-                    failures.Add($"{role} (selected={highlight.IsSelected}, focused={highlight.IsFocused}): {ratio:F2}");
+                    var state = $"selected={highlight.IsSelected}, focused={highlight.IsFocused}";
+                    failures.Add($"{role} ({state}): {ratio:F2}");
                 }
             }
         }
@@ -56,7 +57,10 @@ public sealed class ThemeFileContrastTests
     {
         var (colors, definition) = TableOf(name);
         SegmentRole[] roles =
-            [SegmentRole.Plain, SegmentRole.Faint, SegmentRole.DiffAdded, SegmentRole.DiffRemoved, SegmentRole.DiffGroupBar];
+        [
+            SegmentRole.Plain, SegmentRole.Faint, SegmentRole.DiffAdded, SegmentRole.DiffRemoved,
+            SegmentRole.DiffGroupBar,
+        ];
 
         foreach (var role in roles)
         {
@@ -77,7 +81,8 @@ public sealed class ThemeFileContrastTests
         for (var lane = 0; lane < colors.Lanes.Length; lane++)
         {
             Assert.True(
-                RatioOf(SegmentRole.Lane, new SegmentHighlight(false, false), colors, definition, lane) >= ReadableRatio,
+                RatioOf(SegmentRole.Lane, new SegmentHighlight(false, false), colors, definition, lane)
+                    >= ReadableRatio,
                 $"{name} lane {lane}");
         }
     }
@@ -92,7 +97,8 @@ public sealed class ThemeFileContrastTests
         {
             foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false) })
             {
-                var attribute = Palette.For(new StyledSegment("x", role), highlight.IsSelected, highlight.IsFocused, colors);
+                var segment = new StyledSegment("x", role);
+                var attribute = Palette.For(segment, highlight.IsSelected, highlight.IsFocused, colors);
                 var foreground = Quantize(Resolve(attribute.Foreground, definition, true));
                 var background = Quantize(Resolve(attribute.Background, definition, false));
                 var ratio = Contrast(foreground, background);
@@ -114,7 +120,9 @@ public sealed class ThemeFileContrastTests
         var settings = new PaletteSettings(ColorDepth.Ansi16, definition.IsLight, false, definition);
         var colors = PaletteTable.For(settings);
 
-        var refs = new[] { SegmentRole.RemoteBranch, SegmentRole.LocalBranch, SegmentRole.Tag, SegmentRole.CurrentBranch }
+        SegmentRole[] refRoles =
+            [SegmentRole.RemoteBranch, SegmentRole.LocalBranch, SegmentRole.Tag, SegmentRole.CurrentBranch];
+        var refs = refRoles
             .Select(role => Palette.For(new StyledSegment("x", role), false, false, colors).Foreground)
             .ToArray();
 
@@ -134,7 +142,9 @@ public sealed class ThemeFileContrastTests
     {
         var definition = DefinitionOf(name);
 
-        var settings = new PaletteSettings(ColorDepth.TrueColor, !definition.IsLight).WithTheme(new ThemeChoice(name), Themes);
+        var detected = new PaletteSettings(ColorDepth.TrueColor, !definition.IsLight);
+
+        var settings = detected.WithTheme(new ThemeChoice(name), Themes);
         var table = PaletteTable.For(settings);
 
         Assert.Equal(definition.IsLight, settings.IsLightBackground);
@@ -183,9 +193,11 @@ public sealed class ThemeFileContrastTests
         ThemeDefinition definition,
         int lane)
     {
-        var attribute = Palette.For(new StyledSegment("x", role, lane), highlight.IsSelected, highlight.IsFocused, colors);
+        var segment = new StyledSegment("x", role, lane);
+        var attribute = Palette.For(segment, highlight.IsSelected, highlight.IsFocused, colors);
+        var foreground = Resolve(attribute.Foreground, definition, true);
 
-        return Contrast(Resolve(attribute.Foreground, definition, true), Resolve(attribute.Background, definition, false));
+        return Contrast(foreground, Resolve(attribute.Background, definition, false));
     }
 
     private static int Resolve(Color color, ThemeDefinition definition, bool isForeground) => color != Color.None

@@ -12,7 +12,7 @@ public static class BuiltInThemes
     private const string ResourcePrefix = "themes/";
     private const string ResourceSuffix = ".json";
 
-    /// <summary>The names (file names without extension) of the built-in themes, in the order they are listed.</summary>
+    /// <summary>The names (file names without extension) of the built-in themes, in listed order.</summary>
     public static IReadOnlyList<string> Names { get; } =
     [
         "catppuccin-mocha",
@@ -32,12 +32,13 @@ public static class BuiltInThemes
         .Select(name => name[ResourcePrefix.Length..^ResourceSuffix.Length])
         .Order(StringComparer.Ordinal)];
 
-    /// <summary>The theme of that name, null when there is none or its file is invalid (a bug, reported as a problem).</summary>
+    /// <summary>The theme of that name, null when there is none or its file is invalid (a bug).</summary>
     /// <param name="name">The lower-case name.</param>
     /// <param name="problems">Receives the reasons a built-in file is invalid.</param>
     public static ThemeDefinition? Find(string name, ICollection<ConfigProblem> problems)
     {
-        using var stream = typeof(BuiltInThemes).Assembly.GetManifestResourceStream($"{ResourcePrefix}{name}{ResourceSuffix}");
+        var resource = $"{ResourcePrefix}{name}{ResourceSuffix}";
+        using var stream = typeof(BuiltInThemes).Assembly.GetManifestResourceStream(resource);
         if (stream is null)
         {
             return null;

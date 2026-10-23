@@ -1,6 +1,6 @@
 namespace Gitunia.Core.Themes.Models;
 
-/// <summary>The names of the 16 terminal colours a theme file can use in its <c>ansi</c> object (case does not matter).</summary>
+/// <summary>The names of the 16 terminal colours a theme file can use in its <c>ansi</c> object (any case).</summary>
 public static class AnsiColorNames
 {
     /// <summary>All 16 names.</summary>

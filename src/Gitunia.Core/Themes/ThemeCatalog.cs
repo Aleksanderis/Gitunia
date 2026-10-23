@@ -18,7 +18,7 @@ public sealed class ThemeCatalog(string themesDirectory)
     private readonly Dictionary<string, ThemeDefinition?> _loaded = new(StringComparer.Ordinal);
     private IReadOnlyDictionary<string, string>? _userFiles;
 
-    /// <summary>The names of the choices that are themes: the built-in ones, then the user's, each once, lower case.</summary>
+    /// <summary>The theme names on offer: the built-in ones, then the user's, each once, lower case.</summary>
     public IReadOnlyList<string> Names =>
     [
         .. BuiltInThemes.Names,

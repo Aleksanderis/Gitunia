@@ -432,7 +432,9 @@ public class PaletteTests
         bool detectedLight,
         bool expectedLight)
     {
-        var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(ThemeChoice.FromText(themeName), Themes);
+        var choice = ThemeChoice.FromText(themeName);
+
+        var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(choice, Themes);
 
         Assert.Equal(expectedLight, settings.IsLightBackground);
         Assert.Equal(ColorDepth.Ansi16, settings.Depth);
@@ -441,7 +443,8 @@ public class PaletteTests
     [Fact]
     public void GivenTheLightTheme_WhenTheTerminalLooksDark_ThenTheTableIsTheLightOne()
     {
-        var forced = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.Light, Themes));
+        var forced = PaletteTable.For(
+            new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.Light, Themes));
 
         Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, true)).Accent, forced.Accent);
         Assert.NotEqual(PaletteTable.For(PaletteSettings.Default).Accent, forced.Accent);
@@ -457,7 +460,9 @@ public class PaletteTests
         bool detectedLight,
         bool paintsBase)
     {
-        var table = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, detectedLight).WithTheme(ThemeChoice.FromText(themeName), Themes));
+        var choice = ThemeChoice.FromText(themeName);
+        var table = PaletteTable.For(
+            new PaletteSettings(ColorDepth.TrueColor, detectedLight).WithTheme(choice, Themes));
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Hash), false, false, table);
 
         Assert.Equal(paintsBase, table.BaseBackground != Color.None);

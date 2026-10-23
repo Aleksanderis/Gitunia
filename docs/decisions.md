@@ -446,4 +446,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-23
 
-**UI:** Themes (#61) are JSON files in one format (`version` 1, `variant`, `colors`, optional `ansi`; `docs/ux.md`, "Theme files"), built-in ones embedded in the binary and parsed with the DOM reader (AOT-safe, only the chosen one is read). Their 16-colour look is the variant's table plus optional `ansi` overrides, since the terminal owns the 16 colours. Catppuccin Latte and the Tokyo Night Day values are darkened where the published ones fail 4.5 contrast.
+**UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. The published Latte and Tokyo Night Day values are darkened where they fail 4.5 contrast.

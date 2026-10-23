@@ -13,7 +13,7 @@ namespace Gitunia.Tui.Views.Theme;
 /// <param name="IsLightBackground">The terminal has a light background (darker accents, light selection tints).</param>
 /// <param name="PaintsBase">The scheme paints its own base text and background colours because the theme was forced against the terminal's background.</param>
 /// <param name="Definition">
-/// A theme file to take the colours from (24-bit) and the 16-colour overrides from, null for the built-in dark and light schemes.
+/// A theme file to take the colours (24-bit) and the 16-colour overrides from, null for the built-in schemes.
 /// </param>
 public sealed record PaletteSettings(
     ColorDepth Depth,

@@ -154,13 +154,17 @@ public sealed class ConfigStartupTests : IDisposable
     public void GivenABrokenUserThemeFile_WhenLoading_ThenAutoAppliesWithTheFilesProblems()
     {
         var themes = Directory.CreateDirectory(Path.Combine(_directory, "themes")).FullName;
-        File.WriteAllText(Path.Combine(themes, "mine.json"), """{ "variant": "dark", "colors": { "lanes": ["#000000"] } }""");
+        File.WriteAllText(
+            Path.Combine(themes, "mine.json"),
+            """{ "variant": "dark", "colors": { "lanes": ["#000000"] } }""");
         Write("""{ "theme": "mine" }""");
 
         var config = new ConfigStartup(_directory, _directory).Load();
 
         Assert.Equal(ThemeChoice.Auto, config.Theme);
-        Assert.Contains(config.Keymap.Problems, problem => problem.Path.StartsWith("mine: colors.accent", StringComparison.Ordinal));
+        Assert.Contains(
+            config.Keymap.Problems,
+            problem => problem.Path.StartsWith("mine: colors.accent", StringComparison.Ordinal));
         Assert.Contains(config.Keymap.Problems, problem => problem.Path == "theme");
     }
 

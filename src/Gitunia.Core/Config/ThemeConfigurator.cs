@@ -25,19 +25,21 @@ public static class ThemeConfigurator
 
         if (value.Value.ValueKind != JsonValueKind.String)
         {
-            problems.Add(new ConfigProblem("theme", "theme must be a string (auto, dark, light or a theme name), using auto"));
+            var text = "theme must be a string (auto, dark, light or a theme name), using auto";
+            problems.Add(new ConfigProblem("theme", text));
             return ThemeChoice.Auto;
         }
 
-        var text = value.Value.GetString() ?? string.Empty;
-        var choice = ThemeChoice.FromText(text);
+        var written = value.Value.GetString() ?? string.Empty;
+        var choice = ThemeChoice.FromText(written);
         var names = themeNames ?? BuiltInThemes.Names;
         if (!choice.IsNamedTheme || names.Contains(choice.Name))
         {
             return choice;
         }
 
-        var message = $"\"{text}\" is not a theme (use auto, dark, light or one of {string.Join(", ", names)}), using auto";
+        var choices = string.Join(", ", names);
+        var message = $"\"{written}\" is not a theme (use auto, dark, light or one of {choices}), using auto";
         problems.Add(new ConfigProblem("theme", message));
 
         return ThemeChoice.Auto;

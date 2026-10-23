@@ -122,7 +122,8 @@ public static class ThemeFileParser
     {
         if (!root.TryGetProperty(ColorsKey, out var section) || section.ValueKind != JsonValueKind.Object)
         {
-            problems.Add(new ConfigProblem(file, $"{ColorsKey} must be an object of role names to \"#rrggbb\" colours"));
+            var text = $"{ColorsKey} must be an object of role names to \"#rrggbb\" colours";
+            problems.Add(new ConfigProblem(file, text));
             return null;
         }
 

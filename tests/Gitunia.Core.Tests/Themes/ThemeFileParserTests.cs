@@ -44,7 +44,9 @@ public sealed class ThemeFileParserTests
     {
         var problems = new List<ConfigProblem>();
 
-        var theme = ThemeFileParser.Parse("mine", Json(variant: "Light", ansi: "\"ansi\": { \"Accent\": \"BRIGHTCYAN\" },"), problems);
+        var ansi = "\"ansi\": { \"Accent\": \"BRIGHTCYAN\" },";
+
+        var theme = ThemeFileParser.Parse("mine", Json(variant: "Light", ansi: ansi), problems);
 
         Assert.NotNull(theme);
         Assert.True(theme.IsLight);
@@ -68,7 +70,9 @@ public sealed class ThemeFileParserTests
     {
         var problems = new List<ConfigProblem>();
 
-        var theme = ThemeFileParser.Parse("mine", Json().Replace("\"accent\": \"#010203\",", string.Empty, StringComparison.Ordinal), problems);
+        var text = Json().Replace("\"accent\": \"#010203\",", string.Empty, StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
 
         Assert.Null(theme);
         Assert.Contains("colors.accent", Assert.Single(problems).Path, StringComparison.Ordinal);
@@ -83,7 +87,9 @@ public sealed class ThemeFileParserTests
     {
         var problems = new List<ConfigProblem>();
 
-        var theme = ThemeFileParser.Parse("mine", Json().Replace("\"accent\": \"#010203\"", $"\"accent\": \"{colour}\"", StringComparison.Ordinal), problems);
+        var text = Json().Replace("\"accent\": \"#010203\"", $"\"accent\": \"{colour}\"", StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
 
         Assert.Null(theme);
         Assert.Contains("colors.accent", Assert.Single(problems).Path, StringComparison.Ordinal);
@@ -132,12 +138,20 @@ public sealed class ThemeFileParserTests
         Assert.Contains("lanes", Assert.Single(problems).Path, StringComparison.Ordinal);
     }
 
-    private static string Json(string variant = "dark", string extra = "", string ansi = "", string lanes = "\"lanes\": [\"#010203\", \"#040506\"]")
+    private static string Json(
+        string variant = "dark",
+        string extra = "",
+        string ansi = "",
+        string lanes = "\"lanes\": [\"#010203\", \"#040506\"]")
     {
-        const string roles = "accent good bad remote warn info border barBackground selectionFocused selectionDim chipForeground baseForeground baseBackground";
+        const string roles = "accent good bad remote warn info border barBackground selectionFocused selectionDim "
+            + "chipForeground baseForeground baseBackground";
         var colors = string.Join(' ', roles.Split(' ').Select(role => $"\"{role}\": \"#010203\","));
         colors = colors.Replace("\"warn\": \"#010203\"", "\"warn\": \"#040506\"", StringComparison.Ordinal)
-            .Replace("\"selectionFocused\": \"#010203\"", "\"selectionFocused\": \"#222222\"", StringComparison.Ordinal);
+            .Replace(
+                "\"selectionFocused\": \"#010203\"",
+                "\"selectionFocused\": \"#222222\"",
+                StringComparison.Ordinal);
 
         return $$"""
             {

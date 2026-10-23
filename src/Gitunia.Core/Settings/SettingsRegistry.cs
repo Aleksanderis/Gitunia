@@ -84,7 +84,10 @@ public static class SettingsRegistry
     public static IReadOnlyList<SettingDefinition> WithThemes(IEnumerable<string> themeNames) =>
     [
         .. All.Select(definition => definition.Id == ThemeId
-            ? definition with { Choices = [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. themeNames] }
+            ? definition with
+            {
+                Choices = [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. themeNames],
+            }
             : definition),
     ];
 
