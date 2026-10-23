@@ -78,6 +78,8 @@ public static class ActionIds
 
     public static ActionId GraphCopyHash { get; } = new("graph.copy-hash");
 
+    public static ActionId GraphCompare { get; } = new("graph.compare");
+
     public static ActionId GraphJumpToHead { get; } = new("graph.jump-to-head");
 
     public static ActionId GraphJumpToRef { get; } = new("graph.jump-to-ref");

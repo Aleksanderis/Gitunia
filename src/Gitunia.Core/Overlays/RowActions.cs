@@ -42,6 +42,7 @@ public static class RowActions
         ActionIds.RebaseDrop,
         ActionIds.GraphCopyHash,
         ActionIds.GraphOpenDetails,
+        ActionIds.GraphCompare,
     ];
 
     /// <summary>The graph row actions; Open details is left out while the details pane is hidden (#490).</summary>

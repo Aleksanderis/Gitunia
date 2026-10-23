@@ -16,6 +16,7 @@ using Gitunia.Tui.App.Rebase;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reset;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.ExternalTools;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.App.Sidebar;
@@ -93,6 +94,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
 
     /// <summary>Cherry-picking or reverting the selected commits onto the current branch.</summary>
     public PickActions? Pick { get; set; }
+
+    /// <summary>Marks a commit and compares it with another (#535); also clears the mark with Esc.</summary>
+    public CompareActions? Compare { get; set; }
 
     /// <summary>Resetting the current branch to a commit, in the graph and the sidebar.</summary>
     public ResetActions? Reset { get; set; }
@@ -312,6 +316,12 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (Remote?.TryExecute(action, count) == true)
         {
             Message = Remote.Notice;
+            return;
+        }
+
+        if (Compare?.TryExecute(action) == true)
+        {
+            Message = Compare.Notice;
             return;
         }
 

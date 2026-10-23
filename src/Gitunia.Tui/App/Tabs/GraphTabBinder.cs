@@ -40,6 +40,7 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         var activeId = host.Workspace.ActiveTabId;
         var session = activeId is { } shownId ? effects.SessionOf(shownId) : null;
         ShowUpstreamGone(session);
+        ShowCompareMark(session);
 
         // A tab pointed at another worktree gets a new session under the same id: its graph is shown from here on.
         if (_hasShown && activeId == _shownTabId && session == _shownSession)
@@ -95,6 +96,20 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
         _goneSession = session;
         _goneRefs = tab.Refs;
         session.Source.UpstreamGoneBranches = UpstreamGoneBranches.Of(tab.Refs);
+        graph.SetNeedsDraw();
+    }
+
+    // The mark is part of the tab's state; the list source only draws it.
+    private void ShowCompareMark(TabSession? session)
+    {
+        if (session is null
+            || host.Workspace.ActiveTab is not { } tab
+            || session.Source.MarkedCommit == tab.View.CompareMark)
+        {
+            return;
+        }
+
+        session.Source.MarkedCommit = tab.View.CompareMark;
         graph.SetNeedsDraw();
     }
 

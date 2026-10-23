@@ -86,7 +86,15 @@ public static class DetailContentBuilder
         if (details is not null)
         {
             AddPeople(rows, details);
-            AddParents(rows, details);
+            if (details.IsComparison)
+            {
+                rows.Add(Labelled("compare", new StyledSegment(CompareText(details), SegmentRole.Hash)));
+            }
+            else
+            {
+                AddParents(rows, details);
+            }
+
             AddRefs(rows, entry.Decorations);
             rows.Add(Blank());
             AddMessage(rows, details.Message);
@@ -108,7 +116,7 @@ public static class DetailContentBuilder
             return [Status(entry, state)];
         }
 
-        var heading = FilesHeading(details.Files.Count) + MergeNote(details);
+        var heading = FilesHeading(details.Files.Count) + MergeNote(details) + CompareNote(details);
         var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
         AddFiles(rows, details.Files);
         return rows;
@@ -262,7 +270,7 @@ public static class DetailContentBuilder
     /// <summary>A merge commit lists its changes against one parent, like the diff pane; name it.</summary>
     private static string MergeNote(CommitDetails details)
     {
-        if (details.Parents.Count <= 1)
+        if (details.Parents.Count <= 1 || details.IsComparison)
         {
             return string.Empty;
         }
@@ -272,6 +280,13 @@ public static class DetailContentBuilder
 
         return $" (merge: against {which} {ShortHash(details.Parents[details.ParentIndex])})";
     }
+
+    /// <summary>A comparison names its two ends, older first, like the <c>git diff</c> it shows.</summary>
+    private static string CompareNote(CommitDetails details) =>
+        details.IsComparison ? $" ({CompareText(details)})" : string.Empty;
+
+    private static string CompareText(CommitDetails details) =>
+        $"{ShortHash(details.CompareOlder!.Value)}..{ShortHash(details.CompareNewer!.Value)}";
 
     private static string FilesHeading(int count) => count switch
     {

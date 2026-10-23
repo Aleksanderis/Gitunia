@@ -18,6 +18,7 @@ public static class RepositoryReducer
         LeaveWorkingTreeCommand => state with { View = state.View with { Mode = TabViewMode.History, FocusedPane = PaneKind.Graph } },
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
+        SetCompareMarkCommand mark => state with { View = state.View with { CompareMark = mark.Commit } },
         TogglePathStyleCommand => state with { View = state.View with { PathStyle = Toggled(state.View.PathStyle) } },
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },

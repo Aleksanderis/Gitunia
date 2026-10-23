@@ -166,6 +166,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>j", ActionIds.QuickJump);
         Add(bindings, NormalOnly, GraphView, "Enter", ActionIds.GraphOpenDetails);
         Add(bindings, NormalOnly, GraphView, "y", ActionIds.GraphCopyHash);
+        Add(bindings, NormalOnly, GraphView, "<space>=", ActionIds.GraphCompare);
         Add(bindings, NormalOnly, GraphView, "<space>r", ActionIds.RepositoryRefresh);
         Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
         Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
