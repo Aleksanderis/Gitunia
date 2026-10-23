@@ -240,6 +240,31 @@ public class WorkingDiffStoreTests
         Assert.Contains("deleted by them", store.Document.Rows.Single().Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task GivenAFolderOfManyFiles_WhenShown_ThenOnlyTheFirstFilesAreReadAndTheRestIsCounted()
+    {
+        var reader = new FakeDiffReader();
+        var entries = Enumerable.Range(0, 5000).Select(index => Modified($"src/f{index}.cs")).ToArray();
+        foreach (var entry in entries)
+        {
+            reader.SetWorking(WorkingDiffSide.Unstaged, entry.Path, FakeDiffReader.FileAdding(entry.Path, ["x"]));
+        }
+
+        var pump = new UiPump(Token);
+        using var store = new WorkingDiffStore(reader, FakeCommitDetailsReader.Location, pump.Post, folderFileLimit: 10);
+
+        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], new WorkingDiffFolder("src", entries)), 0);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Equal(10, reader.WorkingReadCount);
+        Assert.True(store.IsCut);
+        Assert.Contains(store.Document.Rows, row => row.Text.Contains("4990 more files left out", StringComparison.Ordinal));
+
+        Assert.True(store.LoadAnyway());
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded && !store.IsCut);
+        Assert.Equal(5010, reader.WorkingReadCount);
+    }
+
     private static WorkingDiffRequest Unstaged(string path) => new(WorkingDiffSide.Unstaged, Modified(path));
 
     private static WorkingDiffStore CreateStore(UiPump pump, FakeDiffReader reader, int rowLimit = DiffStore.DefaultRowLimit) =>
