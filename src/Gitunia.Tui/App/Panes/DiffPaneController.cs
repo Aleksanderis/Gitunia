@@ -352,6 +352,7 @@ public sealed class DiffPaneController : IPromptHandler
             ? new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused)
             : _actions.ModelOf(diff, diff.Store.Options, isFocused) with
             {
+                IsFolder = diff.BuiltFolderPath is not null,
                 FileNumber = diff.BuiltFolderPath is null ? diff.ShownFile + 1 : 0,
                 FileCount = diff.BuiltFolderPath is null
                     ? diff.ShownFull?.FilePaths.Count ?? 0
@@ -480,6 +481,7 @@ public sealed class DiffPaneController : IPromptHandler
         else
         {
             diff.PendingFilePath = filePath;
+            diff.PendingFolderPath = null;
         }
     }
 

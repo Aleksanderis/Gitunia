@@ -385,6 +385,10 @@ public class WorkspaceReducerTests
         Assert.Equal(FilePathStyle.FullPath, toggled.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.Tree, tree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.NameFirst, withoutTree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
+        var treeWithoutTree = WorkspaceReducer.Reduce(
+            tree,
+            new TabCommand(alpha, new TogglePathStyleCommand(IncludesTree: false))).Workspace;
+        Assert.Equal(FilePathStyle.FullPath, treeWithoutTree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.NameFirst, toggled.Tabs.Single(tab => tab.Id != alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.NameFirst, back.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
     }

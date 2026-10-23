@@ -43,6 +43,7 @@ public static class RepositoryReducer
     {
         FilePathStyle.NameFirst => FilePathStyle.FullPath,
         FilePathStyle.FullPath when includesTree => FilePathStyle.Tree,
+        FilePathStyle.Tree when !includesTree => FilePathStyle.FullPath,
         _ => FilePathStyle.NameFirst,
     };
 

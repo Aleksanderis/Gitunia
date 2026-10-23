@@ -73,7 +73,11 @@ public sealed record DiffDocument(
                 rows.Add(Rows[row].FileIndex < 0 ? Rows[row] : Rows[row] with { FileIndex = position });
             }
 
-            hunks.AddRange(HunkRows.Where(row => row >= start && row < end).Select(row => row + offset));
+            for (var hunk = FirstHunkAtOrAfter(start); hunk < HunkRows.Count && HunkRows[hunk] < end; hunk++)
+            {
+                hunks.Add(HunkRows[hunk] + offset);
+            }
+
             files.Add(first + offset);
             paths.Add(FilePaths[fileIndex]);
         }
@@ -108,5 +112,26 @@ public sealed record DiffDocument(
         }
 
         return -1;
+    }
+
+    // HunkRows is ascending: binary search keeps a folder of many files from scanning every hunk per file.
+    private int FirstHunkAtOrAfter(int row)
+    {
+        var low = 0;
+        var high = HunkRows.Count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (HunkRows[middle] < row)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
     }
 }

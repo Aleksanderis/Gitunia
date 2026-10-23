@@ -1778,6 +1778,7 @@ public sealed class TuiApplication(
             tab,
             FileTreeViewOf(session, entry, tab),
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst);
+        var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);
 
         var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;
@@ -1790,9 +1791,20 @@ public sealed class TuiApplication(
             landing,
             _view.Detail.SelectedItem,
             content.Rows.Count));
+        var remapped = DetailCursorRemap.Row(previous, content, previousCursor);
+        if (remapped >= 0)
+        {
+            _view.Detail.SelectedItem = remapped;
+        }
+
         _view.Detail.EnsureSelectedItemVisible();
         _view.Detail.SetNeedsDraw();
         _view.RefreshChrome();
         _diffPane.FollowSelection();
+        if (remapped >= 0)
+        {
+            // The cursor may keep its index while the row under it changed, so no cursor event tells the diff.
+            _diffPane.OnDetailCursorMoved();
+        }
     }
 }
