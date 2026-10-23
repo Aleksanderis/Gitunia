@@ -119,8 +119,11 @@ public static class PaneLayout
     {
         var top = ScreenLayout.GraphTop;
         var area = ScreenLayout.GraphHeight(screenHeight);
-        var sideBySide = isDiffOpen && DetailWidth(screenWidth, true, sizes) > 0 && CanOpenDiff(screenHeight);
-        if (zoomBoth && zoomed is PaneKind.Detail or PaneKind.Diff && sideBySide)
+        if (zoomBoth
+            && (zoomed is PaneKind.Detail or PaneKind.Diff)
+            && isDiffOpen
+            && DetailWidth(screenWidth, true, sizes) > 0
+            && CanOpenDiff(screenHeight))
         {
             return ZoomedBoth(screenWidth, top, area, sizes);
         }

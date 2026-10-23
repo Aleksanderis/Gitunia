@@ -450,7 +450,6 @@ public sealed class DiffPaneController : IPromptHandler
         return true;
     }
 
-    /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
     // Changes (or Files) and the diff beside it zoom as one view: focus moving between them keeps the zoom (#632).
     private bool KeepsZoomTogether(PaneKind? zoomed, PaneKind? focused) =>
         zoomed is { } z && focused is { } f && PaneZoom.IsZoomPair(z, f) && ShowsWithChanges();
@@ -460,6 +459,7 @@ public sealed class DiffPaneController : IPromptHandler
         !PaneLayout.CanOpenDiff(_screenSize().Height) ? PaneKind.Diff
         : KeepsZoomTogether(diff.ZoomedPane, PaneKind.Diff) ? diff.ZoomedPane : null;
 
+    /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
     private bool IsShown(DiffSession diff) => diff.IsOpen || ShowsWithChanges();
 
     private bool IsFilesBeside() =>
