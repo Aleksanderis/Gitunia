@@ -87,7 +87,7 @@ public class SidebarBuilderTests
 
         var rows = SidebarBuilder.Build(tab);
 
-        Assert.Equal(["Branches", "feature", "feature/login", "Remotes", "origin", "feature", "origin/feature/search"],
+        Assert.Equal(["Branches", "feature", "feature/login", "Remotes", "origin/feature", "origin/feature/search"],
             Labels(rows));
         Assert.All(rows.Where(row => row.IsSection), row => Assert.True(row.IsExpanded));
     }
@@ -179,8 +179,31 @@ public class SidebarBuilderTests
 
         var rows = SidebarBuilder.Build(tab);
 
-        Assert.Equal(["Branches", "feature", "ui", "feature/ui/needle"], Labels(rows));
+        Assert.Equal(["Branches", "feature/ui", "feature/ui/needle"], Labels(rows));
         Assert.All(rows.Where(row => row.IsContainer), row => Assert.True(row.IsExpanded));
+    }
+
+    [Fact]
+    public void GivenSingleChildFolderChain_WhenBuilding_ThenItIsOneRowAndTheLeafKeepsTheRestOfTheName()
+    {
+        var tab = Unfolded(Tab(refs: [Branch("main"), Branch("feature/ui/x"), Branch("feature/ui/y")]));
+        tab = tab with { Sidebar = tab.Sidebar with { OpenedFolders = [SidebarFolders.KeyOf(SidebarSection.Branches, "feature/ui")] } };
+
+        var rows = SidebarBuilder.Build(tab).Take(4).ToList();
+
+        Assert.Equal(["Branches", "feature/ui", "feature/ui/x", "feature/ui/y"], Labels(rows));
+        Assert.Equal(0, rows[1].Depth);
+        Assert.Equal("x", rows[2].ShortName);
+        Assert.Equal(1, rows[2].Depth);
+    }
+
+    [Fact]
+    public void GivenFolderWithALeafAndAFolder_WhenBuilding_ThenTheChainIsNotCompressed()
+    {
+        var tab = Tab(refs: [Branch("main"), Branch("feature/a"), Branch("feature/ui/x")]);
+        tab = tab with { Sidebar = tab.Sidebar with { FilterText = "e" } };
+
+        Assert.Equal(["Branches", "feature", "feature/a", "ui", "feature/ui/x"], Labels(SidebarBuilder.Build(tab)));
     }
 
     [Fact]

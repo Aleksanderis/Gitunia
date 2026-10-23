@@ -96,7 +96,7 @@ public class SidebarReducerTests
     [Fact]
     public void GivenBranchInNestedFolder_WhenCollapsing_ThenCursorGoesToItsFolderThenTheParentFolder()
     {
-        var tab = Tab(refs: [Branch("feature/ui/a", isCurrent: true)]);
+        var tab = Tab(refs: [Branch("feature/ui/a", isCurrent: true), Branch("feature/b")]);
         tab = MoveTo(tab, IndexOf(tab, "feature/ui/a"));
 
         tab = Reduce(tab, new CollapseSidebarCommand());
@@ -118,8 +118,8 @@ public class SidebarReducerTests
 
         tab = Reduce(tab, new SetSidebarFilterCommand("ui/a"));
         var labels = SidebarBuilder.Build(tab).Select(row => row.Label).ToList();
-        Assert.Equal(["Branches", "feature", "ui", "feature/ui/a"], labels);
-        Assert.Equal("feature", SelectedLabel(tab));
+        Assert.Equal(["Branches", "feature/ui", "feature/ui/a"], labels);
+        Assert.Equal("feature/ui", SelectedLabel(tab));
     }
 
     [Fact]
@@ -215,10 +215,10 @@ public class SidebarReducerTests
     public void GivenFilterAndOpenFolder_WhenCollapsing_ThenCursorMovesToTheParentInsteadOfDoingNothing()
     {
         var tab = Reduce(TabWithFolders(), new SetSidebarFilterCommand("ui/a"));
-        tab = MoveTo(tab, IndexOf(tab, "ui"));
+        tab = MoveTo(tab, IndexOf(tab, "feature/ui"));
 
         tab = Reduce(tab, new CollapseSidebarCommand());
 
-        Assert.Equal("feature", SelectedLabel(tab));
+        Assert.Equal("Branches", SelectedLabel(tab));
     }
 }

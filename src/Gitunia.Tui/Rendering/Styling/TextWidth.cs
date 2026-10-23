@@ -88,4 +88,23 @@ public static class TextWidth
 
         return columns >= Of(ellipsis) ? $"{ellipsis}{tail}" : tail;
     }
+
+    /// <summary>
+    /// Makes <paramref name="text"/> fit <paramref name="columns"/> by cutting the middle (<c>abc…xyz</c>), so the start
+    /// and the distinguishing tail stay visible. Short texts come back as <see cref="Fit"/> returns them.
+    /// </summary>
+    public static string FitMiddle(string text, int columns, string ellipsis)
+    {
+        var ellipsisWidth = Of(ellipsis);
+        if (Of(text) <= columns || columns <= ellipsisWidth + 2)
+        {
+            return Fit(text, columns, ellipsis);
+        }
+
+        var room = columns - ellipsisWidth;
+        var tailColumns = room / 2;
+        var headColumns = room - tailColumns;
+
+        return $"{Fit(text, headColumns, string.Empty)}{ellipsis}{FitStart(text, tailColumns, string.Empty)}";
+    }
 }

@@ -316,7 +316,7 @@ public class DetailContentBuilderTests
 
         var lines = Lines(DetailContentBuilder.Build(entry, CommitDetailsState.Empty, BottomTab.Files, view));
 
-        Assert.Equal(["▾ src", "  ▸ sub  2 files", "    a.cs  2.0 KB"], lines);
+        Assert.Equal(["▾ src", " ▸ sub  2 files", "   a.cs  2.0 KB"], lines);
     }
 
     [Fact]

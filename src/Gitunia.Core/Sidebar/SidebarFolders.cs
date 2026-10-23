@@ -18,14 +18,17 @@ public static class SidebarFolders
     {
         var entries = branches.Select(row => new Entry(row, row.Label.Split(Separator))).ToList();
         var rows = new List<SidebarRow>();
-        Emit(entries, 0, string.Empty, state, rows);
+        Emit(entries, 0, 0, string.Empty, state, rows);
 
         return rows;
     }
 
+    // depth is the indent level of the rows; segment is the index of the name part they split on (a compressed chain of
+    // single-child folders spends several segments on one level).
     private static void Emit(
         List<Entry> entries,
         int depth,
+        int segment,
         string parentPath,
         SidebarState state,
         List<SidebarRow> rows)
@@ -34,13 +37,13 @@ public static class SidebarFolders
         var slots = new List<Slot>();
         foreach (var entry in entries)
         {
-            if (entry.Segments.Length - 1 == depth)
+            if (entry.Segments.Length - 1 == segment)
             {
                 slots.Add(new Slot(entry, null));
                 continue;
             }
 
-            var name = entry.Segments[depth];
+            var name = entry.Segments[segment];
             if (!folders.TryGetValue(name, out var members))
             {
                 members = [];
@@ -55,11 +58,11 @@ public static class SidebarFolders
         {
             if (slot.Leaf is { } leaf)
             {
-                rows.Add(depth == 0 ? leaf.Row : leaf.Row with { Depth = depth, ShortName = leaf.Segments[^1] });
+                rows.Add(depth == 0 ? leaf.Row : leaf.Row with { Depth = depth, ShortName = string.Join(Separator, leaf.Segments[segment..]) });
                 continue;
             }
 
-            EmitFolder(slot.FolderName!, folders[slot.FolderName!], depth, parentPath, state, rows);
+            EmitFolder(slot.FolderName!, folders[slot.FolderName!], depth, segment, parentPath, state, rows);
         }
     }
 
@@ -67,10 +70,19 @@ public static class SidebarFolders
         string name,
         List<Entry> members,
         int depth,
+        int segment,
         string parentPath,
         SidebarState state,
         List<SidebarRow> rows)
     {
+        // A folder whose only content is one more folder folds into one row: feature/ui instead of feature, ui.
+        while (members.All(member => member.Segments.Length - 1 > segment + 1)
+            && members.Select(member => member.Segments[segment + 1]).Distinct(StringComparer.Ordinal).Count() == 1)
+        {
+            segment++;
+            name = $"{name}{Separator}{members[0].Segments[segment]}";
+        }
+
         var path = parentPath.Length == 0 ? name : $"{parentPath}{Separator}{name}";
         var section = members[0].Row.Section;
         var key = KeyOf(section, path);
@@ -92,7 +104,7 @@ public static class SidebarFolders
 
         if (isOpen)
         {
-            Emit(members, depth + 1, path, state, rows);
+            Emit(members, depth + 1, segment + 1, path, state, rows);
         }
     }
 

@@ -115,7 +115,7 @@ public class DetailPaneComposerTests
             [
                 "─ Details ─ Changes ─ Files ─ 0000002 ─ 2 files",
                 " ▾ src",
-                "     a.cs  2.0 KB",
+                "    a.cs  2.0 KB",
                 "   README  12 B",
                 "",
                 "",

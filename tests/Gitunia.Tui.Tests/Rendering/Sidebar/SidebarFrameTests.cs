@@ -35,10 +35,10 @@ public class SidebarFrameTests
             Depth: depth);
 
     [Theory]
-    [InlineData(false, true, 0, "  ▾ feature/ 2")]
-    [InlineData(false, false, 1, "    ▸ feature/ 2")]
-    [InlineData(true, true, 0, "  v feature/ 2")]
-    [InlineData(true, false, 0, "  > feature/ 2")]
+    [InlineData(false, true, 0, "▾ feature/ 2")]
+    [InlineData(false, false, 1, " ▸ feature/ 2")]
+    [InlineData(true, true, 0, "v feature/ 2")]
+    [InlineData(true, false, 0, "> feature/ 2")]
     public void GivenFolderRow_WhenRendering_ThenMarkerNameWithSlashAndCountShowInBothGlyphSets(
         bool isAscii,
         bool isExpanded,
@@ -57,7 +57,7 @@ public class SidebarFrameTests
     {
         var row = Branch("feature/ui/x", isCurrent: true) with { Depth = 2, ShortName = "x" };
 
-        Assert.Equal("      * x", SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd());
+        Assert.Equal("  * x", SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd());
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public class SidebarFrameTests
             .Select(row => SidebarRowRenderer.Render(row, 40, false, GraphGlyphSet.Unicode).Text.TrimEnd())
             .ToArray();
 
-        Assert.Equal("    wt-a ↑2↓1 S1 M3 feat", lines[0]);
-        Assert.Equal("    wt-b feat", lines[1]);
-        Assert.Equal("    wt-c ↑2↓1 U4 feat", lines[2]);
+        Assert.Equal("  wt-a ↑2↓1 S1 M3 feat", lines[0]);
+        Assert.Equal("  wt-b feat", lines[1]);
+        Assert.Equal("  wt-c ↑2↓1 U4 feat", lines[2]);
     }
 
     private static SidebarModel Sidebar(params SidebarRow[] rows) => new([.. rows], 0, 0, string.Empty, false, false);
@@ -122,11 +122,11 @@ public class SidebarFrameTests
 
         Assert.Equal("   1 repo", frame[0]);
         Assert.StartsWith("╭─ repo ─────────────┬─ History ─", frame[1], StringComparison.Ordinal);
-        Assert.StartsWith("│  ▾ Branches 3   ...│ ●  second", frame[2], StringComparison.Ordinal);
-        Assert.StartsWith("│   * main ↑2↓1 w…   │ ●  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("│     feature… wt…   │", frame[4], StringComparison.Ordinal);
-        Assert.StartsWith("│     old            │", frame[5], StringComparison.Ordinal);
-        Assert.StartsWith("│  ▸ Tags 12", frame[6], StringComparison.Ordinal);
+        Assert.StartsWith("│ ▾ Branches 3    ...│ ●  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("│ * main ↑2↓1 wt…o   │ ●  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("│   feat…gin wt…in   │", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("│   old              │", frame[5], StringComparison.Ordinal);
+        Assert.StartsWith("│ ▸ Tags 12", frame[6], StringComparison.Ordinal);
         Assert.StartsWith("│                    │", frame[7], StringComparison.Ordinal);
         Assert.StartsWith("╰────────────────────┴───", frame[8], StringComparison.Ordinal);
         Assert.EndsWith("╮", frame[1], StringComparison.Ordinal);
@@ -143,9 +143,9 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 8, GraphGlyphSet.Ascii);
 
-        Assert.StartsWith("|  v Branches 1   ...| *  second", frame[2], StringComparison.Ordinal);
-        Assert.StartsWith("|   * main +1-3      | *  first", frame[3], StringComparison.Ordinal);
-        Assert.StartsWith("|  > Tags 2", frame[4], StringComparison.Ordinal);
+        Assert.StartsWith("| v Branches 1    ...| *  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("| * main +1-3        | *  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("| > Tags 2", frame[4], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -165,8 +165,8 @@ public class SidebarFrameTests
 
         var lines = ScreenComposer.Compose(Model, Graph(), 0, 0, 80, 9, GraphGlyphSet.Unicode, null, Sidebar(rows) with { TopRow = 6, Cursor = 7 });
 
-        Assert.StartsWith("│     branch6", lines[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("│     branch8", lines[4].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│   branch6", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│   branch8", lines[4].Text, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -189,8 +189,8 @@ public class SidebarFrameTests
     }
 
     [Theory]
-    [InlineData(false, "    old ✗")]
-    [InlineData(true, "    old (x)")]
+    [InlineData(false, "  old ✗")]
+    [InlineData(true, "  old (x)")]
     public void GivenGoneUpstreamBranch_WhenRendering_ThenTheMarkerFollowsTheName(bool isAscii, string expected)
     {
         var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
@@ -200,9 +200,9 @@ public class SidebarFrameTests
     }
 
     [Theory]
-    [InlineData(12, "    feature~")]
-    [InlineData(16, "    feature~ (x)")]
-    [InlineData(24, "    feature/a-very-~ (x)")]
+    [InlineData(12, "  feat~ame")]
+    [InlineData(16, "  featu~name (x)")]
+    [InlineData(24, "  feature/a~nch-name (x)")]
     public void GivenGoneUpstreamAndLongName_WhenRenderingNarrow_ThenTheNameIsNotPushedOut(int width, string expected)
     {
         var row = Branch("feature/a-very-long-branch-name") with { IsUpstreamGone = true };
@@ -219,7 +219,7 @@ public class SidebarFrameTests
         var line = SidebarRowRenderer.Render(Branch("main"), 20, isSelected: true, GraphGlyphSet.Unicode);
 
         Assert.True(line.IsSelected);
-        Assert.Equal("    main", line.Text.TrimEnd());
+        Assert.Equal("  main", line.Text.TrimEnd());
     }
 
     [Fact]
@@ -280,5 +280,28 @@ public class SidebarFrameTests
         var frame = Frame(model, 80, 6);
 
         Assert.StartsWith("│                    │ ●  second", frame[2], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenLongWorktreeNameAndBranch_WhenRenderingAtDefaultWidth_ThenBothAreCutInTheMiddleKeepingTheirTails()
+    {
+        var row = new SidebarRow(
+            SidebarRowKind.Worktree,
+            SidebarSection.Worktrees,
+            "worktree-agent-a6435a5cab5",
+            "feature/633-zoom-changes-diff",
+            null,
+            false,
+            false,
+            0,
+            null,
+            null);
+
+        var text = SidebarRowRenderer.Render(row, 36, false, GraphGlyphSet.Unicode).Text.TrimEnd();
+
+        Assert.Equal(36, TextWidth.Of(text.PadRight(36)));
+        Assert.Contains("…", text, StringComparison.Ordinal);
+        Assert.EndsWith("diff", text, StringComparison.Ordinal);
+        Assert.Contains("5cab5", text, StringComparison.Ordinal);
     }
 }

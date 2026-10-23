@@ -10,8 +10,7 @@ namespace Gitunia.Tui.Rendering.Sidebar;
 public static class SidebarRowRenderer
 {
     private const int MinimumLabelWidth = 8;
-    private const int EntryIndent = 2;
-    private const int DepthIndent = 2;
+    private const int DepthIndent = 1;
     private const char FolderSuffix = '/';
     private const string WorktreeMarker = "wt:";
     private const char StagedLetter = 'S';
@@ -26,7 +25,7 @@ public static class SidebarRowRenderer
         if (row.IsSection)
         {
             var count = $" {row.Count.ToString(CultureInfo.InvariantCulture)}";
-            var header = $" {(row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed)} ";
+            var header = $"{(row.IsExpanded ? sidebarGlyphs.Expanded : sidebarGlyphs.Collapsed)} ";
             builder
                 .Append(header, SegmentRole.SectionTitle)
                 .Append(row.Label, SegmentRole.SectionTitle)
@@ -35,7 +34,7 @@ public static class SidebarRowRenderer
             return builder.Build(isSelected: isSelected);
         }
 
-        var indent = new string(' ', EntryIndent + (row.Depth * DepthIndent));
+        var indent = new string(' ', row.Depth * DepthIndent);
         if (row.IsFolder)
         {
             return RenderFolder(row, indent, width, isSelected, glyphs, sidebarGlyphs);
@@ -52,10 +51,23 @@ public static class SidebarRowRenderer
 
         builder
             .Append(prefix, SegmentRole.Plain)
-            .Append(TextWidth.Fit(label, labelBudget, glyphs.Ellipsis), LabelRole(row));
-        foreach (var extra in extras)
+            .Append(TextWidth.FitMiddle(label, labelBudget, glyphs.Ellipsis), LabelRole(row));
+
+        // The markers keep their columns; the last extra (worktree or branch text) takes what is left, cut in the middle.
+        var remaining = width - TextWidth.Of(prefix) - Math.Min(TextWidth.Of(label), labelBudget);
+        for (var index = 0; index < extras.Count; index++)
         {
-            builder.Append(" ", SegmentRole.Plain).Append(extra.Text, extra.Role);
+            var extra = extras[index];
+            var text = index == extras.Count - 1
+                ? TextWidth.FitMiddle(extra.Text, remaining - 1, glyphs.Ellipsis)
+                : extra.Text;
+            if (text.Length == 0 || text == glyphs.Ellipsis)
+            {
+                break;
+            }
+
+            builder.Append(" ", SegmentRole.Plain).Append(text, extra.Role);
+            remaining -= 1 + TextWidth.Of(text);
         }
 
         return builder.Build(isSelected: isSelected);
@@ -77,7 +89,7 @@ public static class SidebarRowRenderer
         return new LineBuilder(width, glyphs.Ellipsis)
             .Append($"{indent}{marker} ", SegmentRole.Plain)
             .Append(
-                TextWidth.Fit($"{row.Label}{FolderSuffix}", Math.Max(1, available), glyphs.Ellipsis),
+                TextWidth.FitMiddle($"{row.Label}{FolderSuffix}", Math.Max(1, available), glyphs.Ellipsis),
                 SegmentRole.SectionTitle)
             .Append(count, SegmentRole.Faint)
             .Build(isSelected: isSelected);
