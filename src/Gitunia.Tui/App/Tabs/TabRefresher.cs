@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
@@ -10,15 +11,22 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Stash;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Loading.Graph;
 
 namespace Gitunia.Tui.App.Tabs;
 
 /// <summary>
-/// Keeps one tab current after its initial load: owns the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can
-/// affect, and applies the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
-/// refresh); an automatic reload reads the log only down to the first row it shares with the old graph (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time; changes arriving meanwhile are merged into the next.
-/// Touched from the UI thread only; the watcher callback posts to it. The optional <c>graphReloaded</c> callback runs on the UI thread after each graph replacement, so tests can tell an incremental reload (<see cref="GraphReload.ReusedCount"/> above 0) from a full read.
+/// Keeps one tab current after its initial load: notices changes by polling (<see cref="TabPoller"/>, the default) or,
+/// when enabled, with the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can affect, and applies
+/// the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
+/// refresh); an
+/// automatic reload reads the log only down to the first row it shares with the old graph
+/// (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time;
+/// changes arriving meanwhile are merged into the next.
+/// Touched from the UI thread only; the watcher and poller callbacks post to it. The optional <c>graphReloaded</c>
+/// callback runs on the UI thread after each graph replacement, so tests can tell an incremental reload
+/// (<see cref="GraphReload.ReusedCount"/> above 0) from a full read.
 /// </summary>
 public sealed class TabRefresher : IDisposable
 {
@@ -38,7 +46,9 @@ public sealed class TabRefresher : IDisposable
     private readonly RepositoryLocation _location;
     private readonly StatusChannel _statuses;
     private readonly Action<Action> _postToUi;
-    private readonly RepositoryWatcher _watcher;
+    private readonly RepositoryWatcher? _watcher;
+    private readonly TabPoller? _poller;
+    private long _refreshStartedAt;
     private readonly Action<GraphReload>? _graphReloaded;
     private RepositorySnapshot? _snapshot;
     private RepositoryChangeKinds _pending;
@@ -66,7 +76,9 @@ public sealed class TabRefresher : IDisposable
         Action<GraphReload>? graphReloaded = null,
         IOperationInfoReader? operations = null,
         IWorkingTreeDirectoryLister? directoryLister = null,
-        IGitConfigReader? config = null)
+        IGitConfigReader? config = null,
+        PollOptions? poll = null,
+        Func<bool>? isBusy = null)
     {
         _config = config;
         _operations = operations ?? new OperationInfoReader();
@@ -79,9 +91,25 @@ public sealed class TabRefresher : IDisposable
         _location = location;
         _statuses = statuses;
         _postToUi = postToUi;
-        _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)),
-            directoryLister: directoryLister);
+        if (options.UseFileWatchers)
+        {
+            _watcher = new RepositoryWatcher(location, budget, options, kinds => postToUi(() => Request(kinds, false)),
+                directoryLister: directoryLister);
+        }
+        else
+        {
+            var busy = isBusy ?? (static () => false);
+            _poller = new TabPoller(
+                location,
+                poll ?? PollOptions.Default,
+                postToUi,
+                () => _isReady && !_isRunning && _snapshot is not null && !busy(),
+                kinds => Request(kinds, false));
+        }
     }
+
+    /// <summary>The wait between automatic status refreshes (longer after a slow one); null when watching.</summary>
+    public TimeSpan? StatusPollInterval => _poller?.StatusInterval;
 
     /// <summary>A refresh is being read or applied right now.</summary>
     public bool IsRefreshing => _isRunning;
@@ -89,7 +117,8 @@ public sealed class TabRefresher : IDisposable
     /// <summary>Starts watching; changes are collected now and applied once the initial load has finished.</summary>
     public void Start()
     {
-        _watcher.Start();
+        _watcher?.Start();
+        _poller?.Start();
         if (_session.IsPending || _session.IsLoading)
         {
             _session.LoadFinished += OnLoadFinished;
@@ -101,7 +130,11 @@ public sealed class TabRefresher : IDisposable
     }
 
     /// <summary>Marks the tab visible or hidden; a hidden tab reports its pending changes when shown again.</summary>
-    public void SetActive(bool isActive) => _watcher.SetActive(isActive);
+    public void SetActive(bool isActive)
+    {
+        _watcher?.SetActive(isActive);
+        _poller?.SetActive(isActive);
+    }
 
     /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
     public void RefreshNow(bool announce = true)
@@ -124,7 +157,8 @@ public sealed class TabRefresher : IDisposable
     {
         _isDisposed = true;
         _session.LoadFinished -= OnLoadFinished;
-        _watcher.Dispose();
+        _watcher?.Dispose();
+        _poller?.Dispose();
     }
 
     private void OnLoadFinished()
@@ -166,10 +200,11 @@ public sealed class TabRefresher : IDisposable
         var kinds = _pending;
         var isManual = _announce;
         _announce = false;
-        var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher.IsStale));
+        var reloadGraph = _forceGraph || (_snapshot is null && (_sawChange || _watcher?.IsStale == true));
         _pending = RepositoryChangeKinds.None;
         _forceGraph = false;
         _isRunning = true;
+        _refreshStartedAt = Stopwatch.GetTimestamp();
         _inFlight = _waiting;
         _waiting = [];
         var previous = _snapshot;
@@ -246,6 +281,11 @@ public sealed class TabRefresher : IDisposable
         if (_isDisposed)
         {
             return;
+        }
+
+        if (reload is null && !isManual)
+        {
+            _poller?.RecordRefresh(Stopwatch.GetElapsedTime(_refreshStartedAt));
         }
 
         _lastError = string.Empty;

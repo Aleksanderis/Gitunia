@@ -453,4 +453,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **UI:** Issue links (#213): `.issuetracker` in the working tree root, read with `git config --file`; `gx` opens the first link of a line, a count picks another (no picker). Why: no parser of our own, no new overlay. Detail: `ux.md` (Details tab).
 
+**Git layer:** Refresh polls by default (#543; supersedes the ignore-aware watcher of #83/#504 as the default): the active tab reads a fingerprint every 2 s and the status every 5 s, with back-off on slow repositories; file watching is opt-in (`watchFiles`). Why: each `FileSystemWatcher` takes a scarce inotify instance and other clients poll too. Detail: `git-layer.md`.
 **UI:** File content follows the tree cursor (#635; supersedes "opened with `Enter`, closes when the commit or tab changes" in the #511 entry): beside the tree the pane is always there with a placeholder, a commit change shows the placeholder until the new tree loads, `Esc` returns focus and keeps the content; reads start 40 ms after the cursor rests so a held key does not spawn one per row.

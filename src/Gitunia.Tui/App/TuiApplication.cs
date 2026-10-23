@@ -22,6 +22,8 @@ using Gitunia.Git.Discard;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
+using Gitunia.Git.Watching;
+using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
 using Gitunia.Platform.Urls;
@@ -177,7 +179,13 @@ public sealed class TuiApplication(
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
 
         _host = new WorkspaceHost(Workspace.Empty);
-        _effects = new EffectRunner(services, _host, InvokeOnUi, glyphs, _statuses);
+        _effects = new EffectRunner(
+            services,
+            _host,
+            InvokeOnUi,
+            glyphs,
+            _statuses,
+            watcherOptions: WatcherOptionsFor(_startupConfig.Options));
 
         var clipboard = CreateClipboard();
         var sidebarSource = new SidebarListSource(glyphs);
@@ -1299,6 +1307,21 @@ public sealed class TuiApplication(
         current is null || other is null
             ? current is null && other is null
             : current.Value.SequenceEqual(other.Value);
+
+    // Polling is the default; watching is opt-in and capped by the inotify instance limit (read at startup only).
+    private static RepositoryWatcherOptions WatcherOptionsFor(ConfigOptions options)
+    {
+        var defaults = RepositoryWatcherOptions.Default;
+        if (!options.WatchFiles)
+        {
+            return defaults;
+        }
+
+        var instances = InotifyLimit.ReadMaximumInstances();
+        var cap = InotifyLimit.DirectoryCap(instances, defaults.MaximumWorkingTreeDirectories);
+
+        return defaults with { UseFileWatchers = true, MaximumWorkingTreeDirectories = cap };
+    }
 
     // The settings screen changed the file: the running app takes the new options at once (ux.md, "Settings screen").
     private void ApplyOptions(ConfigOptions options)
