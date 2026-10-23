@@ -32,6 +32,7 @@ public class ConflictWriterTests
     [Theory]
     [InlineData("../outside.txt")]
     [InlineData("a/../../outside.txt")]
+    [InlineData(".git/hooks/pre-commit")]
     public async Task GivenAPathLeavingTheWorkingTree_WhenWriting_ThenItIsRefusedAndNothingIsWritten(string path)
     {
         using var repository = TestRepositories.Conflicted();

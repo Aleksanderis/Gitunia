@@ -13,7 +13,9 @@ public interface IConflictWriter
     /// <param name="path">The file, relative to the working tree root.</param>
     /// <param name="text">The whole new content.</param>
     /// <param name="cancellationToken">Cancels the write before it starts.</param>
-    /// <exception cref="ArgumentException">The path is absolute or leaves the working tree, or the repository is bare.</exception>
+    /// <exception cref="ArgumentException">
+    /// The path is absolute, leaves the working tree or enters <c>.git</c>, or the repository is bare.
+    /// </exception>
     Task WriteAsync(
         RepositoryLocation location,
         string path,

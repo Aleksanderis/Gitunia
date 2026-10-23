@@ -11,6 +11,7 @@ namespace Gitunia.Git.Conflicts;
 public sealed class ConflictWriter : IConflictWriter
 {
     private const string ParentSegment = "..";
+    private const string GitDirectoryName = ".git";
 
     public async Task WriteAsync(
         RepositoryLocation location,
@@ -27,7 +28,9 @@ public sealed class ConflictWriter : IConflictWriter
         var relative = Path.GetRelativePath(root, fullPath);
         var leavesRoot = relative == ParentSegment
             || relative.StartsWith($"{ParentSegment}{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
-        if (Path.IsPathRooted(path) || leavesRoot)
+        var entersGitDirectory = relative.Split(Path.DirectorySeparatorChar)[0]
+            .Equals(GitDirectoryName, StringComparison.OrdinalIgnoreCase);
+        if (Path.IsPathRooted(path) || leavesRoot || entersGitDirectory)
         {
             throw new ArgumentException("The path is outside the working tree", nameof(path));
         }

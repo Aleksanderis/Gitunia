@@ -132,7 +132,35 @@ public class ConflictReaderTests
         var result = await ReadAsync(repository, "data.bin");
 
         Assert.Equal(ConflictReadKind.Unsupported, result.Kind);
+        Assert.Contains("binary", result.Reason, StringComparison.Ordinal);
         Assert.Empty(result.Parts);
+    }
+
+    [Fact]
+    public async Task GivenInvalidUtf8InTheFile_WhenReading_ThenItIsUnsupportedAndNotDecodedLossily()
+    {
+        using var repository = TestRepositories.Conflicted();
+        await File.WriteAllBytesAsync(
+            Path.Combine(repository.WorkingTreePath, ConflictPath),
+            [.. "<<<<<<< a\n"u8, 0xFF, .. "\n=======\nb\n>>>>>>> c\n"u8],
+            Token);
+
+        var result = await ReadAsync(repository, ConflictPath);
+
+        Assert.Equal(ConflictReadKind.Unsupported, result.Kind);
+        Assert.Contains("UTF-8", result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAFileOverTheCap_WhenReading_ThenItIsUnsupportedAsTooLarge()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, new string('x', ConflictReader.MaximumBytes + 1));
+
+        var result = await ReadAsync(repository, ConflictPath);
+
+        Assert.Equal(ConflictReadKind.Unsupported, result.Kind);
+        Assert.Contains("too large", result.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

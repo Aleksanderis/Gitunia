@@ -5,7 +5,9 @@ namespace Gitunia.Git.Conflicts.Models;
 /// byte for byte (CRLF stays CRLF).
 /// </summary>
 /// <param name="Ours">The lines of the current side (between the opening marker and the next marker).</param>
-/// <param name="Base">The lines of the common ancestor (diff3 and zdiff3 styles), null for the plain merge style.</param>
+/// <param name="Base">
+/// The lines of the common ancestor (diff3 and zdiff3 styles), null for the plain merge style.
+/// </param>
 /// <param name="Theirs">The lines of the other side.</param>
 /// <param name="OursLabel">The text after the opening marker (the side's name), empty when there is none.</param>
 /// <param name="TheirsLabel">The text after the closing marker, empty when there is none.</param>
