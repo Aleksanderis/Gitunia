@@ -16,53 +16,73 @@ public class FileTreeRowRenderingTests
 {
     private const string LongName = "a-very-long-component-name-that-keeps-going-test.cs";
     private const string LongFolder = "some-quite-long-directory-name-in-the-middle";
+    private const string DeepPath = "one/two/three";
 
     [Theory]
+    [InlineData(40)]
     [InlineData(30)]
-    [InlineData(20)]
-    [InlineData(12)]
-    public void GivenALongFileNameDeepInTheTree_WhenDrawnNarrow_ThenTheNameIsCutInTheMiddleAndFitsTheWidth(int width)
+    [InlineData(24)]
+    public void GivenALongFileNameDeepInTheTree_WhenDrawnNarrow_ThenTheNameIsCutInTheMiddleKeepingHeadTailAndSize(
+        int width)
     {
-        var line = Draw($"a/b/{LongName}", 1, width);
+        var line = Draw(DeepPath, LongName, width);
 
         Assert.Equal(width, line.Text.Length);
-        Assert.Contains("…", line.Text);
         Assert.StartsWith("   a", line.Text);
+        Assert.Matches("a.*…[^…]*st\\.cs", line.Text);
+        Assert.EndsWith("2.0 KB", line.Text.TrimEnd());
     }
 
     [Fact]
     public void GivenALongFolderName_WhenDrawnNarrow_ThenTheNameIsCutInTheMiddleAndTheCountOfAClosedFolderStays()
     {
-        var line = Draw($"{LongFolder}/x.cs", 0, 24, closed: true);
+        var line = Draw(LongFolder, "x.cs", 24, closed: true);
 
         Assert.Equal(24, line.Text.Length);
-        Assert.Contains("…", line.Text);
+        Assert.Matches("some.*…", line.Text);
         Assert.EndsWith("1 file", line.Text.TrimEnd());
     }
 
     [Fact]
     public void GivenAFileThatFits_WhenDrawn_ThenItIsNotCut()
     {
-        var line = Draw("a/b/c.cs", 1, 40);
+        var line = Draw(DeepPath, "c.cs", 40);
 
         Assert.StartsWith("   c.cs  2.0 KB", line.Text);
         Assert.DoesNotContain("…", line.Text);
     }
 
-    private static StyledLine Draw(string path, int row, int width, bool closed = false)
+    [Fact]
+    public void GivenALongFileName_WhenTheQuickJumpAsksForTheRowText_ThenItIsTheCutTextOnScreen()
+    {
+        var content = Content(DeepPath, LongName);
+
+        var jumpText = DetailJumpRows.TextOf(content, content.Rows.Count - 1, 30, "…");
+        var drawn = DetailPaneRenderer.RenderRow(content.Rows[^1], false, 30, GraphGlyphSet.Unicode).Text;
+
+        Assert.Equal(drawn.TrimEnd(), jumpText);
+        Assert.Contains("…", jumpText);
+    }
+
+    private static DetailContent Content(string folder, string name, bool closed = false)
     {
         var graph = CommitFactory.Graph(CommitFactory.Commit(1, "root", []));
-        var model = FileTreeModel.Build([new TreeEntry(path, TreeEntryKind.File, CommitFactory.Id(5), 2048)]);
-        HashSet<string> expanded = closed ? [] : [path[..path.LastIndexOf('/')]];
+        var model = FileTreeModel.Build(
+            [new TreeEntry($"{folder}/{name}", TreeEntryKind.File, CommitFactory.Id(5), 2048)]);
+        HashSet<string> expanded = closed ? [] : [folder];
         var view = new FileTreeView(
             new CommitTreeState(graph[0].Id, CommitDetailsStatus.Loaded, model, string.Empty),
             model.Rows(expanded, string.Empty),
             string.Empty,
             SidebarGlyphs.Unicode);
-        var content = DetailContentBuilder.Build(graph[0], CommitDetailsState.Empty, BottomTab.Files, view);
 
-        var drawn = content.Rows[Math.Min(row, content.Rows.Count - 1)];
+        return DetailContentBuilder.Build(graph[0], CommitDetailsState.Empty, BottomTab.Files, view);
+    }
 
-        return DetailPaneRenderer.RenderRow(drawn, false, width, GraphGlyphSet.Unicode);
+    private static StyledLine Draw(string folder, string name, int width, bool closed = false)
+    {
+        var content = Content(folder, name, closed);
+
+        return DetailPaneRenderer.RenderRow(content.Rows[^1], false, width, GraphGlyphSet.Unicode);
     }
 }

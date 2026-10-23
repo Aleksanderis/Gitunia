@@ -7,7 +7,6 @@ using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
-using Gitunia.Tui.Rendering.Sidebar;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;
@@ -156,7 +155,7 @@ public static class DetailPaneRenderer
 
         if (row.Tree is { } tree)
         {
-            return RenderTreeRow(tree, isSelected, width, glyphs);
+            return RenderTreeRow(tree, isSelected, width, glyphs.Ellipsis);
         }
 
         foreach (var segment in row.Segments)
@@ -168,7 +167,7 @@ public static class DetailPaneRenderer
     }
 
     // A Files tab row goes through the renderer the sidebar uses, so long names are cut in the middle.
-    private static StyledLine RenderTreeRow(FileTreeLine tree, bool isSelected, int width, GraphGlyphSet glyphs)
+    internal static StyledLine RenderTreeRow(FileTreeLine tree, bool isSelected, int width, string ellipsis)
     {
         var row = tree.Row;
         var indent = new string(' ', row.Depth * DetailContentBuilder.TreeIndent);
@@ -176,7 +175,7 @@ public static class DetailPaneRenderer
         {
             var count = row.IsExpanded ? string.Empty : $"  {DetailContentBuilder.FileCountText(row.FileCount)}";
 
-            return TreeRowRenderer.Folder(indent, tree.Chevron, row.Label, count, width, glyphs.Ellipsis, isSelected);
+            return TreeRowRenderer.Folder(indent, tree.Chevron, row.Label, count, width, ellipsis, isSelected);
         }
 
         // Files line up with the names of directories, which start after their chevron.
@@ -186,7 +185,7 @@ public static class DetailPaneRenderer
             SegmentRole.Plain,
             [new SidebarExtra(tree.Suffix, SegmentRole.Faint)],
             width,
-            glyphs.Ellipsis,
+            ellipsis,
             isSelected);
     }
 

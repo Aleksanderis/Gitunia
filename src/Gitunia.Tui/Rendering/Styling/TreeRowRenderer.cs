@@ -1,4 +1,3 @@
-using Gitunia.Tui.Rendering.Sidebar;
 
 namespace Gitunia.Tui.Rendering.Styling;
 
