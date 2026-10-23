@@ -363,7 +363,7 @@ public sealed class OverlayController
 
     /// <summary>
     /// The help tab under a click on the overlay line <paramref name="frameLine"/> at <paramref name="frameColumn"/>
-    /// (both inside the frame), as the number the click action takes (from 1), or null when the click is not on a tab label.
+    /// (both inside the frame), as the number the click action takes (from 1), or null when it is not on a tab label.
     /// </summary>
     public int? HelpTabNumberAt(int frameLine, int frameColumn) =>
         State.Kind == OverlayKind.Help

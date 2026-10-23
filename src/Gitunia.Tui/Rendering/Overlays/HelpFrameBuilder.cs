@@ -21,14 +21,15 @@ public static class HelpFrameBuilder
     private const int ColumnSeparatorWidth = 2 * 1 + 1;
 
     /// <summary>
-    /// Lines the content of one tab needs at a screen width (section headings, rows with long descriptions wrapped, and a
-    /// blank line between sections).
+    /// Lines the content of one tab needs at a screen width (section headings, rows with long descriptions wrapped, and
+    /// a blank line between sections).
     /// </summary>
     public static int ContentHeight(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth)
     {
         var sections = SectionsOf(tabs, tab);
         var descriptionWidth = DescriptionWidth(tabs, WidthFor(screenWidth));
-        var rows = sections.Sum(section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1);
+        var rows = sections.Sum(
+            section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1);
 
         return rows + Math.Max(0, sections.Count - 1);
     }
@@ -62,8 +63,8 @@ public static class HelpFrameBuilder
         MaximumScroll(SinglePage(sections), 0, screenWidth, screenHeight);
 
     /// <summary>
-    /// The help frame for a screen, or null when the screen is too small to show it. <paramref name="title"/> replaces the
-    /// default "Keys: view" title.
+    /// The help frame for a screen, or null when the screen is too small to show it. <paramref name="title"/> replaces
+    /// the default "Keys: view" title.
     /// </summary>
     public static OverlayFrame? Build(
         IReadOnlyList<HelpSection> sections,
@@ -122,10 +123,9 @@ public static class HelpFrameBuilder
     }
 
     /// <summary>
-    /// The tab under a click: <paramref name="frameLine"/> and <paramref name="frameColumn"/> are inside the frame (0 is
-    /// the top border and the left border); null when the click is not on a tab label. When the labels do not fit, the
-    /// one compact label
-    /// stands for the next tab.
+    /// The tab under a click: <paramref name="frameLine"/> and <paramref name="frameColumn"/> are inside the frame
+    /// (0 is the top border and the left border); null when the click is not on a tab label. When the labels do not
+    /// fit, the one compact label stands for the next tab.
     /// </summary>
     public static int? TabAt(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth, int frameLine, int frameColumn)
     {
@@ -147,7 +147,7 @@ public static class HelpFrameBuilder
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);
 
-    // The labels of the tab row with their columns in the frame (the left border is column 0, the text starts after a space).
+    // The labels of the tab row with their columns in the frame (the left border is column 0, text starts after a space).
     private static List<TabLabel> TabLabels(IReadOnlyList<HelpTab> tabs, int active, int inner)
     {
         var labels = new List<TabLabel>();
@@ -198,7 +198,9 @@ public static class HelpFrameBuilder
 
     // The same keys column on every tab, so switching tabs does not move the separator.
     private static int KeysWidth(IReadOnlyList<HelpTab> tabs) =>
-        Math.Min(MaximumKeysWidth, tabs.SelectMany(tab => tab.Rows).Select(row => TextWidth.Of(row.Keys)).DefaultIfEmpty(0).Max());
+        Math.Min(
+            MaximumKeysWidth,
+            tabs.SelectMany(tab => tab.Rows).Select(row => TextWidth.Of(row.Keys)).DefaultIfEmpty(0).Max());
 
     // Inner width minus the indent before the keys and the separator between the columns.
     private static int DescriptionWidth(IReadOnlyList<HelpTab> tabs, int width) =>

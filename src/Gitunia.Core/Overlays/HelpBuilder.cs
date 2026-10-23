@@ -14,7 +14,8 @@ public static class HelpBuilder
 
     /// <summary>
     /// One tab per source in the view's inheritance chain (the view, then <c>Lists</c>, then <c>Global</c>), each split
-    /// under the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the sidebar.
+    /// under the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the
+    /// sidebar.
     /// </summary>
     public static IReadOnlyList<HelpTab> Build(KeyBindingTable table, string view)
     {
