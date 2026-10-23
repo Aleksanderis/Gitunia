@@ -104,8 +104,10 @@ public sealed class DiffPaneController : IPromptHandler
             return PaneArrangement.Normal with { Sizes = SizesOfActiveTab() };
         }
 
-        var zoomed = diff.ZoomedPane == _host.Workspace.ActiveTab?.View.FocusedPane ? diff.ZoomedPane : null;
-        return new PaneArrangement(IsShown(diff), zoomed, SizesOfActiveTab());
+        var focused = _host.Workspace.ActiveTab?.View.FocusedPane;
+        var together = KeepsZoomTogether(diff.ZoomedPane, focused);
+        var zoomed = together || diff.ZoomedPane == focused ? focused : null;
+        return new PaneArrangement(IsShown(diff), zoomed, SizesOfActiveTab(), together);
     }
 
     /// <summary>The pane sizes saved in the active tab's view state.</summary>
@@ -114,7 +116,9 @@ public sealed class DiffPaneController : IPromptHandler
     /// <summary>Forgets the active tab's zoom when focus moved to another pane, so returning to the zoomed pane does not zoom it again. Runs after every workspace command.</summary>
     public void ReleaseStaleZoom()
     {
-        if (_activeSession()?.Diff is { ZoomedPane: { } zoomed } diff && zoomed != _host.Workspace.ActiveTab?.View.FocusedPane)
+        if (_activeSession()?.Diff is { ZoomedPane: { } zoomed } diff
+            && zoomed != _host.Workspace.ActiveTab?.View.FocusedPane
+            && !KeepsZoomTogether(zoomed, _host.Workspace.ActiveTab?.View.FocusedPane))
         {
             diff.ZoomedPane = null;
         }
@@ -246,7 +250,7 @@ public sealed class DiffPaneController : IPromptHandler
         diff.ShownContentCommit = commit;
         diff.IsContentPlaceholder = false;
         diff.IsOpen = !beside;
-        diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
+        diff.ZoomedPane = ZoomAfterOpening(diff);
         store.Load(commit, row.Path, blob, row.Size);
         ShowContent(diff, store);
         _relayout();
@@ -446,6 +450,15 @@ public sealed class DiffPaneController : IPromptHandler
         return true;
     }
 
+    // Changes (or Files) and the diff beside it zoom as one view: focus moving between them keeps the zoom (#632).
+    private bool KeepsZoomTogether(PaneKind? zoomed, PaneKind? focused) =>
+        zoomed is { } z && focused is { } f && PaneZoom.IsZoomPair(z, f) && ShowsWithChanges();
+
+    // Opening a file keeps a zoom of the pair; on a screen too short for the strip the diff opens zoomed.
+    private PaneKind? ZoomAfterOpening(DiffSession diff) =>
+        !PaneLayout.CanOpenDiff(_screenSize().Height) ? PaneKind.Diff
+        : KeepsZoomTogether(diff.ZoomedPane, PaneKind.Diff) ? diff.ZoomedPane : null;
+
     /// <summary>The diff pane is on screen: opened on demand, or shown by the Changes tab.</summary>
     private bool IsShown(DiffSession diff) => diff.IsOpen || ShowsWithChanges();
 
@@ -540,7 +553,7 @@ public sealed class DiffPaneController : IPromptHandler
 
         // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
         diff.IsOpen = !ShowsWithChanges();
-        diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
+        diff.ZoomedPane = ZoomAfterOpening(diff);
         var started = diff.Store.Load(
             DiffCommit(loaded, commit),
             ParentToCompare(loaded),
@@ -677,7 +690,6 @@ public sealed class DiffPaneController : IPromptHandler
         {
             // The diff belongs to the Changes tab and stays: going back only returns to the file list.
             diff.IsOpen = false;
-            diff.ZoomedPane = null;
             _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Detail)));
             _relayout();
             return;
@@ -756,7 +768,7 @@ public sealed class DiffPaneController : IPromptHandler
         diff.IsContentPlaceholder = false;
         diff.ContentStore?.Clear();
         diff.IsOpen = false;
-        diff.ZoomedPane = null;
+        diff.ZoomedPane = ShowsWithChanges() ? diff.ZoomedPane : null;
         diff.Search = DiffSearchState.Idle;
         diff.Source.Highlight = null;
         diff.ShownFull = null;

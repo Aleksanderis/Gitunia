@@ -6,7 +6,8 @@ namespace Gitunia.Tui.Rendering.Panes;
 /// <param name="IsDiffOpen">The diff pane is open.</param>
 /// <param name="Zoomed">The pane that fills the screen, null for the normal layout.</param>
 /// <param name="Sizes">The pane sizes the user chose, null for all automatic.</param>
-public sealed record PaneArrangement(bool IsDiffOpen, PaneKind? Zoomed, PaneSizes? Sizes = null)
+/// <param name="ZoomBoth">With a zoomed detail or diff pane: detail and diff fill the area together (#632).</param>
+public sealed record PaneArrangement(bool IsDiffOpen, PaneKind? Zoomed, PaneSizes? Sizes = null, bool ZoomBoth = false)
 {
     public static PaneArrangement Normal { get; } = new(false, null);
 }

@@ -119,6 +119,16 @@ public class DiffFrameTests
     }
 
     [Fact]
+    public void GivenBothPanesZoomed_WhenComposing_ThenBothTitlesShareTheTopEdgeAndTheGraphIsGone()
+    {
+        var lines = Compose(100, 30, new PaneArrangement(true, PaneKind.Detail, null, true));
+
+        Assert.Contains("Details", lines[ScreenLayout.FrameTop], StringComparison.Ordinal);
+        Assert.Contains(" Diff ", lines[ScreenLayout.FrameTop], StringComparison.Ordinal);
+        Assert.DoesNotContain(lines, line => line.Contains("1970-01-01 00:00 0000002", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenAZoomedGraph_WhenComposing_ThenTheGraphTakesTheWholeAreaWithoutPanes()
     {
         var lines = Compose(100, 30, new PaneArrangement(true, PaneKind.Graph));
