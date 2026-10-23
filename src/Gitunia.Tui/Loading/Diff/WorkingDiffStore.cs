@@ -18,8 +18,12 @@ public sealed class WorkingDiffStore(
     RepositoryLocation location,
     Action<Action> postToUi,
     int rowLimit = DiffStore.DefaultRowLimit,
-    int fileLineLimit = DiffStore.DefaultFileLineLimit) : IDisposable
+    int fileLineLimit = DiffStore.DefaultFileLineLimit,
+    int folderFileLimit = WorkingDiffStore.DefaultFolderFileLimit) : IDisposable
 {
+    /// <summary>Files of a folder diff read before the rest is left out (one git process each, #625).</summary>
+    public const int DefaultFolderFileLimit = 200;
+
     private readonly KeyedDiffCache<WorkingDiffRequest> _cache = new();
     private CancellationTokenSource? _pending;
     private int _generation;
@@ -162,15 +166,28 @@ public sealed class WorkingDiffStore(
         _pending = null;
     }
 
-    private async Task<DiffReadResult> ReadAsync(WorkingDiffRequest request, int rows, int lineLimit, CancellationToken token)
+    private async Task<DiffReadResult> ReadAsync(
+        WorkingDiffRequest request,
+        int rows,
+        int lineLimit,
+        int fileLimit,
+        CancellationToken token)
     {
         var builder = new DiffDocumentBuilder();
         var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
         var entries = request.Folder?.Entries ?? [request.Entry];
-        foreach (var entry in entries)
+        var skipped = 0;
+        for (var index = 0; index < entries.Count; index++)
         {
+            if (index >= fileLimit)
+            {
+                skipped = entries.Count - index;
+                break;
+            }
+
+            var entry = entries[index];
             var files = reader.ReadWorkingFileAsync(location, request.Side, entry, warnings, lineLimit, Options, token);
             await foreach (var file in files.ConfigureAwait(false))
             {
@@ -198,12 +215,20 @@ public sealed class WorkingDiffStore(
             builder.AddTrailingNote(note);
         }
 
+        if (skipped > 0 && !truncated)
+        {
+            var noun = skipped == 1 ? "file" : "files";
+            builder.AddTrailingNote(
+                $"Showing the first {fileLimit} of {entries.Count} files; {skipped} more {noun} left out "
+                + "(<space>vl loads all of them)");
+        }
+
         if (truncated)
         {
             builder.AddTrailingNote($"Diff cut short after {rows} rows (<space>vl loads all of it)");
         }
 
-        return new DiffReadResult(builder.Build(warnings), truncated || fileCut);
+        return new DiffReadResult(builder.Build(warnings), truncated || fileCut || skipped > 0);
     }
 
     // Git prints no patch for these, and "no changes" would mislead.
@@ -229,7 +254,12 @@ public sealed class WorkingDiffStore(
     {
         try
         {
-            var read = await ReadAsync(request, limited ? rowLimit : int.MaxValue, limited ? fileLineLimit : int.MaxValue, token)
+            var read = await ReadAsync(
+                    request,
+                    limited ? rowLimit : int.MaxValue,
+                    limited ? fileLineLimit : int.MaxValue,
+                    limited ? folderFileLimit : int.MaxValue,
+                    token)
                 .ConfigureAwait(false);
             postToUi(() => Complete(request, read.Document, string.Empty, read.IsCut, token));
         }
