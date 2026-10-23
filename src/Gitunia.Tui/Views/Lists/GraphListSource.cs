@@ -172,7 +172,13 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             || !ReferenceEquals(_cachedOptions.UpstreamGoneBranches, UpstreamGoneBranches)
             || _cachedOptions.MarkedCommit != MarkedCommit)
         {
-            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight, UpstreamGoneBranches, MarkedCommit);
+            _cachedOptions = new GraphRowOptions(
+                width,
+                laneColumns,
+                glyphs,
+                Highlight,
+                UpstreamGoneBranches,
+                MarkedCommit);
         }
 
         return _cachedOptions;

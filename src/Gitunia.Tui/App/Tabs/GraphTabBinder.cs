@@ -102,7 +102,9 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     // The mark is part of the tab's state; the list source only draws it.
     private void ShowCompareMark(TabSession? session)
     {
-        if (session is null || host.Workspace.ActiveTab is not { } tab || session.Source.MarkedCommit == tab.View.CompareMark)
+        if (session is null
+            || host.Workspace.ActiveTab is not { } tab
+            || session.Source.MarkedCommit == tab.View.CompareMark)
         {
             return;
         }

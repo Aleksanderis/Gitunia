@@ -28,7 +28,8 @@ public sealed class CompareActionsTests : IDisposable
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-compare-tests");
         var gitDirectory = Path.Combine(root, ".git");
-        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        _host.Dispatch(
+            new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
         _session = new TabSession(
             _host.Workspace.ActiveTabId!.Value,
             GraphGlyphSet.Unicode,
@@ -38,7 +39,13 @@ public sealed class CompareActionsTests : IDisposable
                 _pump.Post,
                 TimeSpan.FromMilliseconds(1)));
         _session.Graph.AddRange(
-            [.. Newest.Select(id => new GraphEntry(id, "x", "A", DateTimeOffset.UnixEpoch, [], new GraphRow(id, 0, 1, [])))]);
+            [.. Newest.Select(id => new GraphEntry(
+                id,
+                "x",
+                "A",
+                DateTimeOffset.UnixEpoch,
+                [],
+                new GraphRow(id, 0, 1, [])))]);
     }
 
     private IReadOnlyList<ObjectId> Newest => _reader.Commits;
@@ -172,7 +179,8 @@ public sealed class CompareActionsTests : IDisposable
         actions.TryExecute(ActionIds.GraphCompare);
         var root = Path.Combine(Path.GetTempPath(), "gitunia-compare-tests-second");
         var gitDirectory = Path.Combine(root, ".git");
-        _host.Dispatch(new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
+        _host.Dispatch(
+            new OpenRepositoryCommand(new RepositoryLocation(root, gitDirectory, gitDirectory, false, false)));
 
         var second = _host.Workspace.Tabs.Single(tab => tab.Id != first);
 
@@ -197,6 +205,7 @@ public sealed class CompareActionsTests : IDisposable
         _selected = commit;
         _session.Details.Select(commit);
         await _pump.RunUntilAsync(
-            () => _session.Details.Current.Commit == commit && _session.Details.Current.Status == CommitDetailsStatus.Loaded);
+            () => _session.Details.Current.Commit == commit
+                && _session.Details.Current.Status == CommitDetailsStatus.Loaded);
     }
 }

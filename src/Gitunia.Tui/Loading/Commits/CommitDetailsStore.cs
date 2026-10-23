@@ -134,8 +134,8 @@ public sealed class CommitDetailsStore : IDisposable
     }
 
     /// <summary>
-    /// Shows the difference between two commits in place of the selected commit's own changes (#535): the files are read
-    /// as <c>git diff older newer</c> and replace <see cref="CommitDetailsState.Details"/>' file list when they arrive,
+    /// Shows the difference between two commits in place of the selected commit's own changes (#535): the files are
+    /// read as <c>git diff older newer</c> and replace <see cref="CommitDetailsState.Details"/>' file list when they arrive,
     /// with <see cref="CommitDetails.CompareOlder"/> and <see cref="CommitDetails.CompareNewer"/> set. The selected
     /// commit must be one of the two. Selecting another commit ends the comparison (the cache keeps the commit's own
     /// files); <see cref="ClearComparison"/> ends it without moving.

@@ -390,8 +390,10 @@ public class WorkspaceReducerTests
         var alpha = IdOf(workspace, "alpha");
         Assert.True(ObjectId.TryParse(new string('a', 40), out var commit));
 
-        var marked = WorkspaceReducer.Reduce(workspace, new TabCommand(alpha, new SetCompareMarkCommand(commit))).Workspace;
-        var cleared = WorkspaceReducer.Reduce(marked, new TabCommand(alpha, new SetCompareMarkCommand(null))).Workspace;
+        var mark = new TabCommand(alpha, new SetCompareMarkCommand(commit));
+        var clear = new TabCommand(alpha, new SetCompareMarkCommand(null));
+        var marked = WorkspaceReducer.Reduce(workspace, mark).Workspace;
+        var cleared = WorkspaceReducer.Reduce(marked, clear).Workspace;
 
         Assert.Equal(commit, marked.Tabs.Single(tab => tab.Id == alpha).View.CompareMark);
         Assert.Null(marked.Tabs.Single(tab => tab.Id != alpha).View.CompareMark);

@@ -382,7 +382,11 @@ public class CommitDetailsStoreTests
         var newer = reader.Add("newer", older);
         reader.SetFiles(newer, older, "between.txt");
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
         store.Select(older);
         await WaitForSettledAsync(pump, store, older);
 
@@ -401,7 +405,11 @@ public class CommitDetailsStoreTests
         var second = reader.Add("second", first);
         var third = reader.Add("third", second);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
         Assert.False(store.Compare(first, second));
         store.Select(third);
         await WaitForSettledAsync(pump, store, third);
@@ -418,7 +426,11 @@ public class CommitDetailsStoreTests
         var newer = reader.Add("newer", older);
         reader.SetFiles(newer, older, "between.txt");
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
         store.Select(newer);
         await WaitForSettledAsync(pump, store, newer);
         store.Compare(older, newer);
@@ -467,7 +479,11 @@ public class CommitDetailsStoreTests
         var side = reader.Add("side");
         var merge = reader.AddMerge("merge", main, side);
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
         store.Select(merge);
         await WaitForSettledAsync(pump, store, merge);
         store.Compare(main, merge);

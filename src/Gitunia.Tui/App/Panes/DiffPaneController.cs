@@ -266,7 +266,8 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         diff.PendingFilePath = path;
-        if (diff.Store.Status == DiffStatus.Loaded && session.Details.Current is { Commit: { } commit, Details: { } shown }
+        if (diff.Store.Status == DiffStatus.Loaded
+            && session.Details.Current is { Commit: { } commit, Details: { } shown }
             && diff.Store.Commit == DiffCommit(shown, commit))
         {
             Refresh(diff);

@@ -9,7 +9,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="Glyphs">The characters to draw with.</param>
 /// <param name="Highlight">The active graph search, whose matches are highlighted; null when none.</param>
 /// <param name="UpstreamGoneBranches">Local branches whose upstream is gone (marked in labels); null for none.</param>
-/// <param name="MarkedCommit">The commit marked for a comparison (#535), which gets a <c>[mark]</c> before its labels.</param>
+/// <param name="MarkedCommit">The commit marked for a comparison (#535), which gets a <c>[mark]</c> before its
+/// labels.</param>
 public sealed record GraphRowOptions(
     int Width,
     int LaneColumns,
