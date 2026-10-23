@@ -168,20 +168,32 @@ public sealed class WorkingDiffStore(
         var warnings = new List<string>();
         var truncated = false;
         var fileCut = false;
-        var files = reader.ReadWorkingFileAsync(location, request.Side, request.Entry, warnings, lineLimit, Options, token);
-        await foreach (var file in files.ConfigureAwait(false))
+        var entries = request.Folder?.Entries ?? [request.Entry];
+        foreach (var entry in entries)
         {
-            builder.Add(file, groupChanges: true);
-            fileCut |= file.IsTruncated;
-            if (builder.RowCount >= rows)
+            var files = reader.ReadWorkingFileAsync(location, request.Side, entry, warnings, lineLimit, Options, token);
+            await foreach (var file in files.ConfigureAwait(false))
             {
-                // Leaving the loop disposes the stream, which stops git.
-                truncated = true;
+                builder.Add(file, groupChanges: true);
+                fileCut |= file.IsTruncated;
+                if (builder.RowCount >= rows)
+                {
+                    // Leaving the loop disposes the stream, which stops git.
+                    truncated = true;
+                    break;
+                }
+            }
+
+            if (truncated)
+            {
                 break;
             }
         }
 
-        if (builder.RowCount == 0 && warnings.Count == 0 && NoteForNoFile(request.Entry) is { } note)
+        if (builder.RowCount == 0
+            && warnings.Count == 0
+            && request.Folder is null
+            && NoteForNoFile(request.Entry) is { } note)
         {
             builder.AddTrailingNote(note);
         }

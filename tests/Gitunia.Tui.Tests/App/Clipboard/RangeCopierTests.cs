@@ -3,6 +3,7 @@ using Gitunia.Core.Clipboard;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Tui.Tests.Rendering.WorkingTree;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.App.Clipboard;
@@ -39,6 +40,28 @@ public class RangeCopierTests : IDisposable
         Assert.Equal(new RangeCopyResult(true, string.Empty), result);
         var text = $"{CommitFactory.Id(2)}\n{CommitFactory.Id(1)}\n";
         Assert.Equal($"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\u001b\\", _terminal.ToString());
+    }
+
+    [Fact]
+    public void GivenATreeRangeOverAFolderRowAndItsFile_WhenCopying_ThenTheFolderAndTheFilePathsAreCopied()
+    {
+        var tree = WorkingTreeEntries.Tree(
+            WorkingTreeEntries.Modified("src/a.cs"),
+            WorkingTreeEntries.Modified("top.txt"));
+        tree = tree.WithLayout(FilePathStyle.Tree, tree.CollapsedUnstaged, tree.CollapsedStaged);
+        var copier = new RangeCopier(
+            new ClipboardCopier(
+                new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)),
+                new StatusChannel()),
+            () => null,
+            () => tree);
+
+        var result = copier.Copy(PaneKind.WorkingUnstaged, new RowRange(0, 2));
+
+        Assert.True(result.Copied);
+        const string text = "src\nsrc/a.cs\ntop.txt";
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+        Assert.Equal($"\u001b]52;c;{encoded}\u001b\\", _terminal.ToString());
     }
 
     [Fact]

@@ -65,10 +65,17 @@ public sealed record OpenWorkingTreeCommand : RepositoryCommand;
 /// <summary>Go back from the working-tree view to the history view (the graph keeps its selection).</summary>
 public sealed record LeaveWorkingTreeCommand : RepositoryCommand;
 
-/// <summary>Select a file in the working-tree view.</summary>
+/// <summary>Select a row (a file, or a folder in the tree style) in the working-tree view.</summary>
 /// <param name="Section">The list.</param>
 /// <param name="Index">Row index; clamped to the list, ignored when the list is empty.</param>
 public sealed record SelectWorkingTreeFileCommand(WorkingTreeSection Section, int Index) : RepositoryCommand;
+
+/// <summary>Close or open a folder of a working-tree list in the tree style.</summary>
+/// <param name="Section">The list.</param>
+/// <param name="Folder">The folder path from the repository root.</param>
+/// <param name="Collapse">True to close, false to open, null to flip it.</param>
+public sealed record ToggleWorkingFolderCommand(WorkingTreeSection Section, string Folder, bool? Collapse = null)
+    : RepositoryCommand;
 
 /// <summary>The status of the tab's other worktrees was (re)read, for the sidebar overview.</summary>
 /// <param name="Statuses">The status by worktree path; replaces the previous set.</param>

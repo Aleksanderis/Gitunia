@@ -153,6 +153,12 @@ public sealed class WorkingDiffController : IPromptHandler
             return DiffStagingCapture.Refused("The diff is cut short: press <space>vl to load all of it first");
         }
 
+        if (target.Folder is not null)
+        {
+            return DiffStagingCapture.Refused(
+                "This is the diff of a folder: pick one of its files to stage a hunk or lines");
+        }
+
         if (target.Entry.Kind == StatusEntryKind.Unmerged)
         {
             return DiffStagingCapture.Refused($"{WorkingTreeRowRenderer.Printable(target.Entry.Path)} is conflicted: resolve it first");
@@ -248,16 +254,34 @@ public sealed class WorkingDiffController : IPromptHandler
         }
 
         diff.Observe(tree.Snapshot);
-        var selection = tree.Selection;
-        var list = selection?.Section == WorkingTreeSection.Staged ? tree.Staged : tree.Unstaged;
-        if (selection is null || selection.Index >= list.Count)
+        if (RequestOf(tree) is not { } request)
         {
             diff.Store.ShowNothing(WorkingTreePaneRenderer.NoFileText);
             return;
         }
 
+        diff.Store.Show(request, diff.Generation);
+    }
+
+    // The file under the cursor, or all the files under the folder there.
+    private static WorkingDiffRequest? RequestOf(WorkingTreeState tree)
+    {
+        if (tree.Selection is not { } selection)
+        {
+            return null;
+        }
+
         var side = selection.Section == WorkingTreeSection.Staged ? WorkingDiffSide.Staged : WorkingDiffSide.Unstaged;
-        diff.Store.Show(new WorkingDiffRequest(side, list[selection.Index]), diff.Generation);
+        if (!selection.IsFolder)
+        {
+            return tree.SelectedEntry is { } entry ? new WorkingDiffRequest(side, entry) : null;
+        }
+
+        var entries = tree.SelectedFolderEntries;
+
+        return entries.Count == 0
+            ? null
+            : new WorkingDiffRequest(side, entries[0], new WorkingDiffFolder(selection.Path, entries));
     }
 
     private void OnWorkspaceChanged()
@@ -387,7 +411,9 @@ public sealed class WorkingDiffController : IPromptHandler
     }
 
     private static bool IsSamePath(WorkingDiffRequest? request, WorkingDiffRequest? other) =>
-        request is not null && other is not null && request.Side == other.Side && request.Entry.Path == other.Entry.Path;
+        request is not null && other is not null && request.Side == other.Side
+        && request.Entry.Path == other.Entry.Path
+        && request.Folder?.Path == other.Folder?.Path;
 
     private void MoveToPendingHunk(WorkingDiffSession diff)
     {

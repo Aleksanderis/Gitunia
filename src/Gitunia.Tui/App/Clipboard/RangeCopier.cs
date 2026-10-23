@@ -70,13 +70,17 @@ public sealed class RangeCopier(ClipboardCopier clipboard, Func<TabSession?> act
             return NothingToCopy;
         }
 
-        var entries = pane == PaneKind.WorkingStaged ? tree.Staged : tree.Unstaged;
-        var first = Math.Max(0, range.First);
-        var paths = entries
-            .Skip(first)
-            .Take(Math.Max(0, range.Last - first + 1))
-            .Select(entry => WorkingTreeRowRenderer.Printable(entry.Path))
-            .ToList();
+        var section = pane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
+        var entries = tree.EntriesOf(section);
+        var rows = tree.RowsOf(section);
+        var paths = new List<string>();
+        for (var row = Math.Max(0, range.First); row <= Math.Min(range.Last, rows.Count - 1); row++)
+        {
+            var found = rows[row];
+            var path = found.IsFolder ? found.FolderPath : entries[found.EntryIndex].Path;
+            paths.Add(WorkingTreeRowRenderer.Printable(path));
+        }
+
         if (paths.Count == 0)
         {
             return NothingToCopy;

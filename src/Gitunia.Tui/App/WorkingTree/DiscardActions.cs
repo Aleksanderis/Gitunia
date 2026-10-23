@@ -77,6 +77,11 @@ public sealed class DiscardActions(
             return BusyNotice;
         }
 
+        if (tree.Selection is { IsFolder: true, Section: WorkingTreeSection.Unstaged } folder)
+        {
+            return AskFolder(tab, tree, folder.Path);
+        }
+
         var entry = tree.Selection is { } selection && selection.Section == WorkingTreeSection.Unstaged
             ? tree.Unstaged.FirstOrDefault(candidate => candidate.Path == selection.Path)
             : null;
@@ -121,14 +126,39 @@ public sealed class DiscardActions(
             return BusyNotice;
         }
 
-        if (tree.Unstaged.Count == 0)
+        var rows = tree.RowsOf(WorkingTreeSection.Unstaged);
+        if (rows.Count == 0)
         {
             return "Select a file first";
         }
 
-        var first = Math.Clamp(range.First, 0, tree.Unstaged.Count - 1);
-        var last = Math.Clamp(range.Last, first, tree.Unstaged.Count - 1);
-        var picked = tree.Unstaged.Skip(first).Take(last - first + 1).ToList();
+        var first = Math.Clamp(range.First, 0, rows.Count - 1);
+        var last = Math.Clamp(range.Last, first, rows.Count - 1);
+        var picked = rows.EntriesOfRows(first, last).Select(index => tree.Unstaged[index]).ToList();
+
+        return AskEntries(tab, picked, null, onConfirmed);
+    }
+
+    // The folder's confirm dialog names the folder and counts every file under it, hidden ones in a closed
+    // folder included.
+    private string AskFolder(RepositoryState tab, WorkingTreeState tree, string folder)
+    {
+        if (gate.IsBusy(tab.Id))
+        {
+            return BusyNotice;
+        }
+
+        var picked = tree.SelectedFolderEntries.ToList();
+        if (picked.Count == 0)
+        {
+            return "Select a file first";
+        }
+
+        return AskEntries(tab, picked, $"{WorkingTreeRowRenderer.Printable(folder)}{DirectorySuffix}", null);
+    }
+
+    private string AskEntries(RepositoryState tab, List<StatusEntry> picked, string? folderName, Action? onConfirmed)
+    {
         var usable = picked.Where(entry => Refusal(entry).Length == 0).ToList();
         var skipped = picked.Count - usable.Count;
         if (usable.Count == 0)
@@ -136,7 +166,7 @@ public sealed class DiscardActions(
             return Refusal(picked[0]);
         }
 
-        if (usable.Count == 1 && skipped == 0)
+        if (usable.Count == 1 && skipped == 0 && folderName is null)
         {
             var entry = usable[0];
             return Ask(FilePrompt(entry), () =>
@@ -146,17 +176,20 @@ public sealed class DiscardActions(
             });
         }
 
-        return Ask(RangePrompt(usable, skipped), () =>
+        return Ask(RangePrompt(usable, skipped, folderName), () =>
         {
             onConfirmed?.Invoke();
             StartRange(tab, usable, skipped);
         });
     }
 
-    private static ConfirmPrompt RangePrompt(List<StatusEntry> files, int skipped)
+    private static ConfirmPrompt RangePrompt(List<StatusEntry> files, int skipped, string? folderName)
     {
         var untracked = files.Where(entry => entry.Kind == StatusEntryKind.Untracked).ToList();
-        List<string> lines = [$"Discard changes to {OperationText.Plural(files.Count, "file")}?"];
+        var subject = OperationText.Plural(files.Count, "file");
+        List<string> lines = [folderName is null
+            ? $"Discard changes to {subject}?"
+            : $"Discard changes to {subject} in {folderName}?"];
         if (untracked.Count > 0)
         {
             var names = untracked.Take(NamedUntrackedLimit).Select(entry => WorkingTreeRowRenderer.Printable(entry.Path)).ToList();

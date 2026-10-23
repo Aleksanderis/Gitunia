@@ -2,6 +2,7 @@ using Gitunia.Core.Jump;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Status.Models;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
@@ -23,18 +24,42 @@ public sealed class WorkingTreeJumpRows(
 
     public int EllipsisWidth { get; } = TextWidth.Of(ellipsis);
 
-    public string TextOf(int row) => WorkingTreeRowRenderer.PathLayoutText(
-        EntryOf(row),
-        section,
-        pathStyle,
-        ColumnsOf(row),
-        ellipsis);
+    public string TextOf(int row)
+    {
+        if (tree!.RowsOf(section) is { IsTree: true } rows)
+        {
+            var found = rows[row];
 
-    /// <summary>The columns left for the path: the text area less the mark and a conflicted row's conflict
+            return found.IsFolder
+                ? WorkingTreeRowRenderer.FolderText(found)
+                : WorkingTreeRowRenderer.TreeName(EntryOf(row), found, section);
+        }
+
+        return WorkingTreeRowRenderer.PathLayoutText(EntryOf(row), section, pathStyle, ColumnsOf(row), ellipsis);
+    }
+
+    /// <summary>The columns left for the path: the text area less the indent, the mark and a conflicted row's conflict
     /// text.</summary>
-    public int ColumnsOf(int row) =>
-        Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+    public int ColumnsOf(int row)
+    {
+        if (tree!.RowsOf(section) is { IsTree: true } rows)
+        {
+            var found = rows[row];
+            var indent = TextWidth.Of(TreeRowText.Indent(found.Depth));
 
-    private StatusEntry EntryOf(int row) =>
-        (section == WorkingTreeSection.Unstaged ? tree!.Unstaged : tree!.Staged)[row];
+            return found.IsFolder
+                ? Math.Max(0, width - indent)
+                : Math.Max(
+                    0,
+                        width - indent - WorkingTreeRowRenderer.MarkColumns
+                        - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+        }
+
+        return Math.Max(
+            0,
+            width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+    }
+
+    // The file of a row; a folder row has none.
+    private StatusEntry EntryOf(int row) => tree!.EntriesOf(section)[tree.RowsOf(section)[row].EntryIndex];
 }

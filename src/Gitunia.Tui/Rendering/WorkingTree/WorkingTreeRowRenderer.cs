@@ -77,6 +77,94 @@ public static class WorkingTreeRowRenderer
         return builder.Build(isSelected: isSelected);
     }
 
+    /// <summary>The line of a file in the tree style: indented under its folder, the status letter and the
+    /// name only.</summary>
+    /// <param name="entry">The status entry.</param>
+    /// <param name="row">The row of the file in the tree.</param>
+    /// <param name="section">The list the row is in.</param>
+    /// <param name="width">Columns for the row's text.</param>
+    /// <param name="isSelected">The row is the cursor of its list.</param>
+    /// <param name="glyphs">The character set.</param>
+    /// <param name="jump">The quick-jump label of the row, null for none.</param>
+    public static StyledLine RenderTreeFile(
+        StatusEntry entry,
+        WorkingRow row,
+        WorkingTreeSection section,
+        int width,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump = null)
+    {
+        var mark = MarkOf(entry, section);
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        builder.Append(TreeRowText.Indent(row.Depth), SegmentRole.Plain);
+        builder.Append(mark, RoleOf(mark)).Append(" ", SegmentRole.Plain);
+        var conflict = ConflictSuffix(entry);
+        var name = TreeName(entry, row, section);
+        var columns = Math.Max(0, builder.Remaining - TextWidth.Of(conflict));
+        var shown = TextWidth.Fit(name, columns, glyphs.Ellipsis);
+        if (jump is { } target)
+        {
+            JumpOverlay.Append(builder, shown, SegmentRole.Plain, target);
+        }
+        else
+        {
+            builder.Append(shown, SegmentRole.Plain);
+        }
+
+        builder.Append(conflict, SegmentRole.Faint);
+
+        return builder.Build(isSelected: isSelected);
+    }
+
+    /// <summary>The line of a folder in the tree style: its name with a separator, and the file count when it
+    /// is closed.</summary>
+    /// <param name="row">The folder row.</param>
+    /// <param name="closedFileCount">Files under the folder when it is closed, null when it is open.</param>
+    /// <param name="width">Columns for the row's text.</param>
+    /// <param name="isSelected">The row is the cursor of its list.</param>
+    /// <param name="glyphs">The character set.</param>
+    /// <param name="jump">The quick-jump label of the row, null for none.</param>
+    public static StyledLine RenderFolder(
+        WorkingRow row,
+        int? closedFileCount,
+        int width,
+        bool isSelected,
+        GraphGlyphSet glyphs,
+        JumpLabel? jump = null)
+    {
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        builder.Append(TreeRowText.Indent(row.Depth), SegmentRole.Plain);
+        var name = FolderText(row);
+        if (jump is { } target)
+        {
+            var shown = TextWidth.Fit(name, builder.Remaining, glyphs.Ellipsis);
+            JumpOverlay.Append(builder, shown, SegmentRole.SectionTitle, target);
+        }
+        else
+        {
+            builder.Append(name, SegmentRole.SectionTitle);
+        }
+
+        if (closedFileCount is { } count)
+        {
+            builder.Append($"  {(count == 1 ? "1 file" : $"{count} files")}", SegmentRole.Faint);
+        }
+
+        return builder.Build(isSelected: isSelected);
+    }
+
+    /// <summary>The text of a folder row: its name and a separator.</summary>
+    public static string FolderText(WorkingRow row) => $"{Printable(row.Name)}/";
+
+    /// <summary>The name a file shows in the tree style (a rename as <c>old -&gt; new</c> in the Staged
+    /// list).</summary>
+    public static string TreeName(StatusEntry entry, WorkingRow row, WorkingTreeSection section) =>
+        TreeRowText.FileName(
+            Printable(entry.Path),
+            Printable(row.Name),
+            section == WorkingTreeSection.Staged && entry.OriginalPath is { } original ? Printable(original) : null);
+
     /// <summary>Columns the conflict text of an entry takes after its path; 0 when it is not conflicted.</summary>
     public static int ConflictColumns(StatusEntry entry) => TextWidth.Of(ConflictSuffix(entry));
 

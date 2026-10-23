@@ -225,6 +225,8 @@ public static class DefaultMouseMap
         new(DefaultKeymap.PickerView, MouseGesture.DoubleClick, ActionIds.PickerAccept),
         new(DefaultKeymap.PickerView, MouseGesture.WheelUp, ActionIds.PickerPrevious),
         new(DefaultKeymap.PickerView, MouseGesture.WheelDown, ActionIds.PickerNext),
+        new(DefaultKeymap.WorkingUnstagedView, MouseGesture.Click, ActionIds.WorkingTreeToggleFolder),
+        new(DefaultKeymap.WorkingStagedView, MouseGesture.Click, ActionIds.WorkingTreeToggleFolder),
         new(DefaultKeymap.WorkingUnstagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeStage),
         new(DefaultKeymap.WorkingStagedView, MouseGesture.DoubleClick, ActionIds.WorkingTreeUnstage),
         new(DefaultKeymap.WorkingMessageView, MouseGesture.Click, ActionIds.WorkingTreeEditMessage),

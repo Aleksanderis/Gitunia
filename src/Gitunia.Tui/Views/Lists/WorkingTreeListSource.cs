@@ -52,8 +52,10 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
     /// <param name="tree">The active tab's working tree, null when it has none yet.</param>
     public bool Update(WorkingTreeState? tree)
     {
-        if (ReferenceEquals(_tree?.Snapshot, tree?.Snapshot))
+        if (ReferenceEquals(_tree?.Snapshot, tree?.Snapshot) && SameLayout(_tree, tree))
         {
+            _tree = tree;
+
             return false;
         }
 
@@ -143,4 +145,10 @@ public sealed class WorkingTreeListSource(WorkingTreeSection section, GraphGlyph
 
         return _jump.LabelOf(item);
     }
+
+    // The rows depend on the status and on the layout: the path style and the closed folders.
+    private static bool SameLayout(WorkingTreeState? first, WorkingTreeState? second) =>
+        first?.PathStyle == second?.PathStyle
+        && ReferenceEquals(first?.CollapsedUnstaged, second?.CollapsedUnstaged)
+        && ReferenceEquals(first?.CollapsedStaged, second?.CollapsedStaged);
 }

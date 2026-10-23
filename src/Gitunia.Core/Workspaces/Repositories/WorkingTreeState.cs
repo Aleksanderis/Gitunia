@@ -1,18 +1,33 @@
+using System.Collections.Immutable;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Core.Workspaces.Repositories;
 
-/// <summary>The full status of one tab and the file selected in it. Pure data: refreshed by <see cref="WorkingTreeLoadedCommand"/>.</summary>
+/// <summary>The full status of one tab and the row selected in it. Pure data: refreshed by
+/// <see cref="WorkingTreeLoadedCommand"/>.</summary>
 /// <param name="Snapshot">The last status read.</param>
-/// <param name="Selection">The selected file, null when the lists are empty.</param>
+/// <param name="Selection">The selected row, null when the lists are empty.</param>
 public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelection? Selection)
 {
     private IReadOnlyList<StatusEntry>? _unstaged;
     private IReadOnlyList<StatusEntry>? _staged;
+    private RowsCache? _unstagedRows;
+    private RowsCache? _stagedRows;
+
+    /// <summary>How the lists lay out their rows; the tree style adds folder rows. Follows the tab's path
+    /// style.</summary>
+    public FilePathStyle PathStyle { get; init; } = FilePathStyle.NameFirst;
+
+    /// <summary>Folders of the Unstaged list that are closed in the tree style.</summary>
+    public ImmutableHashSet<string> CollapsedUnstaged { get; init; } = [];
+
+    /// <summary>Folders of the Staged list that are closed in the tree style.</summary>
+    public ImmutableHashSet<string> CollapsedStaged { get; init; } = [];
 
     /// <summary>
     /// Entries of the Unstaged list in display order: conflicted paths first (their own group, ux.md workflow 2), then the worktree
-    /// changes and untracked paths, each group in git's order. The selection's row index refers to this order.
+    /// changes and untracked paths, each group in git's order.
     /// </summary>
     public IReadOnlyList<StatusEntry> Unstaged => _unstaged ??= Snapshot.Entries
         .Where(IsUnstagedRow)
@@ -22,49 +37,140 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     /// <summary>Entries of the Staged list, in git's order.</summary>
     public IReadOnlyList<StatusEntry> Staged => _staged ??= Snapshot.Entries.Where(entry => entry.IsStaged).ToList();
 
-    /// <summary>Builds the state for a new snapshot, keeping the selection when its file is still listed.</summary>
+    /// <summary>The entries of a list.</summary>
+    public IReadOnlyList<StatusEntry> EntriesOf(WorkingTreeSection section) =>
+        section == WorkingTreeSection.Unstaged ? Unstaged : Staged;
+
+    /// <summary>The folders of a list that are closed.</summary>
+    public ImmutableHashSet<string> CollapsedOf(WorkingTreeSection section) =>
+        section == WorkingTreeSection.Unstaged ? CollapsedUnstaged : CollapsedStaged;
+
+    /// <summary>
+    /// The rows of a list as the path style lays them out. The selection's row index refers to these rows; in the flat
+    /// styles a row is an entry.
+    /// </summary>
+    public WorkingRows RowsOf(WorkingTreeSection section)
+    {
+        var collapsed = CollapsedOf(section);
+        var cache = section == WorkingTreeSection.Unstaged ? _unstagedRows : _stagedRows;
+        if (cache is not null && cache.Style == PathStyle && ReferenceEquals(cache.Collapsed, collapsed))
+        {
+            return cache.Rows;
+        }
+
+        var paths = EntriesOf(section).Select(entry => entry.Path).ToList();
+        var rows = PathStyle == FilePathStyle.Tree ? WorkingRows.Tree(paths, collapsed) : WorkingRows.Flat(paths);
+        var built = new RowsCache(rows, PathStyle, collapsed);
+        if (section == WorkingTreeSection.Unstaged)
+        {
+            _unstagedRows = built;
+        }
+        else
+        {
+            _stagedRows = built;
+        }
+
+        return rows;
+    }
+
+    /// <summary>The file the selection stands on, null when a folder or nothing is selected.</summary>
+    public StatusEntry? SelectedEntry => Selection is { IsFolder: false } selection
+        ? EntriesOf(selection.Section).FirstOrDefault(entry => entry.Path == selection.Path)
+        : null;
+
+    /// <summary>The files under the selected folder, in list order; empty when a file or nothing is selected.</summary>
+    public IReadOnlyList<StatusEntry> SelectedFolderEntries
+    {
+        get
+        {
+            if (Selection is not { IsFolder: true } selection)
+            {
+                return [];
+            }
+
+            var entries = EntriesOf(selection.Section);
+
+            return [.. RowsOf(selection.Section).EntriesUnder(selection.Path).Select(index => entries[index])];
+        }
+    }
+
+    /// <summary>The selection on a row of a list, null when the list has no such row.</summary>
+    /// <param name="section">The list.</param>
+    /// <param name="row">The row index.</param>
+    public WorkingTreeSelection? SelectionAt(WorkingTreeSection section, int row)
+    {
+        var rows = RowsOf(section);
+        if (row < 0 || row >= rows.Count)
+        {
+            return null;
+        }
+
+        var found = rows[row];
+
+        return found.IsFolder
+            ? new WorkingTreeSelection(section, found.FolderPath, row, true)
+            : new WorkingTreeSelection(section, EntriesOf(section)[found.EntryIndex].Path, row);
+    }
+
+    /// <summary>
+    /// The state with another layout; the selection stays on the same file or folder (on the folder that
+    /// hides the file,
+    /// or on the first file under a folder that the flat styles do not show).
+    /// </summary>
+    /// <param name="style">The path style.</param>
+    /// <param name="collapsedUnstaged">The closed folders of the Unstaged list.</param>
+    /// <param name="collapsedStaged">The closed folders of the Staged list.</param>
+    public WorkingTreeState WithLayout(
+        FilePathStyle style,
+        ImmutableHashSet<string> collapsedUnstaged,
+        ImmutableHashSet<string> collapsedStaged)
+    {
+        var next = this with
+        {
+            PathStyle = style,
+            CollapsedUnstaged = collapsedUnstaged,
+            CollapsedStaged = collapsedStaged,
+            Selection = null,
+        };
+        if (Selection is not { } selection)
+        {
+            return next;
+        }
+
+        var row = next.Locate(selection);
+
+        return next with { Selection = next.SelectionAt(selection.Section, row) ?? next.SelectionNear(selection) };
+    }
+
+    /// <summary>Builds the state for a new snapshot, keeping the selection when its row is still listed.</summary>
     /// <remarks>
-    /// Order of preference: the same path in the same list; the row now at the old index (clamped), which is also what happens when
+    /// Order of preference: the same file or folder in the same list; the row now at the old index (clamped),
+    /// which is also what happens when
     /// the file moved to the other list by stage or unstage, so the cursor stays put and the action can be repeated (ux.md, workflow 2);
     /// the first row of the other list. Without a previous selection the first row is chosen.
     /// Never selects when both lists are empty.
     /// </remarks>
-    public static WorkingTreeState Reconcile(WorkingTreeState? previous, StatusSnapshot snapshot)
+    /// <param name="previous">The state the snapshot replaces, null for the first one.</param>
+    /// <param name="snapshot">The new status.</param>
+    /// <param name="style">The path style of the tab; the previous state's when null.</param>
+    public static WorkingTreeState Reconcile(
+        WorkingTreeState? previous,
+        StatusSnapshot snapshot,
+        FilePathStyle? style = null)
     {
-        var next = new WorkingTreeState(snapshot, null);
-        var unstaged = next.Unstaged;
-        var staged = next.Staged;
+        var next = new WorkingTreeState(snapshot, null)
+        {
+            PathStyle = style ?? previous?.PathStyle ?? FilePathStyle.NameFirst,
+            CollapsedUnstaged = previous?.CollapsedUnstaged ?? [],
+            CollapsedStaged = previous?.CollapsedStaged ?? [],
+        };
         var old = previous?.Selection;
-        WorkingTreeSelection? selection = null;
-        if (old is not null)
-        {
-            var oldIsUnstaged = old.Section == WorkingTreeSection.Unstaged;
-            var same = oldIsUnstaged ? unstaged : staged;
-            var other = oldIsUnstaged ? staged : unstaged;
-            var otherSection = oldIsUnstaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
-            var at = IndexOf(same, old.Path);
-            if (at >= 0)
-            {
-                selection = new WorkingTreeSelection(old.Section, old.Path, at);
-            }
-            else if (same.Count > 0)
-            {
-                var index = Math.Min(old.Index, same.Count - 1);
-                selection = new WorkingTreeSelection(old.Section, same[index].Path, index);
-            }
-            else if (other.Count > 0)
-            {
-                selection = new WorkingTreeSelection(otherSection, other[0].Path, 0);
-            }
-        }
-        else if (unstaged.Count > 0)
-        {
-            selection = new WorkingTreeSelection(WorkingTreeSection.Unstaged, unstaged[0].Path, 0);
-        }
-        else if (staged.Count > 0)
-        {
-            selection = new WorkingTreeSelection(WorkingTreeSection.Staged, staged[0].Path, 0);
-        }
+        var other = old?.Section == WorkingTreeSection.Unstaged
+            ? WorkingTreeSection.Staged
+            : WorkingTreeSection.Unstaged;
+        var selection = old is null
+            ? next.SelectionAt(WorkingTreeSection.Unstaged, 0) ?? next.SelectionAt(WorkingTreeSection.Staged, 0)
+            : next.SelectionAt(old.Section, next.Locate(old)) ?? next.SelectionNear(old) ?? next.SelectionAt(other, 0);
 
         return next with { Selection = selection };
     }
@@ -82,6 +188,44 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
         _ => entry.IsUnstaged,
     };
 
+    // The row now at the old index (clamped) of the same list, null when the list is empty.
+    private WorkingTreeSelection? SelectionNear(WorkingTreeSelection old)
+    {
+        var count = RowsOf(old.Section).Count;
+
+        return count == 0 ? null : SelectionAt(old.Section, Math.Min(old.Index, count - 1));
+    }
+
+    // The row a selection stands on in the current rows, -1 when its file or folder is gone.
+    private int Locate(WorkingTreeSelection selection)
+    {
+        var rows = RowsOf(selection.Section);
+        if (selection.IsFolder)
+        {
+            var folderRow = rows.RowOfFolder(selection.Path);
+            if (folderRow >= 0)
+            {
+                return folderRow;
+            }
+
+            // The flat styles have no folder rows: the first file under the folder stands for it.
+            var first = rows.EntriesUnder(selection.Path);
+
+            return first.Count == 0 ? -1 : RowOfPath(selection.Section, rows, first[0]);
+        }
+
+        var index = IndexOf(EntriesOf(selection.Section), selection.Path);
+
+        return index < 0 ? -1 : RowOfPath(selection.Section, rows, index);
+    }
+
+    private int RowOfPath(WorkingTreeSection section, WorkingRows rows, int entryIndex)
+    {
+        var row = rows.RowOfEntry(entryIndex);
+
+        return row >= 0 ? row : rows.RowOfClosedAncestor(EntriesOf(section)[entryIndex].Path);
+    }
+
     private static int IndexOf(IReadOnlyList<StatusEntry> list, string path)
     {
         for (var i = 0; i < list.Count; i++)
@@ -94,4 +238,6 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
 
         return -1;
     }
+
+    private sealed record RowsCache(WorkingRows Rows, FilePathStyle Style, ImmutableHashSet<string> Collapsed);
 }

@@ -45,11 +45,10 @@ public static class WorkingTreePaneRenderer
     }
 
     /// <summary>The number of rows of a list, 0 while the status is not loaded.</summary>
-    public static int Count(WorkingTreeState? tree, WorkingTreeSection section) => tree is null
-        ? 0
-        : (section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged).Count;
+    public static int Count(WorkingTreeState? tree, WorkingTreeSection section) => tree?.RowsOf(section).Count ?? 0;
 
-    /// <summary>The row <paramref name="item"/> of a list: a file, a row of the list's empty-state text (wrapped) when the list is empty, or a blank row.</summary>
+    /// <summary>The row <paramref name="item"/> of a list: a file or (tree style) a folder, a row of the
+    /// list's empty-state text (wrapped) when the list is empty, or a blank row.</summary>
     /// <param name="tree">The working tree, null while it is not loaded.</param>
     /// <param name="section">The list.</param>
     /// <param name="item">Row index in the list.</param>
@@ -71,8 +70,25 @@ public static class WorkingTreePaneRenderer
         var count = Count(tree, section);
         if (tree is not null && item >= 0 && item < count)
         {
-            var entries = section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged;
-            return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs, jump, pathStyle);
+            var entries = tree.EntriesOf(section);
+            var rows = tree.RowsOf(section);
+            if (!rows.IsTree)
+            {
+                return WorkingTreeRowRenderer.Render(
+                    entries[item], section, width, isSelected, glyphs, jump, pathStyle);
+            }
+
+            var row = rows[item];
+            if (!row.IsFolder)
+            {
+                return WorkingTreeRowRenderer.RenderTreeFile(
+                    entries[row.EntryIndex], row, section, width, isSelected, glyphs, jump);
+            }
+
+            var isClosed = tree.CollapsedOf(section).Contains(row.FolderPath);
+            int? closedCount = isClosed ? rows.EntriesUnder(row.FolderPath).Count : null;
+
+            return WorkingTreeRowRenderer.RenderFolder(row, closedCount, width, isSelected, glyphs, jump);
         }
 
         var builder = new LineBuilder(width, glyphs.Ellipsis);
@@ -168,7 +184,9 @@ public static class WorkingTreePaneRenderer
             parts.Add(diff.OptionsLabel);
         }
 
-        parts.Add(diff.Document.FilePaths[0][0]);
+        parts.Add(selection.IsFolder
+            ? $"{WorkingTreeRowRenderer.Printable(selection.Path)}/"
+            : diff.Document.FilePaths[0][0]);
         return string.Join("  ", parts);
     }
 
