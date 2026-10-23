@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "name": "Rosé Pine Moon",
+  "variant": "dark",
+  "colors": {
+    "accent": "#c4a7e7",
+    "good": "#9ccfd8",
+    "bad": "#ef9ab3",
+    "remote": "#eb9d9a",
+    "warn": "#f6c177",
+    "info": "#89b9cf",
+    "muted": "#b2afc3",
+    "mutedOnSelection": "#b4b1c5",
+    "border": "#76728e",
+    "barBackground": "#2a273f",
+    "selectionFocused": "#44415a",
+    "selectionDim": "#343148",
+    "groupBackground": "#2d2b41",
+    "tabButtonBackground": "#44415a",
+    "chipForeground": "#232136",
+    "chipBackground": "#c4a7e7",
+    "matchForeground": "#232136",
+    "matchBackground": "#f6c177",
+    "baseForeground": "#e0def4",
+    "baseBackground": "#232136",
+    "lanes": [
+      "#c4a7e7",
+      "#9ccfd8",
+      "#f6c177",
+      "#eb9d9a",
+      "#e0def4",
+      "#e5bcc6"
+    ]
+  }
+}

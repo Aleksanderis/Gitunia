@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "name": "Rosé Pine",
+  "variant": "dark",
+  "colors": {
+    "accent": "#c4a7e7",
+    "good": "#9ccfd8",
+    "bad": "#ef91ad",
+    "remote": "#ebbcba",
+    "warn": "#f6c177",
+    "info": "#8cb1bf",
+    "muted": "#aeaabf",
+    "mutedOnSelection": "#aeaabf",
+    "border": "#6e6a86",
+    "barBackground": "#1f1d2e",
+    "selectionFocused": "#403d52",
+    "selectionDim": "#2c2a3b",
+    "groupBackground": "#252232",
+    "tabButtonBackground": "#403d52",
+    "chipForeground": "#191724",
+    "chipBackground": "#c4a7e7",
+    "matchForeground": "#191724",
+    "matchBackground": "#f6c177",
+    "baseForeground": "#e0def4",
+    "baseBackground": "#191724",
+    "lanes": [
+      "#c4a7e7",
+      "#9ccfd8",
+      "#f6c177",
+      "#ebbcba",
+      "#ef91ad",
+      "#aeaabf",
+      "#e0def4"
+    ]
+  }
+}

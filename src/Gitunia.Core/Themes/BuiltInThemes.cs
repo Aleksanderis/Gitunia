@@ -23,6 +23,19 @@ public static class BuiltInThemes
         "tokyo-night-storm",
         "tokyo-night-moon",
         "tokyo-night-day",
+        "gruvbox-dark-hard",
+        "gruvbox-dark-medium",
+        "gruvbox-dark-soft",
+        "gruvbox-light-hard",
+        "gruvbox-light-medium",
+        "gruvbox-light-soft",
+        "dracula",
+        "nord",
+        "solarized-dark",
+        "solarized-light",
+        "rose-pine",
+        "rose-pine-moon",
+        "rose-pine-dawn",
     ];
 
     /// <summary>The names of all embedded theme files, whether listed in <see cref="Names"/> or not.</summary>
