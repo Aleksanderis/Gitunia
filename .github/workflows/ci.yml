@@ -6,6 +6,12 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Which leg to run (tags always run both)
+        type: choice
+        options: [all, linux, windows]
+        default: all
 
 permissions:
   contents: read
@@ -14,12 +20,12 @@ permissions:
 # a draft GitHub release by the `release` job. macOS and linux-arm64 binaries follow with their CI legs (#455).
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ inputs.platform }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   linux-x64:
-    if: github.event.pull_request.draft != true
+    if: github.event.pull_request.draft != true && inputs.platform != 'windows'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -81,6 +87,7 @@ jobs:
           if-no-files-found: error
 
   windows-x64:
+    if: inputs.platform != 'linux'
     runs-on: windows-latest
     timeout-minutes: 25
     defaults:
