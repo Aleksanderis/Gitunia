@@ -38,7 +38,8 @@ public static class SidebarBuilder
                 entries.Count,
                 null,
                 null,
-                Depth: -1));
+                Depth: SidebarRow.SectionDepth));
+
             if (isExpanded)
             {
                 var isGrouped = section is SidebarSection.Branches or SidebarSection.Remotes;

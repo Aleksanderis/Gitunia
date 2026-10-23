@@ -27,6 +27,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
     private ImmutableArray<StashEntry> _lastStashes;
     private ImmutableArray<SidebarSection> _lastCollapsed;
     private string? _lastFilter;
+    private ImmutableArray<string> _lastOpened;
+    private ImmutableArray<string> _lastClosed;
     private string? _lastPath;
     private ImmutableDictionary<string, WorktreeStatus>? _lastOverview;
     private StatusSnapshot? _lastOwnStatus;
@@ -48,7 +50,7 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
     {
         if (tab is null)
         {
-            return _lastPath is not null && Set(null, [], default, default, default, default, null);
+            return _lastPath is not null && Set(null, [], default, default, default, default, null, null);
         }
 
         var state = tab.Sidebar;
@@ -58,6 +60,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
             && _lastStashes == tab.Stashes
             && _lastCollapsed == state.CollapsedSections
             && _lastFilter == state.FilterText
+            && _lastOpened == state.OpenedFolders
+            && _lastClosed == state.ClosedFolders
             && ReferenceEquals(_lastOverview, tab.WorktreeStatuses)
             && ReferenceEquals(_lastOwnStatus, tab.WorkingTree?.Snapshot);
         if (unchanged)
@@ -75,7 +79,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
             tab.Worktrees,
             tab.Stashes,
             state.CollapsedSections,
-            state.FilterText);
+            state.FilterText,
+            state);
     }
 
     public bool IsMarked(int item) => false;
@@ -116,7 +121,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
         ImmutableArray<WorktreeInfo> worktrees,
         ImmutableArray<StashEntry> stashes,
         ImmutableArray<SidebarSection> collapsed,
-        string? filter)
+        string? filter,
+        SidebarState? state)
     {
         _lastPath = path;
         _lastRefs = refs;
@@ -124,6 +130,8 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
         _lastStashes = stashes;
         _lastCollapsed = collapsed;
         _lastFilter = filter;
+        _lastOpened = state?.OpenedFolders ?? default;
+        _lastClosed = state?.ClosedFolders ?? default;
         Rows = rows;
         if (!SuspendCollectionChangedEvent)
         {

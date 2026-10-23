@@ -49,6 +49,7 @@ public static class SidebarRowRenderer
         var labelBudget = Math.Max(
             Math.Min(TextWidth.Of(label), Math.Max(MinimumLabelWidth, available / 2)),
             available - extrasWidth);
+
         builder
             .Append(prefix, SegmentRole.Plain)
             .Append(TextWidth.Fit(label, labelBudget, glyphs.Ellipsis), LabelRole(row));

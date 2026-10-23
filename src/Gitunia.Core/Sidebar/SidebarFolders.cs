@@ -5,7 +5,7 @@ public static class SidebarFolders
 {
     private const char Separator = '/';
 
-    /// <summary>The key of a prefix folder in <see cref="SidebarState.ToggledFolders"/>.</summary>
+    /// <summary>The key of a prefix folder in <see cref="SidebarState.OpenedFolders"/>.</summary>
     public static string KeyOf(SidebarSection section, string path) => $"{section}:{path}";
 
     /// <summary>
@@ -31,12 +31,12 @@ public static class SidebarFolders
         List<SidebarRow> rows)
     {
         var folders = new Dictionary<string, List<Entry>>(StringComparer.Ordinal);
-        var slots = new List<object>();
+        var slots = new List<Slot>();
         foreach (var entry in entries)
         {
             if (entry.Segments.Length - 1 == depth)
             {
-                slots.Add(entry);
+                slots.Add(new Slot(entry, null));
                 continue;
             }
 
@@ -45,7 +45,7 @@ public static class SidebarFolders
             {
                 members = [];
                 folders[name] = members;
-                slots.Add(name);
+                slots.Add(new Slot(null, name));
             }
 
             members.Add(entry);
@@ -53,13 +53,13 @@ public static class SidebarFolders
 
         foreach (var slot in slots)
         {
-            if (slot is Entry leaf)
+            if (slot.Leaf is { } leaf)
             {
                 rows.Add(depth == 0 ? leaf.Row : leaf.Row with { Depth = depth, ShortName = leaf.Segments[^1] });
                 continue;
             }
 
-            EmitFolder((string)slot, folders[(string)slot], depth, parentPath, state, rows);
+            EmitFolder(slot.FolderName!, folders[slot.FolderName!], depth, parentPath, state, rows);
         }
     }
 
@@ -74,7 +74,8 @@ public static class SidebarFolders
         var path = parentPath.Length == 0 ? name : $"{parentPath}{Separator}{name}";
         var section = members[0].Row.Section;
         var key = KeyOf(section, path);
-        var isOpen = state.HasFilter || IsOpenByDefault(members, section, depth) != state.ToggledFolders.Contains(key);
+        var isOpen = state.HasFilter || IsOpen(members, section, depth, key, state);
+
         rows.Add(new SidebarRow(
             SidebarRowKind.Folder,
             section,
@@ -88,15 +89,27 @@ public static class SidebarFolders
             null,
             Depth: depth,
             Key: key));
+
         if (isOpen)
         {
             Emit(members, depth + 1, path, state, rows);
         }
     }
 
-    // The folder holding the current branch is open; so is a remote's own folder (the remote name), which only groups.
-    private static bool IsOpenByDefault(List<Entry> members, SidebarSection section, int depth) =>
-        (section == SidebarSection.Remotes && depth == 0) || members.Any(member => member.Row.IsCurrent);
+    // The user's choice wins; otherwise the folder holding the current branch is open, and so is a remote's own folder.
+    private static bool IsOpen(List<Entry> members, SidebarSection section, int depth, string key, SidebarState state)
+    {
+        if (state.OpenedFolders.Contains(key))
+        {
+            return true;
+        }
+
+        return !state.ClosedFolders.Contains(key)
+            && ((section == SidebarSection.Remotes && depth == 0) || members.Any(member => member.Row.IsCurrent));
+    }
 
     private sealed record Entry(SidebarRow Row, string[] Segments);
+
+    // One position of a level: a branch or a folder name.
+    private sealed record Slot(Entry? Leaf, string? FolderName);
 }

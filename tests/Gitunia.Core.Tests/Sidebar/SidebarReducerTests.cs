@@ -17,6 +17,12 @@ public class SidebarReducerTests
 
     private static string SelectedLabel(RepositoryState tab) => SidebarBuilder.Build(tab)[tab.Sidebar.Cursor].Label;
 
+    private static RepositoryState TabWithFolders() =>
+        Tab(refs: [Branch("main", isCurrent: true), Branch("feature/ui/a"), Branch("feature/b")]);
+
+    private static int IndexOf(RepositoryState tab, string label) =>
+        SidebarBuilder.Build(tab).ToList().FindIndex(row => row.Label == label);
+
     [Fact]
     public void GivenCursorOnTop_WhenMovingDownThreeTimes_ThenCursorWalksTheRowsAndStopsAtTheEnd()
     {
@@ -55,12 +61,6 @@ public class SidebarReducerTests
         Assert.Equal("origin", SelectedLabel(tab));
     }
 
-    private static RepositoryState TabWithFolders() =>
-        Tab(refs: [Branch("main", isCurrent: true), Branch("feature/ui/a"), Branch("feature/b")]);
-
-    private static int IndexOf(RepositoryState tab, string label) =>
-        SidebarBuilder.Build(tab).ToList().FindIndex(row => row.Label == label);
-
     [Fact]
     public void GivenClosedFolder_WhenExpandingAndCollapsing_ThenItOpensStepsInAndClosesAgain()
     {
@@ -78,7 +78,7 @@ public class SidebarReducerTests
         tab = MoveTo(tab, 1);
         tab = Reduce(tab, new CollapseSidebarCommand());
         Assert.DoesNotContain(SidebarBuilder.Build(tab), row => row.Label == "feature/b");
-        Assert.Empty(tab.Sidebar.ToggledFolders);
+        Assert.Single(tab.Sidebar.ClosedFolders);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public class SidebarReducerTests
         tab = Reduce(tab, new CollapseSidebarCommand());
 
         Assert.Equal(["Branches", "feature"], SidebarBuilder.Build(tab).Take(2).Select(row => row.Label));
-        Assert.Single(tab.Sidebar.ToggledFolders);
+        Assert.Single(tab.Sidebar.ClosedFolders);
     }
 
     [Fact]
@@ -194,5 +194,31 @@ public class SidebarReducerTests
         var tab = MoveTo(TabWithBranches(), 999);
 
         Assert.Equal(SidebarBuilder.Build(tab).Length - 1, tab.Sidebar.Cursor);
+    }
+
+    [Fact]
+    public void GivenFolderOpenedByHand_WhenAnotherBranchBecomesCurrent_ThenItStaysOpen()
+    {
+        var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/x")]);
+        tab = MoveTo(tab, IndexOf(tab, "feature"));
+        tab = Reduce(tab, new ExpandSidebarCommand());
+
+        tab = tab with { Refs = [Branch("main"), Branch("feature/x", isCurrent: true)] };
+
+        Assert.Contains(SidebarBuilder.Build(tab), row => row.Label == "feature/x");
+        tab = Reduce(tab, new CollapseSidebarCommand());
+        tab = tab with { Refs = [Branch("main", isCurrent: true), Branch("feature/x")] };
+        Assert.DoesNotContain(SidebarBuilder.Build(tab), row => row.Label == "feature/x");
+    }
+
+    [Fact]
+    public void GivenFilterAndOpenFolder_WhenCollapsing_ThenCursorMovesToTheParentInsteadOfDoingNothing()
+    {
+        var tab = Reduce(TabWithFolders(), new SetSidebarFilterCommand("ui/a"));
+        tab = MoveTo(tab, IndexOf(tab, "ui"));
+
+        tab = Reduce(tab, new CollapseSidebarCommand());
+
+        Assert.Equal("feature", SelectedLabel(tab));
     }
 }

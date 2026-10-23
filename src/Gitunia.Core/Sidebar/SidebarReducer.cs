@@ -56,9 +56,9 @@ public static class SidebarReducer
         }
 
         var row = rows[cursor];
-        if (row.IsContainer && row.IsExpanded)
+        if (row.IsContainer && row.IsExpanded && !tab.Sidebar.HasFilter)
         {
-            return tab.Sidebar.HasFilter ? tab : SetOpen(tab, row, open: false);
+            return SetOpen(tab, row, open: false);
         }
 
         // A leaf or a closed folder: step to the enclosing folder or section header.
@@ -91,12 +91,20 @@ public static class SidebarReducer
             return SetFolded(tab, row.Section, folded: !open);
         }
 
-        // A folder is open by default or not; the state keeps only the keys flipped from that default.
+        // The choice is kept explicitly, so it survives a change of the current branch (which moves the default).
         var key = row.Key ?? string.Empty;
-        var toggled = tab.Sidebar.ToggledFolders;
-        toggled = row.IsExpanded == open ? toggled : toggled.Contains(key) ? toggled.Remove(key) : toggled.Add(key);
+        var opened = tab.Sidebar.OpenedFolders.Remove(key);
+        var closed = tab.Sidebar.ClosedFolders.Remove(key);
+        if (open)
+        {
+            opened = opened.Add(key);
+        }
+        else
+        {
+            closed = closed.Add(key);
+        }
 
-        return tab with { Sidebar = tab.Sidebar with { ToggledFolders = toggled } };
+        return tab with { Sidebar = tab.Sidebar with { OpenedFolders = opened, ClosedFolders = closed } };
     }
 
     private static RepositoryState SetFolded(RepositoryState tab, SidebarSection section, bool folded)

@@ -132,13 +132,29 @@ public class SidebarBuilderTests
     }
 
     [Fact]
-    public void GivenToggledFolder_WhenBuilding_ThenItFlipsItsDefault()
+    public void GivenOpenedFolder_WhenBuilding_ThenItIsOpenAlthoughNotHoldingTheCurrentBranch()
     {
         var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/a"), Branch("fix/c")]);
         var key = SidebarFolders.KeyOf(SidebarSection.Branches, "feature");
-        tab = tab with { Sidebar = tab.Sidebar with { ToggledFolders = [key] } };
+        tab = tab with { Sidebar = tab.Sidebar with { OpenedFolders = [key] } };
 
         Assert.Equal(["Branches", "feature", "feature/a", "fix", "main"], Labels(SidebarBuilder.Build(tab)).Take(5));
+    }
+
+    [Fact]
+    public void GivenChoicesMade_WhenTheCurrentBranchMoves_ThenTheChoicesStillHold()
+    {
+        var feature = SidebarFolders.KeyOf(SidebarSection.Branches, "feature");
+        var fix = SidebarFolders.KeyOf(SidebarSection.Branches, "fix");
+        var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/x"), Branch("fix/y")]);
+        tab = tab with { Sidebar = tab.Sidebar with { OpenedFolders = [feature], ClosedFolders = [fix] } };
+
+        var onFeature = tab with { Refs = [Branch("main"), Branch("feature/x", isCurrent: true), Branch("fix/y")] };
+        var onFix = tab with { Refs = [Branch("main"), Branch("feature/x"), Branch("fix/y", isCurrent: true)] };
+
+        string[] expected = ["Branches", "feature", "feature/x", "fix", "main"];
+        Assert.Equal(expected, Labels(SidebarBuilder.Build(onFeature)).Take(5));
+        Assert.Equal(expected, Labels(SidebarBuilder.Build(onFix)).Take(5));
     }
 
     [Fact]
