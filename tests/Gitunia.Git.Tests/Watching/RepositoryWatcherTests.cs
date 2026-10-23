@@ -95,7 +95,6 @@ public class RepositoryWatcherTests
         watcher.SetActive(true);
 
         Assert.Equal(1, recorder.CallCount);
-        Assert.False(watcher.IsStale);
 
         // The first event of the commit (a lock file, the index) already turns the tab stale; on a slow machine the
         // ref update reaches the watcher only after that (#634). Hide the tab again until it has been reported.

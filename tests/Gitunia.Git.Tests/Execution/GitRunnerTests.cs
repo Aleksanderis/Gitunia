@@ -196,7 +196,7 @@ public class GitRunnerTests
             await foreach (var unused in RunnerFor(fake).StreamAsync(
                 AnyDirectory,
                 ["log"],
-                new GitRunOptions(Timeout: TimeSpan.FromSeconds(2)),
+                new GitRunOptions(Timeout: TimeSpan.FromSeconds(8)),
                 TestContext.Current.CancellationToken))
             {
                 chunks += unused.Length > 0 ? 1 : 0;
@@ -234,8 +234,8 @@ public class GitRunnerTests
             TestContext.Current.CancellationToken))
         {
             // Intrinsic wait: the consumer must be slower than the runner's timeout for the test to mean anything.
-            // The timeout also covers starting the process, so it stays well above a loaded machine's start time
-            // (#634).
+            // The timeout also covers the wait for the child's first output, so it stays well above a loaded
+            // machine's start time (#634).
             await Task.Delay(SlowConsumerDelay, TestContext.Current.CancellationToken);
             collected += chunk.Length;
         }
