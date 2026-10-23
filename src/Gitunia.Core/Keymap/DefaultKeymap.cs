@@ -232,6 +232,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "<space>vw", ActionIds.DiffToggleWrap);
+        Add(bindings, NormalOnly, DiffView, "<space>vv", ActionIds.DiffOpenViewOptions);
         Add(bindings, NormalOnly, DiffView, "<space>vl", ActionIds.DiffLoadAnyway);
         Add(bindings, NormalOnly, DiffView, "<space>vp", ActionIds.DiffMergeParent);
         Add(bindings, NormalOnly, DiffView, "+", ActionIds.DiffMoreContext);
@@ -398,6 +399,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>vw", ActionIds.DiffToggleWrap);
+            Add(bindings, NormalOnly, view, "<space>vv", ActionIds.DiffOpenViewOptions);
             Add(bindings, NormalOnly, view, "<space>vl", ActionIds.DiffLoadAnyway);
             Add(bindings, NormalOnly, view, "+", ActionIds.DiffMoreContext);
             Add(bindings, NormalOnly, view, "-", ActionIds.DiffLessContext);

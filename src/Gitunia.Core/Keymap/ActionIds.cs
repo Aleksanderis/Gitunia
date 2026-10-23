@@ -43,6 +43,8 @@ public static class ActionIds
 
     public static ActionId DiffCopyLine { get; } = new("diff.copy-line");
 
+    public static ActionId DiffOpenViewOptions { get; } = new("diff.open-view-options");
+
     public static ActionId DiffLoadAnyway { get; } = new("diff.load-anyway");
 
     public static ActionId DiffMergeParent { get; } = new("diff.merge-parent");

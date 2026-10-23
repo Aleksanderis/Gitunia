@@ -7,10 +7,13 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>
 /// Lays out the actions menu of a row (#471): a small popup hanging under the row, one line per action with its key at
 /// the right edge, so the menu teaches the keyboard path. No filter field and no footer: it is not the command palette.
+/// The same popup is the dropdown of a title row (#645), with a title of its own.
 /// </summary>
 public static class ContextMenuFrameBuilder
 {
-    private const string Title = "Actions";
+    /// <summary>The title of the actions menu of a row.</summary>
+    public const string DefaultTitle = "Actions";
+
     private const int MaximumWidth = 96;
     private const int ChromeRows = 2;
     private const int ScreenMargin = 1;
@@ -23,7 +26,8 @@ public static class ContextMenuFrameBuilder
         MenuAnchor anchor,
         int screenWidth,
         int screenHeight,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        string title = DefaultTitle)
     {
         var entries = menu.Entries;
         var width = Math.Min(WidthOf(entries), screenWidth - (2 * ScreenMargin));
@@ -36,7 +40,7 @@ public static class ContextMenuFrameBuilder
         var rows = GroupedRows.Of(entries, maximumRows, scrolls: false);
         var selectedEntry = Math.Clamp(menu.SelectedIndex, 0, entries.Count - 1);
         var window = rows.Window(selectedEntry, Math.Min(rows.Lines.Count, maximumRows));
-        var lines = new List<StyledLine> { OverlayBox.Title(Title, width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(title, width, glyphs) };
         for (var offset = 0; offset < window.RowCount; offset++)
         {
             var line = rows.Lines[window.Top + offset];

@@ -232,7 +232,7 @@ public sealed class OverlayController
             return true;
         }
 
-        if (action == ActionIds.MenuOpenForRow)
+        if (action == ActionIds.MenuOpenForRow || action == ActionIds.DiffOpenViewOptions)
         {
             OpenContextMenu();
             return true;
@@ -267,13 +267,19 @@ public sealed class OverlayController
 
         var menu = new PaletteState(entries);
         var size = _screenSize();
-        if (ContextMenuFrameBuilder.Build(menu, target.Anchor, size.Width, size.Height, _glyphs) is null)
+        if (ContextMenuFrameBuilder.Build(
+                menu,
+                target.Anchor,
+                size.Width,
+                size.Height,
+                _glyphs,
+                target.Title ?? ContextMenuFrameBuilder.DefaultTitle) is null)
         {
             _statuses.Warning("The screen is too small for the actions menu");
             return;
         }
 
-        Open(OverlayState.OpenContextMenu(menu, target.Anchor, _keys.Mode), KeyMode.Normal);
+        Open(OverlayState.OpenContextMenu(menu, target.Anchor, _keys.Mode, target.Title), KeyMode.Normal);
     }
 
     /// <summary>Highlights the menu entry drawn on a frame line (a click); false for any other line.</summary>

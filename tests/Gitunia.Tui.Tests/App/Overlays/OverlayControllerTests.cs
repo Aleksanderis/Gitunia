@@ -23,6 +23,7 @@ public sealed class OverlayControllerTests : IDisposable
     private readonly StatusChannel _statuses = new();
     private ScreenSize _screen = new(80, 24);
     private int _changes;
+    private string _baseView = DefaultKeymap.GraphView;
 
     public OverlayControllerTests()
     {
@@ -41,7 +42,7 @@ public sealed class OverlayControllerTests : IDisposable
             RouteAction,
             () => _screen,
             GraphGlyphSet.Unicode,
-            () => DefaultKeymap.GraphView,
+            () => _baseView,
             _statuses);
         _overlays.Changed += () => _changes++;
     }
@@ -373,6 +374,67 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Equal(RowActions.OfGraphRow, entries.Select(entry => entry.Action));
         Assert.Equal("<space>bs", entries.Single(entry => entry.Action == ActionIds.BranchSwitch).Keys);
         Assert.Empty(_routed);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.DiffView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedDiffView)]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
+    public void GivenADiffView_WhenOpeningTheViewDropdown_ThenItListsTheViewOptionsWithTheirKeysUnderTheViewTitle(
+        string view)
+    {
+        _baseView = view;
+        _overlays.MenuTarget = _ => new RowMenuTarget(
+            RowActions.ViewOptions,
+            new MenuAnchor(60, 0),
+            RowActions.ViewOptionsTitle);
+
+        Assert.True(_overlays.Handle(ActionIds.DiffOpenViewOptions, null));
+
+        Assert.Equal(OverlayKind.ContextMenu, _overlays.State.Kind);
+        Assert.Equal("View", _overlays.State.MenuTitle);
+        var entries = _overlays.State.Palette!.Entries;
+        Assert.Equal(RowActions.ViewOptions, entries.Select(entry => entry.Action));
+        Assert.Equal("<space>vf", entries.Single(entry => entry.Action == ActionIds.DiffToggleWholeFile).Keys);
+        Assert.Equal("<space>vw", entries.Single(entry => entry.Action == ActionIds.DiffToggleWrap).Keys);
+    }
+
+    [Fact]
+    public void GivenTheViewDropdown_WhenPressingEnterOrEsc_ThenTheOptionRunsAfterTheCloseOrNothingRuns()
+    {
+        _baseView = DefaultKeymap.DiffView;
+        _overlays.MenuTarget = _ => new RowMenuTarget(
+            RowActions.ViewOptions,
+            new MenuAnchor(60, 0),
+            RowActions.ViewOptionsTitle);
+        _overlays.Handle(ActionIds.DiffOpenViewOptions, null);
+        Press(Key.Esc);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Empty(_routed);
+
+        _overlays.Handle(ActionIds.DiffOpenViewOptions, null);
+        Press(Key.CursorDown);
+        Press(Key.Enter);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Equal([RowActions.ViewOptions[1]], _routed);
+    }
+
+    [Fact]
+    public void GivenAScreenTooSmallForTheDropdown_WhenOpeningIt_ThenTheStatusBarSaysSoAndNothingOpens()
+    {
+        _baseView = DefaultKeymap.DiffView;
+        _screen = new ScreenSize(10, 2);
+        _overlays.MenuTarget = _ => new RowMenuTarget(
+            RowActions.ViewOptions,
+            new MenuAnchor(0, 0),
+            RowActions.ViewOptionsTitle);
+
+        _overlays.Handle(ActionIds.DiffOpenViewOptions, null);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Contains("too small", _statuses.Log.History[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]

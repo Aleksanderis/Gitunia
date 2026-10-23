@@ -1,6 +1,7 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -688,6 +689,24 @@ public sealed class MainView : IDisposable
         {
             Gestured?.Invoke(chip.View, MouseGesture.Click, null);
         }
+    }
+
+    /// <summary>
+    /// Where the <c>view ▾</c> dropdown hangs: under its title button, or under the right end of the title row when
+    /// the row is too narrow for the button (the keys still open the menu).
+    /// </summary>
+    /// <param name="isWorking">The working-tree diff rather than the history diff.</param>
+    public MenuAnchor ViewMenuAnchor(bool isWorking)
+    {
+        var rect = isWorking ? WorkingRects().Diff : Rects().DiffTitle;
+        var row = isWorking ? rect.Y - 1 : rect.Y;
+        var buttons = isWorking
+            ? DiffTitleButtons.Layout(rect.Width, WorkingDiffButtons(), _model().Keys)
+            : DiffTitleButtons.Layout(rect.Width, _model().Keys);
+        var button = buttons.FirstOrDefault(candidate => candidate.View == DefaultMouseMap.DiffViewButton);
+        var column = button is null ? rect.X + Math.Max(0, rect.Width - 1) : rect.X + button.Start;
+
+        return new MenuAnchor(column - 2, row);
     }
 
     private void OnDiffTitleClicked(int column)

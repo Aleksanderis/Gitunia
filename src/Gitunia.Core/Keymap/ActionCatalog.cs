@@ -122,6 +122,7 @@ public static class ActionCatalog
         ["cancel"] = "Cancel",
         ["command.execute"] = "Run the command",
         ["menu.open-for-row"] = "Open the actions menu of the selected row",
+        ["diff.open-view-options"] = "Open the view options menu of the diff",
         ["merge.branch"] = "Merge the selection (fast-forward if possible)",
         ["merge.branch-no-ff"] = "Merge the selection with a merge commit",
         ["merge.branch-squash"] = "Squash-merge the selection (stages changes)",
