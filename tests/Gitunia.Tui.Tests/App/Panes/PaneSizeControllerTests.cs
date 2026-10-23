@@ -95,7 +95,8 @@ public class PaneSizeControllerTests
         Assert.NotNull(_applied?.DetailWidth);
         Assert.Equal(string.Empty, controller.Notice);
         var before = PaneLayout.DetailWidth(120, true, null);
-        Assert.Equal(before + PaneResizer.ColumnStep * (focused == PaneKind.Detail ? 1 : -1), PaneLayout.DetailWidth(120, true, _applied));
+        var expected = before + PaneResizer.ColumnStep * (focused == PaneKind.Detail ? 1 : -1);
+        Assert.Equal(expected, PaneLayout.DetailWidth(120, true, _applied));
     }
 
     [Fact]
