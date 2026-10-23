@@ -250,9 +250,19 @@ public class HelpBuilderTests
     [InlineData("Ctrl-p")]
     [InlineData("Shift-Tab")]
     [InlineData("Alt-1")]
+    [InlineData("Ctrl-w <")]
+    [InlineData("g <")]
     public void GivenDocumentedNotation_WhenFormattingTheParsedSequence_ThenItRoundTrips(string text)
     {
         Assert.Equal(text, KeyFormatter.Format(KeySequenceParser.Parse(text)));
+    }
+
+    [Fact]
+    public void GivenTheLessThanKey_WhenFormatting_ThenItShowsTheCharacterNotLt()
+    {
+        Assert.Equal("<", KeyFormatter.Format(new KeyEvent("<")));
+        Assert.Equal("Ctrl-w <", KeyFormatter.Format(KeySequenceParser.Parse("Ctrl-w <lt>")));
+        Assert.DoesNotContain(Table.Bindings, binding => KeyFormatter.Format(binding.Sequence).Contains("lt>"));
     }
 
     private static void AssertOrdered(IReadOnlyList<WhichKeyRow> rows)

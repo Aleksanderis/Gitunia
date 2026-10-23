@@ -13,11 +13,6 @@ public static class KeyFormatter
             return "<space>";
         }
 
-        if (key.Name == "<" && key.Modifiers == KeyModifiers.None)
-        {
-            return "<lt>";
-        }
-
         var prefix = string.Concat(
             key.Modifiers.HasFlag(KeyModifiers.Ctrl) ? "Ctrl-" : string.Empty,
             key.Modifiers.HasFlag(KeyModifiers.Alt) ? "Alt-" : string.Empty,
@@ -45,5 +40,10 @@ public static class KeyFormatter
 
     private static bool IsPlainNamed(KeyEvent key) => key.Modifiers == KeyModifiers.None && KeyNames.IsNamed(key.Name);
 
-    private static bool IsLong(string token) => token.Length > 1 && token != "<space>" && !(token[0] == '<' && token[^1] == '>');
+    private static bool IsLong(string token)
+    {
+        var isBracketed = token[0] == '<' && token[^1] == '>';
+
+        return token == "<" || (token.Length > 1 && token != "<space>" && !isBracketed);
+    }
 }

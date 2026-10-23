@@ -6,7 +6,8 @@ namespace Gitunia.Core.Keymap;
 /// Reads key sequences written the way <c>docs/ux.md</c> writes them. Whitespace separates words. A word is
 /// a named key (<c>Enter</c>), a modified key (<c>Ctrl-w</c>, <c>Alt-1</c>, <c>Shift-Tab</c>), or a run of
 /// keys where plain characters stand for themselves and <c>&lt;...&gt;</c> holds a special key
-/// (<c>&lt;space&gt;o</c>, <c>gg</c>, <c>]c</c>, <c>&lt;lt&gt;</c> for a literal <c>&lt;</c>).
+/// (<c>&lt;space&gt;o</c>, <c>gg</c>, <c>]c</c>). A lone <c>&lt;</c> word, or <c>&lt;lt&gt;</c>, is a
+/// literal <c>&lt;</c>.
 /// </summary>
 public static class KeySequenceParser
 {
@@ -38,6 +39,12 @@ public static class KeySequenceParser
 
     private static bool TryParseWord(string word, List<KeyEvent> keys)
     {
+        if (word == "<")
+        {
+            keys.Add(new KeyEvent("<"));
+            return true;
+        }
+
         if (!word.Contains('<', StringComparison.Ordinal) && (HasModifierPrefix(word) || KeyNames.IsNamed(word)))
         {
             if (!TryParseKey(word, out var wholeKey))

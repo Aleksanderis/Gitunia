@@ -43,6 +43,7 @@ public class KeySequenceParserTests
     public void GivenLiteralLessThan_WhenParsing_ThenLtNotationIsUsed()
     {
         Assert.Equal([new KeyEvent("<")], KeySequenceParser.Parse("<lt>").Keys);
+        Assert.Equal([new KeyEvent("<")], KeySequenceParser.Parse("<").Keys);
     }
 
     [Theory]

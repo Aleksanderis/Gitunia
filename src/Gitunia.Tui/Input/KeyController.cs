@@ -40,7 +40,7 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
     /// <summary>The unfinished count and chord, such as <c>5g</c>; empty when nothing is pending.</summary>
     public string PendingText => (_state.Count?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
-        + string.Concat((_state.Pending.IsDefault ? [] : _state.Pending).Select(key => key.ToString()));
+        + string.Concat((_state.Pending.IsDefault ? [] : _state.Pending).Select(KeyFormatter.Format));
 
     /// <param name="key">The Terminal.Gui key press.</param>
     /// <param name="view">The focused view's name in the keymap (for example <c>Graph</c>).</param>
