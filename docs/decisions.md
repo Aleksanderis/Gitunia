@@ -447,3 +447,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-23
 
 **UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. Published values are nudged where they fail contrast (`docs/ux.md`).
+**Git layer:** Interactive rebase keeps merge commits (#461; supersedes "interactive rebase refuses merges, `--rebase-merges` post-MVP"): git prepares the `--rebase-merges` todo, read through a sequence editor that prints it and fails; label, reset and merge lines are kept and only reordered. Why: the todo is git's to get right; cost is one aborted `rebase` start per read.

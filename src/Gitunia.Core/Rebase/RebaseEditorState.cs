@@ -41,7 +41,11 @@ public sealed record RebaseEditorState(
         IReadOnlyList<RebaseTodoCommit> commits)
     {
         var rows = commits
-            .Select(commit => new RebaseEditorRow(commit.Hash, commit.Subject, RebaseTodoAction.Pick))
+            .Select(commit => new RebaseEditorRow(
+                commit.Hash,
+                commit.Subject,
+                commit.Action,
+                Argument: commit.Argument))
             .ToList();
         return new RebaseEditorState(tabId, branchName, targetLabel, rebaseBase, oldTip, rows, rows);
     }
@@ -57,20 +61,23 @@ public sealed record RebaseEditorState(
     public bool IsEditingMessage => Edit is not null;
 
     /// <summary>Commits the rebase keeps (everything but drops).</summary>
-    public int KeptCount => Rows.Count(row => row.Action != RebaseTodoAction.Drop);
+    public int KeptCount => Rows.Count(row => !row.IsStructure && row.Action != RebaseTodoAction.Drop);
 
     /// <summary>Commits the rebase removes.</summary>
-    public int DroppedCount => Rows.Count - KeptCount;
+    public int DroppedCount => Rows.Count(row => row.Action == RebaseTodoAction.Drop);
+
+    /// <summary>The rows that are commits (label and reset lines are not).</summary>
+    public int CommitCount => Rows.Count(row => !row.IsStructure);
 
     /// <summary>Why the todo cannot be started, null when it can.</summary>
     public string? Problem
     {
         get
         {
-            var first = Rows.FirstOrDefault(row => row.Action != RebaseTodoAction.Drop);
+            var first = Rows.FirstOrDefault(row => !row.IsStructure && row.Action != RebaseTodoAction.Drop);
             return first?.Action is RebaseTodoAction.Squash or RebaseTodoAction.Fixup
                 ? "The first commit that is kept cannot be a squash or a fixup: it has nothing to meld into"
-                : null;
+                : RebaseTodoValidator.FindProblem(ToEntries());
         }
     }
 
@@ -80,7 +87,8 @@ public sealed record RebaseEditorState(
             .. Rows.Select(row => new RebaseTodoEntry(
                 row.Hash,
                 row.Action,
-                row.Action == RebaseTodoAction.Reword ? row.Message : null)),
+                row.Action == RebaseTodoAction.Reword ? row.Message : null,
+                row.Argument)),
         ];
 
     /// <summary>Moves the highlight to <paramref name="index"/>, clamped to the rows.</summary>
@@ -118,7 +126,7 @@ public sealed record RebaseEditorState(
     /// <summary>Sets the action of the highlighted commit; a reword needs a message (<see cref="SaveEdit"/>).</summary>
     public RebaseEditorState SetAction(RebaseTodoAction action)
     {
-        if (Selected is not { } row || action == RebaseTodoAction.Reword)
+        if (Selected is not { IsEditable: true } row || action == RebaseTodoAction.Reword)
         {
             return this;
         }
@@ -131,7 +139,7 @@ public sealed record RebaseEditorState(
     /// <summary>Opens the message editor on the highlighted commit with <paramref name="message"/> as text.</summary>
     public RebaseEditorState BeginEdit(string message)
     {
-        if (Selected is not { } row)
+        if (Selected is not { IsEditable: true } row)
         {
             return this;
         }

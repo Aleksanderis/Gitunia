@@ -11,8 +11,10 @@ public interface IInteractiveRebaseWriter
 {
     /// <summary>
     /// Reads the commits of the range in replay order (oldest first). Throws <see cref="RebaseRangeException"/> when
-    /// the range contains a merge commit (rebasing it would flatten it; <c>--rebase-merges</c> is not supported) or is
-    /// empty.
+    /// the range contains a merge commit (rebasing it would flatten it) and <see cref="RebaseBase.KeepMerges"/> is not
+    /// set, or the range is empty. With it set and a merge in the range, git prepares the <c>--rebase-merges</c> todo
+    /// and the result is that todo in order: <see cref="RebaseTodoAction.Label"/>, <see cref="RebaseTodoAction.Reset"/>
+    /// and <see cref="RebaseTodoAction.Merge"/> lines between the commits.
     /// </summary>
     Task<IReadOnlyList<RebaseTodoCommit>> ReadRangeAsync(
         RepositoryLocation location,
@@ -21,8 +23,9 @@ public interface IInteractiveRebaseWriter
 
     /// <summary>
     /// Runs <c>git rebase -i</c> with <paramref name="entries"/> as the todo. The entries must name every commit of the
-    /// range exactly once (use <see cref="RebaseTodoAction.Drop"/> to remove one); the first one that is not dropped
-    /// cannot be a squash or fixup; a reword needs a message. Anything else, and a merge commit in the range, throws
+    /// range exactly once and keep its label, reset and merge lines (use <see cref="RebaseTodoAction.Drop"/> to remove
+    /// one); the first one that is not dropped cannot be a squash or fixup; a reword needs a message.
+    /// Anything else, and a merge commit in the range without <see cref="RebaseBase.KeepMerges"/>, throws
     /// <see cref="RebaseRangeException"/> before git is started. Git's own refusals (dirty tree, hooks) throw the typed
     /// exception.
     /// </summary>

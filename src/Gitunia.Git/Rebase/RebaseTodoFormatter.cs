@@ -13,6 +13,12 @@ public static class RebaseTodoFormatter
 
     private const string Drop = "drop";
 
+    private const string Label = "label";
+
+    private const string Reset = "reset";
+
+    private const string Merge = "merge -C";
+
     private const string AmendCommand = "exec git commit --amend --allow-empty -F";
 
     private const char Quote = '\'';
@@ -47,6 +53,16 @@ public static class RebaseTodoFormatter
                     break;
                 case RebaseTodoAction.Drop:
                     builder.Append(Drop).Append(' ').Append(entry.Commit).Append('\n');
+                    break;
+                case RebaseTodoAction.Label:
+                    builder.Append(Label).Append(' ').Append(entry.Commit).Append('\n');
+                    break;
+                case RebaseTodoAction.Reset:
+                    builder.Append(Reset).Append(' ').Append(entry.Commit).Append('\n');
+                    break;
+                case RebaseTodoAction.Merge:
+                    builder.Append(Merge).Append(' ').Append(entry.Commit).Append(' ').Append(entry.Argument)
+                        .Append('\n');
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(entries), entry.Action, "Unknown todo action");

@@ -466,6 +466,175 @@ public class InteractiveRebaseWriterTests
         Assert.Equal(head, repository.Head);
     }
 
+    [Fact]
+    public async Task GivenAMergeAndKeepMerges_WhenReadingTheRange_ThenTheTodoCarriesLabelResetAndMergeLines()
+    {
+        using var repository = Branchy();
+        var (writer, location) = await CreateAsync(repository);
+        var head = repository.Head;
+
+        var range = await writer.ReadRangeAsync(location, RebaseBase.Root.WithMerges(), Token);
+
+        Assert.Contains(range, line => line.Action == RebaseTodoAction.Label && line.Hash == "onto");
+        Assert.Contains(range, line => line.Action == RebaseTodoAction.Reset);
+        var merge = Assert.Single(range, line => line.Action == RebaseTodoAction.Merge);
+        Assert.Equal(head, merge.Hash);
+        Assert.Equal("Merge side", merge.Subject);
+        Assert.All(range.Where(line => !line.Action.IsStructure()), line => Assert.Equal(40, line.Hash.Length));
+        Assert.Equal(head, repository.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.Equal(string.Empty, repository.Git("status", "--porcelain").Trim());
+    }
+
+    [Fact]
+    public async Task GivenARangeWithoutMergesAndKeepMerges_WhenReading_ThenItIsTheUsualCommitList()
+    {
+        using var repository = Linear();
+        var (writer, location) = await CreateAsync(repository);
+
+        var range = await writer.ReadRangeAsync(location, RebaseBase.OntoCommit("HEAD~2").WithMerges(), Token);
+
+        Assert.Equal(["Three", "Four"], range.Select(commit => commit.Subject));
+        Assert.All(range, commit => Assert.Equal(RebaseTodoAction.Pick, commit.Action));
+    }
+
+    [Fact]
+    public async Task GivenTheTodoAsRead_WhenRebasingWithMerges_ThenTheMergeSurvivesWithTheSameTree()
+    {
+        using var repository = Branchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        var tree = repository.Git("rev-parse", "HEAD^{tree}").Trim();
+
+        var result = await writer.RebaseAsync(location, rebaseBase, Entries(range), Token);
+
+        Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal(tree, repository.Git("rev-parse", "HEAD^{tree}").Trim());
+        Assert.Equal("Merge side", repository.Git("log", "-1", "--format=%s").Trim());
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+        Assert.False(Directory.Exists(Path.Combine(location.GitDirectory, "gitunia-rebase")));
+    }
+
+    [Fact]
+    public async Task GivenCommitsOnTheMergedBranch_WhenReorderedAndReworded_ThenTheMergeIsKeptOverTheNewOrder()
+    {
+        using var repository = Branchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        var entries = Swapped(range);
+        var first = entries.FindIndex(entry => entry.Action == RebaseTodoAction.Pick);
+        entries[first] = entries[first] with { Action = RebaseTodoAction.Reword, Message = "SideB, reworded" };
+
+        var result = await writer.RebaseAsync(location, rebaseBase, entries, Token);
+
+        Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        var side = repository.Git("log", "--reverse", "--format=%s", "HEAD^2", "^HEAD^1").Trim();
+        Assert.Equal("SideB, reworded\nSideA", side);
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "a.txt")));
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAMergeAndAConflictingReorder_WhenAborted_ThenTheMergedHistoryIsBack()
+    {
+        using var repository = ConflictingBranchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        var original = repository.Head;
+
+        var result = await writer.RebaseAsync(location, rebaseBase, Swapped(range), Token);
+
+        Assert.Equal(OperationOutcome.Conflicted, result.Outcome);
+        Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
+        var aborted = await CreateOperationWriter(repository)
+            .AbortAsync(location, RepositoryOperation.Rebase, Token);
+
+        Assert.Equal(OperationOutcome.Completed, aborted.Outcome);
+        Assert.Equal(original, repository.Head);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal(string.Empty, repository.Git("status", "--porcelain").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAMergeAndAConflictingReorder_WhenResolvedAndContinued_ThenTheMergeIsRecreated()
+    {
+        using var repository = ConflictingBranchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+
+        var result = await writer.RebaseAsync(location, rebaseBase, Swapped(range), Token);
+
+        Assert.Equal(OperationOutcome.Conflicted, result.Outcome);
+        Assert.True(Directory.Exists(Path.Combine(location.GitDirectory, "gitunia-rebase")));
+        var outcome = result.Outcome;
+        while (outcome == OperationOutcome.Conflicted)
+        {
+            repository.WriteFile("f.txt", "1\n2\n3\n");
+            repository.Git("add", "f.txt");
+            var continued = await CreateOperationWriter(repository)
+                .ContinueAsync(location, RepositoryOperation.Rebase, Token);
+            outcome = continued.Outcome;
+        }
+
+        Assert.Equal(OperationOutcome.Completed, outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenAutoSquashOn_WhenReadingAMergeRangeWithAFixupCommit_ThenTheTodoStillParses()
+    {
+        using var repository = Branchy();
+        repository.Git("config", "rebase.autoSquash", "true");
+        repository.Git("checkout", "-q", "side");
+        repository.Commit("fixup! SideA", new TestFile("a.txt", "a2\n"));
+        repository.Git("checkout", "-q", "main");
+        repository.Git("merge", "--no-ff", "-m", "Merge side again", "side");
+        var (writer, location) = await CreateAsync(repository);
+
+        var range = await writer.ReadRangeAsync(location, FromBase(repository), Token);
+
+        Assert.Contains(range, line => line.Subject == "fixup! SideA" && line.Action == RebaseTodoAction.Pick);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenAnOperationInProgress_WhenReadingAMergeRange_ThenItIsRefusedAndNothingIsAborted()
+    {
+        using var repository = ConflictingBranchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        await writer.RebaseAsync(location, rebaseBase, Swapped(range), Token);
+
+        await Assert.ThrowsAsync<RebaseRangeException>(() => writer.ReadRangeAsync(location, rebaseBase, Token));
+
+        Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenATodoWithoutTheMergeLine_WhenRebasing_ThenItIsRefusedBeforeGitStarts()
+    {
+        using var repository = Branchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = RebaseBase.Root.WithMerges();
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        var entries = Entries(range).Where(entry => entry.Action != RebaseTodoAction.Merge).ToList();
+        var head = repository.Head;
+
+        await Assert.ThrowsAsync<RebaseRangeException>(
+            () => writer.RebaseAsync(location, rebaseBase, entries, Token));
+
+        Assert.Equal(head, repository.Head);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
     private static RebaseTodoEntry Entry(RebaseTodoCommit commit, RebaseTodoAction action, string? message = null) =>
         new(commit.Hash, action, message);
 
@@ -485,6 +654,49 @@ public class InteractiveRebaseWriterTests
             .Commit("Two", new TestFile("f.txt", "1\n2\n"))
             .Commit("Three", new TestFile("f.txt", "1\n2\n3\n"))
             .Commit("Four", new TestFile("g.txt", "4\n"));
+
+    private static RebaseBase FromBase(TestRepository repository) =>
+        RebaseBase.OntoCommit(repository.Git("rev-list", "--max-parents=0", "HEAD").Trim()).WithMerges();
+
+    private static List<RebaseTodoEntry> Entries(IReadOnlyList<RebaseTodoCommit> range) =>
+        [.. range.Select(line => new RebaseTodoEntry(line.Hash, line.Action, Argument: line.Argument))];
+
+    // Swaps the two commits of the branch that is merged (SideA and SideB).
+    private static List<RebaseTodoEntry> Swapped(IReadOnlyList<RebaseTodoCommit> range)
+    {
+        var entries = Entries(range);
+        var picks = Enumerable.Range(0, range.Count)
+            .Where(index => range[index].Subject.StartsWith("Side", StringComparison.Ordinal))
+            .ToList();
+        (entries[picks[0]], entries[picks[1]]) = (entries[picks[1]], entries[picks[0]]);
+        return entries;
+    }
+
+    private static TestRepository Branchy()
+    {
+        var repository = TestRepository.Create()
+            .Commit("Base", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("SideA", new TestFile("a.txt", "a\n"))
+            .Commit("SideB", new TestFile("b.txt", "b\n"))
+            .Checkout("main")
+            .Commit("Main", new TestFile("main.txt", "main\n"));
+        repository.Git("merge", "--no-ff", "-m", "Merge side", "side");
+        return repository;
+    }
+
+    private static TestRepository ConflictingBranchy()
+    {
+        var repository = TestRepository.Create()
+            .Commit("Base", new TestFile("f.txt", "1\n"))
+            .CheckoutNewBranch("side")
+            .Commit("SideA", new TestFile("f.txt", "1\n2\n"))
+            .Commit("SideB", new TestFile("f.txt", "1\n2\n3\n"))
+            .Checkout("main")
+            .Commit("Main", new TestFile("main.txt", "main\n"));
+        repository.Git("merge", "--no-ff", "-m", "Merge side", "side");
+        return repository;
+    }
 
     private static TestRepository Merged()
     {

@@ -23,7 +23,8 @@ public sealed record QuickRebasePlan(
     public string Subject => FirstLine(Message);
 
     /// <summary>How many commits after the edited one are replayed and so get new hashes.</summary>
-    public int LaterCommits => Range.Count - 1 - IndexOfCommit();
+    public int LaterCommits =>
+        Range.Skip(IndexOfCommit() + 1).Count(item => !item.Action.IsStructure());
 
     /// <summary>The position of the edited commit in <see cref="Range"/>.</summary>
     public int IndexOfCommit()
