@@ -57,7 +57,7 @@ public static class DefaultMouseMap
 
     public const string DiffZoomButton = "DiffButton.Zoom";
 
-    /// <summary>The <c>view ▾</c> dropdown that holds context, whole file, ignore space, split and wrap (#645).</summary>
+    /// <summary>The <c>view ▾</c> dropdown: context, whole file, ignore space, split and wrap (#645).</summary>
     public const string DiffViewButton = "DiffButton.View";
 
     /// <summary>The staging buttons of the working-tree diff's title row (#343): stage or unstage the hunk, discard it.</summary>

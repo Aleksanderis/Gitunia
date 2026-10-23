@@ -7,11 +7,11 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <summary>
 /// The buttons at the right end of the diff pane's title row: previous and next file and hunk, the <c>view ▾</c>
 /// dropdown (fewer and more context, whole file, ignore whitespace, side by side and word wrap, #645) and zoom,
-/// drawn as padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see <see cref="ButtonLabel"/>). They are the
-/// mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before each label (#536).
-/// Narrow panes show only the
-/// most useful ones (zoom, the view dropdown and the hunk buttons last to go) (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box:
-/// a column of line follows each button.
+/// drawn as padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see
+/// <see cref="ButtonLabel"/>). They are the mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before
+/// each label (#536). Narrow panes show only the most useful ones (zoom, the view dropdown and the hunk buttons last
+/// to go; the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's
+/// box: a column of line follows each button.
 /// </summary>
 public static class DiffTitleButtons
 {

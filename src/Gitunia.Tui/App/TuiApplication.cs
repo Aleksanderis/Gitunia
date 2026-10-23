@@ -1032,12 +1032,18 @@ public sealed class TuiApplication(
         {
             return _view.Diff.Source is DiffListSource { Document.IsFileContent: true }
                 ? null
-                : new RowMenuTarget(RowActions.ViewOptions, _view.ViewMenuAnchor(isWorking: false), RowActions.ViewOptionsTitle);
+                : new RowMenuTarget(
+                    RowActions.ViewOptions,
+                    _view.ViewMenuAnchor(isWorking: false),
+                    RowActions.ViewOptionsTitle);
         }
 
         if (view == DefaultKeymap.WorkingUnstagedDiffView || view == DefaultKeymap.WorkingStagedDiffView)
         {
-            return new RowMenuTarget(RowActions.ViewOptions, _view.ViewMenuAnchor(isWorking: true), RowActions.ViewOptionsTitle);
+            return new RowMenuTarget(
+                RowActions.ViewOptions,
+                _view.ViewMenuAnchor(isWorking: true),
+                RowActions.ViewOptionsTitle);
         }
 
         if (view == DefaultKeymap.SidebarView)

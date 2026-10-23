@@ -269,7 +269,8 @@ public class DiffTitleButtonsTests
                 : binding);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
 
-        var wrap = DiffTitleButtons.Layout(300, keys, isFileContent: true).Single(button => button.View == DefaultMouseMap.DiffWrapButton);
+        var wrap = DiffTitleButtons.Layout(300, keys, isFileContent: true)
+            .Single(button => button.View == DefaultMouseMap.DiffWrapButton);
 
         Assert.Equal(" Ctrl-w wrap ", wrap.Label);
     }
