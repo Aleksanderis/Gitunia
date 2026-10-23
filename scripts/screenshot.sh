@@ -243,8 +243,8 @@ render() {
       settings-keys-entry) keys="Space , j Enter j j j Enter" ;;
       theme-preview) keys="Space , Enter Enter j j" ;;
       theme-kept) keys="Space , Enter Enter j j Enter" ;;
-      theme-tokyo) keys="Space , Enter Enter j j j j j j j" ;;
-      theme-latte) keys="Space , Enter Enter j j j j j j" ;;
+      theme-tokyo) keys="Space ," keys_after="Enter Enter j j j j j j j" ;;
+      theme-latte) keys="Space ," keys_after="Enter Enter j j j j j j" ;;
       status-fresh) keys="Space F" ;;
       status-settled) keys="Space F" keys_after="Space F" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;

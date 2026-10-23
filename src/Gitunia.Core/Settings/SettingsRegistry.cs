@@ -34,9 +34,8 @@ public static class SettingsRegistry
             "Theme",
             SettingControl.Choice,
             ["theme"],
-            "The colours of the interface. auto follows the terminal's background, dark and light are the built-in "
-                + "schemes, the others are theme files. The cursor previews a theme, Enter keeps it and Esc "
-                + "restores the previous one.",
+            "The colours of the interface: auto follows the terminal, dark and light are the built-in schemes, "
+                + "the rest are theme files. The cursor previews, Enter keeps, Esc restores.",
             ThemeChoice.AutoName,
             [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. BuiltInThemes.Names]),
         new SettingDefinition(
