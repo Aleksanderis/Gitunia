@@ -427,7 +427,6 @@ public static class DefaultKeymap
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);
     }
 
-    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list; `Ctrl-d`/`Ctrl-u` take over the half pages from the list, `PageDown`/`PageUp` still move it).
     // The path styles the view dropdown of a file list sets directly (#646); the dropdown shows these keys.
     private static void AddPathStyleKeys(List<KeyBinding> bindings, string view)
     {
@@ -436,6 +435,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>v3", ActionIds.FilesPathTree);
     }
 
+    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list; `Ctrl-d`/`Ctrl-u` take over the half pages from the list, `PageDown`/`PageUp` still move it).
     private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
     {
         Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);
