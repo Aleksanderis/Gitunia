@@ -27,6 +27,12 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs, FileConte
     /// <summary>The pane shows the content of a file, not a diff.</summary>
     public bool IsShowingContent => ShownContentPath is not null;
 
+    /// <summary>The Files tab's pane beside the tree shows its placeholder (no file under the cursor).</summary>
+    public bool IsContentPlaceholder { get; set; }
+
+    /// <summary>The pane belongs to the Files tab: it shows a file's content or the placeholder.</summary>
+    public bool ShowsFilesPane => IsShowingContent || IsContentPlaceholder;
+
     /// <summary>The list source of the diff pane.</summary>
     public DiffListSource Source { get; } = new(glyphs);
 

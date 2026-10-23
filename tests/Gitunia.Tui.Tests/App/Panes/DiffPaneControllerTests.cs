@@ -256,14 +256,12 @@ public class DiffPaneControllerTests
         Assert.Equal(0, harness.DiffList.SelectedItem);
     }
 
-    [Theory]
-    [InlineData(BottomTab.Details)]
-    [InlineData(BottomTab.Files)]
-    public async Task GivenAWideScreen_WhenAnotherTabIsShown_ThenTheDiffIsNotShown(BottomTab tab)
+    [Fact]
+    public async Task GivenAWideScreen_WhenTheDetailsTabIsShown_ThenTheDiffIsNotShown()
     {
         using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
 
-        harness.Send(new SetBottomTabCommand(tab));
+        harness.Send(new SetBottomTabCommand(BottomTab.Details));
 
         Assert.False(harness.Controller.Arrangement().IsDiffOpen);
     }

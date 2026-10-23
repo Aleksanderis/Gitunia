@@ -106,4 +106,6 @@ Measured with a throwaway pty harness (a Python script that forks the Native AOT
 
 ## File content view, worst case (#580)
 
+Since #635 the content follows the tree cursor: the worst case below applies per rest of the cursor on a big file, not per `Enter`. Reads are cancelled when the cursor moves on and start only after 40 ms of rest (not measured separately; the cost per rest is the one below, a held `j` reads only where it stops).
+
 A 1 MiB blob of `"\n"` lines (the 1 MiB blob limit gives 1,048,576 rows, no row cap). Measured with a throwaway xUnit test (not committed; JIT, not the AOT binary), one run, this machine; the rows then share one empty string, and a file of `a` lines has half the rows with separate strings (not measured): building the document 50 ms and about 56 MB of rows; the wrap map at 100 columns 23 ms; searching for a string that never matches 11 ms; copying the whole file 16 ms. Scrolling was not timed: a frame renders the visible rows only, and the wrap map is the one per-document pass (rebuilt on a width change). The committed test only checks the row count and the copied text. No row cap was added: the numbers are well inside the budget and the memory is held only while the file is shown. Revisit if the blob limit is raised.
