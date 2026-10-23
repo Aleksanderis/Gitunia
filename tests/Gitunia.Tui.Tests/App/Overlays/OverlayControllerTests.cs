@@ -421,6 +421,56 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Equal([RowActions.ViewOptions[1]], _routed);
     }
 
+    [Theory]
+    [InlineData(DefaultKeymap.DetailChangesView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedView)]
+    public void GivenAFileListView_WhenOpeningItsViewDropdown_ThenItListsThePathStylesUnderTheViewTitle(string view)
+    {
+        _baseView = view;
+        _overlays.MenuTarget = _ => new RowMenuTarget(
+            RowActions.PathStyleOptions,
+            new MenuAnchor(60, 0),
+            RowActions.ListViewOptionsTitle);
+
+        Assert.True(_overlays.Handle(ActionIds.ListOpenViewOptions, null));
+
+        Assert.Equal(OverlayKind.ContextMenu, _overlays.State.Kind);
+        Assert.Equal("View", _overlays.State.MenuTitle);
+        Assert.Equal(RowActions.PathStyleOptions, _overlays.State.Palette!.Entries.Select(entry => entry.Action));
+        Press(Key.CursorDown);
+        Press(Key.CursorDown);
+        Press(Key.Enter);
+        Assert.Equal([ActionIds.FilesPathTree], _routed);
+    }
+
+    [Fact]
+    public void GivenTheFilesTab_WhenOpeningItsViewDropdown_ThenItOffersTheFilterWithItsKey()
+    {
+        _baseView = DefaultKeymap.DetailFilesView;
+        _overlays.MenuTarget = _ => new RowMenuTarget(
+            RowActions.FilesTabViewOptions,
+            new MenuAnchor(60, 0),
+            RowActions.ListViewOptionsTitle);
+
+        _overlays.Handle(ActionIds.ListOpenViewOptions, null);
+
+        var entry = Assert.Single(_overlays.State.Palette!.Entries);
+        Assert.Equal(ActionIds.DetailFilter, entry.Action);
+        Assert.Equal("/", entry.Keys);
+    }
+
+    [Fact]
+    public void GivenNoTargetForTheListDropdown_WhenOpeningIt_ThenTheStatusBarSaysThereAreNoViewOptions()
+    {
+        _baseView = DefaultKeymap.DetailView;
+
+        _overlays.Handle(ActionIds.ListOpenViewOptions, null);
+
+        Assert.False(_overlays.State.IsOpen);
+        Assert.Contains("No view options", _statuses.Log.History[^1].Text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GivenNoTargetForTheViewDropdown_WhenOpeningIt_ThenTheStatusBarSaysThereAreNoViewOptions()
     {

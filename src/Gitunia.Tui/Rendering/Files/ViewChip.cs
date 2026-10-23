@@ -4,15 +4,13 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Files;
 
 /// <summary>
-/// The chip in the title row of a file list (the Changes tab, the two working-tree lists) that switches between the
-/// name-first
-/// and the full-path style (#540). Like the diff's chips it shows its key before the label when there is room, and
-/// the same
-/// layout draws it and finds it under a click.
+/// The <c>view ▾</c> chip in the title row of a file list (the Changes and Files tabs, the two working-tree lists)
+/// that opens the dropdown of the list's view options (#646; the path style since #540). Like the diff's chips it
+/// shows its key before the label when there is room, and the same layout draws it and finds it under a click.
 /// </summary>
-public static class PathStyleChip
+public static class ViewChip
 {
-    private const string Description = "path";
+    private const string Description = "view ▾";
 
     // A column of line stays between the title text and the chip.
     private const int TitleGap = 1;

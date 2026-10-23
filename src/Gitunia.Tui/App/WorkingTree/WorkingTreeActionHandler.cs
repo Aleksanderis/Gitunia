@@ -37,6 +37,9 @@ public sealed class WorkingTreeActionHandler(
         ActionIds.RepositoryRefresh,
         ActionIds.ToolCommitEditor,
         ActionIds.FilesTogglePathStyle,
+        ActionIds.FilesPathNameFirst,
+        ActionIds.FilesPathFullPath,
+        ActionIds.FilesPathTree,
     ];
 
     /// <summary>The diff box, which acts on its own actions while it has focus; null in tests that do not need it.</summary>

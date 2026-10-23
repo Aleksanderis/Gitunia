@@ -1048,6 +1048,24 @@ public sealed class TuiApplication(
                 RowActions.ViewOptionsTitle);
         }
 
+        if (view == DefaultKeymap.DetailChangesView
+            || view == DefaultKeymap.WorkingUnstagedView
+            || view == DefaultKeymap.WorkingStagedView)
+        {
+            return new RowMenuTarget(
+                RowActions.PathStyleOptions,
+                _view.ListViewMenuAnchor(view),
+                RowActions.ListViewOptionsTitle);
+        }
+
+        if (view == DefaultKeymap.DetailFilesView)
+        {
+            return new RowMenuTarget(
+                RowActions.FilesTabViewOptions,
+                _view.ListViewMenuAnchor(view),
+                RowActions.ListViewOptionsTitle);
+        }
+
         if (view == DefaultKeymap.SidebarView)
         {
             return SelectedSidebarRow(sidebarSource) is { IsFolder: false } row

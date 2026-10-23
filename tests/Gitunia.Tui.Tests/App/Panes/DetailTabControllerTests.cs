@@ -99,6 +99,34 @@ public class DetailTabControllerTests
         Assert.Equal("File paths: name first", controller.Notice);
     }
 
+    [Theory]
+    [InlineData("files.path-name-first", FilePathStyle.NameFirst, "File paths: name first")]
+    [InlineData("files.path-full-path", FilePathStyle.FullPath, "File paths: full path")]
+    [InlineData("files.path-tree", FilePathStyle.Tree, "File paths: tree")]
+    public void GivenAStyleAction_WhenExecuting_ThenThatStyleIsSetWhateverTheCurrentOne(
+        string actionId,
+        FilePathStyle expected,
+        string notice)
+    {
+        var host = HostWithTab(BottomTab.Changes);
+        var controller = new DetailTabController(host);
+        controller.TryExecute(ActionIds.FilesTogglePathStyle);
+
+        Assert.True(controller.TryExecute(new ActionId(actionId)));
+
+        Assert.Equal(expected, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal(notice, controller.Notice);
+    }
+
+    [Fact]
+    public void GivenNoOpenTab_WhenSettingAPathStyle_ThenItIsHandledAsANoOp()
+    {
+        var controller = new DetailTabController(new WorkspaceHost(Workspace.Empty));
+
+        Assert.True(controller.TryExecute(ActionIds.FilesPathTree));
+        Assert.Equal(string.Empty, controller.Notice);
+    }
+
     [Fact]
     public void GivenTheWorkingTreeView_WhenTogglingThePathStyle_ThenTheTreeStyleIsPartOfTheCycle()
     {

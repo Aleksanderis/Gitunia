@@ -37,6 +37,20 @@ public static class RowActions
         ActionIds.DiffToggleWrap,
     ];
 
+    /// <summary>The title of the dropdown of a file list's view options (#646).</summary>
+    public const string ListViewOptionsTitle = "View";
+
+    /// <summary>The view options of the Changes tab and of both working-tree lists (#646): the path style.</summary>
+    public static IReadOnlyList<ActionId> PathStyleOptions { get; } =
+    [
+        ActionIds.FilesPathNameFirst,
+        ActionIds.FilesPathFullPath,
+        ActionIds.FilesPathTree,
+    ];
+
+    /// <summary>The view options of the Files tab (#646): the path filter, the only option of its tree.</summary>
+    public static IReadOnlyList<ActionId> FilesTabViewOptions { get; } = [ActionIds.DetailFilter];
+
     /// <summary>
     /// The actions on the commit of a graph row. Open details is the mouse route to the details pane, which a
     /// double-click no longer reaches and which is hidden on screens under 14 rows (#486).

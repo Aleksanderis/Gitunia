@@ -241,6 +241,32 @@ public class WorkingTreeReducerTests
         Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "z.txt", 0), state.WorkingTree!.Selection);
     }
 
+    [Theory]
+    [InlineData(FilePathStyle.NameFirst)]
+    [InlineData(FilePathStyle.FullPath)]
+    [InlineData(FilePathStyle.Tree)]
+    public void GivenAnyStyle_WhenSettingThePathStyle_ThenTheViewAndTheListsLayoutUseExactlyThatStyle(
+        FilePathStyle style)
+    {
+        var state = Load(Snapshot(Unstaged("a.txt"), Unstaged("src/b.cs")));
+
+        state = RepositoryReducer.Reduce(state, new SetPathStyleCommand(style));
+
+        Assert.Equal(style, state.View.PathStyle);
+        Assert.Equal(style == FilePathStyle.Tree ? 3 : 2, state.WorkingTree!.RowsOf(WorkingTreeSection.Unstaged).Count);
+    }
+
+    [Fact]
+    public void GivenTheStyleAlreadySet_WhenSettingItAgain_ThenNothingCycles()
+    {
+        var state = Load(Snapshot(Unstaged("a.txt")));
+        state = RepositoryReducer.Reduce(state, new SetPathStyleCommand(FilePathStyle.Tree));
+
+        state = RepositoryReducer.Reduce(state, new SetPathStyleCommand(FilePathStyle.Tree));
+
+        Assert.Equal(FilePathStyle.Tree, state.View.PathStyle);
+    }
+
     private static RepositoryState Toggled(RepositoryState state, int times)
     {
         for (var count = 0; count < times; count++)

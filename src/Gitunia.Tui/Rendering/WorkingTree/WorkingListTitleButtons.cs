@@ -29,7 +29,7 @@ public static class WorkingListTitleButtons
     /// <param name="paneWidth">Columns of the list's content.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
     /// <returns>The chip, with its start column counted from the first content column.</returns>
-    public static TitleButton? PathStyleButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
+    public static TitleButton? ViewButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
     {
         // The stage all key goes before the path chip does: it is dropped when that is what keeps the chip.
         foreach (var showStageKey in (bool[])[true, false])
@@ -38,8 +38,8 @@ public static class WorkingListTitleButtons
 
             // One column of line stays between the two chips, or between the chip and the corner of the box.
             var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
-            var chip = PathStyleChip.Layout(
-                DefaultMouseMap.ListPathStyleButton,
+            var chip = ViewChip.Layout(
+                DefaultMouseMap.ListViewButton,
                 section == WorkingTreeSection.Staged
                     ? DefaultKeymap.WorkingStagedView
                     : DefaultKeymap.WorkingUnstagedView,

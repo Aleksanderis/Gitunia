@@ -205,6 +205,9 @@ public static class DefaultKeymap
         AddBottomTabKeys(bindings, DetailView);
         Add(bindings, NormalOnly, DetailChangesView, "za", ActionIds.DetailToggleFolder);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vn", ActionIds.FilesTogglePathStyle);
+        Add(bindings, NormalOnly, DetailChangesView, "<space>vv", ActionIds.ListOpenViewOptions);
+        AddPathStyleKeys(bindings, DetailChangesView);
+        Add(bindings, NormalOnly, DetailFilesView, "<space>vv", ActionIds.ListOpenViewOptions);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vp", ActionIds.DiffMergeParent);
         AddDiffScrollKeys(bindings, DetailChangesView);
         AddDiffScrollKeys(bindings, DetailFilesView);
@@ -375,6 +378,8 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
             Add(bindings, NormalOnly, view, "<space>vn", ActionIds.FilesTogglePathStyle);
+            Add(bindings, NormalOnly, view, "<space>vv", ActionIds.ListOpenViewOptions);
+            AddPathStyleKeys(bindings, view);
             AddDiffScrollKeys(bindings, view);
         }
 
@@ -423,6 +428,14 @@ public static class DefaultKeymap
     }
 
     // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list; `Ctrl-d`/`Ctrl-u` take over the half pages from the list, `PageDown`/`PageUp` still move it).
+    // The path styles the view dropdown of a file list sets directly (#646); the dropdown shows these keys.
+    private static void AddPathStyleKeys(List<KeyBinding> bindings, string view)
+    {
+        Add(bindings, NormalOnly, view, "<space>v1", ActionIds.FilesPathNameFirst);
+        Add(bindings, NormalOnly, view, "<space>v2", ActionIds.FilesPathFullPath);
+        Add(bindings, NormalOnly, view, "<space>v3", ActionIds.FilesPathTree);
+    }
+
     private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
     {
         Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);

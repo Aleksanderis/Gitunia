@@ -39,6 +39,14 @@ public static class ActionIds
 
     public static ActionId FilesTogglePathStyle { get; } = new("files.toggle-path-style");
 
+    public static ActionId FilesPathNameFirst { get; } = new("files.path-name-first");
+
+    public static ActionId FilesPathFullPath { get; } = new("files.path-full-path");
+
+    public static ActionId FilesPathTree { get; } = new("files.path-tree");
+
+    public static ActionId ListOpenViewOptions { get; } = new("files.open-view-options");
+
     public static ActionId DiffCopyFile { get; } = new("diff.copy-file");
 
     public static ActionId DiffCopyLine { get; } = new("diff.copy-line");

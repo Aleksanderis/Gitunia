@@ -108,12 +108,12 @@ public class DetailPathStyleTests
         var line = DetailPaneRenderer.RenderTitle(content, true, 100, GraphGlyphSet.Unicode);
 
         Assert.Equal(100, TextWidth.Of(line.Text));
-        Assert.Contains(" <space>vn path ", line.Text, StringComparison.Ordinal);
+        Assert.Contains(" <space>vv view ▾ ", line.Text, StringComparison.Ordinal);
         Assert.Contains(
             line.Segments,
-            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "<space>vn");
-        var button = DetailPaneRenderer.PathStyleButton(content, 100, GraphGlyphSet.Unicode);
-        Assert.Equal(DefaultMouseMap.DetailPathStyleButton, button!.View);
+            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "<space>vv");
+        var button = DetailPaneRenderer.ViewButton(content, 100, GraphGlyphSet.Unicode);
+        Assert.Equal(DefaultMouseMap.DetailViewButton, button!.View);
         Assert.Equal(98, button.Start + button.Width);
     }
 
@@ -122,21 +122,30 @@ public class DetailPathStyleTests
     {
         var content = NameFirst(Deep);
 
-        var medium = DetailPaneRenderer.PathStyleButton(content, 62, GraphGlyphSet.Unicode);
+        var medium = DetailPaneRenderer.ViewButton(content, 62, GraphGlyphSet.Unicode);
 
-        Assert.Equal(" path ", medium!.Label);
-        Assert.Null(DetailPaneRenderer.PathStyleButton(content, 50, GraphGlyphSet.Unicode));
+        Assert.Equal(" view ▾ ", medium!.Label);
+        Assert.Null(DetailPaneRenderer.ViewButton(content, 50, GraphGlyphSet.Unicode));
         Assert.Equal(50, TextWidth.Of(DetailPaneRenderer.RenderTitle(content, true, 50, GraphGlyphSet.Unicode).Text));
     }
 
-    [Theory]
-    [InlineData(BottomTab.Details)]
-    [InlineData(BottomTab.Files)]
-    public void GivenAnotherTab_WhenAskingForTheChip_ThenThereIsNone(BottomTab tab)
+    [Fact]
+    public void GivenTheDetailsTab_WhenAskingForTheChip_ThenThereIsNone()
     {
-        var content = NameFirst(Deep) with { Tab = tab };
+        var content = NameFirst(Deep) with { Tab = BottomTab.Details };
 
-        Assert.Null(DetailPaneRenderer.PathStyleButton(content, 120, GraphGlyphSet.Unicode));
+        Assert.Null(DetailPaneRenderer.ViewButton(content, 120, GraphGlyphSet.Unicode));
+    }
+
+    [Fact]
+    public void GivenTheFilesTab_WhenAskingForTheChip_ThenItIsThereWithTheKeyOfTheFilesView()
+    {
+        var content = NameFirst(Deep) with { Tab = BottomTab.Files };
+
+        var button = DetailPaneRenderer.ViewButton(content, 120, GraphGlyphSet.Unicode);
+
+        Assert.Equal(DefaultMouseMap.DetailViewButton, button!.View);
+        Assert.Equal(" <space>vv view ▾ ", button.Label);
     }
 
     [Fact]
@@ -144,7 +153,7 @@ public class DetailPathStyleTests
     {
         var line = DetailPaneRenderer.RenderTitle(NameFirst(Deep), true, 100, GraphGlyphSet.Ascii);
 
-        Assert.Contains("[<space>vn path]", line.Text, StringComparison.Ordinal);
+        Assert.Contains("[<space>vv view v]", line.Text, StringComparison.Ordinal);
     }
 
     private static StyledLine Render(DetailContent content, int row, int width) =>
