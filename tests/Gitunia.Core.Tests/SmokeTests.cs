@@ -2,6 +2,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests;
 
+[Trait("Os", "Independent")]
 public class SmokeTests
 {
     [Fact]

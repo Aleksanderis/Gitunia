@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Reflog;
 
+[Trait("Os", "Independent")]
 public class ReflogStateTests
 {
     [Fact]

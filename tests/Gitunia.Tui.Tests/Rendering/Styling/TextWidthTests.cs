@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Styling;
 
+[Trait("Os", "Independent")]
 public class TextWidthTests
 {
     [Theory]

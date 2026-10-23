@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffNavigatorTests
 {
     private static readonly int[] Anchors = [2, 10, 30];

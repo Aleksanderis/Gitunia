@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Keymap;
 
+[Trait("Os", "Independent")]
 public class KeySequenceParserTests
 {
     [Fact]

@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffSplitRendererTests
 {
     private const int Digits = 3;

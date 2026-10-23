@@ -7,6 +7,10 @@ description: Write, run and debug Gitunia tests, and create throwaway Git repos 
 
 This skill is the procedure. Strategy, layers and the measurement harness are in `docs/testing.md`; open it only for the section you need (for example the harness contract when running `scripts/measure.sh`), not up front.
 
+## Mark OS-independent tests (#637)
+
+The Windows CI leg runs `--filter "Os!=Independent"`; Linux runs everything. Put `[Trait("Os", "Independent")]` on a test class in `Gitunia.Core.Tests` or `Gitunia.Tui.Tests` only when it is pure: in-memory data, fakes, no real `git` (`TestRepository`, `IsolatedGit`, `TestGit`, `GitRunner`), no file system, temp dirs, paths, symlinks, environment, process, terminal or ANSI capability, line endings or encodings. Unmarked is the default and means "runs on Windows", so when unsure leave it unmarked. `Gitunia.Git.Tests` and `Gitunia.Platform.Tests` are never marked. `OsTraitGuardTests` fails when a marked file uses one of those APIs.
+
 ## Pick the layer
 
 | Changing | Write | Notes |

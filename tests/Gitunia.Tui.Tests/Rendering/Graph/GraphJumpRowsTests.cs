@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Graph;
 
+[Trait("Os", "Independent")]
 public class GraphJumpRowsTests
 {
     [Fact]

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Panes;
 
+[Trait("Os", "Independent")]
 public class PaneResizerTests
 {
     private const int Width = 120;

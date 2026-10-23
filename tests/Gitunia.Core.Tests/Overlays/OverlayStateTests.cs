@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
 
+[Trait("Os", "Independent")]
 public class OverlayStateTests
 {
     [Fact]

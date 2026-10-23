@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
 
+[Trait("Os", "Independent")]
 public class ContextMenuBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();

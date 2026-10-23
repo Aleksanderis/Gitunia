@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Mouse;
 
+[Trait("Os", "Independent")]
 public class MouseMapTests
 {
     [Theory]

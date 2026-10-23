@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Commits;
 
+[Trait("Os", "Independent")]
 public class DetailPrefetchPlanTests
 {
     [Fact]

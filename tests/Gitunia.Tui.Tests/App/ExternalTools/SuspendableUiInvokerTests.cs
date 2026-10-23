@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.ExternalTools;
 
+[Trait("Os", "Independent")]
 public class SuspendableUiInvokerTests
 {
     private readonly List<string> _ran = [];

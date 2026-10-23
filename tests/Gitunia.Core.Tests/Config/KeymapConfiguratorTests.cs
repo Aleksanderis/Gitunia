@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Config;
 
+[Trait("Os", "Independent")]
 public class KeymapConfiguratorTests
 {
     private static readonly KeyBindingTable Defaults = DefaultKeymap.Create();

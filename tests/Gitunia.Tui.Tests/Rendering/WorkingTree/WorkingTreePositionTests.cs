@@ -5,6 +5,7 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 
+[Trait("Os", "Independent")]
 public class WorkingTreePositionTests
 {
     [Fact]

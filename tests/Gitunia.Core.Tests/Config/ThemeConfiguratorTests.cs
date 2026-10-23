@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Config;
 
+[Trait("Os", "Independent")]
 public sealed class ThemeConfiguratorTests
 {
     [Theory]

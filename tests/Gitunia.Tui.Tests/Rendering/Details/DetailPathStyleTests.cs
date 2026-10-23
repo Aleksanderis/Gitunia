@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Details;
 
+[Trait("Os", "Independent")]
 public class DetailPathStyleTests
 {
     private const string Deep = "src/Gitunia.Tui/Rendering/Details/DetailPaneRenderer.cs";

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Search;
 
+[Trait("Os", "Independent")]
 public class RefJumpResolverTests
 {
     private static GitRef Ref(string name, RefKind kind, int commit, bool isCurrent = false, string? symbolicTarget = null)

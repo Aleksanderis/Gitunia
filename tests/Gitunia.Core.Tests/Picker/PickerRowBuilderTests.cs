@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Picker;
 
+[Trait("Os", "Independent")]
 public class PickerRowBuilderTests
 {
     [Fact]

@@ -19,6 +19,7 @@ namespace Gitunia.Tui.Tests.Loading;
 
 // Every test here runs on fakes of the readers: what is under test is how the loader hands results to the UI and reports failures,
 // not git. The wiring against real git is covered by EffectRunnerTests and TabRefresherTests.
+[Trait("Os", "Independent")]
 public class RepositoryLoaderTests
 {
     [Fact]

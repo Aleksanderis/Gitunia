@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Status;
 
+[Trait("Os", "Independent")]
 public class RemoteProgressTextTests
 {
     [Fact]

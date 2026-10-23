@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Details;
 
+[Trait("Os", "Independent")]
 public sealed class DetailCursorMemoryTests
 {
     [Fact]

@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Search;
 
+[Trait("Os", "Independent")]
 public class FuzzyMatcherTests
 {
     [Theory]

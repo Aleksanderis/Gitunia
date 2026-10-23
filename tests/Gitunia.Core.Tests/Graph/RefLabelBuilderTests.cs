@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Graph;
 
+[Trait("Os", "Independent")]
 public class RefLabelBuilderTests
 {
     [Fact]

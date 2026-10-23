@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App;
 
+[Trait("Os", "Independent")]
 public class QuitGuardTests
 {
     [Fact]

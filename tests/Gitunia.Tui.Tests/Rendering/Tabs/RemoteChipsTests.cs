@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Tabs;
 
+[Trait("Os", "Independent")]
 public class RemoteChipsTests
 {
     private const int Wide = 120;

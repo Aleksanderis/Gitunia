@@ -7,6 +7,7 @@ using static Gitunia.Core.Tests.Sidebar.SidebarFixtures;
 
 namespace Gitunia.Core.Tests.Sidebar;
 
+[Trait("Os", "Independent")]
 public class SidebarReducerTests
 {
     private static RepositoryState TabWithBranches() => Tab(refs: [Branch("a"), Branch("b"), Branch("c"), Remote("origin/a")]);
