@@ -33,6 +33,16 @@ public class MouseControllerTests
     }
 
     [Fact]
+    public void GivenAClickOnTheDetailPane_WhenHandled_ThenTheFolderToggles()
+    {
+        var controller = CreateController();
+
+        controller.Handle(DefaultKeymap.DetailView, MouseGesture.Click);
+
+        Assert.Equal([new ExecutedAction(ActionIds.DetailToggleFolder, null)], _executed);
+    }
+
+    [Fact]
     public void GivenADoubleClickOnTheDetailPane_WhenHandled_ThenTheDiffOpensLikeEnter()
     {
         var controller = CreateController();

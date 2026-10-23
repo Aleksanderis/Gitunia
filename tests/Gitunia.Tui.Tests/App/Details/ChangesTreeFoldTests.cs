@@ -186,6 +186,18 @@ public class ChangesTreeFoldTests : IDisposable
         Assert.Equal("src", tree.FolderAt(row));
     }
 
+    [Fact]
+    public void GivenAnOpenOuterAndClosedInnerFolder_WhenTheStyleChangesToTree_ThenTheCursorLandsOnTheInnerFolder()
+    {
+        var collapsed = new HashSet<string> { "src/deep" };
+        var flat = Build(FilePathStyle.NameFirst, collapsed);
+        var tree = Build(FilePathStyle.Tree, collapsed);
+
+        var row = DetailCursorRemap.Row(flat, tree, flat.RowOfFile(0));
+
+        Assert.Equal("src/deep", tree.FolderAt(row));
+    }
+
     public void Dispose()
     {
         _session.Dispose();
