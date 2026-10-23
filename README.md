@@ -30,7 +30,7 @@ In:
 - Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
-Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.
+Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
 
 ## Stack
 

@@ -1,3 +1,4 @@
+using Gitunia.Core.Themes.Models;
 using Gitunia.Platform;
 using Terminal.Gui.Drawing;
 
@@ -5,7 +6,7 @@ namespace Gitunia.Tui.Views.Theme;
 
 /// <summary>
 /// The colours of one scheme: a few accents, muted text, the selection tints and the bars. Every colour decision of the UI is made
-/// here and in <see cref="Palette"/> (which role uses which of these), so a theme later replaces only this table.
+/// here and in <see cref="Palette"/> (which role uses which of these), so a theme replaces only this table.
 /// <see cref="Color.None"/> means the terminal's own default.
 /// </summary>
 public sealed class PaletteTable
@@ -91,11 +92,34 @@ public sealed class PaletteTable
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
+    private static readonly Dictionary<string, ColorName16> AnsiNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["black"] = ColorName16.Black,
+        ["red"] = ColorName16.Red,
+        ["green"] = ColorName16.Green,
+        ["yellow"] = ColorName16.Yellow,
+        ["blue"] = ColorName16.Blue,
+        ["magenta"] = ColorName16.Magenta,
+        ["cyan"] = ColorName16.Cyan,
+        ["gray"] = ColorName16.Gray,
+        ["darkGray"] = ColorName16.DarkGray,
+        ["brightRed"] = ColorName16.BrightRed,
+        ["brightGreen"] = ColorName16.BrightGreen,
+        ["brightYellow"] = ColorName16.BrightYellow,
+        ["brightBlue"] = ColorName16.BrightBlue,
+        ["brightMagenta"] = ColorName16.BrightMagenta,
+        ["brightCyan"] = ColorName16.BrightCyan,
+        ["white"] = ColorName16.White,
+    };
+
     /// <summary>The table for a terminal: a Catppuccin 24-bit set (Mocha dark, Latte light), the 16 named colours, or styles only.</summary>
     public static PaletteTable For(PaletteSettings settings) => settings.Depth switch
     {
         ColorDepth.None => Monochrome(),
-        ColorDepth.Ansi16 => settings.IsLightBackground ? Ansi16Light(settings.PaintsBase) : Ansi16Dark(settings.PaintsBase),
+        ColorDepth.Ansi16 => settings.IsLightBackground
+            ? Ansi16Light(settings.PaintsBase, settings.Definition?.Ansi)
+            : Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi),
+        _ when settings.Definition is { } definition => FromDefinition(definition),
         _ => settings.IsLightBackground ? TrueColorLight(settings.PaintsBase) : TrueColorDark(settings.PaintsBase),
     };
 
@@ -153,24 +177,24 @@ public sealed class PaletteTable
     // The 16 named colours: the terminal's theme maps them, so they stay readable whatever it is. The selection uses
     // bright black on a dark terminal and the light grey on a light one; the unfocused selection is underlined, since
     // no second background is safe on every theme.
-    private static PaletteTable Ansi16Dark(bool paintsBase) => new()
+    private static PaletteTable Ansi16Dark(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
     {
-        Accent = Named(ColorName16.BrightBlue),
-        Good = Named(ColorName16.BrightGreen),
-        Bad = Named(ColorName16.BrightRed),
-        Remote = Named(ColorName16.BrightMagenta),
-        Warn = Named(ColorName16.BrightYellow),
-        Info = Named(ColorName16.BrightCyan),
-        Muted = Named(ColorName16.DarkGray),
-        MutedOnSelection = Named(ColorName16.Gray),
-        Border = Named(ColorName16.DarkGray),
+        Accent = Named(ansi, ThemeRoles.Accent, ColorName16.BrightBlue),
+        Good = Named(ansi, ThemeRoles.Good, ColorName16.BrightGreen),
+        Bad = Named(ansi, ThemeRoles.Bad, ColorName16.BrightRed),
+        Remote = Named(ansi, ThemeRoles.Remote, ColorName16.BrightMagenta),
+        Warn = Named(ansi, ThemeRoles.Warn, ColorName16.BrightYellow),
+        Info = Named(ansi, ThemeRoles.Info, ColorName16.BrightCyan),
+        Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
+        MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
+        Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.DarkGray),
         SelectionDim = Color.None,
         GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Named(ColorName16.Black),
-        ChipBackground = Named(ColorName16.BrightBlue),
+        ChipBackground = Named(ansi, ThemeRoles.ChipBackground, ColorName16.BrightBlue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
         BaseForeground = paintsBase ? Named(ColorName16.Gray) : Color.None,
@@ -180,24 +204,24 @@ public sealed class PaletteTable
         SelectionDimStyle = TextStyle.Underline,
     };
 
-    private static PaletteTable Ansi16Light(bool paintsBase) => new()
+    private static PaletteTable Ansi16Light(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
     {
-        Accent = Named(ColorName16.Blue),
-        Good = Named(ColorName16.Green),
-        Bad = Named(ColorName16.Red),
-        Remote = Named(ColorName16.Blue),
-        Warn = Named(ColorName16.Magenta),
-        Info = Named(ColorName16.Cyan),
-        Muted = Named(ColorName16.DarkGray),
-        MutedOnSelection = Named(ColorName16.DarkGray),
-        Border = Named(ColorName16.DarkGray),
+        Accent = Named(ansi, ThemeRoles.Accent, ColorName16.Blue),
+        Good = Named(ansi, ThemeRoles.Good, ColorName16.Green),
+        Bad = Named(ansi, ThemeRoles.Bad, ColorName16.Red),
+        Remote = Named(ansi, ThemeRoles.Remote, ColorName16.Blue),
+        Warn = Named(ansi, ThemeRoles.Warn, ColorName16.Magenta),
+        Info = Named(ansi, ThemeRoles.Info, ColorName16.Cyan),
+        Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
+        MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.DarkGray),
+        Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.Gray),
         SelectionDim = Color.None,
         GroupBackground = Color.None,
         TabButtonBackground = Color.None,
         ChipForeground = Named(ColorName16.White),
-        ChipBackground = Named(ColorName16.Blue),
+        ChipBackground = Named(ansi, ThemeRoles.ChipBackground, ColorName16.Blue),
         MatchForeground = Named(ColorName16.Black),
         MatchBackground = Named(ColorName16.BrightYellow),
         BaseForeground = paintsBase ? Named(ColorName16.Black) : Color.None,
@@ -237,11 +261,47 @@ public sealed class PaletteTable
         CurrentStyle = TextStyle.Underline,
     };
 
+    // A theme file: the colours as written. The base colours are always painted, so the theme looks the same on any
+    // terminal background.
+    private static PaletteTable FromDefinition(ThemeDefinition definition) => new()
+    {
+        Accent = Role(definition, ThemeRoles.Accent),
+        Good = Role(definition, ThemeRoles.Good),
+        Bad = Role(definition, ThemeRoles.Bad),
+        Remote = Role(definition, ThemeRoles.Remote),
+        Warn = Role(definition, ThemeRoles.Warn),
+        Info = Role(definition, ThemeRoles.Info),
+        Muted = Role(definition, ThemeRoles.Muted),
+        MutedOnSelection = Role(definition, ThemeRoles.MutedOnSelection),
+        Border = Role(definition, ThemeRoles.Border),
+        BarBackground = Role(definition, ThemeRoles.BarBackground),
+        SelectionFocused = Role(definition, ThemeRoles.SelectionFocused),
+        SelectionDim = Role(definition, ThemeRoles.SelectionDim),
+        GroupBackground = Role(definition, ThemeRoles.GroupBackground),
+        TabButtonBackground = Role(definition, ThemeRoles.TabButtonBackground),
+        ChipForeground = Role(definition, ThemeRoles.ChipForeground),
+        ChipBackground = Role(definition, ThemeRoles.ChipBackground),
+        MatchForeground = Role(definition, ThemeRoles.MatchForeground),
+        MatchBackground = Role(definition, ThemeRoles.MatchBackground),
+        BaseForeground = Role(definition, ThemeRoles.BaseForeground),
+        BaseBackground = Role(definition, ThemeRoles.BaseBackground),
+        Lanes = [.. definition.Lanes.Select(Rgb)],
+    };
+
+    private static Color Role(ThemeDefinition definition, string role) =>
+        definition.Colors.TryGetValue(role, out var value) ? Rgb(value) : Color.None;
+
     private static Color Rgb(int value) => new(value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);
 
     private static Color[] Rgbs(params int[] values) => [.. values.Select(Rgb)];
 
     private static Color Named(ColorName16 name) => new(name);
+
+    // The colour a theme maps a role to in its ansi object, else the default of the variant.
+    private static Color Named(IReadOnlyDictionary<string, string>? ansi, string role, ColorName16 fallback) =>
+        ansi is not null && ansi.TryGetValue(role, out var text) && AnsiNames.TryGetValue(text, out var name)
+            ? new Color(name)
+            : new Color(fallback);
 
     private static Color[] Named(params ColorName16[] names) => [.. names.Select(Named)];
 }

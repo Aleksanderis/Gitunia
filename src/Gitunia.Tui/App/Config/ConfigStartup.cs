@@ -2,6 +2,7 @@ using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Status;
+using Gitunia.Core.Themes;
 
 namespace Gitunia.Tui.App.Config;
 
@@ -14,6 +15,7 @@ namespace Gitunia.Tui.App.Config;
 public sealed class ConfigStartup(string configDirectory, string homeDirectory)
 {
     private const int MaximumReportedProblems = 5;
+    private const string ThemesFolder = "themes";
 
     /// <summary>Loads the file and applies its key entries to the default keymap. Never throws.</summary>
     public KeymapBuildResult LoadKeymap() => Load().Keymap;
@@ -25,11 +27,18 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory)
         var loaded = new ConfigLoader(configDirectory).LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
         var built = KeymapConfigurator.Apply(defaults, loaded.Document.Keys);
         var themeProblems = new List<ConfigProblem>();
-        var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems);
+        var themes = new ThemeCatalog(Path.Combine(configDirectory, ThemesFolder));
+        var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems, themes.Names);
+        if (theme.IsNamedTheme && themes.Find(theme.Name, themeProblems) is null)
+        {
+            themeProblems.Add(new ConfigProblem("theme", $"\"{theme.Name}\" could not be loaded, using auto"));
+            theme = ThemeChoice.Auto;
+        }
+
         var options = OptionsConfigurator.Read(loaded.Document, homeDirectory, Directory.Exists, themeProblems);
         var keymap = built with { Problems = [.. loaded.Problems, .. built.Problems, .. themeProblems] };
 
-        return new StartupConfig(keymap, theme, options);
+        return new StartupConfig(keymap, theme, options, themes);
     }
 
     /// <summary>

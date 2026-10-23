@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Catppuccin Frappe",
+  "variant": "dark",
+  "colors": {
+    "accent": "#8eacee",
+    "good": "#a6d189",
+    "bad": "#eb9698",
+    "remote": "#ca9ee6",
+    "warn": "#e5c890",
+    "info": "#99d1db",
+    "muted": "#a5acc6",
+    "mutedOnSelection": "#a5adce",
+    "border": "#797e98",
+    "barBackground": "#292c3c",
+    "selectionFocused": "#3a3e51",
+    "selectionDim": "#35394c",
+    "groupBackground": "#333749",
+    "tabButtonBackground": "#3a3e51",
+    "chipForeground": "#232634",
+    "chipBackground": "#8eacee",
+    "matchForeground": "#232634",
+    "matchBackground": "#e5c890",
+    "baseForeground": "#c6d0f5",
+    "baseBackground": "#303446",
+    "lanes": [
+      "#8eacee",
+      "#a6d189",
+      "#e5c890",
+      "#ca9ee6",
+      "#eb9698",
+      "#81c8be",
+      "#ef9f76",
+      "#f4b8e4",
+      "#85c1dc",
+      "#babbf1",
+      "#ea999c",
+      "#eebebe"
+    ]
+  }
+}
