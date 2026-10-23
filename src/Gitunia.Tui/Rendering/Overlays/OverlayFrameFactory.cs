@@ -24,9 +24,32 @@ public static class OverlayFrameFactory
     {
         return state.Kind switch
         {
-            OverlayKind.Help => HelpFrameBuilder.Build(helpTabs, state.HelpTab, state.HelpView, state.HelpScroll, screenWidth, screenHeight, glyphs),
-            OverlayKind.Messages => HelpFrameBuilder.Build(helpTabs, 0, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, "Status messages"),
-            OverlayKind.Output => HelpFrameBuilder.Build(helpTabs, 0, string.Empty, state.HelpScroll, screenWidth, screenHeight, glyphs, state.HelpView),
+            OverlayKind.Help => HelpFrameBuilder.Build(
+                helpTabs,
+                state.HelpTab,
+                state.HelpView,
+                state.HelpScroll,
+                screenWidth,
+                screenHeight,
+                glyphs),
+            OverlayKind.Messages => HelpFrameBuilder.Build(
+                helpTabs,
+                0,
+                string.Empty,
+                state.HelpScroll,
+                screenWidth,
+                screenHeight,
+                glyphs,
+                "Status messages"),
+            OverlayKind.Output => HelpFrameBuilder.Build(
+                helpTabs,
+                0,
+                string.Empty,
+                state.HelpScroll,
+                screenWidth,
+                screenHeight,
+                glyphs,
+                state.HelpView),
             OverlayKind.Confirm when state.Confirm is { } prompt => ConfirmFrameBuilder.Build(prompt, screenWidth, screenHeight, glyphs),
             OverlayKind.Palette when state.Palette is { } palette => PaletteFrameBuilder.Build(palette, screenWidth, screenHeight, glyphs),
             OverlayKind.ContextMenu when state is { Palette: { } menu, MenuAnchor: { } anchor } =>

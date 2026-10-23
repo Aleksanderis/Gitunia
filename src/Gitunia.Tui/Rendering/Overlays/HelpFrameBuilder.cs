@@ -5,7 +5,10 @@ using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Overlays;
 
-/// <summary>Lays out the help overlay: the keys of the focused view in tabs (the view, its inherited lists, global), each split under group subheaders, scrollable.</summary>
+/// <summary>
+/// Lays out the help overlay: the keys of the focused view in tabs (the view, its inherited lists, global), each split
+/// under group subheaders, scrollable.
+/// </summary>
 public static class HelpFrameBuilder
 {
     private const int MaximumWidth = 96;
@@ -17,12 +20,17 @@ public static class HelpFrameBuilder
     private const string ColumnPadding = " ";
     private const int ColumnSeparatorWidth = 2 * 1 + 1;
 
-    /// <summary>Lines the content of one tab needs at a screen width (section headings, rows with long descriptions wrapped, and a blank line between sections).</summary>
+    /// <summary>
+    /// Lines the content of one tab needs at a screen width (section headings, rows with long descriptions wrapped, and a
+    /// blank line between sections).
+    /// </summary>
     public static int ContentHeight(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth)
     {
         var sections = SectionsOf(tabs, tab);
         var descriptionWidth = DescriptionWidth(tabs, WidthFor(screenWidth));
-        return sections.Sum(section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1) + Math.Max(0, sections.Count - 1);
+        var rows = sections.Sum(section => section.Rows.Sum(row => WrapText(row.Description, descriptionWidth).Count) + 1);
+
+        return rows + Math.Max(0, sections.Count - 1);
     }
 
     /// <summary>Lines the content needs when there is a single page.</summary>
@@ -53,12 +61,30 @@ public static class HelpFrameBuilder
     public static int MaximumScroll(IReadOnlyList<HelpSection> sections, int screenWidth, int screenHeight) =>
         MaximumScroll(SinglePage(sections), 0, screenWidth, screenHeight);
 
-    /// <summary>The help frame for a screen, or null when the screen is too small to show it. <paramref name="title"/> replaces the default "Keys: view" title.</summary>
-    public static OverlayFrame? Build(IReadOnlyList<HelpSection> sections, string view, int scroll, int screenWidth, int screenHeight, GraphGlyphSet glyphs, string? title = null) =>
+    /// <summary>
+    /// The help frame for a screen, or null when the screen is too small to show it. <paramref name="title"/> replaces the
+    /// default "Keys: view" title.
+    /// </summary>
+    public static OverlayFrame? Build(
+        IReadOnlyList<HelpSection> sections,
+        string view,
+        int scroll,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        string? title = null) =>
         Build(SinglePage(sections), 0, view, scroll, screenWidth, screenHeight, glyphs, title);
 
     /// <summary>The help frame of one tab, with the tab row under the title when there are several tabs.</summary>
-    public static OverlayFrame? Build(IReadOnlyList<HelpTab> tabs, int tab, string view, int scroll, int screenWidth, int screenHeight, GraphGlyphSet glyphs, string? title = null)
+    public static OverlayFrame? Build(
+        IReadOnlyList<HelpTab> tabs,
+        int tab,
+        string view,
+        int scroll,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        string? title = null)
     {
         var rowCount = VisibleRows(tabs, tab, screenWidth, screenHeight);
         if (rowCount == 0)
@@ -96,8 +122,9 @@ public static class HelpFrameBuilder
     }
 
     /// <summary>
-    /// The tab under a click: <paramref name="frameLine"/> and <paramref name="frameColumn"/> are inside the frame (0 is the top
-    /// border and the left border); null when the click is not on a tab label. When the labels do not fit, the one compact label
+    /// The tab under a click: <paramref name="frameLine"/> and <paramref name="frameColumn"/> are inside the frame (0 is
+    /// the top border and the left border); null when the click is not on a tab label. When the labels do not fit, the
+    /// one compact label
     /// stands for the next tab.
     /// </summary>
     public static int? TabAt(IReadOnlyList<HelpTab> tabs, int tab, int screenWidth, int frameLine, int frameColumn)
@@ -120,7 +147,7 @@ public static class HelpFrameBuilder
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);
 
-    // The labels of the tab row with their columns in the frame (the left border is column 0, the row text starts after one space).
+    // The labels of the tab row with their columns in the frame (the left border is column 0, the text starts after a space).
     private static List<TabLabel> TabLabels(IReadOnlyList<HelpTab> tabs, int active, int inner)
     {
         var labels = new List<TabLabel>();
@@ -161,7 +188,8 @@ public static class HelpFrameBuilder
         return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 
-    private static IReadOnlyList<HelpTab> SinglePage(IReadOnlyList<HelpSection> sections) => [new HelpTab(string.Empty, sections)];
+    private static IReadOnlyList<HelpTab> SinglePage(IReadOnlyList<HelpSection> sections) =>
+        [new HelpTab(string.Empty, sections)];
 
     private static IReadOnlyList<HelpSection> SectionsOf(IReadOnlyList<HelpTab> tabs, int tab) =>
         tabs.Count == 0 ? [] : tabs[Math.Clamp(tab, 0, tabs.Count - 1)].Sections;
@@ -170,7 +198,7 @@ public static class HelpFrameBuilder
 
     // The same keys column on every tab, so switching tabs does not move the separator.
     private static int KeysWidth(IReadOnlyList<HelpTab> tabs) =>
-        Math.Min(MaximumKeysWidth, tabs.SelectMany(tab => tab.Sections).SelectMany(section => section.Rows).Select(row => TextWidth.Of(row.Keys)).DefaultIfEmpty(0).Max());
+        Math.Min(MaximumKeysWidth, tabs.SelectMany(tab => tab.Rows).Select(row => TextWidth.Of(row.Keys)).DefaultIfEmpty(0).Max());
 
     // Inner width minus the indent before the keys and the separator between the columns.
     private static int DescriptionWidth(IReadOnlyList<HelpTab> tabs, int width) =>
@@ -234,7 +262,12 @@ public static class HelpFrameBuilder
         return lines;
     }
 
-    private static List<StyledLine> Flatten(IReadOnlyList<HelpSection> sections, int keysWidth, int width, int descriptionWidth, GraphGlyphSet glyphs)
+    private static List<StyledLine> Flatten(
+        IReadOnlyList<HelpSection> sections,
+        int keysWidth,
+        int width,
+        int descriptionWidth,
+        GraphGlyphSet glyphs)
     {
         var lines = new List<StyledLine>();
         var blankKeys = new string(' ', keysWidth);

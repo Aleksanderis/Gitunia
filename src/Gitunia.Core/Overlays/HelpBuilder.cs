@@ -13,8 +13,8 @@ public static class HelpBuilder
     private const string OtherTitle = "Other";
 
     /// <summary>
-    /// One tab per source in the view's inheritance chain (the view, then <c>Lists</c>, then <c>Global</c>), each split under
-    /// the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the sidebar.
+    /// One tab per source in the view's inheritance chain (the view, then <c>Lists</c>, then <c>Global</c>), each split
+    /// under the <see cref="ActionCatalog.GroupOf"/> subheaders, plus a <c>Markers</c> tab for the graph and the sidebar.
     /// </summary>
     public static IReadOnlyList<HelpTab> Build(KeyBindingTable table, string view)
     {
@@ -38,7 +38,7 @@ public static class HelpBuilder
 
             var sections = rows
                 .GroupBy(entry => entry.Group?.Header ?? OtherTitle)
-                .OrderBy(group => rows.First(entry => (entry.Group?.Header ?? OtherTitle) == group.Key).Group?.Order ?? int.MaxValue)
+                .OrderBy(group => group.First().Group?.Order ?? int.MaxValue)
                 .Select(group => new HelpSection(group.Key, [.. group.Select(entry => entry.Row)]))
                 .ToList();
             tabs.Add(new HelpTab(name, sections));

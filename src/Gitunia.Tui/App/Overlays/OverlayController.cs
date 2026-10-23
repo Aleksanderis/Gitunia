@@ -142,7 +142,8 @@ public sealed class OverlayController
     public void ShowOutput(string title, string heading, IReadOnlyList<string> lines)
     {
         var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
-        _helpTabs = [new HelpTab(heading, [new HelpSection(heading, [.. lines.Select(line => new HelpRow(string.Empty, line))])])];
+        var rows = lines.Select(line => new HelpRow(string.Empty, line));
+        _helpTabs = [new HelpTab(heading, [new HelpSection(heading, [.. rows])])];
         Open(OverlayState.OpenOutput(title, returnMode), KeyMode.Normal);
     }
 
@@ -361,12 +362,13 @@ public sealed class OverlayController
     }
 
     /// <summary>
-    /// The help tab under a click on the overlay line <paramref name="frameLine"/> at <paramref name="frameColumn"/> (both inside the
-    /// frame), as the number the click action takes (from 1), or null when the click is not on a tab label.
+    /// The help tab under a click on the overlay line <paramref name="frameLine"/> at <paramref name="frameColumn"/>
+    /// (both inside the frame), as the number the click action takes (from 1), or null when the click is not on a tab label.
     /// </summary>
     public int? HelpTabNumberAt(int frameLine, int frameColumn) =>
         State.Kind == OverlayKind.Help
-            && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, frameLine, frameColumn) is { } index
+            && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, frameLine, frameColumn)
+                is { } index
             ? index + 1
             : null;
 

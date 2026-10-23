@@ -10,6 +10,25 @@ public class HelpBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
+    private static readonly ActionGroup[] Groups =
+    [
+        ActionGroups.Branch,
+        ActionGroups.Merge,
+        ActionGroups.Tag,
+        ActionGroups.Remote,
+        ActionGroups.Worktree,
+        ActionGroups.Stash,
+        ActionGroups.WorkingTree,
+        ActionGroups.Copy,
+        ActionGroups.Diff,
+        ActionGroups.Details,
+        ActionGroups.Tools,
+        ActionGroups.Navigate,
+        ActionGroups.View,
+        ActionGroups.Tabs,
+        ActionGroups.General,
+    ];
+
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenSectionsFollowTheViewChain()
     {
@@ -276,12 +295,12 @@ public class HelpBuilderTests
     {
         var graph = HelpBuilder.Build(Table, DefaultKeymap.GraphView)[0];
         var orders = graph.Sections
-            .Select(section => new[] { ActionGroups.Branch, ActionGroups.Merge, ActionGroups.Tag, ActionGroups.Remote, ActionGroups.Worktree, ActionGroups.Stash, ActionGroups.WorkingTree, ActionGroups.Copy, ActionGroups.Diff, ActionGroups.Details, ActionGroups.Tools, ActionGroups.Navigate, ActionGroups.View, ActionGroups.Tabs, ActionGroups.General }
-                .First(group => group.Header == section.Title).Order)
+            .Select(section => Groups.First(group => group.Header == section.Title).Order)
             .ToList();
 
         Assert.True(orders.Count > 2);
         Assert.Equal(orders.Order(), orders);
-        Assert.Equal(graph.Sections.Select(section => section.Title).Distinct(), graph.Sections.Select(section => section.Title));
+        var titles = graph.Sections.Select(section => section.Title).ToList();
+        Assert.Equal(titles.Distinct(), titles);
     }
 }

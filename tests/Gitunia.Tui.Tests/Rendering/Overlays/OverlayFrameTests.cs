@@ -24,6 +24,8 @@ public class OverlayFrameTests
 
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(Table, DefaultKeymap.GraphView));
 
+    private static IReadOnlyList<HelpTab> Page(List<HelpSection> sections) => [new HelpTab(string.Empty, sections)];
+
     private static IReadOnlyList<HelpTab> Help() => HelpBuilder.Build(Table, DefaultKeymap.GraphView);
 
     private static ConfirmPrompt DiscardPrompt() => new(
@@ -120,13 +122,13 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", "repo: could not read the stashes"), new HelpRow("info", "ok")]) };
         var state = OverlayState.OpenMessages(KeyMode.Normal);
 
-        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 60, 10, GraphGlyphSet.Unicode);
 
         var text = Text(frame);
         Assert.Contains("Status messages", text, StringComparison.Ordinal);
         Assert.Contains("error │ repo: could not read the stashes", text, StringComparison.Ordinal);
         Assert.Contains("Esc close", text, StringComparison.Ordinal);
-        Assert.NotNull(OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
+        Assert.NotNull(OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 20, 6, GraphGlyphSet.Unicode));
     }
 
     [Fact]
@@ -135,7 +137,7 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Output of git commit", [new HelpRow(string.Empty, "pre-commit: forbidden word"), new HelpRow(string.Empty, "  indented")]) };
         var state = OverlayState.OpenOutput("Commit failed", KeyMode.Insert);
 
-        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 70, 12, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 70, 12, GraphGlyphSet.Unicode);
 
         var text = Text(frame);
         Assert.Contains("Commit failed", text, StringComparison.Ordinal);
@@ -151,7 +153,7 @@ public class OverlayFrameTests
         var sections = new List<HelpSection> { new("Newest first", [new HelpRow("error", message)]) };
         var state = OverlayState.OpenMessages(KeyMode.Normal);
 
-        var frame = OverlayFrameFactory.Create(state, [new HelpTab(string.Empty, sections)], string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
+        var frame = OverlayFrameFactory.Create(state, Page(sections), string.Empty, [], 40, 20, GraphGlyphSet.Unicode);
 
         var lines = Text(frame!).Split('\n');
         Assert.All(lines, line => Assert.True(line.Length <= 40));
@@ -468,7 +470,14 @@ public class OverlayFrameTests
         var sections = Help();
         var maximum = HelpFrameBuilder.MaximumScroll(sections, 3, 40, 10);
 
-        var frame = HelpFrameBuilder.Build(sections, 3, DefaultKeymap.GraphView, maximum + 50, 40, 10, GraphGlyphSet.Unicode);
+        var frame = HelpFrameBuilder.Build(
+            sections,
+            3,
+            DefaultKeymap.GraphView,
+            maximum + 50,
+            40,
+            10,
+            GraphGlyphSet.Unicode);
 
         Assert.Contains("pruned", Text(frame), StringComparison.Ordinal);
         Assert.Equal(10 - 2, frame!.Height);
@@ -628,7 +637,8 @@ public class OverlayFrameTests
 
         for (var tab = 0; tab < tabs.Count; tab++)
         {
-            var row = HelpFrameBuilder.Build(tabs, tab, DefaultKeymap.GraphView, 0, width, 30, GraphGlyphSet.Ascii)!.Lines[1].Text;
+            var frame = HelpFrameBuilder.Build(tabs, tab, DefaultKeymap.GraphView, 0, width, 30, GraphGlyphSet.Ascii);
+            var row = frame!.Lines[1].Text;
 
             Assert.Contains($"[{tabs[tab].Title}]", row, StringComparison.Ordinal);
             Assert.All(tabs, other => Assert.Contains(other.Title, row, StringComparison.Ordinal));
@@ -658,7 +668,9 @@ public class OverlayFrameTests
     [Fact]
     public void GivenSinglePage_WhenRenderingHelp_ThenThereIsNoTabRow()
     {
-        var frame = HelpFrameBuilder.Build([new HelpSection("S", [new HelpRow("k", "does a thing")])], string.Empty, 0, 60, 12, GraphGlyphSet.Ascii)!;
+        var sections = new List<HelpSection> { new("S", [new HelpRow("k", "does a thing")]) };
+
+        var frame = HelpFrameBuilder.Build(sections, string.Empty, 0, 60, 12, GraphGlyphSet.Ascii)!;
 
         Assert.DoesNotContain("[", frame.Lines[1].Text, StringComparison.Ordinal);
         Assert.Null(HelpFrameBuilder.TabAt([new HelpTab("S", [])], 0, 60, 1, 3));
