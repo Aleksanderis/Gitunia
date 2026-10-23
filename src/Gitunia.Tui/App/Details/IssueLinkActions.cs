@@ -17,7 +17,7 @@ namespace Gitunia.Tui.App.Details;
 /// <param name="statuses">Where the outcome goes.</param>
 /// <param name="source">The detail pane's content of the active tab, null when there is none.</param>
 /// <param name="selectedRow">The selected row of the detail list.</param>
-/// <param name="postToUi">Runs an action on the UI thread; the opener runs off it and reports back through this.</param>
+/// <param name="postToUi">Runs an action on the UI thread; the opener runs off it and reports back here.</param>
 /// <param name="isMessageFocused">The detail pane has focus and shows the Details tab.</param>
 public sealed class IssueLinkActions(
     IUrlOpener opener,

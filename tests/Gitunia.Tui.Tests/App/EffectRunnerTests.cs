@@ -197,18 +197,26 @@ public class EffectRunnerTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
         var pump = new UiPump(TestContext.Current.CancellationToken);
-        var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery
+            .DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        using var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel());
+        using var effects = new EffectRunner(
+            TestGit.Services,
+            host,
+            pump.Post,
+            GraphGlyphSet.Unicode,
+            new StatusChannel());
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
         Assert.True(session.IssueLinks.IsEmpty);
         var trackerFile = Path.Combine(repository.WorkingTreePath, ".issuetracker");
 
-        File.WriteAllText(trackerFile, "[issuetracker \"x\"]\n\tregex = \"#(\\\\d+)\"\n\turl = https://example.org/$1\n");
+        File.WriteAllText(
+            trackerFile,
+            "[issuetracker \"x\"]\n\tregex = \"#(\\\\d+)\"\n\turl = https://example.org/$1\n");
         Assert.True(effects.Refresh(tabId));
         await pump.RunUntilAsync(() => !session.IssueLinks.IsEmpty);
 
