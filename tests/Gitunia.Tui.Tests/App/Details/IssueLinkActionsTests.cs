@@ -12,6 +12,7 @@ using Gitunia.Tui.App.Details;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Tests.Rendering.Graph;
 using Gitunia.Tui.Views.Lists;
 using Xunit;
@@ -26,7 +27,7 @@ public class IssueLinkActionsTests : IDisposable
     private readonly StatusChannel _statuses = new();
     private readonly FakeUrlOpener _opener = new();
     private readonly Queue<Action> _posted = new();
-    private readonly SemaphoreSlim _arrived = new(0);
+    private readonly TestSignal _arrived = new();
     private bool _focused = true;
 
     [Fact]
