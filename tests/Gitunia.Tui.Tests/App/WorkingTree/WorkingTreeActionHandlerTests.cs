@@ -373,7 +373,14 @@ public class WorkingTreeActionHandlerTests
     }
 
     public static TheoryData<string> LeftToOthers() =>
-        [ActionIds.TabRename.Value, ActionIds.InputAccept.Value, ActionIds.Cancel.Value, ActionIds.AppQuit.Value, ActionIds.ToolCommitEditor.Value];
+        [
+            ActionIds.TabRename.Value,
+            ActionIds.InputAccept.Value,
+            ActionIds.Cancel.Value,
+            ActionIds.AppQuit.Value,
+            ActionIds.ToolCommitEditor.Value,
+            ActionIds.FilesTogglePathStyle.Value,
+        ];
 
     private sealed class Harness
     {

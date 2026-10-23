@@ -161,7 +161,7 @@ public static class ActionCatalog
         ["detail.tab-changes"] = "Show the Changes tab",
         ["detail.tab-details"] = "Show the Details tab",
         ["detail.tab-files"] = "Show the Files tab",
-        ["files.toggle-path-style"] = "Toggle name-first or full file paths",
+        ["files.toggle-path-style"] = "Cycle the file paths: name first, full path, tree",
         ["diff.copy-file"] = "Copy the displayed rows of the current file",
         ["diff.copy-line"] = "Copy the current diff line",
         ["diff.load-anyway"] = "Load the whole diff (lift the size limits)",
