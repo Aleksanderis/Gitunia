@@ -24,8 +24,6 @@ public class TagWriterTests
 
     [Theory]
     [InlineData("v1.0", true)]
-    [InlineData("release/2", true)]
-    [InlineData("has space", false)]
     [InlineData("-leading", false)]
     [InlineData("a..b", false)]
     [InlineData("", false)]

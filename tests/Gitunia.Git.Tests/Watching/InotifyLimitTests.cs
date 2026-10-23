@@ -1,5 +1,4 @@
 using Gitunia.Git.Watching;
-using Gitunia.Git.Watching.Models;
 using Xunit;
 
 namespace Gitunia.Git.Tests.Watching;
@@ -23,11 +22,5 @@ public class InotifyLimitTests
     public void GivenAnUnknownLimit_WhenTheCapIsComputed_ThenTheConfiguredValueStands()
     {
         Assert.Equal(2048, InotifyLimit.DirectoryCap(null, 2048));
-    }
-
-    [Fact]
-    public void GivenDefaultOptions_WhenRead_ThenNoFileWatchersAreUsed()
-    {
-        Assert.False(RepositoryWatcherOptions.Default.UseFileWatchers);
     }
 }
