@@ -2,7 +2,7 @@
 # Screenshots of the real UI for pull requests (Linux/macOS; bash, tmux, rsvg-convert, dotnet, git; `gh` for publish/clean).
 # Pipeline: the real binary runs in a private tmux server on a throwaway repo, `tmux capture-pane -p -e`
 # gives the ANSI frame, tools/AnsiToSvg turns it into an SVG and rsvg-convert into a PNG. Headless, no network.
-# Windows is unsupported (no tmux; a psmux port is tracked in #606): the script says so and exits 2. See the screenshots skill (.claude/skills/screenshots/SKILL.md).
+# Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
 #   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow] [--repo <dir>]
