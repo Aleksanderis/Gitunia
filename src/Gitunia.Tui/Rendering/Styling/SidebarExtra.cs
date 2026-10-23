@@ -1,6 +1,5 @@
-using Gitunia.Tui.Rendering.Styling;
 
-namespace Gitunia.Tui.Rendering.Sidebar;
+namespace Gitunia.Tui.Rendering.Styling;
 
 /// <summary>A piece of text drawn after a sidebar label (tracking counts, annotation).</summary>
 /// <param name="Text">The text.</param>

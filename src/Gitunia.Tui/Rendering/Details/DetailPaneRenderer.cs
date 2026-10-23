@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.FileTree;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
@@ -152,12 +153,40 @@ public static class DetailPaneRenderer
             return builder.Build(SegmentRole.Plain, isSelected);
         }
 
+        if (row.Tree is { } tree)
+        {
+            return RenderTreeRow(tree, isSelected, width, glyphs.Ellipsis);
+        }
+
         foreach (var segment in row.Segments)
         {
             builder.Append(segment.Text, segment.Role, segment.ColorIndex);
         }
 
         return builder.Build(SegmentRole.Plain, isSelected);
+    }
+
+    // A Files tab row goes through the renderer the sidebar uses, so long names are cut in the middle.
+    internal static StyledLine RenderTreeRow(FileTreeLine tree, bool isSelected, int width, string ellipsis)
+    {
+        var row = tree.Row;
+        var indent = new string(' ', row.Depth * DetailContentBuilder.TreeIndent);
+        if (row.Kind == FileTreeRowKind.Directory)
+        {
+            var count = row.IsExpanded ? string.Empty : $"  {DetailContentBuilder.FileCountText(row.FileCount)}";
+
+            return TreeRowRenderer.Folder(indent, tree.Chevron, row.Label, count, width, ellipsis, isSelected);
+        }
+
+        // Files line up with the names of directories, which start after their chevron.
+        return TreeRowRenderer.Leaf(
+            $"{indent}  ",
+            row.Label,
+            SegmentRole.Plain,
+            [new SidebarExtra(tree.Suffix, SegmentRole.Faint)],
+            width,
+            ellipsis,
+            isSelected);
     }
 
     /// <summary>A row with the quick-jump label drawn over it: the text after the change mark is flattened to one colour so the match and the letter show.</summary>

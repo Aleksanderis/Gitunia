@@ -14,9 +14,12 @@ namespace Gitunia.Tui.Rendering.Details;
 /// row.</param>
 /// <param name="References">The tracker links of a line of the commit message, left to right (positions are in the
 /// message text, without the indent); null on any other row.</param>
+/// <param name="Tree">The row of the Files tab tree, drawn by the shared tree-row renderer at the width it gets (the
+/// segments hold the same text uncut, for quick jump and width-free uses); null on any other row.</param>
 public sealed record DetailRow(
     IReadOnlyList<StyledSegment> Segments,
     FileRowPath? File = null,
     int FileIndex = -1,
     string? Folder = null,
-    IReadOnlyList<IssueReference>? References = null);
+    IReadOnlyList<IssueReference>? References = null,
+    FileTreeLine? Tree = null);

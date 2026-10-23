@@ -31,9 +31,8 @@ public sealed class DetailJumpRows(DetailContent content, int width, string elli
     }
 
     /// <summary>
-    /// The text of a row as drawn in <paramref name="width"/> columns: a file row in the name-first style is laid out
-    /// for that width,
-    /// so the label lands on what is on screen.
+    /// The text of a row as drawn in <paramref name="width"/> columns: a file row in the name-first style and a Files
+    /// tab row are laid out for that width, so the label lands on what is on screen.
     /// </summary>
     public static string TextOf(DetailContent content, int row, int width, string ellipsis)
     {
@@ -42,6 +41,11 @@ public sealed class DetailJumpRows(DetailContent content, int width, string elli
             var columns = Math.Max(0, width - MarkColumns(content, row));
 
             return PathRowLayout.Text(content.PathStyle, file.Path, file.OldPath, columns, ellipsis);
+        }
+
+        if (content.Rows[row].Tree is { } tree)
+        {
+            return DetailPaneRenderer.RenderTreeRow(tree, false, width, ellipsis).Text.TrimEnd();
         }
 
         return TextOf(content, row);
