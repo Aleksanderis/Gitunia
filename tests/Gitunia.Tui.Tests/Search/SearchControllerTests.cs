@@ -352,7 +352,7 @@ public class SearchControllerTests
         harness.Press(Key.Backspace);
         harness.Type("fix");
         searcher.Gate.SetResult();
-        await searcher.Finished.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await searcher.Finished.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal(SearchField.Message, harness.Session.Search.Query!.Field);

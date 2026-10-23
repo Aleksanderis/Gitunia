@@ -112,8 +112,17 @@ jobs:
           }
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
-      - name: Test
-        run: dotnet test -c Release --no-build
+      - name: Test (one project at a time)
+        # Not yet verified on the runner (#634). `dotnet test` on the solution runs the four assemblies at once, each with 8 xUnit threads, and the tests start
+        # thousands of git.exe processes. On the small runner (2-4 vCPU) that made `git init` wait over 30 s (run
+        # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
+        # time every git call waits (2 CPUs, local: Git.Tests 6m27 -> 2m43). The loop stops at the first failing
+        # project so a broken run does not burn the Tui.Tests minutes, and a hung test host is killed after 10 min.
+        run: |
+          for project in Core Platform Git Tui; do
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build \
+              --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
+          done
       - name: AOT publish (any IL* warning fails)
         run: |
           dotnet publish src/Gitunia.Tui -c Release -r win-x64 -p:TreatWarningsAsErrors=true -o out 2>&1 | tee publish.log

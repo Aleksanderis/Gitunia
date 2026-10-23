@@ -6,7 +6,7 @@ namespace Gitunia.Git.Tests.Watching;
 /// <summary>Collects what a <see cref="RepositoryWatcher"/> reports and lets a test wait for a condition instead of sleeping.</summary>
 public sealed class ChangeRecorder
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
     private readonly object _gate = new();
     private RepositoryChangeKinds _seen;

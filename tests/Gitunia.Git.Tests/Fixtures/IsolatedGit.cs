@@ -37,7 +37,8 @@ public static class IsolatedGit
             ["GIT_COMMON_DIR"] = null,
         };
 
-        return new GitRunner(new GitRunnerOptions(TestGitSpeed.Executable, EnvironmentOverrides: environment));
+        return new GitRunner(
+            new GitRunnerOptions(TestGitSpeed.Executable, TestGitSpeed.Timeout, environment));
     }
 
     private static string WriteConfig()

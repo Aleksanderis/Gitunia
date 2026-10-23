@@ -82,7 +82,8 @@ public sealed class GraphGitRepository : IDisposable
             environment[$"GIT_CONFIG_VALUE_{index}"] = TestGitSpeed.Settings[index].Value;
         }
 
-        return new GitRunner(new GitRunnerOptions(TestGitSpeed.Executable, EnvironmentOverrides: environment));
+        return new GitRunner(
+            new GitRunnerOptions(TestGitSpeed.Executable, TestGitSpeed.Timeout, environment));
     }
 
     public void Dispose()

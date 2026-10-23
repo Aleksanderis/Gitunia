@@ -14,6 +14,13 @@ public static class TestGitSpeed
 
     private static readonly Lazy<string> ExecutablePath = new(ResolveExecutable);
 
+    /// <summary>
+    /// Default timeout of the git runners of tests (production keeps its own 30 s). A small CI machine runs the test
+    /// assemblies with thousands of git processes at once, and a <c>git init</c> then waits longer than 30 s for a CPU
+    /// slice (#634). A genuinely hung git still fails the test, only later; tests of the timeout itself pass their own.
+    /// </summary>
+    public static TimeSpan Timeout { get; } = TimeSpan.FromMinutes(2);
+
     /// <summary>Config entries added to every test git process, as <c>GIT_CONFIG_KEY_n</c> pairs.</summary>
     public static IReadOnlyList<KeyValuePair<string, string>> Settings { get; } =
     [
