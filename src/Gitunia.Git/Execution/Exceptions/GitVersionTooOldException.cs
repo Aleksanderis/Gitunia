@@ -14,5 +14,6 @@ public sealed class GitVersionTooOldException : GitException
 
     public GitVersion Found { get; }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
     public GitVersion Minimum { get; }
 }

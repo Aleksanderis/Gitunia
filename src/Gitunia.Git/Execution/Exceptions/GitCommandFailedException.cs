@@ -12,6 +12,7 @@ public sealed class GitCommandFailedException : GitException
         StandardOutput = standardOutput;
     }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
     public IReadOnlyList<string> Arguments { get; }
 
     public int ExitCode { get; }

@@ -37,6 +37,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
+    // ReSharper disable once NotAccessedPositionalProperty.Global : not read yet; part of the full value
     string? BranchName,
     int TabNumber,
     int TabCount,

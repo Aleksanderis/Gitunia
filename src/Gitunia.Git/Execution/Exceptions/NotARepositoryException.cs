@@ -9,5 +9,6 @@ public sealed class NotARepositoryException : GitException
         Path = path;
     }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
     public string Path { get; }
 }

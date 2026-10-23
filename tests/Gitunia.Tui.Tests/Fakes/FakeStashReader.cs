@@ -8,6 +8,7 @@ namespace Gitunia.Tui.Tests.Fakes;
 public sealed class FakeStashReader : IStashReader
 {
     /// <summary>The stash stack, newest first.</summary>
+    // ReSharper disable once CollectionNeverUpdated.Global : fake seed list for tests that need stashes
     public List<StashEntry> Stashes { get; } = [];
 
     /// <summary>Thrown by every read.</summary>
