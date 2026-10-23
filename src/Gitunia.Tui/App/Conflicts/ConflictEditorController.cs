@@ -32,7 +32,9 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
 /// <param name="confirm">Shows the confirm dialog and runs the callback on <c>y</c>; false when it cannot show.</param>
-/// <param name="askResolved">Opens the "mark resolved" Confirm for a path of a tab; returns a notice, empty when asked.</param>
+/// <param name="askResolved">
+/// Opens the "mark resolved" Confirm for a path of a tab; returns a notice, empty when it asked.
+/// </param>
 /// <param name="refresh">Reads a tab again (refs, graph, status, operation); false when it cannot.</param>
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>

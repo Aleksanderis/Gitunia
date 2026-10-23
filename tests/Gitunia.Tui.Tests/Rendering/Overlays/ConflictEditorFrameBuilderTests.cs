@@ -13,7 +13,8 @@ namespace Gitunia.Tui.Tests.Rendering.Overlays;
 public class ConflictEditorFrameBuilderTests
 {
     private const string Text =
-        "top\ntwo\none\n<<<<<<< HEAD\nours 1\nours 2\n=======\ntheirs 1\n>>>>>>> feature\nafter\n<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
+        "top\ntwo\none\n<<<<<<< HEAD\nours 1\nours 2\n=======\ntheirs 1\n>>>>>>> feature\nafter\n"
+        + "<<<<<<< HEAD\nA\n=======\nB\n>>>>>>> feature\n";
 
     [Fact]
     public void GivenAWideScreen_WhenRendering_ThenTheSidesAreNextToEachOtherWithLabelsAndTheResultBelow()
@@ -30,7 +31,8 @@ public class ConflictEditorFrameBuilderTests
         var firstRow = lines[3];
         Assert.Contains("ours 1", firstRow, StringComparison.Ordinal);
         Assert.Contains("theirs 1", firstRow, StringComparison.Ordinal);
-        Assert.True(firstRow.IndexOf("ours 1", StringComparison.Ordinal) < firstRow.IndexOf("theirs 1", StringComparison.Ordinal));
+        var oursColumn = firstRow.IndexOf("ours 1", StringComparison.Ordinal);
+        Assert.True(oursColumn < firstRow.IndexOf("theirs 1", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("result  unresolved", StringComparison.Ordinal));
         Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
     }
@@ -162,9 +164,10 @@ public class ConflictEditorFrameBuilderTests
         Assert.Equal(
             DefaultMouseMap.ConflictOursButton,
             ConflictEditorFrameBuilder.ChipAt(chipLine, text.IndexOf("[o ours]", StringComparison.Ordinal), 120, 30));
+        var saveColumn = text.IndexOf("[Enter save]", StringComparison.Ordinal) + 3;
         Assert.Equal(
             DefaultMouseMap.ConflictSaveButton,
-            ConflictEditorFrameBuilder.ChipAt(chipLine, text.IndexOf("[Enter save]", StringComparison.Ordinal) + 3, 120, 30));
+            ConflictEditorFrameBuilder.ChipAt(chipLine, saveColumn, 120, 30));
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(chipLine, 1, 120, 30));
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(chipLine - 1, 4, 120, 30));
     }

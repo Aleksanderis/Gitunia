@@ -348,8 +348,8 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
 
-    // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t and
-    // b pick a side, u undoes the pick) are keys of the modal, not buffer commands, and shadow Lists' search keys there.
+    // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t
+    // and b pick a side, u undoes the pick) are keys of the modal, not buffer commands, and shadow Lists' search keys.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = ConflictEditorView;

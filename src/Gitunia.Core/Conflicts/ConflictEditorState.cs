@@ -5,9 +5,9 @@ using Gitunia.Git.Conflicts.Models;
 namespace Gitunia.Core.Conflicts;
 
 /// <summary>
-/// The open conflict editor (ux.md, workflow 4, "Conflict editor"): a conflicted file as common text and hunks, the pick
-/// made for each hunk and the hunk under the cursor. Pure: it never reads or writes a file; <see cref="ToText"/> is what
-/// the save writes. A hunk without a pick keeps its conflict markers in the result, so a partial save leaves the file
+/// The open conflict editor (ux.md, workflow 4, "Conflict editor"): a conflicted file as common text and hunks, the
+/// pick made for each hunk and the hunk under the cursor. Pure: it never reads or writes a file;
+/// <see cref="ToText"/> is what the save writes. A hunk without a pick keeps its conflict markers in the result, so a partial save leaves the file
 /// conflicted exactly where the user did not decide.
 /// </summary>
 /// <param name="TabId">The tab the editor was opened in; the save runs there.</param>
@@ -70,7 +70,9 @@ public sealed record ConflictEditorState(
         IsDiscardPending = false,
     };
 
-    /// <summary>Takes <paramref name="pick"/> for the hunk under the cursor (<see cref="ConflictPick.None"/> undoes it).</summary>
+    /// <summary>
+    /// Takes <paramref name="pick"/> for the hunk under the cursor (<see cref="ConflictPick.None"/> undoes it).
+    /// </summary>
     public ConflictEditorState Pick(ConflictPick pick)
     {
         if (Hunks.Count == 0 || Picks[Index] == pick)

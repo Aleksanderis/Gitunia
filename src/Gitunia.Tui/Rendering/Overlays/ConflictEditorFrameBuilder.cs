@@ -9,8 +9,8 @@ namespace Gitunia.Tui.Rendering.Overlays;
 
 /// <summary>
 /// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
-/// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable chips
-/// and a footer. A frame narrower than <see cref="StackedBelowWidth"/> stacks the two sides above the result instead.
+/// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable
+/// chips and a footer. A frame narrower than <see cref="StackedBelowWidth"/> stacks the two sides above the result instead.
 /// </summary>
 public static class ConflictEditorFrameBuilder
 {
@@ -190,8 +190,8 @@ public static class ConflictEditorFrameBuilder
 
     private static void AddResult(List<StyledLine> lines, ConflictEditorState state, Plan plan, GraphGlyphSet glyphs)
     {
-        var rows = ResultRows(state, plan.ResultRows);
-        for (var row = 0; row < plan.ResultRows; row++)
+        var rows = ResultRows(state, plan.ResultRowCount);
+        for (var row = 0; row < plan.ResultRowCount; row++)
         {
             var shown = row < rows.Count ? rows[row] : new ResultRow(string.Empty, SegmentRole.Plain);
             lines.Add(OverlayBox.Text(shown.Text, plan.Width, glyphs, shown.Role));
@@ -214,7 +214,8 @@ public static class ConflictEditorFrameBuilder
         var after = state.ContextAround(state.Index, before: false, Math.Min(ContextLines, spare - before.Count));
         var rows = new List<ResultRow>();
         rows.AddRange(before.Select(line => new ResultRow(Printable(line), SegmentRole.Faint)));
-        rows.AddRange(Truncate(hunkLines, Math.Max(1, rowCount - before.Count)).Select(line => new ResultRow(line, role)));
+        var shown = Truncate(hunkLines, Math.Max(1, rowCount - before.Count));
+        rows.AddRange(shown.Select(line => new ResultRow(line, role)));
         rows.AddRange(after.Select(line => new ResultRow(Printable(line), SegmentRole.Faint)));
 
         return rows;
@@ -360,7 +361,7 @@ public static class ConflictEditorFrameBuilder
         int Width,
         bool IsStacked,
         int SideRows,
-        int ResultRows,
+        int ResultRowCount,
         List<List<ConflictEditorChip>> ChipRows,
         int FirstChipLine);
 

@@ -290,12 +290,14 @@ public class ConflictEditorControllerTests
 
     private static TestRepository TwoHunks()
     {
+        var other = TwoHunkBase.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n");
+        var main = TwoHunkBase.Replace("l2\n", "II\n").Replace("l11\n", "XI\n");
         var repository = TestRepository.Create()
             .Commit("Initial", new TestFile(ConflictPath, TwoHunkBase))
             .CheckoutNewBranch("other")
-            .Commit("Other", new TestFile(ConflictPath, TwoHunkBase.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n")))
+            .Commit("Other", new TestFile(ConflictPath, other))
             .Checkout("main")
-            .Commit("Main", new TestFile(ConflictPath, TwoHunkBase.Replace("l2\n", "II\n").Replace("l11\n", "XI\n")));
+            .Commit("Main", new TestFile(ConflictPath, main));
 
         return repository.MergeExpectingConflict("other");
     }
@@ -365,7 +367,8 @@ public class ConflictEditorControllerTests
         public static async Task<Harness> CreateAsync(TestRepository repository)
         {
             var discovery = new RepositoryDiscovery(repository.CreateIsolatedRunner());
-            var location = await discovery.DiscoverAsync(repository.WorkingTreePath, TestContext.Current.CancellationToken);
+            var token = TestContext.Current.CancellationToken;
+            var location = await discovery.DiscoverAsync(repository.WorkingTreePath, token);
             var harness = new Harness(repository, location);
             await harness.ReloadAsync();
 
