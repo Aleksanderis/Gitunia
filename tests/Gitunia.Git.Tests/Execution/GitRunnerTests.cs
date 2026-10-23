@@ -184,7 +184,8 @@ public class GitRunnerTests
         });
     }
 
-    // The idle timer also covers process start-up before the first chunk, so the timeout keeps a margin over a loaded machine's start time.
+    // The idle timer also covers process start-up before the first chunk, so the timeout keeps a margin
+    // over a loaded machine's start time.
     [Fact]
     public async Task GivenStalledStream_WhenIdleTimeoutElapses_ThenTimeoutAfterFirstChunk()
     {
