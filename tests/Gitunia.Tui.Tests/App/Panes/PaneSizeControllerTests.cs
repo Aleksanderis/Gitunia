@@ -86,7 +86,7 @@ public class PaneSizeControllerTests
     [InlineData(PaneKind.Diff)]
     public void GivenThePairedZoom_WhenWidening_ThenTheDividerBetweenThePanesMoves(PaneKind focused)
     {
-        _arrangement = new PaneArrangement(true, focused, null, ZoomBoth: true);
+        _arrangement = new PaneArrangement(true, focused, ZoomBoth: true);
         _focused = focused;
         var controller = CreateController();
 
@@ -102,7 +102,7 @@ public class PaneSizeControllerTests
     [Fact]
     public void GivenThePairedZoom_WhenChangingHeight_ThenNothingChangesAndANoticeSaysWhy()
     {
-        _arrangement = new PaneArrangement(true, PaneKind.Diff, null, ZoomBoth: true);
+        _arrangement = new PaneArrangement(true, PaneKind.Diff, ZoomBoth: true);
         _focused = PaneKind.Diff;
         var controller = CreateController();
 
