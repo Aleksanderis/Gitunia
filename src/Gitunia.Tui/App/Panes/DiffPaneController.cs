@@ -828,7 +828,7 @@ public sealed class DiffPaneController : IPromptHandler
         return index >= 0 && index < rows.Count ? rows[index] : null;
     }
 
-    // ]f and [f in the file content pane: the tree's cursor moves to the next or previous file row and the pane follows.
+    // ]f and [f in the file content pane: the tree's cursor moves to the next or previous file row, the pane follows.
     private void MoveToFileRow(DiffSession diff, bool forward, int count)
     {
         if (_activeSession() is not { } session || !IsFilesBeside())
