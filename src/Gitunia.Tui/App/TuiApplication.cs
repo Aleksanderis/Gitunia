@@ -600,6 +600,7 @@ public sealed class TuiApplication(
         viewName is DefaultKeymap.GraphView
             or DefaultKeymap.DetailView
             or DefaultKeymap.DetailChangesView
+            or DefaultKeymap.DetailFilesView
             or DefaultKeymap.DiffView
             or DefaultKeymap.WorkingUnstagedView
             or DefaultKeymap.WorkingStagedView

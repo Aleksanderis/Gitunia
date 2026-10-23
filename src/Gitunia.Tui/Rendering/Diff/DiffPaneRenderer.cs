@@ -113,7 +113,10 @@ public static class DiffPaneRenderer
             }
 
             AppendWrapMarker(builder, pane);
-            builder.Append($"  {contentPath} ", SegmentRole.Plain);
+            if (contentPath.Length > 0)
+            {
+                builder.Append($"  {contentPath} ", SegmentRole.Plain);
+            }
         }
         else if (pane.Document.FileRows.Count > 0
             && pane.SelectedRow >= 0

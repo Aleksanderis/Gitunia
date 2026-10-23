@@ -26,7 +26,9 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
     /// <summary>Starts reading <paramref name="blob"/>, the file <paramref name="path"/> of a commit.</summary>
     /// <param name="commit">The commit the file belongs to.</param>
     /// <param name="size">The size the tree listing gave, so a file over the cap is never read.</param>
-    public void Load(ObjectId commit, string path, ObjectId blob, long? size)
+    /// <param name="delay">Waits this long before reading, so a cursor held on a key (each step cancels the one
+    /// before) never spawns a read per row; null reads at once.</param>
+    public void Load(ObjectId commit, string path, ObjectId blob, long? size, TimeSpan? delay = null)
     {
         CancelPending();
         Current = new FileContentState(
@@ -36,7 +38,7 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
             FileContentDocument.Message(path, "Loading..."));
         _pending = new CancellationTokenSource();
         var token = _pending.Token;
-        _ = Task.Run(() => LoadAsync(commit, path, blob, size, token), CancellationToken.None);
+        _ = Task.Run(() => LoadAsync(commit, path, blob, size, delay, token), CancellationToken.None);
     }
 
     /// <summary>Forgets the open file and cancels a read in flight.</summary>
@@ -57,10 +59,21 @@ public sealed class FileContentStore(IBlobReader reader, RepositoryLocation loca
         _pending = null;
     }
 
-    private async Task LoadAsync(ObjectId commit, string path, ObjectId blob, long? size, CancellationToken token)
+    private async Task LoadAsync(
+        ObjectId commit,
+        string path,
+        ObjectId blob,
+        long? size,
+        TimeSpan? delay,
+        CancellationToken token)
     {
         try
         {
+            if (delay is { } wait && wait > TimeSpan.Zero)
+            {
+                await Task.Delay(wait, token).ConfigureAwait(false);
+            }
+
             var content = await reader.ReadAsync(location, blob, size, token).ConfigureAwait(false);
             var document = FileContentDocument.From(path, content);
             postToUi(() => Complete(commit, path, CommitDetailsStatus.Loaded, document, token));

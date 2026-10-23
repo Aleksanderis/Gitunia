@@ -44,6 +44,13 @@ public static class FileContentDocument
     public static DiffDocument Message(string path, string text) =>
         new([new DiffRow(DiffRowKind.Note, text, null, null, 0)], [], [0], [[path]], 0, path);
 
+    /// <summary>
+    /// The document of the Files tab's pane while no file is under the cursor: one note row and an empty content path,
+    /// so the pane reads as file content (title, hints, no hunks) without naming a file.
+    /// </summary>
+    public static DiffDocument Placeholder(string text) =>
+        new([new DiffRow(DiffRowKind.Note, text, null, null, 0)], [], [0], [[string.Empty]], 0, string.Empty);
+
     /// <summary>The text of the file, one line per row, for the clipboard.</summary>
     public static string Text(DiffDocument document) =>
         string.Concat(document.Rows.Where(row => row.Kind == DiffRowKind.Content).Select(row => row.Text + "\n"));
