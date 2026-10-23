@@ -94,7 +94,7 @@ public class TextWidthTests
     [InlineData("short", 14, "short")]
     [InlineData("abcdefghij", 5, "ab~ij")]
     [InlineData("abcdefghij", 3, "ab~")]
-    public void GivenText_WhenFittingInTheMiddle_ThenHeadAndTailStayAndWidthHolds(string text, int columns, string expected)
+    public void GivenText_WhenFittingInTheMiddle_ThenHeadAndTailStay(string text, int columns, string expected)
     {
         var fitted = TextWidth.FitMiddle(text, columns, "~");
 

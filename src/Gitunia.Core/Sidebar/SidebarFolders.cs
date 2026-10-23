@@ -58,7 +58,7 @@ public static class SidebarFolders
         {
             if (slot.Leaf is { } leaf)
             {
-                rows.Add(depth == 0 ? leaf.Row : leaf.Row with { Depth = depth, ShortName = string.Join(Separator, leaf.Segments[segment..]) });
+                rows.Add(depth == 0 ? leaf.Row : leaf.Row with { Depth = depth, ShortName = leaf.Segments[^1] });
                 continue;
             }
 

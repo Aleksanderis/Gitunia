@@ -187,7 +187,8 @@ public class SidebarBuilderTests
     public void GivenSingleChildFolderChain_WhenBuilding_ThenItIsOneRowAndTheLeafKeepsTheRestOfTheName()
     {
         var tab = Unfolded(Tab(refs: [Branch("main"), Branch("feature/ui/x"), Branch("feature/ui/y")]));
-        tab = tab with { Sidebar = tab.Sidebar with { OpenedFolders = [SidebarFolders.KeyOf(SidebarSection.Branches, "feature/ui")] } };
+        var key = SidebarFolders.KeyOf(SidebarSection.Branches, "feature/ui");
+        tab = tab with { Sidebar = tab.Sidebar with { OpenedFolders = [key] } };
 
         var rows = SidebarBuilder.Build(tab).Take(4).ToList();
 

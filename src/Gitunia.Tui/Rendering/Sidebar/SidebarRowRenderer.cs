@@ -53,7 +53,7 @@ public static class SidebarRowRenderer
             .Append(prefix, SegmentRole.Plain)
             .Append(TextWidth.FitMiddle(label, labelBudget, glyphs.Ellipsis), LabelRole(row));
 
-        // The markers keep their columns; the last extra (worktree or branch text) takes what is left, cut in the middle.
+        // The markers keep their columns; the last extra (worktree or branch text) takes the rest, cut in the middle.
         var remaining = width - TextWidth.Of(prefix) - Math.Min(TextWidth.Of(label), labelBudget);
         for (var index = 0; index < extras.Count; index++)
         {

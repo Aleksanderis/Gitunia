@@ -90,8 +90,8 @@ public static class TextWidth
     }
 
     /// <summary>
-    /// Makes <paramref name="text"/> fit <paramref name="columns"/> by cutting the middle (<c>abc…xyz</c>), so the start
-    /// and the distinguishing tail stay visible. Short texts come back as <see cref="Fit"/> returns them.
+    /// Makes <paramref name="text"/> fit <paramref name="columns"/> by cutting the middle (<c>abc…xyz</c>), so the
+    /// start and the distinguishing tail stay visible. Short texts come back as <see cref="Fit"/> returns them.
     /// </summary>
     public static string FitMiddle(string text, int columns, string ellipsis)
     {
