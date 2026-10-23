@@ -33,6 +33,19 @@ public class DetailPathCopierTests : IDisposable
     }
 
     [Fact]
+    public void GivenTheTreeStyleOnChanges_WhenCopying_ThenAFolderRowCopiesTheFolderAndAFileRowTheWholePath()
+    {
+        var source = LoadedSource(FilePathStyle.Tree, "src/lib/a.cs");
+
+        // Rows: heading, "src/", "lib/", "a.cs".
+        var folder = CreateCopier().Copy(source, 2);
+        var file = CreateCopier().Copy(source, 3);
+
+        Assert.Equal(string.Empty, folder + file);
+        Assert.Equal(Osc52Sequence("src/lib") + Osc52Sequence("src/lib/a.cs"), _terminal.ToString());
+    }
+
+    [Fact]
     public void GivenARowAboveTheFiles_WhenCopying_ThenANoticeSaysToSelectAFile()
     {
         var source = LoadedSource("src/a.cs");
@@ -93,7 +106,10 @@ public class DetailPathCopierTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static DetailListSource LoadedSource(params string[] paths)
+    private static DetailListSource LoadedSource(params string[] paths) =>
+        LoadedSource(FilePathStyle.NameFirst, paths);
+
+    private static DetailListSource LoadedSource(FilePathStyle style, params string[] paths)
     {
         var commit = CommitFactory.Commit(2, "Fix the thing", [1], []);
         var entry = CommitFactory.Graph(commit, CommitFactory.Commit(1, "root", []))[0];
@@ -101,7 +117,8 @@ public class DetailPathCopierTests : IDisposable
         var files = paths.Select(path => new CommitFileChange(path, null, FileChangeKind.Modified, null)).ToArray();
         var details = new CommitDetails(CommitFactory.Id(2), [CommitFactory.Id(1)], "Ann", "ann@x.org", when, "Ann", "ann@x.org", when, "Fix the thing", files);
         var source = new DetailListSource(GraphGlyphSet.Unicode);
-        source.Update(DetailContentBuilder.Build(entry, new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty), BottomTab.Changes));
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, details, string.Empty);
+        source.Update(DetailContentBuilder.Build(entry, state, BottomTab.Changes, null, style));
         return source;
     }
 

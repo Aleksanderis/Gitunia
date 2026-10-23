@@ -182,15 +182,14 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        if (ShowsWithChanges() && SelectedFilePath() is { } selected)
+        if (ShowsWithChanges() && SetPendingFromCursor(diff))
         {
-            // Beside the file list the diff always shows the file under its cursor.
-            diff.PendingFilePath = selected;
+            // Beside the file list the diff always shows the file or folder under its cursor.
         }
         else if (diff.Store.Status == DiffStatus.Loaded)
         {
             // While another commit is still loading, the document has no files: keep the file remembered so far.
-            diff.PendingFilePath = CurrentFilePath(diff);
+            KeepShown(diff, CurrentFilePath(diff));
         }
 
         var neighbours = DetailPrefetchPlan.Around(session.Graph, session.Graph.IndexOf(commit));
@@ -260,12 +259,11 @@ public sealed class DiffPaneController : IPromptHandler
     {
         if (_activeSession() is not { Diff: { } diff } session
             || !ShowsWithChanges()
-            || SelectedFilePath() is not { } path)
+            || !SetPendingFromCursor(diff))
         {
             return;
         }
 
-        diff.PendingFilePath = path;
         if (diff.Store.Status == DiffStatus.Loaded
             && session.Details.Current is { Commit: { } commit, Details: { } shown }
             && diff.Store.Commit == DiffCommit(shown, commit))
@@ -354,8 +352,10 @@ public sealed class DiffPaneController : IPromptHandler
             ? new DiffPaneModel(DiffDocument.Empty, 0, 0, isFocused)
             : _actions.ModelOf(diff, diff.Store.Options, isFocused) with
             {
-                FileNumber = diff.ShownFile + 1,
-                FileCount = diff.ShownFull?.FilePaths.Count ?? 0,
+                FileNumber = diff.BuiltFolderPath is null ? diff.ShownFile + 1 : 0,
+                FileCount = diff.BuiltFolderPath is null
+                    ? diff.ShownFull?.FilePaths.Count ?? 0
+                    : diff.ShownDocument.FilePaths.Count,
             };
 
     private bool ExecuteInDiff(RepositoryState tab, DiffSession diff, ActionId action, int? count)
@@ -436,8 +436,51 @@ public sealed class DiffPaneController : IPromptHandler
             return null;
         }
 
-        var index = (_detailList.SelectedItem ?? -1) - content.FirstFileRow;
+        var index = content.FileIndexAt(_detailList.SelectedItem ?? -1);
         return index >= 0 && index < content.Files.Count ? content.Files[index].Path : null;
+    }
+
+    /// <summary>The path of the folder under the cursor of the Changes list (tree style), null on any other
+    /// row.</summary>
+    private string? SelectedFolderPath() =>
+        _activeSession()?.DetailSource is { Content: { Tab: BottomTab.Changes } content }
+            ? content.FolderAt(_detailList.SelectedItem ?? -1)
+            : null;
+
+    // Asks for the file or folder under the file list's cursor; false when the cursor is on neither.
+    private bool SetPendingFromCursor(DiffSession diff)
+    {
+        if (SelectedFolderPath() is { } folder)
+        {
+            diff.PendingFolderPath = folder;
+            diff.PendingFilePath = null;
+
+            return true;
+        }
+
+        if (SelectedFilePath() is { } path)
+        {
+            diff.PendingFilePath = path;
+            diff.PendingFolderPath = null;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // Shows the same thing again after a reload: the folder when one is shown, else the file.
+    private static void KeepShown(DiffSession diff, string? filePath)
+    {
+        if (diff.ShownFolderPath is { } folder)
+        {
+            diff.PendingFolderPath = folder;
+            diff.PendingFilePath = null;
+        }
+        else
+        {
+            diff.PendingFilePath = filePath;
+        }
     }
 
     private void OpenSelectedFile(RepositoryState tab, DiffSession diff)
@@ -456,16 +499,14 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        var index = (_detailList.SelectedItem ?? -1) - source.Content.FirstFileRow;
-        if (index < 0 || index >= source.Content.Files.Count)
+        if (!SetPendingFromCursor(diff))
         {
-            Notice = "Select a file to see its diff";
+            Notice = "Select a file or folder to see its diff";
             return;
         }
 
         // Beside the file list the diff is part of the tab already; only narrow or short screens open it on demand.
         diff.IsOpen = !ShowsWithChanges();
-        diff.PendingFilePath = source.Content.Files[index].Path;
         diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
         var started = diff.Store.Load(
             DiffCommit(loaded, commit),
@@ -508,7 +549,7 @@ public sealed class DiffPaneController : IPromptHandler
             return true;
         }
 
-        diff.PendingFilePath = path;
+        KeepShown(diff, path);
         Notice = DiffOptionsLabel.Describe(changed);
         return true;
     }
@@ -518,7 +559,7 @@ public sealed class DiffPaneController : IPromptHandler
         var path = CurrentFilePath(diff);
         if (diff.Store.LoadAnyway())
         {
-            diff.PendingFilePath = path;
+            KeepShown(diff, path);
             Notice = "Loading the whole diff...";
         }
         else
@@ -545,6 +586,12 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
+        if (diff.BuiltFolderPath is not null)
+        {
+            MoveToFileOfFolder(diff, forward, count);
+            return;
+        }
+
         var full = diff.ShownFull;
         var target = full is null || diff.ShownFile < 0
             ? -1
@@ -560,9 +607,9 @@ public sealed class DiffPaneController : IPromptHandler
         {
             for (var index = 0; index < content.Files.Count; index++)
             {
-                if (content.Files[index].Path == path)
+                if (content.Files[index].Path == path && content.RowOfFile(index) is >= 0 and var row)
                 {
-                    _detailList.SelectedItem = content.FirstFileRow + index;
+                    _detailList.SelectedItem = row;
                     _detailList.EnsureSelectedItemVisible();
                     break;
                 }
@@ -570,7 +617,24 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         diff.PendingFilePath = path;
+        diff.PendingFolderPath = null;
         Refresh(diff);
+    }
+
+    // In the folder view the pane holds several files: ]f and [f move the cursor from file to file inside it.
+    private void MoveToFileOfFolder(DiffSession diff, bool forward, int count)
+    {
+        var document = diff.ShownDocument;
+        var row = _actions.CursorRow(diff);
+        var current = row >= 0 && row < document.Rows.Count ? Math.Max(0, document.Rows[row].FileIndex) : 0;
+        var target = Math.Clamp(current + (forward ? count : -count), 0, document.FileRows.Count - 1);
+        if (target == current)
+        {
+            Notice = forward ? "No next file" : "No previous file";
+            return;
+        }
+
+        _actions.Select(diff, document.FileRows[target], atTop: true);
     }
 
     private void Close(RepositoryState tab, DiffSession diff)
@@ -588,6 +652,9 @@ public sealed class DiffPaneController : IPromptHandler
         diff.IsOpen = false;
         diff.ZoomedPane = null;
         diff.PendingFilePath = null;
+        diff.PendingFolderPath = null;
+        diff.ShownFolderPath = null;
+        diff.BuiltFolderPath = null;
         diff.ShownContentPath = null;
         diff.ShownContentCommit = null;
         diff.ContentStore?.Clear();
@@ -676,21 +743,42 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var full = diff.Store.Document;
-        var path = diff.Store.Status == DiffStatus.Loaded ? diff.PendingFilePath : null;
+        var isLoaded = diff.Store.Status == DiffStatus.Loaded;
+        var path = isLoaded ? diff.PendingFilePath : null;
         if (path is not null)
         {
             diff.PendingFilePath = null;
+            diff.ShownFolderPath = null;
+        }
+
+        if (isLoaded && diff.PendingFolderPath is { } pendingFolder)
+        {
+            diff.PendingFolderPath = null;
+            diff.ShownFolderPath = pendingFolder;
+        }
+
+        var folderFiles = isLoaded && diff.ShownFolderPath is { } folder ? full.FileIndexesUnder(folder) : [];
+        if (isLoaded && folderFiles.Count == 0)
+        {
+            // The folder has no change in this commit: the pane falls back to a single file.
+            diff.ShownFolderPath = null;
         }
 
         var wanted = path ?? diff.ShownPath;
-        var file = full.FilePaths.Count == 0 ? -1 : Math.Max(0, wanted is null ? 0 : full.FileIndexOf(wanted));
-        if (!ReferenceEquals(diff.ShownFull, full) || diff.ShownFile != file)
+        var file = folderFiles.Count > 0
+            ? folderFiles[0]
+            : full.FilePaths.Count == 0 ? -1 : Math.Max(0, wanted is null ? 0 : full.FileIndexOf(wanted));
+        var builtFolder = folderFiles.Count > 0 ? diff.ShownFolderPath : null;
+        if (!ReferenceEquals(diff.ShownFull, full) || diff.ShownFile != file || diff.BuiltFolderPath != builtFolder)
         {
-            // The pane holds one file only: the one under the file list's cursor.
+            // The pane holds one file only, the one under the file list's cursor, or the files of the folder there.
             diff.ShownFull = full;
             diff.ShownFile = file;
+            diff.BuiltFolderPath = builtFolder;
             diff.ShownPath = file >= 0 ? full.FilePaths[file][0] : null;
-            diff.ShownDocument = file >= 0 ? full.ForFile(file) : full;
+            diff.ShownDocument = folderFiles.Count > 0
+                ? full.ForFiles(folderFiles)
+                : file >= 0 ? full.ForFile(file) : full;
         }
 
         if (!ReferenceEquals(diff.Source.Document, diff.ShownDocument))

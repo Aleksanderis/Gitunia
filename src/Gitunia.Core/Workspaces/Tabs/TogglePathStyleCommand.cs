@@ -2,6 +2,8 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Workspaces.Tabs;
 
-/// <summary>Switch the tab's file lists between the name-first and the full-path style (not saved with the
+/// <summary>Switch the tab's file lists to the next path style: name first, full path, tree (not saved with the
 /// session).</summary>
-public sealed record TogglePathStyleCommand : RepositoryCommand;
+/// <param name="IncludesTree">Whether the tree style is part of the cycle; false in the working-tree view, whose lists
+/// have none.</param>
+public sealed record TogglePathStyleCommand(bool IncludesTree = true) : RepositoryCommand;

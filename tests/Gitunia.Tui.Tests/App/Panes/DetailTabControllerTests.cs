@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Tui.App;
@@ -90,6 +91,24 @@ public class DetailTabControllerTests
         Assert.Equal("File paths: full path", controller.Notice);
 
         Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
+        Assert.Equal(FilePathStyle.Tree, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal("File paths: tree", controller.Notice);
+
+        Assert.True(controller.TryExecute(ActionIds.FilesTogglePathStyle));
+        Assert.Equal(FilePathStyle.NameFirst, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal("File paths: name first", controller.Notice);
+    }
+
+    [Fact]
+    public void GivenTheWorkingTreeView_WhenTogglingThePathStyle_ThenTheTreeStyleIsSkipped()
+    {
+        var host = HostWithTab(BottomTab.Changes);
+        host.Dispatch(new TabCommand(host.Workspace.ActiveTab!.Id, new OpenWorkingTreeCommand()));
+        var controller = new DetailTabController(host);
+
+        controller.TryExecute(ActionIds.FilesTogglePathStyle);
+        controller.TryExecute(ActionIds.FilesTogglePathStyle);
+
         Assert.Equal(FilePathStyle.NameFirst, host.Workspace.ActiveTab!.View.PathStyle);
         Assert.Equal("File paths: name first", controller.Notice);
     }

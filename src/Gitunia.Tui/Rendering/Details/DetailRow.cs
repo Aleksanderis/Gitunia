@@ -6,5 +6,13 @@ namespace Gitunia.Tui.Rendering.Details;
 /// <param name="Segments">The pieces, left to right: for a file row the change mark, then the path as the full-path
 /// style shows it.</param>
 /// <param name="File">The path of a file row on the Changes tab, so the row can be drawn in either path style at the
-/// width it gets; null on any other row.</param>
-public sealed record DetailRow(IReadOnlyList<StyledSegment> Segments, FileRowPath? File = null);
+/// width it gets; null on any other row and on the file rows of the tree style.</param>
+/// <param name="FileIndex">Index in <see cref="DetailContent.Files"/> of the file this row shows, -1 on any other
+/// row.</param>
+/// <param name="Folder">The path of the folder a folder row of the tree style stands for, null on any other
+/// row.</param>
+public sealed record DetailRow(
+    IReadOnlyList<StyledSegment> Segments,
+    FileRowPath? File = null,
+    int FileIndex = -1,
+    string? Folder = null);

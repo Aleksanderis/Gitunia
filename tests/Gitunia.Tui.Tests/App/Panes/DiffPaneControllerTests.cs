@@ -54,7 +54,7 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DetailOpenDiff);
 
         Assert.False(harness.Session.Diff!.IsOpen);
-        Assert.Equal("Select a file to see its diff", harness.Controller.Notice);
+        Assert.Equal("Select a file or folder to see its diff", harness.Controller.Notice);
     }
 
     [Theory]
@@ -929,6 +929,122 @@ public class DiffPaneControllerTests
         Assert.Equal($"+{new string('x', 150)}", harness.CopiedText());
     }
 
+    [Fact]
+    public async Task GivenTheTreeStyle_WhenTheCursorIsOnAFolder_ThenTheDiffHoldsOnlyTheFilesBelowIt()
+    {
+        using var testRepository = FolderRepository();
+        using var harness = await DiffHarness.LoadAsync(testRepository, screenWidth: 100);
+        harness.ShowTree();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        harness.SelectFolder("src");
+
+        var shown = harness.Session.Diff!.Source.Document;
+        Assert.Equal([["src/one.txt"], ["src/sub/two.txt"]], shown.FilePaths);
+        Assert.Equal(0, shown.FileRows[0]);
+        Assert.Equal([0, 1], [.. shown.FileRows.Select(row => shown.Rows[row].FileIndex)]);
+        Assert.DoesNotContain(shown.Rows, row => row.Text.Contains("top.txt", StringComparison.Ordinal));
+        Assert.Equal(2, shown.HunkRows.Count);
+    }
+
+    [Fact]
+    public async Task GivenAFolderDiff_WhenTheCursorMovesToAFile_ThenOnlyThatFileShows()
+    {
+        using var testRepository = FolderRepository();
+        using var harness = await DiffHarness.LoadAsync(testRepository, screenWidth: 100);
+        harness.ShowTree();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+        harness.SelectFolder("src");
+
+        harness.SelectFileInTree("top.txt");
+
+        Assert.Equal([["top.txt"]], harness.Session.Diff!.Source.Document.FilePaths);
+    }
+
+    [Fact]
+    public async Task GivenAFolderRow_WhenOpeningTheDiff_ThenTheFolderDiffOpensFocused()
+    {
+        using var testRepository = FolderRepository();
+        using var harness = await DiffHarness.LoadAsync(testRepository);
+        harness.ShowTree();
+        harness.SelectFolder("src/sub");
+
+        harness.Execute(ActionIds.DetailOpenDiff);
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(PaneKind.Diff, harness.Tab.View.FocusedPane);
+        Assert.Equal([["src/sub/two.txt"]], harness.Session.Diff!.Source.Document.FilePaths);
+    }
+
+    [Fact]
+    public async Task GivenAFolderDiff_WhenJumpingBetweenFiles_ThenTheCursorMovesInsideTheFolderAndStopsAtTheEnds()
+    {
+        using var testRepository = FolderRepository();
+        using var harness = await DiffHarness.LoadAsync(testRepository);
+        harness.ShowTree();
+        harness.SelectFolder("src");
+        harness.Execute(ActionIds.DetailOpenDiff);
+        await harness.WaitForDiffAsync();
+        var document = harness.Session.Diff!.Source.Document;
+
+        harness.Execute(ActionIds.DiffNextFile);
+
+        Assert.Equal(document.FileRows[1], harness.DiffList.SelectedItem);
+        harness.Execute(ActionIds.DiffNextFile);
+        Assert.Equal("No next file", harness.Controller.Notice);
+        harness.Execute(ActionIds.DiffPreviousFile);
+        Assert.Equal(document.FileRows[0], harness.DiffList.SelectedItem);
+    }
+
+    [Fact]
+    public async Task GivenAComparisonInTheTreeStyle_WhenTheCursorIsOnAFolder_ThenTheDiffIsTheOneBetweenTheTwoCommits()
+    {
+        using var testRepository = FolderRepository().Commit("later", new TestFile("src/one.txt", "later\n"));
+        using var harness = await DiffHarness.LoadAsync(testRepository, screenWidth: 100);
+        var older = harness.Session.Graph[2].Id;
+        var newer = harness.Session.Graph[0].Id;
+        await harness.CompareAsync(older, newer);
+        harness.ShowTree();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        harness.SelectFolder("src");
+
+        var shown = harness.Session.Diff!.Source.Document;
+        Assert.Equal([["src/one.txt"], ["src/sub/two.txt"]], shown.FilePaths);
+        Assert.Contains(shown.Rows, row => row.Text.Contains("later", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenAFolderDiff_WhenChangingTheContext_ThenTheFolderStaysShown()
+    {
+        using var testRepository = FolderRepository();
+        using var harness = await DiffHarness.LoadAsync(testRepository);
+        harness.ShowTree();
+        harness.SelectFolder("src");
+        harness.Execute(ActionIds.DetailOpenDiff);
+        await harness.WaitForDiffAsync();
+
+        harness.Execute(ActionIds.DiffMoreContext);
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(2, harness.Session.Diff!.Source.Document.FilePaths.Count);
+    }
+
+    private static TestRepository FolderRepository() => TestRepository.Create()
+        .Commit(
+            "root",
+            new TestFile("top.txt", "top\n"),
+            new TestFile("src/one.txt", "one\n"),
+            new TestFile("src/sub/two.txt", "two\n"))
+        .Commit(
+            "edit",
+            new TestFile("top.txt", "top changed\n"),
+            new TestFile("src/one.txt", "one changed\n"),
+            new TestFile("src/sub/two.txt", "two changed\n"));
+
     private sealed class DiffHarness : IDisposable
     {
         private readonly TestRepository? _ownedRepository;
@@ -1038,6 +1154,35 @@ public class DiffPaneControllerTests
             var index = content.Files.ToList().FindIndex(file => file.Path == path);
             Assert.True(index >= 0, $"{path} is not in the file list");
             DetailList.SelectedItem = content.FirstFileRow + index;
+        }
+
+        /// <summary>Lists the current commit's changes as a tree, the cursor on its first file.</summary>
+        public void ShowTree()
+        {
+            var entry = Session.Graph.ToArray().Single(candidate => candidate.Id == Session.Details.Current.Commit);
+            Session.DetailSource.Update(DetailContentBuilder.Build(
+                entry,
+                Session.Details.Current,
+                BottomTab.Changes,
+                null,
+                FilePathStyle.Tree));
+            Send(new FocusPaneCommand(PaneKind.Detail));
+            DetailList.SelectedItem = Session.DetailSource.Content.FirstFileRow;
+        }
+
+        public void SelectFolder(string path)
+        {
+            var content = Session.DetailSource.Content;
+            var row = content.Rows.ToList().FindIndex(candidate => candidate.Folder == path);
+            Assert.True(row >= 0, $"{path} is not a folder row");
+            DetailList.SelectedItem = row;
+        }
+
+        public void SelectFileInTree(string path)
+        {
+            var content = Session.DetailSource.Content;
+            var index = content.Files.ToList().FindIndex(file => file.Path == path);
+            DetailList.SelectedItem = content.RowOfFile(index);
         }
 
         public void SelectFirstFile()

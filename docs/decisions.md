@@ -443,3 +443,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** The `frameStyle` option (rounded/square, #453) is removed: it only swapped the frame and overlay corners, which the owner could not tell apart. Frames stay rounded; an old `frameStyle` key in `config.json` is ignored like any unknown key.
 
 **UI:** The bottom pane no longer has its own panel background (owner review): it looked like an unexplained second tone next to the other panes. The frame line and the tab buttons separate it; `PaletteTable.PanelBackground` and `StyledSegment.OnPanel` are gone.
+
+## 2026-10-23
+
+**UI:** Tree style of the Changes tab (#548): folder rows are not collapsible yet, and the working-tree lists keep two styles (their rows are index-addressed by staging, discard and ranges); the folder view reuses the loaded commit diff, cut to the folder, so it costs no git call. Supersedes "the tree style is M5" in the #540 entry; details in `ux.md`.
