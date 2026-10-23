@@ -121,6 +121,7 @@ public class PaneHintsTests
             ActionIds.DiffToggleSideBySide,
             ActionIds.DiffLoadAnyway,
             ActionIds.DiffMoreContext,
+            ActionIds.DiffLessContext,
         ];
         Assert.All(options, option => Assert.Contains(bindings, binding => binding.Action == option));
     }

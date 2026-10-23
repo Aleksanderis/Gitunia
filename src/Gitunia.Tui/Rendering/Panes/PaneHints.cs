@@ -64,8 +64,8 @@ public static class PaneHints
         new("]c/[c", "hunk", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
-        new("h", "back", [ActionIds.NavigateBack]),
         ViewOptions,
+        new("h", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
     ];
 
@@ -95,8 +95,8 @@ public static class PaneHints
     [
         new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
-        new("h", "back", [ActionIds.NavigateBack]),
         ViewOptions,
+        new("h", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         PaneJumps,
     ];
