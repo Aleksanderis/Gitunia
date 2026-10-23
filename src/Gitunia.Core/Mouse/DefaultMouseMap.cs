@@ -74,8 +74,8 @@ public static class DefaultMouseMap
 
     public const string DetailFilesTab = "DetailTab.Files";
 
-    /// <summary>The path-style chip of the Changes tab's title row (#540).</summary>
-    public const string DetailPathStyleButton = "DetailTab.PathStyle";
+    /// <summary>The <c>view ▾</c> dropdown of the Changes and Files tabs' title row (#646).</summary>
+    public const string DetailViewButton = "DetailTab.View";
 
     /// <summary>Picker row buttons, shown on the highlighted row.</summary>
     public const string PickerPinButton = "PickerButton.Pin";
@@ -101,8 +101,8 @@ public static class DefaultMouseMap
 
     public const string UnstageAllButton = "ListButton.UnstageAll";
 
-    /// <summary>The path-style chip in the title row of both working-tree file lists (#540).</summary>
-    public const string ListPathStyleButton = "ListButton.PathStyle";
+    /// <summary>The <c>view ▾</c> dropdown in the title row of both working-tree file lists (#646).</summary>
+    public const string ListViewButton = "ListButton.View";
 
     /// <summary>The action rows under the reflog list (#442) and a row of its ref picker (#441): each is a view of
     /// its own, a click runs the action its key runs on the highlighted entry.</summary>
@@ -295,8 +295,8 @@ public static class DefaultMouseMap
         new(DetailDetailsTab, MouseGesture.Click, ActionIds.DetailTabDetails),
         new(DetailChangesTab, MouseGesture.Click, ActionIds.DetailTabChanges),
         new(DetailFilesTab, MouseGesture.Click, ActionIds.DetailTabFiles),
-        new(DetailPathStyleButton, MouseGesture.Click, ActionIds.FilesTogglePathStyle),
-        new(ListPathStyleButton, MouseGesture.Click, ActionIds.FilesTogglePathStyle),
+        new(DetailViewButton, MouseGesture.Click, ActionIds.ListOpenViewOptions),
+        new(ListViewButton, MouseGesture.Click, ActionIds.ListOpenViewOptions),
         new(PickerPinButton, MouseGesture.Click, ActionIds.PickerPin),
         new(PickerRemoveButton, MouseGesture.Click, ActionIds.PickerRemoveRecent),
         new(PickerCloneButton, MouseGesture.Click, ActionIds.PickerClone),

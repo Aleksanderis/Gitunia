@@ -42,8 +42,8 @@ public sealed class MainView : IDisposable
     private readonly LineView _workingDiffTitle;
     private readonly LineView _stageAllButton;
     private readonly LineView _unstageAllButton;
-    private readonly LineView _unstagedPathStyleButton;
-    private readonly LineView _stagedPathStyleButton;
+    private readonly LineView _unstagedViewButton;
+    private readonly LineView _stagedViewButton;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
     private FrameGrid? _workingGrid;
@@ -222,10 +222,10 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
         _messageOptions.Clicked += OnMessageOptionsClicked;
-        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isPathStyle: false);
-        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isPathStyle: false);
-        _unstagedPathStyleButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isPathStyle: true);
-        _stagedPathStyleButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isPathStyle: true);
+        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isView: false);
+        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isView: false);
+        _unstagedViewButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isView: true);
+        _stagedViewButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isView: true);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -306,8 +306,8 @@ public sealed class MainView : IDisposable
             _messageOptions,
             _stageAllButton,
             _unstageAllButton,
-            _unstagedPathStyleButton,
-            _stagedPathStyleButton,
+            _unstagedViewButton,
+            _stagedViewButton,
             _picker,
             _status,
             Overlay);
@@ -486,8 +486,8 @@ public sealed class MainView : IDisposable
             _messageOptions.SetNeedsDraw();
             _stageAllButton.SetNeedsDraw();
             _unstageAllButton.SetNeedsDraw();
-            _unstagedPathStyleButton.SetNeedsDraw();
-            _stagedPathStyleButton.SetNeedsDraw();
+            _unstagedViewButton.SetNeedsDraw();
+            _stagedViewButton.SetNeedsDraw();
         }
     }
 
@@ -547,8 +547,8 @@ public sealed class MainView : IDisposable
         _messageOptions.Visible = working && !isPicker;
         _stageAllButton.Visible = working && !isPicker;
         _unstageAllButton.Visible = working && !isPicker;
-        _unstagedPathStyleButton.Visible = working && !isPicker;
-        _stagedPathStyleButton.Visible = working && !isPicker;
+        _unstagedViewButton.Visible = working && !isPicker;
+        _stagedViewButton.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
@@ -573,21 +573,21 @@ public sealed class MainView : IDisposable
 
     // The title row of a file list is the top edge of its box, one row above the list; the button sits at its right end and is the
     // mouse path of stage all / unstage all. It has no width when the title leaves no room for it.
-    private LineView CreateListButton(WorkingTreeSection section, PaneListView list, bool isPathStyle)
+    private LineView CreateListButton(WorkingTreeSection section, PaneListView list, bool isView)
     {
-        var view = new LineView(_ => ListButton(section, isPathStyle) is { } button
-            ? PathStyleChip.Line(button, _glyphs)
+        var view = new LineView(_ => ListButton(section, isView) is { } button
+            ? ViewChip.Line(button, _glyphs)
             : new StyledLine([]))
         {
-            X = Pos.Func(_ => ListButtonRect(section, isPathStyle).X),
-            Y = Pos.Func(_ => ListButtonRect(section, isPathStyle).Y),
-            Width = Dim.Func(_ => ListButtonRect(section, isPathStyle).Width),
-            Height = Dim.Func(_ => ListButtonRect(section, isPathStyle).Height),
+            X = Pos.Func(_ => ListButtonRect(section, isView).X),
+            Y = Pos.Func(_ => ListButtonRect(section, isView).Y),
+            Width = Dim.Func(_ => ListButtonRect(section, isView).Width),
+            Height = Dim.Func(_ => ListButtonRect(section, isView).Height),
             Visible = false,
         };
         view.Clicked += _ =>
         {
-            if (_suppressed() || ListButton(section, isPathStyle) is not { } button)
+            if (_suppressed() || ListButton(section, isView) is not { } button)
             {
                 return;
             }
@@ -598,7 +598,7 @@ public sealed class MainView : IDisposable
         return view;
     }
 
-    private TitleButton? ListButton(WorkingTreeSection section, bool isPathStyle)
+    private TitleButton? ListButton(WorkingTreeSection section, bool isView)
     {
         var rect = ListRect(section);
         var tree = section == WorkingTreeSection.Staged ? StagedSource.Tree : UnstagedSource.Tree;
@@ -609,18 +609,18 @@ public sealed class MainView : IDisposable
 
         var title = WorkingTreePaneRenderer.ListTitle(tree, section);
 
-        return isPathStyle
-            ? WorkingListTitleButtons.PathStyleButton(section, title, rect.Width, _model().Keys)
+        return isView
+            ? WorkingListTitleButtons.ViewButton(section, title, rect.Width, _model().Keys)
             : WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys);
     }
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;
 
-    private PaneRect ListButtonRect(WorkingTreeSection section, bool isPathStyle)
+    private PaneRect ListButtonRect(WorkingTreeSection section, bool isView)
     {
         var rect = ListRect(section);
-        return ListButton(section, isPathStyle) is { } button
+        return ListButton(section, isView) is { } button
             ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1)
             : Empty;
     }
@@ -679,7 +679,7 @@ public sealed class MainView : IDisposable
             Gestured?.Invoke(tabView, MouseGesture.Click, null);
         }
         else if ((Detail.Source as DetailListSource)?.Content is { } content
-            && DetailPaneRenderer.PathStyleButton(
+            && DetailPaneRenderer.ViewButton(
                 content,
                 _detailTitle.Viewport.Width,
                 _glyphs,
@@ -707,6 +707,34 @@ public sealed class MainView : IDisposable
         var column = button is null ? rect.X + Math.Max(0, rect.Width - 1) : rect.X + button.Start;
 
         return new MenuAnchor(column - 2, row);
+    }
+
+    /// <summary>
+    /// Where the <c>view ▾</c> dropdown of a file list hangs: under its title chip, or under the right end of the
+    /// title row when the row is too narrow for the chip (the keys still open the menu).
+    /// </summary>
+    /// <param name="view">The keymap view of the list: the Changes or Files tab, or a working-tree list.</param>
+    public MenuAnchor ListViewMenuAnchor(string view)
+    {
+        if (view == DefaultKeymap.WorkingUnstagedView || view == DefaultKeymap.WorkingStagedView)
+        {
+            var section = view == DefaultKeymap.WorkingStagedView
+                ? WorkingTreeSection.Staged
+                : WorkingTreeSection.Unstaged;
+            var rect = ListRect(section);
+            var chip = ListButton(section, isView: true);
+
+            return new MenuAnchor(
+                rect.X + (chip?.Start ?? Math.Max(0, rect.Width - 1)) - 2,
+                rect.Y - 1);
+        }
+
+        var title = Rects().DetailTitle;
+        var button = (Detail.Source as DetailListSource)?.Content is { } content
+            ? DetailPaneRenderer.ViewButton(content, title.Width, _glyphs, _model().Keys)
+            : null;
+
+        return new MenuAnchor(title.X + (button?.Start ?? Math.Max(0, title.Width - 1)) - 2, title.Y);
     }
 
     private void OnDiffTitleClicked(int column)

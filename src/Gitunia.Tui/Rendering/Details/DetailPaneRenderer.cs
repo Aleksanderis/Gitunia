@@ -44,7 +44,7 @@ public static class DetailPaneRenderer
     /// <param name="isFocused">Whether the pane has focus.</param>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="glyphs">The glyph set.</param>
-    /// <param name="keys">Where the key text of the path-style chip comes from; null uses the default keymap.</param>
+    /// <param name="keys">Where the key text of the view chip comes from; null uses the default keymap.</param>
     public static StyledLine RenderTitle(
         DetailContent content,
         bool isFocused,
@@ -54,33 +54,33 @@ public static class DetailPaneRenderer
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         AppendTitleText(builder, content, isFocused, width, glyphs);
-        if (PathStyleButton(content, width, glyphs, keys) is not { } chip)
+        if (ViewButton(content, width, glyphs, keys) is not { } chip)
         {
             return builder.BuildRule(glyphs.Horizontal);
         }
 
         var used = width - builder.Remaining;
         builder.Append(new string(glyphs.Horizontal, chip.Start - used), SegmentRole.Rule);
-        builder.Append(PathStyleChip.Line(chip, glyphs));
+        builder.Append(ViewChip.Line(chip, glyphs));
 
         return builder.BuildRule(glyphs.Horizontal);
     }
 
     /// <summary>
-    /// The path-style chip at the right end of the title row, or null when the Changes tab is not selected or the row
+    /// The <c>view ▾</c> chip at the right end of the title row, or null when the Details tab is selected or the row
     /// has no room.
     /// </summary>
     /// <param name="content">The rows and the selected tab.</param>
     /// <param name="width">Columns of the title row.</param>
     /// <param name="glyphs">The glyph set.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
-    public static TitleButton? PathStyleButton(
+    public static TitleButton? ViewButton(
         DetailContent content,
         int width,
         GraphGlyphSet glyphs,
         ChipKeys? keys = null)
     {
-        if (content.Tab != BottomTab.Changes)
+        if (content.Tab == BottomTab.Details)
         {
             return null;
         }
@@ -89,9 +89,9 @@ public static class DetailPaneRenderer
         AppendTitleText(probe, content, false, width, glyphs);
 
         // One column of line follows the chip, then the corner of the box.
-        return PathStyleChip.Layout(
-            DefaultMouseMap.DetailPathStyleButton,
-            DefaultKeymap.DetailChangesView,
+        return ViewChip.Layout(
+            DefaultMouseMap.DetailViewButton,
+            content.Tab == BottomTab.Files ? DefaultKeymap.DetailFilesView : DefaultKeymap.DetailChangesView,
             width - probe.Remaining,
             width - 2,
             keys);

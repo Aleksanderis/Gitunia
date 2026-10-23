@@ -232,7 +232,9 @@ public sealed class OverlayController
             return true;
         }
 
-        if (action == ActionIds.MenuOpenForRow || action == ActionIds.DiffOpenViewOptions)
+        if (action == ActionIds.MenuOpenForRow
+            || action == ActionIds.DiffOpenViewOptions
+            || action == ActionIds.ListOpenViewOptions)
         {
             OpenContextMenu(action);
             return true;
@@ -258,6 +260,10 @@ public sealed class OverlayController
             if (action == ActionIds.DiffOpenViewOptions)
             {
                 _statuses.Post("No view options for a file's content");
+            }
+            else if (action == ActionIds.ListOpenViewOptions)
+            {
+                _statuses.Post("No view options for this tab");
             }
 
             return;

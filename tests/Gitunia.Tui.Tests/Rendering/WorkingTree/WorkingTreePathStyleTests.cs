@@ -121,20 +121,20 @@ public class WorkingTreePathStyleTests
     {
         var stage = WorkingListTitleButtons.Layout(WorkingTreeSection.Unstaged, "Unstaged 12", 60)!;
 
-        var chip = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Unstaged, "Unstaged 12", 60, null)!;
+        var chip = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 60, null)!;
 
-        Assert.Equal(DefaultMouseMap.ListPathStyleButton, chip.View);
-        Assert.Equal(" <space>vn path ", chip.Label);
+        Assert.Equal(DefaultMouseMap.ListViewButton, chip.View);
+        Assert.Equal(" <space>vv view ▾ ", chip.Label);
         Assert.Equal(stage.Start - 1, chip.Start + chip.Width);
     }
 
     [Fact]
     public void GivenAListWithRoomForOnlyOneChip_WhenLayingOut_ThenTheChipDropsItsKeyThenGoes()
     {
-        var plain = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 40, null);
+        var plain = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Staged, "Staged 3", 40, null);
 
-        Assert.Equal(" path ", plain!.Label);
-        Assert.Null(WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Staged, "Staged 3", 30, null));
+        Assert.Equal(" view ▾ ", plain!.Label);
+        Assert.Null(WorkingListTitleButtons.ViewButton(WorkingTreeSection.Staged, "Staged 3", 30, null));
     }
 
     [Theory]
@@ -145,14 +145,14 @@ public class WorkingTreePathStyleTests
     {
         var titleColumns = TextWidth.Of(title) + 4;
         var plainStageWidth = section == WorkingTreeSection.Staged ? " unstage all ".Length : " stage all ".Length;
-        var plainPathWidth = " path ".Length;
+        var plainPathWidth = " view ▾ ".Length;
         for (var width = 20; width <= 80; width++)
         {
             var stageStart = width - plainStageWidth - 1;
             var bothFitPlain = stageStart >= titleColumns + 1 && stageStart - 1 - plainPathWidth >= titleColumns + 1;
             if (bothFitPlain)
             {
-                Assert.NotNull(WorkingListTitleButtons.PathStyleButton(section, title, width, null));
+                Assert.NotNull(WorkingListTitleButtons.ViewButton(section, title, width, null));
             }
         }
     }
@@ -160,7 +160,7 @@ public class WorkingTreePathStyleTests
     [Fact]
     public void GivenAListTooNarrowForStageAll_WhenLayingOutTheChip_ThenItCanStillTakeTheRightEnd()
     {
-        var chip = WorkingListTitleButtons.PathStyleButton(WorkingTreeSection.Unstaged, "Unstaged 1", 24, null);
+        var chip = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 1", 24, null);
 
         Assert.Null(WorkingListTitleButtons.Layout(WorkingTreeSection.Unstaged, "Unstaged 1", 24));
         Assert.Equal(23, chip!.Start + chip.Width);
@@ -169,29 +169,29 @@ public class WorkingTreePathStyleTests
     [Theory]
     [InlineData(DefaultKeymap.WorkingUnstagedView)]
     [InlineData(DefaultKeymap.WorkingStagedView)]
-    public void GivenTheListChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle(string view)
+    public void GivenTheListChip_WhenLookingUpItsKey_ThenItIsTheKeyThatOpensTheViewDropdown(string view)
     {
-        Assert.Equal("<space>vn", ChipKeys.Default.For(DefaultMouseMap.ListPathStyleButton, view));
+        Assert.Equal("<space>vv", ChipKeys.Default.For(DefaultMouseMap.ListViewButton, view));
     }
 
     [Fact]
-    public void GivenTheDetailChip_WhenLookingUpItsKey_ThenItIsTheKeyThatTogglesThePathStyle()
+    public void GivenTheDetailChip_WhenLookingUpItsKey_ThenItIsTheKeyThatOpensTheViewDropdown()
     {
         Assert.Equal(
-            "<space>vn",
-            ChipKeys.Default.For(DefaultMouseMap.DetailPathStyleButton, DefaultKeymap.DetailChangesView));
+            "<space>vv",
+            ChipKeys.Default.For(DefaultMouseMap.DetailViewButton, DefaultKeymap.DetailChangesView));
     }
 
     [Fact]
-    public void GivenTheMouseMap_WhenLookingUpTheChips_ThenBothRunThePathStyleAction()
+    public void GivenTheMouseMap_WhenLookingUpTheChips_ThenBothOpenTheViewDropdown()
     {
         var chips = DefaultMouseMap.CreateBindings()
-            .Where(binding => binding.View is DefaultMouseMap.DetailPathStyleButton
-                or DefaultMouseMap.ListPathStyleButton)
+            .Where(binding => binding.View is DefaultMouseMap.DetailViewButton
+                or DefaultMouseMap.ListViewButton)
             .ToList();
 
         Assert.Equal(2, chips.Count);
-        Assert.All(chips, binding => Assert.Equal(ActionIds.FilesTogglePathStyle, binding.Action));
+        Assert.All(chips, binding => Assert.Equal(ActionIds.ListOpenViewOptions, binding.Action));
     }
 
     private static StyledLine Render(StatusEntry entry, int width) => WorkingTreeRowRenderer.Render(

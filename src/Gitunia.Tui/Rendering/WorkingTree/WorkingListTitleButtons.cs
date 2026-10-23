@@ -22,24 +22,24 @@ public static class WorkingListTitleButtons
     // One column of line stays between the button and the corner of the box.
     private const int EndGap = 1;
 
-    /// <summary>The path-style chip of a list, left of its stage all button, or null when the title row has no room
+    /// <summary>The <c>view ▾</c> chip of a list, left of its stage all button, or null when the title row has no room
     /// for it.</summary>
     /// <param name="section">The list.</param>
     /// <param name="title">The title text of the list.</param>
     /// <param name="paneWidth">Columns of the list's content.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
     /// <returns>The chip, with its start column counted from the first content column.</returns>
-    public static TitleButton? PathStyleButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
+    public static TitleButton? ViewButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
     {
-        // The stage all key goes before the path chip does: it is dropped when that is what keeps the chip.
+        // The stage all key goes before the view chip does: it is dropped when that is what keeps the chip.
         foreach (var showStageKey in (bool[])[true, false])
         {
             var stage = Layout(section, title, paneWidth, keys, showStageKey);
 
             // One column of line stays between the two chips, or between the chip and the corner of the box.
             var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
-            var chip = PathStyleChip.Layout(
-                DefaultMouseMap.ListPathStyleButton,
+            var chip = ViewChip.Layout(
+                DefaultMouseMap.ListViewButton,
                 section == WorkingTreeSection.Staged
                     ? DefaultKeymap.WorkingStagedView
                     : DefaultKeymap.WorkingUnstagedView,

@@ -25,18 +25,21 @@ public sealed class DetailTabController(WorkspaceHost host)
         Notice = string.Empty;
         if (host.Workspace.ActiveTab is not { } tab)
         {
-            return IsTabAction(action) || action == ActionIds.FilesTogglePathStyle;
+            return IsTabAction(action) || action == ActionIds.FilesTogglePathStyle || StyleOf(action) is not null;
+        }
+
+        if (StyleOf(action) is { } style)
+        {
+            host.Dispatch(new TabCommand(tab.Id, new SetPathStyleCommand(style)));
+            Notice = StyleNotice(style);
+
+            return true;
         }
 
         if (action == ActionIds.FilesTogglePathStyle)
         {
             host.Dispatch(new TabCommand(tab.Id, new TogglePathStyleCommand()));
-            Notice = host.Workspace.ActiveTab?.View.PathStyle switch
-            {
-                FilePathStyle.FullPath => "File paths: full path",
-                FilePathStyle.Tree => "File paths: tree",
-                _ => "File paths: name first",
-            };
+            Notice = StyleNotice(host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst);
 
             return true;
         }
@@ -71,6 +74,19 @@ public sealed class DetailTabController(WorkspaceHost host)
 
         return wanted is not null;
     }
+
+    private static string StyleNotice(FilePathStyle style) => style switch
+    {
+        FilePathStyle.FullPath => "File paths: full path",
+        FilePathStyle.Tree => "File paths: tree",
+        _ => "File paths: name first",
+    };
+
+    private static FilePathStyle? StyleOf(ActionId action) =>
+        action == ActionIds.FilesPathNameFirst ? FilePathStyle.NameFirst
+        : action == ActionIds.FilesPathFullPath ? FilePathStyle.FullPath
+        : action == ActionIds.FilesPathTree ? FilePathStyle.Tree
+        : null;
 
     private static bool IsTabAction(ActionId action) =>
         action == ActionIds.DetailNextTab

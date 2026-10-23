@@ -19,7 +19,15 @@ public static class RepositoryReducer
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
         SetCompareMarkCommand mark => state with { View = state.View with { CompareMark = mark.Commit } },
-        TogglePathStyleCommand => ToggleStyle(state),
+        TogglePathStyleCommand => WithStyle(
+            state,
+            state.View.PathStyle switch
+            {
+                FilePathStyle.NameFirst => FilePathStyle.FullPath,
+                FilePathStyle.FullPath => FilePathStyle.Tree,
+                _ => FilePathStyle.NameFirst,
+            }),
+        SetPathStyleCommand set => WithStyle(state, set.Style),
         ToggleWorkingFolderCommand folder => ToggleFolder(state, folder),
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
@@ -37,14 +45,8 @@ public static class RepositoryReducer
         _ => state,
     };
 
-    private static RepositoryState ToggleStyle(RepositoryState state)
+    private static RepositoryState WithStyle(RepositoryState state, FilePathStyle style)
     {
-        var style = state.View.PathStyle switch
-        {
-            FilePathStyle.NameFirst => FilePathStyle.FullPath,
-            FilePathStyle.FullPath => FilePathStyle.Tree,
-            _ => FilePathStyle.NameFirst,
-        };
         var toggled = state with { View = state.View with { PathStyle = style } };
 
         return state.WorkingTree is { } tree
