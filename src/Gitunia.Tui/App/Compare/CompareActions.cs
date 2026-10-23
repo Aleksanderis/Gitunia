@@ -24,8 +24,7 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
 {
     private const int HashLength = 7;
 
-    private ObjectId? _followed;
-    private bool _shownChanges;
+    private readonly Dictionary<TabId, TabFollow> _follows = [];
 
     /// <summary>A short notice for the status bar from the last handled action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -65,15 +64,17 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
         }
 
         var current = session.Details.Current;
-        if (current.Commit != _followed)
+        var follow = FollowOf(tab.Id);
+        if (current.Status != CommitDetailsStatus.Loaded || current.Commit != follow.Followed)
         {
-            _followed = null;
+            // A reload (after a failure, Retry) starts the comparison again.
+            follow.Followed = null;
         }
 
         if (tab.View.CompareMark is not { } mark
             || current is not { Status: CommitDetailsStatus.Loaded, Commit: { } selected, Details.IsComparison: false }
             || selected == mark
-            || _followed == selected)
+            || follow.Followed == selected)
         {
             return;
         }
@@ -93,10 +94,10 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
             return;
         }
 
-        _followed = selected;
-        if (!_shownChanges)
+        follow.Followed = selected;
+        if (!follow.ShownChanges)
         {
-            _shownChanges = true;
+            follow.ShownChanges = true;
             host.Dispatch(new TabCommand(tab.Id, new SetBottomTabCommand(BottomTab.Changes)));
         }
     }
@@ -116,7 +117,7 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
 
         if (tab.View.CompareMark is not { } mark)
         {
-            _shownChanges = false;
+            FollowOf(tab.Id).ShownChanges = false;
             host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(selected)));
             Notice = $"Marked {Short(selected)}: move to another commit to compare it (Esc ends)";
             return;
@@ -130,7 +131,7 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
         }
 
         // The mark moves here, so this commit's own changes show and the next move compares with it.
-        _followed = null;
+        FollowOf(tab.Id).Followed = null;
         host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(selected)));
         session.Details.ClearComparison();
         Notice = $"Mark moved to {Short(selected)}";
@@ -138,10 +139,29 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
 
     private void Clear(RepositoryState tab)
     {
-        _followed = null;
+        FollowOf(tab.Id).Followed = null;
         host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(null)));
         activeSession()?.Details.ClearComparison();
     }
 
+    private TabFollow FollowOf(TabId tab)
+    {
+        if (!_follows.TryGetValue(tab, out var follow))
+        {
+            follow = new TabFollow();
+            _follows[tab] = follow;
+        }
+
+        return follow;
+    }
+
     private static string Short(ObjectId id) => id.ToString()[..HashLength];
+
+    /// <summary>What <see cref="Follow"/> remembers per tab: the commit it asked for, and whether Changes was shown.</summary>
+    private sealed class TabFollow
+    {
+        public ObjectId? Followed { get; set; }
+
+        public bool ShownChanges { get; set; }
+    }
 }

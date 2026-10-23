@@ -110,6 +110,26 @@ public sealed class CompareActionsTests : IDisposable
     }
 
     [Fact]
+    public async Task GivenCachedCommits_WhenTheCursorMovesQuickly_ThenOnlyTheLastOneStartsAComparison()
+    {
+        var actions = await CreateAsync(Newest[0]);
+        _session.Details.Select(Newest[1], [Newest[2]]);
+        await _pump.RunUntilAsync(() => _session.Details.CachedCount >= 3);
+        _session.Details.Select(Newest[0]);
+        actions.TryExecute(ActionIds.GraphCompare);
+        var before = _reader.ReadFilesCount;
+
+        _selected = Newest[1];
+        _session.Details.Select(Newest[1]);
+        _selected = Newest[2];
+        _session.Details.Select(Newest[2]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details?.IsComparison == true);
+
+        Assert.Equal(Newest[2], _session.Details.Current.Details!.CompareOlder);
+        Assert.Equal(before + 1, _reader.ReadFilesCount);
+    }
+
+    [Fact]
     public async Task GivenAComparison_WhenMovingBackToTheMarkedCommit_ThenItsOwnChangesShow()
     {
         var actions = await CreateAsync(Newest[0]);
