@@ -2,9 +2,10 @@ using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Tui.Rendering.WorkingTree;
 
-/// <summary>The status bar's position of the working-tree view: the one-based row of the cursor and the number of rows (files and, in the tree style, folders) in its list.</summary>
+/// <summary>The status bar's position of the working-tree view: the one-based row of the cursor and the
+/// number of rows (files and, in the tree style, folders) in its list.</summary>
 /// <param name="Selected">One-based row of the cursor, 0 when nothing is selected.</param>
-/// <param name="Count">Files in the cursor's list.</param>
+/// <param name="Count">Rows in the cursor's list.</param>
 public readonly record struct WorkingTreePosition(int Selected, int Count)
 {
     /// <summary>The position of the selection in <paramref name="tree"/>; 0 of 0 while the status is not loaded or no file is selected.</summary>

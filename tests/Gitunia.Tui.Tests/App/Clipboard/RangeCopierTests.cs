@@ -45,10 +45,14 @@ public class RangeCopierTests : IDisposable
     [Fact]
     public void GivenATreeRangeOverAFolderRowAndItsFile_WhenCopying_ThenTheFolderAndTheFilePathsAreCopied()
     {
-        var tree = WorkingTreeEntries.Tree(WorkingTreeEntries.Modified("src/a.cs"), WorkingTreeEntries.Modified("top.txt"));
+        var tree = WorkingTreeEntries.Tree(
+            WorkingTreeEntries.Modified("src/a.cs"),
+            WorkingTreeEntries.Modified("top.txt"));
         tree = tree.WithLayout(FilePathStyle.Tree, tree.CollapsedUnstaged, tree.CollapsedStaged);
         var copier = new RangeCopier(
-            new ClipboardCopier(new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)), new StatusChannel()),
+            new ClipboardCopier(
+                new ClipboardWriter(_terminal, new Osc52Options(Osc52Mode.Direct, 100_000)),
+                new StatusChannel()),
             () => null,
             () => tree);
 
@@ -56,7 +60,8 @@ public class RangeCopierTests : IDisposable
 
         Assert.True(result.Copied);
         const string text = "src\nsrc/a.cs\ntop.txt";
-        Assert.Equal($"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes(text))}\u001b\\", _terminal.ToString());
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+        Assert.Equal($"\u001b]52;c;{encoded}\u001b\\", _terminal.ToString());
     }
 
     [Fact]
