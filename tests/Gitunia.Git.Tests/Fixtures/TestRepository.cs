@@ -214,16 +214,18 @@ public sealed class TestRepository : IDisposable
     private GitRunner CreateRunner(DateTimeOffset moment, IReadOnlyDictionary<string, string?>? extraEnvironment = null)
     {
         var stamp = moment.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+        var settings = new List<KeyValuePair<string, string>>
+        {
+            new("commit.gpgsign", "false"),
+            new("core.autocrlf", "false"),
+        };
+        settings.AddRange(TestGitSpeed.Settings);
         var environment = new Dictionary<string, string?>
         {
             ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
             ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
             ["GIT_CONFIG_NOSYSTEM"] = "1",
-            ["GIT_CONFIG_COUNT"] = "2",
-            ["GIT_CONFIG_KEY_0"] = "commit.gpgsign",
-            ["GIT_CONFIG_VALUE_0"] = "false",
-            ["GIT_CONFIG_KEY_1"] = "core.autocrlf",
-            ["GIT_CONFIG_VALUE_1"] = "false",
+            ["GIT_CONFIG_COUNT"] = settings.Count.ToString(CultureInfo.InvariantCulture),
             ["GIT_AUTHOR_NAME"] = "Test",
             ["GIT_AUTHOR_EMAIL"] = "test@example.com",
             ["GIT_COMMITTER_NAME"] = "Test",
@@ -236,12 +238,18 @@ public sealed class TestRepository : IDisposable
             ["GIT_AUTHOR_DATE"] = stamp,
             ["GIT_COMMITTER_DATE"] = stamp,
         };
+        for (var index = 0; index < settings.Count; index++)
+        {
+            environment[$"GIT_CONFIG_KEY_{index}"] = settings[index].Key;
+            environment[$"GIT_CONFIG_VALUE_{index}"] = settings[index].Value;
+        }
+
         foreach (var (name, value) in extraEnvironment ?? new Dictionary<string, string?>())
         {
             environment[name] = value;
         }
 
-        return new GitRunner(new GitRunnerOptions(EnvironmentOverrides: environment));
+        return new GitRunner(new GitRunnerOptions(TestGitSpeed.Executable, EnvironmentOverrides: environment));
     }
 
     public void Dispose() => DeleteDirectory(_rootDirectory);

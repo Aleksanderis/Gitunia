@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Tests.Fixtures;
 
 namespace Gitunia.Core.Tests.Graph;
 
@@ -62,19 +63,26 @@ public sealed class GraphGitRepository : IDisposable
     public GitRunner CreateRunner()
     {
         var stamp = Epoch.AddMinutes(_clock++).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
-        return new GitRunner(new GitRunnerOptions(
-            EnvironmentOverrides: new Dictionary<string, string?>
-            {
-                ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
-                ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
-                ["GIT_CONFIG_NOSYSTEM"] = "1",
-                ["GIT_AUTHOR_NAME"] = "Test",
-                ["GIT_AUTHOR_EMAIL"] = "test@example.com",
-                ["GIT_COMMITTER_NAME"] = "Test",
-                ["GIT_COMMITTER_EMAIL"] = "test@example.com",
-                ["GIT_AUTHOR_DATE"] = stamp,
-                ["GIT_COMMITTER_DATE"] = stamp,
-            }));
+        var environment = new Dictionary<string, string?>
+        {
+            ["GIT_CONFIG_GLOBAL"] = _emptyConfigPath,
+            ["GIT_CONFIG_SYSTEM"] = _emptyConfigPath,
+            ["GIT_CONFIG_NOSYSTEM"] = "1",
+            ["GIT_CONFIG_COUNT"] = TestGitSpeed.Settings.Count.ToString(CultureInfo.InvariantCulture),
+            ["GIT_AUTHOR_NAME"] = "Test",
+            ["GIT_AUTHOR_EMAIL"] = "test@example.com",
+            ["GIT_COMMITTER_NAME"] = "Test",
+            ["GIT_COMMITTER_EMAIL"] = "test@example.com",
+            ["GIT_AUTHOR_DATE"] = stamp,
+            ["GIT_COMMITTER_DATE"] = stamp,
+        };
+        for (var index = 0; index < TestGitSpeed.Settings.Count; index++)
+        {
+            environment[$"GIT_CONFIG_KEY_{index}"] = TestGitSpeed.Settings[index].Key;
+            environment[$"GIT_CONFIG_VALUE_{index}"] = TestGitSpeed.Settings[index].Value;
+        }
+
+        return new GitRunner(new GitRunnerOptions(TestGitSpeed.Executable, EnvironmentOverrides: environment));
     }
 
     public void Dispose()
