@@ -31,6 +31,9 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
     /// <summary>Thrown by every refresh.</summary>
     public Exception? Failure { get; set; }
 
+    /// <summary>How long every refresh takes, to play a slow repository.</summary>
+    public TimeSpan Delay { get; set; }
+
     /// <summary>The number of refreshes so far.</summary>
     public int RefreshCount { get; private set; }
 
@@ -49,6 +52,17 @@ public sealed class FakeRepositoryRefresher : IRepositoryRefresher
 
         var changed = previous is null ? RepositorySections.All : _changed;
         _changed = RepositorySections.None;
-        return Task.FromResult(new RepositoryRefreshResult(_snapshot, changed));
+        var result = new RepositoryRefreshResult(_snapshot, changed);
+
+        return Delay == TimeSpan.Zero ? Task.FromResult(result) : DelayedAsync(result, cancellationToken);
+    }
+
+    private async Task<RepositoryRefreshResult> DelayedAsync(
+        RepositoryRefreshResult result,
+        CancellationToken cancellationToken)
+    {
+        await Task.Delay(Delay, cancellationToken);
+
+        return result;
     }
 }

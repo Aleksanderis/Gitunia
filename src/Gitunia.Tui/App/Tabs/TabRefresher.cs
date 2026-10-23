@@ -19,8 +19,8 @@ namespace Gitunia.Tui.App.Tabs;
 /// <summary>
 /// Keeps one tab current after its initial load: notices changes by polling (<see cref="TabPoller"/>, the default) or,
 /// when enabled, with the tab's <see cref="RepositoryWatcher"/>, re-reads only what a change can affect, and applies
-/// the
-/// sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual refresh); an
+/// the sections that differ as commands. The graph is replaced only when HEAD or refs changed (or on a manual
+/// refresh); an
 /// automatic reload reads the log only down to the first row it shares with the old graph
 /// (<see cref="IncrementalGraphLoader"/>), and the view puts selection and scroll back. Runs one refresh at a time;
 /// changes arriving meanwhile are merged into the next.
@@ -107,6 +107,9 @@ public sealed class TabRefresher : IDisposable
                 kinds => Request(kinds, false));
         }
     }
+
+    /// <summary>The wait between automatic status refreshes (longer after a slow one); null when watching.</summary>
+    public TimeSpan? StatusPollInterval => _poller?.StatusInterval;
 
     /// <summary>A refresh is being read or applied right now.</summary>
     public bool IsRefreshing => _isRunning;

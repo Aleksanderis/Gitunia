@@ -37,7 +37,6 @@ public class TabRefresherTests
         TimeSpan.FromSeconds(1),
         5);
 
-
     [Fact]
     public async Task GivenLoadedTab_WhenTheFirstRefreshRuns_ThenItIsABaselineThatAppliesSectionsWithoutReloadingTheGraph()
     {
@@ -182,6 +181,34 @@ public class TabRefresherTests
 
         Assert.Equal(0, replaced);
         Assert.Equal(1, applied);
+    }
+
+    [Fact]
+    public async Task GivenSlowAutomaticRefresh_WhenItIsApplied_ThenTheStatusPollIntervalBacksOff()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        Assert.Equal(FastPoll.StatusInterval, harness.Refresher.StatusPollInterval);
+        harness.RepositoryRefresher.Delay = TimeSpan.FromMilliseconds(300);
+        var applied = 0;
+
+        harness.Refresher.RefreshStatus(() => applied++);
+        await harness.Pump.RunUntilAsync(() => applied == 1);
+
+        Assert.True(harness.Refresher.StatusPollInterval > FastPoll.StatusInterval);
+    }
+
+    [Fact]
+    public async Task GivenSlowManualRefresh_WhenItIsApplied_ThenTheStatusPollIntervalStays()
+    {
+        using var harness = await FakeHarness.LoadAsync();
+        harness.RepositoryRefresher.Delay = TimeSpan.FromMilliseconds(300);
+        var replaced = 0;
+        harness.Session.GraphReplaced += () => replaced++;
+
+        harness.Refresher.RefreshNow();
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+
+        Assert.Equal(FastPoll.StatusInterval, harness.Refresher.StatusPollInterval);
     }
 
     [Fact]
@@ -457,7 +484,18 @@ public class TabRefresherTests
                 .RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
             var pump = new UiPump(TestContext.Current.CancellationToken);
             var repositoryRefresher = new FakeRepositoryRefresher();
-            var refresher = new TabRefresher(repositoryRefresher, stashes, new IncrementalGraphLoader(commitLog, graphLoader), host, session, location, statuses, pump.Post, new WatchBudget(), TestGit.QuietWatcherOptions);
+            var refresher = new TabRefresher(
+                repositoryRefresher,
+                stashes,
+                new IncrementalGraphLoader(commitLog, graphLoader),
+                host,
+                session,
+                location,
+                statuses,
+                pump.Post,
+                new WatchBudget(),
+                TestGit.QuietWatcherOptions,
+                poll: FastPoll);
             refresher.Start();
             await pump.RunUntilAsync(() => repositoryRefresher.RefreshCount > 0 && !refresher.IsRefreshing);
             return new FakeHarness(host, tabId, session, refresher, repositoryRefresher, statuses, pump);
