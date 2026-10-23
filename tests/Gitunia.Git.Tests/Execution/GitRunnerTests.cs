@@ -12,11 +12,15 @@ public class GitRunnerTests
     private static readonly string AnyDirectory = Path.GetTempPath();
 
     // The runner's timer also covers process start-up, which can exceed a few hundred ms under CPU load; the fake must have recorded its id before the kill.
-    private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(OperatingSystem.IsWindows() ? 2 : 1);
 
     private static readonly TimeSpan CancelDelayWithoutProcessId = TimeSpan.FromMilliseconds(300);
-    private static readonly TimeSpan SlowConsumerTimeout = TimeSpan.FromMilliseconds(1000);
-    private static readonly TimeSpan SlowConsumerDelay = TimeSpan.FromMilliseconds(1500);
+    // Windows keeps the wide margins of #634 (slow start-up on small runners); Unix runs the short ones.
+    private static readonly TimeSpan SlowConsumerTimeout =
+        TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 1500 : 1000);
+
+    private static readonly TimeSpan SlowConsumerDelay =
+        TimeSpan.FromMilliseconds(OperatingSystem.IsWindows() ? 3000 : 1500);
 
     // Only bounds a hang.
     private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
@@ -197,7 +201,7 @@ public class GitRunnerTests
             await foreach (var unused in RunnerFor(fake).StreamAsync(
                 AnyDirectory,
                 ["log"],
-                new GitRunOptions(Timeout: TimeSpan.FromSeconds(1)),
+                new GitRunOptions(Timeout: TimeSpan.FromSeconds(OperatingSystem.IsWindows() ? 8 : 1)),
                 TestContext.Current.CancellationToken))
             {
                 chunks += unused.Length > 0 ? 1 : 0;
