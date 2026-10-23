@@ -1778,7 +1778,8 @@ public sealed class TuiApplication(
             session.Details.Current,
             tab,
             FileTreeViewOf(session, entry, tab),
-            _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst);
+            _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
+            session.CollapsedFolders);
         var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);
 

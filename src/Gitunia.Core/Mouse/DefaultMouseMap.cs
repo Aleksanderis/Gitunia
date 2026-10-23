@@ -218,6 +218,7 @@ public static class DefaultMouseMap
         new(DefaultKeymap.ListsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(DefaultKeymap.GraphView, MouseGesture.DoubleClick, ActionIds.MenuOpenForRow),
         new(DefaultKeymap.DetailView, MouseGesture.DoubleClick, ActionIds.DetailOpenDiff),
+        new(DefaultKeymap.DetailChangesView, MouseGesture.Click, ActionIds.DetailToggleFolder),
         new(DefaultKeymap.SidebarView, MouseGesture.Click, ActionIds.SidebarActivate),
         new(TabsView, MouseGesture.Click, ActionIds.TabNext, UsesTarget: true),
         new(TabDirtyMarker, MouseGesture.Click, ActionIds.WorkingTreeOpen),

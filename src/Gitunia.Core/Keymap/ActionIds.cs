@@ -27,6 +27,8 @@ public static class ActionIds
 
     public static ActionId DetailRetry { get; } = new("detail.retry");
 
+    public static ActionId DetailToggleFolder { get; } = new("detail.toggle-folder");
+
     public static ActionId DetailTabChanges { get; } = new("detail.tab-changes");
 
     public static ActionId DetailTabDetails { get; } = new("detail.tab-details");

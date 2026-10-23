@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Input;
+using Gitunia.Tui.Rendering.Details;
 
 namespace Gitunia.Tui.App.Details;
 
@@ -14,7 +15,9 @@ namespace Gitunia.Tui.App.Details;
 /// content in the diff pane's place), <c>h</c> closes it
 /// or goes to the parent row (and leaves the pane at the top), <c>/</c> filters the tree by path while typing,
 /// <c>Esc</c> clears the filter. It is also a prompt (the filter box), so it owns Insert mode while the filter is
-/// edited. Runs without a terminal.
+/// edited. It also folds the folders of the Changes tab's tree style: <c>o</c> or a click opens or closes the folder
+/// under the cursor, <c>h</c> closes an open one or climbs to the parent folder (and leaves the pane at the top).
+/// Runs without a terminal.
 /// </summary>
 /// <param name="host">The workspace: which pane is focused and which bottom tab is selected.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
@@ -64,12 +67,22 @@ public sealed class FileTreeController(
             return action;
         }
 
+        if (IsChangesTreeFocused())
+        {
+            return ChangesCollapseStep() != CollapseKind.Leave ? action : ActionIds.NavigateBack;
+        }
+
         return IsFilesFocused() && CollapseStep() != CollapseKind.Leave ? action : ActionIds.NavigateBack;
     }
 
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
+        if (TryExecuteInChanges(action))
+        {
+            return true;
+        }
+
         if (activeSession()?.Tree is not { } tree)
         {
             return false;
@@ -131,6 +144,95 @@ public sealed class FileTreeController(
     public void OnGraphChanged()
     {
     }
+
+    private bool TryExecuteInChanges(ActionId action)
+    {
+        if (activeSession() is not { } session || !IsChangesTree())
+        {
+            return false;
+        }
+
+        var content = session.DetailSource.Content;
+        var row = selectedRow() ?? -1;
+        if (action == ActionIds.DetailToggleFolder)
+        {
+            if (content.FolderAt(row) is { } folder)
+            {
+                if (!session.CollapsedFolders.Remove(folder))
+                {
+                    session.CollapsedFolders.Add(folder);
+                }
+
+                refresh();
+            }
+
+            return true;
+        }
+
+        if (action != ActionIds.DetailCollapse || !IsChangesTreeFocused())
+        {
+            return false;
+        }
+
+        var step = ChangesCollapseStep();
+        if (step == CollapseKind.Close)
+        {
+            session.CollapsedFolders.Add(content.FolderAt(row)!);
+            refresh();
+        }
+        else if (step == CollapseKind.Parent)
+        {
+            moveCursor(ParentFolderRow(content, row));
+        }
+
+        return step != CollapseKind.Leave;
+    }
+
+    // Close an open folder, otherwise climb to the parent folder, and at the top level leave the pane.
+    private CollapseKind ChangesCollapseStep()
+    {
+        if (activeSession() is not { } session || selectedRow() is not { } row)
+        {
+            return CollapseKind.Leave;
+        }
+
+        var content = session.DetailSource.Content;
+        if (content.FolderAt(row) is { } folder && !session.CollapsedFolders.Contains(folder))
+        {
+            return CollapseKind.Close;
+        }
+
+        return ParentFolderRow(content, row) >= 0 ? CollapseKind.Parent : CollapseKind.Leave;
+    }
+
+    // The row of the folder that holds the file or folder at row, -1 at the top level.
+    private static int ParentFolderRow(DetailContent content, int row)
+    {
+        var fileIndex = content.FileIndexAt(row);
+        var path = content.FolderAt(row) ?? (fileIndex >= 0 ? content.Files[fileIndex].Path : null);
+        var slash = path?.LastIndexOf('/') ?? -1;
+        if (slash < 0)
+        {
+            return -1;
+        }
+
+        var parent = path![..slash];
+        for (var index = row - 1; index >= 0; index--)
+        {
+            if (content.FolderAt(index) == parent)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private bool IsChangesTree() =>
+        host.Workspace.ActiveTab?.View is { BottomTab: BottomTab.Changes, PathStyle: FilePathStyle.Tree };
+
+    private bool IsChangesTreeFocused() =>
+        IsChangesTree() && host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Detail;
 
     private bool ExecuteWhileEditing(FileTreeSession tree, ActionId action)
     {
