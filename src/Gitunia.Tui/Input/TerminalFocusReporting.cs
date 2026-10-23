@@ -1,0 +1,49 @@
+using Terminal.Gui.Drivers;
+
+namespace Gitunia.Tui.Input;
+
+/// <summary>
+/// Asks the terminal to report when it gains or loses focus (DECSET 1004: <c>ESC [ I</c> in, <c>ESC [ O</c> out).
+/// Terminal.Gui v2 neither enables the mode nor reports the sequences, so this registers them as persistent
+/// expected responses on the driver's ANSI parser, which keeps them away from the key handling.
+/// </summary>
+public static class TerminalFocusReporting
+{
+    private const string Enable = "\x1b[?1004h";
+    private const string Disable = "\x1b[?1004l";
+
+    /// <summary>
+    /// True where the VT input stream of the Unix driver carries the sequences (Linux, macOS). Windows is unsupported
+    /// on purpose: its console driver reads native input records (with their own focus record) and the sequences are
+    /// not verified there; every other OS is unsupported too. Unsupported means focus never triggers a refresh.
+    /// </summary>
+    public static bool IsSupported => OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
+
+    /// <summary>
+    /// Starts reporting on <paramref name="driver"/>; <paramref name="gained"/> runs on the input thread when the
+    /// terminal gains focus. Returns false when unsupported or the driver has no ANSI parser. Call <see cref="Stop"/>
+    /// before the driver is disposed.
+    /// </summary>
+    public static bool Start(IDriver driver, Action gained)
+    {
+        if (!IsSupported || driver.GetInputProcessor().GetParser() is not { } parser)
+        {
+            return false;
+        }
+
+        parser.ExpectResponse("I", string.Empty, _ => gained(), static () => { }, true);
+        parser.ExpectResponse("O", string.Empty, static _ => { }, static () => { }, true);
+        driver.WriteRaw(Enable);
+
+        return true;
+    }
+
+    /// <summary>Puts the terminal back to not reporting focus.</summary>
+    public static void Stop(IDriver driver)
+    {
+        if (IsSupported)
+        {
+            driver.WriteRaw(Disable);
+        }
+    }
+}

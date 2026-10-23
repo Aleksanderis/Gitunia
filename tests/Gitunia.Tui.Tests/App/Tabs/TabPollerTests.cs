@@ -18,6 +18,13 @@ public class TabPollerTests
         TimeSpan.FromSeconds(1),
         5);
 
+    // Only the check made when a tab is shown (and CheckNow) happens within a test; the next tick is an hour away.
+    private static readonly PollOptions Slow = new(
+        TimeSpan.FromHours(1),
+        TimeSpan.FromHours(1),
+        TimeSpan.FromHours(1),
+        5);
+
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(400);
 
     [Fact]
@@ -33,6 +40,54 @@ public class TabPollerTests
         repository.Commit("second", new TestFile("b.txt", "2"));
 
         await harness.WaitForAsync(kinds => kinds == RepositoryChangeKinds.All);
+    }
+
+    [Fact]
+    public async Task GivenActiveTab_WhenCheckedNowAfterACommitElsewhere_ThenAFullRefreshIsRequestedBeforeTheNextTick()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        await harness.DrainForAsync(Settle);
+        Assert.Empty(harness.Requests);
+
+        harness.Poller.CheckNow();
+
+        await harness.WaitForAsync(kinds => kinds == RepositoryChangeKinds.All);
+    }
+
+    [Fact]
+    public async Task GivenActiveTab_WhenCheckedNowWithNothingChanged_ThenAStatusRefreshIsRequestedAtOnce()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+        harness.Poller.SetActive(true);
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        harness.Requests.Clear();
+
+        harness.Poller.CheckNow();
+
+        await harness.WaitForAsync(kinds => kinds == StatusOnly);
+        Assert.DoesNotContain(RepositoryChangeKinds.All, harness.Requests);
+    }
+
+    [Fact]
+    public async Task GivenHiddenTab_WhenCheckedNow_ThenNothingIsRead()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.StartAsync(repository, Slow);
+
+        harness.Poller.CheckNow();
+        await harness.DrainForAsync(Settle);
+
+        Assert.True(harness.Posted.IsEmpty);
+        Assert.Empty(harness.Requests);
     }
 
     [Fact]
@@ -121,9 +176,9 @@ public class TabPollerTests
 
     private sealed class Harness : IDisposable
     {
-        private Harness(RepositoryLocation location)
+        private Harness(RepositoryLocation location, PollOptions options)
         {
-            Poller = new TabPoller(location, Fast, Posted.Enqueue, () => CanPoll, Requests.Add);
+            Poller = new TabPoller(location, options, Posted.Enqueue, () => CanPoll, Requests.Add);
             Poller.Start();
         }
 
@@ -135,13 +190,13 @@ public class TabPollerTests
 
         public bool CanPoll { get; set; } = true;
 
-        public static async Task<Harness> StartAsync(TestRepository repository)
+        public static async Task<Harness> StartAsync(TestRepository repository, PollOptions? options = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(
                 repository.WorkingTreePath,
                 TestContext.Current.CancellationToken);
 
-            return new Harness(location);
+            return new Harness(location, options ?? Fast);
         }
 
         /// <summary>Runs posted callbacks on this thread until a request satisfies the predicate.</summary>

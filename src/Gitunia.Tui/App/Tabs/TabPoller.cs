@@ -78,6 +78,21 @@ public sealed class TabPoller : IDisposable
     }
 
     /// <summary>
+    /// Checks at once instead of at the next tick (the terminal gained focus): reads the fingerprint now and makes the
+    /// status refresh due. Does nothing for a hidden tab, while a read runs or while the tab is busy.
+    /// </summary>
+    public void CheckNow()
+    {
+        if (_isDisposed || !_isActive)
+        {
+            return;
+        }
+
+        _statusDueAt = _time.GetTimestamp();
+        Tick();
+    }
+
+    /// <summary>
     /// A refresh without a graph reload took <paramref name="took"/>: the next status refresh waits accordingly.
     /// </summary>
     public void RecordRefresh(TimeSpan took)

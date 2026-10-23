@@ -496,6 +496,7 @@ public sealed class TuiApplication(
             _statusPoller.Dispose();
             _worktreePoller.Dispose();
             persistence.Flush();
+            StopFocusReporting();
             _application.Dispose();
         }
 
@@ -1211,6 +1212,7 @@ public sealed class TuiApplication(
         var resumed = _resumed;
         _suspendedWork = null;
         _resumed = null;
+        StopFocusReporting();
         _application.Dispose();
         try
         {
@@ -1681,10 +1683,22 @@ public sealed class TuiApplication(
         return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }
 
+    private void StopFocusReporting()
+    {
+        if (_application.Driver is { } driver)
+        {
+            TerminalFocusReporting.Stop(driver);
+        }
+    }
+
     private void SubscribeInput()
     {
         _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
         _application.Paste += (_, paste) => OnPaste(paste);
+        if (_application.Driver is { } driver)
+        {
+            TerminalFocusReporting.Start(driver, () => InvokeOnUi(_effects.CheckActiveTabNow));
+        }
     }
 
     /// <summary>
