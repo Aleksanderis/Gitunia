@@ -568,7 +568,7 @@ public sealed class RebaseEditorController(
     }
 
     private static RebaseBase BaseOf(string? targetHash) =>
-        targetHash is null ? RebaseBase.Root : RebaseBase.OntoCommit(targetHash);
+        (targetHash is null ? RebaseBase.Root : RebaseBase.OntoCommit(targetHash)).WithMerges();
 
     private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
 }

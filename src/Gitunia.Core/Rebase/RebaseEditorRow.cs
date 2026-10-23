@@ -10,8 +10,20 @@ namespace Gitunia.Core.Rebase;
 /// The edited message. Kept when the action changes away from reword, so choosing reword again brings it back; only a
 /// reword sends it to git. Null while the message was never edited.
 /// </param>
-public sealed record RebaseEditorRow(string Hash, string Subject, RebaseTodoAction Action, string? Message = null)
+/// <param name="Argument">For a merge row the rest of its todo line (labels and oneline); null otherwise.</param>
+public sealed record RebaseEditorRow(
+    string Hash,
+    string Subject,
+    RebaseTodoAction Action,
+    string? Message = null,
+    string? Argument = null)
 {
+    /// <summary>True for a label or reset line, which names no commit (its <see cref="Hash"/> is the name).</summary>
+    public bool IsStructure => Action.IsStructure();
+
+    /// <summary>True when the user may change the action: a plain commit, not a merge, label or reset.</summary>
+    public bool IsEditable => Action.IsEditable();
+
     /// <summary>The subject the rebase will give the commit: the edited message's first line for a reword.</summary>
     public string ShownSubject =>
         Action == RebaseTodoAction.Reword && Message is { } message ? FirstLine(message) : Subject;
