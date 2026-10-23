@@ -112,6 +112,7 @@ public static class Palette
             SegmentRole.SectionTitle => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
             SegmentRole.Border => new RoleAppearance(colors.Border, Color.None, TextStyle.None, false),
             SegmentRole.FocusedBorder => new RoleAppearance(colors.Accent, Color.None, TextStyle.Bold, false),
+            SegmentRole.Link => new RoleAppearance(colors.Accent, Color.None, TextStyle.Underline, false),
             SegmentRole.FileAdded => new RoleAppearance(colors.Good, Color.None, TextStyle.Bold, false),
             SegmentRole.FileDeleted => new RoleAppearance(colors.Bad, Color.None, TextStyle.Bold, false),
             SegmentRole.FileChanged => new RoleAppearance(colors.Warn, Color.None, TextStyle.Bold, false),

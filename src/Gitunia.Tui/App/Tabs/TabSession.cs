@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Search.Models;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
@@ -56,7 +57,20 @@ public sealed class TabSession : IDisposable
     /// <summary>Raised when a refresh read the status again and found it unchanged, so a file the status lists may still have changed.</summary>
     public event Action? StatusRead;
 
+    /// <summary>Raised after <see cref="SetIssueLinks"/> changed the links, so the detail pane can show them.</summary>
+    public event Action? IssueLinksChanged;
+
     public TabId TabId { get; }
+
+    /// <summary>The rules of the repository's tracker file; none until read, and when the file is missing.</summary>
+    public IssueTrackerLinks IssueLinks { get; private set; } = IssueTrackerLinks.None;
+
+    /// <summary>Replaces the tracker rules (read when the tab loads).</summary>
+    public void SetIssueLinks(IssueTrackerLinks links)
+    {
+        IssueLinks = links;
+        IssueLinksChanged?.Invoke();
+    }
 
     /// <summary>Counts graph replacements; lets the search notice that its matches are stale.</summary>
     public int GraphVersion { get; private set; }

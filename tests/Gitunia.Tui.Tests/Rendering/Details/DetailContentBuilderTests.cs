@@ -1,5 +1,7 @@
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
+using Gitunia.Core.IssueTracker;
+using Gitunia.Git.IssueTracker.Models;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
@@ -429,5 +431,38 @@ public class DetailContentBuilderTests
         Assert.Equal(
             [SegmentRole.FileAdded, SegmentRole.FileDeleted, SegmentRole.FileChanged],
             content.Rows.Skip(content.FirstFileRow).Select(row => row.Segments[0].Role));
+    }
+
+    [Fact]
+    public void GivenTrackerRules_WhenBuildingDetails_ThenReferencesInTheMessageAreLinkSegments()
+    {
+        var entry = Entry();
+        var state = new CommitDetailsState(
+            entry.Id,
+            CommitDetailsStatus.Loaded,
+            Details("Subject\n\nFixes #12 and #7."),
+            string.Empty);
+        var links = new IssueTrackerLinks([new IssueTrackerRule("gh", "#(\\d+)", "https://example.org/issues/$1")]);
+
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Details, null, FilePathStyle.FullPath, links);
+
+        var row = content.Rows.Single(candidate => candidate.References is { Count: 2 });
+        Assert.Equal(["#12", "#7"], row.Segments.Where(segment => segment.Role == SegmentRole.Link).Select(s => s.Text));
+        Assert.Equal(
+            ["https://example.org/issues/12", "https://example.org/issues/7"],
+            row.References!.Select(reference => reference.Url));
+        Assert.Equal("  Fixes #12 and #7.", string.Concat(row.Segments.Select(segment => segment.Text)));
+    }
+
+    [Fact]
+    public void GivenNoRules_WhenBuildingDetails_ThenTheMessageHasNoLinks()
+    {
+        var entry = Entry();
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, Details("Fixes #12"), string.Empty);
+
+        var content = DetailContentBuilder.Build(entry, state, BottomTab.Details);
+
+        Assert.All(content.Rows, row => Assert.Null(row.References));
+        Assert.DoesNotContain(content.Rows.SelectMany(row => row.Segments), segment => segment.Role == SegmentRole.Link);
     }
 }

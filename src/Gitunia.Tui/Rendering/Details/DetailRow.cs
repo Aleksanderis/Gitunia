@@ -1,3 +1,4 @@
+using Gitunia.Core.IssueTracker.Models;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;
@@ -7,4 +8,9 @@ namespace Gitunia.Tui.Rendering.Details;
 /// style shows it.</param>
 /// <param name="File">The path of a file row on the Changes tab, so the row can be drawn in either path style at the
 /// width it gets; null on any other row.</param>
-public sealed record DetailRow(IReadOnlyList<StyledSegment> Segments, FileRowPath? File = null);
+/// <param name="References">The tracker links of a line of the commit message, left to right (positions are in the
+/// message text, without the indent); null on any other row.</param>
+public sealed record DetailRow(
+    IReadOnlyList<StyledSegment> Segments,
+    FileRowPath? File = null,
+    IReadOnlyList<IssueReference>? References = null);

@@ -28,6 +28,7 @@ In:
 - Fetch (with prune), pull, push with progress and cancellation; force push with lease, set upstream on first push, delete a remote branch; dedicated keys and buttons for fetch and pull on top of automatic refresh.
 - Remotes: add, remove, rename, change URL. Clone and init, from the repository picker.
 - Built-in Insert-mode commit message editor, plus hand-off to the user's tools: `$EDITOR`, `git difftool`/`mergetool` (TUI suspends and resumes); clipboard through OSC 52.
+- Issue links in commit messages from a `.issuetracker` file (VS Code style regex and URL sections), opened in the browser. A link from the message only: no hosting-provider integration, no network access, no API.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
 Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), themes beyond light/dark, plugins.
