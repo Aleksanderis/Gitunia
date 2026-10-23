@@ -8,6 +8,7 @@ using Gitunia.Git.Reset;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Discard;
+using Gitunia.Git.IssueTracker;
 using Gitunia.Platform.FileSystem;
 using Gitunia.Git.Execution;
 using Gitunia.Git.Config;
@@ -98,6 +99,7 @@ public sealed record GitServices(
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
     IGitConfigReader Config,
+    IIssueTrackerReader IssueTracker,
     IRepositoryRefresher Refresher,
     IWorkingTreeDirectoryLister WatchedDirectories,
     GraphLoader GraphLoader,
@@ -154,6 +156,7 @@ public sealed record GitServices(
             new OperationWriter(operationRunner),
             new OperationInfoReader(),
             new GitConfigReader(runner),
+            new IssueTrackerReader(runner),
             new RepositoryRefresher(refs, status, operationDetector),
             new WorkingTreeDirectoryLister(runner),
             graphLoader,
