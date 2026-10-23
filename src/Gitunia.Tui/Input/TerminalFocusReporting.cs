@@ -14,7 +14,7 @@ public static class TerminalFocusReporting
 
     /// <summary>
     /// True where the driver's VT input stream carries the sequences (Linux, macOS, and Windows, where the driver turns
-    /// on Virtual Terminal Input mode and parses ANSI like the Unix one; checked on Windows 11). Every other OS is
+    /// on Virtual Terminal Input mode and parses ANSI like the Unix one; an injected focus-in was seen on Windows 11). Every other OS is
     /// unsupported: focus never triggers a refresh there.
     /// </summary>
     public static bool IsSupported =>
