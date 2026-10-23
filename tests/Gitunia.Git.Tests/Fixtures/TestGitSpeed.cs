@@ -14,7 +14,7 @@ public static class TestGitSpeed
 
     private static readonly Lazy<string> ExecutablePath = new(ResolveExecutable);
 
-    /// <summary>Config entries (key, value) added to every test git process, as <c>GIT_CONFIG_KEY_n</c> pairs.</summary>
+    /// <summary>Config entries added to every test git process, as <c>GIT_CONFIG_KEY_n</c> pairs.</summary>
     public static IReadOnlyList<KeyValuePair<string, string>> Settings { get; } =
     [
         new("gc.auto", "0"),

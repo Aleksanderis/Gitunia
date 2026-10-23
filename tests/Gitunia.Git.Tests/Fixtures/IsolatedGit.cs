@@ -10,8 +10,10 @@ namespace Gitunia.Git.Tests.Fixtures;
 /// </summary>
 public static class IsolatedGit
 {
+    // The speed entries repeat TestGitSpeed.Settings in config file form (a repository config may still override them).
     private const string NeutralConfig =
-        "[core]\n\tautocrlf = false\n\tfsync = none\n[commit]\n\tgpgsign = false\n[gc]\n\tauto = 0\n[maintenance]\n\tauto = false\n";
+        "[core]\n\tautocrlf = false\n\tfsync = none\n[commit]\n\tgpgsign = false\n"
+        + "[gc]\n\tauto = 0\n[maintenance]\n\tauto = false\n";
 
     // One file per test process, written once.
     private static readonly Lazy<string> ConfigPath = new(WriteConfig);
