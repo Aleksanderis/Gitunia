@@ -181,6 +181,7 @@ public static class ActionCatalog
         ["diff.toggle-side-by-side"] = "Toggle the side-by-side diff",
         ["diff.toggle-whole-file"] = "Toggle showing whole files in the diff",
         ["diff.toggle-wrap"] = "Toggle word wrap in the diff",
+        ["graph.compare"] = "Mark or compare a commit",
         ["graph.copy-hash"] = "Copy the commit hash",
         ["graph.jump-to-head"] = "Jump to HEAD",
         ["graph.jump-to-ref"] = "Jump to a ref or hash",

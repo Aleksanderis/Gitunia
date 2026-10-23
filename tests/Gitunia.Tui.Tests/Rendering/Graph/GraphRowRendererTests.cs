@@ -222,6 +222,32 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenAMarkedCommit_WhenRendering_ThenOnlyItsRowStartsItsMessageWithTheMark()
+    {
+        var graph = CommitFactory.Graph(
+            CommitFactory.Commit(2, "second", [1]),
+            CommitFactory.Commit(1, "first", []));
+        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Ascii, MarkedCommit: CommitFactory.Id(1));
+
+        var rows = Enumerable.Range(0, graph.Count)
+            .Select(index => GraphRowRenderer.Render(graph[index], options, false).Text)
+            .ToArray();
+
+        Assert.DoesNotContain("[mark]", rows[0], StringComparison.Ordinal);
+        Assert.Contains("[mark] first", rows[1], StringComparison.Ordinal);
+        Assert.Equal(60, TextWidth.Of(rows[1]));
+    }
+
+    [Fact]
+    public void GivenAMarkedCommit_WhenReadingTheJumpText_ThenTheMarkIsPartOfIt()
+    {
+        var graph = CommitFactory.Graph(CommitFactory.Commit(1, "first", []));
+        var options = new GraphRowOptions(60, 1, GraphGlyphSet.Ascii, MarkedCommit: CommitFactory.Id(1));
+
+        Assert.Equal("[mark] first", GraphRowRenderer.MessageText(graph[0], options));
+    }
+
+    [Fact]
     public void GivenSelectedRow_WhenRendering_ThenLineIsMarkedSelected()
     {
         var graph = CommitFactory.Graph(CommitFactory.Commit(1, "x", []));

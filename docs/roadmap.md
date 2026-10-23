@@ -32,14 +32,14 @@ Done when: a full commit cycle works without leaving the app, including partial 
 
 ## M3 - Branches and worktrees (the reason this project exists)
 
-Status: in progress (key flows in `docs/ux.md`, workflows 3-7).
+Status: done (key flows in `docs/ux.md`, workflows 3-7).
 
 Branch create/rename/delete/checkout/upstream/reset, merge, rebase, cherry-pick, revert; worktree add/switch/remove/lock/prune with dirty state across worktrees; stash; tags (create/delete/push); reflog view.
 Done when: the owner can use Gitunia for all daily branch and worktree work.
 
 ## M4 - Remotes and polish
 
-Status: not started (a few early items done).
+Status: in progress. Remotes, credentials, interactive rebase, config, settings screen, packaging and Windows CI are merged; the open issues are the source of truth.
 
 Fetch/pull/push with progress and cancel (keys and buttons, prune, force-with-lease, delete remote branch), interactive rebase editor (reorder/reword/squash/fixup/drop), remote management, clone/init, credential prompt handling, config file for keys/theme, packaging (AOT binaries per OS), docs for users.
 Done when: usable as a daily driver on Linux; Windows binaries build in CI (macOS CI and binary are M5).

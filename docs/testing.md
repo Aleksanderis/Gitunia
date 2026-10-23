@@ -7,6 +7,7 @@
 - State and keymap logic is pure and tested without a terminal.
 - No test touches the user's repos, global git config or network. Isolation recipe, naming, waiting rules and fixture shapes are in the `testing` skill. A runner for production code under test comes from `IsolatedGit.CreateRunner()` (or `TestRepository.CreateIsolatedRunner()`), never `new GitRunner()`: the machine's global git config (e.g. `core.autocrlf=true` on Windows CI) must not leak in (#608).
 - Tests run in parallel and git children inherit the process environment: never change process-wide environment variables in a test, except in the `AmbientEnvironmentGroup` collection (runs alone), or concurrent git runs flake (#299).
+- Parallelism: `tests/xunit.runner.json` (copied into every test project by `tests/Directory.Build.props`) caps xUnit at 8 threads per assembly, parallel across test classes (collections). xUnit has no method-level parallelism: split a slow class instead. `dotnet test` on the root solution also runs the test assemblies concurrently; on a single csproj or dll it cannot.
 - No unbounded waits: a blocking wait or gate in a test or fake carries a timeout (30 s), because `TestContext.Current.CancellationToken` only fires when the run ends. `Gitunia.Tui.Tests` also has a 10-minute run watchdog (`RunWatchdog`) that aborts a hung testhost (it cannot help if the stuck process is the `dotnet test` driver; #384).
 - A failing test blocks merge. No coverage percentage gate.
 

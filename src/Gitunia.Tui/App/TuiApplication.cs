@@ -28,6 +28,7 @@ using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Remote;
 using Gitunia.Tui.App.Merge;
+using Gitunia.Tui.App.Compare;
 using Gitunia.Tui.App.Pick;
 using Gitunia.Tui.App.Reflog;
 using Gitunia.Tui.App.Rebase;
@@ -278,6 +279,10 @@ public sealed class TuiApplication(
             IsMainlineCovered,
             RefreshOverlay);
         _router.Pick = _pick;
+        _router.Compare = new CompareActions(
+            _host,
+            ActiveSession,
+            () => SelectedCommitHash() is { } hash && ObjectId.TryParse(hash, out var id) ? id : null);
         _reflog = CreateReflog(glyphs);
         _rebaseEditor = CreateRebaseEditor(glyphs, operationGate);
         _settings = CreateSettings(glyphs);

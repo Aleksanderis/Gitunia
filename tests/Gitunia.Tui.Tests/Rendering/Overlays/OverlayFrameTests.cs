@@ -220,7 +220,7 @@ public class OverlayFrameTests
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
                 "│ Reset the current branch to the selection                        <space>gx │",
-                "│ 1/162 Ctrl-j/k move  Enter run  Esc close                                  │",
+                "│ 1/163 Ctrl-j/k move  Enter run  Esc close                                  │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(1, frame!.Column);
@@ -238,7 +238,7 @@ public class OverlayFrameTests
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
-                "| 1/162 Ctrl-j/k move  Enter run  Esc|",
+                "| 1/163 Ctrl-j/k move  Enter run  Esc|",
                 "+------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
@@ -444,6 +444,7 @@ public class OverlayFrameTests
                 "│  <space>j             │ Quick jump to a visible row          │",
                 "│  Enter                │ Focus the commit details             │",
                 "│  y                    │ Copy the commit hash                 │",
+                "│  <space>=             │ Mark or compare a commit             │",
                 "│  <space>r             │ Refresh the repository               │",
                 "│  <space>td            │ Open the commit in the difftool      │",
                 "│  <space>tm            │ Resolve conflicts in the mergetool   │",
@@ -456,8 +457,7 @@ public class OverlayFrameTests
                 "│  <space>bc            │ Create a branch and check it out     │",
                 "│  <space>bC            │ Create a branch without checking out │",
                 "│  <space>bs            │ Switch to a branch (check out)       │",
-                "│  <space>br            │ Rename the branch                    │",
-                "│ 1-19/135  list keys scroll  Esc close                        │",
+                "│ 1-19/136  list keys scroll  Esc close                        │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
