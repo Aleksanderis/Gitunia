@@ -93,11 +93,15 @@ public static class PaneLayout
     public static bool CanOpenDiff(int screenHeight) => DetailLayout.PaneHeight(screenHeight) > 0;
 
     /// <summary>
-    /// The Changes tab always shows the diff of the selected file beside its file list, as long as the screen has room for both
-    /// (see <see cref="MinimumWidthForSideBySide"/>) and for the bottom strip. Narrower or shorter screens open the diff on demand instead.
+    /// The Changes tab always shows the diff of the selected file beside its file list, and the Files tab the content
+    /// of the file under its cursor, as long as the screen has room for both (see
+    /// <see cref="MinimumWidthForSideBySide"/>) and for the bottom strip. Narrower or shorter screens open the pane
+    /// on demand instead.
     /// </summary>
     public static bool ShowsDiffWithChanges(int screenWidth, int screenHeight, BottomTab tab) =>
-        tab == BottomTab.Changes && screenWidth >= MinimumWidthForSideBySide && CanOpenDiff(screenHeight);
+        tab is BottomTab.Changes or BottomTab.Files
+        && screenWidth >= MinimumWidthForSideBySide
+        && CanOpenDiff(screenHeight);
 
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>

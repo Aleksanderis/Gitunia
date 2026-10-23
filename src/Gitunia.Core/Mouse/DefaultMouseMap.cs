@@ -169,6 +169,7 @@ public static class DefaultMouseMap
         [DefaultKeymap.GraphView] = DefaultKeymap.ListsView,
         [DefaultKeymap.DetailView] = DefaultKeymap.ListsView,
         [DefaultKeymap.DetailChangesView] = DefaultKeymap.DetailView,
+        [DefaultKeymap.DetailFilesView] = DefaultKeymap.DetailView,
         [DefaultKeymap.SidebarView] = DefaultKeymap.ListsView,
         [DefaultKeymap.DiffView] = DefaultKeymap.ListsView,
         [DefaultKeymap.WorkingUnstagedView] = DefaultKeymap.ListsView,
