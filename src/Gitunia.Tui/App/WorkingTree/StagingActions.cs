@@ -198,6 +198,11 @@ public sealed class StagingActions(
             return StagingPlan.Refused("Select a file first");
         }
 
+        if (selection.IsFolder)
+        {
+            return PlanFolder(tree, section, selection.Path);
+        }
+
         var entry = entries.FirstOrDefault(candidate => candidate.Path == selection.Path);
         if (entry is null)
         {
@@ -213,18 +218,39 @@ public sealed class StagingActions(
         return StagingPlan.For(PathsOf(entry, section), name, 1, 0);
     }
 
-    // The files of the Visual range, in list order; conflicted ones are skipped like in stage all.
+    // Every file under the folder, wherever it sits in the list; conflicted ones are skipped like in stage all.
+    private static StagingPlan PlanFolder(WorkingTreeState tree, WorkingTreeSection section, string folder)
+    {
+        var entries = tree.EntriesOf(section);
+        var picked = tree.RowsOf(section).EntriesUnder(folder).Select(index => entries[index]).ToList();
+        var name = $"{WorkingTreeRowRenderer.Printable(folder)}/";
+        if (picked.Count == 0)
+        {
+            return StagingPlan.Refused($"{name} holds no files");
+        }
+
+        return PlanOf(picked, section, name);
+    }
+
+    // The files of the Visual range (a folder row stands for all the files under it), once each; conflicted ones are skipped like in stage all.
     private static StagingPlan PlanRange(WorkingTreeState tree, WorkingTreeSection section, RowRange range)
     {
-        var entries = section == WorkingTreeSection.Staged ? tree.Staged : tree.Unstaged;
-        if (entries.Count == 0)
+        var entries = tree.EntriesOf(section);
+        var rows = tree.RowsOf(section);
+        if (rows.Count == 0)
         {
             return StagingPlan.Refused("Select a file first");
         }
 
-        var first = Math.Clamp(range.First, 0, entries.Count - 1);
-        var last = Math.Clamp(range.Last, first, entries.Count - 1);
-        var picked = entries.Skip(first).Take(last - first + 1).ToList();
+        var first = Math.Clamp(range.First, 0, rows.Count - 1);
+        var last = Math.Clamp(range.Last, first, rows.Count - 1);
+        var picked = rows.EntriesOfRows(first, last).Select(index => entries[index]).ToList();
+
+        return PlanOf(picked, section, null);
+    }
+
+    private static StagingPlan PlanOf(List<StatusEntry> picked, WorkingTreeSection section, string? folderName)
+    {
         var usable = picked.Where(entry => entry.Kind != StatusEntryKind.Unmerged).ToList();
         var skipped = picked.Count - usable.Count;
         if (usable.Count == 0)
@@ -232,7 +258,9 @@ public sealed class StagingActions(
             return StagingPlan.Refused($"Only conflicted files are selected ({skipped} skipped; mark one resolved on its own)");
         }
 
-        var name = usable.Count == 1 ? WorkingTreeRowRenderer.Printable(usable[0].Path) : string.Empty;
+        var name = folderName is not null
+            ? $"{folderName} ({OperationText.Plural(usable.Count, "file")})"
+            : usable.Count == 1 ? WorkingTreeRowRenderer.Printable(usable[0].Path) : string.Empty;
         return StagingPlan.For([.. usable.SelectMany(entry => PathsOf(entry, section))], name, usable.Count, skipped);
     }
 

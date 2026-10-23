@@ -170,6 +170,77 @@ public class WorkingTreeReducerTests
         Assert.Single(state.WorkingTree.Staged);
     }
 
+    [Fact]
+    public void GivenTheTreeStyle_WhenRowsAreRead_ThenFoldersComeBeforeFilesAndRowsMapToFiles()
+    {
+        var state = Toggled(Load(Snapshot(Unstaged("b.txt"), Unstaged("src/a.cs"), Unstaged("src/deep/c.cs"))), 2);
+
+        var rows = state.WorkingTree!.RowsOf(WorkingTreeSection.Unstaged);
+
+        Assert.Equal(["src", "deep", "c.cs", "a.cs", "b.txt"], Enumerable.Range(0, rows.Count).Select(row => rows[row].Name));
+        Assert.Equal([2, 1], rows.EntriesOfRows(2, 3));
+        Assert.Equal(1, rows[3].EntryIndex);
+    }
+
+    [Fact]
+    public void GivenAFileSelectedInTheTree_WhenItsFolderCloses_ThenTheFolderRowIsSelectedAndOpeningKeepsIt()
+    {
+        var state = Toggled(Load(Snapshot(Unstaged("src/a.cs"), Unstaged("src/b.cs"))), 2);
+        state = RepositoryReducer.Reduce(state, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 2));
+
+        state = RepositoryReducer.Reduce(state, new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
+
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src", 0, true), state.WorkingTree!.Selection);
+        Assert.Equal(1, state.WorkingTree.RowsOf(WorkingTreeSection.Unstaged).Count);
+    }
+
+    [Fact]
+    public void GivenAClosedFolder_WhenTheStatusReloads_ThenItStaysClosedAndSelected()
+    {
+        var state = Toggled(Load(Snapshot(Unstaged("src/a.cs"), Unstaged("src/b.cs"))), 2);
+        state = RepositoryReducer.Reduce(state, new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
+
+        state = RepositoryReducer.Reduce(
+            state,
+            new WorkingTreeLoadedCommand(Snapshot(Unstaged("src/a.cs"), Unstaged("src/b.cs"), Unstaged("src/c.cs"))));
+
+        Assert.True(state.WorkingTree!.Selection!.IsFolder);
+        Assert.Equal(1, state.WorkingTree.RowsOf(WorkingTreeSection.Unstaged).Count);
+    }
+
+    [Fact]
+    public void GivenAFolderSelectedInTheTree_WhenTheStyleCyclesToNameFirst_ThenTheFirstFileUnderItIsSelected()
+    {
+        var state = Toggled(Load(Snapshot(Unstaged("a.txt"), Unstaged("src/b.cs"))), 2);
+        state = RepositoryReducer.Reduce(state, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
+        Assert.True(state.WorkingTree!.Selection!.IsFolder);
+
+        state = RepositoryReducer.Reduce(state, new TogglePathStyleCommand());
+
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src/b.cs", 1), state.WorkingTree!.Selection);
+    }
+
+    [Fact]
+    public void GivenAFolderRow_WhenFilesUnderItAreAllGone_ThenTheCursorLandsOnTheRowAtTheOldIndex()
+    {
+        var state = Toggled(Load(Snapshot(Unstaged("src/a.cs"), Unstaged("z.txt"))), 2);
+        state = RepositoryReducer.Reduce(state, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
+
+        state = RepositoryReducer.Reduce(state, new WorkingTreeLoadedCommand(Snapshot(Unstaged("z.txt"))));
+
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "z.txt", 0), state.WorkingTree!.Selection);
+    }
+
+    private static RepositoryState Toggled(RepositoryState state, int times)
+    {
+        for (var count = 0; count < times; count++)
+        {
+            state = RepositoryReducer.Reduce(state, new TogglePathStyleCommand());
+        }
+
+        return state;
+    }
+
     private static RepositoryState NewTab()
     {
         var root = Path.Combine(Path.GetTempPath(), "gitunia-working-tree-tests");

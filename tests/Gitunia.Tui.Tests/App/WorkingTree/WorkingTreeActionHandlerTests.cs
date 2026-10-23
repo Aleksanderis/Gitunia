@@ -4,6 +4,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Git.Status.Models;
@@ -326,8 +327,49 @@ public class WorkingTreeActionHandlerTests
 
         harness.Handler.TryExecute(ActionIds.WorkingTreeCopyPath, null);
 
-        Assert.Equal("Select a file to copy its path", harness.Handler.Message);
+        Assert.Equal("Select a file or folder to copy its path", harness.Handler.Message);
         Assert.Null(harness.Statuses.Log.Latest);
+    }
+
+    [Fact]
+    public void GivenTheTreeStyle_WhenPressingHRepeatedly_ThenItClosesTheFolderThenClimbsThenLeaves()
+    {
+        var harness = Harness.Open(Modified("src/deep/a.cs"));
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 2));
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src/deep", 1, true), harness.Selection);
+        Assert.Equal(TabViewMode.WorkingTree, harness.Tab.View.Mode);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        Assert.Contains("src/deep", harness.Tab.WorkingTree!.CollapsedUnstaged);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        Assert.Equal("src", harness.Selection.Path);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        Assert.Equal(TabViewMode.History, harness.Tab.View.Mode);
+    }
+
+    [Fact]
+    public void GivenAFolderRow_WhenTogglingAndCopying_ThenTheFolderOpensAndItsPathIsCopied()
+    {
+        var harness = Harness.Open(Modified("src/a.cs"), Modified("src/b.cs"));
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggleFolder, null);
+        Assert.Equal(1, harness.Tab.WorkingTree!.RowsOf(WorkingTreeSection.Unstaged).Count);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeToggleFolder, null);
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCopyPath, null);
+
+        Assert.Equal(3, harness.Tab.WorkingTree.RowsOf(WorkingTreeSection.Unstaged).Count);
+        Assert.Contains("folder path", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     public static TheoryData<string> LeftToOthers() =>

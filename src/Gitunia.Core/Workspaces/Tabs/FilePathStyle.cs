@@ -11,7 +11,7 @@ public enum FilePathStyle
     /// <summary>The full path from the repository root, the name last.</summary>
     FullPath,
 
-    /// <summary>The Changes tab lists the files as a tree of folders, each file under its folder with its name only.
-    /// The working-tree lists have no tree and show their rows name first.</summary>
+    /// <summary>The Changes tab and the working-tree lists show the files as a tree of folders, each file under its
+    /// folder with its name only.</summary>
     Tree,
 }

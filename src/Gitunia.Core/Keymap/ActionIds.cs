@@ -360,6 +360,10 @@ public static class ActionIds
 
     public static ActionId WorkingTreeOpenDiff { get; } = new("working-tree.open-diff");
 
+    public static ActionId WorkingTreeToggleFolder { get; } = new("working-tree.toggle-folder");
+
+    public static ActionId WorkingTreeCollapse { get; } = new("working-tree.collapse");
+
     public static ActionId WorkingTreeToggle { get; } = new("working-tree.toggle");
 
     public static ActionId WorkingTreeStage { get; } = new("working-tree.stage");

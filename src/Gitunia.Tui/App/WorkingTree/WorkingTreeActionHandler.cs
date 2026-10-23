@@ -4,6 +4,7 @@ using Gitunia.Core.Lists;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Clipboard;
 using Gitunia.Tui.App.Panes;
 using Gitunia.Tui.Rendering.WorkingTree;
@@ -98,6 +99,10 @@ public sealed class WorkingTreeActionHandler(
         else if (Diff?.TryExecute(action, count) == true)
         {
             Message = Diff.Notice;
+        }
+        else if (TryFolder(tab, action))
+        {
+            // za or h acted on the folder under the cursor (or left the view).
         }
         else if (action == ActionIds.NavigateBack)
         {
@@ -247,7 +252,7 @@ public sealed class WorkingTreeActionHandler(
         }
 
         var section = tab.View.FocusedPane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
-        var itemCount = section == WorkingTreeSection.Staged ? tree.Staged.Count : tree.Unstaged.Count;
+        var itemCount = tree.RowsOf(section).Count;
         var current = tree.Selection is { } selection && selection.Section == section ? selection.Index : 0;
         if (!ListMotion.TryMove(action, count, current, itemCount, pageHeight(), out var target))
         {
@@ -257,6 +262,46 @@ public sealed class WorkingTreeActionHandler(
         if (itemCount > 0)
         {
             Send(tab, new SelectWorkingTreeFileCommand(section, target));
+        }
+
+        return true;
+    }
+
+    // za opens or closes the folder under the cursor. h closes an open folder, else moves to the parent folder, else leaves.
+    private bool TryFolder(RepositoryState tab, ActionId action)
+    {
+        var isToggle = action == ActionIds.WorkingTreeToggleFolder;
+        if (!isToggle && action != ActionIds.WorkingTreeCollapse)
+        {
+            return false;
+        }
+
+        var section = tab.View.FocusedPane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
+        if (tab.WorkingTree is { Selection: { } selection } tree && selection.Section == section && tree.PathStyle == FilePathStyle.Tree)
+        {
+            if (isToggle && selection.IsFolder)
+            {
+                Send(tab, new ToggleWorkingFolderCommand(section, selection.Path));
+                return true;
+            }
+
+            if (!isToggle && selection.IsFolder && !tree.CollapsedOf(section).Contains(selection.Path))
+            {
+                Send(tab, new ToggleWorkingFolderCommand(section, selection.Path, true));
+                return true;
+            }
+
+            var parent = tree.RowsOf(section).ParentFolderRow(selection.Index);
+            if (!isToggle && parent >= 0)
+            {
+                Send(tab, new SelectWorkingTreeFileCommand(section, parent));
+                return true;
+            }
+        }
+
+        if (!isToggle)
+        {
+            Send(tab, new LeaveWorkingTreeCommand());
         }
 
         return true;
@@ -273,9 +318,9 @@ public sealed class WorkingTreeActionHandler(
         }
 
         var forward = action == ActionIds.DiffNextFile;
-        var itemCount = selection.Section == WorkingTreeSection.Staged ? tree.Staged.Count : tree.Unstaged.Count;
-        var target = Math.Clamp(selection.Index + (forward ? count ?? 1 : -(count ?? 1)), 0, itemCount - 1);
-        if (itemCount == 0 || target == selection.Index)
+        var rows = tree.RowsOf(selection.Section);
+        var target = rows.StepFile(Math.Min(selection.Index, rows.Count - 1), forward, count ?? 1);
+        if (rows.Count == 0 || target == selection.Index)
         {
             Message = forward ? "No next file" : "No previous file";
         }
@@ -296,11 +341,13 @@ public sealed class WorkingTreeActionHandler(
 
         if (tab.WorkingTree?.Selection is not { } selection || !IsInFocusedList(tab, selection))
         {
-            Message = "Select a file to copy its path";
+            Message = "Select a file or folder to copy its path";
             return true;
         }
 
-        clipboard.Copy(WorkingTreeRowRenderer.Printable(selection.Path), "file path");
+        clipboard.Copy(
+            WorkingTreeRowRenderer.Printable(selection.Path),
+            selection.IsFolder ? "folder path" : "file path");
         return true;
     }
 

@@ -369,7 +369,7 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
-    public void GivenATab_WhenTogglingThePathStyle_ThenOnlyThatTabSwitchesBetweenNameFirstAndFullPath()
+    public void GivenATab_WhenTogglingThePathStyle_ThenOnlyThatTabCyclesNameFirstFullPathAndTree()
     {
         var workspace = Open(Workspace.Empty, "alpha", "beta");
         var alpha = IdOf(workspace, "alpha");
@@ -378,17 +378,9 @@ public class WorkspaceReducerTests
         var toggled = WorkspaceReducer.Reduce(workspace, new TabCommand(alpha, new TogglePathStyleCommand())).Workspace;
         var tree = WorkspaceReducer.Reduce(toggled, new TabCommand(alpha, new TogglePathStyleCommand())).Workspace;
         var back = WorkspaceReducer.Reduce(tree, new TabCommand(alpha, new TogglePathStyleCommand())).Workspace;
-        var withoutTree = WorkspaceReducer.Reduce(
-            toggled,
-            new TabCommand(alpha, new TogglePathStyleCommand(IncludesTree: false))).Workspace;
 
         Assert.Equal(FilePathStyle.FullPath, toggled.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.Tree, tree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
-        Assert.Equal(FilePathStyle.NameFirst, withoutTree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
-        var treeWithoutTree = WorkspaceReducer.Reduce(
-            tree,
-            new TabCommand(alpha, new TogglePathStyleCommand(IncludesTree: false))).Workspace;
-        Assert.Equal(FilePathStyle.FullPath, treeWithoutTree.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.NameFirst, toggled.Tabs.Single(tab => tab.Id != alpha).View.PathStyle);
         Assert.Equal(FilePathStyle.NameFirst, back.Tabs.Single(tab => tab.Id == alpha).View.PathStyle);
     }

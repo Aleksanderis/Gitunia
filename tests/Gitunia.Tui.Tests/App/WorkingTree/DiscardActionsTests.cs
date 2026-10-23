@@ -37,6 +37,38 @@ public class DiscardActionsTests
     }
 
     [Fact]
+    public async Task GivenAFolderRow_WhenDiscarding_ThenTheDialogNamesTheFolderAndCountsEveryFileUnderIt()
+    {
+        using var harness = new Harness(Modified("src/a.cs"), Modified("src/b.cs"), Modified("top.txt"), Untracked("src/n.cs"));
+        harness.SelectTreeRow(0);
+
+        var notice = harness.Execute();
+
+        Assert.Equal(string.Empty, notice);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Discard changes to 3 files in src/?", prompt.Lines[0]);
+        Assert.Contains("src/n.cs", prompt.Lines[1], StringComparison.Ordinal);
+        Assert.Equal(0, harness.Discarder.CallCount);
+
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.Equal(["src/a.cs", "src/b.cs"], Assert.Single(harness.Discarder.Restored));
+        Assert.Equal(["src/n.cs"], Assert.Single(harness.Discarder.Deleted));
+    }
+
+    [Fact]
+    public void GivenARangeFromAFolderRowThroughItsFile_WhenDiscarding_ThenTheFilesAreCountedOnce()
+    {
+        using var harness = new Harness(Modified("src/a.cs"), Modified("src/b.cs"), Modified("top.txt"));
+        harness.SelectTreeRow(0);
+
+        harness.ExecuteRange(0, 1);
+
+        Assert.Equal("Discard changes to 2 files?", Assert.Single(harness.Prompts).Lines[0]);
+    }
+
+    [Fact]
     public async Task GivenTheDialogIsAnswered_WhenYes_ThenTheFileIsRestoredAndTheStatusIsReRead()
     {
         using var harness = new Harness(Modified("a.txt"));
@@ -456,6 +488,13 @@ public class DiscardActionsTests
         public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
 
         public void Focus(PaneKind pane) => Send(new FocusPaneCommand(pane));
+
+        public void SelectTreeRow(int row)
+        {
+            Send(new TogglePathStyleCommand());
+            Send(new TogglePathStyleCommand());
+            Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, row));
+        }
 
         public void Dispose() => _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new LeaveWorkingTreeCommand()));
 

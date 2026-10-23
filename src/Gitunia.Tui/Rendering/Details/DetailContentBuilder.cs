@@ -8,6 +8,7 @@ using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Loading.Commits;
+using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;
@@ -192,20 +193,8 @@ public static class DetailContentBuilder
     }
 
     // A rename shows its old name when that sits in the same folder, else the whole old path.
-    private static string TreeName(CommitFileChange file, string name)
-    {
-        if (file.OldPath is not { } oldPath)
-        {
-            return name;
-        }
-
-        var directory = file.Path[..(file.Path.Length - name.Length)];
-        var old = oldPath.StartsWith(directory, StringComparison.Ordinal) && oldPath.IndexOf('/', directory.Length) < 0
-            ? oldPath[directory.Length..]
-            : oldPath;
-
-        return $"{old} -> {name}";
-    }
+    private static string TreeName(CommitFileChange file, string name) =>
+        TreeRowText.FileName(file.Path, name, file.OldPath);
 
     private static SegmentRole FileRole(CommitFileChange file) => file.Kind switch
     {

@@ -19,10 +19,8 @@ public static class RepositoryReducer
         SetPaneSizesCommand sizes => state with { View = state.View with { SidebarWidth = sizes.SidebarWidth, BottomHeight = sizes.BottomHeight, DetailWidth = sizes.DetailWidth } },
         SetBottomTabCommand bottomTab => state with { View = state.View with { BottomTab = bottomTab.Tab } },
         SetCompareMarkCommand mark => state with { View = state.View with { CompareMark = mark.Commit } },
-        TogglePathStyleCommand toggle => state with
-        {
-            View = state.View with { PathStyle = Toggled(state.View.PathStyle, toggle.IncludesTree) },
-        },
+        TogglePathStyleCommand => ToggleStyle(state),
+        ToggleWorkingFolderCommand folder => ToggleFolder(state, folder),
         HeadLoadedCommand head => state with { Head = head.Head },
         RefsLoadedCommand refs => state with { Refs = refs.Refs },
         StatusLoadedCommand status => state with { Status = status.Summary },
@@ -39,13 +37,41 @@ public static class RepositoryReducer
         _ => state,
     };
 
-    private static FilePathStyle Toggled(FilePathStyle style, bool includesTree) => style switch
+    private static RepositoryState ToggleStyle(RepositoryState state)
     {
-        FilePathStyle.NameFirst => FilePathStyle.FullPath,
-        FilePathStyle.FullPath when includesTree => FilePathStyle.Tree,
-        FilePathStyle.Tree when !includesTree => FilePathStyle.FullPath,
-        _ => FilePathStyle.NameFirst,
-    };
+        var style = state.View.PathStyle switch
+        {
+            FilePathStyle.NameFirst => FilePathStyle.FullPath,
+            FilePathStyle.FullPath => FilePathStyle.Tree,
+            _ => FilePathStyle.NameFirst,
+        };
+        var toggled = state with { View = state.View with { PathStyle = style } };
+
+        return state.WorkingTree is { } tree
+            ? toggled with { WorkingTree = tree.WithLayout(style, tree.CollapsedUnstaged, tree.CollapsedStaged) }
+            : toggled;
+    }
+
+    private static RepositoryState ToggleFolder(RepositoryState state, ToggleWorkingFolderCommand command)
+    {
+        if (state.WorkingTree is not { } tree)
+        {
+            return state;
+        }
+
+        var isUnstaged = command.Section == WorkingTreeSection.Unstaged;
+        var current = tree.CollapsedOf(command.Section);
+        var collapse = command.Collapse ?? !current.Contains(command.Folder);
+        var changed = collapse ? current.Add(command.Folder) : current.Remove(command.Folder);
+
+        return state with
+        {
+            WorkingTree = tree.WithLayout(
+                tree.PathStyle,
+                isUnstaged ? changed : tree.CollapsedUnstaged,
+                isUnstaged ? tree.CollapsedStaged : changed),
+        };
+    }
 
     private static RepositoryState ReduceWorkingTree(RepositoryState state, WorkingTreeLoadedCommand loaded)
     {
@@ -57,7 +83,7 @@ public static class RepositoryReducer
 
         var reloaded = state with
         {
-            WorkingTree = WorkingTreeState.Reconcile(state.WorkingTree, loaded.Snapshot),
+            WorkingTree = WorkingTreeState.Reconcile(state.WorkingTree, loaded.Snapshot, state.View.PathStyle),
             Status = RepositoryStatusSummary.From(loaded.Snapshot),
         };
         return FollowSelectionWhenFocusedListIsEmpty(reloaded);
@@ -131,13 +157,14 @@ public static class RepositoryReducer
             return state;
         }
 
-        var list = pick.Section == WorkingTreeSection.Unstaged ? tree.Unstaged : tree.Staged;
-        if (list.Count == 0)
+        var count = tree.RowsOf(pick.Section).Count;
+        if (count == 0)
         {
             return state;
         }
 
-        var index = Math.Clamp(pick.Index, 0, list.Count - 1);
-        return state with { WorkingTree = tree with { Selection = new WorkingTreeSelection(pick.Section, list[index].Path, index) } };
+        var selection = tree.SelectionAt(pick.Section, Math.Clamp(pick.Index, 0, count - 1));
+
+        return state with { WorkingTree = tree with { Selection = selection } };
     }
 }

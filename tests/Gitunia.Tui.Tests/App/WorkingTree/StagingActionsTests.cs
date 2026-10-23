@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Lists;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Panes;
@@ -34,6 +35,62 @@ public class StagingActionsTests
         Assert.Equal(["b.txt"], Assert.Single(harness.Writer.Staged));
         Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "c.txt", 1), harness.Selection);
         Assert.Equal("Staged b.txt", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenTheTreeStyleAndAFolderRow_WhenStaging_ThenEveryFileUnderItIsStagedAndOthersAreNot()
+    {
+        using var harness = new Harness(Modified("src/a.cs"), Modified("src/deep/b.cs"), Modified("top.txt"));
+        harness.UseTree();
+        harness.Select(WorkingTreeSection.Unstaged, 0);
+        Assert.True(harness.Selection.IsFolder);
+
+        harness.Run(ActionIds.WorkingTreeStage);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(["src/a.cs", "src/deep/b.cs"], Assert.Single(harness.Writer.Staged));
+        Assert.Equal("Staged src/ (2 files)", harness.Statuses.Log.Latest!.Text);
+    }
+
+    [Fact]
+    public async Task GivenAClosedFolderInTheTreeStyle_WhenStagingIt_ThenTheHiddenFilesAreStaged()
+    {
+        using var harness = new Harness(Modified("src/a.cs"), Modified("src/b.cs"));
+        harness.UseTree();
+        harness.Select(WorkingTreeSection.Unstaged, 0);
+        harness.Send(new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
+        Assert.Equal(1, harness.Tab.WorkingTree!.RowsOf(WorkingTreeSection.Unstaged).Count);
+
+        harness.Run(ActionIds.WorkingTreeStage);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(["src/a.cs", "src/b.cs"], Assert.Single(harness.Writer.Staged));
+    }
+
+    [Fact]
+    public async Task GivenATreeRangeFromAFolderRowToItsFirstFile_WhenStaging_ThenEachFileIsStagedOnce()
+    {
+        using var harness = new Harness(Modified("src/a.cs"), Modified("src/b.cs"), Modified("z.txt"));
+        harness.UseTree();
+
+        harness.RunRange(ActionIds.WorkingTreeStage, 0, 1);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(["src/a.cs", "src/b.cs"], Assert.Single(harness.Writer.Staged));
+    }
+
+    [Fact]
+    public async Task GivenTheTreeStyleAndAFileRow_WhenStaging_ThenTheFileOfThatRowNotTheRowNumberIsStaged()
+    {
+        using var harness = new Harness(Modified("a/x.cs"), Modified("b/y.cs"), Modified("c.txt"));
+        harness.UseTree();
+        harness.Select(WorkingTreeSection.Unstaged, 3);
+        Assert.Equal("b/y.cs", harness.Selection.Path);
+
+        harness.Run(ActionIds.WorkingTreeStage);
+        await harness.Pump.RunUntilAsync(() => !harness.Staging.IsRunning);
+
+        Assert.Equal(["b/y.cs"], Assert.Single(harness.Writer.Staged));
     }
 
     [Fact]
@@ -324,6 +381,15 @@ public class StagingActionsTests
 
         public void Focus(PaneKind pane) => Send(new FocusPaneCommand(pane));
 
+        public void UseTree()
+        {
+            Send(new TogglePathStyleCommand());
+            Send(new TogglePathStyleCommand());
+        }
+
+        public void RunRange(ActionId action, int first, int last) =>
+            Staging.Execute(Tab, action, new RowRange(first, last));
+
         public void Dispose() => _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, new LeaveWorkingTreeCommand()));
 
         private bool RefreshStatus(TabId tabId, Action done)
@@ -336,7 +402,7 @@ public class StagingActionsTests
             return true;
         }
 
-        private void Send(RepositoryCommand command) =>
+        public void Send(RepositoryCommand command) =>
             _host.Dispatch(new TabCommand(_host.Workspace.ActiveTabId!.Value, command));
     }
 }

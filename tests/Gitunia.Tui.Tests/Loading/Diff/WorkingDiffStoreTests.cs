@@ -30,6 +30,23 @@ public class WorkingDiffStoreTests
     }
 
     [Fact]
+    public async Task GivenAFolderRequest_WhenShown_ThenTheDiffsOfAllItsFilesAreCombined()
+    {
+        var reader = new FakeDiffReader();
+        reader.SetWorking(WorkingDiffSide.Unstaged, "src/a.cs", FakeDiffReader.FileAdding("src/a.cs", ["from a"]));
+        reader.SetWorking(WorkingDiffSide.Unstaged, "src/b.cs", FakeDiffReader.FileAdding("src/b.cs", ["from b"]));
+        var pump = new UiPump(Token);
+        using var store = CreateStore(pump, reader);
+        var entries = new[] { Modified("src/a.cs"), Modified("src/b.cs") };
+
+        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], new WorkingDiffFolder("src", entries)), 0);
+        await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
+
+        Assert.Contains(store.Document.Rows, row => row is { Kind: DiffRowKind.Added, Text: "from a" });
+        Assert.Contains(store.Document.Rows, row => row is { Kind: DiffRowKind.Added, Text: "from b" });
+    }
+
+    [Fact]
     public async Task GivenTheShownFile_WhenAskingAgainInTheSameGeneration_ThenNothingIsRead()
     {
         var reader = new FakeDiffReader();

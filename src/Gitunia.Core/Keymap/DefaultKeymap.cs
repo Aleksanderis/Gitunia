@@ -361,7 +361,8 @@ public static class DefaultKeymap
         {
             Add(bindings, NormalOnly, view, "<space>r", ActionIds.RepositoryRefresh);
             Add(bindings, NormalOnly, view, "y", ActionIds.WorkingTreeCopyPath);
-            Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
+            Add(bindings, NormalOnly, view, "h", ActionIds.WorkingTreeCollapse);
+            Add(bindings, NormalOnly, view, "za", ActionIds.WorkingTreeToggleFolder);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);

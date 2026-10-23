@@ -100,7 +100,7 @@ public class DetailTabControllerTests
     }
 
     [Fact]
-    public void GivenTheWorkingTreeView_WhenTogglingThePathStyle_ThenTheTreeStyleIsSkipped()
+    public void GivenTheWorkingTreeView_WhenTogglingThePathStyle_ThenTheTreeStyleIsPartOfTheCycle()
     {
         var host = HostWithTab(BottomTab.Changes);
         host.Dispatch(new TabCommand(host.Workspace.ActiveTab!.Id, new OpenWorkingTreeCommand()));
@@ -109,8 +109,8 @@ public class DetailTabControllerTests
         controller.TryExecute(ActionIds.FilesTogglePathStyle);
         controller.TryExecute(ActionIds.FilesTogglePathStyle);
 
-        Assert.Equal(FilePathStyle.NameFirst, host.Workspace.ActiveTab!.View.PathStyle);
-        Assert.Equal("File paths: name first", controller.Notice);
+        Assert.Equal(FilePathStyle.Tree, host.Workspace.ActiveTab!.View.PathStyle);
+        Assert.Equal("File paths: tree", controller.Notice);
     }
 
     [Fact]
