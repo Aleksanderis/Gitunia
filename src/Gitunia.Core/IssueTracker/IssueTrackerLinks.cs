@@ -30,7 +30,8 @@ public sealed class IssueTrackerLinks
         {
             try
             {
-                _rules.Add(new CompiledRule(new Regex(rule.Pattern, RegexOptions.CultureInvariant, MatchTimeout), rule.UrlTemplate));
+                var pattern = new Regex(rule.Pattern, RegexOptions.CultureInvariant, MatchTimeout);
+                _rules.Add(new CompiledRule(pattern, rule.UrlTemplate));
             }
             catch (ArgumentException)
             {
@@ -98,7 +99,9 @@ public sealed class IssueTrackerLinks
         var builder = new StringBuilder();
         foreach (var rune in text.EnumerateRunes())
         {
-            if (rune.IsAscii && (char.IsAsciiLetterOrDigit((char)rune.Value) || UrlSafeCharacters.Contains((char)rune.Value)))
+            var isSafe = rune.IsAscii
+                && (char.IsAsciiLetterOrDigit((char)rune.Value) || UrlSafeCharacters.Contains((char)rune.Value));
+            if (isSafe)
             {
                 builder.Append((char)rune.Value);
                 continue;

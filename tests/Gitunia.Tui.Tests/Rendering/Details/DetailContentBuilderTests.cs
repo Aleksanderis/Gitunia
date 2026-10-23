@@ -447,7 +447,8 @@ public class DetailContentBuilderTests
         var content = DetailContentBuilder.Build(entry, state, BottomTab.Details, null, FilePathStyle.FullPath, links);
 
         var row = content.Rows.Single(candidate => candidate.References is { Count: 2 });
-        Assert.Equal(["#12", "#7"], row.Segments.Where(segment => segment.Role == SegmentRole.Link).Select(s => s.Text));
+        var linkTexts = row.Segments.Where(segment => segment.Role == SegmentRole.Link).Select(segment => segment.Text);
+        Assert.Equal(["#12", "#7"], linkTexts);
         Assert.Equal(
             ["https://example.org/issues/12", "https://example.org/issues/7"],
             row.References!.Select(reference => reference.Url));
@@ -463,6 +464,7 @@ public class DetailContentBuilderTests
         var content = DetailContentBuilder.Build(entry, state, BottomTab.Details);
 
         Assert.All(content.Rows, row => Assert.Null(row.References));
-        Assert.DoesNotContain(content.Rows.SelectMany(row => row.Segments), segment => segment.Role == SegmentRole.Link);
+        var segments = content.Rows.SelectMany(row => row.Segments);
+        Assert.DoesNotContain(segments, segment => segment.Role == SegmentRole.Link);
     }
 }

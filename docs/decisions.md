@@ -448,4 +448,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Interactive rebase keeps merge commits (#461; supersedes "interactive rebase refuses merges, `--rebase-merges` post-MVP"): git prepares the `--rebase-merges` todo, read through a sequence editor that prints it and fails; label, reset and merge lines are kept and only reordered. Why: the todo is git's to get right; cost is one aborted `rebase` start per read.
 
-**UI:** Issue links (#213): `.issuetracker` in the working tree root, git-config syntax read with `git config --file --list -z`, one `regex`/`url` section per tracker; `gx` (vim's open-URL key) opens the first link on the line and a count picks another, instead of a picker (a line rarely holds two). Why: no parser of our own, no new overlay. Only http/https URLs open; the file is read when the tab loads.
+**UI:** Issue links (#213): `.issuetracker` in the working tree root, read with `git config --file`; `gx` opens the first link of a line, a count picks another (no picker). Why: no parser of our own, no new overlay. Detail: `ux.md` (Details tab).
