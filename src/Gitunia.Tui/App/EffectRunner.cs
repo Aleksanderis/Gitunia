@@ -83,7 +83,10 @@ public sealed class EffectRunner : IDisposable
         }
 
         refresher.RefreshNow(announce);
-        ReloadIssueLinks(tabId);
+        if (announce)
+        {
+            ReloadIssueLinks(tabId);
+        }
 
         return true;
     }
@@ -211,6 +214,11 @@ public sealed class EffectRunner : IDisposable
         try
         {
             var rules = await _services.IssueTracker.ReadAsync(location, token).ConfigureAwait(false);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             var links = rules.Count > 0 ? new IssueTrackerLinks(rules) : IssueTrackerLinks.None;
             _postToUi(() => session.SetIssueLinks(links));
         }
