@@ -108,15 +108,19 @@ public static class HelpFrameBuilder
         if (content.Count > rowCount)
         {
             hints.Add($"{first + 1}-{first + rowCount}/{content.Count}");
-            hints.Add("list keys scroll");
         }
 
+        hints.Add("Esc close");
         if (tabs.Count > 1)
         {
             hints.Add("Tab next tab");
         }
 
-        hints.Add("Esc close");
+        if (content.Count > rowCount)
+        {
+            hints.Add("list keys scroll");
+        }
+
         lines.Add(OverlayBox.Text(string.Join("  ", hints), width, glyphs, SegmentRole.Faint));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);

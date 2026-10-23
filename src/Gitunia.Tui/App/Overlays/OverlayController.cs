@@ -393,7 +393,11 @@ public sealed class OverlayController
             return false;
         }
 
-        State = State.ShowHelpTab(target);
+        if (target != State.HelpTab)
+        {
+            State = State.ShowHelpTab(target);
+        }
+
         return true;
     }
 

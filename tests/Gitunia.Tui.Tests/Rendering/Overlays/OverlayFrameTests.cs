@@ -460,7 +460,7 @@ public class OverlayFrameTests
                 "│                       │ selection                            │",
                 "│  <space>gi            │ Interactive rebase onto the selection│",
                 "│                       │ (edit the todo)                      │",
-                "│ 1-18/71  list keys scroll  Tab next tab  Esc close           │",
+                "│ 1-18/71  Esc close  Tab next tab  list keys scroll           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -664,6 +664,14 @@ public class OverlayFrameTests
         Assert.Equal(1, HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 12));
         Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 2, 3));
         Assert.Null(HelpFrameBuilder.TabAt(tabs, 0, 80, 1, 70));
+    }
+
+    [Fact]
+    public void GivenGraphHelpOnANarrowScreen_WhenRendering_ThenTheFooterStillSaysHowToClose()
+    {
+        var frame = HelpFrameBuilder.Build(Help(), 0, DefaultKeymap.GraphView, 0, 44, 20, GraphGlyphSet.Ascii)!;
+
+        Assert.Contains("Esc close", frame.Lines[^2].Text, StringComparison.Ordinal);
     }
 
     [Fact]
