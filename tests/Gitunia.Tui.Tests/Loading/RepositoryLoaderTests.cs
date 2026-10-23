@@ -197,6 +197,7 @@ public class RepositoryLoaderTests
         using var harness = new Harness(softRowLimit: 4);
         AddCommits(harness, 10);
         await harness.RunAsync();
+
         var shown = harness.Session.Graph.Count;
         var staleVersion = harness.Session.GraphVersion;
         var graph = harness.Session.Graph;

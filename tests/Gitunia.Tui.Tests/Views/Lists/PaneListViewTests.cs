@@ -35,14 +35,13 @@ public class PaneListViewTests
 
     private static List<MouseGesture> DoubleClickAt(bool ignoresBlank, int row)
     {
-        using var view = new PaneListView
-        {
-            Width = 20,
-            Height = 10,
-            IgnoresBlankDoubleClick = ignoresBlank,
-            Source = new PlaceholderListSource("note", GraphGlyphSet.Unicode),
-        };
+        using var view = new PaneListView();
+        view.Width = 20;
+        view.Height = 10;
+        view.IgnoresBlankDoubleClick = ignoresBlank;
+        view.Source = new PlaceholderListSource("note", GraphGlyphSet.Unicode);
         view.Layout();
+
         var gestures = new List<MouseGesture>();
         view.GestureRaised += (gesture, _) => gestures.Add(gesture);
         view.NewMouseEvent(new Mouse { Flags = MouseFlags.LeftButtonDoubleClicked, Position = new Point(3, row) });

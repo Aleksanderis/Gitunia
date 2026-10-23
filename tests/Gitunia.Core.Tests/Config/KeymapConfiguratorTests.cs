@@ -26,7 +26,7 @@ public class KeymapConfiguratorTests
     {
         var result = Apply(Entry("Normal", "Graph", "J", "list.down"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Empty(result.Problems);
         Assert.Equal(ActionIds.ListDown, feeder.Feed("J").Action);
@@ -37,7 +37,7 @@ public class KeymapConfiguratorTests
     {
         var result = Apply(Entry("Normal", "Global", "q", "palette.open"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Empty(result.Problems);
         Assert.Equal(ActionIds.PaletteOpen, feeder.Feed("q").Action);
@@ -48,7 +48,7 @@ public class KeymapConfiguratorTests
     {
         var result = Apply(Entry("Normal", "Global", "q", "none"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Empty(result.Problems);
         Assert.Equal(KeyOutcome.Unbound, feeder.Feed("q").Outcome);
@@ -80,7 +80,7 @@ public class KeymapConfiguratorTests
     {
         var result = Apply(Entry("Normal", "Graph", "g", "list.down"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         var problem = Assert.Single(result.Problems);
         Assert.Contains("start of a chord", problem.Message, StringComparison.Ordinal);
@@ -92,7 +92,7 @@ public class KeymapConfiguratorTests
     {
         var result = Apply(Entry("Normal", "Global", "qq", "list.down"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Single(result.Problems);
         Assert.Equal(ActionIds.AppQuit, feeder.Feed("q").Action);
@@ -105,7 +105,7 @@ public class KeymapConfiguratorTests
             Entry("Normal", "Graph", "ZZ", "list.down"),
             Entry("Normal", "Graph", "Z", "list.up"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         var problem = Assert.Single(result.Problems);
         Assert.Equal("keys[1]", problem.Path);
@@ -119,7 +119,7 @@ public class KeymapConfiguratorTests
             Entry("Normal", "Graph", "J", "list.down"),
             Entry("Normal", "Graph", "J", "list.up"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Equal("keys[1]", Assert.Single(result.Problems).Path);
         Assert.Equal(ActionIds.ListDown, feeder.Feed("J").Action);
@@ -132,7 +132,7 @@ public class KeymapConfiguratorTests
             Entry("Normal", "Lists", "gg", "none"),
             Entry("Normal", "Lists", "ggg", "list.top"));
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Empty(result.Problems);
         Assert.Equal(ActionIds.ListTop, feeder.Feed("ggg").Action);
@@ -167,7 +167,7 @@ public class KeymapConfiguratorTests
             Defaults,
             [null, Entry("Normal", "Graph", "J", "list.down")]);
 
-        var feeder = new KeyFeeder(new KeymapEngine(result.Table), DefaultKeymap.GraphView);
+        var feeder = new KeyFeeder(new KeymapEngine(result.Table));
 
         Assert.Equal("keys[0]", Assert.Single(result.Problems).Path);
         Assert.Equal(ActionIds.ListDown, feeder.Feed("J").Action);

@@ -101,7 +101,7 @@ public sealed class ThemeCatalogTests : IDisposable
         var found = new ThemeCatalog(_directory).Find("b", []);
 
         Assert.True(found?.Name is "Upper" or "Lower");
-        Assert.Equal("Upper", found?.Name);
+        Assert.Equal("Upper", found.Name);
     }
 
     [Fact]

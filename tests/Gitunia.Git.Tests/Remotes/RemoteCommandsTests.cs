@@ -43,6 +43,7 @@ public class RemoteCommandsTests
     {
         using var repository = TestRepositories.WithTrackingBranch(1, 1);
         repository.Git("config", "pull.rebase", "true");
+
         var before = repository.Head;
         var arguments = RemoteCommands.BuildPull().ToArray();
 

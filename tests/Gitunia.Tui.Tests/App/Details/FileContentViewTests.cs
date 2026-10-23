@@ -478,7 +478,6 @@ public class FileContentViewTests
         private readonly TestRepository _repository;
         private readonly UiPump _pump;
         private readonly FileTreeController _fileTree;
-        private KeyMode _mode = KeyMode.Normal;
         private int _cursor;
 
         private Harness(
@@ -499,18 +498,20 @@ public class FileContentViewTests
             var diffList = new ListView { X = 0, Y = 0, Width = 60, Height = 20 };
             diffList.SetRelativeLayout(new Size(80, 24));
             DiffList = diffList;
+
             Controller = new DiffPaneController(
                 host,
                 () => Session,
                 detailList,
                 diffList,
-                mode => _mode = mode,
+                _ => { },
                 () => new ScreenSize(width, 40),
                 () => { },
                 () => { },
                 new ClipboardCopier(
                     new ClipboardWriter(Clipboard, new Osc52Options(Osc52Mode.Direct, 100_000)),
                     new StatusChannel()));
+
             Controller.OnTabSwitched(null, session);
             DetailList.ValueChanged += (_, _) => Controller.OnDetailCursorMoved();
             _fileTree = new FileTreeController(
@@ -518,7 +519,7 @@ public class FileContentViewTests
                 () => Session,
                 () => _cursor,
                 row => _cursor = row,
-                mode => _mode = mode,
+                _ => { },
                 RefreshDetail,
                 Controller.OpenFileContent);
         }
