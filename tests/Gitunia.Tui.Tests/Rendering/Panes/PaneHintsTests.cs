@@ -180,52 +180,43 @@ public class PaneHintsTests
         AssertKeysTriggerActions(PaneHints.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
     }
 
-    [Fact]
-    public void GivenTheMessageEditingHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheMessageViewInInsertMode()
-    {
-        AssertKeysTriggerActions(PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
-    }
+    public static TheoryData<string> ModalHintSets() =>
+        ["MessageEditing", "Confirm", "Reflog", "RebaseEditor", "RebaseMessage", "Settings", "Picker", "Palette"];
 
-    [Fact]
-    public void GivenTheConfirmHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInConfirmMode()
+    [Theory]
+    [MemberData(nameof(ModalHintSets))]
+    public void GivenAModalHintSet_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInItsView(string set)
     {
-        AssertKeysTriggerActions(PaneHints.ForConfirm(), KeyMode.Confirm, DefaultKeymap.ConfirmView);
-    }
-
-    [Fact]
-    public void GivenTheReflogHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheReflogView()
-    {
-        AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
-    }
-
-    [Fact]
-    public void GivenTheRebaseEditorHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheEditorView()
-    {
-        AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);
-    }
-
-    [Fact]
-    public void GivenTheRebaseMessageHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInInsertMode()
-    {
-        AssertKeysTriggerActions(PaneHints.ForRebaseMessage(), KeyMode.Insert, DefaultKeymap.RebaseEditorView);
-    }
-
-    [Fact]
-    public void GivenTheSettingsHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInTheSettingsView()
-    {
-        AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
-    }
-
-    [Fact]
-    public void GivenThePickerHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePickerView()
-    {
-        AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
-    }
-
-    [Fact]
-    public void GivenThePaletteHints_WhenCheckingThem_ThenEveryKeyTriggersItsActionInThePaletteView()
-    {
-        AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
+        switch (set)
+        {
+            case "MessageEditing":
+                AssertKeysTriggerActions(
+                    PaneHints.ForMessageEditing(), KeyMode.Insert, DefaultKeymap.WorkingMessageView);
+                break;
+            case "Confirm":
+                AssertKeysTriggerActions(PaneHints.ForConfirm(), KeyMode.Confirm, DefaultKeymap.ConfirmView);
+                break;
+            case "Reflog":
+                AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
+                break;
+            case "RebaseEditor":
+                AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);
+                break;
+            case "RebaseMessage":
+                AssertKeysTriggerActions(PaneHints.ForRebaseMessage(), KeyMode.Insert, DefaultKeymap.RebaseEditorView);
+                break;
+            case "Settings":
+                AssertKeysTriggerActions(PaneHints.ForSettings(), KeyMode.Normal, DefaultKeymap.SettingsView);
+                break;
+            case "Picker":
+                AssertKeysTriggerActions(PaneHints.ForPicker(), KeyMode.Insert, DefaultKeymap.PickerView);
+                break;
+            case "Palette":
+                AssertKeysTriggerActions(PaneHints.ForPalette(), KeyMode.Command, DefaultKeymap.PaletteView);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(set), set, "Unknown hint set.");
+        }
     }
 
     private static string ViewFor(PaneKind pane) => pane switch

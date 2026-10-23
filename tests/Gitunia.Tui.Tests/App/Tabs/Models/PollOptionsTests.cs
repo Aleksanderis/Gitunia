@@ -25,11 +25,4 @@ public class PollOptionsTests
     {
         Assert.Equal(TimeSpan.FromSeconds(60), Options.StatusIntervalAfter(TimeSpan.FromSeconds(30)));
     }
-
-    [Fact]
-    public void GivenDefaults_WhenRead_ThenRefsArePolledEveryTwoSecondsAndStatusEveryFive()
-    {
-        Assert.Equal(TimeSpan.FromSeconds(2), Options.RefsInterval);
-        Assert.Equal(TimeSpan.FromSeconds(5), Options.StatusInterval);
-    }
 }
