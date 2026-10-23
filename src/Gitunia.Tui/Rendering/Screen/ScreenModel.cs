@@ -15,6 +15,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="ModeName">Input mode shown in the status bar, such as NORMAL.</param>
 /// <param name="PendingKeys">The unfinished chord or count (<c>5g</c>), empty when none.</param>
 /// <param name="SelectedPosition">One-based position of the selected row, 0 when the graph is empty.</param>
+/// <param name="SelectedName">Full name of the selected sidebar row, shown after the position; empty otherwise.</param>
 /// <param name="LoadedCount">Rows loaded so far.</param>
 /// <param name="IsLoading">The log is still streaming in.</param>
 /// <param name="Message">A short notice such as "HEAD is not loaded yet", empty when none.</param>
@@ -55,4 +56,5 @@ public sealed record ScreenModel(
     bool RemoteBusy = false,
     bool MessageIsFresh = false,
     int? TruncatedTotal = null,
-    ChipKeys? Keys = null);
+    ChipKeys? Keys = null,
+    string SelectedName = "");

@@ -1194,6 +1194,7 @@ public sealed class TuiApplication(
         {
             RemoteBusy = RemoteIsBusy(),
             Keys = _chipKeys,
+            SelectedName = FocusedSidebarName(),
             MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
                 ? null
                 : _statuses.Current?.Severity,
@@ -1218,6 +1219,13 @@ public sealed class TuiApplication(
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };
+
+    // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
+    private string FocusedSidebarName() =>
+        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.Sidebar } tab
+            && _view.Sidebar.Source is SidebarListSource { Rows.IsEmpty: false } source
+            ? SidebarCursorRow(source, tab)?.FullName ?? string.Empty
+            : string.Empty;
 
     private bool GraphComparing() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };

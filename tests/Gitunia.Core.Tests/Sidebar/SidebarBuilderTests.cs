@@ -110,6 +110,34 @@ public class SidebarBuilderTests
     }
 
     [Fact]
+    public void GivenBranchBelowFolders_WhenAskingTheFullName_ThenItIsTheWholeRefAndSectionsAndFoldersHaveNone()
+    {
+        var tab = Tab(refs: [Branch("feature/ui/x", isCurrent: true), Branch("feature/z")]);
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal(string.Empty, rows[0].FullName);
+        Assert.Equal(string.Empty, rows[1].FullName);
+        Assert.Equal("feature/ui/x", rows[3].FullName);
+    }
+
+    [Fact]
+    public void GivenWorktreeTagAndStash_WhenAskingTheFullName_ThenItIsThePathTheTagAndTheStashName()
+    {
+        var tab = Tab(
+            refs: [Tag("v1.0")],
+            worktrees: [Worktree("/work/repo-wt", "topic")],
+            stashes: [Stash(0, "wip")]);
+        tab = tab with { Sidebar = SidebarState.Initial with { CollapsedSections = [] } };
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal("/work/repo-wt", rows.Single(row => row.Kind == SidebarRowKind.Worktree).FullName);
+        Assert.Equal("v1.0", rows.Single(row => row.Kind == SidebarRowKind.Tag).FullName);
+        Assert.Equal("stash@{0}", rows.Single(row => row.Kind == SidebarRowKind.Stash).FullName);
+    }
+
+    [Fact]
     public void GivenCurrentBranchInAFolder_WhenBuilding_ThenItsFoldersAreOpenAndOthersClosed()
     {
         var tab = Tab(
