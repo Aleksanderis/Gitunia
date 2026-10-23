@@ -19,7 +19,8 @@ public sealed class ThemeFileContrastTests
     private const double QuantizedRatio = 3.0;
 
     private static readonly int[] CubeLevels = [0, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-    private static readonly ThemeCatalog Themes = new(Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
+    private static readonly ThemeCatalog Themes = new(
+        Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
 
     public static TheoryData<string> Names => [.. BuiltInThemes.Names];
 

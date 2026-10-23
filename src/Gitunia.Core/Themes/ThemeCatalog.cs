@@ -39,7 +39,7 @@ public sealed class ThemeCatalog(string themesDirectory)
 
     /// <summary>The theme with a name (any case), null when there is none.</summary>
     /// <param name="name">The name from the config file.</param>
-    /// <param name="problems">Receives why a built-in file is invalid (a bug; nothing is added on a repeated call).</param>
+    /// <param name="problems">Receives why a built-in file is invalid (a bug); nothing on a repeated call.</param>
     public ThemeDefinition? Find(string name, ICollection<ConfigProblem> problems)
     {
         var key = name.Trim().ToLowerInvariant();
