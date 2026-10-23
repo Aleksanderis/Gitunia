@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Gruvbox Light Soft",
+  "variant": "light",
+  "colors": {
+    "accent": "#075768",
+    "good": "#56530e",
+    "bad": "#9d0006",
+    "remote": "#7f3765",
+    "warn": "#6f4910",
+    "info": "#2e5840",
+    "muted": "#594f48",
+    "mutedOnSelection": "#574f49",
+    "border": "#86776b",
+    "barBackground": "#ebdbb2",
+    "selectionFocused": "#d5c4a1",
+    "selectionDim": "#e4d4ae",
+    "groupBackground": "#e9dbb4",
+    "tabButtonBackground": "#d5c4a1",
+    "chipForeground": "#f2e5bc",
+    "chipBackground": "#075768",
+    "matchForeground": "#f2e5bc",
+    "matchBackground": "#6f4910",
+    "baseForeground": "#383432",
+    "baseBackground": "#f2e5bc",
+    "lanes": [
+      "#075768",
+      "#56530e",
+      "#6f4910",
+      "#7f3765",
+      "#9d0006",
+      "#2e5840",
+      "#922f03",
+      "#504945",
+      "#2d5659",
+      "#525110",
+      "#684b10",
+      "#734157"
+    ]
+  }
+}

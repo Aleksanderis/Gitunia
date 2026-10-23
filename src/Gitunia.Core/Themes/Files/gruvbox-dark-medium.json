@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Gruvbox Dark",
+  "variant": "dark",
+  "colors": {
+    "accent": "#acc2b9",
+    "good": "#c0c33f",
+    "bad": "#fba79d",
+    "remote": "#e1b0bd",
+    "warn": "#fabd2f",
+    "info": "#9ac88c",
+    "muted": "#c4baad",
+    "mutedOnSelection": "#c9baa5",
+    "border": "#807369",
+    "barBackground": "#1d2021",
+    "selectionFocused": "#504945",
+    "selectionDim": "#3c3836",
+    "groupBackground": "#343231",
+    "tabButtonBackground": "#504945",
+    "chipForeground": "#1d2021",
+    "chipBackground": "#acc2b9",
+    "matchForeground": "#1d2021",
+    "matchBackground": "#fabd2f",
+    "baseForeground": "#efe5c6",
+    "baseBackground": "#282828",
+    "lanes": [
+      "#acc2b9",
+      "#c0c33f",
+      "#fabd2f",
+      "#e1b0bd",
+      "#fba79d",
+      "#9ac88c",
+      "#feaa64",
+      "#d5c4a1",
+      "#a3c2c3",
+      "#c1c076",
+      "#e2b660",
+      "#d7b3c4"
+    ]
+  }
+}

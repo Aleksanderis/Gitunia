@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Solarized Light",
+  "variant": "light",
+  "colors": {
+    "accent": "#1a6192",
+    "good": "#566500",
+    "bad": "#b22a28",
+    "remote": "#515694",
+    "warn": "#765900",
+    "info": "#1c6964",
+    "muted": "#586060",
+    "mutedOnSelection": "#4f6167",
+    "border": "#778282",
+    "barBackground": "#eee8d5",
+    "selectionFocused": "#e0dac6",
+    "selectionDim": "#eee8d4",
+    "groupBackground": "#f4eeda",
+    "tabButtonBackground": "#e0dac6",
+    "chipForeground": "#fdf6e3",
+    "chipBackground": "#1a6192",
+    "matchForeground": "#fdf6e3",
+    "matchBackground": "#765900",
+    "baseForeground": "#374448",
+    "baseBackground": "#fdf6e3",
+    "lanes": [
+      "#1a6192",
+      "#566500",
+      "#765900",
+      "#515694",
+      "#b22a28",
+      "#1c6964",
+      "#a43d10",
+      "#a62b66",
+      "#4c5f65",
+      "#073642",
+      "#4f6167",
+      "#586060"
+    ]
+  }
+}
