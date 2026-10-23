@@ -3,7 +3,8 @@ namespace Gitunia.Tui.Tests.Fakes;
 /// <summary>
 /// A counting signal for tests that wait on a callback posted from a background thread. Releasing it after the test
 /// disposed it does nothing: a plain <see cref="SemaphoreSlim"/> would throw <see cref="ObjectDisposedException"/>
-/// on the pool thread, which ends the whole test host instead of failing one test (#666).
+/// on the pool thread, which can end the whole test host instead of failing one test.
+/// The inner semaphore is deliberately not disposed (no wait handle is used), so a late wait cannot throw either.
 /// </summary>
 public sealed class TestSignal : IDisposable
 {

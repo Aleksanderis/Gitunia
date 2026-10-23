@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Fakes;
 
-public class TestSignalTests
+public sealed class TestSignalTests
 {
     [Fact]
     public void GivenADisposedSignal_WhenAnotherThreadReleasesIt_ThenNothingThrows()

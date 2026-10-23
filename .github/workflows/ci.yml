@@ -34,7 +34,9 @@ jobs:
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
       - name: Test
-        # A hung test host is killed after 10 min and named by the blame report instead of burning the job (#666).
+        # A hung run costs 10 minutes, not the job's 15 (#666). The blame flag names the running test when one hangs; the
+        # step timeout also covers a host that died with no test in flight.
+        timeout-minutes: 10
         run: dotnet test -c Release --no-build --blame-hang-timeout 10m --blame-hang-dump-type none
       - name: Decide whether the AOT publish is needed
         id: aot
