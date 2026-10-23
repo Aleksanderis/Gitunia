@@ -49,6 +49,57 @@ public sealed record DiffDocument(
             MaximumLineNumber);
     }
 
+    /// <summary>
+    /// The document of several files of this one, in the given order: their rows one after the other (parser warnings
+    /// stay above the first file when it is file 0), their hunks and file anchors renumbered. The folder view of the
+    /// Changes tab shows the files below a folder this way.
+    /// </summary>
+    /// <param name="fileIndexes">Indexes of the files, ascending and not empty.</param>
+    public DiffDocument ForFiles(IReadOnlyList<int> fileIndexes)
+    {
+        var rows = new List<DiffRow>();
+        var hunks = new List<int>();
+        var files = new List<int>();
+        var paths = new List<IReadOnlyList<string>>();
+        for (var position = 0; position < fileIndexes.Count; position++)
+        {
+            var fileIndex = fileIndexes[position];
+            var first = FileRows[fileIndex];
+            var end = fileIndex + 1 < FileRows.Count ? FileRows[fileIndex + 1] : Rows.Count;
+            var start = fileIndex == 0 ? 0 : first;
+            var offset = rows.Count - start;
+            for (var row = start; row < end; row++)
+            {
+                rows.Add(Rows[row].FileIndex < 0 ? Rows[row] : Rows[row] with { FileIndex = position });
+            }
+
+            for (var hunk = FirstHunkAtOrAfter(start); hunk < HunkRows.Count && HunkRows[hunk] < end; hunk++)
+            {
+                hunks.Add(HunkRows[hunk] + offset);
+            }
+
+            files.Add(first + offset);
+            paths.Add(FilePaths[fileIndex]);
+        }
+
+        return new DiffDocument(rows, hunks, files, paths, MaximumLineNumber);
+    }
+
+    /// <summary>Indexes of the files whose (new) path lies below <paramref name="folder"/>, ascending.</summary>
+    public IReadOnlyList<int> FileIndexesUnder(string folder)
+    {
+        var indexes = new List<int>();
+        for (var index = 0; index < FilePaths.Count; index++)
+        {
+            if (FilePaths[index].Count > 0 && FileTreePath.IsUnder(folder, FilePaths[index][0]))
+            {
+                indexes.Add(index);
+            }
+        }
+
+        return indexes;
+    }
+
     /// <summary>Index of the file shown under <paramref name="path"/> (its new or old path), or -1.</summary>
     public int FileIndexOf(string path)
     {
@@ -61,5 +112,26 @@ public sealed record DiffDocument(
         }
 
         return -1;
+    }
+
+    // HunkRows is ascending: binary search keeps a folder of many files from scanning every hunk per file.
+    private int FirstHunkAtOrAfter(int row)
+    {
+        var low = 0;
+        var high = HunkRows.Count;
+        while (low < high)
+        {
+            var middle = (low + high) / 2;
+            if (HunkRows[middle] < row)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        return low;
     }
 }

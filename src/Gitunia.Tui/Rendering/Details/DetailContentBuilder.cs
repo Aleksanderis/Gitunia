@@ -31,7 +31,7 @@ public static class DetailContentBuilder
         BottomTab tab,
         FileTreeView? tree = null,
         FilePathStyle pathStyle = FilePathStyle.FullPath) =>
-        BuildRows(entry, state, tab, tree) with { PathStyle = pathStyle };
+        BuildRows(entry, state, tab, tree, pathStyle) with { PathStyle = pathStyle };
 
     /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
@@ -42,7 +42,8 @@ public static class DetailContentBuilder
         GraphEntry? entry,
         CommitDetailsState state,
         BottomTab tab,
-        FileTreeView? tree)
+        FileTreeView? tree,
+        FilePathStyle pathStyle)
     {
         if (entry is null)
         {
@@ -53,7 +54,7 @@ public static class DetailContentBuilder
         var rows = tab switch
         {
             BottomTab.Details => BuildDetails(entry, state, details),
-            BottomTab.Changes => BuildChanges(entry, state, details),
+            BottomTab.Changes => BuildChanges(entry, state, details, pathStyle),
             _ => BuildFiles(entry, tree),
         };
         if (tab == BottomTab.Files)
@@ -73,7 +74,7 @@ public static class DetailContentBuilder
             };
         }
 
-        var firstFileRow = tab == BottomTab.Changes && details is not null ? 1 : rows.Count;
+        var firstFileRow = tab == BottomTab.Changes && details is not null ? FirstFileRowOf(rows) : rows.Count;
         return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
 
@@ -109,7 +110,19 @@ public static class DetailContentBuilder
         return rows;
     }
 
-    private static List<DetailRow> BuildChanges(GraphEntry entry, CommitDetailsState state, CommitDetails? details)
+    // The tree style puts folder rows above the first file; the cursor lands on the first file.
+    private static int FirstFileRowOf(List<DetailRow> rows)
+    {
+        var index = rows.FindIndex(row => row.FileIndex >= 0);
+
+        return index < 0 ? Math.Min(1, rows.Count) : index;
+    }
+
+    private static List<DetailRow> BuildChanges(
+        GraphEntry entry,
+        CommitDetailsState state,
+        CommitDetails? details,
+        FilePathStyle pathStyle)
     {
         if (details is null)
         {
@@ -118,9 +131,64 @@ public static class DetailContentBuilder
 
         var heading = FilesHeading(details.Files.Count) + MergeNote(details) + CompareNote(details);
         var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
-        AddFiles(rows, details.Files);
+        if (pathStyle == FilePathStyle.Tree)
+        {
+            AddTree(rows, details.Files);
+        }
+        else
+        {
+            AddFiles(rows, details.Files);
+        }
+
         return rows;
     }
+
+    private static void AddTree(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files)
+    {
+        foreach (var row in ChangesTree.Rows(files))
+        {
+            var indent = new string(' ', row.Depth * TreeIndent);
+            if (row.IsFolder)
+            {
+                rows.Add(new DetailRow(
+                    [new StyledSegment($"{indent}{row.Name}/", SegmentRole.SectionTitle)],
+                    Folder: row.FolderPath));
+                continue;
+            }
+
+            var file = files[row.FileIndex];
+            var mark = Mark(file);
+            rows.Add(new DetailRow(
+                [
+                    new StyledSegment($"{indent}{mark}", FileRole(file)),
+                    new StyledSegment($" {TreeName(file, row.Name)}", SegmentRole.Plain),
+                ],
+                FileIndex: row.FileIndex));
+        }
+    }
+
+    // A rename shows its old name when that sits in the same folder, else the whole old path.
+    private static string TreeName(CommitFileChange file, string name)
+    {
+        if (file.OldPath is not { } oldPath)
+        {
+            return name;
+        }
+
+        var directory = file.Path[..(file.Path.Length - name.Length)];
+        var old = oldPath.StartsWith(directory, StringComparison.Ordinal) && oldPath.IndexOf('/', directory.Length) < 0
+            ? oldPath[directory.Length..]
+            : oldPath;
+
+        return $"{old} -> {name}";
+    }
+
+    private static SegmentRole FileRole(CommitFileChange file) => file.Kind switch
+    {
+        FileChangeKind.Added => SegmentRole.FileAdded,
+        FileChangeKind.Deleted => SegmentRole.FileDeleted,
+        _ => SegmentRole.FileChanged,
+    };
 
     private static List<DetailRow> BuildFiles(GraphEntry entry, FileTreeView? tree)
     {
@@ -251,19 +319,16 @@ public static class DetailContentBuilder
 
     private static void AddFiles(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files)
     {
-        foreach (var file in files)
+        for (var index = 0; index < files.Count; index++)
         {
-            var role = file.Kind switch
-            {
-                FileChangeKind.Added => SegmentRole.FileAdded,
-                FileChangeKind.Deleted => SegmentRole.FileDeleted,
-                _ => SegmentRole.FileChanged,
-            };
+            var file = files[index];
+            var role = FileRole(file);
             var mark = Mark(file);
             var text = DescribeFile(file);
             rows.Add(new DetailRow(
                 [new StyledSegment(mark, role), new StyledSegment(text[mark.Length..], SegmentRole.Plain)],
-                new FileRowPath(file.Path, file.OldPath)));
+                new FileRowPath(file.Path, file.OldPath),
+                index));
         }
     }
 

@@ -50,6 +50,17 @@ public sealed class DiffSession(DiffStore store, GraphGlyphSet glyphs, FileConte
     /// <summary>The file to put the cursor on once the diff has loaded, null for none.</summary>
     public string? PendingFilePath { get; set; }
 
+    /// <summary>The folder whose combined changes to show once the diff has loaded (tree style of the Changes tab),
+    /// null for none.</summary>
+    public string? PendingFolderPath { get; set; }
+
+    /// <summary>The folder the pane is asked to show; kept so the folder view survives a reload with other options.
+    /// Null when the pane shows a single file.</summary>
+    public string? ShownFolderPath { get; set; }
+
+    /// <summary>The folder <see cref="ShownDocument"/> was cut for, null for a single file or the whole diff.</summary>
+    public string? BuiltFolderPath { get; set; }
+
     /// <summary>The loaded diff the pane last took its file from, null before the first.</summary>
     public DiffDocument? ShownFull { get; set; }
 

@@ -169,5 +169,6 @@ public class DetailPathStyleTests
             new StyledSegment(mark, SegmentRole.FileChanged),
             new StyledSegment($" {(oldPath is null ? path : $"{oldPath} -> {path}")}", SegmentRole.Plain),
         ],
-        new FileRowPath(path, oldPath));
+        new FileRowPath(path, oldPath),
+        0);
 }

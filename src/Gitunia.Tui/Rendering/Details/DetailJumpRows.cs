@@ -49,7 +49,7 @@ public sealed class DetailJumpRows(DetailContent content, int width, string elli
 
     /// <summary>The columns before <see cref="TextOf(DetailContent, int)"/> starts: the change mark and its space on a file row.</summary>
     public static int MarkColumns(DetailContent content, int row) =>
-        row >= content.FirstFileRow && row < content.Rows.Count && content.Rows[row].Segments.Count > 1
+        content.FileIndexAt(row) >= 0 && content.Rows[row].Segments.Count > 1
             ? content.Rows[row].Segments[0].Text.Length + 1
             : 0;
 }

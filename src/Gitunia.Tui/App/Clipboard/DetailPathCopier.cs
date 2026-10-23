@@ -22,7 +22,15 @@ public sealed class DetailPathCopier(ClipboardCopier clipboard)
             return string.Empty;
         }
 
-        var index = (selectedItem ?? -1) - (source?.Content.FirstFileRow ?? 0);
+        var cursor = selectedItem ?? -1;
+        if (source?.Content.FolderAt(cursor) is { } folder)
+        {
+            clipboard.Copy(folder, "folder path");
+
+            return string.Empty;
+        }
+
+        var index = source?.Content.FileIndexAt(cursor) ?? -1;
         if (source is null || index < 0 || index >= source.Content.Files.Count)
         {
             return "Select a file to copy its path";
