@@ -14,7 +14,8 @@ public sealed partial class OsTraitGuardTests
 
     [GeneratedRegex(
         @"TestRepository|IsolatedGit|TestGit|GitRunner|\bPath\.|\bFile\.|\bDirectory\.|Environment\.|Process"
-        + @"|Console\.|Symlink|OperatingSystem|Encoding\.|Temp")]
+        + @"|Console\.|Symlink|OperatingSystem|Encoding\.|Temp|FakeStatusReader|FakeCommitDetailsReader"
+        + @"|FakeGitServices|FakeGitRunner|MainView")]
     private static partial Regex OsSensitiveApi();
 
     [Fact]
@@ -27,7 +28,7 @@ public sealed partial class OsTraitGuardTests
             .Select(entry => $"{entry.file}: {entry.match.Value}")
             .ToList();
 
-        Assert.True(offenders.Count == 0, "Marked Os=Independent but OS-sensitive: " + string.Join("; ", offenders));
+        Assert.True(offenders.Count == 0, $"Marked Os=Independent but OS-sensitive: {string.Join("; ", offenders)}");
     }
 
     [Theory]
@@ -44,11 +45,8 @@ public sealed partial class OsTraitGuardTests
             .FirstOrDefault(attribute => attribute.Key == "RepoRoot")?.Value ?? string.Empty;
         var directory = Path.Combine(root, "tests", project);
         Assert.True(Directory.Exists(directory), $"Test project folder not found: {directory}");
-        var generated = new[]
-        {
-            Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar,
-            Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar,
-        };
+        var separator = Path.DirectorySeparatorChar;
+        var generated = new[] { $"{separator}obj{separator}", $"{separator}bin{separator}" };
 
         return Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories)
             .Where(file => !generated.Any(file.Contains))

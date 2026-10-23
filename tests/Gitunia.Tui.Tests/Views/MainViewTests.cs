@@ -10,7 +10,6 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Views;
 
-[Trait("Os", "Independent")]
 public class MainViewTests
 {
     private static readonly ScreenModel EmptyModel = new("repository", null, 1, 1, "Normal", string.Empty, 0, 0, false, string.Empty);
