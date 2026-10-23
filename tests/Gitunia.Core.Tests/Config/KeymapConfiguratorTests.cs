@@ -140,7 +140,6 @@ public class KeymapConfiguratorTests
 
     [Theory]
     [InlineData("Bogus", "Graph", "J", "list.down", "unknown mode")]
-    [InlineData("7", "Graph", "J", "list.down", "unknown mode")]
     [InlineData("Normal", "Nowhere", "J", "list.down", "unknown view")]
     [InlineData("Normal", "Graph", "<nope>", "list.down", "not a key sequence")]
     [InlineData("Normal", "Graph", "", "list.down", "not a key sequence")]

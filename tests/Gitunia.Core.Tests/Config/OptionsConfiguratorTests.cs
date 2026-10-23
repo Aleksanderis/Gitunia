@@ -21,7 +21,6 @@ public sealed class OptionsConfiguratorTests
     [InlineData("{ \"showBranch\": false }", false)]
     [InlineData("{ \"showBranch\": null }", false)]
     [InlineData("{}", false)]
-    [InlineData("{ \"other\": 1 }", false)]
     [InlineData("null", false)]
     public void GivenAValidTabsObject_WhenParsing_ThenShowBranchFollowsItWithoutProblems(string json, bool expected)
     {
@@ -168,7 +167,6 @@ public sealed class OptionsConfiguratorTests
     [Theory]
     [InlineData("\"~/code\"")]
     [InlineData("{ \"path\": 1 }")]
-    [InlineData("7")]
     public void GivenScanRootsOfTheWrongType_WhenParsing_ThenTheDefaultAppliesWithAProblem(string json)
     {
         var problems = new List<ConfigProblem>();

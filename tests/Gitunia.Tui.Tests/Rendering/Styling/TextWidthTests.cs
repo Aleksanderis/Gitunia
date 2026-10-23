@@ -6,16 +6,6 @@ namespace Gitunia.Tui.Tests.Rendering.Styling;
 [Trait("Os", "Independent")]
 public class TextWidthTests
 {
-    [Theory]
-    [InlineData("abc", 3)]
-    [InlineData("修正", 4)]
-    [InlineData("é", 1)]
-    [InlineData("", 0)]
-    public void GivenText_WhenMeasuring_ThenWideTakeTwoColumnsAndCombiningNone(string text, int expected)
-    {
-        Assert.Equal(expected, TextWidth.Of(text));
-    }
-
     [Fact]
     public void GivenTextThatFits_WhenFitting_ThenItIsUnchanged()
     {

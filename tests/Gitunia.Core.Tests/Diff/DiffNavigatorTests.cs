@@ -23,17 +23,12 @@ public class DiffNavigatorTests
     }
 
     [Theory]
-    [InlineData(30, true)]
-    [InlineData(2, false)]
-    [InlineData(0, false)]
-    public void GivenNoAnchorInThatDirection_WhenStepping_ThenThereIsNoTarget(int row, bool forward)
+    [InlineData(new[] { 2, 10, 30 }, 30, true)]
+    [InlineData(new[] { 2, 10, 30 }, 2, false)]
+    [InlineData(new[] { 2, 10, 30 }, 0, false)]
+    [InlineData(new int[0], 0, true)]
+    public void GivenNoAnchorInThatDirection_WhenStepping_ThenThereIsNoTarget(int[] anchors, int row, bool forward)
     {
-        Assert.Null(DiffNavigator.Step(Anchors, row, forward, 1));
-    }
-
-    [Fact]
-    public void GivenNoAnchors_WhenStepping_ThenThereIsNoTarget()
-    {
-        Assert.Null(DiffNavigator.Step([], 0, true, 1));
+        Assert.Null(DiffNavigator.Step(anchors, row, forward, 1));
     }
 }
