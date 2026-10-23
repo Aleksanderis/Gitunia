@@ -15,6 +15,8 @@ public class GitRunnerTests
     private static readonly TimeSpan KillTimeout = TimeSpan.FromSeconds(2);
 
     private static readonly TimeSpan CancelDelayWithoutProcessId = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan SlowConsumerTimeout = TimeSpan.FromMilliseconds(1500);
+    private static readonly TimeSpan SlowConsumerDelay = TimeSpan.FromMilliseconds(3000);
 
     // Only bounds a hang.
     private static readonly TimeSpan SignalGuardTimeout = TimeSpan.FromSeconds(30);
@@ -228,11 +230,13 @@ public class GitRunnerTests
         await foreach (var chunk in RunnerFor(fake).StreamAsync(
             AnyDirectory,
             ["log"],
-            new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(200)),
+            new GitRunOptions(Timeout: SlowConsumerTimeout),
             TestContext.Current.CancellationToken))
         {
             // Intrinsic wait: the consumer must be slower than the runner's timeout for the test to mean anything.
-            await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
+            // The timeout also covers starting the process, so it stays well above a loaded machine's start time
+            // (#634).
+            await Task.Delay(SlowConsumerDelay, TestContext.Current.CancellationToken);
             collected += chunk.Length;
         }
 

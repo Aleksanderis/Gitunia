@@ -193,7 +193,7 @@ public class IssueLinkActionsTests : IDisposable
 
     private void Settle()
     {
-        Assert.True(_arrived.Wait(TimeSpan.FromSeconds(10)));
+        Assert.True(_arrived.Wait(TimeSpan.FromSeconds(30)));
         while (_posted.TryDequeue(out var action))
         {
             action();

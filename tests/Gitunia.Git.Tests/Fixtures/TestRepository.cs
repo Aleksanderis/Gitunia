@@ -249,7 +249,8 @@ public sealed class TestRepository : IDisposable
             environment[name] = value;
         }
 
-        return new GitRunner(new GitRunnerOptions(TestGitSpeed.Executable, EnvironmentOverrides: environment));
+        return new GitRunner(
+            new GitRunnerOptions(TestGitSpeed.Executable, TestGitSpeed.Timeout, environment));
     }
 
     public void Dispose() => DeleteDirectory(_rootDirectory);

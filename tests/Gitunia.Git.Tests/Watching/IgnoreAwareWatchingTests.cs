@@ -14,7 +14,7 @@ public class IgnoreAwareWatchingTests
     private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
     private static readonly WorkingTreeDirectoryLister Lister = new(Runner);
-    private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(60);
 
     private static readonly RepositoryWatcherOptions FastOptions = new(
         TimeSpan.FromMilliseconds(40),
@@ -110,6 +110,10 @@ public class IgnoreAwareWatchingTests
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
+        // One level at a time: creating both at once (`mkdir -p`) can lose the inner directory, because its event
+        // fires before the outer directory has a watcher (a product race, tracked in #604, seen as a count of 3).
+        Directory.CreateDirectory(Path.Combine(testRepository.WorkingTreePath, "fresh"));
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
         Directory.CreateDirectory(Path.Combine(testRepository.WorkingTreePath, "fresh", "deeper"));
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 4);
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);

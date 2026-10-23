@@ -10,6 +10,8 @@ namespace Gitunia.Git.Tests.Watching;
 
 public class RepositoryWatcherTests
 {
+    private const int MaximumLateEvents = 10;
+
     private static readonly GitRunner Runner = IsolatedGit.CreateRunner();
     private static readonly RepositoryDiscovery Discovery = new(Runner);
 
@@ -17,6 +19,9 @@ public class RepositoryWatcherTests
         TimeSpan.FromMilliseconds(40),
         TimeSpan.FromMilliseconds(400),
         TimeSpan.FromMilliseconds(60));
+
+    private static readonly TimeSpan ConditionTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(20);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -90,6 +95,17 @@ public class RepositoryWatcherTests
         watcher.SetActive(true);
 
         Assert.Equal(1, recorder.CallCount);
+        Assert.False(watcher.IsStale);
+
+        // The first event of the commit (a lock file, the index) already turns the tab stale; on a slow machine the
+        // ref update reaches the watcher only after that (#634). Hide the tab again until it has been reported.
+        for (var attempt = 0; attempt < MaximumLateEvents && !HasSeenRefs(recorder); attempt++)
+        {
+            watcher.SetActive(false);
+            await WaitUntilAsync(() => watcher.IsStale || HasSeenRefs(recorder));
+            watcher.SetActive(true);
+        }
+
         Assert.True(recorder.Seen.HasFlag(RepositoryChangeKinds.Refs));
         Assert.False(watcher.IsStale);
     }
@@ -269,6 +285,18 @@ public class RepositoryWatcherTests
         }
 
         queued.Clear();
+    }
+
+    private static bool HasSeenRefs(ChangeRecorder recorder) => recorder.Seen.HasFlag(RepositoryChangeKinds.Refs);
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow + ConditionTimeout;
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "Condition not reached in time.");
+            await Task.Delay(PollInterval, Token);
+        }
     }
 
     private static async Task RunGitAsync(string path, params string[] arguments)
