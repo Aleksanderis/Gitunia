@@ -11,11 +11,11 @@ using Gitunia.Tui.Loading.Commits;
 namespace Gitunia.Tui.App.Compare;
 
 /// <summary>
-/// Compares two commits of the graph (#535, ux.md "Comparing two commits"). <c>&lt;space&gt;=</c> marks the selected
-/// commit; on another commit it shows <c>git diff older newer</c> (older and newer by graph order) in the Changes tab
-/// and the diff pane, and on the marked commit it clears the mark. <c>Esc</c> in the graph clears the mark and the
-/// comparison. The mark is part of the tab's state, so each tab has its own; selecting another commit ends the
-/// comparison shown but keeps the mark. Runs without a terminal.
+/// Compares two commits of the graph (#535, #636, ux.md "Comparing two commits"). <c>&lt;space&gt;=</c> marks the
+/// selected commit; while a mark is set, every other commit under the cursor is compared with it (<see cref="Follow"/>:
+/// <c>git diff older newer</c>, older and newer by graph order, in the Changes tab and the diff pane). On another
+/// commit the key moves the mark, on the marked commit it clears it. <c>Esc</c> in the graph clears the mark and the
+/// comparison. The mark is part of the tab's state, so each tab has its own. Runs without a terminal.
 /// </summary>
 /// <param name="host">The workspace, which holds the mark of each tab.</param>
 /// <param name="activeSession">The active tab's session, null when there is none.</param>
@@ -23,6 +23,9 @@ namespace Gitunia.Tui.App.Compare;
 public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeSession, Func<ObjectId?> selectedCommit)
 {
     private const int HashLength = 7;
+
+    private ObjectId? _followed;
+    private bool _shownChanges;
 
     /// <summary>A short notice for the status bar from the last handled action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -48,6 +51,56 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
         return false;
     }
 
+    /// <summary>
+    /// Compares the commit under the cursor with the marked one once its own details have loaded (#636). Called when
+    /// the details store of the active tab changes; does nothing without a mark, on the marked commit, or while the
+    /// comparison for this commit is already asked for. The own details load goes through the store's debounce, so
+    /// holding a movement key starts no process per row.
+    /// </summary>
+    public void Follow()
+    {
+        if (host.Workspace.ActiveTab is not { } tab || activeSession() is not { } session)
+        {
+            return;
+        }
+
+        var current = session.Details.Current;
+        if (current.Commit != _followed)
+        {
+            _followed = null;
+        }
+
+        if (tab.View.CompareMark is not { } mark
+            || current is not { Status: CommitDetailsStatus.Loaded, Commit: { } selected, Details.IsComparison: false }
+            || selected == mark
+            || _followed == selected)
+        {
+            return;
+        }
+
+        var markIndex = session.Graph.IndexOf(mark);
+        var selectedIndex = session.Graph.IndexOf(selected);
+        if (markIndex < 0 || selectedIndex < 0)
+        {
+            return;
+        }
+
+        // The graph lists the newest commit first, so the larger index is the older commit.
+        var older = markIndex > selectedIndex ? mark : selected;
+        var newer = markIndex > selectedIndex ? selected : mark;
+        if (!session.Details.Compare(older, newer))
+        {
+            return;
+        }
+
+        _followed = selected;
+        if (!_shownChanges)
+        {
+            _shownChanges = true;
+            host.Dispatch(new TabCommand(tab.Id, new SetBottomTabCommand(BottomTab.Changes)));
+        }
+    }
+
     private void Compare()
     {
         if (host.Workspace.ActiveTab is not { } tab || activeSession() is not { } session)
@@ -63,8 +116,9 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
 
         if (tab.View.CompareMark is not { } mark)
         {
+            _shownChanges = false;
             host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(selected)));
-            Notice = $"Marked {Short(selected)}: select another commit and press <space>= to compare";
+            Notice = $"Marked {Short(selected)}: move to another commit to compare it (Esc ends)";
             return;
         }
 
@@ -75,31 +129,16 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
             return;
         }
 
-        var markIndex = session.Graph.IndexOf(mark);
-        var selectedIndex = session.Graph.IndexOf(selected);
-        if (markIndex < 0 || selectedIndex < 0)
-        {
-            Notice = "The marked commit is not in the graph (Esc clears the mark)";
-            return;
-        }
-
-        // The graph lists the newest commit first, so the larger index is the older commit.
-        var older = markIndex > selectedIndex ? mark : selected;
-        var newer = markIndex > selectedIndex ? selected : mark;
-        if (!session.Details.Compare(older, newer))
-        {
-            Notice = session.Details.Current.Status == CommitDetailsStatus.Failed
-                ? "The commit could not be loaded (<space>r retries)"
-                : "Still loading the commit; try again";
-            return;
-        }
-
-        host.Dispatch(new TabCommand(tab.Id, new SetBottomTabCommand(BottomTab.Changes)));
-        Notice = $"Comparing {Short(older)}..{Short(newer)}";
+        // The mark moves here, so this commit's own changes show and the next move compares with it.
+        _followed = null;
+        host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(selected)));
+        session.Details.ClearComparison();
+        Notice = $"Mark moved to {Short(selected)}";
     }
 
     private void Clear(RepositoryState tab)
     {
+        _followed = null;
         host.Dispatch(new TabCommand(tab.Id, new SetCompareMarkCommand(null)));
         activeSession()?.Details.ClearComparison();
     }

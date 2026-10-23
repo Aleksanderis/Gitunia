@@ -1172,12 +1172,17 @@ public sealed class TuiApplication(
                     ? PaneHints.ForMessageEditing()
                     : DetailChangesFocused()
                     ? PaneHints.ForDetailChanges()
+                    : GraphComparing()
+                    ? PaneHints.ForGraphComparing()
                     : PaneHints.For(
                         _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
                         _diffPane.IsShowingContent),
             SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
                 ?? PopupFallbackLine(),
         };
+
+    private bool GraphComparing() =>
+        _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };
 
     private bool DetailChangesFocused() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Changes };
@@ -1637,6 +1642,7 @@ public sealed class TuiApplication(
         if (previous is not null)
         {
             previous.Details.Changed -= RefreshDetail;
+            previous.Details.Changed -= _router.Compare!.Follow;
             previous.IssueLinksChanged -= RefreshDetail;
             if (previous.Tree is { IsEditingFilter: true } editing)
             {
@@ -1658,6 +1664,7 @@ public sealed class TuiApplication(
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
+            current.Details.Changed += _router.Compare!.Follow;
             current.IssueLinksChanged += RefreshDetail;
             if (current.Tree is { } currentTree)
             {
