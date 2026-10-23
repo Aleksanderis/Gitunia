@@ -110,10 +110,7 @@ public class IgnoreAwareWatchingTests
         watcher.Start();
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
 
-        // One level at a time: creating both at once (`mkdir -p`) can lose the inner directory, because its event
-        // fires before the outer directory has a watcher (a product race, tracked in #604, seen as a count of 3).
-        Directory.CreateDirectory(Path.Combine(testRepository.WorkingTreePath, "fresh"));
-        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 3);
+        // `mkdir -p`: the inner directory can appear before the outer one has a watcher (#604).
         Directory.CreateDirectory(Path.Combine(testRepository.WorkingTreePath, "fresh", "deeper"));
         await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 4);
         await recorder.WaitForAsync(RepositoryChangeKinds.WorkingTree, Token);
@@ -121,6 +118,25 @@ public class IgnoreAwareWatchingTests
         testRepository.WriteFile(Path.Combine("fresh", "deeper", "file.txt"), "x");
 
         await WaitForAsync(() => recorder.CallCount > callsBefore);
+    }
+
+    [Fact]
+    public async Task GivenManyQuickMakeDirectoryPaths_WhenCreated_ThenEveryLevelIsWatched()
+    {
+        const int pathCount = 40;
+        using var testRepository = CreateRepositoryWithIgnoredTree();
+        var location = await Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        using var watcher = CreateWatcher(location, _ => { });
+        watcher.Start();
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2);
+
+        for (var index = 0; index < pathCount; index++)
+        {
+            Directory.CreateDirectory(
+                Path.Combine(testRepository.WorkingTreePath, $"fresh{index}", "deeper", "deepest"));
+        }
+
+        await WaitForAsync(() => watcher.WorkingTreeDirectoryCount == 2 + (pathCount * 3));
     }
 
     [Fact]
