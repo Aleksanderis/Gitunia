@@ -10,6 +10,10 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Shared git speed settings (#624): one source file, linked instead of a project reference between test projects. -->
+    <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestGitSpeed.cs" Link="Fixtures\TestGitSpeed.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Gitunia.Core\Gitunia.Core.csproj" />
   </ItemGroup>
 </Project>
