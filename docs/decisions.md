@@ -446,6 +446,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-23
 
-**UI:** Tree style of the Changes tab (#548): folder rows collapse (#616: `za`, `h`, click; closed folders kept per tab, not saved), and the working-tree lists keep two styles (their rows are index-addressed by staging, discard and ranges); the folder view reuses the loaded commit diff, cut to the folder, so it costs no git call. Supersedes "the tree style is M5" in the #540 entry; details in `ux.md`.
+**UI:** Tree style of the Changes tab (#548): folder rows are not collapsible yet, and the working-tree lists keep two styles (their rows are index-addressed by staging, discard and ranges); the folder view reuses the loaded commit diff, cut to the folder, so it costs no git call. Supersedes "the tree style is M5" in the #540 entry; details in `ux.md`.
 **UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. Published values are nudged where they fail contrast (`docs/ux.md`).
 **Git layer:** Interactive rebase keeps merge commits (#461; supersedes "interactive rebase refuses merges, `--rebase-merges` post-MVP"): git prepares the `--rebase-merges` todo, read through a sequence editor that prints it and fails; label, reset and merge lines are kept and only reordered. Why: the todo is git's to get right; cost is one aborted `rebase` start per read.
+**UI:** Changes tree folders collapse (#616; supersedes "not collapsible yet" in the #548 entry): `za`, `h` and a click, since `o` is a vim command and `Enter`/`l` open the folder diff; closed folders are per tab, not saved.
