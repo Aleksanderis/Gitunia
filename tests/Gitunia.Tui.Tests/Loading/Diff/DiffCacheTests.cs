@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Loading.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffCacheTests
 {
     [Fact]

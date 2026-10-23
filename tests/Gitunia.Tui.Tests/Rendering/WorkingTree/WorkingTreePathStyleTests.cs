@@ -11,6 +11,7 @@ using static Gitunia.Tui.Tests.Rendering.WorkingTree.WorkingTreeEntries;
 
 namespace Gitunia.Tui.Tests.Rendering.WorkingTree;
 
+[Trait("Os", "Independent")]
 public class WorkingTreePathStyleTests
 {
     private const string Deep = "src/Gitunia.Tui/Rendering/WorkingTree/WorkingTreeRowRenderer.cs";

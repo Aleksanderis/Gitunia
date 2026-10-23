@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Workspaces.Panes;
 
+[Trait("Os", "Independent")]
 public class PaneNavigatorTests
 {
     private static readonly PaneKind[] SidebarAndGraph = [PaneKind.Sidebar, PaneKind.Graph];

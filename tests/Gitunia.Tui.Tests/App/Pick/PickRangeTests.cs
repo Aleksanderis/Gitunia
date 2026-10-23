@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Pick;
 
+[Trait("Os", "Independent")]
 public class PickRangeTests
 {
     private static readonly int Lead = ScreenLayout.ReservedLeadingRows;

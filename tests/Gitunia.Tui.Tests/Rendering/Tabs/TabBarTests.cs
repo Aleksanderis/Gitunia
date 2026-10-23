@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Tabs;
 
+[Trait("Os", "Independent")]
 public class TabBarTests
 {
     private static TabLabel Label(int number, string name, bool isActive = false, string? branch = "main", bool dirty = false, int ahead = 0, int behind = 0, bool missing = false, bool loading = false) =>

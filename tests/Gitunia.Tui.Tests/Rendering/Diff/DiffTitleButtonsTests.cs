@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffTitleButtonsTests
 {
     [Fact]

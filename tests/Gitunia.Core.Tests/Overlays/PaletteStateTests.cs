@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
 
+[Trait("Os", "Independent")]
 public class PaletteStateTests
 {
     private static PaletteState Palette() => new(PaletteEntryBuilder.Build(DefaultKeymap.Create(), DefaultKeymap.GraphView));

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Overlays;
 
+[Trait("Os", "Independent")]
 public class PaletteEntryBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();

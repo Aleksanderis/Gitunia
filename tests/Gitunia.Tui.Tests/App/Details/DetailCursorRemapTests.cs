@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Details;
 
+[Trait("Os", "Independent")]
 public class DetailCursorRemapTests
 {
     private static readonly CommitFileChange[] Changes =

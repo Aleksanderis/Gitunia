@@ -7,6 +7,7 @@ using static Gitunia.Core.Tests.Graph.GraphTestData;
 
 namespace Gitunia.Core.Tests.Graph;
 
+[Trait("Os", "Independent")]
 public class GraphSplicerTests
 {
     private static readonly IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> NoDecorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>();

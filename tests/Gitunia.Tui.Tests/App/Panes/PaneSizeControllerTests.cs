@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Panes;
 
+[Trait("Os", "Independent")]
 public class PaneSizeControllerTests
 {
     private PaneArrangement _arrangement = PaneArrangement.Normal;

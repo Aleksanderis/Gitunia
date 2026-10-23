@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Settings;
 
+[Trait("Os", "Independent")]
 public class KeyReferenceBuilderTests
 {
     [Fact]

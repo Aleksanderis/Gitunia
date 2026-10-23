@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Lists;
 
+[Trait("Os", "Independent")]
 public class ListMotionTests
 {
     private static int Move(ActionId action, int? count, int selected, int itemCount = 100, int pageHeight = 20)

@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffWrapMapTests
 {
     private static readonly GraphGlyphSet Glyphs = GraphGlyphSet.Unicode;

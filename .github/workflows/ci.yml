@@ -121,9 +121,11 @@ jobs:
         # 39954351890). Sequential projects keep the wall time about the same on a CPU-bound machine but halve the
         # time every git call waits (2 CPUs, local: Git.Tests 6m27 -> 2m43). The loop stops at the first failing
         # project so a broken run does not burn the Tui.Tests minutes, and a hung test host is killed after 10 min.
+        # Only OS-sensitive tests run here (#637): classes marked [Trait("Os", "Independent")] are proven by Linux
+        # and skipped; an unmarked test still runs, so a forgotten mark costs time, never coverage.
         run: |
           for project in Core Platform Git Tui; do
-            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build \
+            dotnet test "tests/Gitunia.$project.Tests" -c Release --no-build --filter "Os!=Independent" \
               --blame-hang-timeout 10m --blame-hang-dump-type none || exit 1
           done
       - name: AOT publish (any IL* warning fails)

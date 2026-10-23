@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Lists;
 
+[Trait("Os", "Independent")]
 public class RowRangeTests
 {
     [Fact]

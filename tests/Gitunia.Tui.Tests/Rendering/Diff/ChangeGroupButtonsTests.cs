@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Diff;
 
+[Trait("Os", "Independent")]
 public class ChangeGroupButtonsTests
 {
     private const int Padding = 1;

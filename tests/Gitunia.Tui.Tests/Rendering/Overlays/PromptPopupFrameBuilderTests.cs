@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
+[Trait("Os", "Independent")]
 public class PromptPopupFrameBuilderTests
 {
     [Fact]

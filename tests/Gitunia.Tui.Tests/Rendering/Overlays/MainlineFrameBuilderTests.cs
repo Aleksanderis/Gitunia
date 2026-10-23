@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Overlays;
 
+[Trait("Os", "Independent")]
 public class MainlineFrameBuilderTests
 {
     private const string Title = "Revert merge commit abc: keep the mainline of";

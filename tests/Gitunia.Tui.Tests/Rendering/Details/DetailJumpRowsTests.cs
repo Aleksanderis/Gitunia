@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Details;
 
+[Trait("Os", "Independent")]
 public class DetailJumpRowsTests
 {
     [Fact]

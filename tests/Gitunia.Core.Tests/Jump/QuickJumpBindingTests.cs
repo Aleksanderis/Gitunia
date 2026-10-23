@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Jump;
 
+[Trait("Os", "Independent")]
 public class QuickJumpBindingTests
 {
     [Theory]

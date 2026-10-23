@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Overlays;
 
+[Trait("Os", "Independent")]
 public class PromptPopupTrackerTests
 {
     private PromptPopup? _popup;

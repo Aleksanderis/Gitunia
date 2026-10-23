@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Tabs.Models;
 
+[Trait("Os", "Independent")]
 public class PollOptionsTests
 {
     private static readonly PollOptions Options = PollOptions.Default;

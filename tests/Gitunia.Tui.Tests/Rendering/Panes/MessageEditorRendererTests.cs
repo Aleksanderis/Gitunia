@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.Rendering.Panes;
 
+[Trait("Os", "Independent")]
 public class MessageEditorRendererTests
 {
     [Fact]

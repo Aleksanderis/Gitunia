@@ -5,6 +5,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Jump;
 
+[Trait("Os", "Independent")]
 public class QuickJumpLabelerTests
 {
     private static readonly string[] Subjects =

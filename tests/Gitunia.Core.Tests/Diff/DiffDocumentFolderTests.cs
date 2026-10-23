@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Diff;
 
+[Trait("Os", "Independent")]
 public class DiffDocumentFolderTests
 {
     [Fact]

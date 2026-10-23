@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Workspaces.Repositories;
 
+[Trait("Os", "Independent")]
 public class RepositoryStatusSummaryTests
 {
     [Fact]

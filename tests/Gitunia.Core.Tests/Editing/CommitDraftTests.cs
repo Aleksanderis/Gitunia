@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Editing;
 
+[Trait("Os", "Independent")]
 public class CommitDraftTests
 {
     [Fact]
