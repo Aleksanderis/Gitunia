@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Execution.Models;
 using Gitunia.Git.Operations;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
@@ -38,6 +40,8 @@ public sealed class InteractiveRebaseWriter(
     private const string DumpEditor = "echo ---gitunia-todo---; cat \"$1\"; false";
 
     private const int DumpExitCode = 1;
+
+    private static readonly string[] AbortArguments = ["rebase", "--abort"];
 
     private const string CommitSuffix = "^{commit}";
 
@@ -174,6 +178,11 @@ public sealed class InteractiveRebaseWriter(
         CancellationToken cancellationToken)
     {
         RejectSequenceEditor();
+        if (detector.Detect(location) != RepositoryOperation.None)
+        {
+            throw new RebaseRangeException("Finish or abort the operation in progress first");
+        }
+
         var arguments = new List<string>
         {
             "-c",
@@ -190,12 +199,24 @@ public sealed class InteractiveRebaseWriter(
             "--interactive",
             "--rebase-merges",
             "--no-update-refs",
+            "--no-autosquash",
             "--no-verify",
             rebaseBase.IsRoot ? "--root" : $"{rebaseBase.Onto}{CommitSuffix}",
         };
         var options = new GitRunOptions(Timeout: ReadTimeout, AcceptedExitCodes: [DumpExitCode]);
-        var result = await git.RunAsync(location.CommandPath, arguments, options, cancellationToken)
-            .ConfigureAwait(false);
+        GitResult result;
+        try
+        {
+            result = await git.RunAsync(location.CommandPath, arguments, options, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // A cancel or timeout while git waited on the editor can leave the half-started rebase (and an
+            // autostash) behind; no operation was in progress before, so aborting only undoes this call.
+            await AbortLeftoverAsync(location).ConfigureAwait(false);
+            throw;
+        }
 
         var output = result.StandardOutputText;
         var marker = output.IndexOf(DumpMarker, StringComparison.Ordinal);
@@ -215,6 +236,25 @@ public sealed class InteractiveRebaseWriter(
         }
 
         return todo;
+    }
+
+    private async Task AbortLeftoverAsync(RepositoryLocation location)
+    {
+        if (detector.Detect(location) != RepositoryOperation.Rebase)
+        {
+            return;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(ReadTimeout);
+            await git.RunAsync(location.CommandPath, AbortArguments, GitRunOptions.Default, timeout.Token)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is GitException or OperationCanceledException)
+        {
+            // Nothing more can be done here; the banner offers the abort to the user.
+        }
     }
 
     private static void RejectOption(RebaseBase rebaseBase)

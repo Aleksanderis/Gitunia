@@ -226,6 +226,28 @@ public class QuickRebaseWriterTests
         Assert.Equal(2, plan.LaterCommits);
     }
 
+    [Fact]
+    public async Task GivenAFixupWhoseCommitStartsALineAfterAReset_WhenPlanning_ThenItIsRefusedBeforeAnyConfirm()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Base", new TestFile("base.txt", "base\n"))
+            .Commit("Parent", new TestFile("parent.txt", "p\n"))
+            .CheckoutNewBranch("side")
+            .Commit("SideA", new TestFile("a.txt", "a\n"))
+            .Checkout("main")
+            .Commit("Main", new TestFile("main.txt", "main\n"));
+        repository.Git("merge", "--no-ff", "-m", "Merge side", "side");
+        var (writer, location) = await CreateAsync(repository);
+        var target = repository.Git("rev-parse", "HEAD^1").Trim();
+        var head = repository.Head;
+
+        var exception = await Assert.ThrowsAsync<RebaseRangeException>(
+            () => writer.PlanAsync(location, QuickRebaseKind.Fixup, target, Token));
+
+        Assert.Contains("reset", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(head, repository.Head);
+    }
+
     private static string[] Subjects(TestRepository repository) =>
         repository.Git("log", "--reverse", "--format=%s").Split('\n', StringSplitOptions.RemoveEmptyEntries);
 

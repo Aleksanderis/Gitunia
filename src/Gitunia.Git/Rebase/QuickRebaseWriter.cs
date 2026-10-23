@@ -59,7 +59,16 @@ public sealed class QuickRebaseWriter(GitRunner git, IInteractiveRebaseWriter in
         var target = into is null ? null : range.FirstOrDefault(item => item.Hash == into);
         var message = await MessageAsync(location, commit, cancellationToken).ConfigureAwait(false);
         var head = range[^1].Hash;
-        return new QuickRebasePlan(kind, commit, message, rebaseBase, range, head, target);
+        var plan = new QuickRebasePlan(kind, commit, message, rebaseBase, range, head, target);
+
+        // Refused before the Confirm, not after it: a fixup right after a reset has nothing to meld into.
+        var entries = range.Select(item => EntryFor(item, plan, plan.Subject)).ToList();
+        if (RebaseTodoValidator.FindProblem(entries) is { } problem)
+        {
+            throw new RebaseRangeException(problem);
+        }
+
+        return plan;
     }
 
     public async Task<InteractiveRebaseResult> RunAsync(

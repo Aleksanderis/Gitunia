@@ -512,7 +512,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Graph | `<space>gp` `<space>gv` | Cherry-pick / revert the selected commit or the Visual range onto the current branch (also in Visual mode; a merge commit asks for the mainline; workflow 3) |
 | Graph | `<space>gx` | Reset the current branch to the selected commit: `s`/`m`/`h` picks soft, mixed or hard; Confirm where work is lost |
 | Graph | `<space>gr` | Rebase the current branch onto the selected commit (Confirm; non-interactive; refused with an operation in progress, tracked changes or a detached HEAD) |
-| Graph | `<space>gi` | Interactive rebase onto the selected commit: read the commits the target lacks and open the todo editor (same refusals as `<space>gr`; merge commits in the range are refused; workflow 3) |
+| Graph | `<space>gi` | Interactive rebase onto the selected commit: read the commits the target lacks and open the todo editor (same refusals as `<space>gr`; merge commits in the range are kept with `--rebase-merges`, #461; workflow 3) |
 | Graph | `<space>gI` | Interactive rebase of the whole history, root commit included (`--root`; no selection needed; same refusals as `<space>gi`; workflow 3, #561) |
 | Graph | `<space>gf` `<space>gw` `<space>gd` | Quick rebase of the selected commit (workflow 3): fix it up into the commit before it / reword its subject / drop it; each asks a Confirm that names the undo (#459) |
 | Graph | `<space>l` | Open the reflog of HEAD (a list of its entries; see the Reflog flow) |

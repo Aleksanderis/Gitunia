@@ -588,6 +588,37 @@ public class InteractiveRebaseWriterTests
     }
 
     [Fact]
+    public async Task GivenAutoSquashOn_WhenReadingAMergeRangeWithAFixupCommit_ThenTheTodoStillParses()
+    {
+        using var repository = Branchy();
+        repository.Git("config", "rebase.autoSquash", "true");
+        repository.Git("checkout", "-q", "side");
+        repository.Commit("fixup! SideA", new TestFile("a.txt", "a2\n"));
+        repository.Git("checkout", "-q", "main");
+        repository.Git("merge", "--no-ff", "-m", "Merge side again", "side");
+        var (writer, location) = await CreateAsync(repository);
+
+        var range = await writer.ReadRangeAsync(location, FromBase(repository), Token);
+
+        Assert.Contains(range, line => line.Subject == "fixup! SideA" && line.Action == RebaseTodoAction.Pick);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenAnOperationInProgress_WhenReadingAMergeRange_ThenItIsRefusedAndNothingIsAborted()
+    {
+        using var repository = ConflictingBranchy();
+        var (writer, location) = await CreateAsync(repository);
+        var rebaseBase = FromBase(repository);
+        var range = await writer.ReadRangeAsync(location, rebaseBase, Token);
+        await writer.RebaseAsync(location, rebaseBase, Swapped(range), Token);
+
+        await Assert.ThrowsAsync<RebaseRangeException>(() => writer.ReadRangeAsync(location, rebaseBase, Token));
+
+        Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
     public async Task GivenATodoWithoutTheMergeLine_WhenRebasing_ThenItIsRefusedBeforeGitStarts()
     {
         using var repository = Branchy();
