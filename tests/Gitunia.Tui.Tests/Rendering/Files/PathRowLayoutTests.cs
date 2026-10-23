@@ -10,13 +10,13 @@ public class PathRowLayoutTests
     private const string Ellipsis = "…";
 
     [Fact]
-    public void GivenAWideRow_WhenLayingOutNameFirst_ThenTheNameIsPlainAndTheDirectoryFaintAfterIt()
+    public void GivenAWideRow_WhenLayingOutNameFirst_ThenTheNameIsBoldAndTheDirectoryFaintAfterIt()
     {
         var segments = PathRowLayout.Segments(FilePathStyle.NameFirst, "src/Core/Git/parser.cs", null, 60, Ellipsis);
 
         Assert.Equal(
             [
-                new StyledSegment("parser.cs", SegmentRole.Plain),
+                new StyledSegment("parser.cs", SegmentRole.FileName),
                 new StyledSegment("  src/Core/Git", SegmentRole.Faint),
             ],
             segments);
@@ -27,7 +27,7 @@ public class PathRowLayoutTests
     {
         var segments = PathRowLayout.Segments(FilePathStyle.NameFirst, "README.md", null, 30, Ellipsis);
 
-        Assert.Equal([new StyledSegment("README.md", SegmentRole.Plain)], segments);
+        Assert.Equal([new StyledSegment("README.md", SegmentRole.FileName)], segments);
     }
 
     [Theory]
