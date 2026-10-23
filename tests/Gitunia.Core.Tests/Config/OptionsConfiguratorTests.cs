@@ -21,6 +21,7 @@ public sealed class OptionsConfiguratorTests
     [InlineData("{ \"showBranch\": false }", false)]
     [InlineData("{ \"showBranch\": null }", false)]
     [InlineData("{}", false)]
+    [InlineData("{ \"other\": 1, \"showBranch\": true }", true)] // A foreign key is skipped
     [InlineData("null", false)]
     public void GivenAValidTabsObject_WhenParsing_ThenShowBranchFollowsItWithoutProblems(string json, bool expected)
     {
