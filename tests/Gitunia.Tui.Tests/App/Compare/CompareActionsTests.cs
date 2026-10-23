@@ -69,7 +69,6 @@ public sealed class CompareActionsTests : IDisposable
         _reader.SetFiles(Newest[0], Newest[2], "changed.txt");
         await SelectAsync(Newest[2]);
 
-        actions.TryExecute(ActionIds.GraphCompare);
         await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
 
         var details = _session.Details.Current.Details!;
@@ -88,7 +87,6 @@ public sealed class CompareActionsTests : IDisposable
         _reader.SetFiles(Newest[0], Newest[2], "changed.txt");
         await SelectAsync(Newest[0]);
 
-        actions.TryExecute(ActionIds.GraphCompare);
         await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
 
         Assert.Equal(Newest[2], _session.Details.Current.Details!.CompareOlder);
@@ -96,18 +94,92 @@ public sealed class CompareActionsTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAComparison_WhenSelectingAnotherCommit_ThenItsOwnChangesShowAndTheMarkStays()
+    public async Task GivenAComparison_WhenMovingToAThirdCommit_ThenItIsComparedWithTheSameMark()
     {
         var actions = await CreateAsync(Newest[0]);
         actions.TryExecute(ActionIds.GraphCompare);
         await SelectAsync(Newest[2]);
-        actions.TryExecute(ActionIds.GraphCompare);
         await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
 
         await SelectAsync(Newest[1]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
+
+        Assert.Equal(Newest[1], _session.Details.Current.Details!.CompareOlder);
+        Assert.Equal(Newest[0], _session.Details.Current.Details!.CompareNewer);
+        Assert.Equal(Newest[0], _host.Workspace.ActiveTab!.View.CompareMark);
+    }
+
+    [Fact]
+    public async Task GivenCachedCommits_WhenTheCursorMovesQuickly_ThenOnlyTheLastOneStartsAComparison()
+    {
+        var actions = await CreateAsync(Newest[0]);
+        _session.Details.Select(Newest[1], [Newest[2]]);
+        await _pump.RunUntilAsync(() => _session.Details.CachedCount >= 3);
+        _session.Details.Select(Newest[0]);
+        actions.TryExecute(ActionIds.GraphCompare);
+        var before = _reader.ReadFilesCount;
+
+        _selected = Newest[1];
+        _session.Details.Select(Newest[1]);
+        _selected = Newest[2];
+        _session.Details.Select(Newest[2]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details?.IsComparison == true);
+
+        Assert.Equal(Newest[2], _session.Details.Current.Details!.CompareOlder);
+        Assert.Equal(before + 1, _reader.ReadFilesCount);
+    }
+
+    [Fact]
+    public async Task GivenAComparison_WhenMovingBackToTheMarkedCommit_ThenItsOwnChangesShow()
+    {
+        var actions = await CreateAsync(Newest[0]);
+        actions.TryExecute(ActionIds.GraphCompare);
+        await SelectAsync(Newest[2]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
+
+        await SelectAsync(Newest[0]);
 
         Assert.False(_session.Details.Current.Details!.IsComparison);
         Assert.Equal(Newest[0], _host.Workspace.ActiveTab!.View.CompareMark);
+    }
+
+    [Fact]
+    public async Task GivenAComparison_WhenPressingTheKeyOnAnotherCommit_ThenTheMarkMovesThereWithoutComparing()
+    {
+        var actions = await CreateAsync(Newest[0]);
+        actions.TryExecute(ActionIds.GraphCompare);
+        await SelectAsync(Newest[2]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
+
+        actions.TryExecute(ActionIds.GraphCompare);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Status == CommitDetailsStatus.Loaded);
+
+        Assert.Equal(Newest[2], _host.Workspace.ActiveTab!.View.CompareMark);
+        Assert.False(_session.Details.Current.Details!.IsComparison);
+        Assert.Contains("moved", actions.Notice, StringComparison.Ordinal);
+
+        await SelectAsync(Newest[1]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
+
+        Assert.Equal(Newest[2], _session.Details.Current.Details!.CompareOlder);
+        Assert.Equal(Newest[1], _session.Details.Current.Details!.CompareNewer);
+    }
+
+    [Fact]
+    public async Task GivenAMark_WhenTheCursorMovesSeveralTimesQuickly_ThenOnlyTheLastCommitIsCompared()
+    {
+        var actions = await CreateAsync(Newest[0]);
+        actions.TryExecute(ActionIds.GraphCompare);
+        var before = _reader.ReadFilesCount;
+
+        _selected = Newest[1];
+        _session.Details.Select(Newest[1]);
+        _selected = Newest[2];
+        _session.Details.Select(Newest[2]);
+        await _pump.RunUntilAsync(() => _session.Details.Current.Details?.IsComparison == true);
+
+        Assert.Equal(Newest[2], _session.Details.Current.Commit);
+        Assert.Equal(before + 1, _reader.ReadFilesCount);
     }
 
     [Fact]
@@ -116,7 +188,6 @@ public sealed class CompareActionsTests : IDisposable
         var actions = await CreateAsync(Newest[0]);
         actions.TryExecute(ActionIds.GraphCompare);
         await SelectAsync(Newest[2]);
-        actions.TryExecute(ActionIds.GraphCompare);
         await _pump.RunUntilAsync(() => _session.Details.Current.Details!.IsComparison);
 
         Assert.True(actions.TryExecute(ActionIds.Cancel));
@@ -147,16 +218,15 @@ public sealed class CompareActionsTests : IDisposable
     }
 
     [Fact]
-    public async Task GivenAMarkNotInTheGraph_WhenComparing_ThenItSaysSoAndKeepsTheMark()
+    public async Task GivenAMarkNotInTheGraph_WhenPressingTheKey_ThenTheMarkMovesToTheCursor()
     {
         var actions = await CreateAsync(Newest[1]);
-        var gone = FakeCommitDetailsReader.MissingId();
-        _host.Dispatch(new TabCommand(_session.TabId, new SetCompareMarkCommand(gone)));
+        _host.Dispatch(
+            new TabCommand(_session.TabId, new SetCompareMarkCommand(FakeCommitDetailsReader.MissingId())));
 
         actions.TryExecute(ActionIds.GraphCompare);
 
-        Assert.Equal(gone, _host.Workspace.ActiveTab!.View.CompareMark);
-        Assert.Contains("not in the graph", actions.Notice, StringComparison.Ordinal);
+        Assert.Equal(Newest[1], _host.Workspace.ActiveTab!.View.CompareMark);
     }
 
     [Fact]
@@ -197,7 +267,10 @@ public sealed class CompareActionsTests : IDisposable
     {
         await SelectAsync(selected);
 
-        return new CompareActions(_host, () => _session, () => _selected);
+        var actions = new CompareActions(_host, () => _session, () => _selected);
+        _session.Details.Changed += actions.Follow;
+
+        return actions;
     }
 
     private async Task SelectAsync(ObjectId commit)

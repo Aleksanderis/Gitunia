@@ -62,6 +62,17 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenAMarkedCommit_WhenAskingForGraphHints_ThenTheyNameMovingTheMarkAndEndingTheCompare()
+    {
+        var hints = PaneHints.ForGraphComparing();
+
+        Assert.Contains(hints, hint => hint.Keys == "<space>=" && hint.Description == "move mark");
+        Assert.Contains(hints, hint => hint.Keys == "Esc" && hint.Description == "end compare");
+        Assert.Contains(hints, hint => hint.Keys == "gg/G");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.GraphView);
+    }
+
+    [Fact]
     public void GivenAFilesContentInTheDiffPane_WhenHintsAreAsked_ThenNoHunkFileOrDiffOptionHintsShow()
     {
         var hints = PaneHints.For(PaneKind.Diff, showsFileContent: true);

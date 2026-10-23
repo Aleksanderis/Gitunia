@@ -27,6 +27,7 @@ public sealed class CommitDetailsStore : IDisposable
     private CancellationTokenSource? _parentPending;
     private int _requestedParent;
     private long? _lastSelectTimestamp;
+    private TimeSpan _compareWait;
 
     /// <param name="reader">Reads the details of a commit.</param>
     /// <param name="location">The repository the commits belong to.</param>
@@ -74,12 +75,15 @@ public sealed class CommitDetailsStore : IDisposable
         var now = _timeProvider.GetTimestamp();
         var isFresh = _lastSelectTimestamp is not { } last || _timeProvider.GetElapsedTime(last, now) >= _debounce;
         _lastSelectTimestamp = now;
+        _compareWait = TimeSpan.Zero;
         CancelPending();
         CancelParentPending();
         _requestedParent = 0;
         var wanted = WantedForPrefetch(commit, prefetch);
         if (_cache.TryGet(commit, out var known))
         {
+            // A cache hit skips the debounce of the load, so a comparison started from it waits instead.
+            _compareWait = isFresh ? TimeSpan.Zero : _debounce;
             Current = new CommitDetailsState(commit, CommitDetailsStatus.Loaded, known, string.Empty);
             Changed?.Invoke();
             StartPrefetch(wanted);
@@ -154,7 +158,8 @@ public sealed class CommitDetailsStore : IDisposable
         CancelParentPending();
         _parentPending = new CancellationTokenSource();
         var token = _parentPending.Token;
-        _ = Task.Run(() => LoadComparisonAsync(commit, details, older, newer, token), CancellationToken.None);
+        var wait = _compareWait;
+        _ = Task.Run(() => LoadComparisonAsync(commit, details, older, newer, wait, token), CancellationToken.None);
 
         return true;
     }
@@ -219,10 +224,16 @@ public sealed class CommitDetailsStore : IDisposable
         CommitDetails details,
         ObjectId older,
         ObjectId newer,
+        TimeSpan wait,
         CancellationToken token)
     {
         try
         {
+            if (wait > TimeSpan.Zero)
+            {
+                await _delay(wait, token).ConfigureAwait(false);
+            }
+
             var files = await _reader.ReadFilesAsync(_location, newer, older, null, token).ConfigureAwait(false);
             var shown = details with { Files = files, CompareOlder = older, CompareNewer = newer };
             _postToUi(() => CompleteParent(commit, shown, token));
