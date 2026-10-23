@@ -46,7 +46,7 @@ public class RemoteCommandsTests
         var before = repository.Head;
         var arguments = RemoteCommands.BuildPull().ToArray();
 
-        Assert.NotNull(Record.Exception(() => repository.Git(arguments)));
+        Assert.NotNull(RunGitRecordingFailure(repository, arguments));
 
         Assert.Equal(before, repository.Head);
     }
@@ -103,5 +103,10 @@ public class RemoteCommandsTests
         Assert.Equal(
             ["push", "--delete", "--", "origin", "refs/tags/v1"],
             RemoteCommands.BuildTagDelete("origin", "v1", false));
+    }
+
+    private static Exception? RunGitRecordingFailure(TestRepository repository, string[] arguments)
+    {
+        return Record.Exception(() => repository.Git(arguments));
     }
 }
