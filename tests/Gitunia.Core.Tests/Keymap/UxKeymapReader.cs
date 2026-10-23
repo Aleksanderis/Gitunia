@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -9,19 +10,13 @@ public static partial class UxKeymapReader
 {
     public static string FindUxDocument()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(directory.FullName, "docs", "ux.md");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
+        var root = typeof(UxKeymapReader).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == "RepoRoot")?.Value ?? string.Empty;
+        var candidate = Path.Combine(root, "docs", "ux.md");
 
-            directory = directory.Parent;
-        }
-
-        throw new FileNotFoundException($"docs/ux.md not found above {AppContext.BaseDirectory}");
+        return File.Exists(candidate)
+            ? candidate
+            : throw new FileNotFoundException($"docs/ux.md not found at {candidate}");
     }
 
     /// <summary>One binding per documented key token; Picker rows are Insert mode, Palette rows Command mode, all others Normal.</summary>
