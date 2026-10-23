@@ -298,10 +298,45 @@ public sealed class OverlayControllerTests : IDisposable
         Press(new Key('?'));
 
         Press(new Key('j'));
-        Press(Key.Tab);
+        Press(new Key('x'));
 
         Assert.Equal(1, _overlays.State.HelpScroll);
         Assert.Empty(_routed);
+    }
+
+    [Fact]
+    public void GivenOpenHelp_WhenPressingTabAndShiftTab_ThenTheFourGraphTabsCycleBothWaysAndScrollStartsOver()
+    {
+        Press(new Key('?'));
+        Press(new Key('j'));
+
+        Press(Key.Tab);
+        var second = _overlays.State;
+        Press(new Key('l'));
+        Press(new Key('l'));
+        var wrapped = _overlays.State.HelpTab;
+        Press(new Key('h'));
+        Press(Key.Tab.WithShift);
+
+        Assert.Equal(1, second.HelpTab);
+        Assert.Equal(0, second.HelpScroll);
+        Assert.Equal(3, wrapped);
+        Assert.Equal(1, _overlays.State.HelpTab);
+        Assert.Empty(_routed);
+        Assert.Equal(OverlayKind.Help, _overlays.State.Kind);
+    }
+
+    [Fact]
+    public void GivenOpenHelp_WhenClickingTheSecondTabLabel_ThenThatTabShows()
+    {
+        Press(new Key('?'));
+
+        var number = _overlays.HelpTabNumberAt(1, 14);
+        _overlays.Handle(ActionIds.HelpTabSelect, number);
+
+        Assert.Equal(2, number);
+        Assert.Equal(1, _overlays.State.HelpTab);
+        Assert.Null(_overlays.HelpTabNumberAt(2, 14));
     }
 
     [Fact]

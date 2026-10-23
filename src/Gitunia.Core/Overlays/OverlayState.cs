@@ -9,6 +9,7 @@ namespace Gitunia.Core.Overlays;
 /// <param name="Kind">The open overlay.</param>
 /// <param name="HelpView">The view the help lists keys for.</param>
 /// <param name="HelpScroll">First visible help line.</param>
+/// <param name="HelpTab">Index of the shown help tab.</param>
 /// <param name="Palette">The palette while it is open.</param>
 /// <param name="Confirm">The question while a confirm dialog is open.</param>
 /// <param name="ReturnMode">The input mode to restore when the overlay closes.</param>
@@ -24,7 +25,8 @@ public sealed record OverlayState(
     KeyMode ReturnMode,
     bool WhichKeyVisible,
     MenuAnchor? MenuAnchor = null,
-    string? MenuTitle = null)
+    string? MenuTitle = null,
+    int HelpTab = 0)
 {
     public static OverlayState None { get; } = new(OverlayKind.None, string.Empty, 0, null, null, KeyMode.Normal, false);
 
@@ -56,6 +58,9 @@ public sealed record OverlayState(
         new(OverlayKind.Confirm, string.Empty, 0, null, prompt, returnMode, false);
 
     public OverlayState ScrollHelpTo(int line) => this with { HelpScroll = Math.Max(0, line) };
+
+    /// <summary>Shows another help tab, from its first line.</summary>
+    public OverlayState ShowHelpTab(int tab) => this with { HelpTab = Math.Max(0, tab), HelpScroll = 0 };
 
     public OverlayState WithPalette(PaletteState palette) => this with { Palette = palette };
 

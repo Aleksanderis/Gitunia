@@ -669,6 +669,11 @@ public sealed class TuiApplication(
                 _mouse.Handle(reflogView, MouseGesture.Click);
             }
         }
+        else if (_overlays.HelpTabNumberAt(line, _view.Overlay.PointerColumn) is { } helpTab)
+        {
+            _overlayClickTicks = Environment.TickCount64;
+            _mouse.Handle(DefaultMouseMap.HelpTabLabel, MouseGesture.Click, helpTab);
+        }
         else if (_overlays.SelectPaletteEntryAt(line))
         {
             _overlayClickTicks = Environment.TickCount64;

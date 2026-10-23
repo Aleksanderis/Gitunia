@@ -10,6 +10,25 @@ public class HelpBuilderTests
 {
     private static readonly KeyBindingTable Table = DefaultKeymap.Create();
 
+    private static readonly ActionGroup[] Groups =
+    [
+        ActionGroups.Branch,
+        ActionGroups.Merge,
+        ActionGroups.Tag,
+        ActionGroups.Remote,
+        ActionGroups.Worktree,
+        ActionGroups.Stash,
+        ActionGroups.WorkingTree,
+        ActionGroups.Copy,
+        ActionGroups.Diff,
+        ActionGroups.Details,
+        ActionGroups.Tools,
+        ActionGroups.Navigate,
+        ActionGroups.View,
+        ActionGroups.Tabs,
+        ActionGroups.General,
+    ];
+
     [Fact]
     public void GivenGraphView_WhenBuilding_ThenSectionsFollowTheViewChain()
     {
@@ -250,5 +269,38 @@ public class HelpBuilderTests
         var expected = part.OrderBy(row => row.Key, StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(row => row.Key, StringComparer.Ordinal).Select(row => row.Key);
         Assert.Equal(expected, part.Select(row => row.Key));
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.SidebarView)]
+    [InlineData(DefaultKeymap.DiffView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    public void GivenAView_WhenBuilding_ThenEveryBoundActionIsInExactlyOneTabAndNoneIsUngrouped(string view)
+    {
+        var tabs = HelpBuilder.Build(Table, view).Where(tab => tab.Title != "Markers").ToList();
+        var titles = Table.EffectiveBindings(KeyMode.Normal, view)
+            .Select(binding => ActionCatalog.Describe(binding.Action))
+            .Distinct()
+            .ToList();
+
+        var rowDescriptions = tabs.SelectMany(tab => tab.Rows).Select(row => row.Description).ToList();
+
+        Assert.All(titles, title => Assert.Single(rowDescriptions, description => description == title));
+        Assert.DoesNotContain(tabs.SelectMany(tab => tab.Sections), section => section.Title == "Other");
+    }
+
+    [Fact]
+    public void GivenGraphView_WhenBuilding_ThenSubheadersFollowTheCatalogGroupOrder()
+    {
+        var graph = HelpBuilder.Build(Table, DefaultKeymap.GraphView)[0];
+        var orders = graph.Sections
+            .Select(section => Groups.First(group => group.Header == section.Title).Order)
+            .ToList();
+
+        Assert.True(orders.Count > 2);
+        Assert.Equal(orders.Order(), orders);
+        var titles = graph.Sections.Select(section => section.Title).ToList();
+        Assert.Equal(titles.Distinct(), titles);
     }
 }

@@ -144,6 +144,9 @@ public static class DefaultMouseMap
 
     public const string SettingsRemoveButton = "SettingsButton.Remove";
 
+    /// <summary>A tab label of the help overlay (#652); the click target is the tab's number, from 1.</summary>
+    public const string HelpTabLabel = "HelpTab";
+
     /// <summary>A parent row of the mainline overlay of a cherry-pick or revert of a merge commit (#449); the click
     /// target is the parent's number.</summary>
     public const string MainlineParentRow = "MainlineParent";
@@ -200,6 +203,7 @@ public static class DefaultMouseMap
         ReflogCheckoutButton,
         ReflogPickerRow,
         MainlineParentRow,
+        HelpTabLabel,
         ConfirmYesButton,
         ConfirmNoButton,
     ];
@@ -271,6 +275,7 @@ public static class DefaultMouseMap
         new(ReflogCheckoutButton, MouseGesture.Click, ActionIds.BranchSwitch),
         new(ReflogPickerRow, MouseGesture.Click, ActionIds.InputAccept),
         new(MainlineParentRow, MouseGesture.Click, ActionIds.PickMainline, UsesTarget: true),
+        new(HelpTabLabel, MouseGesture.Click, ActionIds.HelpTabSelect, UsesTarget: true),
         new(BackdropView, MouseGesture.Click, ActionIds.Cancel),
         new(DefaultKeymap.PaletteView, MouseGesture.Click, ActionIds.CommandExecute),
         new(DefaultKeymap.PaletteView, MouseGesture.WheelUp, ActionIds.PalettePrevious),

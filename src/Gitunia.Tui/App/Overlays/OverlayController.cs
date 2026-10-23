@@ -28,7 +28,7 @@ public sealed class OverlayController
     private readonly GraphGlyphSet _glyphs;
     private readonly Func<string> _baseView;
     private readonly StatusChannel _statuses;
-    private IReadOnlyList<HelpSection> _helpSections = [];
+    private IReadOnlyList<HelpTab> _helpTabs = [];
     private Action? _onConfirmed;
 
     /// <param name="engine">The keymap engine (its table feeds the help and the palette).</param>
@@ -97,7 +97,7 @@ public sealed class OverlayController
         var rows = State.WhichKeyVisible
             ? WhichKeyBuilder.Build(_engine.Continuations(_keys.State, ViewName), pending, OperationInProgress())
             : [];
-        return OverlayFrameFactory.Create(State, _helpSections, _keys.PendingText, rows, width, height, _glyphs);
+        return OverlayFrameFactory.Create(State, _helpTabs, _keys.PendingText, rows, width, height, _glyphs);
     }
 
     /// <summary>Handles an action while an overlay may be open; returns true when it was consumed.</summary>
@@ -115,6 +115,10 @@ public sealed class OverlayController
         else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit || (State.Kind == OverlayKind.Help && action == ActionIds.HelpShow) || (State.Kind == OverlayKind.Messages && action == ActionIds.StatusHistory))
         {
             Close();
+        }
+        else if (State.Kind == OverlayKind.Help && TrySwitchHelpTab(action, count))
+        {
+            Changed?.Invoke();
         }
         else if (State.Kind is OverlayKind.Help or OverlayKind.Messages or OverlayKind.Output)
         {
@@ -138,7 +142,8 @@ public sealed class OverlayController
     public void ShowOutput(string title, string heading, IReadOnlyList<string> lines)
     {
         var returnMode = State.IsOpen ? State.ReturnMode : _keys.Mode;
-        _helpSections = [new HelpSection(heading, [.. lines.Select(line => new HelpRow(string.Empty, line))])];
+        var rows = lines.Select(line => new HelpRow(string.Empty, line));
+        _helpTabs = [new HelpTab(heading, [new HelpSection(heading, [.. rows])])];
         Open(OverlayState.OpenOutput(title, returnMode), KeyMode.Normal);
     }
 
@@ -213,14 +218,14 @@ public sealed class OverlayController
     {
         if (action == ActionIds.HelpShow)
         {
-            _helpSections = HelpBuilder.Build(_engine.Table, _baseView());
+            _helpTabs = HelpBuilder.Build(_engine.Table, _baseView());
             Open(OverlayState.OpenHelp(_baseView(), _keys.Mode), KeyMode.Normal);
             return true;
         }
 
         if (action == ActionIds.StatusHistory)
         {
-            _helpSections = [MessageSection()];
+            _helpTabs = [new HelpTab("Newest first", [MessageSection()])];
             Open(OverlayState.OpenMessages(_keys.Mode), KeyMode.Normal);
             return true;
         }
@@ -356,13 +361,53 @@ public sealed class OverlayController
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// The help tab under a click on the overlay line <paramref name="frameLine"/> at <paramref name="frameColumn"/>
+    /// (both inside the frame), as the number the click action takes (from 1), or null when it is not on a tab label.
+    /// </summary>
+    public int? HelpTabNumberAt(int frameLine, int frameColumn) =>
+        State.Kind == OverlayKind.Help
+            && HelpFrameBuilder.TabAt(_helpTabs, State.HelpTab, _screenSize().Width, frameLine, frameColumn)
+                is { } index
+            ? index + 1
+            : null;
+
+    private bool TrySwitchHelpTab(ActionId action, int? count)
+    {
+        var tabs = _helpTabs.Count;
+        int target;
+        if (action == ActionIds.HelpTabNext)
+        {
+            target = (State.HelpTab + 1) % Math.Max(1, tabs);
+        }
+        else if (action == ActionIds.HelpTabPrevious)
+        {
+            target = (State.HelpTab + tabs - 1) % Math.Max(1, tabs);
+        }
+        else if (action == ActionIds.HelpTabSelect && count is >= 1 && count <= tabs)
+        {
+            target = count.Value - 1;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (target != State.HelpTab)
+        {
+            State = State.ShowHelpTab(target);
+        }
+
+        return true;
+    }
+
     private void ScrollHelp(ActionId action, int? count)
     {
         var size = _screenSize();
         var width = size.Width;
         var height = size.Height;
-        var maximum = HelpFrameBuilder.MaximumScroll(_helpSections, width, height);
-        var visible = HelpFrameBuilder.VisibleRows(_helpSections, width, height);
+        var maximum = HelpFrameBuilder.MaximumScroll(_helpTabs, State.HelpTab, width, height);
+        var visible = HelpFrameBuilder.VisibleRows(_helpTabs, State.HelpTab, width, height);
         if (ListMotion.TryMove(action, count, State.HelpScroll, maximum + 1, visible, out var target))
         {
             State = State.ScrollHelpTo(target);
@@ -400,7 +445,7 @@ public sealed class OverlayController
             return;
         }
 
-        _helpSections = [MessageSection()];
+        _helpTabs = [new HelpTab("Newest first", [MessageSection()])];
         Changed?.Invoke();
     }
 
