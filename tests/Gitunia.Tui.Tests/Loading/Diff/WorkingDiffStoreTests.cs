@@ -251,14 +251,21 @@ public class WorkingDiffStoreTests
         }
 
         var pump = new UiPump(Token);
-        using var store = new WorkingDiffStore(reader, FakeCommitDetailsReader.Location, pump.Post, folderFileLimit: 10);
+        using var store = new WorkingDiffStore(
+            reader,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            folderFileLimit: 10);
+        var folder = new WorkingDiffFolder("src", entries);
 
-        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], new WorkingDiffFolder("src", entries)), 0);
+        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], folder), 0);
         await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
 
         Assert.Equal(10, reader.WorkingReadCount);
         Assert.True(store.IsCut);
-        Assert.Contains(store.Document.Rows, row => row.Text.Contains("4990 more files left out", StringComparison.Ordinal));
+        Assert.Contains(
+            store.Document.Rows,
+            row => row.Text.Contains("4990 more files left out", StringComparison.Ordinal));
 
         Assert.True(store.LoadAnyway());
         await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded && !store.IsCut);
