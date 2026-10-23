@@ -187,6 +187,55 @@ public class RebaseEditorStateTests
             entries);
     }
 
+    [Fact]
+    public void GivenMergeStructureRows_WhenChangingActions_ThenOnlyPlainCommitsChangeAndCountsSkipStructure()
+    {
+        var state = MergeState();
+
+        Assert.Equal(2, state.CommitCount);
+        Assert.Equal(2, state.KeptCount);
+        Assert.Same(state.Rows, state.MoveTo(0).SetAction(RebaseTodoAction.Drop).Rows);
+        Assert.Same(state.Rows, state.MoveTo(3).SetAction(RebaseTodoAction.Drop).Rows);
+        Assert.Same(state.Rows, state.MoveTo(3).BeginEdit("text").Rows);
+        Assert.Equal(RebaseTodoAction.Drop, state.MoveTo(1).SetAction(RebaseTodoAction.Drop).Rows[1].Action);
+        Assert.Equal(1, state.MoveTo(1).SetAction(RebaseTodoAction.Drop).DroppedCount);
+    }
+
+    [Fact]
+    public void GivenMergeRows_WhenConvertingToEntries_ThenLabelsResetsAndMergeArgumentsSurvive()
+    {
+        var entries = MergeState().ToEntries();
+
+        Assert.Equal(
+            [RebaseTodoAction.Label, RebaseTodoAction.Pick, RebaseTodoAction.Label, RebaseTodoAction.Merge],
+            entries.Select(entry => entry.Action));
+        Assert.Equal("side # Merge", entries[^1].Argument);
+        Assert.Equal("onto", entries[0].Commit);
+    }
+
+    [Fact]
+    public void GivenAMergeMovedBeforeItsLabel_WhenReadingTheProblem_ThenItIsReported()
+    {
+        var state = MergeState().MoveTo(3).MoveRow(-1);
+
+        Assert.Contains("side", state.Problem, StringComparison.Ordinal);
+        Assert.Null(MergeState().Problem);
+    }
+
+    private static RebaseEditorState MergeState() =>
+        RebaseEditorState.Create(
+            new TabId(1),
+            "topic",
+            "main",
+            RebaseBase.OntoCommit("base").WithMerges(),
+            "tip",
+            [
+                new RebaseTodoCommit("onto", string.Empty, RebaseTodoAction.Label),
+                new RebaseTodoCommit("aaa", "A"),
+                new RebaseTodoCommit("side", string.Empty, RebaseTodoAction.Label),
+                new RebaseTodoCommit("mmm", "Merge", RebaseTodoAction.Merge, "side # Merge"),
+            ]);
+
     private static RebaseEditorState State(int count) =>
         RebaseEditorState.Create(
             new TabId(1),

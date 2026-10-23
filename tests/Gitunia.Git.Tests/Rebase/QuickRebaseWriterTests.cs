@@ -202,6 +202,30 @@ public class QuickRebaseWriterTests
         Assert.Equal(RepositoryOperation.Rebase, new RepositoryOperationDetector().Detect(location));
     }
 
+    [Fact]
+    public async Task GivenAMergeAboveTheCommit_WhenReworded_ThenTheMergeSurvivesAndTheMessageChanges()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Base", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("SideA", new TestFile("a.txt", "a\n"))
+            .Checkout("main")
+            .Commit("Main", new TestFile("main.txt", "main\n"));
+        repository.Git("merge", "--no-ff", "-m", "Merge side", "side");
+        var (writer, location) = await CreateAsync(repository);
+        var target = repository.Git("rev-parse", "HEAD^2").Trim();
+        var tree = repository.Git("rev-parse", "HEAD^{tree}").Trim();
+
+        var plan = await writer.PlanAsync(location, QuickRebaseKind.Reword, target, Token);
+        var result = await writer.RunAsync(location, plan, "Renamed", Token);
+
+        Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal("Renamed", repository.Git("log", "-1", "--format=%s", "HEAD^2").Trim());
+        Assert.Equal(tree, repository.Git("rev-parse", "HEAD^{tree}").Trim());
+        Assert.Equal(2, plan.LaterCommits);
+    }
+
     private static string[] Subjects(TestRepository repository) =>
         repository.Git("log", "--reverse", "--format=%s").Split('\n', StringSplitOptions.RemoveEmptyEntries);
 

@@ -205,7 +205,7 @@ public class RebaseEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenARangeWithAMergeCommit_WhenOpening_ThenNoEditorOpensAndTheStatusSaysWhy()
+    public async Task GivenARangeWithAMergeCommit_WhenOpening_ThenTheEditorOpensWithTheMergeAndItsStructureLines()
     {
         using var repository = TestRepository.Create()
             .Commit("Initial", new TestFile("base.txt", "base\n"))
@@ -219,11 +219,14 @@ public class RebaseEditorControllerTests
         using var harness = await Harness.CreateAsync(repository, target: repository.Git("rev-parse", "main").Trim());
 
         harness.Open();
-        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest is not null);
+        await harness.Pump.RunUntilAsync(() => harness.Controller.IsOpen);
 
-        Assert.False(harness.Controller.IsOpen);
-        Assert.Contains("merge commit", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest.Severity);
+        var rows = harness.Controller.State!.Rows;
+        Assert.Contains(
+            rows,
+            row => row.Action == RebaseTodoAction.Merge && row.Subject.StartsWith("Merge", StringComparison.Ordinal));
+        Assert.Contains(rows, row => row.Action == RebaseTodoAction.Label);
+        Assert.True(harness.Controller.State.Base.KeepMerges);
     }
 
     [Fact]

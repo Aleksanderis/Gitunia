@@ -102,6 +102,111 @@ public class RebaseTodoTests
     }
 
     [Fact]
+    public void GivenStructureAndMergeEntries_WhenFormatting_ThenTheyKeepGitsWords()
+    {
+        RebaseTodoEntry[] entries =
+        [
+            new("onto", RebaseTodoAction.Label),
+            new("onto", RebaseTodoAction.Reset),
+            new("aaa", RebaseTodoAction.Pick),
+            new("mmm", RebaseTodoAction.Merge, Argument: "side # Merge side"),
+        ];
+
+        var text = RebaseTodoFormatter.Format(entries, [null, null, null, null]);
+
+        Assert.Equal("label onto\nreset onto\npick aaa\nmerge -C mmm side # Merge side\n", text);
+    }
+
+    [Fact]
+    public void GivenGitsRebaseMergesTodo_WhenParsing_ThenEveryLineKindIsRead()
+    {
+        const string todo = "label onto\n\n# Branch side\nreset onto\npick aaa # A\nlabel side\n\n" +
+            "reset [new root]\nreset side # c2\npick bbb # B\nmerge -C mmm side # Merge side\n\n# Rebase x..y\n#\n";
+
+        var lines = RebaseTodoParser.Parse(todo);
+
+        Assert.Equal(
+            [
+                (RebaseTodoAction.Label, "onto"),
+                (RebaseTodoAction.Reset, "onto"),
+                (RebaseTodoAction.Pick, "aaa"),
+                (RebaseTodoAction.Label, "side"),
+                (RebaseTodoAction.Reset, "[new root]"),
+                (RebaseTodoAction.Reset, "side"),
+                (RebaseTodoAction.Pick, "bbb"),
+                (RebaseTodoAction.Merge, "mmm"),
+            ],
+            lines.Select(line => (line.Action, line.Hash)));
+        Assert.Equal("A", lines[2].Subject);
+        Assert.Equal("Merge side", lines[^1].Subject);
+        Assert.Equal("side # Merge side", lines[^1].Argument);
+    }
+
+    [Fact]
+    public void GivenACommandTheEditorCannotCarry_WhenParsing_ThenItIsRefusedInsteadOfDropped()
+    {
+        Assert.Throws<RebaseRangeException>(() => RebaseTodoParser.Parse("pick aaa # A\nexec make\n"));
+    }
+
+    private static readonly RebaseTodoCommit[] MergeRange =
+    [
+        new("onto", string.Empty, RebaseTodoAction.Label),
+        new("onto", string.Empty, RebaseTodoAction.Reset),
+        new("aaa", "A"),
+        new("side", string.Empty, RebaseTodoAction.Label),
+        new("onto", string.Empty, RebaseTodoAction.Reset),
+        new("bbb", "B"),
+        new("mmm", "Merge", RebaseTodoAction.Merge, "side # Merge"),
+    ];
+
+    [Fact]
+    public void GivenTheRangeUnchanged_WhenValidatingAMergeRange_ThenNothingIsThrown()
+    {
+        RebaseTodoValidator.Validate(MergeRange, MergeEntries());
+    }
+
+    [Fact]
+    public void GivenALabelLeftOut_WhenValidating_ThenItIsRefused()
+    {
+        var entries = MergeEntries().Where(entry => entry.Commit != "side").ToList();
+
+        Assert.Throws<RebaseRangeException>(() => RebaseTodoValidator.Validate(MergeRange, entries));
+    }
+
+    [Fact]
+    public void GivenTheMergeDropped_WhenValidating_ThenItIsRefused()
+    {
+        var entries = MergeEntries();
+        entries[^1] = new RebaseTodoEntry("mmm", RebaseTodoAction.Drop);
+
+        Assert.Throws<RebaseRangeException>(() => RebaseTodoValidator.Validate(MergeRange, entries));
+    }
+
+    [Fact]
+    public void GivenTheMergeMovedBeforeItsLabel_WhenFindingProblems_ThenTheLabelOrderIsReported()
+    {
+        var entries = MergeEntries();
+        var merge = entries[^1];
+        entries.RemoveAt(entries.Count - 1);
+        entries.Insert(2, merge);
+
+        Assert.Contains("side", RebaseTodoValidator.FindProblem(entries), StringComparison.Ordinal);
+        Assert.Null(RebaseTodoValidator.FindProblem(MergeEntries()));
+    }
+
+    [Fact]
+    public void GivenASquashRightAfterAReset_WhenFindingProblems_ThenItIsReported()
+    {
+        var entries = MergeEntries();
+        entries[5] = new RebaseTodoEntry("bbb", RebaseTodoAction.Squash);
+
+        Assert.Contains("reset", RebaseTodoValidator.FindProblem(entries), StringComparison.Ordinal);
+    }
+
+    private static List<RebaseTodoEntry> MergeEntries() =>
+        [.. MergeRange.Select(line => new RebaseTodoEntry(line.Hash, line.Action, Argument: line.Argument))];
+
+    [Fact]
     public void GivenGitsTodoPath_WhenTheEditorModeRuns_ThenItIsOverwrittenWithThePreparedTodo()
     {
         var directory = Directory.CreateTempSubdirectory("gitunia-sequence-editor");

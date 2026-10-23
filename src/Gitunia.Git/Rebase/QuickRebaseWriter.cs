@@ -43,9 +43,9 @@ public sealed class QuickRebaseWriter(GitRunner git, IInteractiveRebaseWriter in
             start = grandParents.Count == 0 ? null : grandParents[0];
         }
 
-        var rebaseBase = start is null ? RebaseBase.Root : RebaseBase.OntoCommit(start);
+        var rebaseBase = (start is null ? RebaseBase.Root : RebaseBase.OntoCommit(start)).WithMerges();
         var range = await interactive.ReadRangeAsync(location, rebaseBase, cancellationToken).ConfigureAwait(false);
-        var edited = range.ToList().FindIndex(item => item.Hash == commit);
+        var edited = range.ToList().FindIndex(item => item.Hash == commit && !item.Action.IsStructure());
         if (edited < 0)
         {
             throw new RebaseRangeException("That commit is not in the history of the current branch");
@@ -80,6 +80,11 @@ public sealed class QuickRebaseWriter(GitRunner git, IInteractiveRebaseWriter in
 
     private static RebaseTodoEntry EntryFor(RebaseTodoCommit item, QuickRebasePlan plan, string? newSubject)
     {
+        if (item.Action is RebaseTodoAction.Label or RebaseTodoAction.Reset or RebaseTodoAction.Merge)
+        {
+            return new RebaseTodoEntry(item.Hash, item.Action, Argument: item.Argument);
+        }
+
         if (item.Hash != plan.Commit)
         {
             return new RebaseTodoEntry(item.Hash, RebaseTodoAction.Pick);

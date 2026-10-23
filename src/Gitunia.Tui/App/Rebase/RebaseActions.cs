@@ -83,7 +83,8 @@ public sealed class RebaseActions(
         {
             lines.Add(
                 $"{OperationText.Plural(merges, "merge commit")} in that range will be flattened: the merge " +
-                "itself is dropped and the commits are replayed as one line.");
+                "itself is dropped and the commits are replayed as one line. <space>gi keeps merges " +
+                "(interactive rebase, --rebase-merges).");
         }
 
         if (RebaseGuard.UpstreamWarning(current) is { } warning)

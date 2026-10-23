@@ -13,7 +13,9 @@ namespace Gitunia.Git.Rebase;
 /// prepared todo, so git's own todo is replaced by ours; <c>-c core.editor=true</c> keeps squash from opening an editor
 /// (the messages are combined as git does). A reword is a pick plus an <c>exec git commit --amend -F &lt;file&gt;</c>;
 /// the message files live in <c>&lt;git dir&gt;/gitunia-rebase</c> until the rebase ends, because a conflict stop
-/// hands over to continue/skip/abort and the exec lines run later. Ranges with merge commits are refused. The user's
+/// hands over to continue/skip/abort and the exec lines run later. A range with merge commits is refused unless
+/// <see cref="RebaseBase.KeepMerges"/> is set: then git prepares the <c>--rebase-merges</c> todo, which is read
+/// (<c>label</c>, <c>reset</c> and <c>merge</c> lines included) and written back as edited. The user's
 /// <c>GIT_SEQUENCE_EDITOR</c> would win over the config, so its presence is refused instead of silently ignoring the
 /// todo.
 /// </summary>
@@ -29,6 +31,13 @@ public sealed class InteractiveRebaseWriter(
     private const string TodoFileName = "todo";
 
     private const string SequenceEditorVariable = "GIT_SEQUENCE_EDITOR";
+
+    // Prints a marker and git's todo, then fails: git removes its state and restores an autostash.
+    private const string DumpMarker = "---gitunia-todo---\n";
+
+    private const string DumpEditor = "echo ---gitunia-todo---; cat \"$1\"; false";
+
+    private const int DumpExitCode = 1;
 
     private const string CommitSuffix = "^{commit}";
 
@@ -89,16 +98,21 @@ public sealed class InteractiveRebaseWriter(
             commits.Add(new RebaseTodoCommit(fields[0], fields[SubjectField]));
         }
 
+        if (commits.Count == 0)
+        {
+            throw new RebaseRangeException("There are no commits to rebase");
+        }
+
+        if (merges > 0 && rebaseBase.KeepMerges)
+        {
+            return await ReadTodoAsync(location, rebaseBase, cancellationToken).ConfigureAwait(false);
+        }
+
         if (merges > 0)
         {
             throw new RebaseRangeException(string.Create(
                 CultureInfo.InvariantCulture,
-                $"The range contains {merges} merge commit(s); interactive rebase does not support merge commits"));
-        }
-
-        if (commits.Count == 0)
-        {
-            throw new RebaseRangeException("There are no commits to rebase");
+                $"The range contains {merges} merge commit(s); they cannot be rebased without keeping them"));
         }
 
         return commits;
@@ -110,12 +124,7 @@ public sealed class InteractiveRebaseWriter(
         IReadOnlyList<RebaseTodoEntry> entries,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrEmpty(environment(SequenceEditorVariable)))
-        {
-            throw new RebaseEnvironmentException(
-                $"{SequenceEditorVariable} is set and would replace Gitunia's todo; unset it to rebase interactively");
-        }
-
+        RejectSequenceEditor();
         var range = await ReadRangeAsync(location, rebaseBase, cancellationToken).ConfigureAwait(false);
         RebaseTodoValidator.Validate(range, entries);
         cancellationToken.ThrowIfCancellationRequested();
@@ -128,11 +137,12 @@ public sealed class InteractiveRebaseWriter(
             Directory.Delete(directory, recursive: true);
         }
 
+        var keepsMerges = range.Any(commit => commit.Action != RebaseTodoAction.Pick);
         var todoPath = await WriteFilesAsync(directory, entries, cancellationToken).ConfigureAwait(false);
         try
         {
-            var result = await operations.RunAsync(location, BuildArguments(rebaseBase, todoPath), cancellationToken)
-                .ConfigureAwait(false);
+            var arguments = BuildArguments(rebaseBase, todoPath, keepsMerges);
+            var result = await operations.RunAsync(location, arguments, cancellationToken).ConfigureAwait(false);
             return new InteractiveRebaseResult(result.Outcome, result.Head, originalHead);
         }
         finally
@@ -145,6 +155,66 @@ public sealed class InteractiveRebaseWriter(
                 DeleteQuietly(directory);
             }
         }
+    }
+
+    private void RejectSequenceEditor()
+    {
+        if (!string.IsNullOrEmpty(environment(SequenceEditorVariable)))
+        {
+            throw new RebaseEnvironmentException(
+                $"{SequenceEditorVariable} is set and would replace Gitunia's todo; unset it to rebase interactively");
+        }
+    }
+
+    // Lets git prepare the todo of --rebase-merges (the label, reset and merge lines are its to get right), prints it
+    // through the sequence editor and fails the editor so that git stops before anything is changed.
+    private async Task<IReadOnlyList<RebaseTodoCommit>> ReadTodoAsync(
+        RepositoryLocation location,
+        RebaseBase rebaseBase,
+        CancellationToken cancellationToken)
+    {
+        RejectSequenceEditor();
+        var arguments = new List<string>
+        {
+            "-c",
+            "core.editor=true",
+            "-c",
+            "core.abbrev=no",
+            "-c",
+            "rebase.abbreviateCommands=false",
+            "-c",
+            "rebase.instructionFormat=%s",
+            "-c",
+            $"sequence.editor={DumpEditor}",
+            "rebase",
+            "--interactive",
+            "--rebase-merges",
+            "--no-update-refs",
+            "--no-verify",
+            rebaseBase.IsRoot ? "--root" : $"{rebaseBase.Onto}{CommitSuffix}",
+        };
+        var options = new GitRunOptions(Timeout: ReadTimeout, AcceptedExitCodes: [DumpExitCode]);
+        var result = await git.RunAsync(location.CommandPath, arguments, options, cancellationToken)
+            .ConfigureAwait(false);
+
+        var output = result.StandardOutputText;
+        var marker = output.IndexOf(DumpMarker, StringComparison.Ordinal);
+        if (marker < 0)
+        {
+            var reason = result.StandardError.Trim();
+            throw new RebaseRangeException(
+                reason.Length == 0
+                    ? "Git did not prepare a todo for the range"
+                    : $"Git did not prepare a todo: {reason}");
+        }
+
+        var todo = RebaseTodoParser.Parse(output[(marker + DumpMarker.Length)..]);
+        if (todo.Count == 0 || todo.All(line => line.Action.IsStructure()))
+        {
+            throw new RebaseRangeException("There are no commits to rebase");
+        }
+
+        return todo;
     }
 
     private static void RejectOption(RebaseBase rebaseBase)
@@ -196,7 +266,7 @@ public sealed class InteractiveRebaseWriter(
         return todoPath;
     }
 
-    private List<string> BuildArguments(RebaseBase rebaseBase, string todoPath)
+    private List<string> BuildArguments(RebaseBase rebaseBase, string todoPath, bool keepsMerges)
     {
         var arguments = new List<string>
         {
@@ -209,6 +279,11 @@ public sealed class InteractiveRebaseWriter(
             "--no-update-refs",
             "--empty=drop",
         };
+        if (keepsMerges)
+        {
+            arguments.Add("--rebase-merges");
+        }
+
         if (rebaseBase.IsRoot)
         {
             arguments.Add("--root");

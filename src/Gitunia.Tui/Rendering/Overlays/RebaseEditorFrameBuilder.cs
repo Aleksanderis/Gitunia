@@ -174,8 +174,20 @@ public static class RebaseEditorFrameBuilder
 
     private static StyledLine RowLine(RebaseEditorRow row, int width, GraphGlyphSet glyphs, bool isSelected)
     {
-        var hash = row.Hash[..Math.Min(ShortHashLength, row.Hash.Length)];
         var action = ActionWord(row.Action).PadRight(ActionColumnWidth);
+        if (row.IsStructure)
+        {
+            return OverlayBox.TwoColumns(
+                $"{action} {row.Hash}",
+                string.Empty,
+                width,
+                glyphs,
+                SegmentRole.Faint,
+                SegmentRole.Faint,
+                isSelected);
+        }
+
+        var hash = row.Hash[..Math.Min(ShortHashLength, row.Hash.Length)];
         var role = row.Action == RebaseTodoAction.Drop ? SegmentRole.Faint : SegmentRole.Plain;
         var text = $"{action} {hash} {row.ShownSubject}";
         return OverlayBox.TwoColumns(text, string.Empty, width, glyphs, role, role, isSelected);
@@ -220,6 +232,9 @@ public static class RebaseEditorFrameBuilder
         RebaseTodoAction.Reword => "reword",
         RebaseTodoAction.Squash => "squash",
         RebaseTodoAction.Fixup => "fixup",
+        RebaseTodoAction.Label => "label",
+        RebaseTodoAction.Reset => "reset",
+        RebaseTodoAction.Merge => "merge",
         _ => "drop",
     };
 
