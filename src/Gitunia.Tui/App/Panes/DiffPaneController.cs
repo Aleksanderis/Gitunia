@@ -25,7 +25,8 @@ using Terminal.Gui.Views;
 namespace Gitunia.Tui.App.Panes;
 
 /// <summary>
-/// Runs the diff pane of the active tab. The diff is part of the Changes tab: where the screen has room the pane is always shown
+/// Runs the diff pane of the active tab (on the Files tab: the file content beside the tree, following its cursor).
+/// The diff is part of the Changes tab: where the screen has room the pane is always shown
 /// beside the file list and follows its cursor (see <see cref="PaneLayout.ShowsDiffWithChanges"/>); on narrow or short screens
 /// <c>Enter</c> opens it on demand. It scrolls and jumps through the diff, searches it and zooms panes. It is also the diff's search prompt (the box in Insert mode), so it plugs into the same prompt list as the
 /// graph search. Everything it changes about focus goes through workspace commands.
@@ -845,7 +846,7 @@ public sealed class DiffPaneController : IPromptHandler
         var start = _detailList.SelectedItem ?? -1;
         for (var next = start + step; next >= 0 && next < rows.Count && remaining > 0; next += step)
         {
-            if (rows[next].Kind != FileTreeRowKind.Directory)
+            if (rows[next].Kind is not (FileTreeRowKind.Directory or FileTreeRowKind.Submodule))
             {
                 target = next;
                 remaining--;

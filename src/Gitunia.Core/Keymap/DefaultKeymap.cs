@@ -14,6 +14,7 @@ public static class DefaultKeymap
 
     /// <summary>The Detail pane while its Changes tab is selected: adds the keys that only act on a changed file list.</summary>
     public const string DetailChangesView = "DetailChanges";
+    /// <summary>The detail pane while its Files tab is selected.</summary>
     public const string DetailFilesView = "DetailFiles";
 
     public const string SidebarView = "Sidebar";
