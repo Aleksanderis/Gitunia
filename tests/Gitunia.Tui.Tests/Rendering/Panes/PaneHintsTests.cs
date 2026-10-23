@@ -315,6 +315,19 @@ public class PaneHintsTests
         Assert.DoesNotContain(" of ", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenASelectedSidebarName_WhenDrawingTheStatusBar_ThenItFollowsThePosition()
+    {
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 3, 9, false, string.Empty)
+        {
+            SelectedName = "feature/ui/button",
+        };
+
+        var text = StatusText(model);
+
+        Assert.Contains("3/9 feature/ui/button ", text, StringComparison.Ordinal);
+    }
+
     private static string StatusText(ScreenModel model) =>
         string.Concat(ChromeBuilder.Status(model, 160, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 }

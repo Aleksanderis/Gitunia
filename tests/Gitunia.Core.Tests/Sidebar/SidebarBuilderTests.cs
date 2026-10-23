@@ -110,6 +110,18 @@ public class SidebarBuilderTests
     }
 
     [Fact]
+    public void GivenBranchBelowFolders_WhenAskingTheFullName_ThenItIsTheWholeRefAndSectionsAndFoldersHaveNone()
+    {
+        var tab = Tab(refs: [Branch("feature/ui/x", isCurrent: true), Branch("feature/z")]);
+
+        var rows = SidebarBuilder.Build(tab);
+
+        Assert.Equal(string.Empty, rows[0].FullName);
+        Assert.Equal(string.Empty, rows[1].FullName);
+        Assert.Equal("feature/ui/x", rows[3].FullName);
+    }
+
+    [Fact]
     public void GivenCurrentBranchInAFolder_WhenBuilding_ThenItsFoldersAreOpenAndOthersClosed()
     {
         var tab = Tab(

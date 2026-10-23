@@ -52,6 +52,11 @@ public static class ChromeBuilder
         }
 
         builder.Append($"{(model.SearchLine.Length > 0 ? model.SearchLine : position)} ", SegmentRole.Status);
+        if (model.SearchLine.Length == 0 && model.SelectedName.Length > 0)
+        {
+            builder.Append($"{model.SelectedName} ", SegmentRole.Status);
+        }
+
         if (model.IsLoading)
         {
             builder.Append("loading... ", SegmentRole.Status);
