@@ -509,6 +509,75 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenChangesBesideTheDiff_WhenZoomingEitherPane_ThenBothZoomAndFocusBetweenThemKeepsIt()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+
+        harness.Execute(ActionIds.PaneZoom);
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Detail, harness.Controller.Arrangement().Zoomed);
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        harness.Execute(ActionIds.PaneZoom);
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+        harness.Execute(ActionIds.PaneZoom);
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        harness.Execute(ActionIds.PaneZoom);
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+    }
+
+    [Fact]
+    public async Task GivenBothPanesZoomed_WhenFocusMovesToAnotherPane_ThenTheZoomEndsForGood()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+        harness.Execute(ActionIds.PaneZoom);
+
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+
+        Assert.Null(harness.Controller.Arrangement().Zoomed);
+        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+    }
+
+    [Fact]
+    public async Task GivenBothPanesZoomed_WhenOpeningAFileAndGoingBack_ThenTheZoomStays()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        harness.Send(new FocusPaneCommand(PaneKind.Detail));
+        harness.Execute(ActionIds.PaneZoom);
+
+        await harness.OpenAsync("a.txt");
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Diff, harness.Controller.Arrangement().Zoomed);
+        harness.Execute(ActionIds.NavigateBack);
+
+        Assert.True(harness.Controller.Arrangement().ZoomBoth);
+        Assert.Equal(PaneKind.Detail, harness.Controller.Arrangement().Zoomed);
+    }
+
+    [Fact]
+    public async Task GivenTheDetailsTab_WhenZooming_ThenThePaneZoomsAloneWithoutThePair()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        await harness.OpenAsync("a.txt");
+        harness.Send(new SetBottomTabCommand(BottomTab.Details));
+        harness.Send(new FocusPaneCommand(PaneKind.Diff));
+
+        harness.Execute(ActionIds.PaneZoom);
+
+        Assert.NotNull(harness.Controller.Arrangement().Zoomed);
+        Assert.False(harness.Controller.Arrangement().ZoomBoth);
+    }
+
+    [Fact]
     public async Task GivenTheSidebarIsFocused_WhenZooming_ThenANoticeSaysItCannot()
     {
         using var harness = await DiffHarness.LoadAsync();

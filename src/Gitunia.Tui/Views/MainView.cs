@@ -851,6 +851,12 @@ public sealed class MainView : IDisposable
     private PaneRects Rects()
     {
         var current = _arrangement();
-        return PaneLayout.Compute(ScreenWidth, ScreenHeight(), current.IsDiffOpen, current.Zoomed, current.Sizes);
+        return PaneLayout.Compute(
+            ScreenWidth,
+            ScreenHeight(),
+            current.IsDiffOpen,
+            current.Zoomed,
+            current.Sizes,
+            current.ZoomBoth);
     }
 }

@@ -747,7 +747,13 @@ public sealed class TuiApplication(
     private PaneRects CurrentPaneRects()
     {
         var arrangement = _diffPane.Arrangement();
-        return PaneLayout.Compute(_view.Window.Viewport.Width, _view.Window.Viewport.Height, arrangement.IsDiffOpen, arrangement.Zoomed, arrangement.Sizes);
+        return PaneLayout.Compute(
+            _view.Window.Viewport.Width,
+            _view.Window.Viewport.Height,
+            arrangement.IsDiffOpen,
+            arrangement.Zoomed,
+            arrangement.Sizes,
+            arrangement.ZoomBoth);
     }
 
     private void Relayout()
