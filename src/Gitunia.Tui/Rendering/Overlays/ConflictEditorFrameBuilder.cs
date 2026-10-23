@@ -10,7 +10,8 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>
 /// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
 /// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable
-/// chips and a footer. A frame narrower than <see cref="StackedBelowWidth"/> stacks the two sides above the result instead.
+/// chips and a footer. A frame narrower than <see cref="StackedBelowWidth"/> stacks the two sides above the result
+/// instead.
 /// </summary>
 public static class ConflictEditorFrameBuilder
 {

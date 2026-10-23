@@ -7,8 +7,8 @@ namespace Gitunia.Core.Conflicts;
 /// <summary>
 /// The open conflict editor (ux.md, workflow 4, "Conflict editor"): a conflicted file as common text and hunks, the
 /// pick made for each hunk and the hunk under the cursor. Pure: it never reads or writes a file;
-/// <see cref="ToText"/> is what the save writes. A hunk without a pick keeps its conflict markers in the result, so a partial save leaves the file
-/// conflicted exactly where the user did not decide.
+/// <see cref="ToText"/> is what the save writes. A hunk without a pick keeps its conflict markers in the result, so a
+/// partial save leaves the file conflicted exactly where the user did not decide.
 /// </summary>
 /// <param name="TabId">The tab the editor was opened in; the save runs there.</param>
 /// <param name="Path">The conflicted path, relative to the working tree root.</param>
