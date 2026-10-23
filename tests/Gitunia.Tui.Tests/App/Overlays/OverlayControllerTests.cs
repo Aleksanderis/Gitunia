@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Tui.App.Overlays;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Views;
 using Terminal.Gui.Input;
 using Xunit;
@@ -16,7 +17,7 @@ public sealed class OverlayControllerTests : IDisposable
 {
     private readonly List<ActionId> _routed = [];
     private readonly ConcurrentQueue<Action> _posted = new();
-    private readonly SemaphoreSlim _postedSignal = new(0);
+    private readonly TestSignal _postedSignal = new();
     private readonly KeyController _keys;
     private readonly OverlayController _overlays;
     private readonly WhichKeyTimer _timer;

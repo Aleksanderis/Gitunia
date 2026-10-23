@@ -373,7 +373,7 @@ public sealed class WorktreeActionsTests
         private readonly RepositoryLocation _location;
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<Action> _callbacks = [];
-        private readonly SemaphoreSlim _refreshed = new(0);
+        private readonly TestSignal _refreshed = new();
 
         private Harness(RepositoryLocation location, SidebarRow? row, string? selectedCommit)
         {
