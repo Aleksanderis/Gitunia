@@ -205,7 +205,7 @@ public class ChangesTreeFoldTests : IDisposable
     }
 
     private DetailContent Build(FilePathStyle style, IReadOnlySet<string> collapsed) =>
-        DetailContentBuilder.Build(_entry, State(), BottomTab.Changes, null, style, collapsed);
+        DetailContentBuilder.Build(_entry, State(), BottomTab.Changes, null, style, null, collapsed);
 
     private void Refresh() => _session.DetailSource.Update(Build(FilePathStyle.Tree, _session.CollapsedFolders));
 

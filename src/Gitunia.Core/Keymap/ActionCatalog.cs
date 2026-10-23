@@ -154,6 +154,7 @@ public static class ActionCatalog
         ["detail.filter"] = "Filter the file tree by path (Files tab)",
         ["detail.next-tab"] = "Next bottom pane tab",
         ["detail.open-diff"] = "Go to the file diff",
+        ["detail.open-link"] = "Open the issue link in the message line (a count picks the nth link)",
         ["detail.previous-tab"] = "Previous bottom pane tab",
         ["detail.retry"] = "Retry loading the commit details",
         ["detail.toggle-folder"] = "Open or close the folder under the cursor (Changes tab, tree style)",

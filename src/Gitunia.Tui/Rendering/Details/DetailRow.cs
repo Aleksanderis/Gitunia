@@ -1,3 +1,4 @@
+using Gitunia.Core.IssueTracker.Models;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Details;
@@ -11,8 +12,11 @@ namespace Gitunia.Tui.Rendering.Details;
 /// row.</param>
 /// <param name="Folder">The path of the folder a folder row of the tree style stands for, null on any other
 /// row.</param>
+/// <param name="References">The tracker links of a line of the commit message, left to right (positions are in the
+/// message text, without the indent); null on any other row.</param>
 public sealed record DetailRow(
     IReadOnlyList<StyledSegment> Segments,
     FileRowPath? File = null,
     int FileIndex = -1,
-    string? Folder = null);
+    string? Folder = null,
+    IReadOnlyList<IssueReference>? References = null);

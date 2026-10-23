@@ -23,6 +23,8 @@ public static class ActionIds
 
     public static ActionId DetailOpenDiff { get; } = new("detail.open-diff");
 
+    public static ActionId DetailOpenLink { get; } = new("detail.open-link");
+
     public static ActionId DetailPreviousTab { get; } = new("detail.previous-tab");
 
     public static ActionId DetailRetry { get; } = new("detail.retry");

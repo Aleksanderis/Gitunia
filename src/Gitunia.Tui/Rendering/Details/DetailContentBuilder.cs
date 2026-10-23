@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.Diff;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
+using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
@@ -26,6 +27,7 @@ public static class DetailContentBuilder
     /// <param name="tab">The tab to build the rows of.</param>
     /// <param name="tree">The file tree to list on the Files tab; null shows it as loading.</param>
     /// <param name="pathStyle">How the Changes tab shows the paths of the files.</param>
+    /// <param name="links">The tracker rules of the repository; references in the message become links.</param>
     /// <param name="collapsedFolders">Folders of the tree style that are closed, null when all are open.</param>
     public static DetailContent Build(
         GraphEntry? entry,
@@ -33,8 +35,12 @@ public static class DetailContentBuilder
         BottomTab tab,
         FileTreeView? tree = null,
         FilePathStyle pathStyle = FilePathStyle.FullPath,
+        IssueTrackerLinks? links = null,
         IReadOnlySet<string>? collapsedFolders = null) =>
-        BuildRows(entry, state, tab, tree, pathStyle, collapsedFolders) with { PathStyle = pathStyle };
+        BuildRows(entry, state, tab, tree, pathStyle, links ?? IssueTrackerLinks.None, collapsedFolders) with
+        {
+            PathStyle = pathStyle,
+        };
 
     /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
@@ -47,6 +53,7 @@ public static class DetailContentBuilder
         BottomTab tab,
         FileTreeView? tree,
         FilePathStyle pathStyle,
+        IssueTrackerLinks links,
         IReadOnlySet<string>? collapsedFolders)
     {
         if (entry is null)
@@ -57,7 +64,7 @@ public static class DetailContentBuilder
         var details = state.Commit == entry.Id ? state.Details : null;
         var rows = tab switch
         {
-            BottomTab.Details => BuildDetails(entry, state, details),
+            BottomTab.Details => BuildDetails(entry, state, details, links),
             BottomTab.Changes => BuildChanges(entry, state, details, pathStyle, collapsedFolders),
             _ => BuildFiles(entry, tree),
         };
@@ -82,7 +89,11 @@ public static class DetailContentBuilder
         return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
 
-    private static List<DetailRow> BuildDetails(GraphEntry entry, CommitDetailsState state, CommitDetails? details)
+    private static List<DetailRow> BuildDetails(
+        GraphEntry entry,
+        CommitDetailsState state,
+        CommitDetails? details,
+        IssueTrackerLinks links)
     {
         var rows = new List<DetailRow>
         {
@@ -102,7 +113,7 @@ public static class DetailContentBuilder
 
             AddRefs(rows, entry.Decorations);
             rows.Add(Blank());
-            AddMessage(rows, details.Message);
+            AddMessage(rows, details.Message, links);
             return rows;
         }
 
@@ -321,13 +332,42 @@ public static class DetailContentBuilder
         rows.Add(new DetailRow(segments));
     }
 
-    private static void AddMessage(List<DetailRow> rows, string message)
+    private static void AddMessage(List<DetailRow> rows, string message, IssueTrackerLinks links)
     {
         foreach (var line in message.Split('\n'))
         {
             var text = line.TrimEnd('\r').Replace('\t', ' ');
-            rows.Add(text.Length == 0 ? Blank() : Plain(Indent + text));
+            rows.Add(text.Length == 0 ? Blank() : MessageRow(text, links));
         }
+    }
+
+    private static DetailRow MessageRow(string text, IssueTrackerLinks links)
+    {
+        var references = links.Find(text);
+        if (references.Count == 0)
+        {
+            return Plain(Indent + text);
+        }
+
+        var segments = new List<StyledSegment> { new(Indent, SegmentRole.Plain) };
+        var position = 0;
+        foreach (var reference in references)
+        {
+            if (reference.Start > position)
+            {
+                segments.Add(new StyledSegment(text[position..reference.Start], SegmentRole.Plain));
+            }
+
+            segments.Add(new StyledSegment(text.Substring(reference.Start, reference.Length), SegmentRole.Link));
+            position = reference.Start + reference.Length;
+        }
+
+        if (position < text.Length)
+        {
+            segments.Add(new StyledSegment(text[position..], SegmentRole.Plain));
+        }
+
+        return new DetailRow(segments, References: references);
     }
 
     private static void AddFiles(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files)

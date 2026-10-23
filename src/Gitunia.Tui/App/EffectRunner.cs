@@ -1,6 +1,8 @@
+using Gitunia.Core.IssueTracker;
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
@@ -81,6 +83,11 @@ public sealed class EffectRunner : IDisposable
         }
 
         refresher.RefreshNow(announce);
+        if (announce)
+        {
+            ReloadIssueLinks(tabId);
+        }
+
         return true;
     }
 
@@ -124,6 +131,19 @@ public sealed class EffectRunner : IDisposable
 
                 break;
         }
+    }
+
+    private void ReloadIssueLinks(TabId tabId)
+    {
+        var tab = _host.Workspace.FindTab(tabId);
+        if (tab is null || !_sessions.TryGetValue(tabId, out var session))
+        {
+            return;
+        }
+
+        var location = tab.Location;
+        var token = session.Cancellation.Token;
+        _ = Task.Run(() => LoadIssueLinksAsync(session, location, token), CancellationToken.None);
     }
 
     private void StartLoad(LoadRepositoryEffect load)
@@ -173,6 +193,7 @@ public sealed class EffectRunner : IDisposable
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);
+            _ = Task.Run(() => LoadIssueLinksAsync(session, location, token), CancellationToken.None);
             _ = Task.Run(() => _services.RepositoryLoader.RunAsync(location, session, _host, _statuses, _postToUi, token), CancellationToken.None);
         }
 
@@ -184,6 +205,26 @@ public sealed class EffectRunner : IDisposable
         else
         {
             _pendingLoads[load.TabId] = Start;
+        }
+    }
+
+    // The tracker file is read on load and on a manual refresh; a missing or bad file just means no links.
+    private async Task LoadIssueLinksAsync(TabSession session, RepositoryLocation location, CancellationToken token)
+    {
+        try
+        {
+            var rules = await _services.IssueTracker.ReadAsync(location, token).ConfigureAwait(false);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            var links = rules.Count > 0 ? new IssueTrackerLinks(rules) : IssueTrackerLinks.None;
+            _postToUi(() => session.SetIssueLinks(links));
+        }
+        catch (Exception exception) when (exception is OperationCanceledException or GitException)
+        {
+            // Cancelled with the tab, or git is unavailable: the detail pane shows no links.
         }
     }
 

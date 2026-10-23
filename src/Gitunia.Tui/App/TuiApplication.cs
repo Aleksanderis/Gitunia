@@ -24,6 +24,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Staging;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
+using Gitunia.Platform.Urls;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
 using Gitunia.Tui.App.Remote;
@@ -335,6 +336,14 @@ public sealed class TuiApplication(
             RefreshDetail,
             _diffPane.OpenFileContent);
         _router.FileTree = _fileTree;
+        _router.IssueLinks = new IssueLinkActions(
+            new UrlOpener(),
+            clipboard,
+            _statuses,
+            () => ActiveSession()?.DetailSource,
+            () => _view.Detail.SelectedItem,
+            IsMessageFocused,
+            InvokeOnUi);
         _whichKeyTimer = new WhichKeyTimer(OverlayController.WhichKeyDelay, InvokeOnUi);
         _overlays = new OverlayController(
             engine,
@@ -1569,6 +1578,9 @@ public sealed class TuiApplication(
         return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs, _chipKeys);
     }
 
+    private bool IsMessageFocused() =>
+        _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Detail, BottomTab: BottomTab.Details };
+
     private void OnGraphChanged()
     {
         foreach (var prompt in _prompts)
@@ -1582,6 +1594,7 @@ public sealed class TuiApplication(
         if (previous is not null)
         {
             previous.Details.Changed -= RefreshDetail;
+            previous.IssueLinksChanged -= RefreshDetail;
             if (previous.Tree is { IsEditingFilter: true } editing)
             {
                 // A filter typed in the tab left behind must not keep owning Insert mode.
@@ -1602,6 +1615,7 @@ public sealed class TuiApplication(
         if (current is not null)
         {
             current.Details.Changed += RefreshDetail;
+            current.IssueLinksChanged += RefreshDetail;
             if (current.Tree is { } currentTree)
             {
                 currentTree.Store.Changed += RefreshDetail;
@@ -1779,6 +1793,7 @@ public sealed class TuiApplication(
             tab,
             FileTreeViewOf(session, entry, tab),
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
+            session.IssueLinks,
             session.CollapsedFolders);
         var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);

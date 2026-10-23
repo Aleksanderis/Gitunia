@@ -122,6 +122,9 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     /// <summary>The keys of the Files tab (open, close, filter).</summary>
     public FileTreeController? FileTree { get; set; }
 
+    /// <summary>Opening the tracker link of a commit message line.</summary>
+    public IssueLinkActions? IssueLinks { get; set; }
+
     /// <summary>The bottom pane tab keys.</summary>
     public DetailTabController? DetailTabs { get; set; }
 
@@ -245,6 +248,11 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
         if (PaneSizes?.TryExecute(action, count) == true)
         {
             Message = PaneSizes.Notice;
+            return;
+        }
+
+        if (IssueLinks?.TryExecute(action, count) == true)
+        {
             return;
         }
 
