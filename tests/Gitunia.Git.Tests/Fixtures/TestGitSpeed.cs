@@ -24,7 +24,8 @@ public static class TestGitSpeed
 
     /// <summary>
     /// <c>git</c>, or on Windows the <c>mingw64\bin\git.exe</c> next to the <c>cmd\git.exe</c> shim found on the PATH
-    /// (the shim only starts the real one, which doubles the process creation cost under antivirus scanning).
+    /// (the shim only starts the real one, which doubles the process creation cost under antivirus scanning). Other
+    /// layouts (Scoop, portable installs) fall back to <c>git</c>, which is correct, only slower.
     /// </summary>
     public static string Executable => ExecutablePath.Value;
 

@@ -92,16 +92,17 @@ jobs:
           global-json-file: global.json
       - name: Faster temp directory (#624, unverified on the runner)
         # The tests create thousands of throwaway repositories under the temp directory. D: is the runner's faster
-        # temporary disk, and Defender scanning every object file git writes is the likely reason a Windows run takes
+        # temporary disk, and Defender scanning every object file git writes is a likely reason a Windows run takes
         # several times as long as the Linux one. Neither effect is measured yet: compare the Test step time in the
-        # next run and drop this step if it does not help.
+        # next run and drop this step if it does not help. Only the temp directory is excluded, and a failing
+        # exclusion never fails the job.
         shell: pwsh
         run: |
           if (Test-Path D:\) {
             New-Item -ItemType Directory -Force D:\gitunia-tmp | Out-Null
             "TMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
             "TEMP=D:\gitunia-tmp" >> $env:GITHUB_ENV
-            Add-MpPreference -ExclusionPath "D:\gitunia-tmp", $env:GITHUB_WORKSPACE
+            try { Add-MpPreference -ExclusionPath "D:\gitunia-tmp" -ErrorAction Stop } catch { Write-Warning $_ }
           }
       - name: Build (warnings, including IL*, are errors)
         run: dotnet build -c Release
