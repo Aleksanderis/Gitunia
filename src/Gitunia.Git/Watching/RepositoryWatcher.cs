@@ -13,6 +13,7 @@ namespace Gitunia.Git.Watching;
 public sealed class RepositoryWatcher : IDisposable
 {
     private const int MaximumNewSubdirectories = 64;
+    private const int RelistPasses = 2;
 
     private static readonly NotifyFilters GitDirectoryFilters = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size;
 
@@ -353,14 +354,22 @@ public sealed class RepositoryWatcher : IDisposable
     /// Watches a created directory and a few of its subdirectories (a quick <c>mkdir -p</c> or unpack); the rescan that
     /// follows adds what git lists and drops what it ignores, so a big new tree never fills the cap. The watchers are
     /// created outside the gate; only the bookkeeping happens under it. A subdirectory created after the first listing
-    /// but before the new watchers were enabled raises no event anyone sees, so the listing is repeated once the
-    /// watchers are live; anything created after that is reported by them.
+    /// but before the new watchers were enabled raises no event anyone sees, so the listing is repeated a
+    /// few times once the watchers are live. That narrows the window to almost nothing; the rescan covers the rest.
     /// </summary>
     private void WatchNewDirectory(string path)
     {
-        if (WatchDirectories(path, includeSelf: true))
+        if (!WatchDirectories(path, includeSelf: true))
         {
-            WatchDirectories(path, includeSelf: false);
+            return;
+        }
+
+        for (var pass = 0; pass < RelistPasses; pass++)
+        {
+            if (!WatchDirectories(path, includeSelf: false))
+            {
+                return;
+            }
         }
     }
 
