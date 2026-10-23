@@ -29,11 +29,7 @@ public sealed class ConfigStartup(string configDirectory, string homeDirectory)
         var themeProblems = new List<ConfigProblem>();
         var themes = new ThemeCatalog(Path.Combine(configDirectory, ThemesFolder));
         var theme = ThemeConfigurator.Parse(loaded.Document.Theme, themeProblems, themes.Names);
-        if (theme.IsNamedTheme && themes.Find(theme.Name, themeProblems) is null)
-        {
-            themeProblems.Add(new ConfigProblem("theme", $"\"{theme.Name}\" could not be loaded, using auto"));
-            theme = ThemeChoice.Auto;
-        }
+        themeProblems.AddRange(themes.Problems);
 
         var options = OptionsConfigurator.Read(loaded.Document, homeDirectory, Directory.Exists, themeProblems);
         var keymap = built with { Problems = [.. loaded.Problems, .. built.Problems, .. themeProblems] };

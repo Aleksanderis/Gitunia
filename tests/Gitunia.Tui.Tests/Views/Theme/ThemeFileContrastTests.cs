@@ -19,9 +19,11 @@ public sealed class ThemeFileContrastTests
     private const double QuantizedRatio = 3.0;
 
     private static readonly int[] CubeLevels = [0, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
-    private static readonly ThemeCatalog Themes = new(Path.Combine(Path.GetTempPath(), "gitunia-no-themes"));
+    private static readonly ThemeCatalog Themes = new(Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
 
     public static TheoryData<string> Names => [.. BuiltInThemes.Names];
+
+    public static TheoryData<string> AnsiNames => [.. AnsiColorNames.All];
 
     [Theory]
     [MemberData(nameof(Names))]
@@ -164,6 +166,20 @@ public sealed class ThemeFileContrastTests
 
         Assert.Equal(new Color(ColorName16.Cyan), colors.Accent);
         Assert.Equal(new Color(ColorName16.BrightGreen), colors.Good);
+    }
+
+    [Theory]
+    [MemberData(nameof(AnsiNames))]
+    public void GivenAnyAnsiColourName_WhenAtSixteenColours_ThenTheOverrideResolvesToThatColour(string ansiName)
+    {
+        var definition = DefinitionOf("catppuccin-mocha") with
+        {
+            Ansi = new Dictionary<string, string> { [ThemeRoles.Accent] = ansiName },
+        };
+
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false, false, definition));
+
+        Assert.Equal(new Color(Enum.Parse<ColorName16>(ansiName, ignoreCase: true)), colors.Accent);
     }
 
     [Fact]

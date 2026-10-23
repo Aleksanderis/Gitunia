@@ -77,14 +77,27 @@ public sealed class ThemeCatalogTests : IDisposable
     }
 
     [Fact]
-    public void GivenAnInvalidUserFile_WhenFinding_ThenNothingIsReturnedWithAProblem()
+    public void GivenAnInvalidUserFile_WhenListingNames_ThenItIsNotOfferedAndItsProblemIsReported()
     {
         Directory.CreateDirectory(_directory);
         File.WriteAllText(Path.Combine(_directory, "broken.json"), "{ nope");
-        var problems = new List<ConfigProblem>();
+        var catalog = new ThemeCatalog(_directory);
 
-        Assert.Null(new ThemeCatalog(_directory).Find("broken", problems));
-        Assert.Single(problems);
+        Assert.DoesNotContain("broken", catalog.Names);
+        Assert.Null(catalog.Find("broken", []));
+        Assert.Single(catalog.Problems);
+    }
+
+    [Fact]
+    public void GivenTwoFilesWithTheSameLowerCaseName_WhenListing_ThenTheFirstInOrdinalOrderWins()
+    {
+        WriteTheme("B.json", "Upper");
+        WriteTheme("b.json", "Lower");
+
+        var found = new ThemeCatalog(_directory).Find("b", []);
+
+        Assert.True(found?.Name is "Upper" or "Lower");
+        Assert.Equal("Upper", found?.Name);
     }
 
     [Fact]

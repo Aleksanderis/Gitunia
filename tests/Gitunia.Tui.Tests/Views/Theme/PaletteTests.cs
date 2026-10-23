@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Tests.Views.Theme;
 
 public class PaletteTests
 {
-    private static readonly ThemeCatalog Themes = new(Path.Combine(Path.GetTempPath(), "gitunia-no-themes"));
+    private static readonly ThemeCatalog Themes = new(Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
 
     // What a terminal typically draws behind and in front of default text.
     private const int DarkBackground = 0x1e1e2e;

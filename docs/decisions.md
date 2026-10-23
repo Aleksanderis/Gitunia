@@ -446,4 +446,4 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-23
 
-**UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. The published Latte and Tokyo Night Day values are darkened where they fail 4.5 contrast.
+**UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. Published values are nudged where they fail contrast (`docs/ux.md`).
