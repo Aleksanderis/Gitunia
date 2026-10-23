@@ -4,11 +4,11 @@
   "variant": "dark",
   "colors": {
     "accent": "#b8cec5",
-    "good": "#cecf64",
-    "bad": "#fbb9b2",
+    "good": "#ccce5f",
+    "bad": "#fbb7b0",
     "remote": "#e8becb",
-    "warn": "#fac13b",
-    "info": "#b0d3a4",
+    "warn": "#fabf35",
+    "info": "#aed2a1",
     "muted": "#d0c8bb",
     "mutedOnSelection": "#d2c8b6",
     "border": "#887b72",
@@ -20,22 +20,16 @@
     "chipForeground": "#1d2021",
     "chipBackground": "#b8cec5",
     "matchForeground": "#1d2021",
-    "matchBackground": "#fac13b",
-    "baseForeground": "#efefef",
+    "matchBackground": "#fabf35",
+    "baseForeground": "#ebdbb2",
     "baseBackground": "#32302f",
     "lanes": [
       "#b8cec5",
-      "#cecf64",
-      "#fac13b",
+      "#ccce5f",
+      "#fabf35",
       "#e8becb",
-      "#fbb9b2",
-      "#b0d3a4",
       "#febb86",
-      "#d7c8a7",
-      "#b4cfcf",
-      "#cece91",
-      "#e9c47e",
-      "#dec1d0"
+      "#cdcc8e"
     ]
   }
 }

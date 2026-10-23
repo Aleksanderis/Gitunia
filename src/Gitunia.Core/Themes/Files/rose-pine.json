@@ -8,7 +8,7 @@
     "bad": "#ef91ad",
     "remote": "#ebbcba",
     "warn": "#f6c177",
-    "info": "#8fb3c1",
+    "info": "#8cb1bf",
     "muted": "#aeaabf",
     "mutedOnSelection": "#aeaabf",
     "border": "#6e6a86",
@@ -29,13 +29,8 @@
       "#f6c177",
       "#ebbcba",
       "#ef91ad",
-      "#8fb3c1",
       "#aeaabf",
-      "#e0def4",
-      "#dc97c4",
-      "#83b4c2",
-      "#f09884",
-      "#e6cdd7"
+      "#e0def4"
     ]
   }
 }

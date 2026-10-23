@@ -21,21 +21,13 @@
     "chipBackground": "#685779",
     "matchForeground": "#faf4ed",
     "matchBackground": "#80551e",
-    "baseForeground": "#43405c",
+    "baseForeground": "#575279",
     "baseBackground": "#faf4ed",
     "lanes": [
       "#685779",
       "#3b656b",
       "#80551e",
-      "#854f4d",
-      "#8a4b5d",
-      "#27667f",
-      "#5f5c73",
-      "#575279",
-      "#77516c",
-      "#316675",
-      "#845137",
-      "#765262"
+      "#854f4d"
     ]
   }
 }

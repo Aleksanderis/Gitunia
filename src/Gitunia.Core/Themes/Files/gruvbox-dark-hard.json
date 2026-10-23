@@ -3,10 +3,10 @@
   "name": "Gruvbox Dark Hard",
   "variant": "dark",
   "colors": {
-    "accent": "#acc2b9",
-    "good": "#c0c33f",
-    "bad": "#fba79d",
-    "remote": "#e1b0bd",
+    "accent": "#a9c0b7",
+    "good": "#bec139",
+    "bad": "#fba49a",
+    "remote": "#e0aebb",
     "warn": "#fabd2f",
     "info": "#9ac88c",
     "muted": "#c4baad",
@@ -18,24 +18,19 @@
     "groupBackground": "#2c2c2c",
     "tabButtonBackground": "#504945",
     "chipForeground": "#1d2021",
-    "chipBackground": "#acc2b9",
+    "chipBackground": "#a9c0b7",
     "matchForeground": "#1d2021",
     "matchBackground": "#fabd2f",
-    "baseForeground": "#efe5c6",
+    "baseForeground": "#ebdbb2",
     "baseBackground": "#1d2021",
     "lanes": [
-      "#acc2b9",
-      "#c0c33f",
+      "#a9c0b7",
+      "#bec139",
       "#fabd2f",
-      "#e1b0bd",
-      "#fba79d",
+      "#e0aebb",
       "#9ac88c",
-      "#feaa64",
-      "#d5c4a1",
-      "#a3c2c3",
-      "#c1c076",
-      "#e2b660",
-      "#d7b3c4"
+      "#fea75f",
+      "#c1c076"
     ]
   }
 }
