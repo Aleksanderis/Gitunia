@@ -49,6 +49,17 @@ public sealed record SidebarRow(
     /// <summary>The row is a section header or a folder: it holds entries, selects no commit and folds.</summary>
     public bool IsContainer => Kind is SidebarRowKind.Section or SidebarRowKind.Folder;
 
+    /// <summary>
+    /// The full name of the row for the status line: the whole ref name of a branch or tag (also below a folder, where
+    /// the row shows only the short name), the stash name, the worktree path. Empty for a section or a folder.
+    /// </summary>
+    public string FullName => Kind switch
+    {
+        SidebarRowKind.Section or SidebarRowKind.Folder => string.Empty,
+        SidebarRowKind.Worktree => Path ?? Label,
+        _ => Label,
+    };
+
     /// <summary>The row is a section header.</summary>
     public bool IsSection => Kind == SidebarRowKind.Section;
 }
