@@ -1254,7 +1254,7 @@ public sealed class TuiApplication(
 
     private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
         new ConfigWriter(platform.ConfigDirectory),
-        new SettingsEnvironment(_homeDirectory, Directory.Exists),
+        new SettingsEnvironment(_homeDirectory, Directory.Exists, _startupConfig.Themes.Names),
         _statuses,
         InvokeOnUi,
         () => _view.ScreenSize,
@@ -1269,7 +1269,8 @@ public sealed class TuiApplication(
             _statuses,
             Environment.GetEnvironmentVariable,
             PauseForEnter).Launch,
-        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table));
+        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table),
+        SettingsRegistry.WithThemes(_startupConfig.Themes.Names));
 
     private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
         current is null || other is null
@@ -1421,7 +1422,7 @@ public sealed class TuiApplication(
         var driver = _application.Driver;
         var palette = PaletteSettings
             .Choose(_capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
-            .WithTheme(_startupConfig.Theme);
+            .WithTheme(_startupConfig.Theme, _startupConfig.Themes);
         if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
         {
             driver.Force16Colors = true;

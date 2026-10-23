@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "Catppuccin Macchiato",
+  "variant": "dark",
+  "colors": {
+    "accent": "#8aadf4",
+    "good": "#a6da95",
+    "bad": "#ed8998",
+    "remote": "#c6a0f6",
+    "warn": "#eed49f",
+    "info": "#91d7e3",
+    "muted": "#a0a6c0",
+    "mutedOnSelection": "#a5adcb",
+    "border": "#6e738d",
+    "barBackground": "#1e2030",
+    "selectionFocused": "#363a4f",
+    "selectionDim": "#2d3044",
+    "groupBackground": "#292d40",
+    "tabButtonBackground": "#363a4f",
+    "chipForeground": "#181926",
+    "chipBackground": "#8aadf4",
+    "matchForeground": "#181926",
+    "matchBackground": "#eed49f",
+    "baseForeground": "#cad3f5",
+    "baseBackground": "#24273a",
+    "lanes": [
+      "#8aadf4",
+      "#a6da95",
+      "#eed49f",
+      "#c6a0f6",
+      "#ed8998",
+      "#8bd5ca",
+      "#f5a97f",
+      "#f5bde6",
+      "#7dc4e4",
+      "#b7bdf8",
+      "#ee99a0",
+      "#f0c6c6"
+    ]
+  }
+}

@@ -8,19 +8,19 @@ namespace Gitunia.Core.Tests.Config;
 public sealed class ThemeConfiguratorTests
 {
     [Theory]
-    [InlineData("\"auto\"", ThemeChoice.Auto)]
-    [InlineData("\"dark\"", ThemeChoice.Dark)]
-    [InlineData("\"light\"", ThemeChoice.Light)]
-    [InlineData("\" Light \"", ThemeChoice.Light)]
-    [InlineData("\"DARK\"", ThemeChoice.Dark)]
-    [InlineData("null", ThemeChoice.Auto)]
-    public void GivenAValidValue_WhenParsing_ThenTheChoiceIsReturnedWithoutProblems(string json, ThemeChoice expected)
+    [InlineData("\"auto\"", "auto")]
+    [InlineData("\"dark\"", "dark")]
+    [InlineData("\"light\"", "light")]
+    [InlineData("\" Light \"", "light")]
+    [InlineData("\"DARK\"", "dark")]
+    [InlineData("null", "auto")]
+    public void GivenAValidValue_WhenParsing_ThenTheChoiceIsReturnedWithoutProblems(string json, string expected)
     {
         var problems = new List<ConfigProblem>();
 
         var choice = ThemeConfigurator.Parse(JsonDocument.Parse(json).RootElement, problems);
 
-        Assert.Equal(expected, choice);
+        Assert.Equal(expected, choice.Name);
         Assert.Empty(problems);
     }
 
@@ -47,5 +47,30 @@ public sealed class ThemeConfiguratorTests
 
         Assert.Equal(ThemeChoice.Auto, choice);
         Assert.Equal("theme", Assert.Single(problems).Path);
+    }
+
+    [Theory]
+    [InlineData("\"catppuccin-mocha\"", "catppuccin-mocha")]
+    [InlineData("\" Tokyo-Night \"", "tokyo-night")]
+    public void GivenABuiltInThemeName_WhenParsing_ThenItIsChosenWithoutProblems(string json, string expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        var choice = ThemeConfigurator.Parse(JsonDocument.Parse(json).RootElement, problems);
+
+        Assert.Equal(expected, choice.Name);
+        Assert.True(choice.IsNamedTheme);
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAUserThemeName_WhenParsingWithTheNamesOnOffer_ThenItIsChosen()
+    {
+        var problems = new List<ConfigProblem>();
+
+        var choice = ThemeConfigurator.Parse(JsonDocument.Parse("\"mine\"").RootElement, problems, ["mine"]);
+
+        Assert.Equal("mine", choice.Name);
+        Assert.Empty(problems);
     }
 }

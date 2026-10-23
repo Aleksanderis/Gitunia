@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Gitunia.Git\Gitunia.Git.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Themes\Files\*.json" LogicalName="themes/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

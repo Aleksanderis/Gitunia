@@ -1,5 +1,6 @@
 using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings;
+using Gitunia.Core.Themes;
 using Gitunia.Core.Settings.Models;
 using Xunit;
 
@@ -31,18 +32,18 @@ public class SettingsValueReaderTests
     }
 
     [Theory]
-    [InlineData("{}", "auto", ThemeChoice.Auto)]
-    [InlineData("{ \"theme\": \"dark\" }", "dark", ThemeChoice.Dark)]
-    [InlineData("{ \"theme\": \"Light\" }", "light", ThemeChoice.Light)]
+    [InlineData("{}", "auto", "auto")]
+    [InlineData("{ \"theme\": \"dark\" }", "dark", "dark")]
+    [InlineData("{ \"theme\": \"Light\" }", "light", "light")]
     public void GivenATheme_WhenReading_ThenTheChoiceAndTheRunningThemeHoldIt(
         string text,
         string choice,
-        ThemeChoice expected)
+        string expected)
     {
         var load = Read(new ConfigSnapshot(true, text, "h"));
 
         Assert.Equal(choice, load.Values[SettingsRegistry.ThemeId].Choice);
-        Assert.Equal(expected, load.Theme);
+        Assert.Equal(expected, load.Theme.Name);
         Assert.Empty(load.Warnings);
     }
 
@@ -113,6 +114,44 @@ public class SettingsValueReaderTests
         Assert.Equal("auto", load.Values[SettingsRegistry.ThemeId].Choice);
         Assert.False(load.Values[SettingsRegistry.ShowBranchId].Flag);
         Assert.Equal([Srv, Missing], load.Values[SettingsRegistry.ScanRootsId].Paths);
+    }
+
+    [Fact]
+    public void GivenABuiltInThemeName_WhenReading_ThenItIsTheChoiceWithoutWarnings()
+    {
+        var load = Read(new ConfigSnapshot(true, "{ \"theme\": \"Tokyo-Night-Moon\" }", "h"));
+
+        Assert.Equal("tokyo-night-moon", load.Values[SettingsRegistry.ThemeId].Choice);
+        Assert.Equal("tokyo-night-moon", load.Theme.Name);
+        Assert.Empty(load.Warnings);
+    }
+
+    [Fact]
+    public void GivenAUserThemeName_WhenReadingWithTheNamesOnOffer_ThenItIsAcceptedOtherwiseWarned()
+    {
+        var snapshot = new ConfigSnapshot(true, "{ \"theme\": \"mine\" }", "h");
+
+        var known = SettingsValueReader.Read(snapshot, Home, _ => true, ["mine"]);
+        var unknown = Read(snapshot);
+
+        Assert.Equal("mine", known.Theme.Name);
+        Assert.Empty(known.Warnings);
+        Assert.Equal("auto", unknown.Theme.Name);
+        Assert.Contains(SettingsRegistry.ThemeId, unknown.Warnings.Keys);
+    }
+
+    [Fact]
+    public void GivenThemeNames_WhenBuildingTheSettings_ThenTheThemeOptionsAreTheBaseSchemesThenTheNames()
+    {
+        var definitions = SettingsRegistry.WithThemes(["a", "b"]);
+
+        var theme = definitions.Single(definition => definition.Id == SettingsRegistry.ThemeId);
+
+        Assert.Equal(["auto", "dark", "light", "a", "b"], theme.Choices);
+        Assert.Equal(SettingsRegistry.All.Count, definitions.Count);
+        Assert.Equal(
+            ["auto", "dark", "light", .. BuiltInThemes.Names],
+            SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ThemeId).Choices);
     }
 
     private static SettingsLoad Read(ConfigSnapshot snapshot) =>

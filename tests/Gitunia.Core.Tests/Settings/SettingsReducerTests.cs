@@ -13,6 +13,8 @@ public class SettingsReducerTests
     private static readonly string SrvOther = Path.Combine(Root, "srv", "other");
     private static readonly string SrvNew = Path.Combine(Root, "srv", "new");
     private const string PageSizeId = "page-size";
+    private static readonly int ThemeOptionCount = Definition(SettingsRegistry.ThemeId).Choices.Count;
+
     private static readonly SettingsEnvironment Environment = new(
         Home,
         path => !path.Contains("missing", StringComparison.Ordinal));
@@ -104,7 +106,7 @@ public class SettingsReducerTests
 
         Assert.Null(outcome.Commit);
         Assert.Equal(
-            [SettingRowKind.Setting, SettingRowKind.Option, SettingRowKind.Option, SettingRowKind.Option],
+            [SettingRowKind.Setting, .. Enumerable.Repeat(SettingRowKind.Option, ThemeOptionCount)],
             outcome.State.Rows.Select(row => row.Kind));
         Assert.Equal(2, outcome.State.Selected?.Index);
     }
@@ -178,7 +180,7 @@ public class SettingsReducerTests
         var down = opened.MoveTo(99);
         var up = opened.MoveTo(-5);
 
-        Assert.Equal(3, down.Cursor);
+        Assert.Equal(ThemeOptionCount, down.Cursor);
         Assert.Equal(1, up.Cursor);
     }
 

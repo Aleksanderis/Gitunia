@@ -1,4 +1,6 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Themes;
+using Gitunia.Core.Themes.Models;
 using Gitunia.Platform;
 
 namespace Gitunia.Tui.Views.Theme;
@@ -10,22 +12,45 @@ namespace Gitunia.Tui.Views.Theme;
 /// </param>
 /// <param name="IsLightBackground">The terminal has a light background (darker accents, light selection tints).</param>
 /// <param name="PaintsBase">The scheme paints its own base text and background colours because the theme was forced against the terminal's background.</param>
-public sealed record PaletteSettings(ColorDepth Depth, bool IsLightBackground, bool PaintsBase = false)
+/// <param name="Definition">
+/// A theme file to take the colours (24-bit) and the 16-colour overrides from, null for the built-in schemes.
+/// </param>
+public sealed record PaletteSettings(
+    ColorDepth Depth,
+    bool IsLightBackground,
+    bool PaintsBase = false,
+    ThemeDefinition? Definition = null)
 {
     /// <summary>The scheme used before the terminal is known: 24-bit colours for a dark background.</summary>
     public static PaletteSettings Default { get; } = new(ColorDepth.TrueColor, false);
 
     /// <summary>
-    /// The same scheme with the light or dark side forced by the <c>theme</c> setting;
-    /// <see cref="ThemeChoice.Auto"/> keeps the detected one.
+    /// The same scheme with the light or dark side forced by the <c>theme</c> setting, or a theme file applied;
+    /// <see cref="ThemeChoice.Auto"/> keeps the detected one, and so does a theme that cannot be loaded.
     /// </summary>
     /// <param name="theme">The configured choice.</param>
-    public PaletteSettings WithTheme(ThemeChoice theme) => theme switch
+    /// <param name="themes">Where a named theme is looked up.</param>
+    public PaletteSettings WithTheme(ThemeChoice theme, ThemeCatalog themes)
     {
-        ThemeChoice.Dark => this with { IsLightBackground = false, PaintsBase = IsLightBackground },
-        ThemeChoice.Light => this with { IsLightBackground = true, PaintsBase = !IsLightBackground },
-        _ => this,
-    };
+        if (theme.IsNamedTheme)
+        {
+            return themes.Find(theme.Name, []) is { } definition
+                ? this with
+                {
+                    IsLightBackground = definition.IsLight,
+                    PaintsBase = IsLightBackground != definition.IsLight,
+                    Definition = definition,
+                }
+                : this;
+        }
+
+        return theme.Name switch
+        {
+            ThemeChoice.DarkName => this with { IsLightBackground = false, PaintsBase = IsLightBackground },
+            ThemeChoice.LightName => this with { IsLightBackground = true, PaintsBase = !IsLightBackground },
+            _ => this,
+        };
+    }
 
     /// <summary>The scheme for a terminal. The driver's own detection can only lower the depth: a driver that cannot do 24-bit colour gets the 16-colour scheme.</summary>
     /// <param name="capabilities">What the platform detected.</param>
