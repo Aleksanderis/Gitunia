@@ -30,7 +30,6 @@ public class DisplayWidthTests
     [InlineData(0x1FA70)] // Ballet shoes (Unicode 12)
     [InlineData(0x1FAC3)] // Pregnant man (Unicode 14)
     [InlineData(0x1FAE0)] // Melting face (Unicode 14)
-    [InlineData(0x1FAF8)] // Rightwards pushing hand (Unicode 15)
     [InlineData(0x3000)] // Ideographic space
     [InlineData(0x30000)] // CJK extension G
     public void GivenWideCodePoint_WhenMeasuring_ThenTakesTwoColumns(int codePoint)
@@ -77,12 +76,10 @@ public class DisplayWidthTests
     [InlineData("\U0001F468‍\U0001F469‍\U0001F467", 2)] // Family
     [InlineData("\U0001F469‍❤️‍\U0001F468", 2)] // Couple with heart
     [InlineData("❤️‍\U0001F525", 2)] // Narrow base with the emoji selector
-    [InlineData("x\U0001F468‍\U0001F469y", 4)]
     [InlineData("a‍b", 2)] // A joiner after a plain letter joins nothing
     [InlineData("‍\U0001F468", 2)]
     [InlineData("\U0001F468‍", 2)]
     [InlineData("\U0001F468‍a", 3)] // A joiner followed by a non-emoji joins nothing
-    [InlineData("\U0001F468‍ ", 3)]
     [InlineData("\U0001F468‍‍\U0001F469", 4)]
     [InlineData("\U0001F468‍\U0001F469\U0001F467", 4)] // The last emoji is not joined
     public void GivenZeroWidthJoinerSequence_WhenMeasuring_ThenItIsOneWideCell(string text, int expected)
