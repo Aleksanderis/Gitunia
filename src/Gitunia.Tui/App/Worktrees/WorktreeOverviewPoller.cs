@@ -165,9 +165,8 @@ public sealed class WorktreeOverviewPoller : IDisposable
         WakeLoop();
     }
 
-    // The semaphore holds at most one wake; a second wake changes nothing. Changed fires on the UI
-    // thread only, but a check of CurrentCount before Release would be a race if that ever changed, so Release is
-    // simply allowed to report that the wake is already pending.
+    // Changed is raised on the UI thread only. The semaphore holds at most one wake, so Release reporting that one is
+    // already pending is not an error: it is a cheap guard instead of a check of CurrentCount before the Release.
     private void WakeLoop()
     {
         try
