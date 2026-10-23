@@ -136,6 +136,9 @@ public sealed class TabRefresher : IDisposable
         _poller?.SetActive(isActive);
     }
 
+    /// <summary>The terminal gained focus: polls now, not at the next tick. No effect with file watching.</summary>
+    public void CheckNow() => _poller?.CheckNow();
+
     /// <summary>Manual refresh: reads everything and reloads the graph; <paramref name="announce"/> false keeps the status bar as it is unless it fails.</summary>
     public void RefreshNow(bool announce = true)
     {

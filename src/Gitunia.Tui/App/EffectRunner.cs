@@ -95,6 +95,15 @@ public sealed class EffectRunner : IDisposable
         return true;
     }
 
+    /// <summary>The terminal gained focus: the active tab checks for outside changes at once.</summary>
+    public void CheckActiveTabNow()
+    {
+        if (_host.Workspace.ActiveTabId is { } active && _refreshers.TryGetValue(active, out var refresher))
+        {
+            refresher.CheckNow();
+        }
+    }
+
     /// <summary>Re-reads the status of a tab after the index changed and runs <paramref name="applied"/> once the new state is in. False when the tab has no watcher yet.</summary>
     public bool RefreshStatus(TabId tabId, Action applied)
     {
