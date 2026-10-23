@@ -154,7 +154,8 @@ public class RepositoryLoaderTests
         await harness.ExpandAsync();
 
         Assert.Equal(10, harness.Session.Graph.Count);
-        var shownIds = Enumerable.Range(0, 10).Select(index => harness.Session.Graph[index].Id);
+        var graph = harness.Session.Graph;
+        var shownIds = Enumerable.Range(0, 10).Select(index => graph[index].Id);
         Assert.Equal(harness.CommitLog.Commits.Select(commit => commit.Id), shownIds);
         Assert.True(harness.Session.IsGraphComplete);
         Assert.Null(harness.Session.TruncatedTotal);
@@ -198,7 +199,8 @@ public class RepositoryLoaderTests
         await harness.RunAsync();
         var shown = harness.Session.Graph.Count;
         var staleVersion = harness.Session.GraphVersion;
-        harness.Session.ReplaceGraph([.. Enumerable.Range(0, shown).Select(index => harness.Session.Graph[index])], 10);
+        var graph = harness.Session.Graph;
+        harness.Session.ReplaceGraph([.. Enumerable.Range(0, shown).Select(index => graph[index])], 10);
 
         await harness.Loader.ExpandAsync(
             harness.Location,

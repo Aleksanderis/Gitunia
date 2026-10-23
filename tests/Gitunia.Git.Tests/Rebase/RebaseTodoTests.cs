@@ -41,13 +41,15 @@ public class RebaseTodoTests
     [Fact]
     public void GivenAValidReorder_WhenValidating_ThenNothingIsThrown()
     {
-        RebaseTodoValidator.Validate(
+        var exception = Record.Exception(() => RebaseTodoValidator.Validate(
             Range,
             [
                 new("ccc", RebaseTodoAction.Pick),
                 new("aaa", RebaseTodoAction.Drop),
                 new("bbb", RebaseTodoAction.Squash),
-            ]);
+            ]));
+
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -162,7 +164,9 @@ public class RebaseTodoTests
     [Fact]
     public void GivenTheRangeUnchanged_WhenValidatingAMergeRange_ThenNothingIsThrown()
     {
-        RebaseTodoValidator.Validate(MergeRange, MergeEntries());
+        var exception = Record.Exception(() => RebaseTodoValidator.Validate(MergeRange, MergeEntries()));
+
+        Assert.Null(exception);
     }
 
     [Fact]

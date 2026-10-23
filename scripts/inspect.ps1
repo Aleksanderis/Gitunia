@@ -2,7 +2,7 @@
 # These are quality checks (captured disposed/modified variables, unused members, ...) that .editorconfig and the
 # compiler analyzers do not report. Exit code 1 when anything is found.
 # Usage: inspect.ps1 [-Changed | glob...]. No argument inspects everything (~40 s); -Changed or globs (~10 s)
-# limit the report to those files (-Changed: files modified against HEAD).
+# limit the report to those files (-Changed: files changed on the branch since origin/main, committed or not).
 param([switch]$Changed, [Parameter(ValueFromRemainingArguments)][string[]]$Globs)
 
 $ErrorActionPreference = 'Stop'
@@ -14,7 +14,10 @@ Push-Location $root
 try {
     $include = @()
     if ($Changed) {
-        $files = @(git diff --name-only HEAD -- '*.cs')
+        $base = git merge-base HEAD origin/main 2>$null
+        if (-not $base) { $base = git merge-base HEAD main 2>$null }
+        if (-not $base) { $base = 'HEAD' }
+        $files = @(git diff --name-only $base -- '*.cs')
         if ($files.Count -eq 0) { Write-Output '0 issue(s)'; exit 0 }
         $include = @("--include=$($files -join ';')")
     }

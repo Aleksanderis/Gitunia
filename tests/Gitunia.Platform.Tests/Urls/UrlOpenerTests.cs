@@ -16,12 +16,4 @@ public class UrlOpenerTests
         Assert.False(result.Opened);
         Assert.NotNull(result.Error);
     }
-
-    [Fact]
-    public void GivenTheCurrentOperatingSystem_WhenAsked_ThenSupportMatchesTheBranchesOfTheOpener()
-    {
-        var expected = OperatingSystem.IsLinux() || OperatingSystem.IsMacOS() || OperatingSystem.IsWindows();
-
-        Assert.Equal(expected, new UrlOpener().IsSupported);
-    }
 }

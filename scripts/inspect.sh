@@ -3,7 +3,7 @@
 # These are quality checks (captured disposed/modified variables, unused members, ...) that .editorconfig and the
 # compiler analyzers do not report. Exit code 1 when anything is found.
 # Usage: inspect.sh [--changed | glob...]. No argument inspects everything (~40 s); --changed or globs (~10 s)
-# limit the report to those files (--changed: files modified against HEAD).
+# limit the report to those files (--changed: files changed on the branch since origin/main, committed or not).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,7 +12,8 @@ output="$(mktemp -d)/inspect.xml"
 cd "$root"
 include=()
 if [[ "${1:-}" == "--changed" ]]; then
-    changed="$(git diff --name-only HEAD -- '*.cs' | paste -sd ';' -)"
+    base="$(git merge-base HEAD origin/main 2>/dev/null || git merge-base HEAD main 2>/dev/null || echo HEAD)"
+    changed="$(git diff --name-only "$base" -- '*.cs' | paste -sd ';' -)"
     if [[ -z "$changed" ]]; then
         echo "0 issue(s)"
         exit 0
