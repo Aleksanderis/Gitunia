@@ -15,7 +15,10 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class ConflictEditorFrameBuilder
 {
-    /// <summary>The frame width (the screen minus 6 columns of margin) below which the two sides are stacked instead of drawn side by side.</summary>
+    /// <summary>
+    /// The frame width (the screen minus 6 columns of margin) below which the two sides are stacked instead of drawn
+    /// side by side.
+    /// </summary>
     public const int StackedBelowWidth = 90;
 
     private const int MaximumWidth = 180;
