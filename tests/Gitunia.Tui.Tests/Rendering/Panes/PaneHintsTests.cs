@@ -328,6 +328,33 @@ public class PaneHintsTests
         Assert.Contains("3/9 feature/ui/button ", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenALongSelectedName_WhenDrawingANarrowStatusBar_ThenItIsCutInTheMiddleAndTheMessageSurvives()
+    {
+        var model = new ScreenModel("repo", null, 1, 1, "NORMAL", string.Empty, 3, 9, false, "Checked out main")
+        {
+            SelectedName = "/home/user/Projects/Gitunia/.claude/worktrees/agent-a58b7c7253cb51622",
+        };
+
+        var text = string.Concat(ChromeBuilder.Status(model, 80, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
+
+        Assert.Contains("Checked out main", text, StringComparison.Ordinal);
+        Assert.Contains("cb51622", text, StringComparison.Ordinal);
+        Assert.Contains("…", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenASelectedNameAndAFilterLine_WhenDrawingTheStatusBar_ThenTheNameIsLeftOut()
+    {
+        var model = new ScreenModel("repo", null, 1, 1, "INSERT", string.Empty, 3, 9, false, string.Empty)
+        {
+            SelectedName = "feature/x",
+            SearchLine = "/mul_",
+        };
+
+        Assert.DoesNotContain("feature/x", StatusText(model), StringComparison.Ordinal);
+    }
+
     private static string StatusText(ScreenModel model) =>
         string.Concat(ChromeBuilder.Status(model, 160, GraphGlyphSet.Unicode).Segments.Select(segment => segment.Text));
 }

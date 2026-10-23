@@ -32,6 +32,10 @@ public static class ChromeBuilder
             .Build(SegmentRole.Status);
     }
 
+    // The selected sidebar name gets at most a third of the line (cut in the middle), so hints and messages stay.
+    private const int NameShareDivisor = 3;
+    private const int MinimumNameColumns = 12;
+
     public static StyledLine Status(ScreenModel model, int width, GraphGlyphSet glyphs)
     {
         var selected = model.SelectedPosition.ToString(CultureInfo.InvariantCulture);
@@ -54,7 +58,8 @@ public static class ChromeBuilder
         builder.Append($"{(model.SearchLine.Length > 0 ? model.SearchLine : position)} ", SegmentRole.Status);
         if (model.SearchLine.Length == 0 && model.SelectedName.Length > 0)
         {
-            builder.Append($"{model.SelectedName} ", SegmentRole.Status);
+            var name = TextWidth.FitMiddle(model.SelectedName, Math.Max(MinimumNameColumns, width / NameShareDivisor), glyphs.Ellipsis);
+            builder.Append($"{name} ", SegmentRole.Status);
         }
 
         if (model.IsLoading)
