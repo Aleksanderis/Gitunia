@@ -2,7 +2,6 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Search.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Git;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
@@ -29,7 +28,6 @@ public static class ScreenComposer
     /// <param name="diff">The diff pane, or null when none is open (then <paramref name="arrangement"/> must not open or zoom the diff).</param>
     /// <param name="arrangement">Whether the diff is open and which pane is zoomed, null for the normal layout.</param>
     /// <param name="upstreamGoneBranches">Local branches whose upstream is gone (marked); null if none.</param>
-    /// <param name="markedCommit">The commit marked for a comparison, null if none.</param>
     public static IReadOnlyList<StyledLine> Compose(
         ScreenModel model,
         CommitGraph graph,
@@ -43,8 +41,7 @@ public static class ScreenComposer
         SearchQuery? highlight = null,
         DiffPaneModel? diff = null,
         PaneArrangement? arrangement = null,
-        IReadOnlySet<string>? upstreamGoneBranches = null,
-        ObjectId? markedCommit = null)
+        IReadOnlySet<string>? upstreamGoneBranches = null)
     {
         var lines = new List<StyledLine>(height);
         if (height > ScreenLayout.TabRow)
@@ -82,8 +79,7 @@ public static class ScreenComposer
                 rects,
                 padding,
                 showsCutMarker,
-                upstreamGoneBranches,
-                markedCommit);
+                upstreamGoneBranches);
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)
@@ -220,8 +216,7 @@ public static class ScreenComposer
         PaneRects rects,
         int paddingColumns,
         bool showsCutMarker,
-        IReadOnlySet<string>? upstreamGoneBranches,
-        ObjectId? markedCommit)
+        IReadOnlySet<string>? upstreamGoneBranches)
     {
         var showDetail = detail is not null && !rects.Detail.IsEmpty;
         var showDiff = diff is not null && !rects.Diff.IsEmpty;
@@ -234,8 +229,7 @@ public static class ScreenComposer
                 GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth),
                 glyphs,
                 highlight,
-                upstreamGoneBranches,
-                markedCommit);
+                upstreamGoneBranches);
             var graphLines = new List<StyledLine>(graphHeight);
             for (var offset = 0; offset < graphHeight; offset++)
             {

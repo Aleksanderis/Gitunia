@@ -6,6 +6,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.Loading.Commits;
 
 namespace Gitunia.Tui.App.Compare;
 
@@ -87,7 +88,9 @@ public sealed class CompareActions(WorkspaceHost host, Func<TabSession?> activeS
         var newer = markIndex > selectedIndex ? selected : mark;
         if (!session.Details.Compare(older, newer))
         {
-            Notice = "Still loading the commit; try again";
+            Notice = session.Details.Current.Status == CommitDetailsStatus.Failed
+                ? "The commit could not be loaded (<space>r retries)"
+                : "Still loading the commit; try again";
             return;
         }
 

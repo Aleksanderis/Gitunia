@@ -523,6 +523,45 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenAComparisonWithTheOlderCommitSelected_WhenFollowing_ThenTheDiffIsTheOneBetweenTheTwo()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        var newer = harness.Session.Graph[0].Id;
+        await harness.ShowCommitAsync(1);
+
+        await harness.CompareAsync(harness.Session.Graph[1].Id, newer);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        var store = harness.Session.Diff!.Store;
+        Assert.Equal(newer, store.Commit);
+        Assert.Equal(["a.txt"], harness.Session.Diff.Source.Document.FilePaths.Select(names => names[0]));
+        Assert.Contains(
+            harness.Session.Diff.Source.Document.Rows,
+            row => row.Text.Contains("line 3 changed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task GivenAShownComparison_WhenItIsCleared_ThenTheDiffIsTheSelectedCommitsOwnAgain()
+    {
+        using var harness = await DiffHarness.LoadAsync(screenWidth: 100);
+        var older = harness.Session.Graph[1].Id;
+        await harness.ShowCommitAsync(1);
+        await harness.CompareAsync(older, harness.Session.Graph[0].Id);
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        await harness.ClearComparisonAsync();
+        harness.Controller.FollowSelection();
+        await harness.WaitForDiffAsync();
+
+        Assert.Equal(older, harness.Session.Diff!.Store.Commit);
+        Assert.DoesNotContain(
+            harness.Session.Diff.Source.Document.Rows,
+            row => row.Text.Contains("changed", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task GivenAMergeCommitSelected_WhenOpeningAFile_ThenTheFirstParentDiffShows()
     {
         using var testRepository = TestRepository.Create()
@@ -1016,6 +1055,21 @@ public class DiffPaneControllerTests
             DetailList.SelectedItem = Session.DetailSource.Content.FirstFileRow;
         }
 
+        /// <summary>Shows the comparison of two commits for the selected one, the file list following it.</summary>
+        public async Task CompareAsync(ObjectId older, ObjectId newer)
+        {
+            Assert.True(Session.Details.Compare(older, newer));
+            await _pump.RunUntilAsync(() => Session.Details.Current.Details!.IsComparison);
+            ShowCurrentChanges();
+        }
+
+        public async Task ClearComparisonAsync()
+        {
+            Assert.True(Session.Details.ClearComparison());
+            await _pump.RunUntilAsync(() => Session.Details.Current.Status == CommitDetailsStatus.Loaded);
+            ShowCurrentChanges();
+        }
+
         public async Task OpenAsync(string path)
         {
             SelectFile(path);
@@ -1046,6 +1100,13 @@ public class DiffPaneControllerTests
                 "edit",
                 new TestFile("a.txt", string.Concat(Enumerable.Range(1, 40).Select(index => index is 3 or 38 ? $"line {index} changed\n" : $"line {index}\n"))),
                 new TestFile("b.txt", "b changed\n"));
+
+        private void ShowCurrentChanges()
+        {
+            var entry = Session.Graph.ToArray().Single(candidate => candidate.Id == Session.Details.Current.Commit);
+            Session.DetailSource.Update(DetailContentBuilder.Build(entry, Session.Details.Current, BottomTab.Changes));
+            DetailList.SelectedItem = Session.DetailSource.Content.FirstFileRow;
+        }
 
         private async Task ShowDetailsOfAsync(ObjectId commit)
         {
