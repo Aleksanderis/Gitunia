@@ -32,6 +32,8 @@ CI (`.github/workflows/ci.yml`) runs build, test, AOT publish and the smoke run 
 
 Agents verify locally first (`dotnet build`, `dotnet test`, AOT publish when dependencies or projects changed, `scripts/inspect.sh --changed`), open the PR ready and push once. Code-only PRs rely on the build-time AOT analyzers until the pre-release run. After merging, if another PR merged since the last push, run `dotnet build && dotnet test` on updated `main`.
 
+A change to `ci.yml` that moves build or output paths (e.g. `ArtifactsPath` on the Windows leg) is tried locally first with the same environment variables (`UseArtifactsOutput=true`, `ArtifactsPath=<dir outside the repo>`, then `dotnet test`); tests must not assume the binaries sit inside the repo (#663).
+
 ## Performance checks
 
 A benchmark (BenchmarkDotNet, not part of the normal test run) for graph load and layout on a generated 100k-commit repo. Record numbers in `docs/performance.md` when targets are verified.

@@ -10,6 +10,10 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Tests read docs/ux.md; the output folder may be outside the repo (ArtifactsPath on CI), so no walking up from it (#663). -->
+    <AssemblyMetadata Include="RepoRoot" Value="$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..'))" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Shared git speed settings (#624): one source file, linked instead of a project reference between test projects. -->
     <Compile Include="..\Gitunia.Git.Tests\Fixtures\TestGitSpeed.cs" Link="Fixtures\TestGitSpeed.cs" />
   </ItemGroup>
