@@ -40,6 +40,8 @@ public sealed class StagingActions(
     TabOperationGate? gate = null,
     Func<ConfirmPrompt, Action, bool>? confirm = null)
 {
+    private const string DirectorySuffix = "/";
+
     private readonly TabOperationGate _gate = gate ?? new TabOperationGate();
 
     /// <summary>An operation is running or its status re-read is still pending.</summary>
@@ -223,7 +225,7 @@ public sealed class StagingActions(
     {
         var entries = tree.EntriesOf(section);
         var picked = tree.RowsOf(section).EntriesUnder(folder).Select(index => entries[index]).ToList();
-        var name = $"{WorkingTreeRowRenderer.Printable(folder)}/";
+        var name = $"{WorkingTreeRowRenderer.Printable(folder)}{DirectorySuffix}";
         if (picked.Count == 0)
         {
             return StagingPlan.Refused($"{name} holds no files");
