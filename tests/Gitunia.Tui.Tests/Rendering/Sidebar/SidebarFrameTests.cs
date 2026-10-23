@@ -68,8 +68,8 @@ public class SidebarFrameTests
         var leafCol = Col(SidebarRowRenderer.Render(leaf, 40, false, glyphs), "main");
 
         Assert.Equal(2, headerCol);
-        Assert.True(folderCol > headerCol, "the folder name sits right of the header name");
-        Assert.True(leafCol > folderCol, "the branch name sits right of its folder name");
+        Assert.Equal(3, folderCol);
+        Assert.Equal(4, leafCol);
     }
 
     [Fact]
