@@ -125,7 +125,9 @@ public static class DiffPaneRenderer
             var total = pane.Document.HunkRows.Count.ToString(CultureInfo.InvariantCulture);
             var fileNumber = pane.FileNumber.ToString(CultureInfo.InvariantCulture);
             var fileCount = pane.FileCount.ToString(CultureInfo.InvariantCulture);
-            var files = pane.FileCount > 0 ? $"  file {fileNumber}/{fileCount}" : string.Empty;
+            var files = pane.IsFolder && pane.FileCount > 0
+                ? $"  folder, {fileCount} {(pane.FileCount == 1 ? "file" : "files")}"
+                : pane.FileCount > 0 ? $"  file {fileNumber}/{fileCount}" : string.Empty;
             builder.Append($"{files}  hunk {position}/{total}", SegmentRole.Faint);
             AppendWrapMarker(builder, pane);
             builder.Append($"  {pane.Document.FilePaths[fileIndex][0]} ", SegmentRole.Plain);

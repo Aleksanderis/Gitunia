@@ -446,6 +446,8 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 ## 2026-10-23
 
+**UI:** Tree style of the Changes tab (#548): folder rows are not collapsible yet, and the working-tree lists keep two styles (their rows are index-addressed by staging, discard and ranges); the folder view reuses the loaded commit diff, cut to the folder, so it costs no git call. Supersedes "the tree style is M5" in the #540 entry; details in `ux.md`.
+**UI:** Themes (#61) are JSON files (format and 16-colour rule: `docs/ux.md`, "Theme files"), built-ins embedded in the binary. Published values are nudged where they fail contrast (`docs/ux.md`).
 **Git layer:** Interactive rebase keeps merge commits (#461; supersedes "interactive rebase refuses merges, `--rebase-merges` post-MVP"): git prepares the `--rebase-merges` todo, read through a sequence editor that prints it and fails; label, reset and merge lines are kept and only reordered. Why: the todo is git's to get right; cost is one aborted `rebase` start per read.
 
 **UI:** Issue links (#213): `.issuetracker` in the working tree root, read with `git config --file`; `gx` opens the first link of a line, a count picks another (no picker). Why: no parser of our own, no new overlay. Detail: `ux.md` (Details tab).

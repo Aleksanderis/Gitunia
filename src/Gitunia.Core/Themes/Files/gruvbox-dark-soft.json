@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "name": "Gruvbox Dark Soft",
+  "variant": "dark",
+  "colors": {
+    "accent": "#b8cec5",
+    "good": "#ccce5f",
+    "bad": "#fbb7b0",
+    "remote": "#e8becb",
+    "warn": "#fabf35",
+    "info": "#aed2a1",
+    "muted": "#d0c8bb",
+    "mutedOnSelection": "#d2c8b6",
+    "border": "#887b72",
+    "barBackground": "#282828",
+    "selectionFocused": "#5a524c",
+    "selectionDim": "#46413e",
+    "groupBackground": "#3e3a38",
+    "tabButtonBackground": "#5a524c",
+    "chipForeground": "#1d2021",
+    "chipBackground": "#b8cec5",
+    "matchForeground": "#1d2021",
+    "matchBackground": "#fabf35",
+    "baseForeground": "#ebdbb2",
+    "baseBackground": "#32302f",
+    "lanes": [
+      "#b8cec5",
+      "#ccce5f",
+      "#fabf35",
+      "#e8becb",
+      "#febb86",
+      "#cdcc8e"
+    ]
+  }
+}

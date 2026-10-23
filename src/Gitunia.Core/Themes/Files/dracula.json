@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "Dracula",
+  "variant": "dark",
+  "colors": {
+    "accent": "#cba8f9",
+    "good": "#50fa7b",
+    "bad": "#ff9d9d",
+    "remote": "#ff96d2",
+    "warn": "#f1fa8c",
+    "info": "#8be9fd",
+    "muted": "#b1b8d1",
+    "mutedOnSelection": "#aeb8da",
+    "border": "#6776a7",
+    "barBackground": "#21222c",
+    "selectionFocused": "#44475a",
+    "selectionDim": "#363848",
+    "groupBackground": "#303341",
+    "tabButtonBackground": "#44475a",
+    "chipForeground": "#21222c",
+    "chipBackground": "#cba8f9",
+    "matchForeground": "#21222c",
+    "matchBackground": "#f1fa8c",
+    "baseForeground": "#f8f8f2",
+    "baseBackground": "#282a36",
+    "lanes": [
+      "#cba8f9",
+      "#50fa7b",
+      "#f1fa8c",
+      "#ff96d2",
+      "#ff9d9d",
+      "#8be9fd",
+      "#ffb86c",
+      "#f8f8f2"
+    ]
+  }
+}

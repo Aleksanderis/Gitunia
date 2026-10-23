@@ -1262,7 +1262,7 @@ public sealed class TuiApplication(
 
     private SettingsController CreateSettings(GraphGlyphSet glyphs) => new(
         new ConfigWriter(platform.ConfigDirectory),
-        new SettingsEnvironment(_homeDirectory, Directory.Exists),
+        new SettingsEnvironment(_homeDirectory, Directory.Exists, _startupConfig.Themes.Names),
         _statuses,
         InvokeOnUi,
         () => _view.ScreenSize,
@@ -1277,7 +1277,8 @@ public sealed class TuiApplication(
             _statuses,
             Environment.GetEnvironmentVariable,
             PauseForEnter).Launch,
-        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table));
+        () => KeyReferenceBuilder.Build(_startupConfig.Keymap.Table),
+        SettingsRegistry.WithThemes(_startupConfig.Themes.Names));
 
     private static bool SameRoots(ImmutableArray<string>? current, ImmutableArray<string>? other) =>
         current is null || other is null
@@ -1429,7 +1430,7 @@ public sealed class TuiApplication(
         var driver = _application.Driver;
         var palette = PaletteSettings
             .Choose(_capabilities, driver is { SupportsTrueColor: true, Force16Colors: false })
-            .WithTheme(_startupConfig.Theme);
+            .WithTheme(_startupConfig.Theme, _startupConfig.Themes);
         if (palette.Depth == ColorDepth.Ansi16 && driver is not null)
         {
             driver.Force16Colors = true;
@@ -1792,6 +1793,7 @@ public sealed class TuiApplication(
             FileTreeViewOf(session, entry, tab),
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
             session.IssueLinks);
+        var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);
 
         var landing = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;
@@ -1804,9 +1806,20 @@ public sealed class TuiApplication(
             landing,
             _view.Detail.SelectedItem,
             content.Rows.Count));
+        var remapped = DetailCursorRemap.Row(previous, content, previousCursor);
+        if (remapped >= 0)
+        {
+            _view.Detail.SelectedItem = remapped;
+        }
+
         _view.Detail.EnsureSelectedItemVisible();
         _view.Detail.SetNeedsDraw();
         _view.RefreshChrome();
         _diffPane.FollowSelection();
+        if (remapped >= 0)
+        {
+            // The cursor may keep its index while the row under it changed, so no cursor event tells the diff.
+            _diffPane.OnDetailCursorMoved();
+        }
     }
 }

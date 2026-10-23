@@ -18,7 +18,12 @@ public static class SettingsValueReader
     /// <param name="snapshot">The file as read by the config writer.</param>
     /// <param name="homeDirectory">What a leading <c>~</c> in a scan root stands for.</param>
     /// <param name="directoryExists">Whether a folder exists (injected so this stays pure).</param>
-    public static SettingsLoad Read(ConfigSnapshot snapshot, string homeDirectory, Func<string, bool> directoryExists)
+    /// <param name="themeNames">The names of the theme files that exist; null for the built-in ones only.</param>
+    public static SettingsLoad Read(
+        ConfigSnapshot snapshot,
+        string homeDirectory,
+        Func<string, bool> directoryExists,
+        IReadOnlyCollection<string>? themeNames = null)
     {
         var problems = new List<ConfigProblem>();
         var banner = snapshot.Error is { } error ? $"{NotEditable}: {error}" : string.Empty;
@@ -33,7 +38,7 @@ public static class SettingsValueReader
             }
         }
 
-        var theme = ThemeConfigurator.Parse(document.Theme, problems);
+        var theme = ThemeConfigurator.Parse(document.Theme, problems, themeNames);
         var options = OptionsConfigurator.Read(document, homeDirectory, directoryExists, problems);
         var values = ImmutableDictionary.CreateBuilder<string, SettingValue>();
         values[SettingsRegistry.ThemeId] = SettingValue.OfChoice(ThemeName(theme));
@@ -45,21 +50,11 @@ public static class SettingsValueReader
 
     /// <summary>The text of a theme as written in the file.</summary>
     /// <param name="theme">The theme.</param>
-    public static string ThemeName(ThemeChoice theme) => theme switch
-    {
-        ThemeChoice.Dark => "dark",
-        ThemeChoice.Light => "light",
-        _ => "auto",
-    };
+    public static string ThemeName(ThemeChoice theme) => theme.Name;
 
-    /// <summary>The theme a choice option stands for; auto for an unknown text.</summary>
+    /// <summary>The theme a choice option stands for.</summary>
     /// <param name="text">The option text.</param>
-    public static ThemeChoice ThemeOf(string text) => text switch
-    {
-        "dark" => ThemeChoice.Dark,
-        "light" => ThemeChoice.Light,
-        _ => ThemeChoice.Auto,
-    };
+    public static ThemeChoice ThemeOf(string text) => ThemeChoice.FromText(text);
 
     // The list as written, so editing it never rewrites an entry the user typed (a leading ~ stays one).
     private static SettingValue ReadScanRoots(JsonElement? element)

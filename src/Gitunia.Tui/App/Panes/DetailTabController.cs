@@ -1,6 +1,7 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 
 namespace Gitunia.Tui.App.Panes;
@@ -30,11 +31,14 @@ public sealed class DetailTabController(WorkspaceHost host)
 
         if (action == ActionIds.FilesTogglePathStyle)
         {
-            var style = tab.View.PathStyle == FilePathStyle.NameFirst
-                ? FilePathStyle.FullPath
-                : FilePathStyle.NameFirst;
-            host.Dispatch(new TabCommand(tab.Id, new TogglePathStyleCommand()));
-            Notice = style == FilePathStyle.NameFirst ? "File paths: name first" : "File paths: full path";
+            var includesTree = tab.View.Mode != TabViewMode.WorkingTree;
+            host.Dispatch(new TabCommand(tab.Id, new TogglePathStyleCommand(includesTree)));
+            Notice = host.Workspace.ActiveTab?.View.PathStyle switch
+            {
+                FilePathStyle.FullPath => "File paths: full path",
+                FilePathStyle.Tree => "File paths: tree",
+                _ => "File paths: name first",
+            };
 
             return true;
         }

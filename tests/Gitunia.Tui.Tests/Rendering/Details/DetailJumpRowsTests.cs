@@ -65,5 +65,8 @@ public class DetailJumpRowsTests
         BottomTab.Changes);
 
     private static DetailRow FileRow(string mark, string path) =>
-        new([new StyledSegment(mark, SegmentRole.FileChanged), new StyledSegment($" {path}", SegmentRole.Plain)]);
+        new(
+            [new StyledSegment(mark, SegmentRole.FileChanged), new StyledSegment($" {path}", SegmentRole.Plain)],
+            null,
+            0);
 }
