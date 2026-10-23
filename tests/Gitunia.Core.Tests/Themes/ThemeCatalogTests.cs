@@ -91,6 +91,10 @@ public sealed class ThemeCatalogTests : IDisposable
     [Fact]
     public void GivenTwoFilesWithTheSameLowerCaseName_WhenListing_ThenTheFirstInOrdinalOrderWins()
     {
+        Assert.SkipWhen(
+            OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(),
+            "B.json and b.json are one file on a case-insensitive file system.");
+
         WriteTheme("B.json", "Upper");
         WriteTheme("b.json", "Lower");
 
