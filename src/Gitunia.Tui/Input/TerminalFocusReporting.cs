@@ -32,6 +32,7 @@ public static class TerminalFocusReporting
         }
 
         parser.ExpectResponse("I", string.Empty, _ => gained(), static () => { }, true);
+        // Focus-out needs no action; registering it only keeps the sequence from turning into key events.
         parser.ExpectResponse("O", string.Empty, static _ => { }, static () => { }, true);
         driver.WriteRaw(Enable);
 

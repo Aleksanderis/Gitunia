@@ -445,6 +445,7 @@ public sealed class TuiApplication(
         _view.WorkingStaged.ValueChanged += (_, _) => _visual.OnCursorMoved();
         _view.PickerRowClicked += OnPickerRowClicked;
         SubscribeInput();
+        StartFocusReporting();
 
         if (restored.Detail is { Length: > 0 } restoreNotice)
         {
@@ -1222,6 +1223,7 @@ public sealed class TuiApplication(
         {
             CreateApplication();
             SubscribeInput();
+            StartFocusReporting();
             _uiInvoker.Resume(_application.Invoke);
             if (resumed is not null)
             {
@@ -1683,6 +1685,14 @@ public sealed class TuiApplication(
         return _keys.Handle(key, FocusedViewName()) || isPickerShowing;
     }
 
+    private void StartFocusReporting()
+    {
+        if (_application.Driver is { } driver)
+        {
+            TerminalFocusReporting.Start(driver, () => InvokeOnUi(_effects.CheckActiveTabNow));
+        }
+    }
+
     private void StopFocusReporting()
     {
         if (_application.Driver is { } driver)
@@ -1695,10 +1705,6 @@ public sealed class TuiApplication(
     {
         _application.Keyboard.KeyDown += (_, key) => key.Handled = HandleKey(key);
         _application.Paste += (_, paste) => OnPaste(paste);
-        if (_application.Driver is { } driver)
-        {
-            TerminalFocusReporting.Start(driver, () => InvokeOnUi(_effects.CheckActiveTabNow));
-        }
     }
 
     /// <summary>
