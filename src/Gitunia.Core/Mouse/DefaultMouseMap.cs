@@ -57,15 +57,8 @@ public static class DefaultMouseMap
 
     public const string DiffZoomButton = "DiffButton.Zoom";
 
-    public const string DiffMoreContextButton = "DiffButton.MoreContext";
-
-    public const string DiffLessContextButton = "DiffButton.LessContext";
-
-    public const string DiffWholeFileButton = "DiffButton.WholeFile";
-
-    public const string DiffIgnoreWhitespaceButton = "DiffButton.IgnoreWhitespace";
-
-    public const string DiffSideBySideButton = "DiffButton.SideBySide";
+    /// <summary>The <c>view ▾</c> dropdown: context, whole file, ignore space, split and wrap (#645).</summary>
+    public const string DiffViewButton = "DiffButton.View";
 
     /// <summary>The staging buttons of the working-tree diff's title row (#343): stage or unstage the hunk, discard it.</summary>
     public const string DiffStageButton = "DiffButton.Stage";
@@ -295,11 +288,7 @@ public static class DefaultMouseMap
         new(DiffNextHunkButton, MouseGesture.Click, ActionIds.DiffNextHunk),
         new(DiffWrapButton, MouseGesture.Click, ActionIds.DiffToggleWrap),
         new(DiffZoomButton, MouseGesture.Click, ActionIds.PaneZoom),
-        new(DiffMoreContextButton, MouseGesture.Click, ActionIds.DiffMoreContext),
-        new(DiffLessContextButton, MouseGesture.Click, ActionIds.DiffLessContext),
-        new(DiffWholeFileButton, MouseGesture.Click, ActionIds.DiffToggleWholeFile),
-        new(DiffIgnoreWhitespaceButton, MouseGesture.Click, ActionIds.DiffToggleIgnoreWhitespace),
-        new(DiffSideBySideButton, MouseGesture.Click, ActionIds.DiffToggleSideBySide),
+        new(DiffViewButton, MouseGesture.Click, ActionIds.DiffOpenViewOptions),
         new(DiffStageButton, MouseGesture.Click, ActionIds.WorkingTreeStage),
         new(DiffUnstageButton, MouseGesture.Click, ActionIds.WorkingTreeUnstage),
         new(DiffDiscardButton, MouseGesture.Click, ActionIds.WorkingTreeDiscard),

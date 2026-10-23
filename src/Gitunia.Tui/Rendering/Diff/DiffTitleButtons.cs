@@ -5,14 +5,13 @@ using Gitunia.Tui.Rendering.Styling;
 namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
-/// The buttons at the right end of the diff pane's title row: previous and next file and hunk, fewer and more
-/// context, whole file,
-/// ignore whitespace, side by side, word wrap and zoom, drawn as
-/// padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see <see cref="ButtonLabel"/>). They are the
-/// mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before each label (#536).
-/// Narrow panes show only the
-/// most useful ones (zoom, wrap and the hunk buttons last to go) (the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's box:
-/// a column of line follows each button.
+/// The buttons at the right end of the diff pane's title row: previous and next file and hunk, the <c>view ▾</c>
+/// dropdown (fewer and more context, whole file, ignore whitespace, side by side and word wrap, #645) and zoom,
+/// drawn as padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see
+/// <see cref="ButtonLabel"/>). They are the mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before
+/// each label (#536). Narrow panes show only the most useful ones (zoom, the view dropdown and the hunk buttons last
+/// to go; the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's
+/// box: a column of line follows each button.
 /// </summary>
 public static class DiffTitleButtons
 {
@@ -30,20 +29,19 @@ public static class DiffTitleButtons
     private static readonly ButtonSpecification[] Candidates =
     [
         new(DefaultMouseMap.DiffZoomButton, " zoom "),
-        new(DefaultMouseMap.DiffWrapButton, " wrap "),
+        new(DefaultMouseMap.DiffViewButton, " view ▾ "),
         new(DefaultMouseMap.DiffNextHunkButton, " hunk › "),
         new(DefaultMouseMap.DiffPreviousHunkButton, " ‹ hunk "),
         new(DefaultMouseMap.DiffNextFileButton, " file › "),
         new(DefaultMouseMap.DiffPreviousFileButton, " ‹ file "),
-        new(DefaultMouseMap.DiffSideBySideButton, " split "),
-        new(DefaultMouseMap.DiffIgnoreWhitespaceButton, " -w "),
-        new(DefaultMouseMap.DiffWholeFileButton, " file "),
-        new(DefaultMouseMap.DiffMoreContextButton, " ctx+ "),
-        new(DefaultMouseMap.DiffLessContextButton, " ctx- "),
     ];
 
-    // The first Candidates entries (zoom, wrap) are the ones a file's content has.
-    private const int ContentButtonCount = 2;
+    // A file's content has no diff options but wrap, so it shows that button beside zoom instead of the dropdown.
+    private static readonly ButtonSpecification[] ContentCandidates =
+    [
+        Candidates[0],
+        new(DefaultMouseMap.DiffWrapButton, " wrap "),
+    ];
 
     // Left to right on the row.
     private static readonly string[] DisplayOrder =
@@ -55,11 +53,7 @@ public static class DiffTitleButtons
         DefaultMouseMap.DiffNextFileButton,
         DefaultMouseMap.DiffPreviousHunkButton,
         DefaultMouseMap.DiffNextHunkButton,
-        DefaultMouseMap.DiffLessContextButton,
-        DefaultMouseMap.DiffMoreContextButton,
-        DefaultMouseMap.DiffWholeFileButton,
-        DefaultMouseMap.DiffIgnoreWhitespaceButton,
-        DefaultMouseMap.DiffSideBySideButton,
+        DefaultMouseMap.DiffViewButton,
         DefaultMouseMap.DiffWrapButton,
         DefaultMouseMap.DiffZoomButton,
     ];
@@ -90,7 +84,7 @@ public static class DiffTitleButtons
         var chosen = new List<ButtonSpecification>();
         var used = 0;
         List<ButtonSpecification> candidates =
-            isFileContent ? [.. Candidates.Take(ContentButtonCount)] : [.. Prioritized(staging)];
+            isFileContent ? [.. ContentCandidates] : [.. Prioritized(staging)];
         for (var index = 0; index < candidates.Count; index++)
         {
             var candidate = candidates[index];

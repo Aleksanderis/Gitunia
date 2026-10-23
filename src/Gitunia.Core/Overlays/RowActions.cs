@@ -23,6 +23,20 @@ public static class RowActions
         ActionIds.PickRevert,
     ];
 
+    /// <summary>The title of the dropdown of the diff's view options (#645).</summary>
+    public const string ViewOptionsTitle = "View";
+
+    /// <summary>The view options the diff title's <c>view ▾</c> dropdown lists (#645), in this order.</summary>
+    public static IReadOnlyList<ActionId> ViewOptions { get; } =
+    [
+        ActionIds.DiffMoreContext,
+        ActionIds.DiffLessContext,
+        ActionIds.DiffToggleWholeFile,
+        ActionIds.DiffToggleIgnoreWhitespace,
+        ActionIds.DiffToggleSideBySide,
+        ActionIds.DiffToggleWrap,
+    ];
+
     /// <summary>
     /// The actions on the commit of a graph row. Open details is the mouse route to the details pane, which a
     /// double-click no longer reaches and which is hidden on screens under 14 rows (#486).

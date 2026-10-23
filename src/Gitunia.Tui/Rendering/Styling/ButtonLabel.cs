@@ -8,8 +8,13 @@ public static class ButtonLabel
     private const char AsciiClose = ']';
     private const char LeftArrow = '\u2039';
     private const char RightArrow = '\u203A';
+    private const char DownArrow = '\u25BE';
+    private const char AsciiDownArrow = 'v';
 
-    /// <summary>The label itself, or in ASCII the same label with the arrows as plain angle brackets and with square brackets in place of its outer padding columns (the width stays the same).</summary>
+    /// <summary>
+    /// The label itself, or in ASCII the same label with the arrows as plain angle brackets (the dropdown arrow as
+    /// <c>v</c>) and with square brackets in place of its outer padding columns (the width stays the same).
+    /// </summary>
     public static string For(string label, bool isAscii)
     {
         if (!isAscii)
@@ -17,7 +22,7 @@ public static class ButtonLabel
             return label;
         }
 
-        var ascii = label.Replace(LeftArrow, '<').Replace(RightArrow, '>');
+        var ascii = label.Replace(LeftArrow, '<').Replace(RightArrow, '>').Replace(DownArrow, AsciiDownArrow);
         return ascii.Length > 2 && ascii[0] == Padding && ascii[^1] == Padding ? $"{AsciiOpen}{ascii[1..^1]}{AsciiClose}" : ascii;
     }
 }

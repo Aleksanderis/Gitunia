@@ -1030,6 +1030,24 @@ public sealed class TuiApplication(
     // The actions menu of the row under the cursor of the graph or the sidebar, hanging at that row.
     private RowMenuTarget? MenuTargetOf(string view, SidebarListSource sidebarSource)
     {
+        if (view == DefaultKeymap.DiffView)
+        {
+            return _view.Diff.Source is DiffListSource { Document.IsFileContent: true }
+                ? null
+                : new RowMenuTarget(
+                    RowActions.ViewOptions,
+                    _view.ViewMenuAnchor(isWorking: false),
+                    RowActions.ViewOptionsTitle);
+        }
+
+        if (view == DefaultKeymap.WorkingUnstagedDiffView || view == DefaultKeymap.WorkingStagedDiffView)
+        {
+            return new RowMenuTarget(
+                RowActions.ViewOptions,
+                _view.ViewMenuAnchor(isWorking: true),
+                RowActions.ViewOptionsTitle);
+        }
+
         if (view == DefaultKeymap.SidebarView)
         {
             return SelectedSidebarRow(sidebarSource) is { } row
