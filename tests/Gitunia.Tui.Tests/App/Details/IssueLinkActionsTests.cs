@@ -25,6 +25,8 @@ public class IssueLinkActionsTests : IDisposable
     private readonly StringWriter _terminal = new();
     private readonly StatusChannel _statuses = new();
     private readonly FakeUrlOpener _opener = new();
+    private readonly Queue<Action> _posted = new();
+    private readonly SemaphoreSlim _arrived = new(0);
     private bool _focused = true;
 
     [Fact]
@@ -33,6 +35,7 @@ public class IssueLinkActionsTests : IDisposable
         var actions = CreateActions(LineOf("See #1 and #2"));
 
         Assert.True(actions.TryExecute(ActionIds.DetailOpenLink, null));
+        Settle();
 
         Assert.Equal(["https://example.org/1"], _opener.Opened);
     }
@@ -43,6 +46,7 @@ public class IssueLinkActionsTests : IDisposable
         var actions = CreateActions(LineOf("See #1 and #2"));
 
         actions.TryExecute(ActionIds.DetailOpenLink, 2);
+        Settle();
 
         Assert.Equal(["https://example.org/2"], _opener.Opened);
     }
@@ -83,6 +87,7 @@ public class IssueLinkActionsTests : IDisposable
         var actions = CreateActions(LineOf("See #1 and #2"));
 
         Assert.True(actions.TryExecute(ActionIds.DetailOpenDiff, null));
+        Settle();
 
         Assert.Equal(["https://example.org/1"], _opener.Opened);
     }
@@ -104,6 +109,7 @@ public class IssueLinkActionsTests : IDisposable
         var actions = CreateActions(LineOf("See #1 and #2"));
 
         actions.TryExecute(ActionIds.DetailOpenLink, null);
+        Settle();
 
         var expected = $"\u001b]52;c;{Convert.ToBase64String(Encoding.UTF8.GetBytes("https://example.org/1"))}\u001b\\";
         Assert.Equal(expected, _terminal.ToString());
@@ -111,9 +117,27 @@ public class IssueLinkActionsTests : IDisposable
         Assert.Contains("copied https://example.org/1", _statuses.Current?.Text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenASlowOpener_WhenOpening_ThenTheKeyReturnsBeforeTheOpenerFinishes()
+    {
+        using var release = new ManualResetEventSlim();
+        _opener.Gate = release;
+        var actions = CreateActions(LineOf("See #1 and #2"));
+
+        Assert.True(actions.TryExecute(ActionIds.DetailOpenLink, null));
+
+        Assert.Empty(_opener.Opened);
+        Assert.Equal("Opening https://example.org/1", _statuses.Current?.Text);
+        release.Set();
+        Settle();
+        Assert.Equal(["https://example.org/1"], _opener.Opened);
+        Assert.Equal("Opened https://example.org/1", _statuses.Current?.Text);
+    }
+
     public void Dispose()
     {
         _terminal.Dispose();
+        _arrived.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -160,7 +184,21 @@ public class IssueLinkActionsTests : IDisposable
         _statuses,
         () => line.Source,
         () => line.Row,
-        () => _focused);
+        () => _focused,
+        action =>
+        {
+            _posted.Enqueue(action);
+            _arrived.Release();
+        });
+
+    private void Settle()
+    {
+        Assert.True(_arrived.Wait(TimeSpan.FromSeconds(10)));
+        while (_posted.TryDequeue(out var action))
+        {
+            action();
+        }
+    }
 
     private sealed record Line(DetailListSource Source, int Row);
 
@@ -170,13 +208,19 @@ public class IssueLinkActionsTests : IDisposable
 
         public UrlOpenResult Result { get; set; } = new(true);
 
+        public ManualResetEventSlim? Gate { get; set; }
+
         public bool IsSupported => true;
 
         public UrlOpenResult Open(string url)
         {
+            Gate?.Wait(TimeSpan.FromSeconds(10));
             if (Result.Opened)
             {
-                Opened.Add(url);
+                lock (Opened)
+                {
+                    Opened.Add(url);
+                }
             }
 
             return Result;
