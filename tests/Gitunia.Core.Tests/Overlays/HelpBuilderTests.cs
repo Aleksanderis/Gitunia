@@ -251,6 +251,7 @@ public class HelpBuilderTests
     [InlineData("Shift-Tab")]
     [InlineData("Alt-1")]
     [InlineData("Ctrl-w <")]
+    [InlineData("g <")]
     public void GivenDocumentedNotation_WhenFormattingTheParsedSequence_ThenItRoundTrips(string text)
     {
         Assert.Equal(text, KeyFormatter.Format(KeySequenceParser.Parse(text)));
