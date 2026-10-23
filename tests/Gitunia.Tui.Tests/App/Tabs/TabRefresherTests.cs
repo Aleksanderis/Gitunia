@@ -262,7 +262,7 @@ public class TabRefresherTests
     }
 
     [Fact]
-    public async Task GivenDefaultWatcherOptions_WhenTheRepositoryChangesElsewhere_ThenPollingPicksItUp()
+    public async Task GivenDefaultWatcherOptions_WhenTheRepositoryChangesElsewhere_ThenThePollerRunsAndPicksItUp()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
@@ -270,6 +270,8 @@ public class TabRefresherTests
         harness.Refresher.SetActive(true);
         await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
 
+        // The status poll interval is null exactly when file watchers are in use.
+        Assert.NotNull(harness.Refresher.StatusPollInterval);
         repository.Commit("second", new TestFile("b.txt", "2"));
 
         await harness.Pump.RunUntilAsync(() => harness.Session.Graph.Count == 2);
