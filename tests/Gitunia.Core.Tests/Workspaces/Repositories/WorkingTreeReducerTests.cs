@@ -177,7 +177,9 @@ public class WorkingTreeReducerTests
 
         var rows = state.WorkingTree!.RowsOf(WorkingTreeSection.Unstaged);
 
-        Assert.Equal(["src", "deep", "c.cs", "a.cs", "b.txt"], Enumerable.Range(0, rows.Count).Select(row => rows[row].Name));
+        Assert.Equal(
+            ["src", "deep", "c.cs", "a.cs", "b.txt"],
+            Enumerable.Range(0, rows.Count).Select(row => rows[row].Name));
         Assert.Equal([2, 1], rows.EntriesOfRows(2, 3));
         Assert.Equal(1, rows[3].EntryIndex);
     }
@@ -188,9 +190,13 @@ public class WorkingTreeReducerTests
         var state = Toggled(Load(Snapshot(Unstaged("src/a.cs"), Unstaged("src/b.cs"))), 2);
         state = RepositoryReducer.Reduce(state, new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 2));
 
-        state = RepositoryReducer.Reduce(state, new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
+        state = RepositoryReducer.Reduce(
+            state,
+            new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
 
-        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src", 0, true), state.WorkingTree!.Selection);
+        Assert.Equal(
+            new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src", 0, true),
+            state.WorkingTree!.Selection);
         Assert.Equal(1, state.WorkingTree.RowsOf(WorkingTreeSection.Unstaged).Count);
     }
 
@@ -198,7 +204,9 @@ public class WorkingTreeReducerTests
     public void GivenAClosedFolder_WhenTheStatusReloads_ThenItStaysClosedAndSelected()
     {
         var state = Toggled(Load(Snapshot(Unstaged("src/a.cs"), Unstaged("src/b.cs"))), 2);
-        state = RepositoryReducer.Reduce(state, new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
+        state = RepositoryReducer.Reduce(
+            state,
+            new ToggleWorkingFolderCommand(WorkingTreeSection.Unstaged, "src", true));
 
         state = RepositoryReducer.Reduce(
             state,
@@ -217,7 +225,9 @@ public class WorkingTreeReducerTests
 
         state = RepositoryReducer.Reduce(state, new TogglePathStyleCommand());
 
-        Assert.Equal(new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src/b.cs", 1), state.WorkingTree!.Selection);
+        Assert.Equal(
+            new WorkingTreeSelection(WorkingTreeSection.Unstaged, "src/b.cs", 1),
+            state.WorkingTree!.Selection);
     }
 
     [Fact]

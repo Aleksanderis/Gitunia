@@ -39,7 +39,11 @@ public class DiscardActionsTests
     [Fact]
     public async Task GivenAFolderRow_WhenDiscarding_ThenTheDialogNamesTheFolderAndCountsEveryFileUnderIt()
     {
-        using var harness = new Harness(Modified("src/a.cs"), Modified("src/b.cs"), Modified("top.txt"), Untracked("src/n.cs"));
+        using var harness = new Harness(
+            Modified("src/a.cs"),
+            Modified("src/b.cs"),
+            Modified("top.txt"),
+            Untracked("src/n.cs"));
         harness.SelectTreeRow(0);
 
         var notice = harness.Execute();

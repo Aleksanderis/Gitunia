@@ -300,7 +300,8 @@ public static class ActionCatalog
         ["worktree.remove"] = "Remove the selected worktree (asks first)",
         ["worktree.switch"] = "Switch this tab to the selected worktree",
         ["worktree.unlock"] = "Unlock the selected worktree",
-        ["working-tree.discard"] = "Discard the changes of the file or folder, the hunk or the selected lines (asks first)",
+        ["working-tree.discard"] =
+            "Discard the changes of the file or folder, the hunk or the selected lines (asks first)",
         ["working-tree.write-message"] = "Write the commit message",
         ["working-tree.edit-message"] = "Edit the commit message",
         ["working-tree.message-new-line"] = "Start a new line in the commit message",

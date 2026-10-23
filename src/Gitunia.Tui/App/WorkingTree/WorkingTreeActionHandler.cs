@@ -267,7 +267,8 @@ public sealed class WorkingTreeActionHandler(
         return true;
     }
 
-    // za opens or closes the folder under the cursor. h closes an open folder, else moves to the parent folder, else leaves.
+    // za opens or closes the folder under the cursor. h closes an open folder, else moves to the parent
+    // folder, else leaves.
     private bool TryFolder(RepositoryState tab, ActionId action)
     {
         var isToggle = action == ActionIds.WorkingTreeToggleFolder;
@@ -276,8 +277,12 @@ public sealed class WorkingTreeActionHandler(
             return false;
         }
 
-        var section = tab.View.FocusedPane == PaneKind.WorkingStaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
-        if (tab.WorkingTree is { Selection: { } selection } tree && selection.Section == section && tree.PathStyle == FilePathStyle.Tree)
+        var section = tab.View.FocusedPane == PaneKind.WorkingStaged
+            ? WorkingTreeSection.Staged
+            : WorkingTreeSection.Unstaged;
+        if (tab.WorkingTree is { Selection: { } selection } tree
+            && selection.Section == section
+            && tree.PathStyle == FilePathStyle.Tree)
         {
             if (isToggle && selection.IsFolder)
             {

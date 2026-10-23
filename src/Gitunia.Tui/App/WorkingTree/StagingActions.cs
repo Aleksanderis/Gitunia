@@ -232,7 +232,8 @@ public sealed class StagingActions(
         return PlanOf(picked, section, name);
     }
 
-    // The files of the Visual range (a folder row stands for all the files under it), once each; conflicted ones are skipped like in stage all.
+    // The files of the Visual range (a folder row stands for all the files under it), once each; conflicted
+    // ones are skipped like in stage all.
     private static StagingPlan PlanRange(WorkingTreeState tree, WorkingTreeSection section, RowRange range)
     {
         var entries = tree.EntriesOf(section);

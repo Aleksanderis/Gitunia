@@ -4,7 +4,8 @@ using Gitunia.Git.Commits.Models;
 namespace Gitunia.Tui.Rendering.Details;
 
 /// <summary>
-/// The changed files of a commit laid out as a tree of folders for the Changes tab (see <see cref="PathTree"/>): folders
+/// The changed files of a commit laid out as a tree of folders for the Changes tab (see
+/// <see cref="PathTree"/>): folders
 /// before files, each level in ordinal order. A folder in the collapsed set shows no rows below it.
 /// </summary>
 public static class ChangesTree

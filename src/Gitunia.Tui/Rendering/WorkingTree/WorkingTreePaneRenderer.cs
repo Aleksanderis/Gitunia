@@ -47,7 +47,8 @@ public static class WorkingTreePaneRenderer
     /// <summary>The number of rows of a list, 0 while the status is not loaded.</summary>
     public static int Count(WorkingTreeState? tree, WorkingTreeSection section) => tree?.RowsOf(section).Count ?? 0;
 
-    /// <summary>The row <paramref name="item"/> of a list: a file or (tree style) a folder, a row of the list's empty-state text (wrapped) when the list is empty, or a blank row.</summary>
+    /// <summary>The row <paramref name="item"/> of a list: a file or (tree style) a folder, a row of the
+    /// list's empty-state text (wrapped) when the list is empty, or a blank row.</summary>
     /// <param name="tree">The working tree, null while it is not loaded.</param>
     /// <param name="section">The list.</param>
     /// <param name="item">Row index in the list.</param>
@@ -73,13 +74,15 @@ public static class WorkingTreePaneRenderer
             var rows = tree.RowsOf(section);
             if (!rows.IsTree)
             {
-                return WorkingTreeRowRenderer.Render(entries[item], section, width, isSelected, glyphs, jump, pathStyle);
+                return WorkingTreeRowRenderer.Render(
+                    entries[item], section, width, isSelected, glyphs, jump, pathStyle);
             }
 
             var row = rows[item];
             if (!row.IsFolder)
             {
-                return WorkingTreeRowRenderer.RenderTreeFile(entries[row.EntryIndex], row, section, width, isSelected, glyphs, jump);
+                return WorkingTreeRowRenderer.RenderTreeFile(
+                    entries[row.EntryIndex], row, section, width, isSelected, glyphs, jump);
             }
 
             var isClosed = tree.CollapsedOf(section).Contains(row.FolderPath);

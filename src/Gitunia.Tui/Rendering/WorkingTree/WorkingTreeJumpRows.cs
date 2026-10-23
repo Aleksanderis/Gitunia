@@ -51,10 +51,13 @@ public sealed class WorkingTreeJumpRows(
                 ? Math.Max(0, width - indent)
                 : Math.Max(
                     0,
-                    width - indent - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+                        width - indent - WorkingTreeRowRenderer.MarkColumns
+                        - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
         }
 
-        return Math.Max(0, width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
+        return Math.Max(
+            0,
+            width - WorkingTreeRowRenderer.MarkColumns - WorkingTreeRowRenderer.ConflictColumns(EntryOf(row)));
     }
 
     // The file of a row; a folder row has none.

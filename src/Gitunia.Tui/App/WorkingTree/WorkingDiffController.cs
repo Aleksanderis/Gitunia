@@ -155,7 +155,8 @@ public sealed class WorkingDiffController : IPromptHandler
 
         if (target.Folder is not null)
         {
-            return DiffStagingCapture.Refused("This is the diff of a folder: pick one of its files to stage a hunk or lines");
+            return DiffStagingCapture.Refused(
+                "This is the diff of a folder: pick one of its files to stage a hunk or lines");
         }
 
         if (target.Entry.Kind == StatusEntryKind.Unmerged)

@@ -190,7 +190,10 @@ public sealed class WorkingDiffStore(
             }
         }
 
-        if (builder.RowCount == 0 && warnings.Count == 0 && request.Folder is null && NoteForNoFile(request.Entry) is { } note)
+        if (builder.RowCount == 0
+            && warnings.Count == 0
+            && request.Folder is null
+            && NoteForNoFile(request.Entry) is { } note)
         {
             builder.AddTrailingNote(note);
         }

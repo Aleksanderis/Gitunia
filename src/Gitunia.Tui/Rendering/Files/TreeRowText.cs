@@ -25,7 +25,8 @@ public static class TreeRowText
         }
 
         var directory = path[..(path.Length - name.Length)];
-        var old = oldPath.StartsWith(directory, StringComparison.Ordinal) && oldPath.IndexOf(Separator, directory.Length) < 0
+        var old = oldPath.StartsWith(directory, StringComparison.Ordinal)
+            && oldPath.IndexOf(Separator, directory.Length) < 0
             ? oldPath[directory.Length..]
             : oldPath;
 

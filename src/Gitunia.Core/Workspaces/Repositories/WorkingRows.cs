@@ -88,7 +88,8 @@ public sealed class WorkingRows
         return -1;
     }
 
-    /// <summary>The row of the outermost closed folder that holds <paramref name="path"/>, -1 when none is closed.</summary>
+    /// <summary>The row of the outermost closed folder that holds <paramref name="path"/>, -1 when none is
+    /// closed.</summary>
     /// <param name="path">The path of a file.</param>
     public int RowOfClosedAncestor(string path)
     {
@@ -142,7 +143,8 @@ public sealed class WorkingRows
         return entries;
     }
 
-    /// <summary>The row of the folder that holds the file or folder at <paramref name="row"/>, -1 at the top level.</summary>
+    /// <summary>The row of the folder that holds the file or folder at <paramref name="row"/>, -1 at the top
+    /// level.</summary>
     /// <param name="row">The row.</param>
     public int ParentFolderRow(int row)
     {
@@ -164,7 +166,8 @@ public sealed class WorkingRows
         return -1;
     }
 
-    /// <summary>The row of the file <paramref name="count"/> file rows from <paramref name="row"/> (folder rows are skipped),
+    /// <summary>The row of the file <paramref name="count"/> file rows from <paramref name="row"/> (folder rows
+    /// are skipped),
     /// or <paramref name="row"/> itself when there is no such file.</summary>
     /// <param name="row">The row to start from.</param>
     /// <param name="forward">True to move down.</param>

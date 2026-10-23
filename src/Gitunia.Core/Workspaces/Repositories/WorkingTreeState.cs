@@ -4,7 +4,8 @@ using Gitunia.Git.Status.Models;
 
 namespace Gitunia.Core.Workspaces.Repositories;
 
-/// <summary>The full status of one tab and the row selected in it. Pure data: refreshed by <see cref="WorkingTreeLoadedCommand"/>.</summary>
+/// <summary>The full status of one tab and the row selected in it. Pure data: refreshed by
+/// <see cref="WorkingTreeLoadedCommand"/>.</summary>
 /// <param name="Snapshot">The last status read.</param>
 /// <param name="Selection">The selected row, null when the lists are empty.</param>
 public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelection? Selection)
@@ -14,7 +15,8 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     private RowsCache? _unstagedRows;
     private RowsCache? _stagedRows;
 
-    /// <summary>How the lists lay out their rows; the tree style adds folder rows. Follows the tab's path style.</summary>
+    /// <summary>How the lists lay out their rows; the tree style adds folder rows. Follows the tab's path
+    /// style.</summary>
     public FilePathStyle PathStyle { get; init; } = FilePathStyle.NameFirst;
 
     /// <summary>Folders of the Unstaged list that are closed in the tree style.</summary>
@@ -111,7 +113,8 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     }
 
     /// <summary>
-    /// The state with another layout; the selection stays on the same file or folder (on the folder that hides the file,
+    /// The state with another layout; the selection stays on the same file or folder (on the folder that
+    /// hides the file,
     /// or on the first file under a folder that the flat styles do not show).
     /// </summary>
     /// <param name="style">The path style.</param>
@@ -141,7 +144,8 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
 
     /// <summary>Builds the state for a new snapshot, keeping the selection when its row is still listed.</summary>
     /// <remarks>
-    /// Order of preference: the same file or folder in the same list; the row now at the old index (clamped), which is also what happens when
+    /// Order of preference: the same file or folder in the same list; the row now at the old index (clamped),
+    /// which is also what happens when
     /// the file moved to the other list by stage or unstage, so the cursor stays put and the action can be repeated (ux.md, workflow 2);
     /// the first row of the other list. Without a previous selection the first row is chosen.
     /// Never selects when both lists are empty.
@@ -149,7 +153,10 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
     /// <param name="previous">The state the snapshot replaces, null for the first one.</param>
     /// <param name="snapshot">The new status.</param>
     /// <param name="style">The path style of the tab; the previous state's when null.</param>
-    public static WorkingTreeState Reconcile(WorkingTreeState? previous, StatusSnapshot snapshot, FilePathStyle? style = null)
+    public static WorkingTreeState Reconcile(
+        WorkingTreeState? previous,
+        StatusSnapshot snapshot,
+        FilePathStyle? style = null)
     {
         var next = new WorkingTreeState(snapshot, null)
         {
@@ -158,7 +165,9 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
             CollapsedStaged = previous?.CollapsedStaged ?? [],
         };
         var old = previous?.Selection;
-        var other = old?.Section == WorkingTreeSection.Unstaged ? WorkingTreeSection.Staged : WorkingTreeSection.Unstaged;
+        var other = old?.Section == WorkingTreeSection.Unstaged
+            ? WorkingTreeSection.Staged
+            : WorkingTreeSection.Unstaged;
         var selection = old is null
             ? next.SelectionAt(WorkingTreeSection.Unstaged, 0) ?? next.SelectionAt(WorkingTreeSection.Staged, 0)
             : next.SelectionAt(old.Section, next.Locate(old)) ?? next.SelectionNear(old) ?? next.SelectionAt(other, 0);

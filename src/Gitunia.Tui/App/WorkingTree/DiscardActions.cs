@@ -139,7 +139,8 @@ public sealed class DiscardActions(
         return AskEntries(tab, picked, null, onConfirmed);
     }
 
-    // The folder's confirm dialog names the folder and counts every file under it, hidden ones in a closed folder included.
+    // The folder's confirm dialog names the folder and counts every file under it, hidden ones in a closed
+    // folder included.
     private string AskFolder(RepositoryState tab, WorkingTreeState tree, string folder)
     {
         if (gate.IsBusy(tab.Id))

@@ -39,7 +39,11 @@ public class WorkingDiffStoreTests
         using var store = CreateStore(pump, reader);
         var entries = new[] { Modified("src/a.cs"), Modified("src/b.cs") };
 
-        store.Show(new WorkingDiffRequest(WorkingDiffSide.Unstaged, entries[0], new WorkingDiffFolder("src", entries)), 0);
+        var request = new WorkingDiffRequest(
+            WorkingDiffSide.Unstaged,
+            entries[0],
+            new WorkingDiffFolder("src", entries));
+        store.Show(request, 0);
         await pump.RunUntilAsync(() => store.Status == DiffStatus.Loaded);
 
         Assert.Contains(store.Document.Rows, row => row is { Kind: DiffRowKind.Added, Text: "from a" });

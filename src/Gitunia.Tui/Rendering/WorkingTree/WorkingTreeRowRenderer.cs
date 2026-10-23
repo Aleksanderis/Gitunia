@@ -77,7 +77,8 @@ public static class WorkingTreeRowRenderer
         return builder.Build(isSelected: isSelected);
     }
 
-    /// <summary>The line of a file in the tree style: indented under its folder, the status letter and the name only.</summary>
+    /// <summary>The line of a file in the tree style: indented under its folder, the status letter and the
+    /// name only.</summary>
     /// <param name="entry">The status entry.</param>
     /// <param name="row">The row of the file in the tree.</param>
     /// <param name="section">The list the row is in.</param>
@@ -116,7 +117,8 @@ public static class WorkingTreeRowRenderer
         return builder.Build(isSelected: isSelected);
     }
 
-    /// <summary>The line of a folder in the tree style: its name with a separator, and the file count when it is closed.</summary>
+    /// <summary>The line of a folder in the tree style: its name with a separator, and the file count when it
+    /// is closed.</summary>
     /// <param name="row">The folder row.</param>
     /// <param name="closedFileCount">Files under the folder when it is closed, null when it is open.</param>
     /// <param name="width">Columns for the row's text.</param>
@@ -155,7 +157,8 @@ public static class WorkingTreeRowRenderer
     /// <summary>The text of a folder row: its name and a separator.</summary>
     public static string FolderText(WorkingRow row) => $"{Printable(row.Name)}/";
 
-    /// <summary>The name a file shows in the tree style (a rename as <c>old -&gt; new</c> in the Staged list).</summary>
+    /// <summary>The name a file shows in the tree style (a rename as <c>old -&gt; new</c> in the Staged
+    /// list).</summary>
     public static string TreeName(StatusEntry entry, WorkingRow row, WorkingTreeSection section) =>
         TreeRowText.FileName(
             Printable(entry.Path),
