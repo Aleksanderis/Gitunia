@@ -82,7 +82,7 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Theory]
-    [InlineData(17, 30)]
+    [InlineData(21, 30)]
     [InlineData(120, 8)]
     [InlineData(70, 10)]
     public void GivenAScreenTooSmall_WhenRendering_ThenNothingIsDrawn(int width, int height)

@@ -15,11 +15,12 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// </summary>
 public static class ConflictEditorFrameBuilder
 {
-    /// <summary>The frame width below which the two sides are stacked instead of drawn side by side.</summary>
+    /// <summary>The frame width (the screen minus 6 columns of margin) below which the two sides are stacked instead of drawn side by side.</summary>
     public const int StackedBelowWidth = 90;
 
     private const int MaximumWidth = 180;
     private const int ScreenMargin = 2;
+    private const int HorizontalMargin = 6;
     private const int ChipStartColumn = 2;
     private const int ChipGap = 2;
     private const int ContextLines = 2;
@@ -118,7 +119,7 @@ public static class ConflictEditorFrameBuilder
 
     private static Plan? PlanFor(int screenWidth, int screenHeight)
     {
-        var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
+        var width = Math.Min(MaximumWidth, screenWidth - HorizontalMargin);
         if (width < OverlayBox.MinimumWidth)
         {
             return null;
