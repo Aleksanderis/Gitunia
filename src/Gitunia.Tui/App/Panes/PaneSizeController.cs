@@ -14,8 +14,13 @@ namespace Gitunia.Tui.App.Panes;
 /// <param name="focusedPane">The pane that has focus.</param>
 /// <param name="screenSize">The terminal size in columns and rows.</param>
 /// <param name="apply">Stores the new sizes and lays the panes out again.</param>
-/// <param name="isWorkingDiffZoomed">The working-tree diff fills the view; it has no divider, so the keys only say so.</param>
-public sealed class PaneSizeController(Func<PaneArrangement> arrangement, Func<PaneKind> focusedPane, Func<ScreenSize> screenSize, Action<PaneSizes> apply, Func<bool>? isWorkingDiffZoomed = null)
+/// <param name="isWorkingDiffZoomed">The working-tree diff fills the view and has no divider.</param>
+public sealed class PaneSizeController(
+    Func<PaneArrangement> arrangement,
+    Func<PaneKind> focusedPane,
+    Func<ScreenSize> screenSize,
+    Action<PaneSizes> apply,
+    Func<bool>? isWorkingDiffZoomed = null)
 {
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;

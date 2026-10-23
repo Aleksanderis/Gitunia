@@ -115,7 +115,11 @@ public class PaneSizeControllerTests
     public void GivenAZoomedWorkingTreeDiff_WhenResizing_ThenNothingChangesAndANoticeSaysWhy()
     {
         var controller = new PaneSizeController(
-            () => _arrangement, () => _focused, () => new ScreenSize(120, 40), sizes => _applied = sizes, () => true);
+            () => _arrangement,
+            () => _focused,
+            () => new ScreenSize(120, 40),
+            sizes => _applied = sizes,
+            () => true);
 
         controller.TryExecute(ActionIds.PaneWider, null);
 
