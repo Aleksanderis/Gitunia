@@ -7,6 +7,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.App.Details;
@@ -40,6 +41,7 @@ public sealed class EffectRunner : IDisposable
     private readonly int _warmTabLimit;
     private readonly WatchBudget _watchBudget;
     private readonly RepositoryWatcherOptions _watcherOptions;
+    private readonly PollOptions _pollOptions;
 
     public EffectRunner(
         GitServices services,
@@ -50,8 +52,10 @@ public sealed class EffectRunner : IDisposable
         TimeSpan? detailDebounce = null,
         RepositoryWatcherOptions? watcherOptions = null,
         WatchBudget? watchBudget = null,
-        int warmTabLimit = DefaultWarmTabLimit)
+        int warmTabLimit = DefaultWarmTabLimit,
+        PollOptions? pollOptions = null)
     {
+        _pollOptions = pollOptions ?? PollOptions.Default;
         _warmTabLimit = Math.Max(1, warmTabLimit);
         _watcherOptions = watcherOptions ?? RepositoryWatcherOptions.Default;
         _watchBudget = watchBudget ?? new WatchBudget();
@@ -189,7 +193,9 @@ public sealed class EffectRunner : IDisposable
                 _watcherOptions,
                 operations: _services.OperationInfo,
                 config: _services.Config,
-                directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null);
+                directoryLister: OperatingSystem.IsLinux() ? _services.WatchedDirectories : null,
+                poll: _pollOptions,
+                isBusy: () => IsTabBusy(load.TabId));
             _refreshers[load.TabId] = refresher;
             refresher.Start();
             refresher.SetActive(_host.Workspace.ActiveTabId == load.TabId);

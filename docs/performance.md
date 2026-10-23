@@ -24,7 +24,11 @@ Targets and verified numbers. The checklist for writing hot-path code is the `pe
 
 Restoring many tabs costs no start-up time or memory beyond the active tab (lazy loading, #91); each visited small tab adds roughly 0.5-1 MB (bounded to 5 loaded tabs, see below). Decision: background tabs do not load when idle; the first-visit cost is well inside the budget and an idle preload would only add memory and git processes. Background tabs get their dirty/ahead/behind markers from `BackgroundStatusPoller` (#129): `git status` only, one tab at a time, once at start and then every 30 s, with no graph, refs or watchers loaded. Larger repos cost more per visited tab (the 100k-commit figure below, ~73 MB, applies per tab of that size).
 
-## Working tree watching (#504)
+## Polling the active tab (#543)
+
+Watching is opt-in, so by default the active tab polls (`docs/git-layer.md`, "Polling"): a fingerprint every 2 s and a `git status --porcelain=v2 -z` (read-only, `GIT_OPTIONAL_LOCKS=0`) every 5 s, backed off to at least 5 times the last refresh up to 60 s. Measured on Linux with this repository's checkout (1276 tracked files), mean of 10 runs: one status read takes ~54 ms, so the steady state is one such process per 5 s, about 1% of a core while the tab is active, and nothing for a hidden tab. A repository whose status takes 2 s polls every 10 s (about 20%, the back-off keeps it from growing). The fingerprint only lists the git directory root, `refs/` and `worktrees/`; it was not timed separately (tens of entries here, a repository with thousands of refs enumerates them every 2 s). The timer wakes the process twice a second at most. Idle CPU of the whole app was not re-measured with the new poller; the numbers above are estimates from the status run.
+
+## Working tree watching (#504, opt-in since #543)
 
 Measured with a throwaway repo (git init, no remote), Linux, Debug build of the watcher tests project, `RepositoryWatcher` with `WorkingTreeDirectoryLister` against the old recursive mode. Tree: 450 tracked source directories (2 levels, one file each) plus an ignored `node_modules` of 1500 packages x 4 nested directories (9922 directories on disk in all).
 

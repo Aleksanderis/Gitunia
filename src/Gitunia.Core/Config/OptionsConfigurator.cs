@@ -13,6 +13,7 @@ public static class OptionsConfigurator
     private const string TabsKey = "tabs";
     private const string ShowBranchKey = "tabs.showBranch";
     private const string ScanRootsKey = "scanRoots";
+    private const string WatchFilesKey = "watchFiles";
     private const string ShowBranchProperty = "showBranch";
     private const char HomeMarker = '~';
 
@@ -28,7 +29,26 @@ public static class OptionsConfigurator
         ICollection<ConfigProblem> problems) =>
         new(
             ParseShowBranch(document.Tabs, problems),
-            ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems));
+            ParseScanRoots(document.ScanRoots, homeDirectory, directoryExists, problems),
+            ParseWatchFiles(document.WatchFiles, problems));
+
+    /// <summary>The <c>watchFiles</c> flag; anything but true or false gives false.</summary>
+    public static bool ParseWatchFiles(JsonElement? value, ICollection<ConfigProblem> problems)
+    {
+        if (value is null or { ValueKind: JsonValueKind.Null })
+        {
+            return false;
+        }
+
+        if (value.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.Value.GetBoolean();
+        }
+
+        problems.Add(new ConfigProblem(WatchFilesKey, "watchFiles must be true or false, using false"));
+
+        return false;
+    }
 
     /// <summary>The <c>tabs.showBranch</c> flag from the <c>tabs</c> object; anything else gives false.</summary>
     public static bool ParseShowBranch(JsonElement? tabs, ICollection<ConfigProblem> problems)

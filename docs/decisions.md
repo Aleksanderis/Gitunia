@@ -452,3 +452,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** Changes tree folders collapse (#616; supersedes "not collapsible yet" in the #548 entry): `za`, `h` and a click, since `o` is a vim command and `Enter`/`l` open the folder diff; closed folders are per tab, not saved.
 
 **UI:** Issue links (#213): `.issuetracker` in the working tree root, read with `git config --file`; `gx` opens the first link of a line, a count picks another (no picker). Why: no parser of our own, no new overlay. Detail: `ux.md` (Details tab).
+
+**Git layer:** Refresh polls by default (#543; supersedes the ignore-aware watcher of #83/#504 as the default): the active tab reads a fingerprint every 2 s and the status every 5 s, with back-off on slow repositories; file watching is opt-in (`watchFiles`). Why: each `FileSystemWatcher` takes a scarce inotify instance and other clients poll too. Detail: `git-layer.md`.

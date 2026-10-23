@@ -44,6 +44,36 @@ public sealed class OptionsConfiguratorTests
         Assert.Equal(path, Assert.Single(problems).Path);
     }
 
+    [Theory]
+    [InlineData("true", true)]
+    [InlineData("false", false)]
+    [InlineData("null", false)]
+    public void GivenAValidWatchFilesValue_WhenParsing_ThenItFollowsWithoutProblems(string json, bool expected)
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.Equal(expected, OptionsConfigurator.ParseWatchFiles(Json(json), problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenNoWatchFilesValue_WhenParsing_ThenWatchingIsOff()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.False(OptionsConfigurator.ParseWatchFiles(null, problems));
+        Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void GivenAWrongWatchFilesType_WhenParsing_ThenWatchingIsOffWithAProblem()
+    {
+        var problems = new List<ConfigProblem>();
+
+        Assert.False(OptionsConfigurator.ParseWatchFiles(Json("\"yes\""), problems));
+        Assert.Equal("watchFiles", Assert.Single(problems).Path);
+    }
+
     [Fact]
     public void GivenNoScanRoots_WhenParsing_ThenNullMeansTheConventionalFolders()
     {

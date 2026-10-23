@@ -781,7 +781,7 @@ public sealed class RepositoryWatcher : IDisposable
     private void StartPolling()
     {
         ReleaseWatchers();
-        _lastFingerprint = ComputeFingerprint();
+        _lastFingerprint = RepositoryFingerprint.Compute(_location);
         _pollTimer = new Timer(_ => Poll(), null, _options.PollInterval, _options.PollInterval);
     }
 
@@ -808,7 +808,7 @@ public sealed class RepositoryWatcher : IDisposable
 
     private void Poll()
     {
-        var fingerprint = ComputeFingerprint();
+        var fingerprint = RepositoryFingerprint.Compute(_location);
         lock (_gate)
         {
             if (_isDisposed)
@@ -827,63 +827,6 @@ public sealed class RepositoryWatcher : IDisposable
 
             EnqueueLocked(kinds);
         }
-    }
-
-    /// <summary>A hash of name, size and time of the files that carry repository state.</summary>
-    private int ComputeFingerprint()
-    {
-        var hash = new HashCode();
-        AddRootFiles(ref hash, _location.GitDirectory);
-        if (_location.IsLinkedWorktree)
-        {
-            AddRootFiles(ref hash, _location.CommonDirectory);
-        }
-
-        AddTree(ref hash, Path.Combine(_location.CommonDirectory, "refs"));
-        AddTree(ref hash, Path.Combine(_location.CommonDirectory, "worktrees"));
-        return hash.ToHashCode();
-    }
-
-    private static void AddRootFiles(ref HashCode hash, string directory)
-    {
-        try
-        {
-            foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos())
-            {
-                AddEntry(ref hash, entry);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            hash.Add(directory);
-        }
-    }
-
-    private static void AddTree(ref HashCode hash, string directory)
-    {
-        try
-        {
-            foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
-            {
-                AddEntry(ref hash, entry);
-            }
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            hash.Add(directory);
-        }
-    }
-
-    private static void AddEntry(ref HashCode hash, FileSystemInfo entry)
-    {
-        if (entry.Name.EndsWith(".lock", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        hash.Add(entry.FullName);
-        hash.Add(entry.LastWriteTimeUtc.Ticks);
-        hash.Add(entry is FileInfo file ? file.Length : -1);
     }
 
     private void Enqueue(RepositoryChangeKinds kinds)

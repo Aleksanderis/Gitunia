@@ -10,6 +10,7 @@ using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.Tabs;
+using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Graph;
@@ -24,7 +25,19 @@ namespace Gitunia.Tui.Tests.App.Tabs;
 // sections of a result run on fakes of the readers and the refresher.
 public class TabRefresherTests
 {
-    private static readonly RepositoryWatcherOptions FastOptions = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
+    private static readonly RepositoryWatcherOptions FastOptions = new(
+        TimeSpan.FromMilliseconds(50),
+        TimeSpan.FromMilliseconds(500),
+        TimeSpan.FromMilliseconds(200),
+        UseFileWatchers: true);
+
+    private static readonly PollOptions FastPoll = new(
+        TimeSpan.FromMilliseconds(40),
+        TimeSpan.FromMilliseconds(100),
+        TimeSpan.FromSeconds(1),
+        5);
+
+
     [Fact]
     public async Task GivenLoadedTab_WhenTheFirstRefreshRuns_ThenItIsABaselineThatAppliesSectionsWithoutReloadingTheGraph()
     {
@@ -206,6 +219,22 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenPollingTab_WhenACommitAndAFileEditHappenElsewhere_ThenTheActiveTabShowsBoth()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.LoadAsync(repository, polling: true);
+        harness.Refresher.SetActive(true);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+
+        repository.Commit("second", new TestFile("b.txt", "2"));
+        await harness.Pump.RunUntilAsync(() => harness.Session.Graph.Count == 2);
+        repository.WriteFile("a.txt", "edited");
+
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status!.IsDirty);
+    }
+
+    [Fact]
     public async Task GivenQuietTab_WhenACommitArrivesAutomatically_ThenTheGraphReloadReusesTheOldRows()
     {
         using var repository = TestRepository.Create();
@@ -324,7 +353,8 @@ public class TabRefresherTests
 
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
-        public static Task<Harness> LoadAsync(TestRepository repository, bool start = true) => CreateAsync(repository, start, loadFirst: true);
+        public static Task<Harness> LoadAsync(TestRepository repository, bool start = true, bool polling = false) =>
+            CreateAsync(repository, start, loadFirst: true, polling);
 
         /// <summary>Starts the refresher while the initial load is still pending; <see cref="FinishLoadAsync"/> completes it.</summary>
         public static Task<Harness> StartBeforeLoadAsync(TestRepository repository) => CreateAsync(repository, start: true, loadFirst: false);
@@ -338,7 +368,11 @@ public class TabRefresherTests
         private static Task RunInitialLoadAsync(RepositoryLocation location, TabSession session, WorkspaceHost host, StatusChannel statuses) =>
             TestGit.Services.RepositoryLoader.RunAsync(location, session, host, statuses, InlineUi.Post, session.Cancellation.Token);
 
-        private static async Task<Harness> CreateAsync(TestRepository repository, bool start, bool loadFirst)
+        private static async Task<Harness> CreateAsync(
+            TestRepository repository,
+            bool start,
+            bool loadFirst,
+            bool polling = false)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
             var host = new WorkspaceHost(Workspace.Empty);
@@ -354,6 +388,7 @@ public class TabRefresherTests
             }
 
             var pump = new UiPump(TestContext.Current.CancellationToken);
+            var options = polling ? FastOptions with { UseFileWatchers = false } : FastOptions;
             var reloads = new List<GraphReload>();
             var ran = 0;
             var refresher = new TabRefresher(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader, host, session, location, statuses, action =>
@@ -363,7 +398,7 @@ public class TabRefresherTests
                     action();
                     Interlocked.Increment(ref ran);
                 });
-            }, new WatchBudget(), FastOptions, reloads.Add);
+            }, new WatchBudget(), options, reloads.Add, poll: FastPoll);
             if (start)
             {
                 refresher.Start();
