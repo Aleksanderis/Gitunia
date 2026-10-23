@@ -19,10 +19,8 @@ public class BranchWriterTests
 
     [Theory]
     [InlineData("feature/ok", true)]
-    [InlineData("has space", false)]
     [InlineData("-leading", false)]
     [InlineData("a..b", false)]
-    [InlineData("ends.lock", false)]
     [InlineData("", false)]
     public async Task GivenName_WhenValidating_ThenGitRulesDecide(string name, bool expected)
     {

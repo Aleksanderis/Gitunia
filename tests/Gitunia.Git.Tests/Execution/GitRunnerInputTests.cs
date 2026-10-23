@@ -90,7 +90,7 @@ public class GitRunnerInputTests
             () => runner.RunAsync(
                 Path.GetTempPath(),
                 ["fetch"],
-                new GitRunOptions(Timeout: TimeSpan.FromSeconds(2), StandardInput: input),
+                new GitRunOptions(Timeout: TimeSpan.FromMilliseconds(500), StandardInput: input),
                 Token));
     }
 
