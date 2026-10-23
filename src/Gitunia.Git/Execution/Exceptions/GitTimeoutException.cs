@@ -10,7 +10,9 @@ public sealed class GitTimeoutException : GitException
         Timeout = timeout;
     }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
     public IReadOnlyList<string> Arguments { get; }
 
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : public diagnostic data of the exception
     public TimeSpan Timeout { get; }
 }

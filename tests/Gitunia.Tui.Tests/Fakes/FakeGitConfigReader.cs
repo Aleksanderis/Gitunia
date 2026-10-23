@@ -6,6 +6,7 @@ namespace Gitunia.Tui.Tests.Fakes;
 /// <summary>A git config reader that answers from memory, so tests need no repository on disk.</summary>
 public sealed class FakeGitConfigReader : IGitConfigReader
 {
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake setting kept for tests that configure it
     public bool RebaseAutoStash { get; set; }
 
     public Task<bool> ReadRebaseAutoStashAsync(RepositoryLocation location, CancellationToken cancellationToken) =>

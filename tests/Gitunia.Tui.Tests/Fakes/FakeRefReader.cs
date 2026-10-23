@@ -16,12 +16,14 @@ public sealed class FakeRefReader : IRefReader
     public List<GitRef> Refs { get; } = [];
 
     /// <summary>The worktrees.</summary>
+    // ReSharper disable once CollectionNeverUpdated.Global : fake seed list for tests that need worktrees
     public List<WorktreeInfo> Worktrees { get; } = [];
 
     /// <summary>Thrown by the HEAD read.</summary>
     public Exception? HeadFailure { get; set; }
 
     /// <summary>Thrown by the ref read.</summary>
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global : fake failure switch kept for tests
     public Exception? RefsFailure { get; set; }
 
     /// <summary>Thrown by the worktree read.</summary>
