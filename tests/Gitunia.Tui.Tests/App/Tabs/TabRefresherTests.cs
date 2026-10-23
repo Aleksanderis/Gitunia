@@ -262,6 +262,20 @@ public class TabRefresherTests
     }
 
     [Fact]
+    public async Task GivenDefaultWatcherOptions_WhenTheRepositoryChangesElsewhere_ThenPollingPicksItUp()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "1"));
+        using var harness = await Harness.LoadAsync(repository, watcher: RepositoryWatcherOptions.Default);
+        harness.Refresher.SetActive(true);
+        await harness.Pump.RunUntilAsync(() => harness.Tab.Status is not null && !harness.Refresher.IsRefreshing);
+
+        repository.Commit("second", new TestFile("b.txt", "2"));
+
+        await harness.Pump.RunUntilAsync(() => harness.Session.Graph.Count == 2);
+    }
+
+    [Fact]
     public async Task GivenQuietTab_WhenACommitArrivesAutomatically_ThenTheGraphReloadReusesTheOldRows()
     {
         using var repository = TestRepository.Create();
@@ -380,8 +394,12 @@ public class TabRefresherTests
 
         public RepositoryState Tab => Host.Workspace.FindTab(TabId)!;
 
-        public static Task<Harness> LoadAsync(TestRepository repository, bool start = true, bool polling = false) =>
-            CreateAsync(repository, start, loadFirst: true, polling);
+        public static Task<Harness> LoadAsync(
+            TestRepository repository,
+            bool start = true,
+            bool polling = false,
+            RepositoryWatcherOptions? watcher = null) =>
+            CreateAsync(repository, start, loadFirst: true, polling, watcher);
 
         /// <summary>Starts the refresher while the initial load is still pending; <see cref="FinishLoadAsync"/> completes it.</summary>
         public static Task<Harness> StartBeforeLoadAsync(TestRepository repository) => CreateAsync(repository, start: true, loadFirst: false);
@@ -399,7 +417,8 @@ public class TabRefresherTests
             TestRepository repository,
             bool start,
             bool loadFirst,
-            bool polling = false)
+            bool polling = false,
+            RepositoryWatcherOptions? watcher = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(repository.WorkingTreePath, CancellationToken.None);
             var host = new WorkspaceHost(Workspace.Empty);
@@ -415,7 +434,7 @@ public class TabRefresherTests
             }
 
             var pump = new UiPump(TestContext.Current.CancellationToken);
-            var options = polling ? FastOptions with { UseFileWatchers = false } : FastOptions;
+            var options = watcher ?? (polling ? FastOptions with { UseFileWatchers = false } : FastOptions);
             var reloads = new List<GraphReload>();
             var ran = 0;
             var refresher = new TabRefresher(TestGit.Services.Refresher, TestGit.Services.Stashes, TestGit.Services.IncrementalGraphLoader, host, session, location, statuses, action =>
