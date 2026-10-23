@@ -41,15 +41,22 @@ public class CommandLineParserTests
     [InlineData("--print-frame", "0x10")]
     [InlineData("--unknown")]
     [InlineData("-h")]
+    [InlineData("one", "two")]
+    [InlineData("repo", "--print-frame", "80x24", "--tab", "tree")]
+    [InlineData("repo", "--print-frame", "80x24", "--tab", "")]
+    [InlineData("repo", "--print-frame", "80x24", "--tab")]
+    [InlineData("repo", "--diff")]
+    [InlineData("repo", "--tab", "files")]
+    [InlineData("repo", "--zoom", "graph")]
+    [InlineData("repo", "--print-frame", "80x24", "--zoom", "sidebar")]
+    [InlineData("repo", "--print-frame", "80x24", "--zoom", "")]
+    [InlineData("repo", "--print-frame", "80x24", "--colors", "rainbow")]
+    [InlineData("repo", "--print-frame", "80x24", "--colors")]
+    [InlineData("repo", "--print-frame", "80x24", "--light")]
+    [InlineData("repo", "--colors", "16")]
     public void GivenBadArguments_WhenParsing_ThenErrorIsReported(params string[] arguments)
     {
         Assert.NotNull(CommandLineParser.Parse(arguments).Error);
-    }
-
-    [Fact]
-    public void GivenTwoPaths_WhenParsing_ThenErrorIsReported()
-    {
-        Assert.NotNull(CommandLineParser.Parse(["one", "two"]).Error);
     }
 
     [Fact]
@@ -90,32 +97,6 @@ public class CommandLineParserTests
     }
 
     [Theory]
-    [InlineData("tree")]
-    [InlineData("")]
-    public void GivenUnknownTab_WhenParsing_ThenErrorIsReported(string name)
-    {
-        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--tab", name]).Error);
-        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--tab"]).Error);
-    }
-
-    [Theory]
-    [InlineData("--diff")]
-    [InlineData("--tab", "files")]
-    [InlineData("--zoom", "graph")]
-    public void GivenFrameOptionsWithoutPrintFrame_WhenParsing_ThenErrorIsReported(params string[] arguments)
-    {
-        Assert.NotNull(CommandLineParser.Parse(["repo", .. arguments]).Error);
-    }
-
-    [Theory]
-    [InlineData("sidebar")]
-    [InlineData("")]
-    public void GivenUnknownZoomPane_WhenParsing_ThenErrorIsReported(string pane)
-    {
-        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", "--zoom", pane]).Error);
-    }
-
-    [Theory]
     [InlineData("truecolor", ColorDepth.TrueColor)]
     [InlineData("16", ColorDepth.Ansi16)]
     [InlineData("none", ColorDepth.None)]
@@ -131,20 +112,5 @@ public class CommandLineParserTests
     public void GivenNoColors_WhenParsing_ThenTheFrameIsPlainText()
     {
         Assert.Null(CommandLineParser.Parse(["repo", "--print-frame", "80x24"]).Colors);
-    }
-
-    [Theory]
-    [InlineData("--colors", "rainbow")]
-    [InlineData("--colors")]
-    [InlineData("--light")]
-    public void GivenBadColorOptions_WhenParsing_ThenErrorIsReported(params string[] arguments)
-    {
-        Assert.NotNull(CommandLineParser.Parse(["repo", "--print-frame", "80x24", .. arguments]).Error);
-    }
-
-    [Fact]
-    public void GivenColorsWithoutPrintFrame_WhenParsing_ThenErrorIsReported()
-    {
-        Assert.NotNull(CommandLineParser.Parse(["repo", "--colors", "16"]).Error);
     }
 }

@@ -1,8 +1,8 @@
 using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces;
 using Gitunia.Git.Tests.Fixtures;
-using Gitunia.Git.Watching.Models;
 using Gitunia.Tui.App;
+using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Tests.Fakes;
 using Xunit;
@@ -137,7 +137,7 @@ public class EffectRunnerTests
     }
 
     [Fact]
-    public async Task GivenWatchedTab_WhenGitChangesExternally_ThenGraphAndTabStateFollow()
+    public async Task GivenPolledTab_WhenGitChangesExternally_ThenGraphAndTabStateFollow()
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "1"));
@@ -146,8 +146,10 @@ public class EffectRunnerTests
         var update = WorkspaceReducer.Reduce(Workspace.Empty, new OpenRepositoryCommand(location));
         var tabId = update.Workspace.Tabs[0].Id;
         var host = new WorkspaceHost(Workspace.Empty);
-        var options = new RepositoryWatcherOptions(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(200));
-        using var effects = new EffectRunner(TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), watcherOptions: options);
+        var interval = TimeSpan.FromMilliseconds(50);
+        var poll = new PollOptions(interval, interval, TimeSpan.FromMilliseconds(200), 1);
+        using var effects = new EffectRunner(
+            TestGit.Services, host, pump.Post, GraphGlyphSet.Unicode, new StatusChannel(), pollOptions: poll);
         host.Restore(update);
         var session = effects.SessionOf(tabId)!;
         await pump.RunUntilAsync(() => !session.IsLoading);
