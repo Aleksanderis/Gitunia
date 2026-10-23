@@ -309,7 +309,8 @@ public sealed class TuiApplication(
             () => _diffPane.Arrangement(),
             () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             () => _view.ScreenSize,
-            ApplyPaneSizes);
+            ApplyPaneSizes,
+            () => _workingDiff.IsZoomed);
         _router.ExternalTools = new ExternalToolActions(
             _externalToolRunner,
             () => _host.Workspace.ActiveTab?.Location,

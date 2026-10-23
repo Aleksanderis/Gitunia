@@ -81,6 +81,53 @@ public class PaneSizeControllerTests
         Assert.Equal(PaneSizes.Automatic, _applied);
     }
 
+    [Theory]
+    [InlineData(PaneKind.Detail)]
+    [InlineData(PaneKind.Diff)]
+    public void GivenThePairedZoom_WhenWidening_ThenTheDividerBetweenThePanesMoves(PaneKind focused)
+    {
+        _arrangement = new PaneArrangement(true, focused, ZoomBoth: true);
+        _focused = focused;
+        var controller = CreateController();
+
+        controller.TryExecute(ActionIds.PaneWider, null);
+
+        Assert.NotNull(_applied?.DetailWidth);
+        Assert.Equal(string.Empty, controller.Notice);
+        var before = PaneLayout.DetailWidth(120, true, null);
+        var expected = before + PaneResizer.ColumnStep * (focused == PaneKind.Detail ? 1 : -1);
+        Assert.Equal(expected, PaneLayout.DetailWidth(120, true, _applied));
+    }
+
+    [Fact]
+    public void GivenThePairedZoom_WhenChangingHeight_ThenNothingChangesAndANoticeSaysWhy()
+    {
+        _arrangement = new PaneArrangement(true, PaneKind.Diff, ZoomBoth: true);
+        _focused = PaneKind.Diff;
+        var controller = CreateController();
+
+        controller.TryExecute(ActionIds.PaneTaller, null);
+
+        Assert.Null(_applied);
+        Assert.Equal("Unzoom the pane to resize", controller.Notice);
+    }
+
+    [Fact]
+    public void GivenAZoomedWorkingTreeDiff_WhenResizing_ThenNothingChangesAndANoticeSaysWhy()
+    {
+        var controller = new PaneSizeController(
+            () => _arrangement,
+            () => _focused,
+            () => new ScreenSize(120, 40),
+            sizes => _applied = sizes,
+            () => true);
+
+        controller.TryExecute(ActionIds.PaneWider, null);
+
+        Assert.Null(_applied);
+        Assert.Equal("Unzoom the pane to resize", controller.Notice);
+    }
+
     private PaneSizeController CreateController() =>
         new(() => _arrangement, () => _focused, () => new ScreenSize(120, 40), sizes => _applied = sizes);
 }
