@@ -147,7 +147,7 @@ public static class HelpFrameBuilder
 
     private readonly record struct TabLabel(string Text, int Start, int Width, int Tab, bool IsActive);
 
-    // The labels of the tab row with their columns in the frame (column 0 is the left border, text starts after a space).
+    // The labels of the tab row with their columns in the frame (column 0 is the left border).
     private static List<TabLabel> TabLabels(IReadOnlyList<HelpTab> tabs, int active, int inner)
     {
         var labels = new List<TabLabel>();
