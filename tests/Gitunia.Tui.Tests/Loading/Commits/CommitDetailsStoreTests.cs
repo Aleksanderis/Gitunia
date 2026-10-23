@@ -374,6 +374,139 @@ public class CommitDetailsStoreTests
         Assert.Equal(["from-side.txt"], store.Current.Details!.Files.Select(file => file.Path));
     }
 
+    [Fact]
+    public async Task GivenALoadedCommit_WhenComparingItWithAnother_ThenTheFilesAreTheDiffBetweenTheTwo()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var older = reader.Add("older");
+        var newer = reader.Add("newer", older);
+        reader.SetFiles(newer, older, "between.txt");
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        store.Select(older);
+        await WaitForSettledAsync(pump, store, older);
+
+        Assert.True(store.Compare(older, newer));
+        await pump.RunUntilAsync(() => store.Current.Details!.IsComparison);
+
+        Assert.Equal(older, store.Current.Commit);
+        Assert.Equal(["between.txt"], store.Current.Details!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public async Task GivenACommitThatIsNeitherEnd_WhenComparing_ThenNothingStarts()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var first = reader.Add("first");
+        var second = reader.Add("second", first);
+        var third = reader.Add("third", second);
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        Assert.False(store.Compare(first, second));
+        store.Select(third);
+        await WaitForSettledAsync(pump, store, third);
+
+        Assert.False(store.Compare(first, second));
+        Assert.Equal(0, reader.ReadFilesCount);
+    }
+
+    [Fact]
+    public async Task GivenAComparison_WhenClearingIt_ThenTheCommitsOwnFilesAreBack()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var older = reader.Add("older");
+        var newer = reader.Add("newer", older);
+        reader.SetFiles(newer, older, "between.txt");
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        store.Select(newer);
+        await WaitForSettledAsync(pump, store, newer);
+        store.Compare(older, newer);
+        await pump.RunUntilAsync(() => store.Current.Details!.IsComparison);
+
+        Assert.True(store.ClearComparison());
+
+        Assert.False(store.Current.Details!.IsComparison);
+        Assert.Empty(store.Current.Details.Files);
+        Assert.False(store.ClearComparison());
+    }
+
+    [Fact]
+    public async Task GivenAComparisonStillLoading_WhenSelectingAnotherCommit_ThenTheLateResultIsDropped()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var older = reader.Add("older");
+        var newer = reader.Add("newer", older);
+        var other = reader.Add("other", newer);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var blocking = new BlockingFilesReader(reader, async (_, _) =>
+        {
+            await release.Task;
+            return [new CommitFileChange("late.txt", null, FileChangeKind.Modified, null)];
+        });
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(blocking, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        store.Select(newer);
+        await WaitForSettledAsync(pump, store, newer);
+        store.Compare(older, newer);
+
+        store.Select(other);
+        await WaitForSettledAsync(pump, store, other);
+        release.SetResult();
+        await pump.RunPostsAsync(1);
+
+        Assert.Equal(other, store.Current.Commit);
+        Assert.False(store.Current.Details!.IsComparison);
+    }
+
+    [Fact]
+    public async Task GivenAComparison_WhenCyclingTheParent_ThenNothingStarts()
+    {
+        var reader = new FakeCommitDetailsReader();
+        var main = reader.Add("main");
+        var side = reader.Add("side");
+        var merge = reader.AddMerge("merge", main, side);
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(reader, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        store.Select(merge);
+        await WaitForSettledAsync(pump, store, merge);
+        store.Compare(main, merge);
+        await pump.RunUntilAsync(() => store.Current.Details!.IsComparison);
+
+        Assert.Null(store.CycleParent());
+    }
+
+    [Fact]
+    public async Task GivenTwoCommitsOnDifferentBranches_WhenComparingThroughGit_ThenTheFilesMatchGitDiffOfTheTwo()
+    {
+        using var testRepository = TestRepository.Create()
+            .Commit("root", new TestFile("base.txt", "base\n"), new TestFile("gone.txt", "bye\n"))
+            .CheckoutNewBranch("side")
+            .Commit("side work", new TestFile("side.txt", "side\n"), new TestFile("base.txt", "side base\n"))
+            .Checkout("main")
+            .Commit("main work", new TestFile("main.txt", "main\n"));
+        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, Token);
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "side").Trim(), out var side));
+        Assert.True(ObjectId.TryParse(testRepository.Git("rev-parse", "main").Trim(), out var main));
+        var pump = new UiPump(Token);
+        using var store = new CommitDetailsStore(
+            TestGit.Services.CommitDetails,
+            location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
+        store.Select(main);
+        await WaitForSettledAsync(pump, store, main);
+
+        store.Compare(side, main);
+        await pump.RunUntilAsync(() => store.Current.Details!.IsComparison);
+
+        var expected = testRepository.Git("diff", "--name-only", side.ToString(), main.ToString())
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(expected.Order(), store.Current.Details!.Files.Select(file => file.Path).Order());
+        Assert.Contains("main.txt", expected);
+        Assert.Contains("side.txt", expected);
+    }
+
     private static async Task<CommitDetailsState> WaitForSettledAsync(UiPump pump, CommitDetailsStore store, ObjectId commit)
     {
         await pump.RunUntilAsync(() => store.Current.Commit == commit && store.Current.Status is CommitDetailsStatus.Loaded or CommitDetailsStatus.Failed);

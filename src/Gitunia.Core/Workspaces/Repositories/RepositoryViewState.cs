@@ -16,6 +16,8 @@ namespace Gitunia.Core.Workspaces.Repositories;
 /// <param name="Mode">The view the tab shows, the history or the working tree. Not saved with the session.</param>
 /// <param name="PathStyle">How the file lists show a path (name first or the full path). Not saved with the
 /// session.</param>
+/// <param name="CompareMark">The commit marked as one end of a comparison (#535), null when none. Not saved with the
+/// session.</param>
 public sealed record RepositoryViewState(
     ObjectId? SelectedCommit,
     int ScrollOffset,
@@ -26,7 +28,8 @@ public sealed record RepositoryViewState(
     int? DetailWidth = null,
     BottomTab BottomTab = BottomTab.Changes,
     TabViewMode Mode = TabViewMode.History,
-    FilePathStyle PathStyle = FilePathStyle.NameFirst)
+    FilePathStyle PathStyle = FilePathStyle.NameFirst,
+    ObjectId? CompareMark = null)
 {
     /// <summary>A fresh view: nothing selected, top of the graph, no filter, graph focused.</summary>
     public static RepositoryViewState Initial { get; } = new(null, 0, string.Empty, PaneKind.Graph);

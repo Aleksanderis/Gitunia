@@ -3,7 +3,6 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
-using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Refs.Models;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -18,6 +17,9 @@ public static class GraphRowRenderer
 
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
+
+    /// <summary>Before the labels of the commit marked for a comparison.</summary>
+    private const string MarkText = "[mark] ";
 
     private static readonly string CompactGapText = new(' ', GraphColumnLayout.CompactColumnGap);
     private static readonly string SpaciousGapText = new(' ', GraphColumnLayout.SpaciousColumnGap);
@@ -34,7 +36,7 @@ public static class GraphRowRenderer
 
         // The message starts right after this row's own lines (#217); the columns after it stay where they are, so the message takes the room the lanes left free.
         var message = new LineBuilder(layout.MessageWidth, ellipsis);
-        var decorations = DecorationSegments(entry.Decorations, options);
+        var decorations = DecorationSegments(entry, options);
         if (jump is { } target)
         {
             JumpOverlay.Append(message, [.. decorations, new StyledSegment(entry.Subject, SegmentRole.Plain)], target);
@@ -78,7 +80,7 @@ public static class GraphRowRenderer
     /// <param name="entry">The commit.</param>
     /// <param name="options">The layout of the graph rows.</param>
     public static string MessageText(GraphEntry entry, GraphRowOptions options) =>
-        string.Concat(DecorationSegments(entry.Decorations, options).Select(segment => segment.Text)) + entry.Subject;
+        string.Concat(DecorationSegments(entry, options).Select(segment => segment.Text)) + entry.Subject;
 
     /// <summary>A row without a commit: the slot reserved for the working-tree pseudo-row, and rows past the loaded end.</summary>
     public static StyledLine RenderEmpty(GraphRowOptions options, bool isSelected) =>
@@ -176,11 +178,17 @@ public static class GraphRowRenderer
         }
     }
 
-    private static List<StyledSegment> DecorationSegments(IReadOnlyList<CommitDecoration> decorations, GraphRowOptions options)
+    private static List<StyledSegment> DecorationSegments(GraphEntry entry, GraphRowOptions options)
     {
         var glyphs = options.Glyphs;
-        var labels = RefLabelBuilder.Build(decorations, options.UpstreamGoneBranches);
+        var labels = RefLabelBuilder.Build(entry.Decorations, options.UpstreamGoneBranches);
         var builder = new List<StyledSegment>();
+        if (options.MarkedCommit == entry.Id)
+        {
+            // The text says it too, so the mark does not depend on colour (ux.md, "Comparing two commits").
+            builder.Add(new StyledSegment(MarkText, SegmentRole.Tag));
+        }
+
         if (labels.Count == 0)
         {
             return builder;

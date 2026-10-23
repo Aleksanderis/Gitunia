@@ -384,6 +384,21 @@ public class WorkspaceReducerTests
     }
 
     [Fact]
+    public void GivenATab_WhenMarkingACommit_ThenOnlyThatTabHoldsTheMarkUntilItIsCleared()
+    {
+        var workspace = Open(Workspace.Empty, "alpha", "beta");
+        var alpha = IdOf(workspace, "alpha");
+        Assert.True(ObjectId.TryParse(new string('a', 40), out var commit));
+
+        var marked = WorkspaceReducer.Reduce(workspace, new TabCommand(alpha, new SetCompareMarkCommand(commit))).Workspace;
+        var cleared = WorkspaceReducer.Reduce(marked, new TabCommand(alpha, new SetCompareMarkCommand(null))).Workspace;
+
+        Assert.Equal(commit, marked.Tabs.Single(tab => tab.Id == alpha).View.CompareMark);
+        Assert.Null(marked.Tabs.Single(tab => tab.Id != alpha).View.CompareMark);
+        Assert.Null(cleared.Tabs.Single(tab => tab.Id == alpha).View.CompareMark);
+    }
+
+    [Fact]
     public void GivenTabWithViewState_WhenSwitchingWorktree_ThenLocationChangesViewStaysAndOldStatusGoes()
     {
         var workspace = Open(Workspace.Empty, "alpha");

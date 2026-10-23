@@ -86,6 +86,36 @@ public class DetailContentBuilderTests
     }
 
     [Fact]
+    public void GivenAComparison_WhenBuildingChanges_ThenHeadingNamesBothEndsOlderFirstAndNoMergeParent()
+    {
+        var entry = Entry();
+        var comparison = Details("merge") with
+        {
+            Parents = [CommitFactory.Id(1), CommitFactory.Id(3)],
+            CompareOlder = CommitFactory.Id(5),
+            CompareNewer = CommitFactory.Id(9),
+        };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, comparison, string.Empty);
+
+        var lines = Lines(DetailContentBuilder.Build(entry, state, BottomTab.Changes));
+
+        Assert.Equal("no files changed (0000005..0000009)", lines[0]);
+    }
+
+    [Fact]
+    public void GivenAComparison_WhenBuildingDetails_ThenTheCompareRowReplacesTheParents()
+    {
+        var entry = Entry();
+        var comparison = Details("x") with { CompareOlder = CommitFactory.Id(5), CompareNewer = CommitFactory.Id(9) };
+        var state = new CommitDetailsState(entry.Id, CommitDetailsStatus.Loaded, comparison, string.Empty);
+
+        var lines = Lines(DetailContentBuilder.Build(entry, state, BottomTab.Details));
+
+        Assert.Contains(lines, line => line.Contains("0000005..0000009", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("parent", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GivenNoSelection_WhenBuilding_ThenContentIsEmpty()
     {
         var content = DetailContentBuilder.Build(null, CommitDetailsState.Empty, BottomTab.Files);

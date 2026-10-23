@@ -4,6 +4,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Lists;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Screen;
@@ -21,6 +22,7 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
     private readonly JumpLabelCache _jump = new();
     private GraphRowOptions? _cachedOptions;
     private IReadOnlySet<string>? _upstreamGoneBranches;
+    private ObjectId? _markedCommit;
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
@@ -48,6 +50,24 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             _upstreamGoneBranches = value;
 
             // The marker changes the width of the ref labels, so quick-jump labels worked out before are stale.
+            _jump.Invalidate();
+        }
+    }
+
+    /// <summary>The commit marked for a comparison, which is drawn with a mark; null for none.</summary>
+    public ObjectId? MarkedCommit
+    {
+        get => _markedCommit;
+        set
+        {
+            if (_markedCommit == value)
+            {
+                return;
+            }
+
+            _markedCommit = value;
+
+            // The mark changes the width of the message, so quick-jump labels worked out before are stale.
             _jump.Invalidate();
         }
     }
@@ -149,9 +169,10 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
             || _cachedOptions.Width != width
             || _cachedOptions.LaneColumns != laneColumns
             || _cachedOptions.Highlight != Highlight
-            || !ReferenceEquals(_cachedOptions.UpstreamGoneBranches, UpstreamGoneBranches))
+            || !ReferenceEquals(_cachedOptions.UpstreamGoneBranches, UpstreamGoneBranches)
+            || _cachedOptions.MarkedCommit != MarkedCommit)
         {
-            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight, UpstreamGoneBranches);
+            _cachedOptions = new GraphRowOptions(width, laneColumns, glyphs, Highlight, UpstreamGoneBranches, MarkedCommit);
         }
 
         return _cachedOptions;

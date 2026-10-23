@@ -118,7 +118,8 @@ public sealed class CommitDetailsStore : IDisposable
     public int? CycleParent()
     {
         if (Current is not
-            { Status: CommitDetailsStatus.Loaded, Commit: { } commit, Details: { Parents.Count: > 1 } details })
+            { Status: CommitDetailsStatus.Loaded, Commit: { } commit, Details: { Parents.Count: > 1 } details }
+            || details.IsComparison)
         {
             return null;
         }
@@ -130,6 +131,54 @@ public sealed class CommitDetailsStore : IDisposable
         var index = _requestedParent;
         _ = Task.Run(() => LoadParentAsync(commit, details, index, token), CancellationToken.None);
         return index;
+    }
+
+    /// <summary>
+    /// Shows the difference between two commits in place of the selected commit's own changes (#535): the files are read
+    /// as <c>git diff older newer</c> and replace <see cref="CommitDetailsState.Details"/>' file list when they arrive,
+    /// with <see cref="CommitDetails.CompareOlder"/> and <see cref="CommitDetails.CompareNewer"/> set. The selected
+    /// commit must be one of the two. Selecting another commit ends the comparison (the cache keeps the commit's own
+    /// files); <see cref="ClearComparison"/> ends it without moving.
+    /// </summary>
+    /// <param name="older">The commit the diff starts from.</param>
+    /// <param name="newer">The commit the diff ends at.</param>
+    /// <returns>False when nothing started: the selected commit is not loaded or is neither of the two.</returns>
+    public bool Compare(ObjectId older, ObjectId newer)
+    {
+        if (Current is not { Status: CommitDetailsStatus.Loaded, Commit: { } commit, Details: { } details }
+            || (commit != older && commit != newer))
+        {
+            return false;
+        }
+
+        CancelParentPending();
+        _parentPending = new CancellationTokenSource();
+        var token = _parentPending.Token;
+        _ = Task.Run(() => LoadComparisonAsync(commit, details, older, newer, token), CancellationToken.None);
+
+        return true;
+    }
+
+    /// <summary>Goes back from a comparison to the selected commit's own changes.</summary>
+    /// <returns>True when a comparison was shown or loading and is gone now.</returns>
+    public bool ClearComparison()
+    {
+        var wasComparing = Current is { Details.IsComparison: true } || _parentPending is not null;
+        if (!wasComparing)
+        {
+            return false;
+        }
+
+        CancelParentPending();
+        if (Current is not { Details.IsComparison: true, Commit: { } commit })
+        {
+            return true;
+        }
+
+        Current = CommitDetailsState.Empty;
+        Select(commit);
+
+        return true;
     }
 
     public void Dispose()
@@ -163,6 +212,40 @@ public sealed class CommitDetailsStore : IDisposable
             // The files of the parent shown stay on screen; the next press tries again.
             _postToUi(() => ResetRequestedParent(commit, details.ParentIndex, token));
         }
+    }
+
+    private async Task LoadComparisonAsync(
+        ObjectId commit,
+        CommitDetails details,
+        ObjectId older,
+        ObjectId newer,
+        CancellationToken token)
+    {
+        try
+        {
+            var files = await _reader.ReadFilesAsync(_location, newer, older, null, token).ConfigureAwait(false);
+            var shown = details with { Files = files, CompareOlder = older, CompareNewer = newer };
+            _postToUi(() => CompleteParent(commit, shown, token));
+        }
+        catch (OperationCanceledException)
+        {
+            // Another comparison or commit was asked for.
+        }
+        catch (Exception exception)
+        {
+            _postToUi(() => FailComparison(commit, exception.Message, token));
+        }
+    }
+
+    private void FailComparison(ObjectId commit, string error, CancellationToken token)
+    {
+        if (token.IsCancellationRequested || Current.Commit != commit)
+        {
+            return;
+        }
+
+        Current = new CommitDetailsState(commit, CommitDetailsStatus.Failed, null, error);
+        Changed?.Invoke();
     }
 
     private void ResetRequestedParent(ObjectId commit, int index, CancellationToken token)

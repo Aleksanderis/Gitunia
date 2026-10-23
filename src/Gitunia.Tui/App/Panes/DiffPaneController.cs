@@ -177,7 +177,7 @@ public sealed class DiffPaneController : IPromptHandler
         if (_activeSession() is not { Diff: { } diff } session
             || !IsShown(diff)
             || session.Details.Current is not { Details: { } loaded, Commit: { } commit }
-            || diff.Store.IsShowing(commit, ParentToCompare(loaded)))
+            || diff.Store.IsShowing(DiffCommit(loaded, commit), ParentToCompare(loaded)))
         {
             return;
         }
@@ -194,7 +194,11 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         var neighbours = DetailPrefetchPlan.Around(session.Graph, session.Graph.IndexOf(commit));
-        diff.Store.Load(commit, ParentToCompare(loaded), neighbours, loaded.ParentIndex > 0);
+        diff.Store.Load(
+            DiffCommit(loaded, commit),
+            ParentToCompare(loaded),
+            loaded.IsComparison ? null : neighbours,
+            loaded.ParentIndex > 0 || loaded.IsComparison);
     }
 
     /// <summary>
@@ -262,7 +266,8 @@ public sealed class DiffPaneController : IPromptHandler
         }
 
         diff.PendingFilePath = path;
-        if (diff.Store.Status == DiffStatus.Loaded && session.Details.Current is { Commit: { } commit } && diff.Store.Commit == commit)
+        if (diff.Store.Status == DiffStatus.Loaded && session.Details.Current is { Commit: { } commit, Details: { } shown }
+            && diff.Store.Commit == DiffCommit(shown, commit))
         {
             Refresh(diff);
         }
@@ -461,7 +466,10 @@ public sealed class DiffPaneController : IPromptHandler
         diff.IsOpen = !ShowsWithChanges();
         diff.PendingFilePath = source.Content.Files[index].Path;
         diff.ZoomedPane = PaneLayout.CanOpenDiff(_screenSize().Height) ? null : PaneKind.Diff;
-        var started = diff.Store.Load(commit, ParentToCompare(loaded), isAlternateParent: loaded.ParentIndex > 0);
+        var started = diff.Store.Load(
+            DiffCommit(loaded, commit),
+            ParentToCompare(loaded),
+            isAlternateParent: loaded.ParentIndex > 0 || loaded.IsComparison);
         _relayout();
         _host.Dispatch(new TabCommand(tab.Id, new FocusPaneCommand(PaneKind.Diff)));
         if (!started)
@@ -471,9 +479,16 @@ public sealed class DiffPaneController : IPromptHandler
         }
     }
 
-    /// <summary>The parent the diff is read against: the first one, or the one a merge was switched to.</summary>
+    /// <summary>
+    /// The parent the diff is read against: the first one, the one a merge was switched to, or the older commit of a
+    /// comparison.
+    /// </summary>
     private static ObjectId? ParentToCompare(CommitDetails details) =>
-        details.Parents.Count > details.ParentIndex ? details.Parents[details.ParentIndex] : null;
+        details.CompareOlder
+        ?? (details.Parents.Count > details.ParentIndex ? details.Parents[details.ParentIndex] : null);
+
+    /// <summary>The commit the diff shows: the selected one, or the newer commit of a comparison.</summary>
+    private static ObjectId DiffCommit(CommitDetails details, ObjectId selected) => details.CompareNewer ?? selected;
 
     private static bool IsOptionAction(DiffSession diff, ActionId action) =>
         DiffListActions.TryResolveOptions(diff.Store.Options, action, out _);

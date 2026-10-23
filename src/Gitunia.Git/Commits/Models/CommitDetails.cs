@@ -29,6 +29,18 @@ public sealed record CommitDetails(
     /// </summary>
     public int ParentIndex { get; init; }
 
+    /// <summary>
+    /// The older commit of a comparison (#535): <see cref="Files"/> are what <c>git diff older newer</c> changes, and
+    /// <see cref="Id"/> is the commit selected in the graph, which is either end. Null for an ordinary commit.
+    /// </summary>
+    public ObjectId? CompareOlder { get; init; }
+
+    /// <summary>The newer commit of a comparison, null for an ordinary commit.</summary>
+    public ObjectId? CompareNewer { get; init; }
+
+    /// <summary>These details show the difference between two commits and not one commit's own changes.</summary>
+    public bool IsComparison => CompareOlder is not null && CompareNewer is not null;
+
     /// <summary>The first line of the message.</summary>
     public string Subject
     {
