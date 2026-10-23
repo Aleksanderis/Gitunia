@@ -33,7 +33,7 @@ public static class SidebarRowRenderer
             return builder.Build(isSelected: isSelected);
         }
 
-        var indent = new string(' ', row.Depth * DepthIndent);
+        var indent = new string(' ', (row.Depth - SidebarRow.SectionDepth) * DepthIndent);
         if (row.IsFolder)
         {
             return RenderFolder(row, indent, width, isSelected, glyphs, sidebarGlyphs);
