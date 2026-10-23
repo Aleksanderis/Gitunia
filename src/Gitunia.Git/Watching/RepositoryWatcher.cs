@@ -352,9 +352,23 @@ public sealed class RepositoryWatcher : IDisposable
     /// <summary>
     /// Watches a created directory and a few of its subdirectories (a quick <c>mkdir -p</c> or unpack); the rescan that
     /// follows adds what git lists and drops what it ignores, so a big new tree never fills the cap. The watchers are
-    /// created outside the gate; only the bookkeeping happens under it.
+    /// created outside the gate; only the bookkeeping happens under it. A subdirectory created after the first listing
+    /// but before the new watchers were enabled raises no event anyone sees, so the listing is repeated once the
+    /// watchers are live; anything created after that is reported by them.
     /// </summary>
     private void WatchNewDirectory(string path)
+    {
+        if (WatchDirectories(path, includeSelf: true))
+        {
+            WatchDirectories(path, includeSelf: false);
+        }
+    }
+
+    /// <summary>
+    /// Installs watchers for the unwatched new subdirectories of <paramref name="path"/> (and the directory itself with
+    /// <paramref name="includeSelf"/>). Returns false when watching stopped (disposed, polling, failure).
+    /// </summary>
+    private bool WatchDirectories(string path, bool includeSelf)
     {
         var children = ListNewSubdirectories(path);
         List<string> wanted;
@@ -362,13 +376,16 @@ public sealed class RepositoryWatcher : IDisposable
         {
             if (_isDisposed || _pollTimer is not null || !_hasScanned)
             {
-                return;
+                return false;
             }
 
-            wanted =
-            [
-                .. new[] { path }.Concat(children).Where(candidate => !_directoryWatchers.ContainsKey(candidate)),
-            ];
+            var candidates = includeSelf ? new[] { path }.Concat(children) : children;
+            wanted = [.. candidates.Where(candidate => !_directoryWatchers.ContainsKey(candidate))];
+        }
+
+        if (wanted.Count == 0)
+        {
+            return true;
         }
 
         var created = CreateDirectoryWatchers(wanted, out var failed);
@@ -382,12 +399,14 @@ public sealed class RepositoryWatcher : IDisposable
                 }
 
                 RetireWatchers([.. created.Values]);
-                return;
+                return false;
             }
 
             InstallLocked(created, stopAtLimit: true);
             EnqueueLocked(RepositoryChangeKinds.WorkingTree);
         }
+
+        return true;
     }
 
     private static List<string> ListNewSubdirectories(string path)
