@@ -81,6 +81,8 @@ public sealed class TuiApplication(
     private const ushort IterationsPerSecond = 100;
     private const long OverlayDoubleClickGuardMilliseconds = 600;
     private const int ShortHashLength = 7;
+    private const int HeadlessColumns = 120;
+    private const int HeadlessRows = 40;
     private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
 
     private IApplication _application = null!;
@@ -1211,9 +1213,20 @@ public sealed class TuiApplication(
 
     private void CaptureFirstFrameAndStop()
     {
+        EnsureHeadlessScreenSize();
         _application.LayoutAndDraw(true);
         FrameCaptured?.Invoke(_application.Driver?.ToString() ?? string.Empty);
         _application.RequestStop();
+    }
+
+    // The headless ANSI driver learns its size from a background poll and reports 0x0 until that lands, which under
+    // load is after the first iteration (an empty frame, #628). A real terminal has its size from Init.
+    private void EnsureHeadlessScreenSize()
+    {
+        if (_application.Driver is { Cols: 0 } or { Rows: 0 })
+        {
+            _application.Driver.SetScreenSize(HeadlessColumns, HeadlessRows);
+        }
     }
 
     // The same setup for the first start and for every restart after a hand-off to an external tool.
