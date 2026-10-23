@@ -457,7 +457,11 @@ public class CommitDetailsStoreTests
             return [new CommitFileChange("late.txt", null, FileChangeKind.Modified, null)];
         });
         var pump = new UiPump(Token);
-        using var store = new CommitDetailsStore(blocking, FakeCommitDetailsReader.Location, pump.Post, TimeSpan.FromMilliseconds(1));
+        using var store = new CommitDetailsStore(
+            blocking,
+            FakeCommitDetailsReader.Location,
+            pump.Post,
+            TimeSpan.FromMilliseconds(1));
         store.Select(newer);
         await WaitForSettledAsync(pump, store, newer);
         store.Compare(older, newer);
