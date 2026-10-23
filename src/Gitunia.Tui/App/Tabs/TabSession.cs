@@ -101,6 +101,10 @@ public sealed class TabSession : IDisposable
     /// <summary>The list source of the detail pane.</summary>
     public DetailListSource DetailSource { get; }
 
+    /// <summary>The folders of the Changes tab's tree style that are closed (paths from the repository root); kept for
+    /// the tab's lifetime, not saved with the session.</summary>
+    public HashSet<string> CollapsedFolders { get; } = new(StringComparer.Ordinal);
+
     /// <summary>The detail row last selected on each bottom tab for the commit shown; cleared when another commit is selected.</summary>
     public DetailCursorMemory DetailCursor { get; } = new();
 

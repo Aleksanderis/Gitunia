@@ -200,6 +200,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DetailView, "/", ActionIds.DetailFilter);
         Add(bindings, NormalOnly, DetailView, "Esc", ActionIds.NavigateBack);
         AddBottomTabKeys(bindings, DetailView);
+        Add(bindings, NormalOnly, DetailChangesView, "za", ActionIds.DetailToggleFolder);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vn", ActionIds.FilesTogglePathStyle);
         Add(bindings, NormalOnly, DetailChangesView, "<space>vp", ActionIds.DiffMergeParent);
         AddDiffScrollKeys(bindings, DetailChangesView);

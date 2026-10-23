@@ -1793,7 +1793,8 @@ public sealed class TuiApplication(
             tab,
             FileTreeViewOf(session, entry, tab),
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
-            session.IssueLinks);
+            session.IssueLinks,
+            session.CollapsedFolders);
         var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);
 

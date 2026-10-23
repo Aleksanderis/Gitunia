@@ -50,6 +50,7 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> DetailChanges =
     [
         .. Detail,
+        new("za", "fold", [ActionIds.DetailToggleFolder]),
         new("<space>vn", "path", [ActionIds.FilesTogglePathStyle]),
         new("<space>vp", "merge parent", [ActionIds.DiffMergeParent]),
     ];

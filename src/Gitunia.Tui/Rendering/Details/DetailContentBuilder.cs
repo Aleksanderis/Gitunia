@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Diff;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Graph;
 using Gitunia.Core.IssueTracker;
@@ -27,14 +28,19 @@ public static class DetailContentBuilder
     /// <param name="tree">The file tree to list on the Files tab; null shows it as loading.</param>
     /// <param name="pathStyle">How the Changes tab shows the paths of the files.</param>
     /// <param name="links">The tracker rules of the repository; references in the message become links.</param>
+    /// <param name="collapsedFolders">Folders of the tree style that are closed, null when all are open.</param>
     public static DetailContent Build(
         GraphEntry? entry,
         CommitDetailsState state,
         BottomTab tab,
         FileTreeView? tree = null,
         FilePathStyle pathStyle = FilePathStyle.FullPath,
-        IssueTrackerLinks? links = null) =>
-        BuildRows(entry, state, tab, tree, pathStyle, links ?? IssueTrackerLinks.None) with { PathStyle = pathStyle };
+        IssueTrackerLinks? links = null,
+        IReadOnlySet<string>? collapsedFolders = null) =>
+        BuildRows(entry, state, tab, tree, pathStyle, links ?? IssueTrackerLinks.None, collapsedFolders) with
+        {
+            PathStyle = pathStyle,
+        };
 
     /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
@@ -47,7 +53,8 @@ public static class DetailContentBuilder
         BottomTab tab,
         FileTreeView? tree,
         FilePathStyle pathStyle,
-        IssueTrackerLinks links)
+        IssueTrackerLinks links,
+        IReadOnlySet<string>? collapsedFolders)
     {
         if (entry is null)
         {
@@ -58,7 +65,7 @@ public static class DetailContentBuilder
         var rows = tab switch
         {
             BottomTab.Details => BuildDetails(entry, state, details, links),
-            BottomTab.Changes => BuildChanges(entry, state, details, pathStyle),
+            BottomTab.Changes => BuildChanges(entry, state, details, pathStyle, collapsedFolders),
             _ => BuildFiles(entry, tree),
         };
         if (tab == BottomTab.Files)
@@ -130,7 +137,8 @@ public static class DetailContentBuilder
         GraphEntry entry,
         CommitDetailsState state,
         CommitDetails? details,
-        FilePathStyle pathStyle)
+        FilePathStyle pathStyle,
+        IReadOnlySet<string>? collapsedFolders)
     {
         if (details is null)
         {
@@ -141,7 +149,7 @@ public static class DetailContentBuilder
         var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
         if (pathStyle == FilePathStyle.Tree)
         {
-            AddTree(rows, details.Files);
+            AddTree(rows, details.Files, collapsedFolders);
         }
         else
         {
@@ -151,16 +159,24 @@ public static class DetailContentBuilder
         return rows;
     }
 
-    private static void AddTree(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files)
+    private static void AddTree(
+        List<DetailRow> rows,
+        IReadOnlyList<CommitFileChange> files,
+        IReadOnlySet<string>? collapsed)
     {
-        foreach (var row in ChangesTree.Rows(files))
+        foreach (var row in ChangesTree.Rows(files, collapsed))
         {
             var indent = new string(' ', row.Depth * TreeIndent);
             if (row.IsFolder)
             {
-                rows.Add(new DetailRow(
-                    [new StyledSegment($"{indent}{row.Name}/", SegmentRole.SectionTitle)],
-                    Folder: row.FolderPath));
+                var segments = new List<StyledSegment> { new($"{indent}{row.Name}/", SegmentRole.SectionTitle) };
+                if (collapsed is not null && collapsed.Contains(row.FolderPath))
+                {
+                    var count = files.Count(file => FileTreePath.IsUnder(row.FolderPath, file.Path));
+                    segments.Add(new StyledSegment($"  {FileCountText(count)}", SegmentRole.Faint));
+                }
+
+                rows.Add(new DetailRow(segments, Folder: row.FolderPath));
                 continue;
             }
 
