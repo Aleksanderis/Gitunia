@@ -75,17 +75,17 @@ public sealed class ConfigStartupTests : IDisposable
     }
 
     [Theory]
-    [InlineData("""{ "theme": "light" }""", ThemeChoice.Light)]
-    [InlineData("""{ "theme": "Dark" }""", ThemeChoice.Dark)]
-    [InlineData("""{ "theme": "auto" }""", ThemeChoice.Auto)]
-    [InlineData("""{ "keys": [] }""", ThemeChoice.Auto)]
-    public void GivenAThemeSetting_WhenLoading_ThenTheChoiceFollowsItWithoutProblems(string json, ThemeChoice expected)
+    [InlineData("""{ "theme": "light" }""", "light")]
+    [InlineData("""{ "theme": "Dark" }""", "dark")]
+    [InlineData("""{ "theme": "auto" }""", "auto")]
+    [InlineData("""{ "keys": [] }""", "auto")]
+    public void GivenAThemeSetting_WhenLoading_ThenTheChoiceFollowsItWithoutProblems(string json, string expected)
     {
         Write(json);
 
         var config = new ConfigStartup(_directory, _directory).Load();
 
-        Assert.Equal(expected, config.Theme);
+        Assert.Equal(expected, config.Theme.Name);
         Assert.Empty(config.Keymap.Problems);
     }
 
@@ -124,6 +124,57 @@ public sealed class ConfigStartupTests : IDisposable
         Assert.Equal(ConfigOptions.Default, config.Options);
         Assert.Equal(["tabs", "scanRoots"], config.Keymap.Problems.Select(problem => problem.Path));
     }
+
+    [Fact]
+    public void GivenABuiltInThemeName_WhenLoading_ThenItIsChosenWithoutProblems()
+    {
+        Write("""{ "theme": "catppuccin-frappe" }""");
+
+        var config = new ConfigStartup(_directory, _directory).Load();
+
+        Assert.Equal("catppuccin-frappe", config.Theme.Name);
+        Assert.Empty(config.Keymap.Problems);
+    }
+
+    [Fact]
+    public void GivenAUserThemeFile_WhenLoading_ThenItsNameIsAcceptedAndOffered()
+    {
+        var themes = Directory.CreateDirectory(Path.Combine(_directory, "themes")).FullName;
+        File.WriteAllText(Path.Combine(themes, "mine.json"), UserTheme);
+        Write("""{ "theme": "Mine" }""");
+
+        var config = new ConfigStartup(_directory, _directory).Load();
+
+        Assert.Equal("mine", config.Theme.Name);
+        Assert.Contains("mine", config.Themes.Names);
+        Assert.Empty(config.Keymap.Problems);
+    }
+
+    [Fact]
+    public void GivenABrokenUserThemeFile_WhenLoading_ThenAutoAppliesWithTheFilesProblems()
+    {
+        var themes = Directory.CreateDirectory(Path.Combine(_directory, "themes")).FullName;
+        File.WriteAllText(
+            Path.Combine(themes, "mine.json"),
+            """{ "variant": "dark", "colors": { "lanes": ["#000000"] } }""");
+        Write("""{ "theme": "mine" }""");
+
+        var config = new ConfigStartup(_directory, _directory).Load();
+
+        Assert.Equal(ThemeChoice.Auto, config.Theme);
+        Assert.Contains(
+            config.Keymap.Problems,
+            problem => problem.Path.StartsWith("mine: colors.accent", StringComparison.Ordinal));
+        Assert.Contains(config.Keymap.Problems, problem => problem.Path == "theme");
+    }
+
+    private const string UserTheme = """
+        { "name": "Mine", "variant": "dark", "colors": {
+          "accent": "#89b4fa", "good": "#a6e3a1", "bad": "#f38ba8", "remote": "#cba6f7", "warn": "#f9e2af",
+          "info": "#89dceb", "muted": "#9399b2", "border": "#6c7086", "barBackground": "#181825",
+          "selectionFocused": "#313244", "selectionDim": "#262637", "chipForeground": "#11111b",
+          "baseForeground": "#cdd6f4", "baseBackground": "#1e1e2e", "lanes": ["#89b4fa"] } }
+        """;
 
     private void Write(string content) => File.WriteAllText(Path.Combine(_directory, ConfigLoader.FileName), content);
 }

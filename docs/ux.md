@@ -305,7 +305,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting (`auto`, `dark`, `light`, #47) picks the light or dark side; named themes are #61.
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting picks the scheme: `auto`, `dark` or `light` (#47: the built-in Catppuccin Mocha and Latte tables, the light or dark side) or the name of a theme file (#61, "Theme files" below).
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 
@@ -344,6 +344,37 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 **Colour depth.** The scheme follows the terminal. 24-bit (`COLORTERM=truecolor`, also used for 256-colour terminals because Terminal.Gui has no 256-colour output of its own): the Catppuccin palette (Mocha on a dark terminal, Latte on a light one), checked by a test for a contrast ratio of at least 4.5 on a typical dark and light terminal background (3.0 for dividers), also on selected rows. 16-colour (`TERM` without `256color`, or a Terminal.Gui driver that cannot do 24-bit; the driver is then forced to 16 colours): only the 16 named colours, so the terminal's own theme decides the exact look; the focused selection is bright black (bold), the unfocused one underlined. `NO_COLOR` or `TERM=dumb`: text styles only (reverse video for the selection, underline when unfocused, bold underline for search matches, underline for the current branch). Light backgrounds get darker accents and light tints. With `theme = auto` the terminal is asked for its background (OSC 11, before the UI starts, 50 ms timeout, skipped when not interactive, at `NO_COLOR`, for `TERM` unset, `dumb` or `linux`, and on Windows, where the answer is not reliable); an unanswered or unreadable query falls back to `COLORFGBG` (background 7 or 15), and a terminal that offers neither is assumed dark. A terminal that answers costs a few ms of startup, a silent one the full timeout. The `theme` setting overrides that detection (`light` or `dark`; `auto`, the default, keeps it), at every colour depth except `NO_COLOR`, which has no colours to switch. `theme` tells Gitunia what the terminal looks like: `light` assumes a light terminal background, so at 16 colours (where the terminal's own background is kept) it is only readable on a light terminal, while at 24 bits the scheme paints its own backgrounds and works on either. A terminal whose `TERM` has no `256color` and that sets no `COLORTERM` (for example over ssh without `COLORTERM` forwarded) gets the 16-colour scheme; set `COLORTERM=truecolor` to force the 24-bit one.
 
+**Theme files (#61).** A theme is a JSON file (comments and trailing commas allowed), so a user adds one without a release. Built-in themes are the same files, embedded in the binary: `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe`, `catppuccin-latte`, `tokyo-night`, `tokyo-night-storm`, `tokyo-night-moon`, `tokyo-night-day`. A user file is `themes/<name>.json` in the config directory; its lower-case file name is the value of `theme`, and it wins over a built-in theme of the same name. `auto`, `dark` and `light` are reserved. A file that is unreadable or invalid is not offered, and each reason is reported as a config problem at startup (a `theme` naming it falls back to `auto`). The files are read and parsed once, at startup; edits show after a restart.
+
+```jsonc
+{
+  "version": 1,                 // optional; the only format there is, so a later change cannot break old files
+  "name": "My Theme",           // optional, defaults to the file name
+  "variant": "dark",            // required: dark or light, the side of the terminal the theme is made for
+  "colors": {                   // "#rrggbb" only
+    // required
+    "accent": "#89b4fa", "good": "#a6e3a1", "bad": "#f38ba8", "remote": "#cba6f7", "warn": "#f9e2af", "info": "#89dceb",
+    "muted": "#9399b2", "border": "#6c7086", "barBackground": "#181825",
+    "selectionFocused": "#313244", "selectionDim": "#262637",
+    "chipForeground": "#11111b", "baseForeground": "#cdd6f4", "baseBackground": "#1e1e2e",
+    "lanes": ["#89b4fa", "#a6e3a1", "#f9e2af"],            // the graph lanes, cycled; at least one
+    // optional (the default is in parentheses)
+    "mutedOnSelection": "#a6adc8",    // (muted)
+    "groupBackground": "#222232",     // (none: the cursor group is marked by its bar only)
+    "tabButtonBackground": "#313244", // (selectionFocused)
+    "chipBackground": "#89b4fa",      // (accent)
+    "matchForeground": "#11111b",     // (chipForeground)
+    "matchBackground": "#f9e2af"      // (warn)
+  },
+  // Optional 16-colour mapping, see below.
+  "ansi": { "accent": "brightBlue" }
+}
+```
+
+The built-in values are the published palettes, except that roles which must meet the contrast tests are moved the least that does it (lighter on dark themes, darker on light ones: `muted`, `border`, some accents, the base text of Tokyo Night Day) and the quieter tints (`selectionDim`, `groupBackground`) are mixes of the base and the selection colour; so `catppuccin-mocha` differs slightly from the `dark` table. Roles are the `PaletteTable` colours (the table above says what each paints). Unknown keys are ignored; a missing required role, a malformed colour, an unknown `variant` or `version`, or a bad `ansi` entry refuses the whole file, one problem per reason. The colours are used at 24-bit and 256-colour output, and the base text and background are always painted, so the theme looks the same on any terminal background.
+
+**The 16-colour mapping rule.** At 16 colours the terminal's own palette decides what the named colours look like, so a theme cannot carry its hex values there. The rule: the `variant` picks the built-in 16-colour table (dark: bright accents on the terminal's background; light: normal-intensity accents), and the optional `ansi` object overrides single roles (`accent`, `good`, `bad`, `remote`, `warn`, `info`, `muted`, `mutedOnSelection`, `border`, `chipBackground`) with one of `black red green yellow blue magenta cyan gray darkGray brightRed brightGreen brightYellow brightBlue brightMagenta brightCyan white` (case-insensitive). Selection and lanes keep the variant's choice. A theme whose `variant` differs from the detected terminal background paints black or white as base, like a forced `dark` or `light`. The built-in themes use the default mapping. Contrast tests cover every built-in theme at 24-bit (4.5, dividers 3.0, cursor group and lanes included), after rounding to the xterm 256-colour palette (3.0), and at 16 colours (refs stay apart, no text in its own background colour); a user theme is not checked.
+
 **Looking at it without the UI.** `--print-frame` reads `config.json` like the app (`frameStyle`). `gitunia <repository> --print-frame WxH [--diff] --colors truecolor|16|none [--light]` writes the frame with ANSI colours (the graph is focused, the sidebar cursor shows the dim tint). The overlays and the picker are not part of the printed frame; open them with `?`, `:` and `Ctrl-t`.
 
 ## Config file
@@ -352,7 +383,7 @@ Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the
 
 ```jsonc
 {
-  // auto (default: follow the terminal's background), dark or light.
+  // auto (default: follow the terminal's background), dark, light or a theme file name such as "tokyo-night".
   "theme": "auto",
   // Tab chips show the checked-out branch after the name (default false: it makes tabs long).
   "tabs": { "showBranch": false },
@@ -405,7 +436,7 @@ One screen for every option of the config file, and the only UI for them (the th
 
 | Category | Setting | Control | Config key | From |
 |---|---|---|---|---|
-| Appearance | Theme | choice list with live preview | `theme` | #47 |
+| Appearance | Theme | choice list with live preview | `theme` | #47, #61 |
 | Tabs | Show branch in tab name | toggle | `tabs.showBranch` | #453 |
 | Repositories | Scan roots | path list | `scanRoots` | #453 |
 | Keys | Key reference | read-only list from the keymap | none | #50 |
@@ -416,7 +447,7 @@ New options of later issues add a row here in the same change; a number control 
 **Focus and keys.** Two columns, `h`/`l` move between them (`l` or `Enter` on a category enters it, `h` or `Esc` in the settings column goes back, `Esc` in the categories closes). `j`/`k`, `gg`/`G`, `Ctrl-d`/`Ctrl-u` move in the focused column. `/` filters settings across all categories by name and help text, and the key reference lines by title, keys and action id (Insert mode, input focused; `Esc` clears; matches show their category and `Enter` jumps to the setting). Per control:
 
 - Toggle: `Enter` or `x` flips it and saves at once (a bare `<space>` stays the leader prefix).
-- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme (options `auto`, `dark`, `light`; the schemes that exist today) the cursor move previews it live (the whole UI is repainted with that theme behind the overlay, nothing is written); `Enter` keeps it and writes `theme`, `Esc`, closing the screen or clicking another row restores the previous theme. A kept theme stays on screen while its write is pending and is restored if the write is refused or fails. `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
+- Choice list: the cursor moves through the options; `Enter` keeps and saves, `Esc` restores the value from before. For the theme (options `auto`, `dark`, `light`, then every theme file: the built-in ones, then the user's from the `themes` folder as found at startup) the cursor move previews it live (the whole UI is repainted with that theme behind the overlay, nothing is written); `Enter` keeps it and writes `theme`, `Esc`, closing the screen or clicking another row restores the previous theme. A kept theme stays on screen while its write is pending and is restored if the write is refused or fails. `auto` chosen at run time uses the `COLORFGBG` guess: the terminal is asked for its background (OSC 11) only at startup, and only when the file says `auto`.
 - Number: `Enter` starts typing (Insert mode), `Enter` saves, `Esc` cancels; `+`/`-` step. Out of range is refused with a message naming the range, nothing is saved.
 - Path list: `a` add (prompt, `~` expanded, must be an existing directory), `d` remove (a question inside the overlay naming the path, Confirm mode: `y` removes, `n` or `Esc` keeps, or click its `y`/`n` row; the folder is untouched), `Enter` edit, `J`/`K` reorder. Saved on each change.
 - Key reference: read-only. `KeyReferenceBuilder` generates it from the key binding table of the running app (the defaults with the `keys` entries of the config file applied, so rebinds show) and the action titles, one line per action and view (`j / Down`, title on the left, keys on the right), under a heading per view; Visual-mode bindings get their own heading (`Lists (Visual)`). Insert, Command and Confirm keys are not listed. It is a list of rows under the `Key reference` setting, listed Global first, then the other views as bound, then the Visual headings. The filter (`/`) also matches the lines' title, keys and action id (`quit`, `gg`, `list.down`) and lists them under their view heading; `Enter` on one clears the filter and lands on the line. In the collapsed layout the Key reference is the last category, so the others are reachable without passing its lines (#558). `Enter` (or a second click) on a line shows its `keys` entry in the status bar (`{ "view": "Graph", "key": "J", "action": "list.down" }`, with `mode` for Visual); it works on a read-only file too and writes nothing. The list shows the keymap read at startup: after editing `keys`, restart. Editing a binding in the UI is out of scope (see open choices).

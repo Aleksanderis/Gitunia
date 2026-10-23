@@ -1,4 +1,5 @@
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Themes;
 using Gitunia.Platform;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
@@ -10,6 +11,9 @@ namespace Gitunia.Tui.Tests.Views.Theme;
 
 public class PaletteTests
 {
+    private static readonly ThemeCatalog Themes = new(
+        Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
+
     // What a terminal typically draws behind and in front of default text.
     private const int DarkBackground = 0x1e1e2e;
     private const int DarkText = 0xcdd6f4;
@@ -420,16 +424,18 @@ public class PaletteTests
     }
 
     [Theory]
-    [InlineData(ThemeChoice.Auto, true, true)]
-    [InlineData(ThemeChoice.Auto, false, false)]
-    [InlineData(ThemeChoice.Dark, true, false)]
-    [InlineData(ThemeChoice.Light, false, true)]
+    [InlineData("auto", true, true)]
+    [InlineData("auto", false, false)]
+    [InlineData("dark", true, false)]
+    [InlineData("light", false, true)]
     public void GivenATheme_WhenApplyingItToTheDetectedScheme_ThenOnlyAutoKeepsTheDetectedSide(
-        ThemeChoice theme,
+        string themeName,
         bool detectedLight,
         bool expectedLight)
     {
-        var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(theme);
+        var choice = ThemeChoice.FromText(themeName);
+
+        var settings = new PaletteSettings(ColorDepth.Ansi16, detectedLight).WithTheme(choice, Themes);
 
         Assert.Equal(expectedLight, settings.IsLightBackground);
         Assert.Equal(ColorDepth.Ansi16, settings.Depth);
@@ -438,23 +444,26 @@ public class PaletteTests
     [Fact]
     public void GivenTheLightTheme_WhenTheTerminalLooksDark_ThenTheTableIsTheLightOne()
     {
-        var forced = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.Light));
+        var forced = PaletteTable.For(
+            new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.Light, Themes));
 
         Assert.Equal(PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, true)).Accent, forced.Accent);
         Assert.NotEqual(PaletteTable.For(PaletteSettings.Default).Accent, forced.Accent);
     }
 
     [Theory]
-    [InlineData(ThemeChoice.Light, false, true)]
-    [InlineData(ThemeChoice.Dark, true, true)]
-    [InlineData(ThemeChoice.Light, true, false)]
-    [InlineData(ThemeChoice.Auto, false, false)]
+    [InlineData("light", false, true)]
+    [InlineData("dark", true, true)]
+    [InlineData("light", true, false)]
+    [InlineData("auto", false, false)]
     public void GivenAForcedTheme_WhenItDiffersFromTheTerminal_ThenPlainTextGetsTheBaseColours(
-        ThemeChoice theme,
+        string themeName,
         bool detectedLight,
         bool paintsBase)
     {
-        var table = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, detectedLight).WithTheme(theme));
+        var choice = ThemeChoice.FromText(themeName);
+        var table = PaletteTable.For(
+            new PaletteSettings(ColorDepth.TrueColor, detectedLight).WithTheme(choice, Themes));
         var plain = Palette.For(new StyledSegment("x", SegmentRole.Hash), false, false, table);
 
         Assert.Equal(paintsBase, table.BaseBackground != Color.None);

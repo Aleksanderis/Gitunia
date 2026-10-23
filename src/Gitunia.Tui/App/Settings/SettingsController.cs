@@ -413,7 +413,11 @@ public sealed class SettingsController(
     }
 
     private SettingsLoad Parse(ConfigSnapshot snapshot) =>
-        SettingsValueReader.Read(snapshot, environment.HomeDirectory, environment.DirectoryExists);
+        SettingsValueReader.Read(
+            snapshot,
+            environment.HomeDirectory,
+            environment.DirectoryExists,
+            environment.ThemeNames);
 
     private void Finished(Action<SettingsRead> then, SettingsRead read)
     {

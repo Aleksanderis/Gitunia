@@ -1,4 +1,6 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Settings.Models;
+using Gitunia.Core.Themes;
 
 namespace Gitunia.Core.Settings;
 
@@ -32,10 +34,10 @@ public static class SettingsRegistry
             "Theme",
             SettingControl.Choice,
             ["theme"],
-            "The colours of the interface. auto follows the terminal's background. The cursor previews a theme, "
-                + "Enter keeps it and Esc restores the previous one.",
-            "auto",
-            ["auto", "dark", "light"]),
+            "The colours of the interface: auto follows the terminal, dark and light are the built-in schemes, "
+                + "the rest are theme files. The cursor previews, Enter keeps, Esc restores.",
+            ThemeChoice.AutoName,
+            [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. BuiltInThemes.Names]),
         new SettingDefinition(
             ScanRootsId,
             SettingCategory.Repositories,
@@ -74,6 +76,18 @@ public static class SettingsRegistry
                 + "key bindings apply after a restart.",
             string.Empty,
             []),
+    ];
+
+    /// <summary>The settings with the theme options replaced by auto, dark, light and the given theme names.</summary>
+    /// <param name="themeNames">The names of all theme files on offer (built-in and the user's).</param>
+    public static IReadOnlyList<SettingDefinition> WithThemes(IEnumerable<string> themeNames) =>
+    [
+        .. All.Select(definition => definition.Id == ThemeId
+            ? definition with
+            {
+                Choices = [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. themeNames],
+            }
+            : definition),
     ];
 
     /// <summary>The title of a category in the categories column.</summary>
