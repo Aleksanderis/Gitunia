@@ -87,4 +87,29 @@ public class WorkingListTitleButtonsTests
 
         Assert.Equal(" Ctrl-s stage all ", button.Label);
     }
+
+    [Fact]
+    public void GivenAWideList_WhenLayingOutTheResolveChip_ThenItShowsItsKeyAndEndsBeforeTheOtherChips()
+    {
+        var resolve = WorkingListTitleButtons.ResolveButton("Unstaged 12", 90, null)!;
+        var view = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 90, null)!;
+
+        Assert.Equal(DefaultMouseMap.ListResolveButton, resolve.View);
+        Assert.Equal(" <space>to resolve ", resolve.Label);
+        Assert.True(resolve.Start + resolve.Width < view.Start);
+    }
+
+    [Fact]
+    public void GivenANarrowList_WhenLayingOutTheResolveChip_ThenThereIsNoChipWhereItWouldTouchTheTitle()
+    {
+        Assert.Null(WorkingListTitleButtons.ResolveButton("Unstaged 12", 30, null));
+    }
+
+    [Fact]
+    public void GivenTheResolveChip_WhenLookingAtTheMouseMap_ThenItRunsTheOpenAction()
+    {
+        Assert.Contains(
+            DefaultMouseMap.CreateBindings(),
+            binding => binding.View == DefaultMouseMap.ListResolveButton && binding.Action == ActionIds.ConflictOpen);
+    }
 }

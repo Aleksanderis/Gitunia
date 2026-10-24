@@ -15,6 +15,7 @@ public static class WorkingListTitleButtons
 {
     private const string StageAllLabel = "stage all";
     private const string UnstageAllLabel = "unstage all";
+    private const string ResolveLabel = "resolve";
 
     // The title row starts with a stretch of line and the title chip (" title ", padded), then at least one column of line follows it.
     private const int TitleOverhead = 4;
@@ -49,6 +50,38 @@ public static class WorkingListTitleButtons
             if (chip is not null || !showStageKey)
             {
                 return chip;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The <c>resolve</c> chip of the Unstaged list (the mouse path of <c>&lt;space&gt;to</c>, #701), left of
+    /// the view and stage all chips, or null when the title row has no room for it. The caller shows it only while
+    /// the cursor is on a conflicted file.</summary>
+    /// <param name="title">The title text of the list.</param>
+    /// <param name="paneWidth">Columns of the list's content.</param>
+    /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    /// <returns>The chip, with its start column counted from the first content column.</returns>
+    public static TitleButton? ResolveButton(string title, int paneWidth, ChipKeys? keys)
+    {
+        var section = WorkingTreeSection.Unstaged;
+        var stageStart = Layout(section, title, paneWidth, keys)?.Start ?? paneWidth;
+        var viewStart = ViewButton(section, title, paneWidth, keys)?.Start ?? paneWidth;
+        var rightEdge = Math.Min(stageStart, viewStart) - 1;
+        var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListResolveButton, DefaultKeymap.WorkingUnstagedView);
+        var earliest = TextWidth.Of(title) + TitleOverhead + 1;
+        var candidates = (TitleButton[])
+        [
+            KeyedChip.Keyed(DefaultMouseMap.ListResolveButton, ResolveLabel, key),
+            KeyedChip.Plain(DefaultMouseMap.ListResolveButton, ResolveLabel),
+        ];
+        foreach (var candidate in candidates)
+        {
+            var start = rightEdge - candidate.Width;
+            if (start >= earliest)
+            {
+                return candidate with { Start = start };
             }
         }
 

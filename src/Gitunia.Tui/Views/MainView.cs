@@ -5,6 +5,7 @@ using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Diff;
@@ -43,6 +44,7 @@ public sealed class MainView : IDisposable
     private readonly LineView _stageAllButton;
     private readonly LineView _unstageAllButton;
     private readonly LineView _unstagedViewButton;
+    private readonly LineView _resolveButton;
     private readonly LineView _stagedViewButton;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
@@ -222,10 +224,11 @@ public sealed class MainView : IDisposable
             Visible = false,
         };
         _messageOptions.Clicked += OnMessageOptionsClicked;
-        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isView: false);
-        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isView: false);
-        _unstagedViewButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, isView: true);
-        _stagedViewButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, isView: true);
+        _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.StageAll);
+        _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.StageAll);
+        _unstagedViewButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.View);
+        _stagedViewButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.View);
+        _resolveButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.Resolve);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -307,6 +310,7 @@ public sealed class MainView : IDisposable
             _stageAllButton,
             _unstageAllButton,
             _unstagedViewButton,
+            _resolveButton,
             _stagedViewButton,
             _picker,
             _status,
@@ -487,6 +491,7 @@ public sealed class MainView : IDisposable
             _stageAllButton.SetNeedsDraw();
             _unstageAllButton.SetNeedsDraw();
             _unstagedViewButton.SetNeedsDraw();
+            _resolveButton.SetNeedsDraw();
             _stagedViewButton.SetNeedsDraw();
         }
     }
@@ -548,6 +553,7 @@ public sealed class MainView : IDisposable
         _stageAllButton.Visible = working && !isPicker;
         _unstageAllButton.Visible = working && !isPicker;
         _unstagedViewButton.Visible = working && !isPicker;
+        _resolveButton.Visible = working && !isPicker;
         _stagedViewButton.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
@@ -571,23 +577,24 @@ public sealed class MainView : IDisposable
         Visible = false,
     };
 
-    // The title row of a file list is the top edge of its box, one row above the list; the button sits at its right end and is the
-    // mouse path of stage all / unstage all. It has no width when the title leaves no room for it.
-    private LineView CreateListButton(WorkingTreeSection section, PaneListView list, bool isView)
+    // The title row of a file list is the top edge of its box, one row above the list; its buttons are the mouse
+    // path of stage all / unstage all, the view dropdown and (Unstaged, on a conflicted file) resolve. A button has
+    // no width when the title leaves no room for it.
+    private LineView CreateListButton(WorkingTreeSection section, PaneListView list, ListButtonKind kind)
     {
-        var view = new LineView(_ => ListButton(section, isView) is { } button
+        var view = new LineView(_ => ListButton(section, kind) is { } button
             ? ViewChip.Line(button, _glyphs)
             : new StyledLine([]))
         {
-            X = Pos.Func(_ => ListButtonRect(section, isView).X),
-            Y = Pos.Func(_ => ListButtonRect(section, isView).Y),
-            Width = Dim.Func(_ => ListButtonRect(section, isView).Width),
-            Height = Dim.Func(_ => ListButtonRect(section, isView).Height),
+            X = Pos.Func(_ => ListButtonRect(section, kind).X),
+            Y = Pos.Func(_ => ListButtonRect(section, kind).Y),
+            Width = Dim.Func(_ => ListButtonRect(section, kind).Width),
+            Height = Dim.Func(_ => ListButtonRect(section, kind).Height),
             Visible = false,
         };
         view.Clicked += _ =>
         {
-            if (_suppressed() || ListButton(section, isView) is not { } button)
+            if (_suppressed() || ListButton(section, kind) is not { } button)
             {
                 return;
             }
@@ -598,7 +605,7 @@ public sealed class MainView : IDisposable
         return view;
     }
 
-    private TitleButton? ListButton(WorkingTreeSection section, bool isView)
+    private TitleButton? ListButton(WorkingTreeSection section, ListButtonKind kind)
     {
         var rect = ListRect(section);
         var tree = section == WorkingTreeSection.Staged ? StagedSource.Tree : UnstagedSource.Tree;
@@ -609,18 +616,26 @@ public sealed class MainView : IDisposable
 
         var title = WorkingTreePaneRenderer.ListTitle(tree, section);
 
-        return isView
-            ? WorkingListTitleButtons.ViewButton(section, title, rect.Width, _model().Keys)
-            : WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys);
+        return kind switch
+        {
+            ListButtonKind.View => WorkingListTitleButtons.ViewButton(section, title, rect.Width, _model().Keys),
+            ListButtonKind.Resolve => IsConflictedUnderCursor()
+                ? WorkingListTitleButtons.ResolveButton(title, rect.Width, _model().Keys)
+                : null,
+            _ => WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys),
+        };
     }
+
+    // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
+    private bool IsConflictedUnderCursor() => ConflictedSelection.Find(UnstagedSource.Tree) is not null;
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;
 
-    private PaneRect ListButtonRect(WorkingTreeSection section, bool isView)
+    private PaneRect ListButtonRect(WorkingTreeSection section, ListButtonKind kind)
     {
         var rect = ListRect(section);
-        return ListButton(section, isView) is { } button
+        return ListButton(section, kind) is { } button
             ? new PaneRect(rect.X + button.Start, rect.Y - 1, button.Width, 1)
             : Empty;
     }
@@ -722,7 +737,7 @@ public sealed class MainView : IDisposable
                 ? WorkingTreeSection.Staged
                 : WorkingTreeSection.Unstaged;
             var rect = ListRect(section);
-            var chip = ListButton(section, isView: true);
+            var chip = ListButton(section, kind: ListButtonKind.View);
 
             return new MenuAnchor(
                 rect.X + (chip?.Start ?? Math.Max(0, rect.Width - 1)) - 2,

@@ -104,6 +104,10 @@ public static class DefaultMouseMap
     /// <summary>The <c>view ▾</c> dropdown in the title row of both working-tree file lists (#646).</summary>
     public const string ListViewButton = "ListButton.View";
 
+    /// <summary>The <c>resolve</c> chip in the Unstaged list's title row, shown while the cursor is on a conflicted
+    /// file (#701).</summary>
+    public const string ListResolveButton = "ListButton.Resolve";
+
     /// <summary>The action rows under the reflog list (#442) and a row of its ref picker (#441): each is a view of
     /// its own, a click runs the action its key runs on the highlighted entry.</summary>
     public const string ReflogSelectButton = "ReflogButton.Select";
@@ -324,6 +328,7 @@ public static class DefaultMouseMap
         new(ConfirmNoButton, MouseGesture.Click, ActionIds.ConfirmNo),
         new(StageAllButton, MouseGesture.Click, ActionIds.WorkingTreeStageAll),
         new(UnstageAllButton, MouseGesture.Click, ActionIds.WorkingTreeUnstageAll),
+        new(ListResolveButton, MouseGesture.Click, ActionIds.ConflictOpen),
         new(DiffPreviousFileButton, MouseGesture.Click, ActionIds.DiffPreviousFile),
         new(DiffNextFileButton, MouseGesture.Click, ActionIds.DiffNextFile),
         new(DiffPreviousHunkButton, MouseGesture.Click, ActionIds.DiffPreviousHunk),
