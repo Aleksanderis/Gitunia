@@ -661,15 +661,28 @@ public class BranchActionsTests
 
         Assert.Contains("Delete branch", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         Assert.Empty(harness.Prompts);
-        var first = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal));
-        harness.Press("j");
-        var second = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal));
-        Assert.NotEqual(first, second);
-        harness.Press("k");
+        var order = harness.Branches.Popup!.Details.Select(row => row[2..]).ToList();
+        Assert.Equal(3, order.Count);
+        Assert.Equal(order[0], Marked(harness));
         harness.Press("l");
+        Assert.Equal(order[1], Marked(harness));
+        harness.Press("l");
+        Assert.Equal(order[2], Marked(harness));
+        harness.Press("l");
+        Assert.Equal(order[0], Marked(harness));
         harness.Press("h");
-        harness.Press("l");
-        var chosen = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal))[2..];
+        Assert.Equal(order[2], Marked(harness));
+        harness.Press("k");
+        Assert.Equal(order[1], Marked(harness));
+        harness.Press("j");
+        Assert.Equal(order[2], Marked(harness));
+        if (order[2] == "main")
+        {
+            harness.Press("j");
+        }
+
+        var chosen = Marked(harness);
+        Assert.NotEqual("main", chosen);
         harness.Run(ActionIds.InputAccept);
 
         var prompt = Assert.Single(harness.Prompts);
@@ -715,13 +728,12 @@ public class BranchActionsTests
         using var harness = await Harness.LoadAsync(repository);
         harness.Select(new BranchSelection(null, null, repository.Head));
         harness.Run(ActionIds.BranchDelete);
-        var current = harness.Branches.Popup!.Details.Count(row => row.EndsWith("main", StringComparison.Ordinal));
-        Assert.Equal(1, current);
-        if (!harness.Branches.Popup!.Details[0].EndsWith("main", StringComparison.Ordinal))
+        if (Marked(harness) != "main")
         {
             harness.Press("j");
         }
 
+        Assert.Equal("main", Marked(harness));
         harness.Run(ActionIds.InputAccept);
 
         Assert.Contains("main is checked out", harness.Branches.Notice, StringComparison.Ordinal);
@@ -1110,6 +1122,9 @@ public class BranchActionsTests
 
         Assert.Equal(ObjectIdOf(repository.Head), harness.SelectedCommit);
     }
+
+    private static string Marked(Harness harness) =>
+        harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal))[2..];
 
     private static ObjectId ObjectIdOf(string hash)
     {
