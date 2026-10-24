@@ -399,20 +399,21 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenADiffThreeConflict_WhenShowingTheBase_ThenTheAncestorLinesAreDrawn()
+    public async Task GivenADiffThreeConflict_WhenOpeningOnAWideScreen_ThenTheAncestorShowsWithoutPressingB()
     {
         using var repository = TestRepositories.Conflicted();
         repository.Git("checkout", "--merge", "--conflict=diff3", "--", ConflictPath);
         using var harness = await Harness.CreateAsync(repository);
         await harness.OpenAsync();
 
-        harness.Run(ActionIds.ConflictEditorBase);
-
         var frame = harness.Controller.CurrentFrame()!;
+
         var lines = frame.Lines.Select(line => line.Text).ToList();
         var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
         Assert.True(header > 0);
-        Assert.Equal(harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n'), lines[header + 1].Trim('\u2502', ' '));
+        var ancestor = harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n').Split('\n')[0];
+        Assert.Contains(ancestor, lines[header + 1], StringComparison.Ordinal);
+        Assert.False(harness.Controller.State.IsBaseShown);
     }
 
     [Fact]

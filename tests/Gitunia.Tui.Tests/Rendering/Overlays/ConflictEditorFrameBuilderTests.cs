@@ -338,7 +338,6 @@ public class ConflictEditorFrameBuilderTests
         AssertChip(state, frame, "e edit", DefaultMouseMap.ConflictEditButton);
         AssertChip(state, frame, "r reset", DefaultMouseMap.ConflictResetButton);
         AssertChip(state, frame, "Ctrl-r redo", DefaultMouseMap.ConflictRedoButton);
-        AssertChip(state, frame, "B base", DefaultMouseMap.ConflictBaseButton);
         AssertChip(state, frame, "R re-create", DefaultMouseMap.ConflictRecreateButton);
         var chipLine = ChipLine(frame, "o ours");
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine, 1, 120, 30));
@@ -385,7 +384,7 @@ public class ConflictEditorFrameBuilderTests
         const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
         var state = State(diffThree).ToggleBase();
 
-        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+        var frame = ConflictEditorFrameBuilder.Build(state, 110, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
         var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
@@ -398,7 +397,7 @@ public class ConflictEditorFrameBuilderTests
     [Fact]
     public void GivenTheBaseToggledOnAMergeStyleFile_WhenRendering_ThenItSaysHowToGetABase()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text).ToggleBase(), 120, 30, GraphGlyphSet.Unicode)!;
+        var frame = ConflictEditorFrameBuilder.Build(State(Text).ToggleBase(), 110, 30, GraphGlyphSet.Unicode)!;
 
         Assert.Contains(
             frame.Lines,
@@ -413,7 +412,7 @@ public class ConflictEditorFrameBuilderTests
 
         foreach (var height in new[] { 12, 13, 14, 16 })
         {
-            var frame = ConflictEditorFrameBuilder.Build(state, 120, height, GraphGlyphSet.Unicode);
+            var frame = ConflictEditorFrameBuilder.Build(state, 110, height, GraphGlyphSet.Unicode);
 
             if (frame is not null)
             {
@@ -421,6 +420,91 @@ public class ConflictEditorFrameBuilderTests
                 Assert.True(frame.Height <= height);
             }
         }
+    }
+
+    private const string DiffThree =
+        "<<<<<<< HEAD\nmine\nmine 2\n||||||| base\nancestor\nancestor 2\n=======\ntheirs\n>>>>>>> feature\n";
+
+    [Fact]
+    public void GivenAWideScreen_WhenRendering_ThenOursBaseAndTheirsAreThreePanesInThatOrder()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Matches(@"ours  HEAD.*│.*base  common ancestor.*│.*theirs  feature", lines[2]);
+        Assert.Matches(@"mine.*│.*ancestor.*│.*theirs", lines[3]);
+        Assert.Matches(@"mine 2.*│.*ancestor 2.*│", lines[4]);
+        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenThreePanes_WhenRendering_ThenTheFrameJoinsBothDividersToTheRuleAndKeepsOneBorder()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var rule = lines[lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal)) - 1];
+        var first = lines[3].IndexOf('│', 1);
+        var second = lines[3].IndexOf('│', first + 1);
+        Assert.Equal(first, rule.IndexOf('┴', StringComparison.Ordinal));
+        Assert.Equal(second, rule.LastIndexOf('┴'));
+        Assert.Equal(2, rule.Count(character => character == '┴'));
+        Assert.StartsWith("├", rule, StringComparison.Ordinal);
+        Assert.EndsWith("┤", rule, StringComparison.Ordinal);
+        Assert.Equal(4, lines[3].Count(character => character == '│'));
+    }
+
+    [Fact]
+    public void GivenThreePanes_WhenRendering_ThenTheBaseToggleChipIsGoneAndAFrameUnderTheMinimumKeepsIt()
+    {
+        var state = State(DiffThree);
+        var wide = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+        var narrow = ConflictEditorFrameBuilder.Build(state, 110, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.DoesNotContain(wide.Lines, line => line.Text.Contains("B base", StringComparison.Ordinal));
+        AssertChip(state, narrow, "B base", DefaultMouseMap.ConflictBaseButton, 110);
+    }
+
+    [Fact]
+    public void GivenAScreenJustUnderTheMinimum_WhenRendering_ThenTheOldTwoPaneLayoutShowsAndBHidesTheBase()
+    {
+        var minimum = ConflictEditorFrameBuilder.ThreePaneFromWidth + 6;
+
+        var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), minimum - 1, 30, GraphGlyphSet.Unicode)!;
+        var three = ConflictEditorFrameBuilder.Build(State(DiffThree), minimum, 30, GraphGlyphSet.Unicode)!;
+        var toggled = State(DiffThree).ToggleBase();
+        var shown = ConflictEditorFrameBuilder.Build(toggled, minimum - 1, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.DoesNotContain(frame.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
+        Assert.Contains(three.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
+        Assert.Contains(shown.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAHunkWithoutABaseInThreePanes_WhenRendering_ThenTheBasePaneSaysHowToGetOne()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains("(no base", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenLongBaseInThreePanes_WhenScrolled_ThenAllThreePanesMoveTogether()
+    {
+        var lines = string.Join('\n', Enumerable.Range(1, 40).Select(number => $"line{number}"));
+        var baseLines = lines.Replace("line", "base", StringComparison.Ordinal);
+        var text = $"<<<<<<< HEAD\n{lines}\n||||||| base\n{baseLines}\n=======\n{lines}\n>>>>>>> f\n";
+        var state = State(text);
+
+        Assert.True(ConflictEditorFrameBuilder.MaxSideScroll(state, 120, 30) > 0);
+        var scrolled = ConflictEditorFrameBuilder.Build(
+            state with { SideScroll = 5 },
+            120,
+            30,
+            GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(scrolled.Lines, line => line.Text.Contains("line6", StringComparison.Ordinal)
+            && line.Text.Contains("base6", StringComparison.Ordinal));
     }
 
     private static int ChipLine(OverlayFrame frame, string chip) =>

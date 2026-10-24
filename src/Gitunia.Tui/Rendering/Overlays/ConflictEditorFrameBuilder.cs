@@ -11,8 +11,9 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>
 /// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
 /// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable
-/// chips and a footer. A frame narrower than <see cref="StackedBelowWidth"/> stacks the two sides above the result
-/// instead.
+/// chips and a footer. A frame of <see cref="ThreePaneFromWidth"/> columns or more shows ours, the base and theirs
+/// side by side; a narrower one draws the two sides and the base below them on demand (<c>B</c>), and a frame narrower
+/// than <see cref="StackedBelowWidth"/> stacks the two sides above the result.
 /// </summary>
 public static class ConflictEditorFrameBuilder
 {
@@ -21,6 +22,12 @@ public static class ConflictEditorFrameBuilder
     /// side by side.
     /// </summary>
     public const int StackedBelowWidth = 90;
+
+    /// <summary>
+    /// The frame width from which ours, the base and theirs are drawn as three panes side by side; between
+    /// <see cref="StackedBelowWidth"/> and this width the base sits below the two sides and <c>B</c> toggles it.
+    /// </summary>
+    public const int ThreePaneFromWidth = 108;
 
     private const int MaximumWidth = 180;
     private const int ScreenMargin = 2;
@@ -76,6 +83,10 @@ public static class ConflictEditorFrameBuilder
         new("Esc", "close", DefaultMouseMap.ConflictCancelButton),
     ];
 
+    // The base is always on screen in three panes, so the chip that toggles it is left out.
+    private static readonly ConflictEditorChip[] ThreePaneChips =
+        [.. Chips.Where(chip => chip.View != DefaultMouseMap.ConflictBaseButton)];
+
     private static readonly ConflictEditorChip[] EditingChips =
     [
         new("Alt-Enter", "keep", DefaultMouseMap.ConflictEditDoneButton),
@@ -103,6 +114,10 @@ public static class ConflictEditorFrameBuilder
         if (plan.IsStacked)
         {
             AddStackedSides(lines, hunk, plan, glyphs);
+        }
+        else if (plan.IsThreePane)
+        {
+            AddThreePanes(lines, hunk, plan, glyphs);
         }
         else
         {
@@ -182,8 +197,10 @@ public static class ConflictEditorFrameBuilder
             return null;
         }
 
-        var chipRows = ChipRowsFor(state.IsEditing ? EditingChips : Chips, width);
         var isStacked = width < StackedBelowWidth;
+        var isThreePane = !isStacked && width >= ThreePaneFromWidth;
+        var chipSet = state.IsEditing ? EditingChips : isThreePane ? ThreePaneChips : Chips;
+        var chipRows = ChipRowsFor(chipSet, width);
         var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
         var sideCount = isStacked ? StackedSides : 1;
         var available = screenHeight - ScreenMargin - TitleAndStripRows - FooterAndBottomRows - chipRows.Count
@@ -195,7 +212,7 @@ public static class ConflictEditorFrameBuilder
 
         var share = isStacked ? available / StackedShareDivisor : available * SideBySideShare / SideBySideShareOf;
         var sideRows = Math.Max(MinimumSideRows, share);
-        var baseRows = state.IsBaseShown ? Math.Max(MinimumSideRows, sideRows / BaseShareDivisor) : 0;
+        var baseRows = state.IsBaseShown && !isThreePane ? Math.Max(MinimumSideRows, sideRows / BaseShareDivisor) : 0;
         var baseTotal = baseRows > 0 ? RuleRows + BaseHeaderRows + baseRows : 0;
         var resultRows = available - (sideRows * sideCount) - baseTotal;
         if (resultRows < MinimumResultRows)
@@ -212,8 +229,12 @@ public static class ConflictEditorFrameBuilder
         var sideLines = Math.Max(
             ConflictEditorState.Lines(state.Selected!.Ours).Count,
             ConflictEditorState.Lines(state.Selected.Theirs).Count);
-        var baseLines = baseRows > 0 ? ConflictEditorState.Lines(state.Selected.Base ?? string.Empty).Count : 0;
-        var maxScroll = Math.Max(Math.Max(0, sideLines - sideRows), Math.Max(0, baseLines - baseRows));
+        var baseLines = baseRows > 0 || isThreePane
+            ? ConflictEditorState.Lines(state.Selected.Base ?? string.Empty).Count
+            : 0;
+        var maxScroll = Math.Max(
+            Math.Max(0, sideLines - sideRows),
+            Math.Max(0, baseLines - (isThreePane ? sideRows : baseRows)));
         var resultStart = state.ResultLineOf(state.Index);
         var lastNumber = resultStart + ContextLines
             + Math.Max(sideLines, ConflictEditorState.Lines(state.ResultOf(state.Index)).Count);
@@ -222,6 +243,7 @@ public static class ConflictEditorFrameBuilder
         return new Plan(
             width,
             isStacked,
+            isThreePane,
             sideRows,
             baseRows,
             resultRows,
@@ -262,22 +284,94 @@ public static class ConflictEditorFrameBuilder
 
     private static int SideBySideLeftWidth(int frameWidth) => (OverlayBox.InnerWidth(frameWidth) - 1) / 2;
 
+    private static int ThreePaneWidth(int frameWidth) => (OverlayBox.InnerWidth(frameWidth) - 2) / 3;
+
+    // The columns (inside the frame) of the vertical dividers between the panes.
+    private static List<int> DividerColumns(Plan plan)
+    {
+        if (!plan.IsThreePane)
+        {
+            return [SideBySideLeftWidth(plan.Width)];
+        }
+
+        var pane = ThreePaneWidth(plan.Width);
+
+        return [pane, pane + 1 + pane];
+    }
+
+    private static void AddThreePanes(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
+    {
+        var inner = OverlayBox.InnerWidth(plan.Width);
+        var oursWidth = ThreePaneWidth(plan.Width);
+        var baseWidth = oursWidth;
+        var theirsWidth = inner - 2 - oursWidth - baseWidth;
+        var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
+        var common = hunk.Base is null ? new SideText([NoBaseText], true) : SideText.Of(hunk.Base);
+        lines.Add(JoinedThree(
+            Cell(SideTitle("ours", hunk.OursLabel, ours, plan), oursWidth, SegmentRole.LocalBranch, glyphs),
+            Cell(SideTitle("base", "common ancestor", common, plan), baseWidth, SegmentRole.SectionTitle, glyphs),
+            Cell(SideTitle("theirs", hunk.TheirsLabel, theirs, plan), theirsWidth, SegmentRole.RemoteBranch, glyphs),
+            divider,
+            inner,
+            glyphs));
+        for (var row = 0; row < plan.SideRows; row++)
+        {
+            var line = plan.Scroll + row;
+            var baseCell = new LineBuilder(baseWidth, glyphs.Ellipsis)
+                .Append(" ", SegmentRole.Plain)
+                .Append(GutterText(null, plan.Gutter), SegmentRole.Faint)
+                .Append(common.TextAt(line), common.RoleAt(line, plan))
+                .Build();
+            lines.Add(JoinedThree(
+                NumberedCell(ours, line, oursWidth, plan, glyphs),
+                baseCell,
+                NumberedCell(theirs, line, theirsWidth, plan, glyphs),
+                divider,
+                inner,
+                glyphs));
+        }
+    }
+
+    private static StyledLine JoinedThree(
+        StyledLine first,
+        StyledLine second,
+        StyledLine third,
+        string divider,
+        int innerWidth,
+        GraphGlyphSet glyphs)
+    {
+        var inner = new LineBuilder(innerWidth, glyphs.Ellipsis)
+            .Append(first)
+            .Append(divider, SegmentRole.Border)
+            .Append(second)
+            .Append(divider, SegmentRole.Border)
+            .Append(third)
+            .Build();
+
+        return OverlayBox.Wrap(inner, glyphs);
+    }
+
     // A rule across the frame, joined to both side borders. Side by side it also joins the divider of the two sides:
     // opening it downwards under the strip, closing it upwards above the result.
     private static StyledLine Rule(Plan plan, GraphGlyphSet glyphs, Junction junction)
     {
         var inner = OverlayBox.InnerWidth(plan.Width);
         var horizontal = glyphs.Horizontal;
-        var left = SideBySideLeftWidth(plan.Width);
         var builder = new LineBuilder(inner, glyphs.Ellipsis);
         if (junction != Junction.None && !plan.IsStacked)
         {
             var down = junction == Junction.OpensDown;
             var vertical = down ? LineDirections.Down : LineDirections.Up;
             var joint = Joint(glyphs, LineDirections.Left | LineDirections.Right | vertical);
-            builder.Append(new string(horizontal, left), SegmentRole.FocusedBorder)
-                .Append(joint.ToString(), SegmentRole.FocusedBorder)
-                .Append(new string(horizontal, inner - 1 - left), SegmentRole.FocusedBorder);
+            var chars = new string(horizontal, inner).ToCharArray();
+            foreach (var column in DividerColumns(plan))
+            {
+                chars[column] = joint;
+            }
+
+            builder.Append(new string(chars), SegmentRole.FocusedBorder);
         }
         else
         {
@@ -613,6 +707,7 @@ public static class ConflictEditorFrameBuilder
     private sealed record Plan(
         int Width,
         bool IsStacked,
+        bool IsThreePane,
         int SideRows,
         int BaseRows,
         int ResultRowCount,
