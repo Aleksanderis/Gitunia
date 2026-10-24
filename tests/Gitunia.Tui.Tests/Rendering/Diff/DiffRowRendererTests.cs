@@ -231,8 +231,8 @@ public class DiffRowRendererTests
         Assert.Contains("a   b  ", plain.Text, StringComparison.Ordinal);
         Assert.Contains("a→  b••", marked.Text, StringComparison.Ordinal);
         Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
-        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text.StartsWith('→')).Role);
-        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "••").Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, marked.Segments.First(segment => segment.Text.StartsWith('→')).Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, marked.Segments.First(segment => segment.Text == "••").Role);
         Assert.Equal(SegmentRole.DiffAdded, marked.Segments.First(segment => segment.Text.EndsWith('b')).Role);
     }
 
@@ -247,7 +247,7 @@ public class DiffRowRendererTests
         Assert.Contains("····one··two", marked.Text, StringComparison.Ordinal);
         Assert.DoesNotContain('•', marked.Text);
         Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
-        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "····").Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, marked.Segments.First(segment => segment.Text == "····").Role);
         Assert.Equal(SegmentRole.Plain, marked.Segments.First(segment => segment.Text == "one").Role);
     }
 
@@ -307,8 +307,8 @@ public class DiffRowRendererTests
 
         Assert.Contains("abcdefgh", texts[0].Text, StringComparison.Ordinal);
         Assert.Contains("→", texts[1].Text, StringComparison.Ordinal);
-        Assert.Equal(SegmentRole.Faint, texts[1].Segments.First(segment => segment.Text.StartsWith('→')).Role);
-        Assert.Equal(SegmentRole.Faint, texts[^1].Segments.First(segment => segment.Text.Contains('•')).Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, texts[1].Segments.First(segment => segment.Text.StartsWith('→')).Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, texts[^1].Segments.First(segment => segment.Text.Contains('•')).Role);
         var plain = Enumerable.Range(0, texts.Count)
             .Select(segment => DiffRowRenderer.RenderSegment(row, segment, width, 3, null, false, Glyphs))
             .ToList();

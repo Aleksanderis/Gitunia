@@ -55,7 +55,7 @@ public class DiffSplitRendererTests
             document, line, 1, 41, Digits, null, false, true, Glyphs, showWhitespace: true);
 
         Assert.Contains("→", second.Text, StringComparison.Ordinal);
-        Assert.Equal(SegmentRole.Faint, second.Segments.First(segment => segment.Text.StartsWith('→')).Role);
+        Assert.Equal(SegmentRole.WhitespaceMark, second.Segments.First(segment => segment.Text.StartsWith('→')).Role);
     }
 
     [Fact]

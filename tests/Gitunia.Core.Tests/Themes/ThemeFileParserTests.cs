@@ -20,6 +20,7 @@ public sealed class ThemeFileParserTests
         Assert.False(theme.IsLight);
         Assert.Equal(0x111111, theme.Colors[ThemeRoles.Muted]);
         Assert.Equal(0x111111, theme.Colors[ThemeRoles.MutedOnSelection]);
+        Assert.Equal(0x0a0a0b, theme.Colors[ThemeRoles.Subtle]);
         Assert.Equal(0x222222, theme.Colors[ThemeRoles.TabButtonBackground]);
         Assert.Equal(0x010203, theme.Colors[ThemeRoles.ChipBackground]);
         Assert.Equal(0x040506, theme.Colors[ThemeRoles.MatchBackground]);

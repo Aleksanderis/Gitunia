@@ -18,6 +18,10 @@ public sealed class ThemeFileContrastTests
     // After a 256-colour terminal rounds every colour to the nearest of the xterm cube and grey ramp.
     private const double QuantizedRatio = 3.0;
 
+    // Whitespace marks: readable but far dimmer than text.
+    private const double SubtleRatio = 2.0;
+    private const double SubtleQuantizedRatio = 1.6;
+
     private static readonly int[] CubeLevels = [0, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
     private static readonly ThemeCatalog Themes = new(
         Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
@@ -42,7 +46,7 @@ public sealed class ThemeFileContrastTests
                 }
 
                 var ratio = RatioOf(role, highlight, colors, definition, 0);
-                var minimum = role is SegmentRole.Border ? DecorationRatio : ReadableRatio;
+                var minimum = MinimumFor(role);
                 if (ratio < minimum)
                 {
                     var state = $"selected={highlight.IsSelected}, focused={highlight.IsFocused}";
@@ -52,6 +56,52 @@ public sealed class ThemeFileContrastTests
         }
 
         Assert.Empty(failures);
+    }
+
+    [Theory]
+    [MemberData(nameof(Names))]
+    public void GivenABuiltInTheme_WhenDrawingWhitespaceMarks_ThenTheyAreDimmerThanFaintTextInEveryState(string name)
+    {
+        var (colors, definition) = TableOf(name);
+        var failures = new List<string>();
+        foreach (var inGroup in new[] { false, true })
+        {
+            foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false) })
+            {
+                var mark = Palette.For(
+                    new StyledSegment("·", SegmentRole.WhitespaceMark, InGroup: inGroup),
+                    highlight.IsSelected,
+                    highlight.IsFocused,
+                    colors);
+                var faint = Palette.For(
+                    new StyledSegment("x", SegmentRole.Faint, InGroup: inGroup),
+                    highlight.IsSelected,
+                    highlight.IsFocused,
+                    colors);
+                var background = Resolve(mark.Background, definition, false);
+                var markRatio = Contrast(Resolve(mark.Foreground, definition, true), background);
+                var faintRatio = Contrast(Resolve(faint.Foreground, definition, true), background);
+                if (markRatio < SubtleRatio || markRatio > faintRatio - 1.0)
+                {
+                    failures.Add($"group={inGroup} selected={highlight.IsSelected} focused={highlight.IsFocused}: "
+                        + $"mark {markRatio:F2}, faint {faintRatio:F2}");
+                }
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void GivenSixteenColours_WhenDrawingWhitespaceMarks_ThenTheyAreFaintAndFaintTextIsNot()
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.Ansi16, false));
+
+        var mark = Palette.For(new StyledSegment("·", SegmentRole.WhitespaceMark), false, false, colors);
+        var faint = Palette.For(new StyledSegment("x", SegmentRole.Faint), false, false, colors);
+
+        Assert.True(mark.Style.HasFlag(TextStyle.Faint));
+        Assert.False(faint.Style.HasFlag(TextStyle.Faint));
     }
 
     [Theory]
@@ -105,7 +155,8 @@ public sealed class ThemeFileContrastTests
                 var foreground = Quantize(Resolve(attribute.Foreground, definition, true));
                 var background = Quantize(Resolve(attribute.Background, definition, false));
                 var ratio = Contrast(foreground, background);
-                if (ratio < QuantizedRatio && role is not SegmentRole.Border)
+                var minimum = role is SegmentRole.WhitespaceMark ? SubtleQuantizedRatio : QuantizedRatio;
+                if (ratio < minimum && role is not SegmentRole.Border)
                 {
                     failures.Add($"{role} (selected={highlight.IsSelected}): {ratio:F2}");
                 }
@@ -191,6 +242,13 @@ public sealed class ThemeFileContrastTests
         Assert.Null(settings.Definition);
         Assert.True(settings.IsLightBackground);
     }
+
+    private static double MinimumFor(SegmentRole role) => role switch
+    {
+        SegmentRole.Border => DecorationRatio,
+        SegmentRole.WhitespaceMark => SubtleRatio,
+        _ => ReadableRatio,
+    };
 
     private static ThemeDefinition DefinitionOf(string name) =>
         Themes.Find(name, []) ?? throw new InvalidOperationException(name);
