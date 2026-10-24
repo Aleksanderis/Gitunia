@@ -227,6 +227,41 @@ public class QuickRebaseWriterTests
     }
 
     [Fact]
+    public async Task GivenAMergeAboveTheCommit_WhenDropped_ThenTheMergeSurvivesWithoutTheCommit()
+    {
+        using var repository = MergedSide();
+        var (writer, location) = await CreateAsync(repository);
+        var target = repository.Git("rev-parse", "HEAD^2").Trim();
+
+        var plan = await writer.PlanAsync(location, QuickRebaseKind.Drop, target, Token);
+        var result = await writer.RunAsync(location, plan, null, Token);
+
+        Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal("SideA", repository.Git("log", "-1", "--format=%s", "HEAD^2").Trim());
+        Assert.False(File.Exists(Path.Combine(repository.WorkingTreePath, "b.txt")));
+        Assert.True(File.Exists(Path.Combine(repository.WorkingTreePath, "a.txt")));
+    }
+
+    [Fact]
+    public async Task GivenAMergeAboveTheCommit_WhenFixedUp_ThenTheMergeSurvivesWithTheTwoCommitsAsOne()
+    {
+        using var repository = MergedSide();
+        var (writer, location) = await CreateAsync(repository);
+        var target = repository.Git("rev-parse", "HEAD^2").Trim();
+        var tree = repository.Git("rev-parse", "HEAD^{tree}").Trim();
+
+        var plan = await writer.PlanAsync(location, QuickRebaseKind.Fixup, target, Token);
+        var result = await writer.RunAsync(location, plan, null, Token);
+
+        Assert.Equal(OperationOutcome.Completed, result.Outcome);
+        Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
+        Assert.Equal("SideA", repository.Git("log", "-1", "--format=%s", "HEAD^2").Trim());
+        Assert.Equal("1", repository.Git("rev-list", "--count", "HEAD^2", "^HEAD^1").Trim());
+        Assert.Equal(tree, repository.Git("rev-parse", "HEAD^{tree}").Trim());
+    }
+
+    [Fact]
     public async Task GivenAFixupWhoseCommitStartsALineAfterAReset_WhenPlanning_ThenItIsRefusedBeforeAnyConfirm()
     {
         using var repository = TestRepository.Create()
@@ -250,6 +285,20 @@ public class QuickRebaseWriterTests
 
     private static string[] Subjects(TestRepository repository) =>
         repository.Git("log", "--reverse", "--format=%s").Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+    // Main and a side branch of SideA and SideB, merged with a merge commit.
+    private static TestRepository MergedSide()
+    {
+        var repository = TestRepository.Create()
+            .Commit("Base", new TestFile("base.txt", "base\n"))
+            .CheckoutNewBranch("side")
+            .Commit("SideA", new TestFile("a.txt", "a\n"))
+            .Commit("SideB", new TestFile("b.txt", "b\n"))
+            .Checkout("main")
+            .Commit("Main", new TestFile("main.txt", "main\n"));
+        repository.Git("merge", "--no-ff", "-m", "Merge side", "side");
+        return repository;
+    }
 
     private static TestRepository Linear() =>
         TestRepository.Create()
