@@ -20,7 +20,11 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
     private const string CarriageReturnLineFeed = "\r\n";
     private const string LineFeed = "\n";
 
-    // merge-file exits with the number of conflicts it left (255 on error).
+    private static readonly string[] StageNames = ["base", "ours", "theirs"];
+
+    private static readonly string[] MergeArguments = ["merge-file", "-p", "--diff3", "ours", "base", "theirs"];
+
+    // Merge-file exits with the number of conflicts it left (255 on error).
     private static readonly GitRunOptions MergeFileOptions = new(
         ReadOnly: true,
         AcceptedExitCodes: [.. Enumerable.Range(1, MaximumConflictCount)]);
@@ -86,6 +90,18 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
     private static string Plain(string text) =>
         text.Replace(CarriageReturnLineFeed, LineFeed, StringComparison.Ordinal);
 
+    private static void DeleteQuietly(string directory)
+    {
+        try
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            // A locked temp directory must not discard a base that was found.
+        }
+    }
+
     private async Task<string?> MergeStagesAsync(
         RepositoryLocation location,
         string path,
@@ -95,8 +111,7 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
         Directory.CreateDirectory(directory);
         try
         {
-            string[] names = ["base", "ours", "theirs"];
-            for (var stage = 1; stage <= names.Length; stage++)
+            for (var stage = 1; stage <= StageNames.Length; stage++)
             {
                 var blob = await runner
                     .RunAsync(
@@ -111,7 +126,7 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
                 }
 
                 await File.WriteAllBytesAsync(
-                    Path.Combine(directory, names[stage - 1]),
+                    Path.Combine(directory, StageNames[stage - 1]),
                     blob.StandardOutput,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -119,7 +134,7 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
             var merge = await runner
                 .RunAsync(
                     directory,
-                    ["merge-file", "-p", "--diff3", "ours", "base", "theirs"],
+                    MergeArguments,
                     MergeFileOptions,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -131,7 +146,7 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
         }
         finally
         {
-            Directory.Delete(directory, recursive: true);
+            DeleteQuietly(directory);
         }
     }
 }
