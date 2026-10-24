@@ -1,0 +1,436 @@
+using Gitunia.Core.Conflicts;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Overlays;
+using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces;
+using Gitunia.Core.Workspaces.Panes;
+using Gitunia.Core.Workspaces.Repositories;
+using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Git.Conflicts;
+using Gitunia.Git.Execution;
+using Gitunia.Git.Refs;
+using Gitunia.Git.Repositories;
+using Gitunia.Git.Repositories.Models;
+using Gitunia.Git.Status;
+using Gitunia.Git.Status.Models;
+using Gitunia.Git.Tests.Fixtures;
+using Gitunia.Tui.App;
+using Gitunia.Tui.App.Conflicts;
+using Gitunia.Tui.App.WorkingTree;
+using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Views;
+using Xunit;
+
+namespace Gitunia.Tui.Tests.App.Conflicts;
+
+// Real git on temp repositories through the controller, the real reader and writer.
+public class ConflictEditorControllerTests
+{
+    private const string ConflictPath = "conflict.txt";
+    private const string TwoHunkBase = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\nl11\nl12\n";
+
+    public static TheoryData<string> Operations => ["merge", "rebase", "cherry-pick"];
+
+    [Theory]
+    [MemberData(nameof(Operations))]
+    public async Task GivenAStoppedOperation_WhenPickingBothAndSaving_ThenTheFileIsResolvedAndTheOperationContinues(
+        string operation)
+    {
+        using var repository = Stopped(operation);
+        using var harness = await Harness.CreateAsync(repository);
+
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorBoth);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Equal("main\nother\n", File.ReadAllText(harness.FullPath));
+        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+        Assert.Empty(harness.Prompts);
+        Assert.Contains("every hunk resolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Equal(1, harness.Refreshes);
+        Assert.Contains(ConflictPath, repository.Git("ls-files", "-u"), StringComparison.Ordinal);
+        Finish(repository, operation);
+        Assert.Equal("main\nother\n", repository.Git("show", "HEAD:conflict.txt").Replace("\r", string.Empty));
+    }
+
+    [Fact]
+    public async Task GivenPicksOnOneHunkOfTwo_WhenSavingAndConfirming_ThenTheOtherHunkKeepsItsMarkers()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorTheirs);
+        harness.Run(ActionIds.ConflictEditorSave);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains("1 unresolved hunk out of 2", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("git checkout --merge", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
+        harness.Answer();
+        await harness.WaitAsync();
+
+        var saved = File.ReadAllText(harness.FullPath).Replace("\r", string.Empty);
+        Assert.Contains("two\n", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain("II\n", saved, StringComparison.Ordinal);
+        Assert.Contains("<<<<<<<", saved, StringComparison.Ordinal);
+        Assert.Contains("XI\n", saved, StringComparison.Ordinal);
+        Assert.Empty(harness.ResolvedAsked);
+        Assert.Contains("1 hunk still unresolved", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenUnresolvedHunks_WhenTheSaveConfirmIsDeclined_ThenNothingIsWrittenAndThePicksStay()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorSave);
+
+        harness.Decline();
+
+        Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Equal(1, harness.Controller.State!.ResolvedCount);
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
+    }
+
+    [Fact]
+    public async Task GivenNothingPicked_WhenSaving_ThenItIsRefusedWithoutAPrompt()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorSave);
+
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
+        Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
+    }
+
+    [Fact]
+    public async Task GivenTheFileChangedOnDiskAfterOpening_WhenSaving_ThenItIsNotOverwritten()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        File.WriteAllText(harness.FullPath, "edited elsewhere\n");
+
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        Assert.Equal("edited elsewhere\n", File.ReadAllText(harness.FullPath));
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Contains("changed on disk", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Empty(harness.ResolvedAsked);
+    }
+
+    [Fact]
+    public async Task GivenBothSidesAddedTheFile_WhenOpening_ThenTheEditorStaysClosedAndNamesTheMergetool()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("base.txt", "x\n"));
+        repository.CheckoutNewBranch("other").Commit("Add", new TestFile("new.txt", "other\n"));
+        repository.Checkout("main").Commit("Add", new TestFile("new.txt", "main\n")).MergeExpectingConflict("other");
+        using var harness = await Harness.CreateAsync(repository);
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("add/add", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>tm", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAFileWithoutMarkersLeft_WhenOpening_ThenTheReadersReasonIsShown()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.WriteFile(ConflictPath, "resolved by hand\n");
+        using var harness = await Harness.CreateAsync(repository);
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+        await harness.Pump.RunUntilAsync(() => harness.Statuses.Log.Latest is not null);
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("no conflict markers", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenACleanFileUnderTheCursor_WhenPressingEnter_ThenTheKeyIsLeftToTheDiff()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        using var harness = await Harness.CreateAsync(repository);
+
+        Assert.False(harness.Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("conflicted file", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAnotherPaneFocused_WhenPressingEnter_ThenTheEditorDoesNotOpen()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.False(harness.Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+    }
+
+    [Fact]
+    public async Task GivenPicksMade_WhenPressingEscOnce_ThenItAsksAndTheSecondEscCloses()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+
+        harness.Run(ActionIds.NavigateBack);
+
+        Assert.True(harness.Controller.IsOpen);
+        Assert.True(harness.Controller.State!.IsDiscardPending);
+        harness.Run(ActionIds.NavigateBack);
+        Assert.False(harness.Controller.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenNoPicks_WhenPressingEsc_ThenItClosesAtOnce()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.NavigateBack);
+
+        Assert.False(harness.Controller.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenAnotherOverlayOpen_WhenAnActionComes_ThenTheEditorLeavesItAlone()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.IsOtherOverlayOpen = true;
+
+        Assert.False(harness.Controller.TryExecute(ActionIds.ConflictEditorOurs, null));
+
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+        Assert.Null(harness.Controller.CurrentFrame());
+    }
+
+    [Fact]
+    public async Task GivenTheTabClosed_WhenAnActionComes_ThenTheEditorCloses()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.CloseTab();
+
+        Assert.False(harness.Controller.TryExecute(ActionIds.ConflictEditorOurs, null));
+        Assert.False(harness.Controller.IsOpen);
+    }
+
+    [Fact]
+    public async Task GivenABusyTab_WhenOpening_ThenItIsRefusedAndNothingIsRead()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Gate.Begin(harness.TabId);
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("Busy", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheEditorOpen_WhenSteppingThroughTheHunks_ThenTheCursorWraps()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorNext);
+        Assert.Equal(1, harness.Controller.State!.Index);
+        harness.Run(ActionIds.ListDown);
+        Assert.Equal(0, harness.Controller.State!.Index);
+        harness.Run(ActionIds.ConflictEditorPrevious);
+        Assert.Equal(1, harness.Controller.State!.Index);
+    }
+
+    private static TestRepository Stopped(string operation) => operation switch
+    {
+        "merge" => TestRepositories.Conflicted(),
+        "rebase" => TestRepositories.RebaseConflicted(),
+        _ => TestRepositories.CherryPickConflicted(),
+    };
+
+    // The marked file continues the operation the way the banner's continue does.
+    private static void Finish(TestRepository repository, string operation)
+    {
+        repository.Git("add", ConflictPath);
+        if (operation == "merge")
+        {
+            repository.Git("-c", "core.editor=true", "commit", "--no-edit");
+        }
+        else
+        {
+            repository.Git("-c", "core.editor=true", operation, "--continue");
+        }
+    }
+
+    private static TestRepository TwoHunks()
+    {
+        var other = TwoHunkBase.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n");
+        var main = TwoHunkBase.Replace("l2\n", "II\n").Replace("l11\n", "XI\n");
+        var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile(ConflictPath, TwoHunkBase))
+            .CheckoutNewBranch("other")
+            .Commit("Other", new TestFile(ConflictPath, other))
+            .Checkout("main")
+            .Commit("Main", new TestFile(ConflictPath, main));
+
+        return repository.MergeExpectingConflict("other");
+    }
+
+    private sealed class Harness : IDisposable
+    {
+        private readonly WorkspaceHost _host = new(Workspace.Empty);
+        private readonly List<Action> _answers = [];
+
+        private Harness(TestRepository repository, RepositoryLocation location)
+        {
+            Runner = repository.CreateIsolatedRunner();
+            Location = location;
+            FullPath = Path.Combine(repository.WorkingTreePath, ConflictPath);
+            OriginalText = File.Exists(FullPath) ? File.ReadAllText(FullPath) : string.Empty;
+            _host.Dispatch(new OpenRepositoryCommand(location));
+            TabId = _host.Workspace.ActiveTabId!.Value;
+            Pump = new UiPump(TestContext.Current.CancellationToken);
+            Controller = new ConflictEditorController(
+                _host,
+                new ConflictReader(Runner),
+                new ConflictWriter(),
+                Statuses,
+                Pump.Post,
+                _ => TestContext.Current.CancellationToken,
+                Confirm,
+                AskResolved,
+                _ =>
+                {
+                    Refreshes++;
+
+                    return true;
+                },
+                () => IsOtherOverlayOpen,
+                () => new ScreenSize(120, 36),
+                GraphGlyphSet.Unicode,
+                () => { },
+                Gate);
+        }
+
+        public GitRunner Runner { get; }
+
+        public RepositoryLocation Location { get; }
+
+        public ConflictEditorController Controller { get; }
+
+        public StatusChannel Statuses { get; } = new();
+
+        public TabOperationGate Gate { get; } = new();
+
+        public List<ConfirmPrompt> Prompts { get; } = [];
+
+        public List<string> ResolvedAsked { get; } = [];
+
+        public int Refreshes { get; private set; }
+
+        public bool IsOtherOverlayOpen { get; set; }
+
+        public TabId TabId { get; }
+
+        public UiPump Pump { get; }
+
+        public string FullPath { get; }
+
+        public string OriginalText { get; }
+
+        public static async Task<Harness> CreateAsync(TestRepository repository)
+        {
+            var discovery = new RepositoryDiscovery(repository.CreateIsolatedRunner());
+            var token = TestContext.Current.CancellationToken;
+            var location = await discovery.DiscoverAsync(repository.WorkingTreePath, token);
+            var harness = new Harness(repository, location);
+            await harness.ReloadAsync();
+
+            return harness;
+        }
+
+        public async Task ReloadAsync()
+        {
+            var token = TestContext.Current.CancellationToken;
+            var refs = new RefReader(Runner);
+            Send(new HeadLoadedCommand(await refs.ReadHeadAsync(Location, token)));
+            var status = await new StatusReader(Runner).ReadStatusAsync(Location, false, UntrackedFilesMode.All, token);
+            Send(new WorkingTreeLoadedCommand(status));
+            Send(new FocusPaneCommand(PaneKind.WorkingUnstaged));
+            Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
+        }
+
+        public void CloseTab() => _host.Dispatch(new CloseTabCommand(TabId));
+
+        public void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
+
+        // Opening reads the file on a worker: wait until the editor shows or the status reported a refusal.
+        public async Task OpenAsync()
+        {
+            Assert.True(Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
+            await Pump.RunUntilAsync(() => Controller.IsOpen || Statuses.Log.Latest is not null);
+            Assert.True(Controller.IsOpen, Statuses.Log.Latest?.Text);
+        }
+
+        public void Run(ActionId action) => Assert.True(Controller.TryExecute(action, null));
+
+        public void Answer()
+        {
+            var answers = _answers.ToList();
+            _answers.Clear();
+            foreach (var answer in answers)
+            {
+                answer();
+            }
+        }
+
+        public void Decline() => _answers.Clear();
+
+        public Task WaitAsync() => Pump.RunUntilAsync(() => !Gate.IsAnyBusy && Statuses.Log.Latest is not null);
+
+        public void Dispose()
+        {
+        }
+
+        private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
+        {
+            Prompts.Add(prompt);
+            _answers.Add(onConfirmed);
+
+            return true;
+        }
+
+        private string AskResolved(RepositoryState tab, string path)
+        {
+            ResolvedAsked.Add(path);
+
+            return string.Empty;
+        }
+    }
+}

@@ -254,6 +254,22 @@ public static class ActionIds
 
     public static ActionId RebaseEditorMessageNewLine { get; } = new("rebase-editor.message-newline");
 
+    public static ActionId ConflictOpen { get; } = new("conflict.open");
+
+    public static ActionId ConflictEditorNext { get; } = new("conflict-editor.next");
+
+    public static ActionId ConflictEditorPrevious { get; } = new("conflict-editor.previous");
+
+    public static ActionId ConflictEditorOurs { get; } = new("conflict-editor.ours");
+
+    public static ActionId ConflictEditorTheirs { get; } = new("conflict-editor.theirs");
+
+    public static ActionId ConflictEditorBoth { get; } = new("conflict-editor.both");
+
+    public static ActionId ConflictEditorUndo { get; } = new("conflict-editor.undo");
+
+    public static ActionId ConflictEditorSave { get; } = new("conflict-editor.save");
+
     public static ActionId RebaseFixup { get; } = new("rebase.fixup");
 
     public static ActionId RebaseReword { get; } = new("rebase.reword");

@@ -79,12 +79,12 @@ public class ConflictReaderTests
     public async Task GivenSeveralHunksAndCommonLines_WhenReading_ThenJoiningThePartsGivesTheFileBack()
     {
         using var repository = TestRepository.Create();
-        var original = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n";
+        var original = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\nl11\nl12\n";
         repository.Commit("Initial", new TestFile(ConflictPath, original))
             .CheckoutNewBranch("other")
-            .Commit("Other", new TestFile(ConflictPath, original.Replace("2\n", "two\n").Replace("11\n", "eleven\n")))
+            .Commit("Other", new TestFile(ConflictPath, original.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n")))
             .Checkout("main")
-            .Commit("Main", new TestFile(ConflictPath, original.Replace("2\n", "II\n").Replace("11\n", "XI\n")))
+            .Commit("Main", new TestFile(ConflictPath, original.Replace("l2\n", "II\n").Replace("l11\n", "XI\n")))
             .MergeExpectingConflict("other");
 
         var result = await ReadAsync(repository, ConflictPath);

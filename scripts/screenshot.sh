@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -18,6 +18,7 @@
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
+# conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -122,6 +123,29 @@ make_dirty_repo() { # make_dirty_repo SOURCE DIR: a copy of the throwaway reposi
   mkdir -p "$dir/notes"
   printf 'todo\n' >"$dir/notes/todo.txt"
   printf 'x\n' >"$dir/Ünïcode name.txt"
+  )
+}
+
+make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway repository stopped on a merge conflict with two hunks in one file
+  local source="$1" dir="$2" lines
+  cp -r "$source" "$dir"
+  lines="$(printf 'line %s\n' 1 2 3 4 5 6 7 8 9 10 11 12)"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  export GIT_AUTHOR_DATE="2026-04-01T12:00:00Z" GIT_COMMITTER_DATE="2026-04-01T12:00:00Z"
+  printf '%s\n' "$lines" >"$dir/src/notes.txt"
+  git -C "$dir" add src/notes.txt
+  git -C "$dir" commit -q -m "Add notes"
+  git -C "$dir" switch -q -c side
+  sed -i.bak -e 's/^line 3$/line 3, as the side branch wrote it/' -e 's/^line 9$/line 9 (side)/' "$dir/src/notes.txt"
+  rm -f "$dir/src/notes.txt.bak"
+  git -C "$dir" commit -q -am "Reword notes on the side"
+  git -C "$dir" switch -q main
+  sed -i.bak -e 's/^line 3$/line 3 reworded on main/' -e 's/^line 9$/line 9 (main)\nand a new line after it/' "$dir/src/notes.txt"
+  rm -f "$dir/src/notes.txt.bak"
+  git -C "$dir" commit -q -am "Reword notes on main"
+  git -C "$dir" merge -q side >/dev/null 2>&1 || true
   )
 }
 
@@ -257,6 +281,8 @@ render() {
       status-fresh) keys="Space F" ;;
       status-settled) keys="Space F" keys_after="Space F" ;;
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
+      conflict-editor) keys="Space s Enter" keys_after="o n" ;;
+      conflict-editor-narrow) columns=64 rows=30 keys="Space s Enter" keys_after="o n" ;;
       rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
       rebase-reword) keys="G Space g i" keys_after="j r" ;;
       rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;
@@ -270,6 +296,9 @@ render() {
     elif [[ "$scenario" == working-hook && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-hook"
       [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" hook
+    elif [[ "$scenario" == conflict-editor* && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-conflict"
+      [ -d "$scenario_repo" ] || make_conflict_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == rebase-* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-rebase"
       [ -d "$scenario_repo" ] || make_rebase_repo "$repo" "$scenario_repo"

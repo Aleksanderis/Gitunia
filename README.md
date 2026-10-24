@@ -17,7 +17,7 @@ A standalone client for all your repositories, not a tool you launch from inside
 In:
 - Standalone, multi-repository workspace: launch from any directory (or with `gitunia [path]`), repository tabs, open/recent/pinned repository picker with fuzzy search, session restore (open tabs, selection per tab), per-tab state that survives switching.
 - Commit graph (scrollable, searchable, handles 100k+ commits).
-- Working tree: status, stage/unstage files, hunks and lines, commit, amend.
+- Working tree: status, stage/unstage files, hunks and lines, commit, amend; conflicted files resolved hunk by hunk in a built-in conflict editor (ours, theirs or both).
 - Diff viewer (unified and side-by-side), also between any two commits (mark one, select the other).
 - Branches: list local/remote, checkout, create, rename, delete, reset (soft/mixed/hard), merge, rebase, upstream tracking, ahead/behind.
 - Tags: create (lightweight and annotated), delete, push and delete on a remote.
@@ -31,7 +31,7 @@ In:
 - Issue links in commit messages from a `.issuetracker` file (VS Code style regex and URL sections), opened in the browser. A link from the message only: no hosting-provider integration, no network access, no API.
 - Vim-style modal keymap, command palette, configurable keys. Mouse support is optional, never required.
 
-Out until after MVP (ask before adding): submodules, LFS UI, blame view, merge-conflict editor, hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
+Out until after MVP (ask before adding): submodules, LFS UI, blame view, free editing in the merge-conflict editor (hunk-wise picks are in), hosting-provider integrations (PRs, issues), further built-in themes (Catppuccin, Tokyo Night and user theme files are in; the rest of the set is tracked as issues), plugins.
 
 ## Stack
 
