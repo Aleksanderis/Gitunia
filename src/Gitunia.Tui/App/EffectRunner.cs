@@ -6,12 +6,14 @@ using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
+using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.App.Tabs.Models;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Trees;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.Loading.Diff;
+using Gitunia.Tui.Loading.Stash;
 using Gitunia.Tui.Rendering.Graph;
 
 namespace Gitunia.Tui.App;
@@ -174,14 +176,23 @@ public sealed class EffectRunner : IDisposable
             previous.Dispose();
         }
 
+        var stashView = new StashViewSession();
         var session = new TabSession(
             load.TabId,
             _glyphs,
-            new CommitDetailsStore(_services.CommitDetails, tab.Location, _postToUi, _detailDebounce),
-            new DiffStore(_services.Diff, tab.Location, _postToUi),
+            new CommitDetailsStore(
+                new StashAwareCommitDetailsReader(_services.CommitDetails, _services.StashDetails, stashView.Registry),
+                tab.Location,
+                _postToUi,
+                _detailDebounce),
+            new DiffStore(
+                new StashAwareDiffReader(_services.Diff, _services.StashDetails, stashView.Registry),
+                tab.Location,
+                _postToUi),
             new WorkingDiffStore(_services.Diff, tab.Location, _postToUi),
             new FileTreeSession(new CommitTreeStore(_services.CommitTree, tab.Location, _postToUi, _detailDebounce)),
-            new FileContentStore(_services.Blob, tab.Location, _postToUi));
+            new FileContentStore(_services.Blob, tab.Location, _postToUi),
+            stashView);
         _sessions[load.TabId] = session;
         var token = session.Cancellation.Token;
         var location = tab.Location;

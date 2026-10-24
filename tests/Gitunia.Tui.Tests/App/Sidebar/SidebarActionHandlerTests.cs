@@ -226,7 +226,7 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
-    public async Task GivenStashRow_WhenActivating_ThenAMessageExplainsItIsNotInTheGraph()
+    public async Task GivenStashRowAndNoStashView_WhenActivating_ThenTheGraphKeepsItsSelectionAndAMessageSaysSo()
     {
         using var repository = MergedFeatureBranchRepository();
         repository.WriteFile("a.txt", "dirty");
@@ -237,7 +237,7 @@ public class SidebarActionHandlerTests
         harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
 
         Assert.Null(harness.SelectedGraphItem);
-        Assert.Contains("Stash", harness.Handler.Message, StringComparison.Ordinal);
+        Assert.Contains("no longer in the stash list", harness.Handler.Message, StringComparison.Ordinal);
     }
 
     [Fact]

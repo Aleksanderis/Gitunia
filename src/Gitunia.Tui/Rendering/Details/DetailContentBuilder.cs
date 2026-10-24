@@ -20,6 +20,8 @@ public static class DetailContentBuilder
     private const string TimeFormat = "yyyy-MM-dd HH:mm zzz";
     private const string Indent = "  ";
     private const string EmptyTree = "The commit has no files";
+    private const string NoStashTree = "A stash has no file tree: use the Changes tab";
+    private const string UntrackedMark = "?";
     private const string NoMatch = "No file matches the filter";
     internal const int TreeIndent = 1;
     private const int ChangesTreeIndent = 2;
@@ -31,6 +33,9 @@ public static class DetailContentBuilder
     /// <param name="pathStyle">How the Changes tab shows the paths of the files.</param>
     /// <param name="links">The tracker rules of the repository; references in the message become links.</param>
     /// <param name="collapsedFolders">Folders of the tree style that are closed, null when all are open.</param>
+    /// <param name="stashName">
+    /// The stash name <paramref name="entry"/> stands for (shown read-only in place of a commit); null if a commit.
+    /// </param>
     public static DetailContent Build(
         GraphEntry? entry,
         CommitDetailsState state,
@@ -38,8 +43,9 @@ public static class DetailContentBuilder
         FileTreeView? tree = null,
         FilePathStyle pathStyle = FilePathStyle.FullPath,
         IssueTrackerLinks? links = null,
-        IReadOnlySet<string>? collapsedFolders = null) =>
-        BuildRows(entry, state, tab, tree, pathStyle, links ?? IssueTrackerLinks.None, collapsedFolders) with
+        IReadOnlySet<string>? collapsedFolders = null,
+        string? stashName = null) =>
+        BuildRows(entry, state, tab, tree, pathStyle, links ?? IssueTrackerLinks.None, collapsedFolders, stashName) with
         {
             PathStyle = pathStyle,
         };
@@ -56,7 +62,8 @@ public static class DetailContentBuilder
         FileTreeView? tree,
         FilePathStyle pathStyle,
         IssueTrackerLinks links,
-        IReadOnlySet<string>? collapsedFolders)
+        IReadOnlySet<string>? collapsedFolders,
+        string? stashName)
     {
         if (entry is null)
         {
@@ -66,17 +73,19 @@ public static class DetailContentBuilder
         var details = state.Commit == entry.Id ? state.Details : null;
         var rows = tab switch
         {
-            BottomTab.Details => BuildDetails(entry, state, details, links),
-            BottomTab.Changes => BuildChanges(entry, state, details, pathStyle, collapsedFolders),
+            BottomTab.Details => BuildDetails(entry, state, details, links, stashName),
+            BottomTab.Changes => BuildChanges(entry, state, details, pathStyle, collapsedFolders, stashName),
+            _ when stashName is not null => [Faint(NoStashTree)],
             _ => BuildFiles(entry, tree),
         };
-        if (tab == BottomTab.Files)
+        var shownHash = stashName ?? ShortHash(entry.Id);
+        if (tab == BottomTab.Files && stashName is null)
         {
             var shown = tree is { State.Commit: { } commit } && commit == entry.Id ? tree : null;
             var treeRows = shown is { State.Status: CommitDetailsStatus.Loaded } ? shown.Rows : [];
 
             return new DetailContent(
-                ShortHash(entry.Id),
+                shownHash,
                 rows,
                 rows.Count,
                 details?.Files ?? [],
@@ -88,19 +97,23 @@ public static class DetailContentBuilder
         }
 
         var firstFileRow = tab == BottomTab.Changes && details is not null ? FirstFileRowOf(rows) : rows.Count;
-        return new DetailContent(ShortHash(entry.Id), rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
+        return new DetailContent(shownHash, rows, firstFileRow, details?.Files ?? [], tab, details?.Files.Count);
     }
 
     private static List<DetailRow> BuildDetails(
         GraphEntry entry,
         CommitDetailsState state,
         CommitDetails? details,
-        IssueTrackerLinks links)
+        IssueTrackerLinks links,
+        string? stashName)
     {
-        var rows = new List<DetailRow>
+        var rows = new List<DetailRow>();
+        if (stashName is not null)
         {
-            Labelled("commit", new StyledSegment(entry.Id.ToString(), SegmentRole.Hash)),
-        };
+            rows.Add(Labelled("stash", new StyledSegment(stashName, SegmentRole.Hash)));
+        }
+
+        rows.Add(Labelled("commit", new StyledSegment(entry.Id.ToString(), SegmentRole.Hash)));
         if (details is not null)
         {
             AddPeople(rows, details);
@@ -108,8 +121,9 @@ public static class DetailContentBuilder
             {
                 rows.Add(Labelled("compare", new StyledSegment(CompareText(details), SegmentRole.Hash)));
             }
-            else
+            else if (!details.IsStash)
             {
+                // The parents of a stash commit are internal (base, index, untracked files): not listed.
                 AddParents(rows, details);
             }
 
@@ -123,7 +137,7 @@ public static class DetailContentBuilder
         rows.Add(Blank());
         rows.Add(Plain(Indent + entry.Subject));
         rows.Add(Blank());
-        rows.Add(Status(entry, state));
+        rows.Add(Status(entry, state, stashName));
         return rows;
     }
 
@@ -140,22 +154,26 @@ public static class DetailContentBuilder
         CommitDetailsState state,
         CommitDetails? details,
         FilePathStyle pathStyle,
-        IReadOnlySet<string>? collapsedFolders)
+        IReadOnlySet<string>? collapsedFolders,
+        string? stashName)
     {
         if (details is null)
         {
-            return [Status(entry, state)];
+            return [Status(entry, state, stashName)];
         }
 
-        var heading = FilesHeading(details.Files.Count) + MergeNote(details) + CompareNote(details);
+        var heading = stashName is null
+            ? FilesHeading(details.Files.Count) + MergeNote(details) + CompareNote(details)
+            : StashHeading(stashName, details);
         var rows = new List<DetailRow> { new([new StyledSegment(heading, SegmentRole.Faint)]) };
+        var untrackedFrom = details.Files.Count - details.UntrackedFileCount;
         if (pathStyle == FilePathStyle.Tree)
         {
-            AddTree(rows, details.Files, collapsedFolders);
+            AddTree(rows, details.Files, collapsedFolders, untrackedFrom);
         }
         else
         {
-            AddFiles(rows, details.Files);
+            AddFiles(rows, details.Files, untrackedFrom);
         }
 
         return rows;
@@ -164,7 +182,8 @@ public static class DetailContentBuilder
     private static void AddTree(
         List<DetailRow> rows,
         IReadOnlyList<CommitFileChange> files,
-        IReadOnlySet<string>? collapsed)
+        IReadOnlySet<string>? collapsed,
+        int untrackedFrom)
     {
         foreach (var row in ChangesTree.Rows(files, collapsed))
         {
@@ -183,7 +202,7 @@ public static class DetailContentBuilder
             }
 
             var file = files[row.FileIndex];
-            var mark = Mark(file);
+            var mark = Mark(file, row.FileIndex >= untrackedFrom);
             rows.Add(new DetailRow(
                 [
                     new StyledSegment($"{indent}{mark}", FileRole(file)),
@@ -267,11 +286,15 @@ public static class DetailContentBuilder
 
     private static DetailRow Faint(string text) => new([new StyledSegment(text, SegmentRole.Faint)]);
 
-    private static DetailRow Status(GraphEntry entry, CommitDetailsState state) => new([new StyledSegment(
-        state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
-            ? $"Could not load the commit (r retries): {state.Error}"
-            : "Loading...",
-        SegmentRole.Faint)]);
+    private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName)
+    {
+        var what = stashName is null ? "commit" : "stash";
+        var text = state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
+            ? $"Could not load the {what} (r retries): {state.Error}"
+            : "Loading...";
+
+        return new DetailRow([new StyledSegment(text, SegmentRole.Faint)]);
+    }
 
     private static string ShortHash(ObjectId id) => id.ToString()[..HashLength];
 
@@ -362,16 +385,16 @@ public static class DetailContentBuilder
         return new DetailRow(segments, References: references);
     }
 
-    private static void AddFiles(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files)
+    private static void AddFiles(List<DetailRow> rows, IReadOnlyList<CommitFileChange> files, int untrackedFrom)
     {
         for (var index = 0; index < files.Count; index++)
         {
             var file = files[index];
             var role = FileRole(file);
-            var mark = Mark(file);
+            var mark = Mark(file, index >= untrackedFrom);
             var text = DescribeFile(file);
             rows.Add(new DetailRow(
-                [new StyledSegment(mark, role), new StyledSegment(text[mark.Length..], SegmentRole.Plain)],
+                [new StyledSegment(mark, role), new StyledSegment(text[Mark(file).Length..], SegmentRole.Plain)],
                 new FileRowPath(file.Path, file.OldPath),
                 index));
         }
@@ -398,12 +421,24 @@ public static class DetailContentBuilder
     private static string CompareText(CommitDetails details) =>
         $"{ShortHash(details.CompareOlder!.Value)}..{ShortHash(details.CompareNewer!.Value)}";
 
+    private static string StashHeading(string stashName, CommitDetails details)
+    {
+        var untracked = details.UntrackedFileCount > 0
+            ? $", {details.UntrackedFileCount.ToString(CultureInfo.InvariantCulture)} untracked"
+            : string.Empty;
+
+        return $"Stash {stashName}: {FilesHeading(details.Files.Count)}{untracked}";
+    }
+
     private static string FilesHeading(int count) => count switch
     {
         0 => "no files changed",
         1 => "1 file changed",
         _ => $"{count.ToString(CultureInfo.InvariantCulture)} files changed",
     };
+
+    private static string Mark(CommitFileChange file, bool isUntracked) =>
+        isUntracked ? UntrackedMark : Mark(file);
 
     private static string Mark(CommitFileChange file) => file.Kind switch
     {

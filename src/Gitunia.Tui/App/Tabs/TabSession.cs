@@ -5,6 +5,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.App.Details;
 using Gitunia.Tui.App.Panes;
+using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Loading.Commits;
 using Gitunia.Tui.Loading.Diff;
@@ -27,9 +28,11 @@ public sealed class TabSession : IDisposable
         DiffStore? diffStore = null,
         WorkingDiffStore? workingDiffStore = null,
         FileTreeSession? tree = null,
-        FileContentStore? contentStore = null)
+        FileContentStore? contentStore = null,
+        StashViewSession? stashView = null)
     {
         Tree = tree;
+        StashView = stashView ?? new StashViewSession();
         TabId = tabId;
         Details = details;
         Diff = diffStore is null ? null : new DiffSession(diffStore, glyphs, contentStore);
@@ -61,6 +64,9 @@ public sealed class TabSession : IDisposable
     public event Action? IssueLinksChanged;
 
     public TabId TabId { get; }
+
+    /// <summary>The stash the detail pane shows and the stashes the readers can read like commits.</summary>
+    public StashViewSession StashView { get; }
 
     /// <summary>The rules of the repository's tracker file; none until read, and when the file is missing.</summary>
     public IssueTrackerLinks IssueLinks { get; private set; } = IssueTrackerLinks.None;

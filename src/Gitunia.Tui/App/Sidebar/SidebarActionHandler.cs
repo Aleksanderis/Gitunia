@@ -8,6 +8,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git;
 using Gitunia.Tui.App.Clipboard;
+using Gitunia.Tui.App.Stash;
 using Gitunia.Tui.App.Tabs;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Sidebar;
@@ -38,6 +39,9 @@ public sealed class SidebarActionHandler(
 
     /// <summary>The diff pane is shown.</summary>
     public Func<bool> IsDiffVisible { get; set; } = () => false;
+
+    /// <summary>Shows the stash under the cursor in the detail pane (#699); null when built without one.</summary>
+    public StashViewController? StashView { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
     public string Message { get; private set; } = string.Empty;
@@ -201,10 +205,11 @@ public sealed class SidebarActionHandler(
         if (ListMotion.TryMove(action, count, 0, 1, 1, out _))
         {
             Send(tab, new MoveSidebarCursorCommand(action, count, pageHeight()));
+            FollowStashCursor();
         }
         else if (action == ActionIds.SidebarExpand)
         {
-            Send(tab, new ExpandSidebarCommand());
+            ExpandCursor(tab);
         }
         else if (action == ActionIds.SidebarCollapse)
         {
@@ -247,6 +252,39 @@ public sealed class SidebarActionHandler(
         return true;
     }
 
+    // While a stash is shown, moving the cursor onto another stash shows that one.
+    private void FollowStashCursor()
+    {
+        if (StashView is { IsShowing: true } view && CursorRow is { Kind: SidebarRowKind.Stash } row)
+        {
+            view.Show(row);
+        }
+    }
+
+    // On a stash row l shows the stash and moves into the detail pane (a stash is not in the graph).
+    private void ExpandCursor(RepositoryState tab)
+    {
+        if (CursorRow is { Kind: SidebarRowKind.Stash } row && StashView is { } view)
+        {
+            if (!view.Show(row))
+            {
+                Message = $"{row.Label} is no longer in the stash list";
+            }
+            else if (isDetailVisible())
+            {
+                FocusPane(tab, PaneKind.Detail);
+            }
+            else
+            {
+                Message = $"{row.Label} is shown, but the detail pane is hidden at this size";
+            }
+
+            return;
+        }
+
+        Send(tab, new ExpandSidebarCommand());
+    }
+
     private void CopyCursor(RepositoryState tab)
     {
         var rows = source.Rows;
@@ -281,9 +319,16 @@ public sealed class SidebarActionHandler(
         var session = activeSession();
         if (row.Kind == SidebarRowKind.Stash)
         {
-            Message = "Stash commits are not shown in the graph";
+            if (StashView?.Show(row) != true)
+            {
+                Message = $"{row.Label} is no longer in the stash list";
+            }
+
+            return;
         }
-        else if (row.CommitHash is null || !ObjectId.TryParse(row.CommitHash, out var commit))
+
+        StashView?.Leave();
+        if (row.CommitHash is null || !ObjectId.TryParse(row.CommitHash, out var commit))
         {
             Message = $"{row.Label} has no commits yet";
         }
