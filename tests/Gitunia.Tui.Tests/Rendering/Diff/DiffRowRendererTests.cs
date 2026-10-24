@@ -273,7 +273,10 @@ public class DiffRowRendererTests
         Assert.Contains("→", texts[1].Text, StringComparison.Ordinal);
         Assert.Equal(SegmentRole.Faint, texts[1].Segments.First(segment => segment.Text.StartsWith('→')).Role);
         Assert.Equal(SegmentRole.Faint, texts[^1].Segments.First(segment => segment.Text.Contains('·')).Role);
-        Assert.Equal(texts.Count, DiffRowRenderer.SegmentCount(row, width, 3));
+        var plain = Enumerable.Range(0, texts.Count)
+            .Select(segment => DiffRowRenderer.RenderSegment(row, segment, width, 3, null, false, Glyphs))
+            .ToList();
+        Assert.Equal(plain.Select(line => TextWidth.Of(line.Text)), texts.Select(line => TextWidth.Of(line.Text)));
     }
 
     [Fact]
@@ -296,5 +299,15 @@ public class DiffRowRendererTests
 
         Assert.Equal(SegmentRole.SearchMatch, marked.Segments.First(segment => segment.Text == "me").Role);
         Assert.Contains("→", marked.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenALineEndsInSpacesAndACarriageReturn_ThenBothAreMarked()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "x  \r", null, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 20, 3, null, false, Glyphs, null, true);
+
+        Assert.Contains("x··␍", marked.Text, StringComparison.Ordinal);
     }
 }

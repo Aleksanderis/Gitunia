@@ -27,6 +27,38 @@ public class DiffSplitRendererTests
     }
 
     [Fact]
+    public void GivenWhitespaceMarksOn_WhenRenderingASplitLine_ThenBothSidesShowThemInTheSameColumns()
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Removed, "a\tb", 4, null, 0),
+            new DiffRow(DiffRowKind.Added, "c  ", null, 4, 0));
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var plain = DiffSplitRenderer.Render(document, line, 0, 41, Digits, null, false, false, Glyphs).Text;
+        var marked = DiffSplitRenderer.Render(
+            document, line, 0, 41, Digits, null, false, false, Glyphs, showWhitespace: true).Text;
+
+        Assert.Contains("a→  b", marked, StringComparison.Ordinal);
+        Assert.Contains("c··", marked, StringComparison.Ordinal);
+        Assert.Equal(TextWidth.Of(plain), TextWidth.Of(marked));
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOnAndWrap_WhenRenderingTheSecondSegment_ThenTheMarkInItShows()
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Removed, "abcdefghijklmno\tz", 4, null, 0),
+            new DiffRow(DiffRowKind.Added, "new", null, 4, 0));
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var second = DiffSplitRenderer.Render(
+            document, line, 1, 41, Digits, null, false, true, Glyphs, showWhitespace: true);
+
+        Assert.Contains("→", second.Text, StringComparison.Ordinal);
+        Assert.Equal(SegmentRole.Faint, second.Segments.First(segment => segment.Text.StartsWith('→')).Role);
+    }
+
+    [Fact]
     public void GivenALineWithOnlyAnAddedRow_WhenRendering_ThenTheOldSideIsBlank()
     {
         var document = Document(new DiffRow(DiffRowKind.Added, "extra", null, 9, 0));

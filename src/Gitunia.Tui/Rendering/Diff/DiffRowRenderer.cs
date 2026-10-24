@@ -275,10 +275,16 @@ public static class DiffRowRenderer
         return new ShownText(builder.ToString(), mask);
     }
 
-    // The index where the run of spaces at the end of the text starts (the length when it does not end in a space).
+    // The index where the run of spaces at the end of the text starts, ignoring a carriage return after it (CRLF);
+    // the length when the text does not end in a space.
     private static int TrailingSpacesFrom(string text)
     {
         var index = text.Length;
+        if (index > 0 && text[index - 1] == '\r')
+        {
+            index--;
+        }
+
         while (index > 0 && text[index - 1] == ' ')
         {
             index--;
