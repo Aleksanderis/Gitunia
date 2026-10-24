@@ -43,6 +43,48 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenTwoHunks_WhenAskingForTheirResultLines_ThenEachStartsWhereThePicksBeforeItLeaveIt()
+    {
+        var state = State(Text);
+
+        Assert.Equal(2, state.ResultLineOf(0));
+        Assert.Equal(8, state.ResultLineOf(1));
+        Assert.Equal(4, state.Pick(ConflictPick.Ours).ResultLineOf(1));
+        Assert.Equal(5, state.Pick(ConflictPick.Both).ResultLineOf(1));
+    }
+
+    [Fact]
+    public void GivenLongSides_WhenScrolling_ThenTheScrollStaysBetweenZeroAndTheMaximumAndAHunkChangeResetsIt()
+    {
+        var many = string.Concat(Enumerable.Range(1, 10).Select(number => $"o{number}\n"));
+        var state = State($"<<<<<<< a\n{many}=======\nt\n>>>>>>> b\n<<<<<<< a\nx\n=======\ny\n>>>>>>> b\n");
+
+        var down = state.ScrollSides(4, 6).ScrollSides(4, 6);
+        var up = down.ScrollSides(-20, 6);
+
+        Assert.Equal(6, down.SideScroll);
+        Assert.Equal(0, up.SideScroll);
+        Assert.Equal(0, down.Next().SideScroll);
+    }
+
+    [Fact]
+    public void GivenDifferingRuns_WhenJumpingToTheNextAndPreviousDifference_ThenEachRunCountsOnce()
+    {
+        const string text = "<<<<<<< a\nsame\nd1\nd2\nsame2\nd3\n=======\nsame\ne1\ne2\nsame2\ne3\n>>>>>>> b\n";
+        var state = State(text);
+
+        var first = state.NextDifference();
+        var second = first.NextDifference();
+        var none = second.NextDifference();
+
+        Assert.Equal(1, first.SideScroll);
+        Assert.Equal(4, second.SideScroll);
+        Assert.Equal(4, none.SideScroll);
+        Assert.Equal(1, second.PreviousDifference().SideScroll);
+        Assert.Equal(1, State(text).NextDifference().PreviousDifference().SideScroll);
+    }
+
+    [Fact]
     public void GivenAPick_WhenUndoingIt_ThenTheHunkIsUnresolvedAgain()
     {
         var state = State(Text).Pick(ConflictPick.Ours).Pick(ConflictPick.None);

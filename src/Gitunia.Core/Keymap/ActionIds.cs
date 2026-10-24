@@ -286,6 +286,14 @@ public static class ActionIds
 
     public static ActionId ConflictEditorEditNewLine { get; } = new("conflict-editor.edit-newline");
 
+    public static ActionId ConflictEditorNextDiff { get; } = new("conflict-editor.next-diff");
+
+    public static ActionId ConflictEditorPreviousDiff { get; } = new("conflict-editor.previous-diff");
+
+    public static ActionId ConflictEditorScrollDown { get; } = new("conflict-editor.scroll-down");
+
+    public static ActionId ConflictEditorScrollUp { get; } = new("conflict-editor.scroll-up");
+
     public static ActionId RebaseFixup { get; } = new("rebase.fixup");
 
     public static ActionId RebaseReword { get; } = new("rebase.reword");

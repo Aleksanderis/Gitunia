@@ -130,6 +130,103 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Fact]
+    public void GivenAWideScreen_WhenRendering_ThenARuleWithAJunctionSeparatesTheSidesFromTheResult()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
+        var rule = lines[header - 1];
+        Assert.StartsWith("├─", rule, StringComparison.Ordinal);
+        Assert.EndsWith("─┤", rule, StringComparison.Ordinal);
+        Assert.Equal(lines[3].IndexOf('│', 1), rule.IndexOf('┴', StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenANarrowScreen_WhenRendering_ThenTheRuleHasNoJunction()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 70, 30, GraphGlyphSet.Ascii)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
+        Assert.Single(lines[header - 1][1..^1].Distinct());
+    }
+
+    [Fact]
+    public void GivenAHunk_WhenRendering_ThenEveryPaneHasLineNumbersOfTheResultFile()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Contains(" 4 ours 1", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 4 theirs 1", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 5 ours 2", lines[4], StringComparison.Ordinal);
+        var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
+        Assert.Contains(" 2 two", lines[header + 1], StringComparison.Ordinal);
+        Assert.Contains(" 3 one", lines[header + 2], StringComparison.Ordinal);
+        Assert.Contains(" 4 <<<<<<< HEAD", lines[header + 3], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAScrolledSide_WhenRendering_ThenBothSidesShowTheSameLinesAndTheHeadersSayWhichOnes()
+    {
+        var ours = string.Concat(Enumerable.Range(1, 30).Select(number => $"mine {number}\n"));
+        var theirs = string.Concat(Enumerable.Range(1, 30).Select(number => $"yours {number}\n"));
+        var state = State($"<<<<<<< a\n{ours}=======\n{theirs}>>>>>>> b\n");
+        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, 120, 24);
+        var rows = ConflictEditorFrameBuilder.SideRowCount(state, 120, 24);
+
+        var frame = ConflictEditorFrameBuilder.Build(state.ScrollSides(5, maximum), 120, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.True(maximum > 5);
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Contains($"(lines 6-{5 + rows} of 30)", lines[2], StringComparison.Ordinal);
+        Assert.Contains(" 6 mine 6", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 6 yours 6", lines[3], StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            lines.Skip(3).Take(rows),
+            line => line.Contains("mine 1 ", StringComparison.Ordinal));
+        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenAScrollBeyondTheEnd_WhenRendering_ThenTheLastLinesShowAndNoRowIsBlankAtTheTop()
+    {
+        var many = string.Concat(Enumerable.Range(1, 30).Select(number => $"mine {number}\n"));
+        var state = State($"<<<<<<< a\n{many}=======\nt\n>>>>>>> b\n").ScrollSides(1000, 1000);
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 24, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains("mine 30", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheKeyHints_WhenRendering_ThenTheKeyIsBoldAndTheDescriptionFollowsWithoutBrackets()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var line = frame.Lines[ChipLine(frame, "o ours")];
+        Assert.DoesNotContain("[o ours]", line.Text, StringComparison.Ordinal);
+        var keys = line.Segments.First(segment => segment.Text == "o");
+        Assert.Equal(SegmentRole.StatusKey, keys.Role);
+        Assert.Contains(line.Segments, segment => segment.Text == " ours" && segment.Role == SegmentRole.Status);
+    }
+
+    [Fact]
+    public void GivenTheNavigationHints_WhenHitTesting_ThenEachReturnsItsMouseView()
+    {
+        var state = State(Text);
+        var frame = ConflictEditorFrameBuilder.Build(state, 200, 30, GraphGlyphSet.Unicode)!;
+
+        AssertChip(state, frame, "]c next diff", DefaultMouseMap.ConflictNextDiffButton, 200);
+        AssertChip(state, frame, "[c previous diff", DefaultMouseMap.ConflictPreviousDiffButton, 200);
+        AssertChip(state, frame, "Ctrl-d scroll down", DefaultMouseMap.ConflictScrollDownButton, 200);
+        AssertChip(state, frame, "Ctrl-u scroll up", DefaultMouseMap.ConflictScrollUpButton, 200);
+        AssertChip(state, frame, "n next conflict", DefaultMouseMap.ConflictNextButton, 200);
+        AssertChip(state, frame, "N previous conflict", DefaultMouseMap.ConflictPreviousButton, 200);
+    }
+
+    [Fact]
     public void GivenAnEmptySide_WhenRendering_ThenItSaysNothing()
     {
         var frame = ConflictEditorFrameBuilder.Build(
@@ -160,14 +257,14 @@ public class ConflictEditorFrameBuilderTests
         var state = State(Text);
         var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
 
-        AssertChip(state, frame, "[o ours]", DefaultMouseMap.ConflictOursButton);
-        AssertChip(state, frame, "[Enter save]", DefaultMouseMap.ConflictSaveButton);
-        AssertChip(state, frame, "[e edit]", DefaultMouseMap.ConflictEditButton);
-        AssertChip(state, frame, "[r reset]", DefaultMouseMap.ConflictResetButton);
-        AssertChip(state, frame, "[Ctrl-r redo]", DefaultMouseMap.ConflictRedoButton);
-        AssertChip(state, frame, "[B base]", DefaultMouseMap.ConflictBaseButton);
-        AssertChip(state, frame, "[R re-create]", DefaultMouseMap.ConflictRecreateButton);
-        var chipLine = ChipLine(frame, "[o ours]");
+        AssertChip(state, frame, "o ours", DefaultMouseMap.ConflictOursButton);
+        AssertChip(state, frame, "Enter save", DefaultMouseMap.ConflictSaveButton);
+        AssertChip(state, frame, "e edit", DefaultMouseMap.ConflictEditButton);
+        AssertChip(state, frame, "r reset", DefaultMouseMap.ConflictResetButton);
+        AssertChip(state, frame, "Ctrl-r redo", DefaultMouseMap.ConflictRedoButton);
+        AssertChip(state, frame, "B base", DefaultMouseMap.ConflictBaseButton);
+        AssertChip(state, frame, "R re-create", DefaultMouseMap.ConflictRecreateButton);
+        var chipLine = ChipLine(frame, "o ours");
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine, 1, 120, 30));
         Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine - 1, 4, 120, 30));
     }
@@ -185,8 +282,8 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("Esc or Alt-Enter keeps the text", StringComparison.Ordinal));
-        Assert.DoesNotContain(lines, line => line.Contains("[o ours]", StringComparison.Ordinal));
-        AssertChip(state, frame, "[Alt-Enter keep]", DefaultMouseMap.ConflictEditDoneButton);
+        Assert.DoesNotContain(lines, line => line.Contains("o ours", StringComparison.Ordinal));
+        AssertChip(state, frame, "Alt-Enter keep", DefaultMouseMap.ConflictEditDoneButton);
         Assert.Contains(
             frame.Lines.SelectMany(line => line.Segments),
             segment => segment.Role == SegmentRole.Cursor);
@@ -253,12 +350,17 @@ public class ConflictEditorFrameBuilderTests
     private static int ChipLine(OverlayFrame frame, string chip) =>
         frame.Lines.ToList().FindIndex(line => line.Text.Contains(chip, StringComparison.Ordinal));
 
-    private static void AssertChip(ConflictEditorState state, OverlayFrame frame, string chip, string view)
+    private static void AssertChip(
+        ConflictEditorState state,
+        OverlayFrame frame,
+        string chip,
+        string view,
+        int screenWidth = 120)
     {
         var line = ChipLine(frame, chip);
         Assert.True(line >= 0, chip);
         var column = frame.Lines[line].Text.IndexOf(chip, StringComparison.Ordinal) + 1;
-        Assert.Equal(view, ConflictEditorFrameBuilder.ChipAt(state, line, column, 120, 30));
+        Assert.Equal(view, ConflictEditorFrameBuilder.ChipAt(state, line, column, screenWidth, 30));
     }
 
     private static ConflictEditorState State(string text) =>

@@ -30,7 +30,8 @@ public static class ConflictEditorFrameBuilder
     private const int ContextLines = 2;
     private const int TitleAndStripRows = 2;
     private const int FooterAndBottomRows = 2;
-    private const int ResultHeaderRows = 1;
+    private const int ResultHeaderRows = 2;
+    private const int RuleRows = 1;
     private const int StackedSides = 2;
     private const int SideBySideHeaders = 1;
     private const int StackedShareDivisor = 4;
@@ -51,24 +52,28 @@ public static class ConflictEditorFrameBuilder
 
     private static readonly ConflictEditorChip[] Chips =
     [
-        new("[o ours]", DefaultMouseMap.ConflictOursButton),
-        new("[t theirs]", DefaultMouseMap.ConflictTheirsButton),
-        new("[b both]", DefaultMouseMap.ConflictBothButton),
-        new("[e edit]", DefaultMouseMap.ConflictEditButton),
-        new("[r reset]", DefaultMouseMap.ConflictResetButton),
-        new("[u undo]", DefaultMouseMap.ConflictUndoButton),
-        new("[Ctrl-r redo]", DefaultMouseMap.ConflictRedoButton),
-        new("[B base]", DefaultMouseMap.ConflictBaseButton),
-        new("[n next]", DefaultMouseMap.ConflictNextButton),
-        new("[N previous]", DefaultMouseMap.ConflictPreviousButton),
-        new("[R re-create]", DefaultMouseMap.ConflictRecreateButton),
-        new("[Enter save]", DefaultMouseMap.ConflictSaveButton),
-        new("[Esc close]", DefaultMouseMap.ConflictCancelButton),
+        new("o", "ours", DefaultMouseMap.ConflictOursButton),
+        new("t", "theirs", DefaultMouseMap.ConflictTheirsButton),
+        new("b", "both", DefaultMouseMap.ConflictBothButton),
+        new("e", "edit", DefaultMouseMap.ConflictEditButton),
+        new("r", "reset", DefaultMouseMap.ConflictResetButton),
+        new("u", "undo", DefaultMouseMap.ConflictUndoButton),
+        new("Ctrl-r", "redo", DefaultMouseMap.ConflictRedoButton),
+        new("B", "base", DefaultMouseMap.ConflictBaseButton),
+        new("n", "next conflict", DefaultMouseMap.ConflictNextButton),
+        new("N", "previous conflict", DefaultMouseMap.ConflictPreviousButton),
+        new("]c", "next diff", DefaultMouseMap.ConflictNextDiffButton),
+        new("[c", "previous diff", DefaultMouseMap.ConflictPreviousDiffButton),
+        new("Ctrl-d", "scroll down", DefaultMouseMap.ConflictScrollDownButton),
+        new("Ctrl-u", "scroll up", DefaultMouseMap.ConflictScrollUpButton),
+        new("R", "re-create", DefaultMouseMap.ConflictRecreateButton),
+        new("Enter", "save", DefaultMouseMap.ConflictSaveButton),
+        new("Esc", "close", DefaultMouseMap.ConflictCancelButton),
     ];
 
     private static readonly ConflictEditorChip[] EditingChips =
     [
-        new("[Alt-Enter keep]", DefaultMouseMap.ConflictEditDoneButton),
+        new("Alt-Enter", "keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
@@ -100,9 +105,11 @@ public static class ConflictEditorFrameBuilder
 
         if (plan.BaseRows > 0)
         {
+            lines.Add(Rule(plan, glyphs, hasJunction: !plan.IsStacked));
             AddBase(lines, hunk, plan, glyphs);
         }
 
+        lines.Add(Rule(plan, glyphs, hasJunction: !plan.IsStacked && plan.BaseRows == 0));
         lines.Add(OverlayBox.Text(ResultHeader(state), plan.Width, glyphs, SegmentRole.SectionTitle));
         AddResult(lines, state, plan, glyphs);
         foreach (var chips in plan.ChipRows)
@@ -115,6 +122,16 @@ public static class ConflictEditorFrameBuilder
 
         return new OverlayFrame((screenWidth - plan.Width) / 2, 1, lines);
     }
+
+    /// <summary>
+    /// The most lines our side and their side scroll down at this size (0 when everything fits or nothing is drawn).
+    /// </summary>
+    public static int MaxSideScroll(ConflictEditorState state, int screenWidth, int screenHeight) =>
+        PlanFor(state, screenWidth, screenHeight)?.MaxScroll ?? 0;
+
+    /// <summary>The rows each side pane shows at this size (0 when nothing is drawn).</summary>
+    public static int SideRowCount(ConflictEditorState state, int screenWidth, int screenHeight) =>
+        PlanFor(state, screenWidth, screenHeight)?.SideRows ?? 0;
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
     public static string? ChipAt(
@@ -172,7 +189,7 @@ public static class ConflictEditorFrameBuilder
         var share = isStacked ? available / StackedShareDivisor : available * SideBySideShare / SideBySideShareOf;
         var sideRows = Math.Max(MinimumSideRows, share);
         var baseRows = state.IsBaseShown ? Math.Max(MinimumSideRows, sideRows / BaseShareDivisor) : 0;
-        var baseTotal = baseRows > 0 ? BaseHeaderRows + baseRows : 0;
+        var baseTotal = baseRows > 0 ? RuleRows + BaseHeaderRows + baseRows : 0;
         var resultRows = available - (sideRows * sideCount) - baseTotal;
         if (resultRows < MinimumResultRows)
         {
@@ -185,65 +202,163 @@ public static class ConflictEditorFrameBuilder
         var firstChipLine = TitleAndStripRows + sideHeaders + (sideRows * sideCount) + baseTotal + ResultHeaderRows
             + resultRows;
 
-        return new Plan(width, isStacked, sideRows, baseRows, resultRows, chipRows, firstChipLine);
+        var sideLines = Math.Max(
+            ConflictEditorState.Lines(state.Selected!.Ours).Count,
+            ConflictEditorState.Lines(state.Selected.Theirs).Count);
+        var baseLines = baseRows > 0 ? ConflictEditorState.Lines(state.Selected.Base ?? string.Empty).Count : 0;
+        var maxScroll = Math.Max(Math.Max(0, sideLines - sideRows), Math.Max(0, baseLines - baseRows));
+        var resultStart = state.ResultLineOf(state.Index);
+        var lastNumber = resultStart + ContextLines
+            + Math.Max(sideLines, ConflictEditorState.Lines(state.ResultOf(state.Index)).Count);
+        var gutter = Math.Max(2, lastNumber.ToString(CultureInfo.InvariantCulture).Length);
+
+        return new Plan(
+            width,
+            isStacked,
+            sideRows,
+            baseRows,
+            resultRows,
+            chipRows,
+            firstChipLine,
+            Math.Min(state.SideScroll, maxScroll),
+            maxScroll,
+            resultStart,
+            gutter);
     }
 
     private static void AddSideBySide(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
         var inner = OverlayBox.InnerWidth(plan.Width);
-        var leftWidth = (inner - 1) / 2;
+        var leftWidth = SideBySideLeftWidth(plan.Width);
         var rightWidth = inner - 1 - leftWidth;
         var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
-        var ours = SideLines(hunk.Ours, plan.SideRows);
-        var theirs = SideLines(hunk.Theirs, plan.SideRows);
+        var ours = SideText.Of(hunk.Ours);
+        var theirs = SideText.Of(hunk.Theirs);
         lines.Add(Joined(
-            Cell($"ours  {hunk.OursLabel}", leftWidth, SegmentRole.LocalBranch, glyphs),
+            Cell(SideTitle("ours", hunk.OursLabel, ours, plan), leftWidth, SegmentRole.LocalBranch, glyphs),
             divider,
-            Cell($"theirs  {hunk.TheirsLabel}", rightWidth, SegmentRole.RemoteBranch, glyphs),
+            Cell(SideTitle("theirs", hunk.TheirsLabel, theirs, plan), rightWidth, SegmentRole.RemoteBranch, glyphs),
             inner,
             glyphs));
         for (var row = 0; row < plan.SideRows; row++)
         {
+            var line = plan.Scroll + row;
             lines.Add(Joined(
-                Cell(RowText(ours, row), leftWidth, RoleOf(ours, row), glyphs),
+                NumberedCell(ours, line, leftWidth, plan, glyphs),
                 divider,
-                Cell(RowText(theirs, row), rightWidth, RoleOf(theirs, row), glyphs),
+                NumberedCell(theirs, line, rightWidth, plan, glyphs),
                 inner,
                 glyphs));
         }
     }
 
+    private static int SideBySideLeftWidth(int frameWidth) => (OverlayBox.InnerWidth(frameWidth) - 1) / 2;
+
+    // The line between the panes above and the result; side by side it joins the divider of the two sides.
+    private static StyledLine Rule(Plan plan, GraphGlyphSet glyphs, bool hasJunction)
+    {
+        var inner = OverlayBox.InnerWidth(plan.Width);
+        var horizontal = glyphs.Horizontal;
+        var left = SideBySideLeftWidth(plan.Width);
+        var builder = new LineBuilder(inner, glyphs.Ellipsis);
+        if (hasJunction)
+        {
+            var junction = glyphs.For(LineDirections.Left | LineDirections.Right | LineDirections.Up);
+            builder.Append(new string(horizontal, left), SegmentRole.Border)
+                .Append(junction.ToString(), SegmentRole.Border)
+                .Append(new string(horizontal, inner - 1 - left), SegmentRole.Border);
+        }
+        else
+        {
+            builder.Append(new string(horizontal, inner), SegmentRole.Border);
+        }
+
+        var opening = glyphs.For(LineDirections.Up | LineDirections.Down | LineDirections.Right);
+        var closing = glyphs.For(LineDirections.Up | LineDirections.Down | LineDirections.Left);
+
+        return new StyledLine(
+        [
+            new StyledSegment(opening.ToString(), SegmentRole.FocusedBorder),
+            .. builder.Build().Segments,
+            new StyledSegment(closing.ToString(), SegmentRole.FocusedBorder),
+        ]);
+    }
+
+    private static string SideTitle(string name, string label, SideText side, Plan plan)
+    {
+        var title = $"{name}  {label}";
+        if (side.IsEmpty || side.Lines.Count <= plan.SideRows)
+        {
+            return title;
+        }
+
+        var last = Math.Min(side.Lines.Count, plan.Scroll + plan.SideRows);
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{title}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})");
+    }
+
+    private static StyledLine NumberedCell(SideText side, int line, int width, Plan plan, GraphGlyphSet glyphs) =>
+        new LineBuilder(width, glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(GutterText(side.NumberAt(line, plan.ResultStart), plan.Gutter), SegmentRole.Faint)
+            .Append(side.TextAt(line), side.RoleAt(line))
+            .Build();
+
+    private static string GutterText(int? number, int width) => number is { } value
+        ? $"{value.ToString(CultureInfo.InvariantCulture).PadLeft(width)} "
+        : new string(' ', width + 1);
+
+    private static StyledLine NumberedText(
+        int? number,
+        string text,
+        SegmentRole role,
+        Plan plan,
+        GraphGlyphSet glyphs)
+    {
+        var inner = new LineBuilder(OverlayBox.InnerWidth(plan.Width), glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(GutterText(number, plan.Gutter), SegmentRole.Faint)
+            .Append(text, role)
+            .Build();
+
+        return OverlayBox.Wrap(inner, glyphs);
+    }
+
     private static void AddBase(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
         lines.Add(OverlayBox.Text("base  common ancestor", plan.Width, glyphs, SegmentRole.SectionTitle));
-        var rows = hunk.Base is null ? [NoBaseText] : SideLines(hunk.Base, plan.BaseRows);
-        var isFaint = hunk.Base is null || (rows.Count == 1 && rows[0] == EmptySide);
-        var role = isFaint ? SegmentRole.Faint : SegmentRole.Plain;
+        var side = hunk.Base is null ? new SideText([NoBaseText], true) : SideText.Of(hunk.Base);
         for (var row = 0; row < plan.BaseRows; row++)
         {
-            lines.Add(OverlayBox.Text(RowText(rows, row), plan.Width, glyphs, role));
+            var line = plan.Scroll + row;
+            lines.Add(OverlayBox.Text(side.TextAt(line), plan.Width, glyphs, side.RoleAt(line)));
         }
     }
 
     private static void AddStackedSides(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
-        AddSide(lines, $"ours  {hunk.OursLabel}", SegmentRole.LocalBranch, hunk.Ours, plan, glyphs);
-        AddSide(lines, $"theirs  {hunk.TheirsLabel}", SegmentRole.RemoteBranch, hunk.Theirs, plan, glyphs);
+        AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, hunk.Ours, plan, glyphs);
+        AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, hunk.Theirs, plan, glyphs);
     }
 
     private static void AddSide(
         List<StyledLine> lines,
-        string header,
+        string name,
+        string label,
         SegmentRole headerRole,
         string text,
         Plan plan,
         GraphGlyphSet glyphs)
     {
-        var side = SideLines(text, plan.SideRows);
-        lines.Add(OverlayBox.Text(header, plan.Width, glyphs, headerRole));
+        var side = SideText.Of(text);
+        lines.Add(OverlayBox.Text(SideTitle(name, label, side, plan), plan.Width, glyphs, headerRole));
         for (var row = 0; row < plan.SideRows; row++)
         {
-            lines.Add(OverlayBox.Text(RowText(side, row), plan.Width, glyphs, RoleOf(side, row)));
+            var line = plan.Scroll + row;
+            var number = side.NumberAt(line, plan.ResultStart);
+            lines.Add(NumberedText(number, side.TextAt(line), side.RoleAt(line), plan, glyphs));
         }
     }
 
@@ -267,19 +382,21 @@ public static class ConflictEditorFrameBuilder
             return;
         }
 
-        var rows = ResultRows(state, plan.ResultRowCount);
+        var rows = ResultRows(state, plan);
         for (var row = 0; row < plan.ResultRowCount; row++)
         {
             var shown = row < rows.Count ? rows[row] : new ResultRow(string.Empty, SegmentRole.Plain);
-            lines.Add(OverlayBox.Text(shown.Text, plan.Width, glyphs, shown.Role));
+            lines.Add(NumberedText(shown.Number, shown.Text, shown.Role, plan, glyphs));
         }
     }
 
     // The hunk's result with up to two unconflicted lines on each side, as many as the pane has room for.
-    private static List<ResultRow> ResultRows(ConflictEditorState state, int rowCount)
+    private static List<ResultRow> ResultRows(ConflictEditorState state, Plan plan)
     {
+        var rowCount = plan.ResultRowCount;
         var role = state.SelectedPick == ConflictPick.None ? SegmentRole.Error : SegmentRole.Plain;
         var hunkLines = ConflictEditorState.Lines(state.ResultOf(state.Index)).Select(Printable).ToList();
+        var realCount = hunkLines.Count;
         if (hunkLines.Count == 0)
         {
             hunkLines.Add(EmptySide);
@@ -289,11 +406,15 @@ public static class ConflictEditorFrameBuilder
         var spare = Math.Max(0, rowCount - hunkLines.Count);
         var before = state.ContextAround(state.Index, before: true, Math.Min(ContextLines, spare / 2));
         var after = state.ContextAround(state.Index, before: false, Math.Min(ContextLines, spare - before.Count));
-        var rows = new List<ResultRow>();
-        rows.AddRange(before.Select(line => new ResultRow(Printable(line), SegmentRole.Faint)));
         var shown = Truncate(hunkLines, Math.Max(1, rowCount - before.Count));
-        rows.AddRange(shown.Select(line => new ResultRow(line, role)));
-        rows.AddRange(after.Select(line => new ResultRow(Printable(line), SegmentRole.Faint)));
+        var keptReal = shown.Count == hunkLines.Count ? realCount : shown.Count - 1;
+        var rows = new List<ResultRow>();
+        rows.AddRange(before.Select((line, index) =>
+            new ResultRow(Printable(line), SegmentRole.Faint, plan.ResultStart - before.Count + index)));
+        rows.AddRange(shown.Select((line, index) =>
+            new ResultRow(line, role, index < keptReal ? plan.ResultStart + index : null)));
+        rows.AddRange(after.Select((line, index) =>
+            new ResultRow(Printable(line), SegmentRole.Faint, plan.ResultStart + realCount + index)));
 
         return rows;
     }
@@ -310,18 +431,6 @@ public static class ConflictEditorFrameBuilder
 
         return kept;
     }
-
-    private static List<string> SideLines(string text, int rowCount)
-    {
-        var lines = ConflictEditorState.Lines(text).Select(Printable).ToList();
-
-        return lines.Count == 0 ? [EmptySide] : Truncate(lines, rowCount);
-    }
-
-    private static string RowText(List<string> lines, int row) => row < lines.Count ? lines[row] : string.Empty;
-
-    private static SegmentRole RoleOf(List<string> lines, int row) =>
-        row == 0 && lines.Count == 1 && lines[0] == EmptySide ? SegmentRole.Faint : SegmentRole.Plain;
 
     private static string Printable(string line) => line.Replace("\t", TabText, StringComparison.Ordinal);
 
@@ -386,14 +495,15 @@ public static class ConflictEditorFrameBuilder
 
     private static StyledLine ChipLine(List<ConflictEditorChip> chips, int width, GraphGlyphSet glyphs)
     {
-        var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Plain);
+        var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Status);
         for (var index = 0; index < chips.Count; index++)
         {
-            builder.Append(index == 0 ? string.Empty : ChipGapText, SegmentRole.Plain);
-            builder.Append(chips[index].Text, SegmentRole.Button);
+            builder.Append(index == 0 ? string.Empty : ChipGapText, SegmentRole.Status);
+            builder.Append(chips[index].Keys, SegmentRole.StatusKey);
+            builder.Append($" {chips[index].Description}", SegmentRole.Status);
         }
 
-        return OverlayBox.Wrap(builder.Build(), glyphs);
+        return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
     }
 
     private static StyledLine FooterLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
@@ -450,7 +560,28 @@ public static class ConflictEditorFrameBuilder
         int BaseRows,
         int ResultRowCount,
         List<List<ConflictEditorChip>> ChipRows,
-        int FirstChipLine);
+        int FirstChipLine,
+        int Scroll,
+        int MaxScroll,
+        int ResultStart,
+        int Gutter);
 
-    private readonly record struct ResultRow(string Text, SegmentRole Role);
+    private readonly record struct ResultRow(string Text, SegmentRole Role, int? Number = null);
+
+    // The lines of one side; an empty side is one faint placeholder line without a number.
+    private sealed record SideText(List<string> Lines, bool IsEmpty)
+    {
+        public static SideText Of(string text)
+        {
+            var lines = ConflictEditorState.Lines(text).Select(Printable).ToList();
+
+            return lines.Count == 0 ? new SideText([EmptySide], true) : new SideText(lines, false);
+        }
+
+        public string TextAt(int line) => line < Lines.Count ? Lines[line] : string.Empty;
+
+        public SegmentRole RoleAt(int line) => IsEmpty && line == 0 ? SegmentRole.Faint : SegmentRole.Plain;
+
+        public int? NumberAt(int line, int start) => IsEmpty || line >= Lines.Count ? null : start + line;
+    }
 }

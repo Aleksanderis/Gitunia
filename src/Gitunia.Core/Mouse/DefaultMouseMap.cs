@@ -174,6 +174,14 @@ public static class DefaultMouseMap
 
     public const string ConflictEditDoneButton = "ConflictButton.EditDone";
 
+    public const string ConflictNextDiffButton = "ConflictButton.NextDiff";
+
+    public const string ConflictPreviousDiffButton = "ConflictButton.PreviousDiff";
+
+    public const string ConflictScrollDownButton = "ConflictButton.ScrollDown";
+
+    public const string ConflictScrollUpButton = "ConflictButton.ScrollUp";
+
     /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
     /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
@@ -243,6 +251,10 @@ public static class DefaultMouseMap
         ConflictBaseButton,
         ConflictRecreateButton,
         ConflictEditDoneButton,
+        ConflictNextDiffButton,
+        ConflictPreviousDiffButton,
+        ConflictScrollDownButton,
+        ConflictScrollUpButton,
         DefaultKeymap.SettingsView,
         SettingsEditButton,
         SettingsAddButton,
@@ -333,6 +345,10 @@ public static class DefaultMouseMap
         new(ConflictBaseButton, MouseGesture.Click, ActionIds.ConflictEditorBase),
         new(ConflictRecreateButton, MouseGesture.Click, ActionIds.ConflictEditorRecreate),
         new(ConflictEditDoneButton, MouseGesture.Click, ActionIds.ConflictEditorEditDone),
+        new(ConflictNextDiffButton, MouseGesture.Click, ActionIds.ConflictEditorNextDiff),
+        new(ConflictPreviousDiffButton, MouseGesture.Click, ActionIds.ConflictEditorPreviousDiff),
+        new(ConflictScrollDownButton, MouseGesture.Click, ActionIds.ConflictEditorScrollDown),
+        new(ConflictScrollUpButton, MouseGesture.Click, ActionIds.ConflictEditorScrollUp),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(SettingsEditButton, MouseGesture.Click, ActionIds.SettingsActivate),
