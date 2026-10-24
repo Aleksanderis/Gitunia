@@ -285,6 +285,7 @@ public static class PaneHints
     /// <summary>The hints while the rebase todo editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseEditor() => RebaseEditor;
 
+    /// <summary>The hints while the conflict editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForConflictEditor() => ConflictEditor;
 
     /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>

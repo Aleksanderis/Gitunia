@@ -30,6 +30,11 @@ public static class ConflictEditorFrameBuilder
     private const int TitleAndStripRows = 2;
     private const int FooterAndBottomRows = 2;
     private const int ResultHeaderRows = 1;
+    private const int StackedSides = 2;
+    private const int SideBySideHeaders = 1;
+    private const int StackedShareDivisor = 4;
+    private const int SideBySideShare = 2;
+    private const int SideBySideShareOf = 5;
     private const int MinimumSideRows = 1;
     private const int MinimumResultRows = 1;
     private const string ChipGapText = "  ";
@@ -130,8 +135,8 @@ public static class ConflictEditorFrameBuilder
 
         var chipRows = ChipRowsFor(width);
         var isStacked = width < StackedBelowWidth;
-        var sideHeaders = isStacked ? 2 : 1;
-        var sideCount = isStacked ? 2 : 1;
+        var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
+        var sideCount = isStacked ? StackedSides : 1;
         var available = screenHeight - ScreenMargin - TitleAndStripRows - FooterAndBottomRows - chipRows.Count
             - sideHeaders - ResultHeaderRows;
         if (available < (sideCount * MinimumSideRows) + MinimumResultRows)
@@ -139,7 +144,8 @@ public static class ConflictEditorFrameBuilder
             return null;
         }
 
-        var sideRows = Math.Max(MinimumSideRows, isStacked ? available / 4 : available * 2 / 5);
+        var share = isStacked ? available / StackedShareDivisor : available * SideBySideShare / SideBySideShareOf;
+        var sideRows = Math.Max(MinimumSideRows, share);
         var resultRows = available - (sideRows * sideCount);
         var firstChipLine = TitleAndStripRows + sideHeaders + (sideRows * sideCount) + ResultHeaderRows + resultRows;
 

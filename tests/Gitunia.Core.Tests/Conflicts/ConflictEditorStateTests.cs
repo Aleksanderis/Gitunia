@@ -89,6 +89,17 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenAClosingMarkerOnTheLastLineWithoutNewline_WhenSaving_ThenAPickEndsWithItsOwnLineEnd()
+    {
+        const string text = "a\n<<<<<<< x\nours\n=======\ntheirs\n>>>>>>> y";
+
+        var state = State(text);
+
+        Assert.Equal(text, state.ToText());
+        Assert.Equal("a\nours\n", state.Pick(ConflictPick.Ours).ToText());
+    }
+
+    [Fact]
     public void GivenAHunk_WhenAskingForContext_ThenTheLinesNextToItComeBackAndNoneAcrossAnotherHunk()
     {
         var state = State("1\n2\n3\n<<<<<<< a\nx\n=======\ny\n>>>>>>> b\n<<<<<<< a\nz\n=======\nw\n>>>>>>> b\n4\n");

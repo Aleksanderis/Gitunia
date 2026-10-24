@@ -138,10 +138,12 @@ make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway 
   git -C "$dir" add src/notes.txt
   git -C "$dir" commit -q -m "Add notes"
   git -C "$dir" switch -q -c side
-  sed -i -e 's/^line 3$/line 3, as the side branch wrote it/' -e 's/^line 9$/line 9 (side)/' "$dir/src/notes.txt"
+  sed -i.bak -e 's/^line 3$/line 3, as the side branch wrote it/' -e 's/^line 9$/line 9 (side)/' "$dir/src/notes.txt"
+  rm -f "$dir/src/notes.txt.bak"
   git -C "$dir" commit -q -am "Reword notes on the side"
   git -C "$dir" switch -q main
-  sed -i -e 's/^line 3$/line 3 reworded on main/' -e 's/^line 9$/line 9 (main)\nand a new line after it/' "$dir/src/notes.txt"
+  sed -i.bak -e 's/^line 3$/line 3 reworded on main/' -e 's/^line 9$/line 9 (main)\nand a new line after it/' "$dir/src/notes.txt"
+  rm -f "$dir/src/notes.txt.bak"
   git -C "$dir" commit -q -am "Reword notes on main"
   git -C "$dir" merge -q side >/dev/null 2>&1 || true
   )
