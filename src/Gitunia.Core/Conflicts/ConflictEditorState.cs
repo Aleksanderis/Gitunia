@@ -129,7 +129,7 @@ public sealed record ConflictEditorState(
         return next is { } row && !IsEditing ? this with { SideScroll = row } : this;
     }
 
-    /// <summary>Scrolls the side panes to the previous line where the two sides differ; see <see cref="NextDifference"/>.</summary>
+    /// <summary>Scrolls the side panes to the previous line where the sides differ (see NextDifference).</summary>
     public ConflictEditorState PreviousDifference()
     {
         var starts = DifferenceStarts();

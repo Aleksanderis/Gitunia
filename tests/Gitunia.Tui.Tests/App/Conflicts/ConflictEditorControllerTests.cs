@@ -484,7 +484,7 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenALongHunk_WhenScrollingAndJumpingBetweenDifferences_ThenTheSidesScrollAndAnotherConflictResets()
+    public async Task GivenALongHunk_WhenScrollingAndJumping_ThenTheSidesScrollAndAnotherConflictResets()
     {
         using var repository = LongHunk();
         using var harness = await Harness.CreateAsync(repository);
