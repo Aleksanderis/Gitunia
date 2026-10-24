@@ -1917,7 +1917,9 @@ public sealed class TuiApplication(
             var commitIndex = GraphListSource.CommitIndexOf(item);
             if (commitIndex >= 0 && commitIndex < session.Graph.Count)
             {
-                session.Details.Select(session.Graph[commitIndex].Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
+                session.Details.Select(
+                    session.Graph[commitIndex].Id,
+                    DetailPrefetchPlan.Around(session.Graph, commitIndex));
             }
         }
 

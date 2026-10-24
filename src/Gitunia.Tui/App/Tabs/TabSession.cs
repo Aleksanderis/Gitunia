@@ -65,7 +65,7 @@ public sealed class TabSession : IDisposable
 
     public TabId TabId { get; }
 
-    /// <summary>The stash the detail pane shows, and the stashes the details and diff readers can read like commits.</summary>
+    /// <summary>The stash the detail pane shows and the stashes the readers can read like commits.</summary>
     public StashViewSession StashView { get; }
 
     /// <summary>The rules of the repository's tracker file; none until read, and when the file is missing.</summary>

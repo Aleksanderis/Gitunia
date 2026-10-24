@@ -226,7 +226,7 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
-    public async Task GivenStashRowAndNoStashView_WhenActivating_ThenTheGraphKeepsItsSelectionAndAMessageSaysNothingWasShown()
+    public async Task GivenStashRowAndNoStashView_WhenActivating_ThenTheGraphKeepsItsSelectionAndAMessageSaysSo()
     {
         using var repository = MergedFeatureBranchRepository();
         repository.WriteFile("a.txt", "dirty");

@@ -40,7 +40,7 @@ public sealed class SidebarActionHandler(
     /// <summary>The diff pane is shown.</summary>
     public Func<bool> IsDiffVisible { get; set; } = () => false;
 
-    /// <summary>Shows the stash under the cursor in the detail pane (#699); null in sessions built without one.</summary>
+    /// <summary>Shows the stash under the cursor in the detail pane (#699); null when built without one.</summary>
     public StashViewController? StashView { get; set; }
 
     /// <summary>A short notice for the status bar from the last action, empty when none.</summary>
@@ -261,7 +261,7 @@ public sealed class SidebarActionHandler(
         }
     }
 
-    // On a stash row l shows the stash and moves into the detail pane (a stash is not in the graph); elsewhere as before.
+    // On a stash row l shows the stash and moves into the detail pane (a stash is not in the graph).
     private void ExpandCursor(RepositoryState tab)
     {
         if (CursorRow is { Kind: SidebarRowKind.Stash } row && StashView is { } view)

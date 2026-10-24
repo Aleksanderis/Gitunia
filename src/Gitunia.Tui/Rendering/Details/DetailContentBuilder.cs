@@ -33,7 +33,9 @@ public static class DetailContentBuilder
     /// <param name="pathStyle">How the Changes tab shows the paths of the files.</param>
     /// <param name="links">The tracker rules of the repository; references in the message become links.</param>
     /// <param name="collapsedFolders">Folders of the tree style that are closed, null when all are open.</param>
-    /// <param name="stashName">The name of the stash <paramref name="entry"/> stands for (a stash is shown read-only in place of a commit), null for a commit.</param>
+    /// <param name="stashName">
+    /// The name of the stash <paramref name="entry"/> stands for (shown read-only in place of a commit), null for a commit.
+    /// </param>
     public static DetailContent Build(
         GraphEntry? entry,
         CommitDetailsState state,
@@ -287,11 +289,15 @@ public static class DetailContentBuilder
 
     private static DetailRow Faint(string text) => new([new StyledSegment(text, SegmentRole.Faint)]);
 
-    private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName) => new([new StyledSegment(
-        state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
-            ? $"Could not load the {(stashName is null ? "commit" : "stash")} (r retries): {state.Error}"
-            : "Loading...",
-        SegmentRole.Faint)]);
+    private static DetailRow Status(GraphEntry entry, CommitDetailsState state, string? stashName)
+    {
+        var what = stashName is null ? "commit" : "stash";
+        var text = state.Commit == entry.Id && state.Status == CommitDetailsStatus.Failed
+            ? $"Could not load the {what} (r retries): {state.Error}"
+            : "Loading...";
+
+        return new DetailRow([new StyledSegment(text, SegmentRole.Faint)]);
+    }
 
     private static string ShortHash(ObjectId id) => id.ToString()[..HashLength];
 

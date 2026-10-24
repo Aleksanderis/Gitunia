@@ -48,7 +48,7 @@ public sealed record CommitDetails(
     /// </summary>
     public bool IsStash { get; init; }
 
-    /// <summary>How many of the last <see cref="Files"/> are untracked files saved by the stash; 0 for a commit.</summary>
+    /// <summary>How many of the last <see cref="Files"/> are untracked files the stash saved; 0 for a commit.</summary>
     public int UntrackedFileCount { get; init; }
 
     /// <summary>The first line of the message.</summary>

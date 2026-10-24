@@ -12,7 +12,9 @@ public sealed class StashViewSession
     /// <summary>The stashes the tab's details and diff readers know by commit hash.</summary>
     public StashRegistry Registry { get; } = new();
 
-    /// <summary>The stash the detail pane was asked to show, null for none. It only counts while the tab's details still
-    /// select its commit (see <see cref="StashViewController"/>).</summary>
+    /// <summary>
+    /// The stash the detail pane was asked to show, null for none. It only counts while the tab's details still
+    /// select its commit (see <see cref="StashViewController"/>).
+    /// </summary>
     public StashEntry? Shown { get; set; }
 }
