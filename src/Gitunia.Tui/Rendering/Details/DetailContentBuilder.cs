@@ -427,10 +427,10 @@ public static class DetailContentBuilder
     private static string StashHeading(string stashName, CommitDetails details)
     {
         var untracked = details.UntrackedFileCount > 0
-            ? $", {details.UntrackedFileCount.ToString(CultureInfo.InvariantCulture)} untracked ({UntrackedMark})"
+            ? $", {details.UntrackedFileCount.ToString(CultureInfo.InvariantCulture)} untracked"
             : string.Empty;
 
-        return $"Stash {stashName}: {FilesHeading(details.Files.Count)}{untracked}, read-only";
+        return $"Stash {stashName}: {FilesHeading(details.Files.Count)}{untracked}";
     }
 
     private static string FilesHeading(int count) => count switch

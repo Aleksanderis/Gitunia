@@ -36,7 +36,7 @@ public class StashViewTests
 
         Assert.Equal("stash@{0}", StashViewController.ShownName(harness.Session));
         var rows = harness.ChangesRows();
-        Assert.Equal("Stash stash@{0}: 2 files changed, 1 untracked (?), read-only", rows[0]);
+        Assert.Equal("Stash stash@{0}: 2 files changed, 1 untracked", rows[0]);
         Assert.Equal(["M file.txt", "? untracked.txt"], rows[1..]);
         var commit = harness.Session.Details.Current.Commit!.Value;
         harness.Diff.Load(commit, null);

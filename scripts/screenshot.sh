@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,stash] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -18,6 +18,7 @@
 # working-commit (staged files, a message typed in the box with SignOff on) and working-hook (the same, committed against a failing pre-commit hook: the output overlay); not for --repo.
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
+# stash (C-w h G Enter: a stash shown in the detail pane, with a tracked and an untracked file; a copy of the throwaway repository with a stash; not for --repo).
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (o B: the base block of the hunk); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
@@ -97,6 +98,19 @@ make_throwaway_repo() { # make_throwaway_repo DIR: small deterministic repo with
   commit "Add modulo"
   git -C "$dir" switch -q -c fix/overflow
   git -C "$dir" switch -q main
+  )
+}
+
+make_stash_repo() { # make_stash_repo SOURCE DIR: a copy of the throwaway repository with a stash holding a tracked and an untracked file
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  ( # a subshell keeps the GIT_* variables out of the tmux server and the app under test
+  export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+  export GIT_AUTHOR_NAME="Ada Lovelace" GIT_AUTHOR_EMAIL=ada@example.com GIT_COMMITTER_NAME="Ada Lovelace" GIT_COMMITTER_EMAIL=ada@example.com
+  export GIT_AUTHOR_DATE="2026-04-01T12:00:00Z" GIT_COMMITTER_DATE="2026-04-01T12:00:00Z"
+  printf 'Division truncates toward zero.\n' >>"$dir/README.md"
+  printf 'todo\n' >"$dir/notes.txt"
+  git -C "$dir" stash push -q --include-untracked -m "WIP notes"
   )
 }
 
@@ -254,6 +268,7 @@ render() {
       menu) keys="j j Space ." ;;
       menu-sidebar) keys="C-w h j j Space ." ;;
       sidebar-ref) keys="C-w h j j j" ;;
+      stash) keys="C-w h G Enter" ;;
       prompt) keys="Space b c f e a t" ;;
       prompt-narrow) columns=64 rows=30 keys="Space b c f e a t" ;;
       jump) keys="Space j c" ;;
@@ -305,6 +320,9 @@ render() {
     elif [[ "$scenario" == rebase-* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-rebase"
       [ -d "$scenario_repo" ] || make_rebase_repo "$repo" "$scenario_repo"
+    elif [[ "$scenario" == stash && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-stash"
+      [ -d "$scenario_repo" ] || make_stash_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == working* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
