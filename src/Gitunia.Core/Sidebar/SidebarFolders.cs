@@ -8,6 +8,12 @@ public static class SidebarFolders
     /// <summary>The key of a prefix folder in <see cref="SidebarState.OpenedFolders"/>.</summary>
     public static string KeyOf(SidebarSection section, string path) => $"{section}:{path}";
 
+    /// <summary>The branch-name prefix of a folder row (<c>feature/ui</c>), without the section.</summary>
+    public static string PathOf(SidebarRow folder) =>
+        folder.Key is { } key && key.StartsWith($"{folder.Section}:", StringComparison.Ordinal)
+            ? key[(folder.Section.ToString().Length + 1)..]
+            : folder.Label;
+
     /// <summary>
     /// The rows with folders: each branch below its prefix folders (in first-seen order), the entries of a closed
     /// folder left out. The branch keeps its full name as label; below a folder it also gets a short name.
