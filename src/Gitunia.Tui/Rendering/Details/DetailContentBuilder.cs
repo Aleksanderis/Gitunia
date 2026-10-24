@@ -34,7 +34,7 @@ public static class DetailContentBuilder
     /// <param name="links">The tracker rules of the repository; references in the message become links.</param>
     /// <param name="collapsedFolders">Folders of the tree style that are closed, null when all are open.</param>
     /// <param name="stashName">
-    /// The name of the stash <paramref name="entry"/> stands for (shown read-only in place of a commit), null for a commit.
+    /// The stash name <paramref name="entry"/> stands for (shown read-only in place of a commit); null if a commit.
     /// </param>
     public static DetailContent Build(
         GraphEntry? entry,

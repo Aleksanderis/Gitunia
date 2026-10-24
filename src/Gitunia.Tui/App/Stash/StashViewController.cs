@@ -46,7 +46,7 @@ public sealed class StashViewController(
     /// <summary>The name of the stash the pane shows in <paramref name="session"/>, null for a commit.</summary>
     public static string? ShownName(TabSession session) => IsShowingIn(session) ? session.StashView.Shown?.Name : null;
 
-    /// <summary>The graph-entry stand-in of the shown stash that the detail rows are built for; null for none.</summary>
+    /// <summary>The graph-entry stand-in of the shown stash the detail rows are built for; null for none.</summary>
     public static GraphEntry? ShownEntry(TabSession session)
     {
         if (!IsShowingIn(session) || session.StashView.Shown is not { } stash
@@ -58,7 +58,7 @@ public sealed class StashViewController(
         return new GraphEntry(commit, stash.Message, string.Empty, default, [], new GraphRow(commit, 0, 1, []));
     }
 
-    /// <summary>Ends the stash view and puts the graph selection's commit back in the pane; no-op without one.</summary>
+    /// <summary>Ends the stash view and puts the graph selection back in the pane; no-op without one.</summary>
     public void Leave()
     {
         if (activeSession() is not { } session || !IsShowingIn(session))
