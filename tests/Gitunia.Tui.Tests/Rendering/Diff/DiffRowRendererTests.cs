@@ -229,10 +229,10 @@ public class DiffRowRendererTests
         var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true);
 
         Assert.Contains("a   b  ", plain.Text, StringComparison.Ordinal);
-        Assert.Contains("a→  b··", marked.Text, StringComparison.Ordinal);
+        Assert.Contains("a→  b••", marked.Text, StringComparison.Ordinal);
         Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
         Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text.StartsWith('→')).Role);
-        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "··").Role);
+        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "••").Role);
         Assert.Equal(SegmentRole.DiffAdded, marked.Segments.First(segment => segment.Text.EndsWith('b')).Role);
     }
 
@@ -244,7 +244,7 @@ public class DiffRowRendererTests
         var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true);
 
         Assert.Contains("one  two", marked.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain('·', marked.Text);
+        Assert.DoesNotContain('•', marked.Text);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class DiffRowRendererTests
         var unicode = DiffRowRenderer.Render(row, 20, 3, null, false, GraphGlyphSet.Unicode, null, true);
         var ascii = DiffRowRenderer.Render(row, 20, 3, null, false, GraphGlyphSet.Ascii, null, true);
 
-        Assert.Contains("end␍", unicode.Text, StringComparison.Ordinal);
+        Assert.Contains("end¶", unicode.Text, StringComparison.Ordinal);
         Assert.Contains("end<", ascii.Text, StringComparison.Ordinal);
     }
 
@@ -272,7 +272,7 @@ public class DiffRowRendererTests
         Assert.Contains("abcdefgh", texts[0].Text, StringComparison.Ordinal);
         Assert.Contains("→", texts[1].Text, StringComparison.Ordinal);
         Assert.Equal(SegmentRole.Faint, texts[1].Segments.First(segment => segment.Text.StartsWith('→')).Role);
-        Assert.Equal(SegmentRole.Faint, texts[^1].Segments.First(segment => segment.Text.Contains('·')).Role);
+        Assert.Equal(SegmentRole.Faint, texts[^1].Segments.First(segment => segment.Text.Contains('•')).Role);
         var plain = Enumerable.Range(0, texts.Count)
             .Select(segment => DiffRowRenderer.RenderSegment(row, segment, width, 3, null, false, Glyphs))
             .ToList();
@@ -287,7 +287,7 @@ public class DiffRowRendererTests
         var marked = DiffRowRenderer.Render(row, 40, 3, null, false, Glyphs, null, true);
 
         Assert.Equal(40, TextWidth.Of(marked.Text));
-        Assert.DoesNotContain('·', marked.Text);
+        Assert.DoesNotContain('•', marked.Text);
     }
 
     [Fact]
@@ -308,6 +308,6 @@ public class DiffRowRendererTests
 
         var marked = DiffRowRenderer.Render(row, 20, 3, null, false, Glyphs, null, true);
 
-        Assert.Contains("x··␍", marked.Text, StringComparison.Ordinal);
+        Assert.Contains("x••¶", marked.Text, StringComparison.Ordinal);
     }
 }
