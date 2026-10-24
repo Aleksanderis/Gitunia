@@ -117,16 +117,13 @@ public static class DetailContentBuilder
         if (details is not null)
         {
             AddPeople(rows, details);
-            if (details.IsStash)
-            {
-                // The parents of a stash commit are internal (base, index, untracked files): not listed.
-            }
-            else if (details.IsComparison)
+            if (details.IsComparison)
             {
                 rows.Add(Labelled("compare", new StyledSegment(CompareText(details), SegmentRole.Hash)));
             }
-            else
+            else if (!details.IsStash)
             {
+                // The parents of a stash commit are internal (base, index, untracked files): not listed.
                 AddParents(rows, details);
             }
 

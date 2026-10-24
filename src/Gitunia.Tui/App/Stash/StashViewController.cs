@@ -94,7 +94,13 @@ public sealed class StashViewController(
         if (current is null)
         {
             session.StashView.Shown = null;
-            statuses.Warning($"{shown.Name} is no longer in the stash list");
+
+            // A drop or pop from this app already reported the stash by name (with the restore command): keep that.
+            if (statuses.Current?.Text.Contains(shown.Name, StringComparison.Ordinal) != true)
+            {
+                statuses.Warning($"{shown.Name} is no longer in the stash list");
+            }
+
             reselectGraphCommit();
         }
         else if (current != shown)

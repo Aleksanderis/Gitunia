@@ -274,6 +274,10 @@ public sealed class SidebarActionHandler(
             {
                 FocusPane(tab, PaneKind.Detail);
             }
+            else
+            {
+                Message = $"{row.Label} is shown, but the detail pane is hidden at this size";
+            }
 
             return;
         }

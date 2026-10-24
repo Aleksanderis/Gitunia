@@ -107,6 +107,35 @@ public class StashViewTests
     }
 
     [Fact]
+    public async Task GivenAShownStashWasDroppedByTheApp_WhenTheStackReloads_ThenTheRestoreHintStaysInTheStatusBar()
+    {
+        using var repository = TestRepositories.WithStash();
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
+        harness.Select("stash@{0}");
+        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        await harness.WaitForDetailsAsync();
+        harness.Statuses.Post("Dropped stash@{0} (abc); undo: git stash store -m wip abc");
+
+        harness.Send(new StashesLoadedCommand([]));
+
+        Assert.Null(StashViewController.ShownName(harness.Session));
+        Assert.StartsWith("Dropped stash@{0}", harness.Statuses.Current!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheDetailPaneIsHidden_WhenPressingEnterOnAStash_ThenAMessageSaysSo()
+    {
+        using var repository = TestRepositories.WithStash();
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
+        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+        harness.Select("stash@{0}");
+
+        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
+
+        Assert.Contains("detail pane is hidden", harness.Handler.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenAShownStash_WhenANewStashPushesItDown_ThenThePaneKeepsThatStashUnderItsNewName()
     {
         using var repository = TestRepositories.WithStash();
