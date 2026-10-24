@@ -39,7 +39,7 @@ public class DiffSplitRendererTests
             document, line, 0, 41, Digits, null, false, false, Glyphs, showWhitespace: true).Text;
 
         Assert.Contains("a→  b", marked, StringComparison.Ordinal);
-        Assert.Contains("c··", marked, StringComparison.Ordinal);
+        Assert.Contains("c••", marked, StringComparison.Ordinal);
         Assert.Equal(TextWidth.Of(plain), TextWidth.Of(marked));
     }
 

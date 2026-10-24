@@ -33,10 +33,10 @@ public sealed record GraphGlyphSet(
     public char TabMark => IsAscii ? '>' : '→';
 
     /// <summary>Drawn in place of a trailing space when whitespace is shown.</summary>
-    public char SpaceMark => IsAscii ? '.' : '·';
+    public char SpaceMark => IsAscii ? '.' : '•';
 
     /// <summary>Drawn in place of a carriage return when whitespace is shown.</summary>
-    public char CarriageReturnMark => IsAscii ? '<' : '␍';
+    public char CarriageReturnMark => IsAscii ? '<' : '¶';
 
     /// <summary>A horizontal connection.</summary>
     public char Horizontal => Lines[(int)(LineDirections.Left | LineDirections.Right)];
