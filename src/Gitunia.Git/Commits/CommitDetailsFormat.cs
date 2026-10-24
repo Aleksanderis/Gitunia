@@ -13,7 +13,18 @@ public static class CommitDetailsFormat
 
     private const string RootOption = "--root";
 
-    private static readonly string[] FileFixedArguments = ["diff-tree", "-r", GitOptions.NulTerminated, "--raw", "--no-abbrev", "--no-commit-id", "--find-renames", "--find-copies"];
+    private static readonly string[] RenameArguments =
+    [
+        "diff-tree",
+        "-r",
+        GitOptions.NulTerminated,
+        "--raw",
+        "--no-abbrev",
+        "--no-commit-id",
+        "--find-renames",
+    ];
+
+    private static readonly string[] FileFixedArguments = [.. RenameArguments, "--find-copies"];
 
     /// <summary>Arguments for the metadata of one commit.</summary>
     public static IReadOnlyList<string> MetadataArguments(ObjectId id) =>
@@ -35,5 +46,14 @@ public static class CommitDetailsFormat
     public static IReadOnlyList<string> FileArguments(ObjectId id, ObjectId? firstParent)
     {
         return [.. FileFixedArguments, firstParent is { } parent ? parent.ToString() : RootOption, id.ToString()];
+    }
+
+    /// <summary>
+    /// Like <see cref="FileArguments"/> but detecting renames only, as <c>git stash show</c> does (a staged copy of a
+    /// modified file is an addition there).
+    /// </summary>
+    public static IReadOnlyList<string> RenameOnlyFileArguments(ObjectId id, ObjectId? firstParent)
+    {
+        return [.. RenameArguments, firstParent is { } parent ? parent.ToString() : RootOption, id.ToString()];
     }
 }
