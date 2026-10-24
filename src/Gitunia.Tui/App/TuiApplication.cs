@@ -966,6 +966,11 @@ public sealed class TuiApplication(
             return new BranchSelection(row.Kind, row.Label, row.CommitHash);
         }
 
+        if (inSidebar && _sidebar.CursorRow is { Kind: SidebarRowKind.Folder, Section: SidebarSection.Branches } folder)
+        {
+            return new BranchSelection(SidebarRowKind.Folder, SidebarFolders.PathOf(folder), null);
+        }
+
         return new BranchSelection(null, null, SelectedCommitHash());
     }
 

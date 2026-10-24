@@ -16,4 +16,7 @@ public enum BranchPromptKind
 
     /// <summary>Choosing the remote branch that becomes the upstream.</summary>
     Upstream,
+
+    /// <summary>Choosing which of several local branches (a folder, a graph commit) to delete.</summary>
+    Delete,
 }

@@ -651,6 +651,98 @@ public class BranchActionsTests
     }
 
     [Fact]
+    public async Task GivenAGraphCommitWithTwoBranches_WhenDeleting_ThenAListOpensAndTheChosenOneIsDeleted()
+    {
+        using var repository = RepositoryWithTopic().Branch("second");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Head));
+
+        harness.Run(ActionIds.BranchDelete);
+
+        Assert.Contains("Delete branch", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
+        var first = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal));
+        harness.Press("j");
+        var second = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal));
+        Assert.NotEqual(first, second);
+        harness.Press("k");
+        harness.Press("l");
+        harness.Press("h");
+        harness.Press("l");
+        var chosen = harness.Branches.Popup!.Details.Single(row => row.StartsWith("> ", StringComparison.Ordinal))[2..];
+        harness.Run(ActionIds.InputAccept);
+
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains(chosen, prompt.Lines[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAFolderRow_WhenDeleting_ThenOnlyItsBranchesAreListedAndTheOneChosenIsDeleted()
+    {
+        using var repository = RepositoryWithTopic().Branch("feature/a").Branch("feature/b").Branch("other");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Folder, "feature", null));
+
+        harness.Run(ActionIds.BranchDelete);
+        var rows = harness.Branches.Popup!.Details;
+        Assert.Equal(["> feature/a", "  feature/b"], rows);
+        harness.Press("j");
+        harness.Run(ActionIds.InputAccept);
+        harness.Answer();
+        await harness.FinishAsync();
+
+        Assert.Equal(string.Empty, repository.Git("branch", "--list", "feature/b").Trim());
+        Assert.NotEqual(string.Empty, repository.Git("branch", "--list", "feature/a").Trim());
+        Assert.NotEqual(string.Empty, repository.Git("branch", "--list", "other").Trim());
+    }
+
+    [Fact]
+    public async Task GivenAFolderWithOneBranch_WhenDeleting_ThenTheConfirmOpensAtOnce()
+    {
+        using var repository = RepositoryWithTopic().Branch("feature/a");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Folder, "feature", null));
+
+        harness.Run(ActionIds.BranchDelete);
+
+        Assert.Contains("feature/a", Assert.Single(harness.Prompts).Lines[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheDeleteListOnTheCurrentBranch_WhenAccepting_ThenItIsRefusedWithoutADialog()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Head));
+        harness.Run(ActionIds.BranchDelete);
+        var current = harness.Branches.Popup!.Details.Count(row => row.EndsWith("main", StringComparison.Ordinal));
+        Assert.Equal(1, current);
+        if (!harness.Branches.Popup!.Details[0].EndsWith("main", StringComparison.Ordinal))
+        {
+            harness.Press("j");
+        }
+
+        harness.Run(ActionIds.InputAccept);
+
+        Assert.Contains("main is checked out", harness.Branches.Notice, StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
+    public async Task GivenTheDeleteList_WhenEscaping_ThenNothingIsDeleted()
+    {
+        using var repository = RepositoryWithTopic().Branch("second");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, repository.Head));
+        harness.Run(ActionIds.BranchDelete);
+
+        harness.Run(ActionIds.Cancel);
+
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
+        Assert.Empty(harness.Prompts);
+    }
+
+    [Fact]
     public async Task GivenAnUnmergedBranch_WhenDeleting_ThenASecondDialogIsNeededAndDecliningKeepsTheBranch()
     {
         using var repository = RepositoryWithTopic()
@@ -1110,6 +1202,8 @@ public class BranchActionsTests
         public void Select(BranchSelection selection) => _selection = selection;
 
         public void Run(ActionId action) => Assert.True(Branches.TryExecute(action, null), action.Value);
+
+        public void Press(string key) => Assert.True(Branches.HandleTextKey(new KeyEvent(key)));
 
         public void Type(string text)
         {

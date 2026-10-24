@@ -110,6 +110,16 @@ public class SidebarBuilderTests
     }
 
     [Fact]
+    public void GivenAFolderRow_WhenAskingItsPath_ThenItIsTheBranchPrefixWithoutTheSection()
+    {
+        var tab = Tab(refs: [Branch("main", isCurrent: true), Branch("feature/ui/a"), Branch("feature/ui/b")]);
+
+        var folder = SidebarBuilder.Build(tab).Single(row => row.IsFolder);
+
+        Assert.Equal("feature/ui", SidebarFolders.PathOf(folder));
+    }
+
+    [Fact]
     public void GivenBranchBelowFolders_WhenAskingTheFullName_ThenItIsTheWholeRefAndSectionsAndFoldersHaveNone()
     {
         var tab = Tab(refs: [Branch("feature/ui/x", isCurrent: true), Branch("feature/z")]);

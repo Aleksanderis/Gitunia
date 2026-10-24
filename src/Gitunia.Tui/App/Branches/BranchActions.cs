@@ -68,6 +68,7 @@ public sealed class BranchActions(
     private IReadOnlyList<SwitchCandidate> _candidates = [];
     private int _index;
     private IReadOnlySet<string>? _onlyBranches;
+    private List<string> _deleteNames = [];
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -83,6 +84,7 @@ public sealed class BranchActions(
                 _text,
                 "create"),
             BranchPromptKind.Rename => PromptPopup.ForText("Rename branch", _label, _text, "rename"),
+            BranchPromptKind.Delete => DeletePopup(),
             BranchPromptKind.Upstream => PromptPopup.ForFilter(
                 "Set upstream", $"Upstream of {_label}", _text, UpstreamDetail(), "set"),
             _ => PromptPopup.ForFilter("Switch branch", "Branch to check out", _text, SwitchDetail(), "switch"),
@@ -128,7 +130,7 @@ public sealed class BranchActions(
                 return false;
             }
 
-            Notice = BeginOperation(tab) ?? AskDelete(tab);
+            Notice = BeginOperation(tab) ?? BeginDelete(tab);
         }
         else if (action == ActionIds.BranchSetUpstream)
         {
@@ -159,7 +161,15 @@ public sealed class BranchActions(
         }
 
         var normalized = key.Normalize();
-        if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && IsMove(normalized, out var step))
+        if (_kind == BranchPromptKind.Delete)
+        {
+            // A list without a text field: j/k/h/l and the arrows move, so no letter is swallowed by a filter.
+            if (IsMove(normalized, out var move) || IsLetterMove(normalized, out move))
+            {
+                _index = (_index + move + _deleteNames.Count) % _deleteNames.Count;
+            }
+        }
+        else if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && IsMove(normalized, out var step))
         {
             _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
         }
@@ -240,6 +250,17 @@ public sealed class BranchActions(
             step = 1;
         }
 
+        return step != 0;
+    }
+
+    private static bool IsLetterMove(KeyEvent key, out int step)
+    {
+        step = key.Modifiers == KeyModifiers.None ? key.Name switch
+        {
+            "j" or "l" => 1,
+            "k" or "h" => -1,
+            _ => 0,
+        } : 0;
         return step != 0;
     }
 
@@ -560,6 +581,7 @@ public sealed class BranchActions(
             BranchPromptKind.Create => AcceptCreate(tab, text),
             BranchPromptKind.Rename => AcceptRename(tab, text),
             BranchPromptKind.Upstream => AcceptUpstream(tab),
+            BranchPromptKind.Delete => AcceptDelete(tab),
             _ => AcceptSwitch(tab),
         };
     }
@@ -672,14 +694,77 @@ public sealed class BranchActions(
     private static bool HasLocalBranch(RepositoryState tab, string name) =>
         tab.Refs.Any(reference => reference.Kind == RefKind.LocalBranch && reference.Name == name);
 
-    private string AskDelete(RepositoryState tab)
+    // The branch under the cursor goes to the Confirm dialog; a folder or a graph commit with several branches opens a
+    // list to pick from first.
+    private string BeginDelete(RepositoryState tab)
     {
-        if (ResolveLocalBranch(tab, out var branch) is { } refusal)
+        var chosen = selection();
+        var names = DeleteChoices(tab, chosen);
+        if (names.Count > 1)
         {
-            return refusal;
+            _deleteNames = names;
+            _index = 0;
+            _label = chosen.RowKind == SidebarRowKind.Folder ? $"{chosen.Name}/" : ShortHash(chosen.CommitHash ?? string.Empty);
+            Open(BranchPromptKind.Delete, tab, string.Empty);
+            return string.Empty;
         }
 
-        if (branch!.IsCurrent)
+        if (chosen.RowKind == SidebarRowKind.Folder)
+        {
+            return names.Count == 0
+                ? $"No local branch in {chosen.Name}/"
+                : AskDelete(tab, tab.Refs.First(reference => IsLocal(reference, names[0])));
+        }
+
+        return ResolveLocalBranch(tab, out var branch) is { } refusal ? refusal : AskDelete(tab, branch!);
+    }
+
+    private static bool IsLocal(GitRef reference, string name) =>
+        reference.Kind == RefKind.LocalBranch && reference.Name == name;
+
+    // The local branches a folder row holds, or those on the selected graph commit when the cursor is not a sidebar row.
+    private static List<string> DeleteChoices(RepositoryState tab, BranchSelection chosen)
+    {
+        var locals = tab.Refs.Where(reference => reference.Kind == RefKind.LocalBranch);
+        if (chosen.RowKind == SidebarRowKind.Folder)
+        {
+            var prefix = $"{chosen.Name}/";
+            return [.. locals.Where(reference => reference.Name.StartsWith(prefix, StringComparison.Ordinal))
+                .Select(reference => reference.Name)];
+        }
+
+        return chosen.RowKind is null && chosen.CommitHash is { } hash
+            ? [.. locals.Where(reference => reference.CommitHash == hash).Select(reference => reference.Name)]
+            : [];
+    }
+
+    private PromptPopup DeletePopup()
+    {
+        const int visible = 8;
+        var first = Math.Clamp(_index - visible / 2, 0, Math.Max(0, _deleteNames.Count - visible));
+        var rows = _deleteNames.Skip(first).Take(visible)
+            .Select((name, offset) => $"{(first + offset == _index ? "> " : "  ")}{name}")
+            .ToList();
+        var position = $"({(_index + 1).ToString(CultureInfo.InvariantCulture)}/" +
+            $"{_deleteNames.Count.ToString(CultureInfo.InvariantCulture)})";
+        return new PromptPopup(
+            "Delete branch",
+            [$"Branch to delete at {_label} {position}"],
+            null,
+            rows,
+            "Enter delete   j/k/h/l select   Esc cancel");
+    }
+
+    private string AcceptDelete(RepositoryState tab)
+    {
+        var name = _index < _deleteNames.Count ? _deleteNames[_index] : null;
+        var branch = tab.Refs.FirstOrDefault(reference => name is not null && IsLocal(reference, name));
+        return branch is null ? "That branch is gone: nothing was deleted" : AskDelete(tab, branch);
+    }
+
+    private string AskDelete(RepositoryState tab, GitRef branch)
+    {
+        if (branch.IsCurrent)
         {
             return $"{branch.Name} is checked out: switch to another branch first";
         }
