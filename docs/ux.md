@@ -814,7 +814,7 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
 | Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `l` or the menu's Open details row |
-| Detail | Click | `detail.toggle-folder` | Open or close the folder row under the pointer (Changes tab, tree style; nothing on other tabs and styles; the row is selected as usual, so the diff follows; a click on a file only selects it, and the clicks of a double-click toggle twice before it opens the diff) |
+| Detail | Click | `detail.toggle-folder` | Open or close the folder row under the pointer (Changes tab, tree style; nothing on other tabs and styles; the row is selected as usual, so the diff follows; a click on a file only selects it, and a double-click undoes the toggle of its first click, then opens the diff, #622) |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory, or focus the file's content; Details tab: open the issue link on the line, if any) |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph |
 | Tabs | Click | `tab.next` | Switch to the clicked tab (same as `3gt` with the tab's number); closes an open picker |
