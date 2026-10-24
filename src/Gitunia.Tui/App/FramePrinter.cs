@@ -67,10 +67,16 @@ public sealed class FramePrinter
         arrangement ??= PaneArrangement.Normal;
         if (tab == BottomTab.Changes && PaneLayout.ShowsDiffWithChanges(width, height, tab))
         {
-            arrangement = arrangement with { IsDiffOpen = true };
+            // A zoomed detail or diff pane zooms with its partner, as in the live UI (#632, #642).
+            arrangement = arrangement with
+            {
+                IsDiffOpen = true,
+                ZoomBoth = arrangement.Zoomed is { } zoomed && PaneZoom.IsZoomPair(zoomed, PaneKind.Diff),
+            };
         }
 
-        var diff = arrangement.IsDiffOpen && arrangement.Zoomed is null or PaneKind.Diff && selected is not null
+        var diffVisible = arrangement.Zoomed is null or PaneKind.Diff || arrangement.ZoomBoth;
+        var diff = arrangement.IsDiffOpen && diffVisible && selected is not null
             ? await ReadDiffAsync(location, selected, detailState, cancellationToken)
             : null;
         var treeView = tab == BottomTab.Files && selected is not null
