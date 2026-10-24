@@ -16,6 +16,7 @@ public static class WorkingListTitleButtons
     private const string StageAllLabel = "stage all";
     private const string UnstageAllLabel = "unstage all";
     private const string ResolveLabel = "resolve";
+    private const string DiffLabel = "diff ›";
 
     // The title row starts with a stretch of line and the title chip (" title ", padded), then at least one column of line follows it.
     private const int TitleOverhead = 4;
@@ -29,8 +30,14 @@ public static class WorkingListTitleButtons
     /// <param name="title">The title text of the list.</param>
     /// <param name="paneWidth">Columns of the list's content.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    /// <param name="hasDiffButton">The <c>diff ›</c> chip is shown (narrow screen); it keeps its place before this chip.</param>
     /// <returns>The chip, with its start column counted from the first content column.</returns>
-    public static TitleButton? ViewButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys)
+    public static TitleButton? ViewButton(
+        WorkingTreeSection section,
+        string title,
+        int paneWidth,
+        ChipKeys? keys,
+        bool hasDiffButton = false)
     {
         // The stage all key goes before the view chip does: it is dropped when that is what keeps the chip.
         foreach (var showStageKey in (bool[])[true, false])
@@ -39,6 +46,11 @@ public static class WorkingListTitleButtons
 
             // One column of line stays between the two chips, or between the chip and the corner of the box.
             var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
+            if (hasDiffButton)
+            {
+                rightEdge = DiffButton(section, title, paneWidth, keys, showStageKey)?.Start - 1 ?? rightEdge;
+            }
+
             var chip = ViewChip.Layout(
                 DefaultMouseMap.ListViewButton,
                 section == WorkingTreeSection.Staged
@@ -62,13 +74,15 @@ public static class WorkingListTitleButtons
     /// <param name="title">The title text of the list.</param>
     /// <param name="paneWidth">Columns of the list's content.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    /// <param name="hasDiffButton">The <c>diff ›</c> chip is shown (narrow screen).</param>
     /// <returns>The chip, with its start column counted from the first content column.</returns>
-    public static TitleButton? ResolveButton(string title, int paneWidth, ChipKeys? keys)
+    public static TitleButton? ResolveButton(string title, int paneWidth, ChipKeys? keys, bool hasDiffButton = false)
     {
         var section = WorkingTreeSection.Unstaged;
         var stageStart = Layout(section, title, paneWidth, keys)?.Start ?? paneWidth;
-        var viewStart = ViewButton(section, title, paneWidth, keys)?.Start ?? paneWidth;
-        var rightEdge = Math.Min(stageStart, viewStart) - 1;
+        var viewStart = ViewButton(section, title, paneWidth, keys, hasDiffButton)?.Start ?? paneWidth;
+        var diffStart = hasDiffButton ? DiffButton(section, title, paneWidth, keys)?.Start ?? paneWidth : paneWidth;
+        var rightEdge = Math.Min(Math.Min(stageStart, viewStart), diffStart) - 1;
         var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListResolveButton, DefaultKeymap.WorkingUnstagedView);
         var earliest = TextWidth.Of(title) + TitleOverhead + 1;
         var candidates = (TitleButton[])
@@ -77,6 +91,46 @@ public static class WorkingListTitleButtons
             KeyedChip.Plain(DefaultMouseMap.ListResolveButton, ResolveLabel),
         ];
         foreach (var candidate in candidates)
+        {
+            var start = rightEdge - candidate.Width;
+            if (start >= earliest)
+            {
+                return candidate with { Start = start };
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The <c>diff ›</c> chip of a list on a screen too narrow to show the diff beside it (the mouse path of
+    /// <c>Enter</c> / <c>l</c>, #376), left of the stage all button and ahead of the other chips, or null when the title
+    /// row has no room for it. The caller shows it only while the diff is not on screen.</summary>
+    /// <param name="section">The list.</param>
+    /// <param name="title">The title text of the list.</param>
+    /// <param name="paneWidth">Columns of the list's content.</param>
+    /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
+    /// <returns>The chip, with its start column counted from the first content column.</returns>
+    public static TitleButton? DiffButton(WorkingTreeSection section, string title, int paneWidth, ChipKeys? keys) =>
+        DiffButton(section, title, paneWidth, keys, true) ?? DiffButton(section, title, paneWidth, keys, false);
+
+    // The stage all key goes before the diff chip loses its key or its place.
+    private static TitleButton? DiffButton(
+        WorkingTreeSection section,
+        string title,
+        int paneWidth,
+        ChipKeys? keys,
+        bool showStageKey)
+    {
+        var stage = Layout(section, title, paneWidth, keys, showStageKey);
+        var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
+        var view = section == WorkingTreeSection.Staged
+            ? DefaultKeymap.WorkingStagedView
+            : DefaultKeymap.WorkingUnstagedView;
+        var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListDiffButton, view);
+        var earliest = TextWidth.Of(title) + TitleOverhead + 1;
+        var keyed = KeyedChip.Keyed(DefaultMouseMap.ListDiffButton, DiffLabel, key);
+        var plain = KeyedChip.Plain(DefaultMouseMap.ListDiffButton, DiffLabel);
+        foreach (var candidate in (TitleButton[])[keyed, plain])
         {
             var start = rightEdge - candidate.Width;
             if (start >= earliest)
