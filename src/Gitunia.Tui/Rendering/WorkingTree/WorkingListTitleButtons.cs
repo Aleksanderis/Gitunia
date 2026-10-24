@@ -66,11 +66,9 @@ public static class WorkingListTitleButtons
     public static TitleButton? ResolveButton(string title, int paneWidth, ChipKeys? keys)
     {
         var section = WorkingTreeSection.Unstaged;
-        var rightEdge = new[]
-        {
-            Layout(section, title, paneWidth, keys)?.Start,
-            ViewButton(section, title, paneWidth, keys)?.Start,
-        }.Where(start => start is not null).Min() - 1 ?? paneWidth - EndGap;
+        var stageStart = Layout(section, title, paneWidth, keys)?.Start ?? paneWidth;
+        var viewStart = ViewButton(section, title, paneWidth, keys)?.Start ?? paneWidth;
+        var rightEdge = Math.Min(stageStart, viewStart) - 1;
         var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListResolveButton, DefaultKeymap.WorkingUnstagedView);
         var earliest = TextWidth.Of(title) + TitleOverhead + 1;
         var candidates = (TitleButton[])

@@ -4,8 +4,8 @@ using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
-using Gitunia.Git.Status.Models;
 using Gitunia.Core.Workspaces.Tabs;
+using Gitunia.Tui.App.Conflicts;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Files;
 using Gitunia.Tui.Rendering.Diff;
@@ -577,15 +577,9 @@ public sealed class MainView : IDisposable
         Visible = false,
     };
 
-    // The title row of a file list is the top edge of its box, one row above the list; the button sits at its right end and is the
-    // mouse path of stage all / unstage all. It has no width when the title leaves no room for it.
-    private enum ListButtonKind
-    {
-        StageAll,
-        View,
-        Resolve,
-    }
-
+    // The title row of a file list is the top edge of its box, one row above the list; its buttons are the mouse
+    // path of stage all / unstage all, the view dropdown and (Unstaged, on a conflicted file) resolve. A button has
+    // no width when the title leaves no room for it.
     private LineView CreateListButton(WorkingTreeSection section, PaneListView list, ListButtonKind kind)
     {
         var view = new LineView(_ => ListButton(section, kind) is { } button
@@ -633,9 +627,7 @@ public sealed class MainView : IDisposable
     }
 
     // The resolve chip shows while the Unstaged list's cursor is on a conflicted file (the row <space>to opens).
-    private bool IsConflictedUnderCursor() =>
-        UnstagedSource.Tree is { Selection: { Section: WorkingTreeSection.Unstaged, IsFolder: false } selection } tree
-        && tree.Unstaged.Any(entry => entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged);
+    private bool IsConflictedUnderCursor() => ConflictedSelection.Find(UnstagedSource.Tree) is not null;
 
     private PaneRect ListRect(WorkingTreeSection section) =>
         section == WorkingTreeSection.Staged ? WorkingRects().Staged : WorkingRects().Unstaged;

@@ -432,10 +432,8 @@ public sealed class ConflictEditorController(
 
     private static StatusEntry? ConflictedUnderCursor(RepositoryState tab) =>
         tab.View.FocusedPane == PaneKind.WorkingUnstaged
-        && tab.WorkingTree is { Selection: { Section: WorkingTreeSection.Unstaged, IsFolder: false } selection } tree
-            ? tree.Unstaged.FirstOrDefault(entry =>
-                entry.Path == selection.Path && entry.Kind == StatusEntryKind.Unmerged)
-            : null;
+        ? ConflictedSelection.Find(tab.WorkingTree)
+        : null;
 
     private static string Describe(ConflictKind kind) => kind switch
     {
