@@ -554,7 +554,7 @@ public sealed class ConflictEditorController(
         try
         {
             await recreator.RecreateAsync(tab.Location, state.Path, token).ConfigureAwait(false);
-            var fresh = await reader.ReadAsync(tab.Location, state.Path, token).ConfigureAwait(false);
+            var fresh = await ReadAfterRecreateAsync(tab.Location, state.Path, token).ConfigureAwait(false);
             postToUi(() => Recreated(tab.Id, state, fresh));
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -565,6 +565,22 @@ public sealed class ConflictEditorController(
         {
             var text = $"Could not re-create the conflict of {name}: {OperationText.Reason(exception)}";
             postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state, false));
+        }
+    }
+
+    // The file is already rewritten when this runs, so a failed read is reported as such, not as a failed re-create.
+    private async Task<ConflictReadResult> ReadAfterRecreateAsync(
+        RepositoryLocation location,
+        string path,
+        CancellationToken token)
+    {
+        try
+        {
+            return await reader.ReadAsync(location, path, token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return ConflictReadResult.Unsupported($"it could not be read: {OperationText.Reason(exception)}");
         }
     }
 
@@ -582,6 +598,8 @@ public sealed class ConflictEditorController(
         refresh(tabId);
         if (State is null)
         {
+            statuses.Post($"Re-created the conflict of {name}");
+
             return;
         }
 

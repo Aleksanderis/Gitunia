@@ -347,13 +347,13 @@ public static class ConflictEditorFrameBuilder
     private static string ResultHeader(ConflictEditorState state) => state.IsEditing
         ? "result  editing"
         : state.SelectedPick switch
-    {
-        ConflictPick.Edited => "result  edited by you",
-        ConflictPick.Ours => "result  our side",
-        ConflictPick.Theirs => "result  their side",
-        ConflictPick.Both => "result  both sides, ours first",
-        _ => "result  unresolved: the conflict markers stay in the file",
-    };
+        {
+            ConflictPick.Edited => "result  edited by you",
+            ConflictPick.Ours => "result  our side",
+            ConflictPick.Theirs => "result  their side",
+            ConflictPick.Both => "result  both sides, ours first",
+            _ => "result  unresolved: the conflict markers stay in the file",
+        };
 
     // One token per hunk, the one under the cursor in brackets: `1 ours  [2 -]  3 both`.
     private static StyledLine StripLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
