@@ -58,6 +58,7 @@ public static class ConflictEditorFrameBuilder
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
     private const string EditingHint = "Esc or Alt-Enter keeps the text, Enter adds a line; undo takes it back";
+    private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
     private static readonly ConflictEditorChip[] Chips =
@@ -91,6 +92,14 @@ public static class ConflictEditorFrameBuilder
     [
         new("Alt-Enter", "keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
+
+    /// <summary>True when a screen is wide enough for ours, the base and theirs side by side.</summary>
+    public static bool IsThreePaneWidth(int screenWidth)
+    {
+        var width = Math.Min(MaximumWidth, screenWidth - HorizontalMargin);
+
+        return width >= ThreePaneFromWidth;
+    }
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
     public static OverlayFrame? Build(
@@ -308,7 +317,7 @@ public static class ConflictEditorFrameBuilder
         var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
         var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
         var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
-        var common = hunk.Base is null ? new SideText([NoBaseText], true) : SideText.Of(hunk.Base);
+        var common = hunk.Base is null ? new SideText([NoBasePaneText], true) : SideText.Of(hunk.Base);
         lines.Add(JoinedThree(
             Cell(SideTitle("ours", hunk.OursLabel, ours, plan), oursWidth, SegmentRole.LocalBranch, glyphs),
             Cell(SideTitle("base", "common ancestor", common, plan), baseWidth, SegmentRole.SectionTitle, glyphs),
@@ -416,17 +425,16 @@ public static class ConflictEditorFrameBuilder
 
     private static string SideTitle(string name, string label, SideText side, Plan plan)
     {
-        var title = $"{name}  {label}";
         if (side.IsEmpty || side.Lines.Count <= plan.SideRows)
         {
-            return title;
+            return $"{name}  {label}";
         }
 
         var last = Math.Min(side.Lines.Count, plan.Scroll + plan.SideRows);
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{title}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})");
+            $"{name}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})  {label}");
     }
 
     private static StyledLine NumberedCell(SideText side, int line, int width, Plan plan, GraphGlyphSet glyphs)

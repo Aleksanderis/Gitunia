@@ -510,6 +510,35 @@ public class ConflictEditorFrameBuilderTests
             && line.Text.Contains("base6", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void GivenAScrolledBaseWithALongLabelInThreePanes_WhenRendering_ThenTheRangeSurvivesInEveryHeader()
+    {
+        var lines = string.Join('\n', Enumerable.Range(1, 40).Select(number => $"line{number}"));
+        var label = "feature/726-three-pane-editor";
+        var text = $"<<<<<<< {label}\n{lines}\n||||||| base\n{lines}\n=======\n{lines}\n>>>>>>> f\n";
+        var state = State(text);
+
+        var frame = ConflictEditorFrameBuilder.Build(
+            state with { SideScroll = 5 },
+            120,
+            30,
+            GraphGlyphSet.Unicode)!;
+
+        var header = frame.Lines
+            .Select(line => line.Text)
+            .First(line => line.Contains("base  (lines", StringComparison.Ordinal));
+        Assert.Contains("ours  (lines 6-", header, StringComparison.Ordinal);
+        Assert.Contains("theirs  (lines 6-", header, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAHunkWithoutABaseInThreePanes_WhenRendering_ThenTheShortHintIsNotCut()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(frame.Lines, line => line.Text.Contains("diff3, then R)", StringComparison.Ordinal));
+    }
+
     private static int ChipLine(OverlayFrame frame, string chip) =>
         frame.Lines.ToList().FindIndex(line => line.Text.Contains(chip, StringComparison.Ordinal));
 
