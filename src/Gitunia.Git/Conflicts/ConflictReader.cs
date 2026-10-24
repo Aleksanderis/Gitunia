@@ -11,9 +11,13 @@ namespace Gitunia.Git.Conflicts;
 /// stage is add/add or delete/modify, and a symlink or submodule entry is not text; none of these is editable here.
 /// The hunks come from the file git left in the working tree, because its markers hold exactly the conflicting
 /// text of each side (and the base for diff3) and show what the user already changed by hand.
+/// A merge-style hunk gets its base from the three stages merged in memory
+/// (<see cref="ConflictBaseFinder"/>); the working-tree file is never rewritten.
 /// </summary>
 public sealed class ConflictReader(GitRunner runner) : IConflictReader
 {
+    private readonly ConflictBaseFinder _baseFinder = new(runner);
+
     /// <summary>The largest file that is read (the same cap as the Files tab).</summary>
     public const int MaximumBytes = BlobReader.MaximumBytes;
 
@@ -55,7 +59,14 @@ public sealed class ConflictReader(GitRunner runner) : IConflictReader
             return ConflictReadResult.Unsupported(reason);
         }
 
-        return await ReadFileAsync(Path.Combine(root, path), cancellationToken).ConfigureAwait(false);
+        var read = await ReadFileAsync(Path.Combine(root, path), cancellationToken).ConfigureAwait(false);
+        if (read.Kind != ConflictReadKind.Text)
+        {
+            return read;
+        }
+
+        var parts = await _baseFinder.FillAsync(location, path, read.Parts, cancellationToken).ConfigureAwait(false);
+        return ConflictReadResult.OfText(parts);
     }
 
     private static async Task<ConflictReadResult> ReadFileAsync(string fullPath, CancellationToken cancellationToken)
