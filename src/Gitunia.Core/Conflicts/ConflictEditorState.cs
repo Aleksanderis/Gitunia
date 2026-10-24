@@ -25,6 +25,10 @@ namespace Gitunia.Core.Conflicts;
 /// <param name="IsDiscardPending">The first <c>Esc</c> on an edited file was pressed; the next one closes it.</param>
 /// <param name="Edit">The open free-text edit of the hunk under the cursor, null when none.</param>
 /// <param name="IsBaseShown">The base (common ancestor) of the hunk under the cursor is shown.</param>
+/// <param name="SideScroll">
+/// The first line of our side, their side and the base that is shown; the three scroll together. The frame clamps it
+/// to what fits.
+/// </param>
 /// <param name="UndoStack">What <see cref="Undo"/> restores, the latest change last.</param>
 /// <param name="RedoStack">What <see cref="Redo"/> restores, the latest undone change last.</param>
 public sealed record ConflictEditorState(
@@ -38,6 +42,7 @@ public sealed record ConflictEditorState(
     bool IsDiscardPending = false,
     ConflictTextEdit? Edit = null,
     bool IsBaseShown = false,
+    int SideScroll = 0,
     IReadOnlyList<ConflictSnapshot>? UndoStack = null,
     IReadOnlyList<ConflictSnapshot>? RedoStack = null)
 {
@@ -101,7 +106,87 @@ public sealed record ConflictEditorState(
         {
             SelectedIndex = Hunks.Count == 0 ? 0 : Math.Clamp(index, 0, Hunks.Count - 1),
             IsDiscardPending = false,
+            SideScroll = 0,
         };
+
+    /// <summary>
+    /// Scrolls the side panes (ours, theirs and the base together) by <paramref name="delta"/> lines, from the
+    /// position that is drawn, never past <paramref name="maximum"/> (the largest scroll the screen allows).
+    /// </summary>
+    public ConflictEditorState ScrollSides(int delta, int maximum) => IsEditing || Hunks.Count == 0
+        ? this
+        : this with { SideScroll = Math.Clamp(Math.Min(SideScroll, maximum) + delta, 0, Math.Max(0, maximum)) };
+
+    /// <summary>
+    /// Scrolls the side panes to the next line where our side and their side differ, below the first line shown; a
+    /// run of differing lines counts once; never past <paramref name="maximum"/>, the largest scroll the screen
+    /// allows. Lines are compared row by row, so a line inserted on one side makes the rows after it differ. Stays
+    /// put when there is none.
+    /// </summary>
+    public ConflictEditorState NextDifference(int maximum)
+    {
+        var starts = DifferenceStarts();
+        var next = starts.Where(start => start > Math.Min(SideScroll, maximum)).Cast<int?>().FirstOrDefault();
+
+        return next is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
+    }
+
+    /// <summary>
+    /// Scrolls the side panes to the previous line where the sides differ (see <see cref="NextDifference"/>).
+    /// </summary>
+    public ConflictEditorState PreviousDifference(int maximum)
+    {
+        var starts = DifferenceStarts();
+        var previous = starts.Where(start => start < Math.Min(SideScroll, maximum)).Cast<int?>().LastOrDefault();
+
+        return previous is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
+    }
+
+    /// <summary>
+    /// For each row of the hunk under the cursor, true where our side and their side differ (a row only one side has
+    /// counts); rows are compared by position.
+    /// </summary>
+    public IReadOnlyList<bool> DifferingRows()
+    {
+        if (Hunks.Count == 0)
+        {
+            return [];
+        }
+
+        var ours = Lines(Hunks[Index].Ours);
+        var theirs = Lines(Hunks[Index].Theirs);
+
+        return
+        [
+            .. Enumerable.Range(0, Math.Max(ours.Count, theirs.Count))
+                .Select(row => row >= ours.Count || row >= theirs.Count || ours[row] != theirs[row]),
+        ];
+    }
+
+    /// <summary>The line of the result file (counted from 1) where hunk <paramref name="index"/> starts.</summary>
+    public int ResultLineOf(int index)
+    {
+        var line = 1;
+        var hunk = 0;
+        foreach (var part in Parts)
+        {
+            if (part.Common is { } common)
+            {
+                line += Lines(common).Count;
+
+                continue;
+            }
+
+            if (hunk++ == index)
+            {
+                break;
+            }
+
+            line += Lines(ResultOf(hunk - 1)).Count;
+        }
+
+        return line;
+    }
 
     /// <summary>
     /// Takes <paramref name="pick"/> for the hunk under the cursor (<see cref="ConflictPick.None"/> makes it
@@ -277,6 +362,7 @@ public sealed record ConflictEditorState(
         Texts = snapshot.Texts,
         SelectedIndex = snapshot.SelectedIndex,
         IsDiscardPending = false,
+        SideScroll = 0,
     };
 
     // Records the state before the change for Undo and forgets what Redo could bring back.
@@ -289,6 +375,26 @@ public sealed record ConflictEditorState(
         var undo = (UndoStack ?? []).Append(Snapshot()).TakeLast(UndoLimit).ToList();
 
         return this with { Picks = picks, Texts = texts, UndoStack = undo, RedoStack = [], IsDiscardPending = false };
+    }
+
+    // The first line of each run of lines where the two sides differ, counted from the top of the hunk.
+    private List<int> DifferenceStarts()
+    {
+        var rows = DifferingRows();
+        var starts = new List<int>();
+        var wasDifferent = false;
+        for (var row = 0; row < rows.Count; row++)
+        {
+            var isDifferent = rows[row];
+            if (isDifferent && !wasDifferent)
+            {
+                starts.Add(row);
+            }
+
+            wasDifferent = isDifferent;
+        }
+
+        return starts;
     }
 
     private int PartIndexOf(int hunkIndex)

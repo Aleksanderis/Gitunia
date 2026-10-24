@@ -367,6 +367,10 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "e", ActionIds.ConflictEditorEdit);
         Add(bindings, NormalOnly, editor, "B", ActionIds.ConflictEditorBase);
         Add(bindings, NormalOnly, editor, "R", ActionIds.ConflictEditorRecreate);
+        Add(bindings, NormalOnly, editor, "]c", ActionIds.ConflictEditorNextDiff);
+        Add(bindings, NormalOnly, editor, "[c", ActionIds.ConflictEditorPreviousDiff);
+        Add(bindings, NormalOnly, editor, "Ctrl-d", ActionIds.ConflictEditorScrollDown);
+        Add(bindings, NormalOnly, editor, "Ctrl-u", ActionIds.ConflictEditorScrollUp);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
         Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.ConflictEditorEditNewLine);
         Add(bindings, [KeyMode.Insert], editor, "Alt-Enter", ActionIds.ConflictEditorEditDone);

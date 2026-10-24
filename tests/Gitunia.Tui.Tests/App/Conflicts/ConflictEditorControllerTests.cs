@@ -483,6 +483,55 @@ public class ConflictEditorControllerTests
         }
     }
 
+    [Fact]
+    public async Task GivenALongHunk_WhenScrollingAndJumping_ThenTheSidesScrollAndAnotherConflictResets()
+    {
+        using var repository = LongHunk();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorScrollDown);
+        var scrolled = harness.Controller.State!.SideScroll;
+        harness.Run(ActionIds.ConflictEditorScrollUp);
+        var back = harness.Controller.State!.SideScroll;
+        harness.Run(ActionIds.ConflictEditorNextDiff);
+        var jumped = harness.Controller.State!.SideScroll;
+        harness.Run(ActionIds.ConflictEditorNext);
+
+        Assert.True(scrolled > 0);
+        Assert.Equal(0, back);
+        Assert.Equal(2, jumped);
+        Assert.Equal(0, harness.Controller.State!.SideScroll);
+        Assert.NotNull(harness.Controller.CurrentFrame());
+    }
+
+    // Every other line from 5 to 35 changes; git joins changes separated by one line into a single conflict.
+    private static string Rewritten(string common, string prefix)
+    {
+        var lines = common.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        for (var number = 5; number <= 35; number += 2)
+        {
+            lines[number - 1] = $"{prefix}{number}";
+        }
+
+        return string.Concat(lines.Select(line => $"{line}\n"));
+    }
+
+    private static TestRepository LongHunk()
+    {
+        var common = string.Concat(Enumerable.Range(1, 40).Select(number => $"c{number}\n"));
+        var main = Rewritten(common, "main");
+        var other = Rewritten(common, "other");
+        var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile(ConflictPath, common))
+            .CheckoutNewBranch("other")
+            .Commit("Other", new TestFile(ConflictPath, other))
+            .Checkout("main")
+            .Commit("Main", new TestFile(ConflictPath, main));
+
+        return repository.MergeExpectingConflict("other");
+    }
+
     private static TestRepository TwoHunks()
     {
         var other = TwoHunkBase.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n");

@@ -283,7 +283,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 
 1. **Banner.** While an operation is in progress the tab shows a banner on the frame's bottom edge (the line under the panes, in the status bar's colours): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort` (a rebase adds `step 2/5` and `<space>gk skip`; a cherry-pick or revert of a range shows how many commits are left, `3 commits left`). The title names the merged branch (read from git's default merge message, so a custom message gives just `MERGING`), the rebased branch, or the short hash of the picked or reverted commit. Each key group is also a clickable chip (mouse views `BannerButton.*`). `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved). On a terminal under 10 rows the banner is dropped and an empty status message shows the same text. It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
 2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (graph) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item).
-2a. **Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list). A modal view of one conflict hunk at a time: our side and their side next to each other on top (the labels git wrote after the markers, `HEAD` and the branch), the result below it with up to two unconflicted lines around the hunk, a strip of every hunk with its pick (`1 ours  [2 -]  3 both`, the cursor in brackets, unresolved ones in the error colour), clickable chips for every key and a footer (`2 resolved  1 unresolved`). On a screen under 96 columns the two sides are stacked above the result; under about 15 rows or 22 columns nothing is drawn and the keys still work. Keys: `n`/`N` (or `j`/`k`, the wheel) next and previous hunk (wraps), `o` take ours, `t` take theirs, `b` take both (ours first), `r` reset the hunk to unresolved, `e` edit the result as text, `u` undo and `Ctrl-r` redo (every pick, reset and edit of the session is one step), `B` show the base, `R` re-create the conflict, `Enter` save, `Esc`/`h` close (a second `Esc` when picks would be lost). A hunk without a pick keeps its conflict markers in the result, so a partial save leaves the file conflicted exactly where nothing was decided.
+2a. **Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list). A modal view of one conflict hunk at a time: our side and their side next to each other on top (the labels git wrote after the markers, `HEAD` and the branch), the result below it (a rule separates the panes from the result) with up to two unconflicted lines around the hunk, line numbers in a gutter on the left of every pane (the lines of the result file, counted from the hunk; ours and theirs are numbered from where the hunk starts, the base has none; a line that differs from the other side in the same row is marked `-` (ours) or `+` (theirs) after its number and coloured like a removed or added diff line), a strip of every hunk with its pick (`1 ours  [2 -]  3 both`, the cursor in brackets, unresolved ones in the error colour), clickable key hints for every key (drawn like the status bar hints, the key in bold and then what it does) and a footer (`2 resolved  1 unresolved`). On a screen under 96 columns the two sides are stacked above the result; under about 15 rows or 22 columns nothing is drawn and the keys still work. Keys: `n`/`N` (or `j`/`k`, the wheel) next and previous conflict (wraps), `]c`/`[c` next and previous difference between ours and theirs inside the hunk (lines compared row by row, so a line inserted on one side makes the rows after it differ) and `Ctrl-d`/`Ctrl-u` scroll (a hunk longer than the panes: ours, theirs and the base always scroll together and the headers say `lines 3-8 of 40`; moving to another conflict scrolls back to the top), `o` take ours, `t` take theirs, `b` take both (ours first), `r` reset the hunk to unresolved, `e` edit the result as text, `u` undo and `Ctrl-r` redo (every pick, reset and edit of the session is one step), `B` show the base, `R` re-create the conflict, `Enter` save, `Esc`/`h` close (a second `Esc` when picks would be lost). A hunk without a pick keeps its conflict markers in the result, so a partial save leaves the file conflicted exactly where nothing was decided.
    - **Free editing (#690).** `e` opens the multi-line text editor of the commit message (same keys; `Tab` inserts a tab character) on the hunk's result in Insert mode: the pick's lines, or both sides for an unresolved hunk. `Esc`, `Alt-Enter` or `Ctrl-g` keeps the text (the strip then shows `edited`); text left unchanged changes nothing. The result gets a final line break when it lacks one, and CRLF line breaks in a CRLF file. A hunk emptied of all text resolves it to nothing. Picking a side later replaces the typed text, and `u` brings it back.
    - **Undo and redo.** One stack per editor session (the latest 200 changes) covers picks, resets and edits; `u` restores the state before the change and moves the cursor to its hunk, `Ctrl-r` redoes; a new change clears redo. Moving between hunks and the base toggle are not steps. Closing the editor drops the stack.
    - **Base.** `B` adds a `base  common ancestor` block between the sides and the result for the hunk under the cursor (dropped when the screen leaves no room for it). The base comes from the file's `|||||||` section (`merge.conflictStyle` `diff3` or `zdiff3`); for the default `merge` style it is found by merging stages 1 to 3 in memory and matching each hunk by its two sides (the file on disk is not touched). A hunk edited by hand, or one that merge does not reproduce, shows "no base for this hunk" and names the setting; `R` then gives the base once `diff3` is on.
@@ -759,11 +759,15 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | RebaseEditor | `J` `Alt-j` | Move the commit down (replayed later) |
 | RebaseEditor | `Enter` | Start the rebase: a Confirm names what is kept and dropped and the undo |
 | RebaseEditor | `h` `Esc` | Close the editor; an edited todo asks for a second `Esc` first |
-| ConflictEditor | `n` | Next conflict hunk (wraps; `j` and the wheel do the same) |
-| ConflictEditor | `N` | Previous conflict hunk (wraps; `k` does the same) |
+| ConflictEditor | `n` | Next conflict (hunk of the file) (wraps; `j` and the wheel do the same) |
+| ConflictEditor | `N` | Previous conflict (wraps; `k` does the same) |
 | ConflictEditor | `o` | Take our side for the hunk |
 | ConflictEditor | `t` | Take their side for the hunk |
 | ConflictEditor | `b` | Take both sides for the hunk, ours first |
+| ConflictEditor | `]c` | Scroll the sides to the next line where ours and theirs differ (a run of differing lines counts once) |
+| ConflictEditor | `[c` | Scroll the sides to the previous line where they differ |
+| ConflictEditor | `Ctrl-d` | Scroll ours, theirs and the base down together by half the side panes |
+| ConflictEditor | `Ctrl-u` | Scroll them up together |
 | ConflictEditor | `u` | Undo the latest pick or edit of the session (the cursor goes to its hunk) |
 | ConflictEditor | `Ctrl-r` | Redo the undone pick or edit |
 | ConflictEditor | `r` | Reset the hunk: unresolved again, it keeps its conflict markers (one step of undo) |
@@ -877,20 +881,24 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | RebaseButton.Cancel | Click | `navigate.back` | Chip `[Esc cancel]`: closes the editor like `Esc` |
 | ConflictEditor | Wheel up | `conflict-editor.previous` | Previous conflict hunk |
 | ConflictEditor | Wheel down | `conflict-editor.next` | Next conflict hunk |
-| ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `[o ours]` under the result: takes our side for the hunk under the cursor |
-| ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `[t theirs]` |
-| ConflictButton.Both | Click | `conflict-editor.both` | Chip `[b both]` |
-| ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `[u undo]` |
-| ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `[Ctrl-r redo]` |
-| ConflictButton.Reset | Click | `conflict-editor.reset` | Chip `[r reset]` |
-| ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `[e edit]` |
-| ConflictButton.Base | Click | `conflict-editor.base` | Chip `[B base]` |
-| ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `[R re-create]`: asks first |
-| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `[Alt-Enter keep]`, the only chip while a hunk's text is edited |
-| ConflictButton.Next | Click | `conflict-editor.next` | Chip `[n next]` |
-| ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `[N previous]` |
-| ConflictButton.Save | Click | `conflict-editor.save` | Chip `[Enter save]`: saves (asks first when hunks are unresolved) |
-| ConflictButton.Cancel | Click | `navigate.back` | Chip `[Esc close]`: closes the editor like `Esc` |
+| ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours` under the result: takes our side for the hunk under the cursor |
+| ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `t theirs` |
+| ConflictButton.Both | Click | `conflict-editor.both` | Chip `b both` |
+| ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `u undo` |
+| ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |
+| ConflictButton.Reset | Click | `conflict-editor.reset` | Chip `r reset` |
+| ConflictButton.Edit | Click | `conflict-editor.edit` | Chip `e edit` |
+| ConflictButton.Base | Click | `conflict-editor.base` | Chip `B base` |
+| ConflictButton.Recreate | Click | `conflict-editor.recreate` | Chip `R re-create`: asks first |
+| ConflictButton.EditDone | Click | `conflict-editor.edit-done` | Chip `Alt-Enter keep`, the only chip while a hunk's text is edited |
+| ConflictButton.Next | Click | `conflict-editor.next` | Chip `n next conflict` |
+| ConflictButton.Previous | Click | `conflict-editor.previous` | Chip `N previous conflict` |
+| ConflictButton.NextDiff | Click | `conflict-editor.next-diff` | Chip `]c next diff` |
+| ConflictButton.PreviousDiff | Click | `conflict-editor.previous-diff` | Chip `[c previous diff` |
+| ConflictButton.ScrollDown | Click | `conflict-editor.scroll-down` | Chip `Ctrl-d scroll down` |
+| ConflictButton.ScrollUp | Click | `conflict-editor.scroll-up` | Chip `Ctrl-u scroll up` |
+| ConflictButton.Save | Click | `conflict-editor.save` | Chip `Enter save`: saves (asks first when hunks are unresolved) |
+| ConflictButton.Cancel | Click | `navigate.back` | Chip `Esc close`: closes the editor like `Esc` |
 | Settings | Wheel up | `list.up` | Scroll the column under the pointer up 3 rows (the categories or the settings) |
 | Settings | Wheel down | `list.down` | Scroll the column under the pointer down 3 rows |
 | SettingsButton.Edit | Click | `settings.activate` | A click on a setting's control, on an option of an open choice, or a second click on the selected row: edits it like `Enter` (toggle flips, choice opens, option is kept). A first click on a row, and a click on a category, only select |

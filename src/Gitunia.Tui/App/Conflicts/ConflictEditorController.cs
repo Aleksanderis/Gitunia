@@ -310,6 +310,18 @@ public sealed class ConflictEditorController(
         {
             Update(state.Previous());
         }
+        else if (action == ActionIds.ConflictEditorNextDiff)
+        {
+            Update(state.NextDifference(ScrollLimit(state)));
+        }
+        else if (action == ActionIds.ConflictEditorPreviousDiff)
+        {
+            Update(state.PreviousDifference(ScrollLimit(state)));
+        }
+        else if (action == ActionIds.ConflictEditorScrollDown || action == ActionIds.ConflictEditorScrollUp)
+        {
+            ScrollSides(state, action == ActionIds.ConflictEditorScrollDown ? 1 : -1);
+        }
         else if (action == ActionIds.ConflictEditorOurs)
         {
             Update(state.Pick(ConflictPick.Ours));
@@ -367,6 +379,22 @@ public sealed class ConflictEditorController(
             setMode(KeyMode.Normal);
             Update(state.AcceptEdit());
         }
+    }
+
+    private int ScrollLimit(ConflictEditorState state)
+    {
+        var size = screenSize();
+
+        return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height);
+    }
+
+    // A half page of the side panes, at least one line.
+    private void ScrollSides(ConflictEditorState state, int direction)
+    {
+        var size = screenSize();
+        var rows = ConflictEditorFrameBuilder.SideRowCount(state, size.Width, size.Height);
+        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height);
+        Update(state.ScrollSides(direction * Math.Max(1, rows / 2), maximum));
     }
 
     private void BeginEdit(ConflictEditorState state)
