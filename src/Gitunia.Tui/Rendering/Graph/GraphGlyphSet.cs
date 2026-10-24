@@ -29,6 +29,15 @@ public sealed record GraphGlyphSet(
     /// <summary>This is the ASCII fallback set.</summary>
     public bool IsAscii => Lines == Ascii.Lines;
 
+    /// <summary>Drawn in place of a tab's first column when whitespace is shown.</summary>
+    public char TabMark => IsAscii ? '>' : '→';
+
+    /// <summary>Drawn in place of a trailing space when whitespace is shown.</summary>
+    public char SpaceMark => IsAscii ? '.' : '·';
+
+    /// <summary>Drawn in place of a carriage return when whitespace is shown.</summary>
+    public char CarriageReturnMark => IsAscii ? '<' : '␍';
+
     /// <summary>A horizontal connection.</summary>
     public char Horizontal => Lines[(int)(LineDirections.Left | LineDirections.Right)];
 

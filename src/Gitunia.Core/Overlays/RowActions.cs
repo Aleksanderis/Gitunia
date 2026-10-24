@@ -35,6 +35,7 @@ public static class RowActions
         ActionIds.DiffToggleIgnoreWhitespace,
         ActionIds.DiffToggleSideBySide,
         ActionIds.DiffToggleWrap,
+        ActionIds.DiffToggleWhitespace,
     ];
 
     /// <summary>The title of the dropdown of a file list's view options (#646).</summary>

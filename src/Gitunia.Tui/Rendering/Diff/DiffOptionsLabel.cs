@@ -20,7 +20,12 @@ public static class DiffOptionsLabel
     /// <param name="options">The diff options.</param>
     /// <param name="isSideBySide">The side-by-side view is switched on.</param>
     /// <param name="isShown">The pane is wide enough to show it; otherwise the marker names the width it needs.</param>
-    public static string Of(DiffOptions options, bool isSideBySide = false, bool isShown = false)
+    /// <param name="showsWhitespace">Whitespace characters are drawn as marks.</param>
+    public static string Of(
+        DiffOptions options,
+        bool isSideBySide = false,
+        bool isShown = false,
+        bool showsWhitespace = false)
     {
         var parts = new List<string>(4);
         if (options.WholeFile)
@@ -35,6 +40,11 @@ public static class DiffOptionsLabel
         if (options.IgnoreWhitespace)
         {
             parts.Add("[-w]");
+        }
+
+        if (showsWhitespace)
+        {
+            parts.Add("[ws]");
         }
 
         if (isSideBySide)

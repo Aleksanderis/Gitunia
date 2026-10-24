@@ -50,6 +50,7 @@ public static class DiffSplitRenderer
     /// <param name="glyphs">Supplies the ellipsis and the rule.</param>
     /// <param name="leftJump">The quick-jump label of the old side's row (the whole line's when it spans both).</param>
     /// <param name="rightJump">The quick-jump label of the new side's row.</param>
+    /// <param name="showWhitespace">Draw tabs, trailing spaces and carriage returns as marks.</param>
     public static StyledLine Render(
         DiffDocument document,
         DiffSplitLine line,
@@ -61,23 +62,45 @@ public static class DiffSplitRenderer
         bool isWrapped,
         GraphGlyphSet glyphs,
         JumpLabel? leftJump = null,
-        JumpLabel? rightJump = null)
+        JumpLabel? rightJump = null,
+        bool showWhitespace = false)
     {
         if (line.IsFull)
         {
             var row = document.Rows[line.LeftRow];
             return isWrapped
                 ? DiffRowRenderer.RenderSegment(
-                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump)
-                : DiffRowRenderer.Render(row, width, gutterDigits, highlight, isSelected, glyphs, leftJump);
+                    row, segment, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace)
+                : DiffRowRenderer.Render(
+                    row, width, gutterDigits, highlight, isSelected, glyphs, leftJump, showWhitespace);
         }
 
         var leftWidth = LeftWidth(width);
         var rightWidth = RightWidth(width);
         var left = RenderSide(
-            document, line.LeftRow, true, segment, leftWidth, gutterDigits, highlight, isWrapped, glyphs, leftJump);
+            document,
+            line.LeftRow,
+            true,
+            segment,
+            leftWidth,
+            gutterDigits,
+            highlight,
+            isWrapped,
+            glyphs,
+            leftJump,
+            showWhitespace);
         var right = RenderSide(
-            document, line.RightRow, false, segment, rightWidth, gutterDigits, highlight, isWrapped, glyphs, rightJump);
+            document,
+            line.RightRow,
+            false,
+            segment,
+            rightWidth,
+            gutterDigits,
+            highlight,
+            isWrapped,
+            glyphs,
+            rightJump,
+            showWhitespace);
         var rule = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
         return new LineBuilder(width, glyphs.Ellipsis)
             .Append(left)
@@ -99,7 +122,8 @@ public static class DiffSplitRenderer
         string? highlight,
         bool isWrapped,
         GraphGlyphSet glyphs,
-        JumpLabel? jump)
+        JumpLabel? jump,
+        bool showWhitespace)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         if (rowIndex < 0)
@@ -135,14 +159,17 @@ public static class DiffSplitRenderer
 
         if (isWrapped)
         {
-            var chunks = DiffRowRenderer.Chunks(DiffRowRenderer.ExpandTabs(row.Text), columns);
+            var expanded = DiffRowRenderer.Expand(row.Text, showWhitespace ? glyphs : null, false);
+            var chunks = DiffRowRenderer.Chunks(expanded.Text, columns);
             var chunk = segment < chunks.Count ? chunks[segment] : string.Empty;
-            AppendText(builder, chunk, role, highlight, segment == 0 ? jump : null);
+            var start = DiffRowRenderer.StartOf(chunks, segment);
+            AppendText(builder, chunk, role, highlight, segment == 0 ? jump : null, expanded.Marks, start);
         }
         else
         {
-            var shown = DiffRowRenderer.ExpandTabs(DiffRowRenderer.CutToWidth(row.Text, columns));
-            AppendText(builder, shown, role, highlight, jump);
+            var cut = DiffRowRenderer.CutToWidth(row.Text, columns);
+            var shown = DiffRowRenderer.Expand(cut, showWhitespace ? glyphs : null, cut.Length != row.Text.Length);
+            AppendText(builder, shown.Text, role, highlight, jump, shown.Marks, 0);
         }
 
         return builder.Build();
@@ -153,7 +180,9 @@ public static class DiffSplitRenderer
         string shown,
         SegmentRole role,
         string? highlight,
-        JumpLabel? jump)
+        JumpLabel? jump,
+        bool[]? marks,
+        int markOffset)
     {
         if (jump is { } target)
         {
@@ -161,7 +190,7 @@ public static class DiffSplitRenderer
         }
         else
         {
-            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight);
+            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight, marks, markOffset);
         }
     }
 }
