@@ -29,7 +29,7 @@ public static class DiffRowRenderer
     /// <param name="isSelected">The row is under the cursor.</param>
     /// <param name="glyphs">Supplies the ellipsis.</param>
     /// <param name="jump">The quick-jump label of the row, null for none.</param>
-    /// <param name="showWhitespace">Draw tabs, trailing spaces and carriage returns as marks (same width).</param>
+    /// <param name="showWhitespace">Draw tabs, spaces and carriage returns as marks (same width).</param>
     public static StyledLine Render(
         DiffRow row,
         int width,
@@ -212,8 +212,8 @@ public static class DiffRowRenderer
 
     /// <summary>
     /// <see cref="ExpandTabs"/> that can also mark whitespace: a tab becomes the tab mark and spaces up to the stop,
-    /// a trailing space the space mark, a carriage return the CR mark. Every mark takes the one column the character
-    /// it replaces took, so wrapping and cutting are the same with or without marks.
+    /// a space the space mark (a trailing one a heavier one), a carriage return the CR mark. Every mark takes the one
+    /// column the character it replaces took, so wrapping and cutting are the same with or without marks.
     /// </summary>
     /// <param name="text">The row text.</param>
     /// <param name="marks">Supplies the marks; null draws none.</param>
@@ -221,7 +221,7 @@ public static class DiffRowRenderer
     internal static ShownText Expand(string text, GraphGlyphSet? marks, bool isCut)
     {
         var trailingFrom = isCut ? text.Length : TrailingSpacesFrom(text);
-        if (marks is null || (trailingFrom == text.Length && !ContainsControl(text)))
+        if (marks is null || (text.IndexOf(' ') < 0 && !ContainsControl(text)))
         {
             return new ShownText(ExpandTabs(text), null);
         }
@@ -251,10 +251,10 @@ public static class DiffRowRenderer
                 builder.Append(' ');
                 column++;
             }
-            else if (rune.Value == ' ' && index >= trailingFrom)
+            else if (rune.Value == ' ')
             {
                 positions.Add(builder.Length);
-                builder.Append(marks.SpaceMark);
+                builder.Append(index >= trailingFrom ? marks.SpaceMark : marks.InnerSpaceMark);
                 column++;
             }
             else
