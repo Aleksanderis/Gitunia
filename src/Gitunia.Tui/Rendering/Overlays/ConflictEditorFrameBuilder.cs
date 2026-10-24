@@ -273,7 +273,8 @@ public static class ConflictEditorFrameBuilder
         if (junction != Junction.None && !plan.IsStacked)
         {
             var down = junction == Junction.OpensDown;
-            var joint = Joint(glyphs, LineDirections.Left | LineDirections.Right | (down ? LineDirections.Down : LineDirections.Up));
+            var vertical = down ? LineDirections.Down : LineDirections.Up;
+            var joint = Joint(glyphs, LineDirections.Left | LineDirections.Right | vertical);
             builder.Append(new string(horizontal, left), SegmentRole.FocusedBorder)
                 .Append(joint.ToString(), SegmentRole.FocusedBorder)
                 .Append(new string(horizontal, inner - 1 - left), SegmentRole.FocusedBorder);
@@ -302,13 +303,16 @@ public static class ConflictEditorFrameBuilder
         var label = TextWidth.Fit($" {title} ", Math.Max(0, inner - 1), glyphs.Ellipsis);
         var fill = Math.Max(0, inner - 1 - TextWidth.Of(label));
 
+        var opening = Joint(glyphs, LineDirections.Down | LineDirections.Right);
+        var closing = Joint(glyphs, LineDirections.Down | LineDirections.Left);
+
         return new StyledLine(
         [
-            new StyledSegment(Joint(glyphs, LineDirections.Down | LineDirections.Right).ToString(), SegmentRole.FocusedBorder),
+            new StyledSegment(opening.ToString(), SegmentRole.FocusedBorder),
             new StyledSegment(horizontal, SegmentRole.FocusedBorder),
             new StyledSegment(label, SegmentRole.SectionTitle),
             new StyledSegment(string.Concat(Enumerable.Repeat(horizontal, fill)), SegmentRole.FocusedBorder),
-            new StyledSegment(Joint(glyphs, LineDirections.Down | LineDirections.Left).ToString(), SegmentRole.FocusedBorder),
+            new StyledSegment(closing.ToString(), SegmentRole.FocusedBorder),
         ]);
     }
 
