@@ -350,7 +350,7 @@ public static class DefaultKeymap
     }
 
     // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t
-    // and b pick a side, e edits the result, r makes the hunk unresolved again, u/Ctrl-r undo and redo, B shows the
+    // and b pick a side, O and T pick a side for every open hunk, e edits the result, r makes the hunk unresolved again, u/Ctrl-r undo and redo, B shows the
     // base, R re-creates the conflict) are keys of the modal, not buffer commands, and shadow Lists' search keys. In
     // Insert mode the result's text editor takes text; only Enter, Esc and the Alt-Enter/Ctrl-g accept act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
@@ -361,6 +361,8 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "o", ActionIds.ConflictEditorOurs);
         Add(bindings, NormalOnly, editor, "t", ActionIds.ConflictEditorTheirs);
         Add(bindings, NormalOnly, editor, "b", ActionIds.ConflictEditorBoth);
+        Add(bindings, NormalOnly, editor, "O", ActionIds.ConflictEditorAllOurs);
+        Add(bindings, NormalOnly, editor, "T", ActionIds.ConflictEditorAllTheirs);
         Add(bindings, NormalOnly, editor, "u", ActionIds.ConflictEditorUndo);
         Add(bindings, NormalOnly, editor, "Ctrl-r", ActionIds.ConflictEditorRedo);
         Add(bindings, NormalOnly, editor, "r", ActionIds.ConflictEditorReset);

@@ -57,6 +57,22 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenAPickOnOneHunkOfTwo_WhenTakingAllTheirsAndSaving_ThenEveryHunkIsResolvedWithoutAConfirm()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorAllTheirs);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        Assert.DoesNotContain("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+    }
+
+    [Fact]
     public async Task GivenPicksOnOneHunkOfTwo_WhenSavingAndConfirming_ThenTheOtherHunkKeepsItsMarkers()
     {
         using var repository = TwoHunks();

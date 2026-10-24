@@ -268,6 +268,10 @@ public static class ActionIds
 
     public static ActionId ConflictEditorBoth { get; } = new("conflict-editor.both");
 
+    public static ActionId ConflictEditorAllOurs { get; } = new("conflict-editor.all-ours");
+
+    public static ActionId ConflictEditorAllTheirs { get; } = new("conflict-editor.all-theirs");
+
     public static ActionId ConflictEditorUndo { get; } = new("conflict-editor.undo");
 
     public static ActionId ConflictEditorSave { get; } = new("conflict-editor.save");

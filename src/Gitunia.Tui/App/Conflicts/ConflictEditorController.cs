@@ -338,6 +338,14 @@ public sealed class ConflictEditorController(
         {
             Update(state.Pick(ConflictPick.None));
         }
+        else if (action == ActionIds.ConflictEditorAllOurs)
+        {
+            Update(state.PickAllUnresolved(ConflictPick.Ours));
+        }
+        else if (action == ActionIds.ConflictEditorAllTheirs)
+        {
+            Update(state.PickAllUnresolved(ConflictPick.Theirs));
+        }
         else if (action == ActionIds.ConflictEditorUndo)
         {
             Update(state.Undo());

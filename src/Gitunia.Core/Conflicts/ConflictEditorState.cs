@@ -203,6 +203,23 @@ public sealed record ConflictEditorState(
         return Changed(pick, null);
     }
 
+    /// <summary>
+    /// Takes <paramref name="pick"/> (ours or theirs) for every hunk that is still unresolved, leaving earlier picks
+    /// and edits alone. The whole change is one step of <see cref="Undo"/>; nothing changes when no hunk is open.
+    /// </summary>
+    public ConflictEditorState PickAllUnresolved(ConflictPick pick)
+    {
+        if (IsEditing || pick is not (ConflictPick.Ours or ConflictPick.Theirs) || UnresolvedCount == 0)
+        {
+            return this;
+        }
+
+        var picks = Picks.Select(existing => existing == ConflictPick.None ? pick : existing).ToList();
+        var undo = (UndoStack ?? []).Append(Snapshot()).TakeLast(UndoLimit).ToList();
+
+        return this with { Picks = picks, UndoStack = undo, RedoStack = [], IsDiscardPending = false };
+    }
+
     /// <summary>Toggles the base pane of the hunk under the cursor.</summary>
     public ConflictEditorState ToggleBase() => this with { IsBaseShown = !IsBaseShown, IsDiscardPending = false };
 
