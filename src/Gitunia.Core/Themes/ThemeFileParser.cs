@@ -24,6 +24,11 @@ public static class ThemeFileParser
     private const string DarkVariant = "dark";
     private const string ColorHint = "must be a colour like \"#1e1e2e\"";
     private const int HexLength = 7;
+
+    // The share of the text colour kept when it is blended into the background it sits on.
+    private const double SubtleWeight = 0.55;
+    private const double SubtleOnSelectionWeight = 0.7;
+    private static readonly int[] ChannelShifts = [16, 8, 0];
     private const char HexPrefix = '#';
 
     private static readonly JsonDocumentOptions Options = new()
@@ -176,14 +181,10 @@ public static class ThemeFileParser
         return colors;
     }
 
-    // The share of the text colour kept when it is blended into the background it sits on.
-    private const double SubtleWeight = 0.55;
-    private const double SubtleOnSelectionWeight = 0.7;
-
     private static int Mix(int foreground, int background, double weight)
     {
         var result = 0;
-        foreach (var shift in new[] { 16, 8, 0 })
+        foreach (var shift in ChannelShifts)
         {
             var channel = (((foreground >> shift) & 0xff) * weight) + (((background >> shift) & 0xff) * (1 - weight));
             result |= (int)Math.Round(channel) << shift;

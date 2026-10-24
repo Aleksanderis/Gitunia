@@ -18,7 +18,7 @@ public sealed class ThemeFileContrastTests
     // After a 256-colour terminal rounds every colour to the nearest of the xterm cube and grey ramp.
     private const double QuantizedRatio = 3.0;
 
-    // Whitespace marks: readable but far dimmer than text.
+    // Whitespace marks: readable but far dimmer than text; rounding to 256 colours may cost them some of the 2:1.
     private const double SubtleRatio = 2.0;
     private const double SubtleQuantizedRatio = 1.6;
 

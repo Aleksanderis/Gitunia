@@ -129,6 +129,38 @@ public sealed class ThemeFileParserTests
     }
 
     [Fact]
+    public void GivenSubtleRoles_WhenParsing_ThenTheFileValuesWinOverTheDerivedOnes()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = Json().Replace(
+            "\"muted\": \"#111111\",",
+            "\"muted\": \"#111111\", \"subtle\": \"#0a0b0c\", \"subtleOnSelection\": \"#0d0e0f\",",
+            StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
+
+        Assert.NotNull(theme);
+        Assert.Equal(0x0a0b0c, theme.Colors[ThemeRoles.Subtle]);
+        Assert.Equal(0x0d0e0f, theme.Colors[ThemeRoles.SubtleOnSelection]);
+    }
+
+    [Fact]
+    public void GivenMutedOnSelection_WhenParsing_ThenSubtleOnSelectionMixesItIntoTheSelection()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = Json().Replace(
+            "\"muted\": \"#111111\",",
+            "\"muted\": \"#111111\", \"mutedOnSelection\": \"#ffffff\",",
+            StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
+
+        // 70% of white into the selection #222222: 0.7 * 255 + 0.3 * 34 = 188.7.
+        Assert.NotNull(theme);
+        Assert.Equal(0xbdbdbd, theme.Colors[ThemeRoles.SubtleOnSelection]);
+    }
+
+    [Fact]
     public void GivenNoLanes_WhenParsing_ThenTheFileIsRefused()
     {
         var problems = new List<ConfigProblem>();
