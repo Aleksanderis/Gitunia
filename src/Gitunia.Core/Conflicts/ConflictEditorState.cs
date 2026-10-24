@@ -131,7 +131,9 @@ public sealed record ConflictEditorState(
         return next is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
     }
 
-    /// <summary>Scrolls the side panes to the previous line where the sides differ (see NextDifference).</summary>
+    /// <summary>
+    /// Scrolls the side panes to the previous line where the sides differ (see <see cref="NextDifference"/>).
+    /// </summary>
     public ConflictEditorState PreviousDifference(int maximum)
     {
         var starts = DifferenceStarts();
@@ -140,10 +142,26 @@ public sealed record ConflictEditorState(
         return previous is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
     }
 
-    /// <summary>The most lines our side or their side of the hunk under the cursor has.</summary>
-    public int SideLineCount => Hunks.Count == 0
-        ? 0
-        : Math.Max(Lines(Hunks[Index].Ours).Count, Lines(Hunks[Index].Theirs).Count);
+    /// <summary>
+    /// For each row of the hunk under the cursor, true where our side and their side differ (a row only one side has
+    /// counts); rows are compared by position.
+    /// </summary>
+    public IReadOnlyList<bool> DifferingRows()
+    {
+        if (Hunks.Count == 0)
+        {
+            return [];
+        }
+
+        var ours = Lines(Hunks[Index].Ours);
+        var theirs = Lines(Hunks[Index].Theirs);
+
+        return
+        [
+            .. Enumerable.Range(0, Math.Max(ours.Count, theirs.Count))
+                .Select(row => row >= ours.Count || row >= theirs.Count || ours[row] != theirs[row]),
+        ];
+    }
 
     /// <summary>The line of the result file (counted from 1) where hunk <paramref name="index"/> starts.</summary>
     public int ResultLineOf(int index)
@@ -362,18 +380,12 @@ public sealed record ConflictEditorState(
     // The first line of each run of lines where the two sides differ, counted from the top of the hunk.
     private List<int> DifferenceStarts()
     {
-        if (Hunks.Count == 0)
-        {
-            return [];
-        }
-
-        var ours = Lines(Hunks[Index].Ours);
-        var theirs = Lines(Hunks[Index].Theirs);
+        var rows = DifferingRows();
         var starts = new List<int>();
         var wasDifferent = false;
-        for (var row = 0; row < Math.Max(ours.Count, theirs.Count); row++)
+        for (var row = 0; row < rows.Count; row++)
         {
-            var isDifferent = row >= ours.Count || row >= theirs.Count || ours[row] != theirs[row];
+            var isDifferent = rows[row];
             if (isDifferent && !wasDifferent)
             {
                 starts.Add(row);

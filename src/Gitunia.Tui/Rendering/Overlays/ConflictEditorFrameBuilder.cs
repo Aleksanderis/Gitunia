@@ -31,6 +31,9 @@ public static class ConflictEditorFrameBuilder
     private const int TitleAndStripRows = 2;
     private const int FooterAndBottomRows = 2;
     private const int ResultHeaderRows = 2;
+    private const int MinimumGutterWidth = 2;
+    private const char OursMark = '-';
+    private const char TheirsMark = '+';
     private const int RuleRows = 1;
     private const int StackedSides = 2;
     private const int SideBySideHeaders = 1;
@@ -210,7 +213,7 @@ public static class ConflictEditorFrameBuilder
         var resultStart = state.ResultLineOf(state.Index);
         var lastNumber = resultStart + ContextLines
             + Math.Max(sideLines, ConflictEditorState.Lines(state.ResultOf(state.Index)).Count);
-        var gutter = Math.Max(2, lastNumber.ToString(CultureInfo.InvariantCulture).Length);
+        var gutter = Math.Max(MinimumGutterWidth, lastNumber.ToString(CultureInfo.InvariantCulture).Length);
 
         return new Plan(
             width,
@@ -223,7 +226,8 @@ public static class ConflictEditorFrameBuilder
             Math.Min(state.SideScroll, maxScroll),
             maxScroll,
             resultStart,
-            gutter);
+            gutter,
+            state.DifferingRows());
     }
 
     private static void AddSideBySide(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
@@ -232,8 +236,8 @@ public static class ConflictEditorFrameBuilder
         var leftWidth = SideBySideLeftWidth(plan.Width);
         var rightWidth = inner - 1 - leftWidth;
         var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
-        var ours = SideText.Of(hunk.Ours);
-        var theirs = SideText.Of(hunk.Theirs);
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
         lines.Add(Joined(
             Cell(SideTitle("ours", hunk.OursLabel, ours, plan), leftWidth, SegmentRole.LocalBranch, glyphs),
             divider,
@@ -299,15 +303,20 @@ public static class ConflictEditorFrameBuilder
             $"{title}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})");
     }
 
-    private static StyledLine NumberedCell(SideText side, int line, int width, Plan plan, GraphGlyphSet glyphs) =>
-        new LineBuilder(width, glyphs.Ellipsis)
-            .Append(" ", SegmentRole.Plain)
-            .Append(GutterText(side.NumberAt(line, plan.ResultStart), plan.Gutter), SegmentRole.Faint)
-            .Append(side.TextAt(line), side.RoleAt(line))
-            .Build();
+    private static StyledLine NumberedCell(SideText side, int line, int width, Plan plan, GraphGlyphSet glyphs)
+    {
+        var gutter = GutterText(side.NumberAt(line, plan.ResultStart), plan.Gutter, side.MarkAt(line, plan));
 
-    private static string GutterText(int? number, int width) => number is { } value
-        ? $"{value.ToString(CultureInfo.InvariantCulture).PadLeft(width)} "
+        return new LineBuilder(width, glyphs.Ellipsis)
+            .Append(" ", SegmentRole.Plain)
+            .Append(gutter, SegmentRole.Faint)
+            .Append(side.TextAt(line), side.RoleAt(line, plan))
+            .Build();
+    }
+
+    // The line number, then a mark for a line the other side does not have in the same row (so colour is not alone).
+    private static string GutterText(int? number, int width, char mark = ' ') => number is { } value
+        ? $"{value.ToString(CultureInfo.InvariantCulture).PadLeft(width)}{mark}"
         : new string(' ', width + 1);
 
     private static StyledLine NumberedText(
@@ -315,11 +324,18 @@ public static class ConflictEditorFrameBuilder
         string text,
         SegmentRole role,
         Plan plan,
+        GraphGlyphSet glyphs) => NumberedText(GutterText(number, plan.Gutter), text, role, plan, glyphs);
+
+    private static StyledLine NumberedText(
+        string gutter,
+        string text,
+        SegmentRole role,
+        Plan plan,
         GraphGlyphSet glyphs)
     {
         var inner = new LineBuilder(OverlayBox.InnerWidth(plan.Width), glyphs.Ellipsis)
             .Append(" ", SegmentRole.Plain)
-            .Append(GutterText(number, plan.Gutter), SegmentRole.Faint)
+            .Append(gutter, SegmentRole.Faint)
             .Append(text, role)
             .Build();
 
@@ -333,14 +349,16 @@ public static class ConflictEditorFrameBuilder
         for (var row = 0; row < plan.BaseRows; row++)
         {
             var line = plan.Scroll + row;
-            lines.Add(OverlayBox.Text(side.TextAt(line), plan.Width, glyphs, side.RoleAt(line)));
+            lines.Add(OverlayBox.Text(side.TextAt(line), plan.Width, glyphs, side.RoleAt(line, plan)));
         }
     }
 
     private static void AddStackedSides(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
-        AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, hunk.Ours, plan, glyphs);
-        AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, hunk.Theirs, plan, glyphs);
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
+        AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, ours, plan, glyphs);
+        AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, theirs, plan, glyphs);
     }
 
     private static void AddSide(
@@ -348,17 +366,17 @@ public static class ConflictEditorFrameBuilder
         string name,
         string label,
         SegmentRole headerRole,
-        string text,
+        SideText side,
         Plan plan,
         GraphGlyphSet glyphs)
     {
-        var side = SideText.Of(text);
         lines.Add(OverlayBox.Text(SideTitle(name, label, side, plan), plan.Width, glyphs, headerRole));
         for (var row = 0; row < plan.SideRows; row++)
         {
             var line = plan.Scroll + row;
             var number = side.NumberAt(line, plan.ResultStart);
-            lines.Add(NumberedText(number, side.TextAt(line), side.RoleAt(line), plan, glyphs));
+            var gutter = GutterText(number, plan.Gutter, side.MarkAt(line, plan));
+            lines.Add(NumberedText(gutter, side.TextAt(line), side.RoleAt(line, plan), plan, glyphs));
         }
     }
 
@@ -564,23 +582,44 @@ public static class ConflictEditorFrameBuilder
         int Scroll,
         int MaxScroll,
         int ResultStart,
-        int Gutter);
+        int Gutter,
+        IReadOnlyList<bool> Different);
 
     private readonly record struct ResultRow(string Text, SegmentRole Role, int? Number = null);
 
     // The lines of one side; an empty side is one faint placeholder line without a number.
-    private sealed record SideText(List<string> Lines, bool IsEmpty)
+    // A line that differs from the other side's line in the same row carries the side's mark and role.
+    private sealed record SideText(
+        List<string> Lines,
+        bool IsEmpty,
+        char Mark = ' ',
+        SegmentRole DifferingRole = SegmentRole.Plain)
     {
-        public static SideText Of(string text)
+        public static SideText Of(string text, char mark = ' ', SegmentRole differingRole = SegmentRole.Plain)
         {
             var lines = ConflictEditorState.Lines(text).Select(Printable).ToList();
 
-            return lines.Count == 0 ? new SideText([EmptySide], true) : new SideText(lines, false);
+            return lines.Count == 0
+                ? new SideText([EmptySide], true)
+                : new SideText(lines, false, mark, differingRole);
         }
 
         public string TextAt(int line) => line < Lines.Count ? Lines[line] : string.Empty;
 
-        public SegmentRole RoleAt(int line) => IsEmpty && line == 0 ? SegmentRole.Faint : SegmentRole.Plain;
+        public char MarkAt(int line, Plan plan) => IsDifferent(line, plan) ? Mark : ' ';
+
+        public SegmentRole RoleAt(int line, Plan plan)
+        {
+            if (IsEmpty && line == 0)
+            {
+                return SegmentRole.Faint;
+            }
+
+            return IsDifferent(line, plan) ? DifferingRole : SegmentRole.Plain;
+        }
+
+        private bool IsDifferent(int line, Plan plan) =>
+            !IsEmpty && line < Lines.Count && line < plan.Different.Count && plan.Different[line];
 
         public int? NumberAt(int line, int start) => IsEmpty || line >= Lines.Count ? null : start + line;
     }

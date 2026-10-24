@@ -158,9 +158,9 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(" 4 ours 1", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 4 theirs 1", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 5 ours 2", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 4-ours 1", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 4+theirs 1", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 5-ours 2", lines[4], StringComparison.Ordinal);
         var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
         Assert.Contains(" 2 two", lines[header + 1], StringComparison.Ordinal);
         Assert.Contains(" 3 one", lines[header + 2], StringComparison.Ordinal);
@@ -181,8 +181,8 @@ public class ConflictEditorFrameBuilderTests
         Assert.True(maximum > 5);
         var lines = frame.Lines.Select(line => line.Text).ToList();
         Assert.Contains($"(lines 6-{5 + rows} of 30)", lines[2], StringComparison.Ordinal);
-        Assert.Contains(" 6 mine 6", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 6 yours 6", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 6-mine 6", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 6+yours 6", lines[3], StringComparison.Ordinal);
         Assert.DoesNotContain(
             lines.Skip(3).Take(rows),
             line => line.Contains("mine 1 ", StringComparison.Ordinal));
@@ -224,6 +224,25 @@ public class ConflictEditorFrameBuilderTests
         AssertChip(state, frame, "Ctrl-u scroll up", DefaultMouseMap.ConflictScrollUpButton, 200);
         AssertChip(state, frame, "n next conflict", DefaultMouseMap.ConflictNextButton, 200);
         AssertChip(state, frame, "N previous conflict", DefaultMouseMap.ConflictPreviousButton, 200);
+    }
+
+    [Fact]
+    public void GivenLinesThatDifferAndLinesThatDoNot_WhenRendering_ThenOnlyTheDifferingOnesAreMarkedAndColoured()
+    {
+        const string text = "<<<<<<< a\nsame\nmine\n=======\nsame\nyours\n>>>>>>> b\n";
+
+        var frame = ConflictEditorFrameBuilder.Build(State(text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Contains(" 1 same", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 2-mine", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 2+yours", lines[4], StringComparison.Ordinal);
+        var segments = frame.Lines[4].Segments;
+        Assert.Contains(segments, segment => segment.Text == "mine" && segment.Role == SegmentRole.DiffRemoved);
+        Assert.Contains(segments, segment => segment.Text == "yours" && segment.Role == SegmentRole.DiffAdded);
+        Assert.DoesNotContain(
+            frame.Lines[3].Segments,
+            segment => segment.Role is SegmentRole.DiffRemoved or SegmentRole.DiffAdded);
     }
 
     [Fact]
