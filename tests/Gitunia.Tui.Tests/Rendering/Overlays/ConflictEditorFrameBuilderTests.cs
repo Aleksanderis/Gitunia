@@ -426,14 +426,14 @@ public class ConflictEditorFrameBuilderTests
         "<<<<<<< HEAD\nmine\nmine 2\n||||||| base\nancestor\nancestor 2\n=======\ntheirs\n>>>>>>> feature\n";
 
     [Fact]
-    public void GivenAWideScreen_WhenRendering_ThenOursBaseAndTheirsAreThreePanesInThatOrder()
+    public void GivenAWideScreen_WhenRendering_ThenBaseOursAndTheirsAreThreePanesInThatOrder()
     {
         var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Matches(@"ours  HEAD.*│.*base  common ancestor.*│.*theirs  feature", lines[3]);
-        Assert.Matches(@"mine.*│.*ancestor.*│.*theirs", lines[4]);
-        Assert.Matches(@"mine 2.*│.*ancestor 2.*│", lines[5]);
+        Assert.Matches(@"base  common ancestor.*│.*ours  HEAD.*│.*theirs  feature", lines[3]);
+        Assert.Matches(@"ancestor.*│.*mine.*│.*theirs", lines[4]);
+        Assert.Matches(@"ancestor 2.*│.*mine 2.*│", lines[5]);
         Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
     }
 
