@@ -26,9 +26,9 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains("Conflict: file.txt  hunk 1/2", lines[0], StringComparison.Ordinal);
         Assert.Contains("[1 -]", lines[1], StringComparison.Ordinal);
         Assert.Contains("2 -", lines[1], StringComparison.Ordinal);
-        Assert.Contains("ours  HEAD", lines[2], StringComparison.Ordinal);
-        Assert.Contains("theirs  feature", lines[2], StringComparison.Ordinal);
-        var firstRow = lines[3];
+        Assert.Contains("ours  HEAD", lines[3], StringComparison.Ordinal);
+        Assert.Contains("theirs  feature", lines[3], StringComparison.Ordinal);
+        var firstRow = lines[4];
         Assert.Contains("ours 1", firstRow, StringComparison.Ordinal);
         Assert.Contains("theirs 1", firstRow, StringComparison.Ordinal);
         var oursColumn = firstRow.IndexOf("ours 1", StringComparison.Ordinal);
@@ -91,7 +91,7 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Theory]
-    [InlineData(120, 14)]
+    [InlineData(120, 16)]
     [InlineData(70, 20)]
     [InlineData(40, 40)]
     [InlineData(200, 60)]
@@ -139,7 +139,35 @@ public class ConflictEditorFrameBuilderTests
         var rule = lines[header - 1];
         Assert.StartsWith("├─", rule, StringComparison.Ordinal);
         Assert.EndsWith("─┤", rule, StringComparison.Ordinal);
-        Assert.Equal(lines[3].IndexOf('│', 1), rule.IndexOf('┴', StringComparison.Ordinal));
+        Assert.Equal(lines[4].IndexOf('│', 1), rule.IndexOf('┴', StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenAWideScreen_WhenRendering_ThenOneBorderRunsAroundTheFrameWithJunctionsAndTheTitleInTheTop()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.StartsWith("╭─ Conflict: file.txt  hunk 1/2 ", lines[0], StringComparison.Ordinal);
+        Assert.EndsWith("─╮", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("╰", lines[^1], StringComparison.Ordinal);
+        Assert.EndsWith("╯", lines[^1], StringComparison.Ordinal);
+        var divider = lines[4].IndexOf('│', 1);
+        Assert.Equal(divider, lines[2].IndexOf('┬', StringComparison.Ordinal));
+        Assert.StartsWith("├", lines[2], StringComparison.Ordinal);
+        Assert.EndsWith("┤", lines[2], StringComparison.Ordinal);
+        var closing = lines.FindIndex(line => line.Contains('┴', StringComparison.Ordinal));
+        Assert.Equal(divider, lines[closing].IndexOf('┴', StringComparison.Ordinal));
+        for (var row = 3; row < closing; row++)
+        {
+            Assert.Equal('│', lines[row][divider]);
+        }
+
+        var hints = lines.FindIndex(line => line.Contains("o ours", StringComparison.Ordinal));
+        Assert.StartsWith("├─", lines[hints - 1], StringComparison.Ordinal);
+        Assert.DoesNotContain('┴', lines[hints - 1]);
+        Assert.All(lines[1..^1], line => Assert.True(line[0] is '│' or '├'));
+        Assert.All(lines[1..^1], line => Assert.True(line[^1] is '│' or '┤'));
     }
 
     [Fact]
@@ -158,9 +186,9 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(" 4-ours 1", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 4+theirs 1", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 5-ours 2", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 4-ours 1", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 4+theirs 1", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 5-ours 2", lines[5], StringComparison.Ordinal);
         var header = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
         Assert.Contains(" 2 two", lines[header + 1], StringComparison.Ordinal);
         Assert.Contains(" 3 one", lines[header + 2], StringComparison.Ordinal);
@@ -180,9 +208,9 @@ public class ConflictEditorFrameBuilderTests
 
         Assert.True(maximum > 5);
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains($"(lines 6-{5 + rows} of 30)", lines[2], StringComparison.Ordinal);
-        Assert.Contains(" 6-mine 6", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 6+yours 6", lines[3], StringComparison.Ordinal);
+        Assert.Contains($"(lines 6-{5 + rows} of 30)", lines[3], StringComparison.Ordinal);
+        Assert.Contains(" 6-mine 6", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 6+yours 6", lines[4], StringComparison.Ordinal);
         Assert.DoesNotContain(
             lines.Skip(3).Take(rows),
             line => line.Contains("mine 1 ", StringComparison.Ordinal));
@@ -236,14 +264,14 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(State(text), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Contains(" 1 same", lines[3], StringComparison.Ordinal);
-        Assert.Contains(" 2-mine", lines[4], StringComparison.Ordinal);
-        Assert.Contains(" 2+yours", lines[4], StringComparison.Ordinal);
-        var segments = frame.Lines[4].Segments;
+        Assert.Contains(" 1 same", lines[4], StringComparison.Ordinal);
+        Assert.Contains(" 2-mine", lines[5], StringComparison.Ordinal);
+        Assert.Contains(" 2+yours", lines[5], StringComparison.Ordinal);
+        var segments = frame.Lines[5].Segments;
         Assert.Contains(segments, segment => segment.Text == "mine" && segment.Role == SegmentRole.DiffRemoved);
         Assert.Contains(segments, segment => segment.Text == "yours" && segment.Role == SegmentRole.DiffAdded);
         Assert.DoesNotContain(
-            frame.Lines[3].Segments,
+            frame.Lines[4].Segments,
             segment => segment.Role is SegmentRole.DiffRemoved or SegmentRole.DiffAdded);
     }
 

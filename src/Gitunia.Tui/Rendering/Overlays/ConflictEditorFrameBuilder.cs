@@ -28,8 +28,8 @@ public static class ConflictEditorFrameBuilder
     private const int ChipStartColumn = 2;
     private const int ChipGap = 2;
     private const int ContextLines = 2;
-    private const int TitleAndStripRows = 2;
-    private const int FooterAndBottomRows = 2;
+    private const int TitleAndStripRows = 3;
+    private const int FooterAndBottomRows = 3;
     private const int ResultHeaderRows = 2;
     private const int MinimumGutterWidth = 2;
     private const char OursMark = '-';
@@ -96,8 +96,9 @@ public static class ConflictEditorFrameBuilder
         var title = $"Conflict: {state.Path}  hunk {state.Index + 1}/{state.Hunks.Count}";
         var lines = new List<StyledLine>
         {
-            OverlayBox.Title(title, plan.Width, glyphs),
+            TopBorder(title, plan.Width, glyphs),
             StripLine(state, plan.Width, glyphs),
+            Rule(plan, glyphs, Junction.OpensDown),
         };
         if (plan.IsStacked)
         {
@@ -110,13 +111,14 @@ public static class ConflictEditorFrameBuilder
 
         if (plan.BaseRows > 0)
         {
-            lines.Add(Rule(plan, glyphs, hasJunction: !plan.IsStacked));
+            lines.Add(Rule(plan, glyphs, plan.IsStacked ? Junction.None : Junction.ClosesUp));
             AddBase(lines, hunk, plan, glyphs);
         }
 
-        lines.Add(Rule(plan, glyphs, hasJunction: !plan.IsStacked && plan.BaseRows == 0));
+        lines.Add(Rule(plan, glyphs, !plan.IsStacked && plan.BaseRows == 0 ? Junction.ClosesUp : Junction.None));
         lines.Add(OverlayBox.Text(ResultHeader(state), plan.Width, glyphs, SegmentRole.SectionTitle));
         AddResult(lines, state, plan, glyphs);
+        lines.Add(Rule(plan, glyphs, Junction.None));
         foreach (var chips in plan.ChipRows)
         {
             lines.Add(ChipLine(chips, plan.Width, glyphs));
@@ -205,7 +207,7 @@ public static class ConflictEditorFrameBuilder
         }
 
         var firstChipLine = TitleAndStripRows + sideHeaders + (sideRows * sideCount) + baseTotal + ResultHeaderRows
-            + resultRows;
+            + resultRows + RuleRows;
 
         var sideLines = Math.Max(
             ConflictEditorState.Lines(state.Selected!.Ours).Count,
@@ -260,27 +262,29 @@ public static class ConflictEditorFrameBuilder
 
     private static int SideBySideLeftWidth(int frameWidth) => (OverlayBox.InnerWidth(frameWidth) - 1) / 2;
 
-    // The line between the panes above and the result; side by side it joins the divider of the two sides.
-    private static StyledLine Rule(Plan plan, GraphGlyphSet glyphs, bool hasJunction)
+    // A rule across the frame, joined to both side borders. Side by side it also joins the divider of the two sides:
+    // opening it downwards under the strip, closing it upwards above the result.
+    private static StyledLine Rule(Plan plan, GraphGlyphSet glyphs, Junction junction)
     {
         var inner = OverlayBox.InnerWidth(plan.Width);
         var horizontal = glyphs.Horizontal;
         var left = SideBySideLeftWidth(plan.Width);
         var builder = new LineBuilder(inner, glyphs.Ellipsis);
-        if (hasJunction)
+        if (junction != Junction.None && !plan.IsStacked)
         {
-            var junction = glyphs.For(LineDirections.Left | LineDirections.Right | LineDirections.Up);
-            builder.Append(new string(horizontal, left), SegmentRole.Border)
-                .Append(junction.ToString(), SegmentRole.Border)
-                .Append(new string(horizontal, inner - 1 - left), SegmentRole.Border);
+            var down = junction == Junction.OpensDown;
+            var joint = Joint(glyphs, LineDirections.Left | LineDirections.Right | (down ? LineDirections.Down : LineDirections.Up));
+            builder.Append(new string(horizontal, left), SegmentRole.FocusedBorder)
+                .Append(joint.ToString(), SegmentRole.FocusedBorder)
+                .Append(new string(horizontal, inner - 1 - left), SegmentRole.FocusedBorder);
         }
         else
         {
-            builder.Append(new string(horizontal, inner), SegmentRole.Border);
+            builder.Append(new string(horizontal, inner), SegmentRole.FocusedBorder);
         }
 
-        var opening = glyphs.For(LineDirections.Up | LineDirections.Down | LineDirections.Right);
-        var closing = glyphs.For(LineDirections.Up | LineDirections.Down | LineDirections.Left);
+        var opening = Joint(glyphs, LineDirections.Up | LineDirections.Down | LineDirections.Right);
+        var closing = Joint(glyphs, LineDirections.Up | LineDirections.Down | LineDirections.Left);
 
         return new StyledLine(
         [
@@ -289,6 +293,28 @@ public static class ConflictEditorFrameBuilder
             new StyledSegment(closing.ToString(), SegmentRole.FocusedBorder),
         ]);
     }
+
+    // The top border with the title set into it: `╭─ Conflict: file  hunk 1/2 ────╮`.
+    private static StyledLine TopBorder(string title, int width, GraphGlyphSet glyphs)
+    {
+        var inner = OverlayBox.InnerWidth(width);
+        var horizontal = glyphs.Horizontal.ToString();
+        var label = TextWidth.Fit($" {title} ", Math.Max(0, inner - 1), glyphs.Ellipsis);
+        var fill = Math.Max(0, inner - 1 - TextWidth.Of(label));
+
+        return new StyledLine(
+        [
+            new StyledSegment(Joint(glyphs, LineDirections.Down | LineDirections.Right).ToString(), SegmentRole.FocusedBorder),
+            new StyledSegment(horizontal, SegmentRole.FocusedBorder),
+            new StyledSegment(label, SegmentRole.SectionTitle),
+            new StyledSegment(string.Concat(Enumerable.Repeat(horizontal, fill)), SegmentRole.FocusedBorder),
+            new StyledSegment(Joint(glyphs, LineDirections.Down | LineDirections.Left).ToString(), SegmentRole.FocusedBorder),
+        ]);
+    }
+
+    // Corners and junctions are a plus sign in the ASCII set, as in the other overlays.
+    private static char Joint(GraphGlyphSet glyphs, LineDirections directions) =>
+        glyphs.IsAscii ? '+' : glyphs.For(directions);
 
     private static string SideTitle(string name, string label, SideText side, Plan plan)
     {
@@ -466,7 +492,7 @@ public static class ConflictEditorFrameBuilder
     {
         var inner = new LineBuilder(innerWidth, glyphs.Ellipsis)
             .Append(left)
-            .Append(divider, SegmentRole.Border)
+            .Append(divider, SegmentRole.FocusedBorder)
             .Append(right)
             .Build();
 
@@ -571,6 +597,13 @@ public static class ConflictEditorFrameBuilder
         }
 
         return rows;
+    }
+
+    private enum Junction
+    {
+        None,
+        OpensDown,
+        ClosesUp,
     }
 
     private sealed record Plan(
