@@ -112,4 +112,56 @@ public class WorkingListTitleButtonsTests
             DefaultMouseMap.CreateBindings(),
             binding => binding.View == DefaultMouseMap.ListResolveButton && binding.Action == ActionIds.ConflictOpen);
     }
+
+    [Theory]
+    [InlineData(WorkingTreeSection.Unstaged, "Unstaged 12")]
+    [InlineData(WorkingTreeSection.Staged, "Staged 3")]
+    public void GivenANarrowList_WhenLayingOutTheDiffChip_ThenItShowsItsKeyAndSitsLeftOfTheStageButton(
+        WorkingTreeSection section, string title)
+    {
+        var diff = WorkingListTitleButtons.DiffButton(section, title, 60, null)!;
+        var stage = WorkingListTitleButtons.Layout(section, title, 60)!;
+
+        Assert.Equal(DefaultMouseMap.ListDiffButton, diff.View);
+        Assert.Equal(" Enter diff \u203A ", diff.Label);
+        Assert.Equal(stage.Start - 1, diff.Start + diff.Width);
+    }
+
+    [Fact]
+    public void GivenARowThatFitsOnlyTwoChips_WhenTheDiffChipIsShown_ThenTheViewChipGivesWayToIt()
+    {
+        var withoutDiff = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 40, null);
+        var diff = WorkingListTitleButtons.DiffButton(WorkingTreeSection.Unstaged, "Unstaged 12", 40, null);
+        var view = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 40, null, true);
+
+        Assert.NotNull(withoutDiff);
+        Assert.NotNull(diff);
+        Assert.Null(view);
+    }
+
+    [Fact]
+    public void GivenAWideEnoughList_WhenTheDiffChipIsShown_ThenViewAndResolveEndBeforeIt()
+    {
+        var diff = WorkingListTitleButtons.DiffButton(WorkingTreeSection.Unstaged, "Unstaged 12", 90, null)!;
+        var view = WorkingListTitleButtons.ViewButton(WorkingTreeSection.Unstaged, "Unstaged 12", 90, null, true)!;
+        var resolve = WorkingListTitleButtons.ResolveButton("Unstaged 12", 90, null, true)!;
+
+        Assert.True(view.Start + view.Width < diff.Start);
+        Assert.True(resolve.Start + resolve.Width < view.Start);
+    }
+
+    [Fact]
+    public void GivenTooNarrowARow_WhenLayingOutTheDiffChip_ThenThereIsNone()
+    {
+        Assert.Null(WorkingListTitleButtons.DiffButton(WorkingTreeSection.Unstaged, "Unstaged 12", 20, null));
+    }
+
+    [Fact]
+    public void GivenTheDiffChip_WhenLookingAtTheMouseMap_ThenItRunsTheOpenDiffAction()
+    {
+        Assert.Contains(
+            DefaultMouseMap.CreateBindings(),
+            binding => binding.View == DefaultMouseMap.ListDiffButton
+                && binding.Action == ActionIds.WorkingTreeOpenDiff);
+    }
 }

@@ -11,4 +11,7 @@ public enum ListButtonKind
 
     /// <summary>The <c>resolve</c> chip, shown while the Unstaged cursor is on a conflicted file.</summary>
     Resolve,
+
+    /// <summary>The <c>diff ›</c> chip, shown while the screen is too narrow for the diff beside the list.</summary>
+    Diff,
 }

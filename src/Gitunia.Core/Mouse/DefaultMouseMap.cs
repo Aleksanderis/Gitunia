@@ -104,6 +104,10 @@ public static class DefaultMouseMap
     /// <summary>The <c>view ▾</c> dropdown in the title row of both working-tree file lists (#646).</summary>
     public const string ListViewButton = "ListButton.View";
 
+    /// <summary>The <c>diff ›</c> chip in the title row of both working-tree file lists, shown on screens under 80
+    /// columns where the diff is not beside the list (#376).</summary>
+    public const string ListDiffButton = "ListButton.Diff";
+
     /// <summary>The <c>resolve</c> chip in the Unstaged list's title row, shown while the cursor is on a conflicted
     /// file (#701).</summary>
     public const string ListResolveButton = "ListButton.Resolve";
@@ -353,6 +357,7 @@ public static class DefaultMouseMap
         new(StageAllButton, MouseGesture.Click, ActionIds.WorkingTreeStageAll),
         new(UnstageAllButton, MouseGesture.Click, ActionIds.WorkingTreeUnstageAll),
         new(ListResolveButton, MouseGesture.Click, ActionIds.ConflictOpen),
+        new(ListDiffButton, MouseGesture.Click, ActionIds.WorkingTreeOpenDiff),
         new(DiffPreviousFileButton, MouseGesture.Click, ActionIds.DiffPreviousFile),
         new(DiffNextFileButton, MouseGesture.Click, ActionIds.DiffNextFile),
         new(DiffPreviousHunkButton, MouseGesture.Click, ActionIds.DiffPreviousHunk),
