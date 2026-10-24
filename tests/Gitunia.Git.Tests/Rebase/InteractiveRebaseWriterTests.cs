@@ -573,6 +573,7 @@ public class InteractiveRebaseWriterTests
         Assert.Equal(OperationOutcome.Conflicted, result.Outcome);
         Assert.True(Directory.Exists(Path.Combine(location.GitDirectory, "gitunia-rebase")));
         var outcome = result.Outcome;
+        var conflictStops = 1;
         while (outcome == OperationOutcome.Conflicted)
         {
             repository.WriteFile("f.txt", "1\n2\n3\n");
@@ -580,9 +581,11 @@ public class InteractiveRebaseWriterTests
             var continued = await CreateOperationWriter(repository)
                 .ContinueAsync(location, RepositoryOperation.Rebase, Token);
             outcome = continued.Outcome;
+            conflictStops += outcome == OperationOutcome.Conflicted ? 1 : 0;
         }
 
         Assert.Equal(OperationOutcome.Completed, outcome);
+        Assert.Equal(2, conflictStops);
         Assert.Equal("1", repository.Git("rev-list", "--merges", "--count", "HEAD").Trim());
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
     }
@@ -601,6 +604,42 @@ public class InteractiveRebaseWriterTests
         var range = await writer.ReadRangeAsync(location, FromBase(repository), Token);
 
         Assert.Contains(range, line => line.Subject == "fixup! SideA" && line.Action == RebaseTodoAction.Pick);
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenADirtyTree_WhenReadingAMergeRange_ThenItIsRefusedAndTheChangeStays()
+    {
+        using var repository = Branchy();
+        var (writer, location) = await CreateAsync(repository);
+        repository.WriteFile("main.txt", "edited\n");
+        var head = repository.Head;
+
+        var exception = await Assert.ThrowsAsync<RebaseRangeException>(
+            () => writer.ReadRangeAsync(location, FromBase(repository), Token));
+
+        Assert.Contains("Git did not prepare a todo", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(head, repository.Head);
+        Assert.Equal("M main.txt", repository.Git("status", "--porcelain").Trim());
+        Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
+    }
+
+    [Fact]
+    public async Task GivenADirtyTreeAndAutoStash_WhenReadingAMergeRange_ThenTheTodoIsReadAndTheChangeIsBack()
+    {
+        using var repository = Branchy();
+        repository.Git("config", "rebase.autoStash", "true");
+        var (writer, location) = await CreateAsync(repository);
+        repository.WriteFile("main.txt", "edited\n");
+        var head = repository.Head;
+
+        var range = await writer.ReadRangeAsync(location, FromBase(repository), Token);
+
+        Assert.Contains(range, line => line.Action == RebaseTodoAction.Merge);
+        Assert.Equal(head, repository.Head);
+        Assert.Equal("edited\n", File.ReadAllText(Path.Combine(repository.WorkingTreePath, "main.txt")));
+        Assert.Equal("M main.txt", repository.Git("status", "--porcelain").Trim());
+        Assert.Equal(string.Empty, repository.Git("stash", "list").Trim());
         Assert.Equal(RepositoryOperation.None, new RepositoryOperationDetector().Detect(location));
     }
 

@@ -64,7 +64,7 @@ public static class RebaseTodoParser
                 break;
         }
 
-        throw new RebaseRangeException($"Git's todo has a line Gitunia cannot carry: {line}");
+        throw new RebaseRangeException($"Git's todo has a \"{word}\" command Gitunia cannot carry: {line}");
     }
 
     private static string ResetName(string rest)
