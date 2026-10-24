@@ -171,6 +171,33 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Fact]
+    public void GivenTheBaseIsShown_WhenRendering_ThenTheDividerEndsAboveTheBaseAndTheRuleBelowItIsPlain()
+    {
+        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
+        var frame = ConflictEditorFrameBuilder.Build(State(diffThree).ToggleBase(), 120, 40, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var baseHeader = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
+        var resultHeader = lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal));
+        Assert.Equal(lines[4].IndexOf('│', 1), lines[baseHeader - 1].IndexOf('┴', StringComparison.Ordinal));
+        Assert.DoesNotContain('┴', lines[resultHeader - 1]);
+    }
+
+    [Fact]
+    public void GivenALongWidePath_WhenRendering_ThenTheTopBorderKeepsTheFrameWidth()
+    {
+        var state = ConflictEditorState.Create(
+            new TabId(1),
+            new string('漢', 120),
+            ConflictParser.Parse(Text).Parts!);
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 100, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Equal(frame.Width, TextWidth.Of(frame.Lines[0].Text));
+        Assert.EndsWith("╮", frame.Lines[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenANarrowScreen_WhenRendering_ThenTheRuleHasNoJunction()
     {
         var frame = ConflictEditorFrameBuilder.Build(State(Text), 70, 30, GraphGlyphSet.Ascii)!;
