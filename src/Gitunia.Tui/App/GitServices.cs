@@ -61,6 +61,7 @@ namespace Gitunia.Tui.App;
 /// <param name="Reflog">Reads the reflog of HEAD or of a branch.</param>
 /// <param name="Stashes">Reads the stash stack.</param>
 /// <param name="StashWriter">Pushes, applies, pops and drops stashes.</param>
+/// <param name="StashDetails">Reads the files and diff of a stash.</param>
 /// <param name="OperationWriter">Continues, aborts and skips a stopped merge, rebase, cherry-pick or revert.</param>
 /// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Conflicts">Reads a conflicted file into hunks for the conflict editor.</param>
@@ -99,6 +100,7 @@ public sealed record GitServices(
     IReflogReader Reflog,
     IStashReader Stashes,
     IStashWriter StashWriter,
+    IStashDetailsReader StashDetails,
     IWorktreeWriter Worktrees,
     IOperationWriter OperationWriter,
     IOperationInfoReader OperationInfo,
@@ -159,6 +161,7 @@ public sealed record GitServices(
             new ReflogReader(runner),
             stashes,
             new StashWriter(runner),
+            new StashDetailsReader(runner),
             new WorktreeWriter(runner),
             new OperationWriter(operationRunner),
             new OperationInfoReader(),

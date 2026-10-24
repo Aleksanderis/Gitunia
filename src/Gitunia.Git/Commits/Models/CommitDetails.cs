@@ -41,6 +41,16 @@ public sealed record CommitDetails(
     /// <summary>These details show the difference between two commits and not one commit's own changes.</summary>
     public bool IsComparison => CompareOlder is not null && CompareNewer is not null;
 
+    /// <summary>
+    /// These details are a stash's (#699): <see cref="Parents"/> is empty, <see cref="Files"/> are the tracked changes
+    /// followed by <see cref="UntrackedFileCount"/> untracked files, and the message and people are the stash
+    /// commit's own.
+    /// </summary>
+    public bool IsStash { get; init; }
+
+    /// <summary>How many of the last <see cref="Files"/> are untracked files saved by the stash; 0 for a commit.</summary>
+    public int UntrackedFileCount { get; init; }
+
     /// <summary>The first line of the message.</summary>
     public string Subject
     {

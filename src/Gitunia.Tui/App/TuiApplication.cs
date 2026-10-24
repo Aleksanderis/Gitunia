@@ -102,6 +102,7 @@ public sealed class TuiApplication(
     private VisualRangeController _visual = null!;
     private IReadOnlyList<IPromptHandler> _prompts = [];
     private SidebarActionHandler _sidebar = null!;
+    private StashViewController _stashView = null!;
     private WorktreeActions _worktrees = null!;
     private PaneKind _appliedFocus = PaneKind.Graph;
     private OverlayController _overlays = null!;
@@ -201,6 +202,9 @@ public sealed class TuiApplication(
             SelectGraphItem,
             mode => _keys.SetMode(mode),
             clipboard);
+        _stashView = new StashViewController(_host, ActiveSession, ReselectGraphCommit, RefreshDetail, _statuses);
+        _sidebar.StashView = _stashView;
+        _host.Changed += _stashView.Reconcile;
         _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
         _sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
         _view = new MainView(
@@ -1904,6 +1908,22 @@ public sealed class TuiApplication(
         }
     }
 
+    // Ends a stash view: the pane goes back to the commit selected in the graph.
+    private void ReselectGraphCommit()
+    {
+        var session = ActiveSession();
+        if (session is not null && _view.Graph.SelectedItem is { } item)
+        {
+            var commitIndex = GraphListSource.CommitIndexOf(item);
+            if (commitIndex >= 0 && commitIndex < session.Graph.Count)
+            {
+                session.Details.Select(session.Graph[commitIndex].Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
+            }
+        }
+
+        RefreshDetail();
+    }
+
     // The tab of the bottom pane is repository tab state: whoever changed it (key, click, restored session), the rows follow.
     private void OnBottomTabMaybeChanged()
     {
@@ -1947,17 +1967,20 @@ public sealed class TuiApplication(
         }
 
         var commitIndex = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
-        var entry = commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null;
+        var stashName = StashViewController.ShownName(session);
+        var entry = StashViewController.ShownEntry(session)
+            ?? (commitIndex >= 0 && commitIndex < session.Graph.Count ? session.Graph[commitIndex] : null);
         var previous = session.DetailSource.Content;
         var tab = _host.Workspace.ActiveTab?.View.BottomTab ?? BottomTab.Changes;
         var content = DetailContentBuilder.Build(
             entry,
             session.Details.Current,
             tab,
-            FileTreeViewOf(session, entry, tab),
+            stashName is null ? FileTreeViewOf(session, entry, tab) : null,
             _host.Workspace.ActiveTab?.View.PathStyle ?? FilePathStyle.NameFirst,
             session.IssueLinks,
-            session.CollapsedFolders);
+            session.CollapsedFolders,
+            stashName);
         var previousCursor = _view.Detail.SelectedItem;
         session.DetailSource.Update(content);
 
