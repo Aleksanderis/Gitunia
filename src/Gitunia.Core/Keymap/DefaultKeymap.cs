@@ -349,7 +349,9 @@ public static class DefaultKeymap
     }
 
     // The conflict editor is a modal like the rebase todo editor: its single letters (n/N step through the hunks, o, t
-    // and b pick a side, u undoes the pick) are keys of the modal, not buffer commands, and shadow Lists' search keys.
+    // and b pick a side, e edits the result, r makes the hunk unresolved again, u/Ctrl-r undo and redo, B shows the
+    // base, R re-creates the conflict) are keys of the modal, not buffer commands, and shadow Lists' search keys. In
+    // Insert mode the result's text editor takes text; only Enter, Esc and the Alt-Enter/Ctrl-g accept act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = ConflictEditorView;
@@ -359,7 +361,15 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "t", ActionIds.ConflictEditorTheirs);
         Add(bindings, NormalOnly, editor, "b", ActionIds.ConflictEditorBoth);
         Add(bindings, NormalOnly, editor, "u", ActionIds.ConflictEditorUndo);
+        Add(bindings, NormalOnly, editor, "Ctrl-r", ActionIds.ConflictEditorRedo);
+        Add(bindings, NormalOnly, editor, "r", ActionIds.ConflictEditorReset);
+        Add(bindings, NormalOnly, editor, "e", ActionIds.ConflictEditorEdit);
+        Add(bindings, NormalOnly, editor, "B", ActionIds.ConflictEditorBase);
+        Add(bindings, NormalOnly, editor, "R", ActionIds.ConflictEditorRecreate);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
+        Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.ConflictEditorEditNewLine);
+        Add(bindings, [KeyMode.Insert], editor, "Alt-Enter", ActionIds.ConflictEditorEditDone);
+        Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.ConflictEditorEditDone);
         Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
     }

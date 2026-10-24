@@ -46,7 +46,7 @@ Done when: usable as a daily driver on Linux; Windows binaries build in CI (macO
 
 ## Post-MVP candidates
 
-Blame, free editing, an undo stack and a base pane in the conflict editor (hunk-wise picks are in, #689), submodules, PR/issue integration.
+Blame, submodules, PR/issue integration.
 
 ## Open questions
 

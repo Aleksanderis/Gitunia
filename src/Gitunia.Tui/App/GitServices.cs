@@ -65,6 +65,7 @@ namespace Gitunia.Tui.App;
 /// <param name="OperationInfo">Reads the details of the stopped operation for the banner.</param>
 /// <param name="Conflicts">Reads a conflicted file into hunks for the conflict editor.</param>
 /// <param name="ConflictWriter">Writes the conflict editor's result into the working tree.</param>
+/// <param name="ConflictRecreator">Re-creates the conflict of a file for the conflict editor.</param>
 /// <param name="Refresher">Recomputes a tab's snapshot.</param>
 /// <param name="WatchedDirectories">Lists the non-ignored working tree directories a tab watches.</param>
 /// <param name="GraphLoader">Streams the graph rows.</param>
@@ -103,6 +104,7 @@ public sealed record GitServices(
     IOperationInfoReader OperationInfo,
     IConflictReader Conflicts,
     IConflictWriter ConflictWriter,
+    IConflictRecreator ConflictRecreator,
     IGitConfigReader Config,
     IIssueTrackerReader IssueTracker,
     IRepositoryRefresher Refresher,
@@ -162,6 +164,7 @@ public sealed record GitServices(
             new OperationInfoReader(),
             new ConflictReader(runner),
             new ConflictWriter(),
+            new ConflictRecreator(runner),
             new GitConfigReader(runner),
             new IssueTrackerReader(runner),
             new RepositoryRefresher(refs, status, operationDetector),

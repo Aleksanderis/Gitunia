@@ -267,6 +267,200 @@ public class ConflictEditorControllerTests
         Assert.Equal(1, harness.Controller.State!.Index);
     }
 
+    [Fact]
+    public async Task GivenAPickedHunk_WhenEditingTypingAndSaving_ThenTheTypedTextIsWrittenAndTheModeFollows()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+
+        harness.Run(ActionIds.ConflictEditorEdit);
+        Assert.Equal(KeyMode.Insert, harness.Mode);
+        Assert.True(harness.Controller.IsEditing);
+        harness.Type("hand");
+        harness.Run(ActionIds.ConflictEditorEditNewLine);
+        harness.Type("made");
+        harness.Run(ActionIds.ConflictEditorEditDone);
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Controller.IsEditing);
+        Assert.Equal(ConflictPick.Edited, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.ConflictEditorSave);
+        await harness.WaitAsync();
+
+        Assert.Equal("main\nhand\nmade\n", File.ReadAllText(harness.FullPath).Replace("\r", string.Empty));
+        Assert.Equal([ConflictPath], harness.ResolvedAsked);
+    }
+
+    [Fact]
+    public async Task GivenAnEdit_WhenPressingEsc_ThenTheTextIsKeptTheModeIsNormalAndUndoTakesItBack()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+        harness.Type("typed");
+
+        harness.Run(ActionIds.Cancel);
+
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.Equal(ConflictPick.Edited, harness.Controller.State!.SelectedPick);
+        Assert.Contains("typed", harness.Controller.State.ToText(), StringComparison.Ordinal);
+        harness.Run(ActionIds.ConflictEditorUndo);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.ConflictEditorRedo);
+        Assert.Equal(ConflictPick.Edited, harness.Controller.State!.SelectedPick);
+    }
+
+    [Fact]
+    public async Task GivenTwoPicks_WhenUndoingTwiceAndRedoing_ThenThePicksFollowTheStack()
+    {
+        using var repository = TwoHunks();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorNext);
+        harness.Run(ActionIds.ConflictEditorTheirs);
+
+        harness.Run(ActionIds.ConflictEditorUndo);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.Picks[1]);
+        harness.Run(ActionIds.ConflictEditorUndo);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.Picks[0]);
+        Assert.False(harness.Controller.State.IsModified);
+        harness.Run(ActionIds.ConflictEditorRedo);
+
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.Picks[0]);
+        Assert.Equal(ConflictPick.None, harness.Controller.State.Picks[1]);
+    }
+
+    [Fact]
+    public async Task GivenAPick_WhenResetting_ThenTheHunkIsUnresolvedAndUndoRestoresThePick()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorBoth);
+
+        harness.Run(ActionIds.ConflictEditorReset);
+        Assert.Equal(ConflictPick.None, harness.Controller.State!.SelectedPick);
+        harness.Run(ActionIds.ConflictEditorUndo);
+
+        Assert.Equal(ConflictPick.Both, harness.Controller.State!.SelectedPick);
+    }
+
+    [Fact]
+    public async Task GivenAnEdit_WhenTheEditorIsClosed_ThenTheKeymapGoesBackToNormal()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorEdit);
+
+        harness.Controller.Close();
+
+        Assert.Equal(KeyMode.Normal, harness.Mode);
+        Assert.False(harness.Controller.HandleTextKey(new KeyEvent("x")));
+    }
+
+    [Fact]
+    public async Task GivenTheBaseKey_WhenPressedOnAMergeStyleFile_ThenTheBasePaneToggles()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorBase);
+
+        Assert.True(harness.Controller.State!.IsBaseShown);
+        Assert.Contains(
+            harness.Controller.CurrentFrame()!.Lines,
+            line => line.Text.Contains("merge.conflictStyle=diff3", StringComparison.Ordinal));
+        harness.Run(ActionIds.ConflictEditorBase);
+        Assert.False(harness.Controller.State!.IsBaseShown);
+    }
+
+    [Fact]
+    public async Task GivenADiffThreeConflict_WhenShowingTheBase_ThenTheAncestorLinesAreDrawn()
+    {
+        using var repository = TestRepositories.Conflicted();
+        repository.Git("checkout", "--merge", "--conflict=diff3", "--", ConflictPath);
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+
+        harness.Run(ActionIds.ConflictEditorBase);
+
+        var frame = harness.Controller.CurrentFrame()!;
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
+        Assert.True(header > 0);
+        Assert.Equal(harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n'), lines[header + 1].Trim('\u2502', ' '));
+    }
+
+    [Fact]
+    public async Task GivenAFileWreckedOnDisk_WhenRecreatingAndConfirming_ThenTheMarkersAreBackAndTheEditorIsFresh()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.ConflictEditorBase);
+        File.WriteAllText(harness.FullPath, "garbage\n");
+
+        harness.Run(ActionIds.ConflictEditorRecreate);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Contains("Re-create the conflict of conflict.txt", prompt.Lines[0], StringComparison.Ordinal);
+        Assert.Contains("checkout --merge", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal("garbage\n", File.ReadAllText(harness.FullPath));
+        harness.Answer();
+        await harness.WaitForStatusAsync("Re-created");
+
+        Assert.Contains("<<<<<<<", File.ReadAllText(harness.FullPath), StringComparison.Ordinal);
+        var state = harness.Controller.State!;
+        Assert.Equal(1, state.UnresolvedCount);
+        Assert.False(state.CanUndo);
+        Assert.True(state.IsBaseShown);
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
+        Assert.True(harness.Refreshes > 0);
+    }
+
+    [Fact]
+    public async Task GivenTheRecreateConfirmDeclined_WhenAnswering_ThenNothingChanges()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+
+        harness.Run(ActionIds.ConflictEditorRecreate);
+        harness.Decline();
+
+        Assert.Equal(harness.OriginalText, File.ReadAllText(harness.FullPath));
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.SelectedPick);
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
+    }
+
+    [Fact]
+    public async Task GivenAFileGitCannotRecreate_WhenConfirming_ThenTheStatusShowsGitsReasonAndTheEditorStays()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository, new RefusingRecreator());
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+
+        harness.Run(ActionIds.ConflictEditorRecreate);
+        harness.Answer();
+        await harness.WaitAsync();
+
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Equal(ConflictPick.Ours, harness.Controller.State!.SelectedPick);
+        Assert.Equal(StatusSeverity.Error, harness.Statuses.Log.Latest!.Severity);
+        Assert.Contains("Could not re-create", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains("refused", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.False(harness.Gate.IsBusy(harness.TabId));
+    }
+
     private static TestRepository Stopped(string operation) => operation switch
     {
         "merge" => TestRepositories.Conflicted(),
@@ -302,12 +496,21 @@ public class ConflictEditorControllerTests
         return repository.MergeExpectingConflict("other");
     }
 
+    private sealed class RefusingRecreator : IConflictRecreator
+    {
+        public Task RecreateAsync(
+            RepositoryLocation location,
+            string path,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("the file has no conflict to re-create, refused");
+    }
+
     private sealed class Harness : IDisposable
     {
         private readonly WorkspaceHost _host = new(Workspace.Empty);
         private readonly List<Action> _answers = [];
 
-        private Harness(TestRepository repository, RepositoryLocation location)
+        private Harness(TestRepository repository, RepositoryLocation location, IConflictRecreator? recreator)
         {
             Runner = repository.CreateIsolatedRunner();
             Location = location;
@@ -320,6 +523,7 @@ public class ConflictEditorControllerTests
                 _host,
                 new ConflictReader(Runner),
                 new ConflictWriter(),
+                recreator ?? new ConflictRecreator(Runner),
                 Statuses,
                 Pump.Post,
                 _ => TestContext.Current.CancellationToken,
@@ -334,6 +538,7 @@ public class ConflictEditorControllerTests
                 () => IsOtherOverlayOpen,
                 () => new ScreenSize(120, 36),
                 GraphGlyphSet.Unicode,
+                SetMode,
                 () => { },
                 Gate);
         }
@@ -356,6 +561,8 @@ public class ConflictEditorControllerTests
 
         public bool IsOtherOverlayOpen { get; set; }
 
+        public KeyMode Mode { get; private set; } = KeyMode.Normal;
+
         public TabId TabId { get; }
 
         public UiPump Pump { get; }
@@ -364,12 +571,12 @@ public class ConflictEditorControllerTests
 
         public string OriginalText { get; }
 
-        public static async Task<Harness> CreateAsync(TestRepository repository)
+        public static async Task<Harness> CreateAsync(TestRepository repository, IConflictRecreator? recreator = null)
         {
             var discovery = new RepositoryDiscovery(repository.CreateIsolatedRunner());
             var token = TestContext.Current.CancellationToken;
             var location = await discovery.DiscoverAsync(repository.WorkingTreePath, token);
-            var harness = new Harness(repository, location);
+            var harness = new Harness(repository, location, recreator);
             await harness.ReloadAsync();
 
             return harness;
@@ -386,6 +593,11 @@ public class ConflictEditorControllerTests
             Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
         }
 
+        public Task WaitForStatusAsync(string prefix) => Pump.RunUntilAsync(() =>
+            !Gate.IsAnyBusy
+            && Statuses.Log.Latest is { } latest
+            && latest.Text.StartsWith(prefix, StringComparison.Ordinal));
+
         public void CloseTab() => _host.Dispatch(new CloseTabCommand(TabId));
 
         public void Send(RepositoryCommand command) => _host.Dispatch(new TabCommand(TabId, command));
@@ -396,6 +608,14 @@ public class ConflictEditorControllerTests
             Assert.True(Controller.TryExecute(ActionIds.WorkingTreeOpenDiff, null));
             await Pump.RunUntilAsync(() => Controller.IsOpen || Statuses.Log.Latest is not null);
             Assert.True(Controller.IsOpen, Statuses.Log.Latest?.Text);
+        }
+
+        public void Type(string text)
+        {
+            foreach (var character in text)
+            {
+                Assert.True(Controller.HandleTextKey(new KeyEvent(character.ToString())));
+            }
         }
 
         public void Run(ActionId action) => Assert.True(Controller.TryExecute(action, null));
@@ -417,6 +637,8 @@ public class ConflictEditorControllerTests
         public void Dispose()
         {
         }
+
+        private void SetMode(KeyMode mode) => Mode = mode;
 
         private bool Confirm(ConfirmPrompt prompt, Action onConfirmed)
         {

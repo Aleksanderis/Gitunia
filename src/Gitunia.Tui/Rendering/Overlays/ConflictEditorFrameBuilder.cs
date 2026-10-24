@@ -3,6 +3,7 @@ using Gitunia.Core.Conflicts;
 using Gitunia.Core.Mouse;
 using Gitunia.Git.Conflicts.Models;
 using Gitunia.Tui.Rendering.Graph;
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Overlays;
@@ -37,23 +38,37 @@ public static class ConflictEditorFrameBuilder
     private const int SideBySideShareOf = 5;
     private const int MinimumSideRows = 1;
     private const int MinimumResultRows = 1;
+    private const int BaseHeaderRows = 1;
+    private const int BaseShareDivisor = 2;
     private const string ChipGapText = "  ";
     private const string TabText = "    ";
     private const string DiscardHint = "Esc again discards your picks";
     private const string CompleteHint = "every hunk is resolved: Enter saves the file";
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
+    private const string EditingHint = "Esc or Alt-Enter keeps the text, Enter adds a line; undo takes it back";
+    private const string NoBaseText = "(no base in the markers: set merge.conflictStyle=diff3, then R)";
 
     private static readonly ConflictEditorChip[] Chips =
     [
         new("[o ours]", DefaultMouseMap.ConflictOursButton),
         new("[t theirs]", DefaultMouseMap.ConflictTheirsButton),
         new("[b both]", DefaultMouseMap.ConflictBothButton),
+        new("[e edit]", DefaultMouseMap.ConflictEditButton),
+        new("[r reset]", DefaultMouseMap.ConflictResetButton),
         new("[u undo]", DefaultMouseMap.ConflictUndoButton),
+        new("[Ctrl-r redo]", DefaultMouseMap.ConflictRedoButton),
+        new("[B base]", DefaultMouseMap.ConflictBaseButton),
         new("[n next]", DefaultMouseMap.ConflictNextButton),
         new("[N previous]", DefaultMouseMap.ConflictPreviousButton),
+        new("[R re-create]", DefaultMouseMap.ConflictRecreateButton),
         new("[Enter save]", DefaultMouseMap.ConflictSaveButton),
         new("[Esc close]", DefaultMouseMap.ConflictCancelButton),
+    ];
+
+    private static readonly ConflictEditorChip[] EditingChips =
+    [
+        new("[Alt-Enter keep]", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
@@ -63,7 +78,7 @@ public static class ConflictEditorFrameBuilder
         int screenHeight,
         GraphGlyphSet glyphs)
     {
-        if (state.Selected is not { } hunk || PlanFor(screenWidth, screenHeight) is not { } plan)
+        if (state.Selected is not { } hunk || PlanFor(state, screenWidth, screenHeight) is not { } plan)
         {
             return null;
         }
@@ -83,6 +98,11 @@ public static class ConflictEditorFrameBuilder
             AddSideBySide(lines, hunk, plan, glyphs);
         }
 
+        if (plan.BaseRows > 0)
+        {
+            AddBase(lines, hunk, plan, glyphs);
+        }
+
         lines.Add(OverlayBox.Text(ResultHeader(state), plan.Width, glyphs, SegmentRole.SectionTitle));
         AddResult(lines, state, plan, glyphs);
         foreach (var chips in plan.ChipRows)
@@ -97,9 +117,14 @@ public static class ConflictEditorFrameBuilder
     }
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
-    public static string? ChipAt(int frameLine, int frameColumn, int screenWidth, int screenHeight)
+    public static string? ChipAt(
+        ConflictEditorState state,
+        int frameLine,
+        int frameColumn,
+        int screenWidth,
+        int screenHeight)
     {
-        if (PlanFor(screenWidth, screenHeight) is not { } plan)
+        if (PlanFor(state, screenWidth, screenHeight) is not { } plan)
         {
             return null;
         }
@@ -125,7 +150,7 @@ public static class ConflictEditorFrameBuilder
         return null;
     }
 
-    private static Plan? PlanFor(int screenWidth, int screenHeight)
+    private static Plan? PlanFor(ConflictEditorState state, int screenWidth, int screenHeight)
     {
         var width = Math.Min(MaximumWidth, screenWidth - HorizontalMargin);
         if (width < OverlayBox.MinimumWidth)
@@ -133,7 +158,7 @@ public static class ConflictEditorFrameBuilder
             return null;
         }
 
-        var chipRows = ChipRowsFor(width);
+        var chipRows = ChipRowsFor(state.IsEditing ? EditingChips : Chips, width);
         var isStacked = width < StackedBelowWidth;
         var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
         var sideCount = isStacked ? StackedSides : 1;
@@ -146,10 +171,21 @@ public static class ConflictEditorFrameBuilder
 
         var share = isStacked ? available / StackedShareDivisor : available * SideBySideShare / SideBySideShareOf;
         var sideRows = Math.Max(MinimumSideRows, share);
-        var resultRows = available - (sideRows * sideCount);
-        var firstChipLine = TitleAndStripRows + sideHeaders + (sideRows * sideCount) + ResultHeaderRows + resultRows;
+        var baseRows = state.IsBaseShown ? Math.Max(MinimumSideRows, sideRows / BaseShareDivisor) : 0;
+        var baseTotal = baseRows > 0 ? BaseHeaderRows + baseRows : 0;
+        var resultRows = available - (sideRows * sideCount) - baseTotal;
+        if (resultRows < MinimumResultRows)
+        {
+            // No room for the base: the result matters more.
+            baseRows = 0;
+            baseTotal = 0;
+            resultRows = available - (sideRows * sideCount);
+        }
 
-        return new Plan(width, isStacked, sideRows, resultRows, chipRows, firstChipLine);
+        var firstChipLine = TitleAndStripRows + sideHeaders + (sideRows * sideCount) + baseTotal + ResultHeaderRows
+            + resultRows;
+
+        return new Plan(width, isStacked, sideRows, baseRows, resultRows, chipRows, firstChipLine);
     }
 
     private static void AddSideBySide(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
@@ -177,6 +213,18 @@ public static class ConflictEditorFrameBuilder
         }
     }
 
+    private static void AddBase(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
+    {
+        lines.Add(OverlayBox.Text("base  common ancestor", plan.Width, glyphs, SegmentRole.SectionTitle));
+        var rows = hunk.Base is null ? [NoBaseText] : SideLines(hunk.Base, plan.BaseRows);
+        var isFaint = hunk.Base is null || (rows.Count == 1 && rows[0] == EmptySide);
+        var role = isFaint ? SegmentRole.Faint : SegmentRole.Plain;
+        for (var row = 0; row < plan.BaseRows; row++)
+        {
+            lines.Add(OverlayBox.Text(RowText(rows, row), plan.Width, glyphs, role));
+        }
+    }
+
     private static void AddStackedSides(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
         AddSide(lines, $"ours  {hunk.OursLabel}", SegmentRole.LocalBranch, hunk.Ours, plan, glyphs);
@@ -201,6 +249,24 @@ public static class ConflictEditorFrameBuilder
 
     private static void AddResult(List<StyledLine> lines, ConflictEditorState state, Plan plan, GraphGlyphSet glyphs)
     {
+        if (state.Edit is { } edit)
+        {
+            var textWidth = OverlayBox.InnerWidth(plan.Width) - 1;
+            var editorLines = MessageEditorRenderer.Render(
+                edit.Editor,
+                textWidth,
+                plan.ResultRowCount,
+                showCursor: true,
+                marksSubject: false);
+            foreach (var line in editorLines)
+            {
+                var padded = new StyledLine([new StyledSegment(" ", SegmentRole.Plain), .. line.Segments]);
+                lines.Add(OverlayBox.Wrap(padded, glyphs));
+            }
+
+            return;
+        }
+
         var rows = ResultRows(state, plan.ResultRowCount);
         for (var row = 0; row < plan.ResultRowCount; row++)
         {
@@ -278,8 +344,11 @@ public static class ConflictEditorFrameBuilder
         return OverlayBox.Wrap(inner, glyphs);
     }
 
-    private static string ResultHeader(ConflictEditorState state) => state.SelectedPick switch
+    private static string ResultHeader(ConflictEditorState state) => state.IsEditing
+        ? "result  editing"
+        : state.SelectedPick switch
     {
+        ConflictPick.Edited => "result  edited by you",
         ConflictPick.Ours => "result  our side",
         ConflictPick.Theirs => "result  their side",
         ConflictPick.Both => "result  both sides, ours first",
@@ -308,6 +377,7 @@ public static class ConflictEditorFrameBuilder
         ConflictPick.Ours => "ours",
         ConflictPick.Theirs => "theirs",
         ConflictPick.Both => "both",
+        ConflictPick.Edited => "edited",
         _ => Unresolved,
     };
 
@@ -328,6 +398,11 @@ public static class ConflictEditorFrameBuilder
 
     private static StyledLine FooterLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
     {
+        if (state.IsEditing)
+        {
+            return OverlayBox.Text(EditingHint, width, glyphs, SegmentRole.Faint);
+        }
+
         if (state.IsDiscardPending)
         {
             return OverlayBox.Text(DiscardHint, width, glyphs, SegmentRole.Error);
@@ -346,12 +421,12 @@ public static class ConflictEditorFrameBuilder
     }
 
     // The chips flow left to right and start a new row where the next one would not fit, so none is cut off.
-    private static List<List<ConflictEditorChip>> ChipRowsFor(int frameWidth)
+    private static List<List<ConflictEditorChip>> ChipRowsFor(ConflictEditorChip[] chipSet, int frameWidth)
     {
         var available = OverlayBox.InnerWidth(frameWidth) - 1;
         var rows = new List<List<ConflictEditorChip>> { new() };
         var used = 0;
-        foreach (var chip in Chips)
+        foreach (var chip in chipSet)
         {
             var width = TextWidth.Of(chip.Text);
             var needed = rows[^1].Count == 0 ? width : used + ChipGap + width;
@@ -372,6 +447,7 @@ public static class ConflictEditorFrameBuilder
         int Width,
         bool IsStacked,
         int SideRows,
+        int BaseRows,
         int ResultRowCount,
         List<List<ConflictEditorChip>> ChipRows,
         int FirstChipLine);

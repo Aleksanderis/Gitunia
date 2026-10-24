@@ -229,9 +229,18 @@ public static class PaneHints
             ActionIds.ConflictEditorTheirs,
             ActionIds.ConflictEditorBoth,
         ]),
+        new("e", "edit", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
+        new("B", "base", [ActionIds.ConflictEditorBase]),
         new("Enter", "save", [ActionIds.ConflictEditorSave]),
         new("Esc", "close", [ActionIds.NavigateBack]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> ConflictEdit =
+    [
+        new("Esc", "keep", [ActionIds.Cancel]),
+        new("Alt-Enter", "keep", [ActionIds.ConflictEditorEditDone]),
+        new("Enter", "new line", [ActionIds.ConflictEditorEditNewLine]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RebaseMessage =
@@ -287,6 +296,9 @@ public static class PaneHints
 
     /// <summary>The hints while the conflict editor is open.</summary>
     public static IReadOnlyList<KeyHint> ForConflictEditor() => ConflictEditor;
+
+    /// <summary>The hints while the result of a conflict hunk is edited as text.</summary>
+    public static IReadOnlyList<KeyHint> ForConflictEdit() => ConflictEdit;
 
     /// <summary>The hints while a reword's message is edited in the rebase todo editor.</summary>
     public static IReadOnlyList<KeyHint> ForRebaseMessage() => RebaseMessage;

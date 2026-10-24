@@ -187,6 +187,7 @@ public class PaneHintsTests
             "Reflog",
             "RebaseEditor",
             "ConflictEditor",
+            "ConflictEdit",
             "RebaseMessage",
             "Settings",
             "Picker",
@@ -213,6 +214,12 @@ public class PaneHintsTests
                 AssertKeysTriggerActions(
                     PaneHints.ForConflictEditor(),
                     KeyMode.Normal,
+                    DefaultKeymap.ConflictEditorView);
+                break;
+            case "ConflictEdit":
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictEdit(),
+                    KeyMode.Insert,
                     DefaultKeymap.ConflictEditorView);
                 break;
             case "RebaseEditor":

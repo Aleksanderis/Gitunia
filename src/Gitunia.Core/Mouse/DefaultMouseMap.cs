@@ -158,6 +158,18 @@ public static class DefaultMouseMap
 
     public const string ConflictCancelButton = "ConflictButton.Cancel";
 
+    public const string ConflictRedoButton = "ConflictButton.Redo";
+
+    public const string ConflictResetButton = "ConflictButton.Reset";
+
+    public const string ConflictEditButton = "ConflictButton.Edit";
+
+    public const string ConflictBaseButton = "ConflictButton.Base";
+
+    public const string ConflictRecreateButton = "ConflictButton.Recreate";
+
+    public const string ConflictEditDoneButton = "ConflictButton.EditDone";
+
     /// <summary>The setting row, the <c>[+]</c> marker and the <c>[x]</c> marker of the settings screen (#523):
     /// each is a view of its own, a click runs the action its key runs on the row the click selected.</summary>
     public const string SettingsEditButton = "SettingsButton.Edit";
@@ -221,6 +233,12 @@ public static class DefaultMouseMap
         ConflictPreviousButton,
         ConflictSaveButton,
         ConflictCancelButton,
+        ConflictRedoButton,
+        ConflictResetButton,
+        ConflictEditButton,
+        ConflictBaseButton,
+        ConflictRecreateButton,
+        ConflictEditDoneButton,
         DefaultKeymap.SettingsView,
         SettingsEditButton,
         SettingsAddButton,
@@ -305,6 +323,12 @@ public static class DefaultMouseMap
         new(ConflictPreviousButton, MouseGesture.Click, ActionIds.ConflictEditorPrevious),
         new(ConflictSaveButton, MouseGesture.Click, ActionIds.ConflictEditorSave),
         new(ConflictCancelButton, MouseGesture.Click, ActionIds.NavigateBack),
+        new(ConflictRedoButton, MouseGesture.Click, ActionIds.ConflictEditorRedo),
+        new(ConflictResetButton, MouseGesture.Click, ActionIds.ConflictEditorReset),
+        new(ConflictEditButton, MouseGesture.Click, ActionIds.ConflictEditorEdit),
+        new(ConflictBaseButton, MouseGesture.Click, ActionIds.ConflictEditorBase),
+        new(ConflictRecreateButton, MouseGesture.Click, ActionIds.ConflictEditorRecreate),
+        new(ConflictEditDoneButton, MouseGesture.Click, ActionIds.ConflictEditorEditDone),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelUp, ActionIds.ListUp, WheelLines),
         new(DefaultKeymap.SettingsView, MouseGesture.WheelDown, ActionIds.ListDown, WheelLines),
         new(SettingsEditButton, MouseGesture.Click, ActionIds.SettingsActivate),
