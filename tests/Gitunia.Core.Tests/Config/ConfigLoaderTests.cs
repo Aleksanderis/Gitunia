@@ -118,6 +118,7 @@ public sealed class ConfigLoaderTests : IDisposable
     [InlineData("{ \"key\": 5, \"action\": \"list.down\" }", "keys[0]: 'key' must be text, not a number")]
     [InlineData("{ \"key\": [\"x\"], \"action\": \"list.down\" }", "keys[0]: 'key' must be text, not a list")]
     [InlineData("{ \"key\": \"J\", \"action\": true }", "keys[0]: 'action' must be text, not a boolean")]
+    [InlineData("{ \"Mode\": 1, \"key\": \"J\", \"action\": \"list.down\" }", "keys[0]: 'Mode' must be text, not a number")]
     [InlineData("\"J\"", "keys[0]: the entry must be an object, not text")]
     [InlineData("[1]", "keys[0]: the entry must be an object, not a list")]
     public void GivenAWronglyTypedEntry_WhenBuildingTheKeymap_ThenOnlyThatEntryIsReportedAndTheOthersApply(
