@@ -28,4 +28,10 @@ public class DiffOptionsLabelTests
 
         Assert.Equal(DiffOptions.MaximumContextLines, atMaximum.MoreContext().ContextLines);
     }
+
+    [Fact]
+    public void GivenWhitespaceShown_WhenLabelling_ThenTheMarkerShows()
+    {
+        Assert.Equal("[ws]", DiffOptionsLabel.Of(DiffOptions.Default, showsWhitespace: true));
+    }
 }

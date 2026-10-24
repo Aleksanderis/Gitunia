@@ -247,6 +247,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "<space>vf", ActionIds.DiffToggleWholeFile);
         Add(bindings, NormalOnly, DiffView, "<space>vi", ActionIds.DiffToggleIgnoreWhitespace);
         Add(bindings, NormalOnly, DiffView, "<space>vs", ActionIds.DiffToggleSideBySide);
+        Add(bindings, NormalOnly, DiffView, "<space>vc", ActionIds.DiffToggleWhitespace);
         Add(bindings, NormalOnly, DiffView, "/", ActionIds.DiffSearchOpen);
         Add(bindings, NormalOnly, DiffView, "n", ActionIds.DiffSearchNext);
         Add(bindings, NormalOnly, DiffView, "N", ActionIds.DiffSearchPrevious);
@@ -442,6 +443,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "<space>vf", ActionIds.DiffToggleWholeFile);
             Add(bindings, NormalOnly, view, "<space>vi", ActionIds.DiffToggleIgnoreWhitespace);
             Add(bindings, NormalOnly, view, "<space>vs", ActionIds.DiffToggleSideBySide);
+            Add(bindings, NormalOnly, view, "<space>vc", ActionIds.DiffToggleWhitespace);
             Add(bindings, NormalOnly, view, "/", ActionIds.DiffSearchOpen);
             Add(bindings, NormalOnly, view, "n", ActionIds.DiffSearchNext);
             Add(bindings, NormalOnly, view, "N", ActionIds.DiffSearchPrevious);

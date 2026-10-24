@@ -219,4 +219,95 @@ public class DiffRowRendererTests
             contextLine.Text.IndexOf("same", StringComparison.Ordinal),
             addedLine.Text.IndexOf("same", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenRenderingATabAndTrailingSpaces_ThenMarksReplaceThemInTheSameColumns()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "a\tb  ", null, 1, 0);
+
+        var plain = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs);
+        var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true);
+
+        Assert.Contains("a   b  ", plain.Text, StringComparison.Ordinal);
+        Assert.Contains("a→  b··", marked.Text, StringComparison.Ordinal);
+        Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
+        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text.StartsWith('→')).Role);
+        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "··").Role);
+        Assert.Equal(SegmentRole.DiffAdded, marked.Segments.First(segment => segment.Text.EndsWith('b')).Role);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenALineHasInnerSpacesAndNoTrailingOnes_ThenItIsUnchanged()
+    {
+        var row = new DiffRow(DiffRowKind.Context, "one  two", 1, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true);
+
+        Assert.Contains("one  two", marked.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain('·', marked.Text);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenALineEndsInACarriageReturn_ThenItShowsTheMarkInBothGlyphSets()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "end\r", null, 1, 0);
+
+        var unicode = DiffRowRenderer.Render(row, 20, 3, null, false, GraphGlyphSet.Unicode, null, true);
+        var ascii = DiffRowRenderer.Render(row, 20, 3, null, false, GraphGlyphSet.Ascii, null, true);
+
+        Assert.Contains("end␍", unicode.Text, StringComparison.Ordinal);
+        Assert.Contains("end<", ascii.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOnAndAWrappedRow_WhenRenderingEachSegment_ThenMarksSitInTheRightChunk()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "abcdefgh\tx   ", null, 1, 0);
+        var width = DiffRowRenderer.PrefixWidth(row, 3) + 8;
+
+        var texts = Enumerable.Range(0, DiffRowRenderer.SegmentCount(row, width, 3))
+            .Select(segment => DiffRowRenderer.RenderSegment(row, segment, width, 3, null, false, Glyphs, null, true))
+            .ToList();
+
+        Assert.Contains("abcdefgh", texts[0].Text, StringComparison.Ordinal);
+        Assert.Contains("→", texts[1].Text, StringComparison.Ordinal);
+        Assert.Equal(SegmentRole.Faint, texts[1].Segments.First(segment => segment.Text.StartsWith('→')).Role);
+        Assert.Equal(SegmentRole.Faint, texts[^1].Segments.First(segment => segment.Text.Contains('·')).Role);
+        var plain = Enumerable.Range(0, texts.Count)
+            .Select(segment => DiffRowRenderer.RenderSegment(row, segment, width, 3, null, false, Glyphs))
+            .ToList();
+        Assert.Equal(plain.Select(line => TextWidth.Of(line.Text)), texts.Select(line => TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenAVeryLongLineAndMarksOn_WhenCut_ThenNoTrailingMarkAppearsAtTheCut()
+    {
+        var row = new DiffRow(DiffRowKind.Added, new string(' ', 5000), null, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 40, 3, null, false, Glyphs, null, true);
+
+        Assert.Equal(40, TextWidth.Of(marked.Text));
+        Assert.DoesNotContain('·', marked.Text);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOnAndASearch_WhenRendering_ThenTheMatchStillHighlights()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "find\t me", null, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 30, 3, "me", false, Glyphs, null, true);
+
+        Assert.Equal(SegmentRole.SearchMatch, marked.Segments.First(segment => segment.Text == "me").Role);
+        Assert.Contains("→", marked.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenALineEndsInSpacesAndACarriageReturn_ThenBothAreMarked()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "x  \r", null, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 20, 3, null, false, Glyphs, null, true);
+
+        Assert.Contains("x··␍", marked.Text, StringComparison.Ordinal);
+    }
 }

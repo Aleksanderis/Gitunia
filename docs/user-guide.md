@@ -35,7 +35,7 @@ Gitunia is modal and vim-style; `<space>` is the leader key. `?` shows the keys 
 ## Everyday tasks
 
 - **Browse history.** Move in the graph; `Enter` focuses the commit details, `]` and `[` cycle Details, Changes and Files; `<space>h` jumps to HEAD, `<space>f` to a ref or hash, `/` searches (`author:`, `hash:`, `body:` prefixes).
-- **Read a diff.** Select a file in Changes and press `Enter` or `l`. `]c` and `[c` jump between hunks; `<space>vs` toggles side-by-side, `<space>vw` word wrap, `<space>vi` ignores whitespace.
+- **Read a diff.** Select a file in Changes and press `Enter` or `l`. `]c` and `[c` jump between hunks; `<space>vs` toggles side-by-side, `<space>vw` word wrap, `<space>vi` ignores whitespace, `<space>vc` shows whitespace characters.
 - **Commit.** `<space>s` opens the working-tree view. Stage files with `<space>a` (in the diff, a hunk, or in Visual mode selected lines), write the message with `<space>c`, commit with `Alt-Enter`. `Alt-a` toggles amend. `<space>te` commits with `$EDITOR` instead.
 - **Conflicts.** `Enter` on a `!` file in the working-tree view opens the conflict editor: `n`/`N` step through the hunks, `o`, `t` and `b` take ours, theirs or both, `e` edits the result as text, `u`/`Ctrl-r` undo and redo, `B` shows the base, `R` re-creates the conflict, `Enter` saves and offers to mark the file resolved. Files it cannot take (add/add, delete/modify, binary) go to the mergetool (`<space>tm`).
 - **Branches, tags, worktrees, stashes.** Select the branch, tag, worktree or stash in the sidebar (or a commit in the graph) and use the `<space>b`, `<space>T`, `<space>w` and `<space>S` chords, or open the actions menu with `<space>.`.

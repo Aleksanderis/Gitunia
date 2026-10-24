@@ -108,7 +108,12 @@ public sealed class DiffListActions
         isFocused,
         diff.Search.Highlight,
         diff.Source.IsWrapped,
-        DiffOptionsLabel.Of(options, diff.Source.IsSideBySide, diff.Source.ShowsSideBySide));
+        DiffOptionsLabel.Of(
+            options,
+            diff.Source.IsSideBySide,
+            diff.Source.ShowsSideBySide,
+            diff.Source.ShowsWhitespace),
+        ShowWhitespace: diff.Source.ShowsWhitespace);
 
     /// <summary>
     /// Runs the keys every diff shares: moving, wrap, side by side, copy, hunk jumps and opening or stepping a search.
@@ -127,6 +132,11 @@ public sealed class DiffListActions
             diff.Source.SetWrapped(!diff.Source.IsWrapped);
             Select(diff, row, atTop: true);
             Notice = diff.Source.IsWrapped ? "Word wrap on" : "Word wrap off";
+        }
+        else if (action == ActionIds.DiffToggleWhitespace)
+        {
+            diff.Source.SetWhitespace(!diff.Source.ShowsWhitespace);
+            Notice = diff.Source.ShowsWhitespace ? "Whitespace characters shown" : "Whitespace characters hidden";
         }
         else if (action == ActionIds.DiffToggleSideBySide)
         {

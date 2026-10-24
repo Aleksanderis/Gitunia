@@ -474,6 +474,22 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
+    public async Task GivenAFile_WhenTogglingWhitespace_ThenTheSourceAndTheTitleMarkerFollow()
+    {
+        using var harness = await DiffHarness.LoadAsync();
+        await harness.OpenAsync("a.txt");
+        var source = harness.Session.Diff!.Source;
+
+        harness.Execute(ActionIds.DiffToggleWhitespace);
+
+        Assert.True(source.ShowsWhitespace);
+        Assert.Equal("Whitespace characters shown", harness.Controller.Notice);
+        harness.Execute(ActionIds.DiffToggleWhitespace);
+        Assert.False(source.ShowsWhitespace);
+        Assert.Equal("Whitespace characters hidden", harness.Controller.Notice);
+    }
+
+    [Fact]
     public async Task GivenWrapOn_WhenThePaneWidthChangesWithoutAKey_ThenTheCursorStaysOnItsRow()
     {
         using var testRepository = TestRepository.Create().Commit("long", new TestFile("a.txt", $"{new string('x', 150)}\nshort\n"));

@@ -70,6 +70,9 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
 
+    /// <summary>Tabs, trailing spaces and carriage returns are drawn as marks (text and copy are unchanged).</summary>
+    public bool ShowsWhitespace { get; private set; }
+
     /// <summary>The side-by-side view is switched on (it shows only while the pane is wide enough and shows a diff,
     /// see <see cref="ShowsSideBySide"/>).</summary>
     public bool IsSideBySide { get; private set; }
@@ -109,6 +112,13 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         RangeInvalidated?.Invoke();
         _map = null;
         _splitMap = null;
+        Notify();
+    }
+
+    /// <summary>Turns the whitespace marks on or off and tells the list (marks keep the layout as it is).</summary>
+    public void SetWhitespace(bool showsWhitespace)
+    {
+        ShowsWhitespace = showsWhitespace;
         Notify();
     }
 
@@ -202,7 +212,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             : current is not null && item >= 0 && item < current.Count
             ? WrappedLine(current, item, width, selected, jump)
             : current is null && item >= 0 && item < Document.Rows.Count
-                ? DiffRowRenderer.Render(Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs, jump)
+                ? DiffRowRenderer.Render(
+                    Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs, jump, ShowsWhitespace)
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
@@ -338,13 +349,23 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             IsWrapped,
             glyphs,
             left,
-            right);
+            right,
+            ShowsWhitespace);
     }
 
     private StyledLine WrappedLine(DiffWrapMap current, int item, int width, bool isSelected, JumpLabel? jump)
     {
         var row = current.RowOf(item);
-        return DiffRowRenderer.RenderSegment(Document.Rows[row], item - current.StartOf(row), width, _gutterDigits, Highlight, isSelected, glyphs, jump);
+        return DiffRowRenderer.RenderSegment(
+            Document.Rows[row],
+            item - current.StartOf(row),
+            width,
+            _gutterDigits,
+            Highlight,
+            isSelected,
+            glyphs,
+            jump,
+            ShowsWhitespace);
     }
 
     // The labels are worked out once per frame (the first line asks); only the first line of a wrapped row shows its label.

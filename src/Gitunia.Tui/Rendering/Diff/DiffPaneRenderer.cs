@@ -33,7 +33,14 @@ public static class DiffPaneRenderer
             var textWidth = PanePadding.TextWidth(width, paddingColumns);
             lines.Add(PanePadding.Wrap(
                 row >= 0 && row < pane.Document.Rows.Count
-                    ? DiffRowRenderer.Render(pane.Document.Rows[row], textWidth, gutter, pane.Highlight, pane.IsFocused && row == pane.SelectedRow, glyphs)
+                    ? DiffRowRenderer.Render(
+                        pane.Document.Rows[row],
+                        textWidth,
+                        gutter,
+                        pane.Highlight,
+                        pane.IsFocused && row == pane.SelectedRow,
+                        glyphs,
+                        showWhitespace: pane.ShowWhitespace)
                     : new LineBuilder(textWidth, glyphs.Ellipsis).Build(),
                 paddingColumns));
         }

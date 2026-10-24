@@ -223,7 +223,7 @@ public class OverlayFrameTests
                 "│                                                                            │",
                 "│ Merge and rebase                                                           │",
                 "│ Reset the current branch to the selection                        <space>gx │",
-                "│ 1/173 Ctrl-j/k move  Enter run  Esc close                                  │",
+                "│ 1/174 Ctrl-j/k move  Enter run  Esc close                                  │",
                 "╰────────────────────────────────────────────────────────────────────────────╯"),
             Text(frame));
         Assert.Equal(1, frame!.Column);
@@ -241,7 +241,7 @@ public class OverlayFrameTests
                 "| Branch                             |",
                 "| Create a branch and ch~  <space>bc |",
                 "| Create a branch withou~  <space>bC |",
-                "| 1/173 Ctrl-j/k move  Enter run  Esc|",
+                "| 1/174 Ctrl-j/k move  Enter run  Esc|",
                 "+------------------------------------+"),
             Text(frame));
         Assert.Equal(SegmentRole.SectionTitle, frame.Lines[1].Segments[1].Role);
