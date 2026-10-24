@@ -69,10 +69,26 @@ public class FramePrinterTests
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "first line\n"));
 
-        var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff));
+        var lines = await PrintAsync(repository, 80, 24, new PaneArrangement(true, PaneKind.Diff), BottomTab.Details);
 
         Assert.Contains(lines, line => line.Contains("first line", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("Details", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Detail)]
+    [InlineData(PaneKind.Diff)]
+    public async Task GivenAZoomOnTheChangesTabBesideTheDiff_WhenPrinting_ThenFileListAndDiffZoomTogether(PaneKind zoomed)
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
+
+        var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(false, zoomed));
+
+        Assert.Contains(lines, line => line.Contains("A a.txt", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("+one", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("History", StringComparison.Ordinal));
     }
 
     [Fact]
