@@ -381,10 +381,26 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenThreePanes_WhenPressingTheBaseKey_ThenNothingChangesNotEvenAPendingDiscard()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        await harness.OpenAsync();
+        harness.Run(ActionIds.ConflictEditorOurs);
+        harness.Run(ActionIds.NavigateBack);
+
+        harness.Run(ActionIds.ConflictEditorBase);
+
+        Assert.False(harness.Controller.State!.IsBaseShown);
+        Assert.True(harness.Controller.State.IsDiscardPending);
+    }
+
+    [Fact]
     public async Task GivenTheBaseKey_WhenPressedOnAMergeStyleFile_ThenTheBasePaneToggles()
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
+        harness.Screen = new ScreenSize(100, 36);
         await harness.OpenAsync();
 
         harness.Run(ActionIds.ConflictEditorBase);
@@ -399,20 +415,21 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
-    public async Task GivenADiffThreeConflict_WhenShowingTheBase_ThenTheAncestorLinesAreDrawn()
+    public async Task GivenADiffThreeConflict_WhenOpeningOnAWideScreen_ThenTheAncestorShowsWithoutPressingB()
     {
         using var repository = TestRepositories.Conflicted();
         repository.Git("checkout", "--merge", "--conflict=diff3", "--", ConflictPath);
         using var harness = await Harness.CreateAsync(repository);
         await harness.OpenAsync();
 
-        harness.Run(ActionIds.ConflictEditorBase);
-
         var frame = harness.Controller.CurrentFrame()!;
+
         var lines = frame.Lines.Select(line => line.Text).ToList();
         var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
         Assert.True(header > 0);
-        Assert.Equal(harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n'), lines[header + 1].Trim('\u2502', ' '));
+        var ancestor = harness.Controller.State!.Hunks[0].Base!.TrimEnd('\n').Split('\n')[0];
+        Assert.Contains(ancestor, lines[header + 1], StringComparison.Ordinal);
+        Assert.False(harness.Controller.State.IsBaseShown);
     }
 
     [Fact]
@@ -420,6 +437,7 @@ public class ConflictEditorControllerTests
     {
         using var repository = TestRepositories.Conflicted();
         using var harness = await Harness.CreateAsync(repository);
+        harness.Screen = new ScreenSize(100, 36);
         await harness.OpenAsync();
         harness.Run(ActionIds.ConflictEditorOurs);
         harness.Run(ActionIds.ConflictEditorBase);
@@ -602,7 +620,7 @@ public class ConflictEditorControllerTests
                     return true;
                 },
                 () => IsOtherOverlayOpen,
-                () => new ScreenSize(120, 36),
+                () => Screen,
                 GraphGlyphSet.Unicode,
                 SetMode,
                 () => { },
@@ -624,6 +642,8 @@ public class ConflictEditorControllerTests
         public List<string> ResolvedAsked { get; } = [];
 
         public int Refreshes { get; private set; }
+
+        public ScreenSize Screen { get; set; } = new(120, 36);
 
         public bool IsOtherOverlayOpen { get; set; }
 

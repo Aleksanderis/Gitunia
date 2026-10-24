@@ -21,7 +21,7 @@
 # stash (C-w h G Enter: a stash shown in the detail pane, with a tracked and an untracked file; a copy of the throwaway repository with a stash; not for --repo).
 # whitespace (Enter Enter <space>vc: the diff of the latest commit with whitespace marks; meant for --repo with tabs and trailing spaces in it).
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
-# conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (o B: the base block of the hunk); not for --repo.
+# conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (100 columns, under the three-pane width; o B: the base block below the two sides); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -302,7 +302,7 @@ render() {
       conflict-editor) keys="Space s Enter" keys_after="o n" ;;
       conflict-editor-narrow) columns=64 rows=30 keys="Space s Enter" keys_after="o n" ;;
       conflict-editor-edit) keys="Space s Enter" keys_after="o e t y p e d" ;;
-      conflict-editor-base) keys="Space s Enter" keys_after="o B" ;;
+      conflict-editor-base) columns=100 rows=36 keys="Space s Enter" keys_after="o B" ;;
       rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
       rebase-reword) keys="G Space g i" keys_after="j r" ;;
       rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;

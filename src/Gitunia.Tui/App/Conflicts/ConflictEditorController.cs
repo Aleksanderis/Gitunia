@@ -360,7 +360,10 @@ public sealed class ConflictEditorController(
         }
         else if (action == ActionIds.ConflictEditorBase)
         {
-            Update(state.ToggleBase());
+            if (!ConflictEditorFrameBuilder.IsThreePaneWidth(screenSize().Width))
+            {
+                Update(state.ToggleBase());
+            }
         }
         else if (action == ActionIds.ConflictEditorRecreate)
         {
