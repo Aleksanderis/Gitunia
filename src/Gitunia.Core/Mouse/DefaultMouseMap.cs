@@ -152,6 +152,10 @@ public static class DefaultMouseMap
 
     public const string ConflictBothButton = "ConflictButton.Both";
 
+    public const string ConflictAllOursButton = "ConflictButton.AllOurs";
+
+    public const string ConflictAllTheirsButton = "ConflictButton.AllTheirs";
+
     public const string ConflictUndoButton = "ConflictButton.Undo";
 
     public const string ConflictNextButton = "ConflictButton.Next";
@@ -240,6 +244,8 @@ public static class DefaultMouseMap
         ConflictOursButton,
         ConflictTheirsButton,
         ConflictBothButton,
+        ConflictAllOursButton,
+        ConflictAllTheirsButton,
         ConflictUndoButton,
         ConflictNextButton,
         ConflictPreviousButton,
@@ -334,6 +340,8 @@ public static class DefaultMouseMap
         new(ConflictOursButton, MouseGesture.Click, ActionIds.ConflictEditorOurs),
         new(ConflictTheirsButton, MouseGesture.Click, ActionIds.ConflictEditorTheirs),
         new(ConflictBothButton, MouseGesture.Click, ActionIds.ConflictEditorBoth),
+        new(ConflictAllOursButton, MouseGesture.Click, ActionIds.ConflictEditorAllOurs),
+        new(ConflictAllTheirsButton, MouseGesture.Click, ActionIds.ConflictEditorAllTheirs),
         new(ConflictUndoButton, MouseGesture.Click, ActionIds.ConflictEditorUndo),
         new(ConflictNextButton, MouseGesture.Click, ActionIds.ConflictEditorNext),
         new(ConflictPreviousButton, MouseGesture.Click, ActionIds.ConflictEditorPrevious),

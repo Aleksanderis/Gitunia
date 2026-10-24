@@ -229,7 +229,7 @@ public static class PaneHints
             ActionIds.ConflictEditorTheirs,
             ActionIds.ConflictEditorBoth,
         ]),
-        new("O/T", "all ours/theirs", [ActionIds.ConflictEditorAllOurs, ActionIds.ConflictEditorAllTheirs]),
+        new("O/T", "all", [ActionIds.ConflictEditorAllOurs, ActionIds.ConflictEditorAllTheirs]),
         new("e", "edit", [ActionIds.ConflictEditorEdit]),
         new("u", "undo", [ActionIds.ConflictEditorUndo]),
         new("B", "base", [ActionIds.ConflictEditorBase]),

@@ -885,6 +885,8 @@ Mouse input is optional and goes through the same action path as keys: the mouse
 | ConflictButton.Ours | Click | `conflict-editor.ours` | Chip `o ours` under the result: takes our side for the hunk under the cursor |
 | ConflictButton.Theirs | Click | `conflict-editor.theirs` | Chip `t theirs` |
 | ConflictButton.Both | Click | `conflict-editor.both` | Chip `b both` |
+| ConflictButton.AllOurs | Click | `conflict-editor.all-ours` | Chip `O all ours` |
+| ConflictButton.AllTheirs | Click | `conflict-editor.all-theirs` | Chip `T all theirs` |
 | ConflictButton.Undo | Click | `conflict-editor.undo` | Chip `u undo` |
 | ConflictButton.Redo | Click | `conflict-editor.redo` | Chip `Ctrl-r redo` |
 | ConflictButton.Reset | Click | `conflict-editor.reset` | Chip `r reset` |

@@ -46,6 +46,16 @@ public class ConflictEditorStateTests
     }
 
     [Fact]
+    public void GivenAnEditedHunk_WhenPickingAllUnresolved_ThenTheEditedTextStays()
+    {
+        var edited = State(Text).BeginEdit();
+        edited.Edit!.Editor.SetText("typed\n");
+        var state = edited.AcceptEdit().Next().PickAllUnresolved(ConflictPick.Ours);
+
+        Assert.Equal("top\ntyped\nmid\nA2\nend\n", state.ToText());
+    }
+
+    [Fact]
     public void GivenNothingOpenOrABothPick_WhenPickingAllUnresolved_ThenNothingChanges()
     {
         var done = State(Text).PickAllUnresolved(ConflictPick.Ours);

@@ -58,6 +58,8 @@ public static class ConflictEditorFrameBuilder
         new("o", "ours", DefaultMouseMap.ConflictOursButton),
         new("t", "theirs", DefaultMouseMap.ConflictTheirsButton),
         new("b", "both", DefaultMouseMap.ConflictBothButton),
+        new("O", "all ours", DefaultMouseMap.ConflictAllOursButton),
+        new("T", "all theirs", DefaultMouseMap.ConflictAllTheirsButton),
         new("e", "edit", DefaultMouseMap.ConflictEditButton),
         new("r", "reset", DefaultMouseMap.ConflictResetButton),
         new("u", "undo", DefaultMouseMap.ConflictUndoButton),
