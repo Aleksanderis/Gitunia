@@ -119,23 +119,25 @@ public sealed record ConflictEditorState(
 
     /// <summary>
     /// Scrolls the side panes to the next line where our side and their side differ, below the first line shown; a
-    /// run of differing lines counts once. Stays put when there is none.
+    /// run of differing lines counts once; never past <paramref name="maximum"/>, the largest scroll the screen
+    /// allows. Lines are compared row by row, so a line inserted on one side makes the rows after it differ. Stays
+    /// put when there is none.
     /// </summary>
-    public ConflictEditorState NextDifference()
+    public ConflictEditorState NextDifference(int maximum)
     {
         var starts = DifferenceStarts();
-        var next = starts.Where(start => start > SideScroll).Cast<int?>().FirstOrDefault();
+        var next = starts.Where(start => start > Math.Min(SideScroll, maximum)).Cast<int?>().FirstOrDefault();
 
-        return next is { } row && !IsEditing ? this with { SideScroll = row } : this;
+        return next is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
     }
 
     /// <summary>Scrolls the side panes to the previous line where the sides differ (see NextDifference).</summary>
-    public ConflictEditorState PreviousDifference()
+    public ConflictEditorState PreviousDifference(int maximum)
     {
         var starts = DifferenceStarts();
-        var previous = starts.Where(start => start < SideScroll).Cast<int?>().LastOrDefault();
+        var previous = starts.Where(start => start < Math.Min(SideScroll, maximum)).Cast<int?>().LastOrDefault();
 
-        return previous is { } row && !IsEditing ? this with { SideScroll = row } : this;
+        return previous is { } row && !IsEditing ? this with { SideScroll = Math.Min(row, maximum) } : this;
     }
 
     /// <summary>The most lines our side or their side of the hunk under the cursor has.</summary>

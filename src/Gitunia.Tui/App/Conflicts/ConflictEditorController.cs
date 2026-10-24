@@ -312,11 +312,11 @@ public sealed class ConflictEditorController(
         }
         else if (action == ActionIds.ConflictEditorNextDiff)
         {
-            Update(state.NextDifference());
+            Update(state.NextDifference(ScrollLimit(state)));
         }
         else if (action == ActionIds.ConflictEditorPreviousDiff)
         {
-            Update(state.PreviousDifference());
+            Update(state.PreviousDifference(ScrollLimit(state)));
         }
         else if (action == ActionIds.ConflictEditorScrollDown || action == ActionIds.ConflictEditorScrollUp)
         {
@@ -379,6 +379,13 @@ public sealed class ConflictEditorController(
             setMode(KeyMode.Normal);
             Update(state.AcceptEdit());
         }
+    }
+
+    private int ScrollLimit(ConflictEditorState state)
+    {
+        var size = screenSize();
+
+        return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height);
     }
 
     // A half page of the side panes, at least one line.
