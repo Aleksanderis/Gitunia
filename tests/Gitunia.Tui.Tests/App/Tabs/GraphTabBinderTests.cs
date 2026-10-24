@@ -37,6 +37,29 @@ public class GraphTabBinderTests
     }
 
     [Fact]
+    public async Task GivenSelectedCommit_WhenTheGraphIsReplaced_ThenTheBinderReportsReplacingOnlyWhileItMovesTheRow()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("one", new TestFile("a.txt", "1")).Commit("two", new TestFile("a.txt", "2"));
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Host.Dispatch(new TabCommand(harness.TabId, new SelectCommitCommand(harness.Session.Graph[1].Id)));
+        harness.Graph.SelectedItem = 1;
+        Assert.False(harness.Binder.IsReplacing);
+
+        var replaced = 0;
+        var replacingDuringMove = false;
+        var binder = harness.Binder;
+        harness.Graph.ValueChanged += (_, _) => replacingDuringMove |= binder.IsReplacing;
+        harness.Session.GraphReplaced += () => replaced++;
+        repository.Commit("three", new TestFile("a.txt", "3"));
+        harness.Effects.Refresh(harness.TabId);
+        await harness.Pump.RunUntilAsync(() => replaced == 1);
+
+        Assert.True(replacingDuringMove);
+        Assert.False(harness.Binder.IsReplacing);
+    }
+
+    [Fact]
     public async Task GivenSelectedCommit_WhenItDisappearsFromTheGraph_ThenTheNearestRowIsSelectedAndSaved()
     {
         using var repository = TestRepository.Create();
@@ -106,13 +129,20 @@ public class GraphTabBinderTests
 
     private sealed class Harness : IDisposable
     {
-        private Harness(WorkspaceHost host, EffectRunner effects, TabId tabId, ListView graph, UiPump pump)
+        private Harness(
+            WorkspaceHost host,
+            EffectRunner effects,
+            TabId tabId,
+            ListView graph,
+            UiPump pump,
+            GraphTabBinder binder)
         {
             Pump = pump;
             Host = host;
             Effects = effects;
             TabId = tabId;
             Graph = graph;
+            Binder = binder;
         }
 
         public UiPump Pump { get; }
@@ -124,6 +154,8 @@ public class GraphTabBinderTests
         public TabId TabId { get; }
 
         public ListView Graph { get; }
+
+        public GraphTabBinder Binder { get; }
 
         public TabSession Session => Effects.SessionOf(TabId)!;
 
@@ -140,7 +172,7 @@ public class GraphTabBinderTests
             host.Changed += binder.Sync;
             host.Restore(update);
             binder.Sync();
-            var harness = new Harness(host, effects, tabId, graph, pump);
+            var harness = new Harness(host, effects, tabId, graph, pump, binder);
             await pump.RunUntilAsync(() => !harness.Session.IsLoading);
             return harness;
         }
