@@ -70,7 +70,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     /// <summary>Text wraps over several screen lines instead of being cut.</summary>
     public bool IsWrapped { get; private set; }
 
-    /// <summary>Tabs, trailing spaces and carriage returns are drawn as marks (text and copy are unchanged).</summary>
+    /// <summary>Tabs, spaces and carriage returns are drawn as marks (text and copy are unchanged).</summary>
     public bool ShowsWhitespace { get; private set; }
 
     /// <summary>The side-by-side view is switched on (it shows only while the pane is wide enough and shows a diff,
