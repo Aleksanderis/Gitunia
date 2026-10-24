@@ -344,9 +344,9 @@ public static class ConflictEditorFrameBuilder
     {
         var inner = new LineBuilder(innerWidth, glyphs.Ellipsis)
             .Append(first)
-            .Append(divider, SegmentRole.Border)
+            .Append(divider, SegmentRole.FocusedBorder)
             .Append(second)
-            .Append(divider, SegmentRole.Border)
+            .Append(divider, SegmentRole.FocusedBorder)
             .Append(third)
             .Build();
 

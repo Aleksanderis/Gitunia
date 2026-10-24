@@ -174,7 +174,7 @@ public class ConflictEditorFrameBuilderTests
     public void GivenTheBaseIsShown_WhenRendering_ThenTheDividerEndsAboveTheBaseAndTheRuleBelowItIsPlain()
     {
         const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
-        var frame = ConflictEditorFrameBuilder.Build(State(diffThree).ToggleBase(), 120, 40, GraphGlyphSet.Unicode)!;
+        var frame = ConflictEditorFrameBuilder.Build(State(diffThree).ToggleBase(), 110, 40, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
         var baseHeader = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
@@ -431,9 +431,9 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(State(DiffThree), 120, 30, GraphGlyphSet.Unicode)!;
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
-        Assert.Matches(@"ours  HEAD.*│.*base  common ancestor.*│.*theirs  feature", lines[2]);
-        Assert.Matches(@"mine.*│.*ancestor.*│.*theirs", lines[3]);
-        Assert.Matches(@"mine 2.*│.*ancestor 2.*│", lines[4]);
+        Assert.Matches(@"ours  HEAD.*│.*base  common ancestor.*│.*theirs  feature", lines[3]);
+        Assert.Matches(@"mine.*│.*ancestor.*│.*theirs", lines[4]);
+        Assert.Matches(@"mine 2.*│.*ancestor 2.*│", lines[5]);
         Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
     }
 
@@ -444,14 +444,17 @@ public class ConflictEditorFrameBuilderTests
 
         var lines = frame.Lines.Select(line => line.Text).ToList();
         var rule = lines[lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal)) - 1];
-        var first = lines[3].IndexOf('│', 1);
-        var second = lines[3].IndexOf('│', first + 1);
+        var first = lines[4].IndexOf('│', 1);
+        var second = lines[4].IndexOf('│', first + 1);
         Assert.Equal(first, rule.IndexOf('┴', StringComparison.Ordinal));
         Assert.Equal(second, rule.LastIndexOf('┴'));
         Assert.Equal(2, rule.Count(character => character == '┴'));
+        var strip = lines[2];
+        Assert.Equal(first, strip.IndexOf('┬', StringComparison.Ordinal));
+        Assert.Equal(second, strip.LastIndexOf('┬'));
         Assert.StartsWith("├", rule, StringComparison.Ordinal);
         Assert.EndsWith("┤", rule, StringComparison.Ordinal);
-        Assert.Equal(4, lines[3].Count(character => character == '│'));
+        Assert.Equal(4, lines[4].Count(character => character == '│'));
     }
 
     [Fact]
