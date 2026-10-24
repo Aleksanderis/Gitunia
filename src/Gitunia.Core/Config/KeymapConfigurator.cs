@@ -84,6 +84,12 @@ public static class KeymapConfigurator
             return false;
         }
 
+        if (entry.Problem is not null)
+        {
+            error = entry.Problem;
+            return false;
+        }
+
         var mode = KeyMode.Normal;
         if (!string.IsNullOrWhiteSpace(entry.Mode)
             && !(Enum.TryParse(entry.Mode, true, out mode) && Enum.IsDefined(mode)))

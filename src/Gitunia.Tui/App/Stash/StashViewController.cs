@@ -58,6 +58,20 @@ public sealed class StashViewController(
         return new GraphEntry(commit, stash.Message, string.Empty, default, [], new GraphRow(commit, 0, 1, []));
     }
 
+    /// <summary>
+    /// The commit that commit actions (branch here, rebase, compare, external tools) act on: the graph selection, but
+    /// none while a stash is shown, because the pane then shows the stash, not the graph row (#716).
+    /// </summary>
+    /// <param name="graphCommit">The hash of the commit selected in the graph, null when none.</param>
+    public string? ActionTarget(string? graphCommit) => IsShowing ? null : graphCommit;
+
+    /// <summary>
+    /// Whether a graph selection change keeps the shown stash: only the user's own move ends the view, not the binder
+    /// restoring the selection after a graph reload, a tab switch or a first load (#716).
+    /// </summary>
+    /// <param name="binderMovedSelection">The graph tab binder is moving the selection itself.</param>
+    public bool KeepsViewOnSelectionChange(bool binderMovedSelection) => binderMovedSelection && IsShowing;
+
     /// <summary>Ends the stash view and puts the graph selection back in the pane; no-op without one.</summary>
     public void Leave()
     {

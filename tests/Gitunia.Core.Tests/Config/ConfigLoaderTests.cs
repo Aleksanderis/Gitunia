@@ -1,5 +1,7 @@
 using Gitunia.Core.Config;
 using Gitunia.Core.Config.Models;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Tests.Persistence;
 using Xunit;
 
@@ -110,6 +112,30 @@ public sealed class ConfigLoaderTests : IDisposable
         ConfigLoader.Parse("{\n  \"keys\": [\n    oops\n  ]\n}", problems);
 
         Assert.Contains("line 3", Assert.Single(problems).Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("{ \"key\": 5, \"action\": \"list.down\" }", "keys[0]: 'key' must be text, not a number")]
+    [InlineData("{ \"key\": [\"x\"], \"action\": \"list.down\" }", "keys[0]: 'key' must be text, not a list")]
+    [InlineData("{ \"key\": \"J\", \"action\": true }", "keys[0]: 'action' must be text, not a boolean")]
+    [InlineData("{ \"Mode\": 1, \"key\": \"J\", \"action\": \"list.down\" }", "keys[0]: 'Mode' must be text, not a number")]
+    [InlineData("\"J\"", "keys[0]: the entry must be an object, not text")]
+    [InlineData("[1]", "keys[0]: the entry must be an object, not a list")]
+    public void GivenAWronglyTypedEntry_WhenBuildingTheKeymap_ThenOnlyThatEntryIsReportedAndTheOthersApply(
+        string badEntry,
+        string expected)
+    {
+        var problems = new List<ConfigProblem>();
+        var good = "{ \"view\": \"Graph\", \"key\": \"J\", \"action\": \"list.down\" }";
+
+        var document = ConfigLoader.Parse($"{{ \"keys\": [ {badEntry}, {good} ] }}", problems);
+        var result = KeymapConfigurator.Apply(DefaultKeymap.Create(), document.Keys);
+
+        Assert.Empty(problems);
+        Assert.Equal(expected, Assert.Single(result.Problems).ToString());
+        Assert.Contains(
+            result.Table.Bindings,
+            binding => binding.Action == new ActionId("list.down") && KeyFormatter.Format(binding.Sequence) == "J");
     }
 
     private async Task WriteAsync(string content)

@@ -147,7 +147,10 @@ public class RebaseTodoTests
     [Fact]
     public void GivenACommandTheEditorCannotCarry_WhenParsing_ThenItIsRefusedInsteadOfDropped()
     {
-        Assert.Throws<RebaseRangeException>(() => RebaseTodoParser.Parse("pick aaa # A\nexec make\n"));
+        var exception = Assert.Throws<RebaseRangeException>(
+            () => RebaseTodoParser.Parse("pick aaa # A\nexec make\n"));
+
+        Assert.Contains("\"exec\" command", exception.Message, StringComparison.Ordinal);
     }
 
     private static readonly RebaseTodoCommit[] MergeRange =

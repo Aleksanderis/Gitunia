@@ -34,6 +34,9 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
     /// <summary>True while the list is changed on purpose; selection changes then must not be written back to the workspace.</summary>
     public bool IsSuspended { get; private set; }
 
+    /// <summary>True while a reloaded graph is put back under the selection; the row moves without the user.</summary>
+    public bool IsReplacing { get; private set; }
+
     /// <summary>Call after every workspace change: does nothing unless the active tab changed.</summary>
     public void Sync()
     {
@@ -121,6 +124,19 @@ public sealed class GraphTabBinder(WorkspaceHost host, EffectRunner effects, Lis
 
     // A refreshed log keeps the selected commit selected and on the same screen row; when the commit is gone the old position stays.
     private void OnGraphReplaced()
+    {
+        IsReplacing = true;
+        try
+        {
+            RestoreAfterReplace();
+        }
+        finally
+        {
+            IsReplacing = false;
+        }
+    }
+
+    private void RestoreAfterReplace()
     {
         if (_shownSession is not { } session)
         {

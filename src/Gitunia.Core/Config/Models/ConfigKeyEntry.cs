@@ -1,9 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Gitunia.Core.Config.Models;
 
 /// <summary>
 /// One <c>keys</c> entry: binds <see cref="Key"/> to <see cref="Action"/>, or unbinds it when the
 /// action is <c>none</c>.
 /// </summary>
+[JsonConverter(typeof(ConfigKeyEntryConverter))]
 public sealed record ConfigKeyEntry
 {
     /// <summary>
@@ -23,4 +26,10 @@ public sealed record ConfigKeyEntry
 
     /// <summary>Action id such as <c>list.down</c>, or <c>none</c> to unbind the key.</summary>
     public string? Action { get; init; }
+
+    /// <summary>
+    /// Set by the reader when a field has the wrong type or the entry is not an object; the entry is then skipped
+    /// and this text reported.
+    /// </summary>
+    public string? Problem { get; init; }
 }

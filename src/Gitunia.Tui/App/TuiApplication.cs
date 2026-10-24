@@ -1098,7 +1098,7 @@ public sealed class TuiApplication(
                 : null;
         }
 
-        return view == DefaultKeymap.GraphView && SelectedCommitHash() is not null
+        return view == DefaultKeymap.GraphView && GraphCommitHash() is not null
             ? new RowMenuTarget(
                 RowActions.OfGraphRowFor(
                     DetailLayout.PaneHeight(_view.ScreenSize.Height) > 0,
@@ -1516,7 +1516,9 @@ public sealed class TuiApplication(
         return string.Empty;
     }
 
-    private string? SelectedCommitHash()
+    private string? SelectedCommitHash() => _stashView.ActionTarget(GraphCommitHash());
+
+    private string? GraphCommitHash()
     {
         var index = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         var graph = ActiveSession()?.Graph;
@@ -1883,6 +1885,9 @@ public sealed class TuiApplication(
 
         // While the binder swaps or restores the list, the tab's saved selection must not be overwritten, but the details still follow.
         var record = !_binder.IsSuspended;
+
+        // A selection moved by the binder (reload, restore, tab switch) is not the user's choice (#716).
+        var keepStash = _stashView.KeepsViewOnSelectionChange(_binder.IsSuspended || _binder.IsReplacing);
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
@@ -1893,10 +1898,13 @@ public sealed class TuiApplication(
             }
 
             // Cheap on every move: the store shows "loading" at once and only asks git once the selection settles.
-            session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
-            RefreshDetail();
+            if (!keepStash)
+            {
+                session.Details.Select(entry.Id, DetailPrefetchPlan.Around(session.Graph, commitIndex));
+                RefreshDetail();
+            }
         }
-        else if (commitIndex >= session.Graph.Count)
+        else if (commitIndex >= session.Graph.Count && !keepStash)
         {
             // The continues-below marker holds no commit: the detail pane must not keep showing the previous one.
             RefreshDetail();

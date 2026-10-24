@@ -45,6 +45,35 @@ public class StashViewTests
     }
 
     [Fact]
+    public async Task GivenAShownStash_WhenACommitActionAsksForItsTarget_ThenItGetsNoCommit()
+    {
+        using var repository = TestRepositories.WithStash();
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
+        var graphCommit = harness.Session.Graph[0].Id.ToString();
+        Assert.Equal(graphCommit, harness.Controller.ActionTarget(graphCommit));
+
+        harness.Select("stash@{0}");
+        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        await harness.WaitForDetailsAsync();
+
+        Assert.Null(harness.Controller.ActionTarget(graphCommit));
+    }
+
+    [Fact]
+    public async Task GivenAShownStash_WhenTheBinderMovesTheGraphSelection_ThenTheViewStaysButTheUsersMoveEndsIt()
+    {
+        using var repository = TestRepositories.WithStash();
+        using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
+        Assert.False(harness.Controller.KeepsViewOnSelectionChange(true));
+        harness.Select("stash@{0}");
+        harness.Handler.TryHandle(ActionIds.SidebarActivate, null);
+        await harness.WaitForDetailsAsync();
+
+        Assert.True(harness.Controller.KeepsViewOnSelectionChange(true));
+        Assert.False(harness.Controller.KeepsViewOnSelectionChange(false));
+    }
+
+    [Fact]
     public async Task GivenOnlyAnUntrackedFile_WhenShowingTheStash_ThenTheFileListMarksItUntracked()
     {
         using var repository = TestRepositories.Linear(2);

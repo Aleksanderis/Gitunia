@@ -46,6 +46,8 @@ public sealed class MainView : IDisposable
     private readonly LineView _unstagedViewButton;
     private readonly LineView _resolveButton;
     private readonly LineView _stagedViewButton;
+    private readonly LineView _unstagedDiffButton;
+    private readonly LineView _stagedDiffButton;
     private bool _isWorkingMode;
     private WorkingGridKey? _workingGridKey;
     private FrameGrid? _workingGrid;
@@ -229,6 +231,8 @@ public sealed class MainView : IDisposable
         _unstagedViewButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.View);
         _stagedViewButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.View);
         _resolveButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.Resolve);
+        _unstagedDiffButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.Diff);
+        _stagedDiffButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.Diff);
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -312,6 +316,8 @@ public sealed class MainView : IDisposable
             _unstagedViewButton,
             _resolveButton,
             _stagedViewButton,
+            _unstagedDiffButton,
+            _stagedDiffButton,
             _picker,
             _status,
             Overlay);
@@ -493,6 +499,8 @@ public sealed class MainView : IDisposable
             _unstagedViewButton.SetNeedsDraw();
             _resolveButton.SetNeedsDraw();
             _stagedViewButton.SetNeedsDraw();
+            _unstagedDiffButton.SetNeedsDraw();
+            _stagedDiffButton.SetNeedsDraw();
         }
     }
 
@@ -555,6 +563,8 @@ public sealed class MainView : IDisposable
         _unstagedViewButton.Visible = working && !isPicker;
         _resolveButton.Visible = working && !isPicker;
         _stagedViewButton.Visible = working && !isPicker;
+        _unstagedDiffButton.Visible = working && !isPicker;
+        _stagedDiffButton.Visible = working && !isPicker;
         Sidebar.Visible = history;
         _sidebarFilter.Visible = history;
         _divider.Visible = history;
@@ -616,11 +626,18 @@ public sealed class MainView : IDisposable
 
         var title = WorkingTreePaneRenderer.ListTitle(tree, section);
 
+        // Where the diff is not beside the list (a screen under 80 columns) the diff chip is its mouse path.
+        var hasDiffButton = WorkingRects().Diff.IsEmpty;
+
         return kind switch
         {
-            ListButtonKind.View => WorkingListTitleButtons.ViewButton(section, title, rect.Width, _model().Keys),
+            ListButtonKind.View => WorkingListTitleButtons.ViewButton(
+                section, title, rect.Width, _model().Keys, hasDiffButton),
             ListButtonKind.Resolve => IsConflictedUnderCursor()
-                ? WorkingListTitleButtons.ResolveButton(title, rect.Width, _model().Keys)
+                ? WorkingListTitleButtons.ResolveButton(title, rect.Width, _model().Keys, hasDiffButton)
+                : null,
+            ListButtonKind.Diff => hasDiffButton
+                ? WorkingListTitleButtons.DiffButton(section, title, rect.Width, _model().Keys)
                 : null,
             _ => WorkingListTitleButtons.Layout(section, title, rect.Width, _model().Keys),
         };
