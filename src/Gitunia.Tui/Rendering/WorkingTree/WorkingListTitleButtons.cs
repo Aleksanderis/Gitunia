@@ -30,7 +30,7 @@ public static class WorkingListTitleButtons
     /// <param name="title">The title text of the list.</param>
     /// <param name="paneWidth">Columns of the list's content.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap.</param>
-    /// <param name="hasDiffButton">The <c>diff ›</c> chip is shown (narrow screen); it keeps its place before this chip.</param>
+    /// <param name="hasDiffButton">The <c>diff ›</c> chip is shown (narrow screen); it keeps its place.</param>
     /// <returns>The chip, with its start column counted from the first content column.</returns>
     public static TitleButton? ViewButton(
         WorkingTreeSection section,
@@ -103,8 +103,8 @@ public static class WorkingListTitleButtons
     }
 
     /// <summary>The <c>diff ›</c> chip of a list on a screen too narrow to show the diff beside it (the mouse path of
-    /// <c>Enter</c> / <c>l</c>, #376), left of the stage all button and ahead of the other chips, or null when the title
-    /// row has no room for it. The caller shows it only while the diff is not on screen.</summary>
+    /// <c>Enter</c> / <c>l</c>, #376), left of the stage all button and ahead of the other chips, or null when the
+    /// title row has no room for it. The caller shows it only while the diff is not on screen.</summary>
     /// <param name="section">The list.</param>
     /// <param name="title">The title text of the list.</param>
     /// <param name="paneWidth">Columns of the list's content.</param>

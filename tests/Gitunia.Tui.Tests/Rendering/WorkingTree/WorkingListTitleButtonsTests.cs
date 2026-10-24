@@ -161,6 +161,7 @@ public class WorkingListTitleButtonsTests
     {
         Assert.Contains(
             DefaultMouseMap.CreateBindings(),
-            binding => binding.View == DefaultMouseMap.ListDiffButton && binding.Action == ActionIds.WorkingTreeOpenDiff);
+            binding => binding.View == DefaultMouseMap.ListDiffButton
+                && binding.Action == ActionIds.WorkingTreeOpenDiff);
     }
 }
