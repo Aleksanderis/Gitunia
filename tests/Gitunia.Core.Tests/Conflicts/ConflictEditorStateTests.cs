@@ -24,6 +24,49 @@ public class ConflictEditorStateTests
     }
 
     [Theory]
+    [InlineData(ConflictPick.Ours, "A1\nmid\nA2\n")]
+    [InlineData(ConflictPick.Theirs, "B1\nmid\nB2\n")]
+    public void GivenTwoOpenHunks_WhenPickingAllUnresolved_ThenBothTakeThatSideAndOneUndoRestoresThem(
+        ConflictPick pick,
+        string expected)
+    {
+        var state = State(Text).PickAllUnresolved(pick);
+
+        Assert.True(state.IsComplete);
+        Assert.Equal($"top\n{expected}end\n", state.ToText());
+        Assert.Equal(Text, state.Undo().ToText());
+    }
+
+    [Fact]
+    public void GivenAnEarlierPick_WhenPickingAllUnresolved_ThenTheEarlierPickStays()
+    {
+        var state = State(Text).Pick(ConflictPick.Both).PickAllUnresolved(ConflictPick.Theirs);
+
+        Assert.Equal("top\nA1\nB1\nmid\nB2\nend\n", state.ToText());
+    }
+
+    [Fact]
+    public void GivenAnEditedHunk_WhenPickingAllUnresolved_ThenTheEditedTextStays()
+    {
+        var edited = State(Text).BeginEdit();
+        edited.Edit!.Editor.SetText("typed\n");
+        var state = edited.AcceptEdit().Next().PickAllUnresolved(ConflictPick.Ours);
+
+        Assert.Equal("top\ntyped\nmid\nA2\nend\n", state.ToText());
+    }
+
+    [Fact]
+    public void GivenNothingOpenOrABothPick_WhenPickingAllUnresolved_ThenNothingChanges()
+    {
+        var done = State(Text).PickAllUnresolved(ConflictPick.Ours);
+
+        Assert.Same(done, done.PickAllUnresolved(ConflictPick.Theirs));
+        Assert.Same(done, done.PickAllUnresolved(ConflictPick.Both));
+        var fresh = State(Text);
+        Assert.Same(fresh, fresh.PickAllUnresolved(ConflictPick.Both));
+    }
+
+    [Theory]
     [InlineData(ConflictPick.Ours, "A1\n")]
     [InlineData(ConflictPick.Theirs, "B1\n")]
     [InlineData(ConflictPick.Both, "A1\nB1\n")]

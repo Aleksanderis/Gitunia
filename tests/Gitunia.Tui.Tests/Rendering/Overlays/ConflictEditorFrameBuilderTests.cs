@@ -222,6 +222,8 @@ public class ConflictEditorFrameBuilderTests
         AssertChip(state, frame, "[c previous diff", DefaultMouseMap.ConflictPreviousDiffButton, 200);
         AssertChip(state, frame, "Ctrl-d scroll down", DefaultMouseMap.ConflictScrollDownButton, 200);
         AssertChip(state, frame, "Ctrl-u scroll up", DefaultMouseMap.ConflictScrollUpButton, 200);
+        AssertChip(state, frame, "O all ours", DefaultMouseMap.ConflictAllOursButton, 200);
+        AssertChip(state, frame, "T all theirs", DefaultMouseMap.ConflictAllTheirsButton, 200);
         AssertChip(state, frame, "n next conflict", DefaultMouseMap.ConflictNextButton, 200);
         AssertChip(state, frame, "N previous conflict", DefaultMouseMap.ConflictPreviousButton, 200);
     }
