@@ -1,5 +1,7 @@
 // Converts the ANSI text of `tmux capture-pane -p -e` (stdin) into an SVG terminal screenshot (stdout).
-// Usage: AnsiToSvg [--theme dark|light] [--columns N] [--rows N] < capture.ansi > screen.svg
+// Usage: AnsiToSvg [--theme dark|light] [--columns N] [--rows N] [--in capture.ansi --out screen.svg]
+//        or: AnsiToSvg ... < capture.ansi > screen.svg
+// --in/--out read and write UTF-8 files (Windows consoles do not default to UTF-8 on redirected stdin/stdout).
 // Every character gets an explicit x position, so the grid stays aligned whatever monospace font the renderer picks.
 using System.Globalization;
 using System.Text;
@@ -7,10 +9,14 @@ using System.Text;
 var theme = "dark";
 var columns = 0;
 var rows = 0;
+string? inputPath = null;
+string? outputPath = null;
 for (var index = 0; index < args.Length - 1; index++)
 {
     if (args[index] == "--theme") { theme = args[index + 1]; }
     if (args[index] == "--columns") { columns = int.Parse(args[index + 1], CultureInfo.InvariantCulture); }
+    if (args[index] == "--in") { inputPath = args[index + 1]; }
+    if (args[index] == "--out") { outputPath = args[index + 1]; }
     if (args[index] == "--rows") { rows = int.Parse(args[index + 1], CultureInfo.InvariantCulture); }
 }
 
@@ -29,7 +35,8 @@ const double CellWidth = 9.6;
 const double CellHeight = 20;
 const double Padding = 12;
 
-var input = Console.In.ReadToEnd().Replace("\r", string.Empty, StringComparison.Ordinal);
+var rawInput = inputPath is null ? Console.In.ReadToEnd() : File.ReadAllText(inputPath, Encoding.UTF8);
+var input = rawInput.Replace("\r", string.Empty, StringComparison.Ordinal);
 var lines = input.Split('\n').ToList();
 while (lines.Count > 0 && lines[^1].Length == 0) { lines.RemoveAt(lines.Count - 1); }
 var background = new StringBuilder();
@@ -172,7 +179,8 @@ output.Append(background);
 output.Append("<g font-family=\"JetBrainsMono Nerd Font Mono, JetBrains Mono, DejaVu Sans Mono, Liberation Mono, monospace\" font-size=\"16\">\n");
 output.Append(text);
 output.Append("</g>\n</svg>\n");
-Console.Out.Write(output.ToString());
+if (outputPath is null) { Console.Out.Write(output.ToString()); }
+else { File.WriteAllText(outputPath, output.ToString(), new UTF8Encoding(false)); }
 return 0;
 
 string Hex(Rgb color) => $"#{color.Red:x2}{color.Green:x2}{color.Blue:x2}";

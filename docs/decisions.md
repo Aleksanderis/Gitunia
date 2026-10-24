@@ -455,3 +455,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 
 **Git layer:** Refresh polls by default (#543; supersedes the ignore-aware watcher of #83/#504 as the default): the active tab reads a fingerprint every 2 s and the status every 5 s, with back-off on slow repositories; file watching is opt-in (`watchFiles`). Why: each `FileSystemWatcher` takes a scarce inotify instance and other clients poll too. Detail: `git-layer.md`.
 **UI:** File content follows the tree cursor (#635; supersedes "opened with `Enter`, closes when the commit or tab changes" in the #511 entry): beside the tree the pane is always there with a placeholder, a commit change shows the placeholder until the new tree loads, `Esc` returns focus and keeps the content; reads start 40 ms after the cursor rests so a held key does not spawn one per row.
+
+## 2026-10-24
+
+**Testing:** Windows screenshots use `scripts/screenshot.ps1` with resvg (`winget install linebender.resvg`, a single exe) instead of rsvg-convert (no native Windows build). Why: smallest dependency that renders the existing AnsiToSvg output with the same options; `tools/AnsiToSvg` gained `--in`/`--out` file options because redirected Windows stdio is not UTF-8.
