@@ -1,3 +1,4 @@
+#requires -Version 7
 # Screenshots of the real UI for pull requests (Windows; PowerShell 7, psmux, resvg, dotnet, git; `gh` for publish/clean).
 # PowerShell twin of scripts/screenshot.sh: same commands, options and scenario names. The real binary runs in a private
 # psmux server on a throwaway repo, `capture-pane -p -e` gives the ANSI frame, tools/AnsiToSvg turns it into an SVG and
@@ -16,7 +17,6 @@ param(
     [Parameter(Mandatory, Position = 0)][ValidateSet('render', 'publish', 'clean')][string]$Command,
     [string]$Binary = '', [string]$Out = '', [string[]]$Scenarios = @('default', 'diff', 'narrow', 'light'), [string]$Repo = '', [string]$Pr = '')
 
-#requires -Version 7
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -297,6 +297,7 @@ function Invoke-Render {
             }
             T kill-session -t shot 2>$null | Out-Null
             T new-session -d -s shot -x $s.Columns -y $s.Rows "`"$binaryPath`" `"$scenarioRepo`"" | Out-Null
+            T set-option -t shot remain-on-exit on 2>$null | Out-Null # psmux accepts it only once a session exists
             Wait-Stable
             if ($s.Keys) { Send-Keys $s.Keys; Start-Sleep -Milliseconds 500; Wait-Stable }
             if ($scenario -in 'working-commit', 'working-hook') {
@@ -305,7 +306,7 @@ function Invoke-Render {
                 Start-Sleep -Seconds 1; Wait-Stable
             }
             if ($s.After) { Send-Keys $s.After; Start-Sleep -Milliseconds 500; Wait-Stable } # keys that need the loaded diff
-            if ((T display-message -p -t shot '#{pane_dead}') -eq '1') { Stop-Script "the binary exited during scenario '$scenario'; no screenshot taken" 1 }
+            if ((T display-message -p -t shot '#{pane_dead}') -ne '0') { Stop-Script "the binary exited during scenario '$scenario'; no screenshot taken" 1 }
             $ansi = Join-Path $work "$scenario.ansi"; $svg = Join-Path $work "$scenario.svg"; $png = Join-Path $Out "$scenario.png"
             [IO.File]::WriteAllText($ansi, ((T capture-pane -t shot -p -e) -join "`n") + "`n", [System.Text.UTF8Encoding]::new($false))
             & dotnet $converter --theme $s.Theme --columns $s.Columns --rows $s.Rows --in $ansi --out $svg
