@@ -75,7 +75,8 @@ public sealed class FramePrinter
             };
         }
 
-        var diff = arrangement.IsDiffOpen && (arrangement.Zoomed is null or PaneKind.Diff || arrangement.ZoomBoth) && selected is not null
+        var diffVisible = arrangement.Zoomed is null or PaneKind.Diff || arrangement.ZoomBoth;
+        var diff = arrangement.IsDiffOpen && diffVisible && selected is not null
             ? await ReadDiffAsync(location, selected, detailState, cancellationToken)
             : null;
         var treeView = tab == BottomTab.Files && selected is not null

@@ -78,7 +78,8 @@ public class FramePrinterTests
     [Theory]
     [InlineData(PaneKind.Detail)]
     [InlineData(PaneKind.Diff)]
-    public async Task GivenAZoomOnTheChangesTabBesideTheDiff_WhenPrinting_ThenFileListAndDiffZoomTogether(PaneKind zoomed)
+    public async Task GivenAZoomOnTheChangesTabBesideTheDiff_WhenPrinting_ThenFileListAndDiffZoomTogether(
+        PaneKind zoomed)
     {
         using var repository = TestRepository.Create();
         repository.Commit("root", new TestFile("a.txt", "one\n"));
