@@ -557,6 +557,7 @@ public sealed class TuiApplication(
     private bool HandleTextKey(KeyEvent key) =>
         _settings.HandleTextKey(key)
         || _rebaseEditor.HandleTextKey(key)
+        || _conflictEditor.HandleTextKey(key)
         || _reflog.HandleTextKey(key)
         || _prompts.Any(prompt => prompt.HandleTextKey(key));
 
@@ -1224,7 +1225,7 @@ public sealed class TuiApplication(
                 : _settings.IsOpen
                     ? PaneHints.ForSettings()
                     : _conflictEditor.IsOpen
-                    ? PaneHints.ForConflictEditor()
+                    ? (_conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor())
                     : _rebaseEditor.IsOpen
                     ? (_rebaseEditor.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor())
                     : _reflog.IsOpen
@@ -1460,6 +1461,7 @@ public sealed class TuiApplication(
         _host,
         services.Conflicts,
         services.ConflictWriter,
+        services.ConflictRecreator,
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,
@@ -1469,6 +1471,7 @@ public sealed class TuiApplication(
         IsOtherThanConflictEditorOpen,
         () => _view.ScreenSize,
         glyphs,
+        SetMode,
         RefreshOverlay,
         gate);
 
@@ -1808,7 +1811,7 @@ public sealed class TuiApplication(
             return;
         }
 
-        var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage;
+        var multiLine = _commits.IsEditing || _rebaseEditor.IsEditingMessage || _conflictEditor.IsEditing;
         paste.Handled = _keys.Paste(paste.Text, multiLine, FocusedViewName);
     }
 

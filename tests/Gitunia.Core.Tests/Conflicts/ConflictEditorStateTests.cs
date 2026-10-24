@@ -130,6 +130,156 @@ public class ConflictEditorStateTests
         Assert.Equal(expected, ConflictEditorState.Lines(text).Count);
     }
 
+    [Fact]
+    public void GivenSeveralChanges_WhenUndoingAndRedoing_ThenEachStepIsTakenBackAndBroughtBackInOrder()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).Next().Pick(ConflictPick.Theirs).Pick(ConflictPick.Both);
+
+        var undone = state.Undo();
+        Assert.Equal(ConflictPick.Theirs, undone.Picks[1]);
+        undone = undone.Undo();
+        Assert.Equal(ConflictPick.None, undone.Picks[1]);
+        Assert.Equal(ConflictPick.Ours, undone.Picks[0]);
+        undone = undone.Undo();
+        Assert.Equal(Text, undone.ToText());
+        Assert.False(undone.CanUndo);
+        Assert.Same(undone, undone.Undo());
+
+        var redone = undone.Redo().Redo().Redo();
+        Assert.Equal(state.Picks, redone.Picks);
+        Assert.Equal(state.ToText(), redone.ToText());
+        Assert.False(redone.CanRedo);
+        Assert.Same(redone, redone.Redo());
+    }
+
+    [Fact]
+    public void GivenAnUndo_WhenMakingANewChange_ThenRedoIsGone()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).Undo();
+        Assert.True(state.CanRedo);
+
+        var changed = state.Pick(ConflictPick.Theirs);
+
+        Assert.False(changed.CanRedo);
+        Assert.Single(changed.UndoStack!);
+    }
+
+    [Fact]
+    public void GivenAChangeOnTheFirstHunk_WhenUndoingFromTheSecond_ThenTheCursorGoesToThatHunkAndRedoComesBack()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).Next();
+
+        var undone = state.Undo();
+        Assert.Equal(0, undone.Index);
+        var redone = undone.Next().Redo();
+
+        Assert.Equal(0, redone.Index);
+        Assert.Equal(ConflictPick.Ours, redone.Picks[0]);
+    }
+
+    [Fact]
+    public void GivenMoreChangesThanTheLimit_WhenUndoing_ThenOnlyTheLatestAreKept()
+    {
+        var state = State(Text);
+        for (var step = 0; step < ConflictEditorState.UndoLimit + 10; step++)
+        {
+            state = state.Pick(step % 2 == 0 ? ConflictPick.Ours : ConflictPick.Theirs);
+        }
+
+        Assert.Equal(ConflictEditorState.UndoLimit, state.UndoStack!.Count);
+    }
+
+    [Fact]
+    public void GivenAnEdit_WhenAccepted_ThenTheTypedTextIsTheResultAndOneUndoRemovesIt()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
+        Assert.True(state.IsEditing);
+        state.Edit!.Editor.SetText("custom one\ncustom two");
+
+        var accepted = state.AcceptEdit();
+
+        Assert.False(accepted.IsEditing);
+        Assert.Equal(ConflictPick.Edited, accepted.Picks[0]);
+        Assert.Equal(
+            "top\ncustom one\ncustom two\nmid\n<<<<<<< HEAD\nA2\n=======\nB2\n>>>>>>> other\nend\n",
+            accepted.ToText());
+        var undone = accepted.Undo();
+        Assert.Equal(ConflictPick.Ours, undone.Picks[0]);
+        Assert.Contains("A1\nmid", undone.ToText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnEditOfAnUnresolvedHunk_WhenStarted_ThenItBeginsWithBothSidesAndAnUnchangedAcceptResolvesNothing()
+    {
+        var state = State(Text).BeginEdit();
+
+        Assert.Equal("A1\nB1\n", state.Edit!.Editor.Text);
+        var accepted = state.AcceptEdit();
+
+        Assert.Equal(ConflictPick.None, accepted.Picks[0]);
+        Assert.False(accepted.CanUndo);
+        Assert.Equal(Text, accepted.ToText());
+    }
+
+    [Fact]
+    public void GivenAnEditEmptiedCompletely_WhenAccepted_ThenTheHunkResolvesToNothing()
+    {
+        var state = State(Text).Pick(ConflictPick.Theirs).BeginEdit();
+        state.Edit!.Editor.Clear();
+
+        var accepted = state.AcceptEdit();
+
+        Assert.Equal(ConflictPick.Edited, accepted.Picks[0]);
+        Assert.Equal("top\nmid\n<<<<<<< HEAD\nA2\n=======\nB2\n>>>>>>> other\nend\n", accepted.ToText());
+    }
+
+    [Fact]
+    public void GivenACrlfFile_WhenAcceptingAnEdit_ThenTheTextGetsCrlfLineBreaks()
+    {
+        var crlf = Text.Replace("\n", "\r\n", StringComparison.Ordinal);
+        var state = State(crlf).Pick(ConflictPick.Ours).BeginEdit();
+        state.Edit!.Editor.SetText("one\ntwo");
+
+        var saved = state.AcceptEdit().ToText();
+
+        Assert.Contains("one\r\ntwo\r\nmid\r\n", saved, StringComparison.Ordinal);
+        Assert.DoesNotContain("one\ntwo", saved, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAnOpenEdit_WhenMovingPickingOrUndoing_ThenNothingChanges()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
+
+        Assert.Equal(0, state.Next().Index);
+        Assert.Same(state, state.Pick(ConflictPick.Theirs));
+        Assert.Same(state, state.Undo());
+        Assert.Same(state, state.BeginEdit());
+    }
+
+    [Fact]
+    public void GivenEditedText_WhenPickingASideAfterwards_ThenThePickReplacesItAndUndoBringsTheTextBack()
+    {
+        var edited = State(Text).Pick(ConflictPick.Ours).BeginEdit();
+        edited.Edit!.Editor.SetText("typed\n");
+        var accepted = edited.AcceptEdit();
+
+        var picked = accepted.Pick(ConflictPick.Theirs);
+
+        Assert.Contains("B1\nmid", picked.ToText(), StringComparison.Ordinal);
+        Assert.Contains("typed\nmid", picked.Undo().ToText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheBaseToggle_WhenToggledTwice_ThenItIsOffAgainAndNoUndoStepWasAdded()
+    {
+        var state = State(Text).ToggleBase();
+
+        Assert.True(state.IsBaseShown);
+        Assert.False(state.ToggleBase().IsBaseShown);
+        Assert.False(state.CanUndo);
+    }
+
     private static ConflictEditorState State(string text) =>
         ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(text).Parts!);
 }

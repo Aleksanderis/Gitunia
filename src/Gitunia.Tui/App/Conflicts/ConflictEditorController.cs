@@ -21,13 +21,16 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <summary>
 /// The conflict editor (ux.md, workflow 4, "Conflict editor"): <c>Enter</c> (or <c>&lt;space&gt;to</c>) on a
 /// conflicted file of the Unstaged list reads it off the UI thread and opens a modal view of one conflict hunk at a
-/// time. Each hunk gets a pick (ours, theirs, both) or none; <c>Enter</c> saves the result to the working tree file,
+/// time. Each hunk gets a pick (ours, theirs, both), text typed by the user (<c>e</c>, in Insert mode) or none, and
+/// every change can be undone and redone; <c>B</c> shows the base of the hunk and <c>R</c> re-creates the conflict of
+/// the file after a Confirm. <c>Enter</c> saves the result to the working tree file,
 /// after a Confirm when hunks are unresolved (they keep their conflict markers), and then offers to mark the file
 /// resolved with the usual Confirm. The editor owns the keys while it is open; a Confirm opens on top of it.
 /// </summary>
 /// <param name="host">The workspace.</param>
 /// <param name="reader">Reads the conflicted file into hunks.</param>
 /// <param name="writer">Writes the result into the working tree.</param>
+/// <param name="recreator">Re-creates the conflict of the file on request.</param>
 /// <param name="statuses">Where refusals, failures and the outcome are reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
@@ -39,12 +42,14 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="isOtherOverlayOpen">True while an overlay other than this editor is open.</param>
 /// <param name="screenSize">The current terminal size.</param>
 /// <param name="glyphs">The characters the editor is drawn with.</param>
+/// <param name="setMode">Switches the keymap mode (Insert while the text of a hunk is edited).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
 public sealed class ConflictEditorController(
     WorkspaceHost host,
     IConflictReader reader,
     IConflictWriter writer,
+    IConflictRecreator recreator,
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
@@ -54,6 +59,7 @@ public sealed class ConflictEditorController(
     Func<bool> isOtherOverlayOpen,
     Func<ScreenSize> screenSize,
     GraphGlyphSet glyphs,
+    Action<KeyMode> setMode,
     Action redraw,
     TabOperationGate gate)
 {
@@ -74,6 +80,9 @@ public sealed class ConflictEditorController(
     public ConflictEditorState? State { get; private set; }
 
     public bool IsOpen => State is not null;
+
+    /// <summary>True while the text of a hunk is edited (the keymap is in Insert mode).</summary>
+    public bool IsEditing => State is { IsEditing: true };
 
     /// <summary>The frame to draw, or null when closed, covered by a dialog or the screen is too small.</summary>
     public OverlayFrame? CurrentFrame()
@@ -130,15 +139,34 @@ public sealed class ConflictEditorController(
         }
 
         var size = screenSize();
-        var view = ConflictEditorFrameBuilder.ChipAt(frameLine, frameColumn, size.Width, size.Height);
+        var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height);
         handled = view is not null;
 
         return view;
     }
 
+    /// <summary>Handles a key typed while a hunk's text is edited; false when none is.</summary>
+    public bool HandleTextKey(KeyEvent key)
+    {
+        if (State is not { Edit: { } edit } state || host.Workspace.ActiveTabId != state.TabId)
+        {
+            return false;
+        }
+
+        edit.Editor.Apply(key);
+        redraw();
+
+        return true;
+    }
+
     public void Close()
     {
         _generation++;
+        if (IsEditing)
+        {
+            setMode(KeyMode.Normal);
+        }
+
         State = null;
         redraw();
     }
@@ -266,7 +294,11 @@ public sealed class ConflictEditorController(
 
     private void Execute(ConflictEditorState state, ActionId action)
     {
-        if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit)
+        if (state.IsEditing)
+        {
+            ExecuteInEdit(state, action);
+        }
+        else if (action == ActionIds.Cancel || action == ActionIds.NavigateBack || action == ActionIds.AppQuit)
         {
             RequestClose(state);
         }
@@ -290,14 +322,63 @@ public sealed class ConflictEditorController(
         {
             Update(state.Pick(ConflictPick.Both));
         }
-        else if (action == ActionIds.ConflictEditorUndo)
+        else if (action == ActionIds.ConflictEditorReset)
         {
             Update(state.Pick(ConflictPick.None));
+        }
+        else if (action == ActionIds.ConflictEditorUndo)
+        {
+            Update(state.Undo());
+        }
+        else if (action == ActionIds.ConflictEditorRedo)
+        {
+            Update(state.Redo());
+        }
+        else if (action == ActionIds.ConflictEditorEdit)
+        {
+            BeginEdit(state);
+        }
+        else if (action == ActionIds.ConflictEditorBase)
+        {
+            Update(state.ToggleBase());
+        }
+        else if (action == ActionIds.ConflictEditorRecreate)
+        {
+            AskRecreate(state);
         }
         else if (action == ActionIds.ConflictEditorSave)
         {
             Save(state);
         }
+    }
+
+    // Esc keeps the text like Alt-Enter does: the edit is one step of undo, so nothing is lost by leaving it.
+    private void ExecuteInEdit(ConflictEditorState state, ActionId action)
+    {
+        if (action == ActionIds.ConflictEditorEditNewLine)
+        {
+            state.Edit!.Editor.Apply(new KeyEvent(KeyNames.Enter));
+            redraw();
+        }
+        else if (action == ActionIds.ConflictEditorEditDone
+            || action == ActionIds.Cancel
+            || action == ActionIds.NavigateBack)
+        {
+            setMode(KeyMode.Normal);
+            Update(state.AcceptEdit());
+        }
+    }
+
+    private void BeginEdit(ConflictEditorState state)
+    {
+        var edited = state.BeginEdit();
+        if (!edited.IsEditing)
+        {
+            return;
+        }
+
+        setMode(KeyMode.Insert);
+        Update(edited);
     }
 
     private void Update(ConflictEditorState state)
@@ -428,6 +509,116 @@ public sealed class ConflictEditorController(
                 statuses.Warning(notice);
             }
         }
+    }
+
+    private void AskRecreate(ConflictEditorState state)
+    {
+        var name = WorkingTreeRowRenderer.Printable(state.Path);
+        var prompt = new ConfirmPrompt(
+            "Re-create the conflict",
+            [
+                $"Re-create the conflict of {name}?",
+                "The file goes back to its conflict markers, also when it was saved or marked resolved; "
+                + "what this editor holds is discarded.",
+            ],
+            "No undo for the file's current content: git checkout --merge -- <file> overwrites it.",
+            "Re-create");
+        if (!confirm(prompt, () => Recreate(state)))
+        {
+            statuses.Warning(TooSmallNotice);
+        }
+    }
+
+    private void Recreate(ConflictEditorState state)
+    {
+        if (host.Workspace.FindTab(state.TabId) is not { } tab)
+        {
+            return;
+        }
+
+        if (gate.IsBusy(tab.Id))
+        {
+            statuses.Warning($"{BusyNotice}; the conflict was not re-created");
+
+            return;
+        }
+
+        gate.Begin(tab.Id);
+        var token = cancellationOf(tab.Id);
+        _ = Task.Run(() => RecreateAsync(tab, state, token), CancellationToken.None);
+    }
+
+    private async Task RecreateAsync(RepositoryState tab, ConflictEditorState state, CancellationToken token)
+    {
+        var name = WorkingTreeRowRenderer.Printable(state.Path);
+        try
+        {
+            await recreator.RecreateAsync(tab.Location, state.Path, token).ConfigureAwait(false);
+            var fresh = await ReadAfterRecreateAsync(tab.Location, state.Path, token).ConfigureAwait(false);
+            postToUi(() => Recreated(tab.Id, state, fresh));
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            postToUi(() => gate.End(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var text = $"Could not re-create the conflict of {name}: {OperationText.Reason(exception)}";
+            postToUi(() => Done(tab.Id, text, StatusSeverity.Error, state, false));
+        }
+    }
+
+    // The file is already rewritten when this runs, so a failed read is reported as such, not as a failed re-create.
+    private async Task<ConflictReadResult> ReadAfterRecreateAsync(
+        RepositoryLocation location,
+        string path,
+        CancellationToken token)
+    {
+        try
+        {
+            return await reader.ReadAsync(location, path, token).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return ConflictReadResult.Unsupported($"it could not be read: {OperationText.Reason(exception)}");
+        }
+    }
+
+    private void Recreated(TabId tabId, ConflictEditorState old, ConflictReadResult result)
+    {
+        var name = WorkingTreeRowRenderer.Printable(old.Path);
+        gate.End(tabId);
+        if (host.Workspace.FindTab(tabId) is null)
+        {
+            Close();
+
+            return;
+        }
+
+        refresh(tabId);
+        if (State is null)
+        {
+            statuses.Post($"Re-created the conflict of {name}");
+
+            return;
+        }
+
+        if (result.Kind != ConflictReadKind.Text)
+        {
+            statuses.Warning($"{name}: the conflict was re-created, but {result.Reason}");
+            Close();
+
+            return;
+        }
+
+        if (IsEditing)
+        {
+            setMode(KeyMode.Normal);
+        }
+
+        statuses.Post($"Re-created the conflict of {name}");
+        State = ConflictEditorState.Create(tabId, old.Path, result.Parts) with { IsBaseShown = old.IsBaseShown };
+        redraw();
     }
 
     private static StatusEntry? ConflictedUnderCursor(RepositoryState tab) =>

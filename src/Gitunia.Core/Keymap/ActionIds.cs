@@ -270,6 +270,20 @@ public static class ActionIds
 
     public static ActionId ConflictEditorSave { get; } = new("conflict-editor.save");
 
+    public static ActionId ConflictEditorReset { get; } = new("conflict-editor.reset");
+
+    public static ActionId ConflictEditorRedo { get; } = new("conflict-editor.redo");
+
+    public static ActionId ConflictEditorEdit { get; } = new("conflict-editor.edit");
+
+    public static ActionId ConflictEditorBase { get; } = new("conflict-editor.base");
+
+    public static ActionId ConflictEditorRecreate { get; } = new("conflict-editor.recreate");
+
+    public static ActionId ConflictEditorEditDone { get; } = new("conflict-editor.edit-done");
+
+    public static ActionId ConflictEditorEditNewLine { get; } = new("conflict-editor.edit-newline");
+
     public static ActionId RebaseFixup { get; } = new("rebase.fixup");
 
     public static ActionId RebaseReword { get; } = new("rebase.reword");

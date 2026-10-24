@@ -27,6 +27,12 @@ public sealed class MessageEditor
     private readonly List<string> _lines = [string.Empty];
     private int _desiredWidth;
 
+    /// <summary>
+    /// True when <c>Tab</c> inserts a tab character instead of spaces up to the next multiple of four columns (text
+    /// where tabs matter, such as a file being resolved).
+    /// </summary>
+    public bool UsesTabCharacters { get; init; }
+
     /// <summary>The lines of the message; at least one (possibly empty).</summary>
     public IReadOnlyList<string> Lines => _lines;
 
@@ -164,7 +170,7 @@ public sealed class MessageEditor
                 MoveVertically(1);
                 return true;
             case KeyNames.Tab:
-                Insert(new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
+                Insert(UsesTabCharacters ? Tab.ToString() : new string(' ', TabWidth - CursorDisplayColumn % TabWidth));
                 return true;
             case KeyNames.Home:
                 MoveTo(CursorRow, 0);

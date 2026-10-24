@@ -157,19 +157,108 @@ public class ConflictEditorFrameBuilderTests
     [Fact]
     public void GivenTheChipRow_WhenHitTesting_ThenEachChipReturnsItsMouseViewAndOtherCellsNone()
     {
-        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
-        var chipLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("[o ours]", StringComparison.Ordinal));
-        var text = frame.Lines[chipLine].Text;
+        var state = State(Text);
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
 
-        Assert.Equal(
-            DefaultMouseMap.ConflictOursButton,
-            ConflictEditorFrameBuilder.ChipAt(chipLine, text.IndexOf("[o ours]", StringComparison.Ordinal), 120, 30));
-        var saveColumn = text.IndexOf("[Enter save]", StringComparison.Ordinal) + 3;
-        Assert.Equal(
-            DefaultMouseMap.ConflictSaveButton,
-            ConflictEditorFrameBuilder.ChipAt(chipLine, saveColumn, 120, 30));
-        Assert.Null(ConflictEditorFrameBuilder.ChipAt(chipLine, 1, 120, 30));
-        Assert.Null(ConflictEditorFrameBuilder.ChipAt(chipLine - 1, 4, 120, 30));
+        AssertChip(state, frame, "[o ours]", DefaultMouseMap.ConflictOursButton);
+        AssertChip(state, frame, "[Enter save]", DefaultMouseMap.ConflictSaveButton);
+        AssertChip(state, frame, "[e edit]", DefaultMouseMap.ConflictEditButton);
+        AssertChip(state, frame, "[r reset]", DefaultMouseMap.ConflictResetButton);
+        AssertChip(state, frame, "[Ctrl-r redo]", DefaultMouseMap.ConflictRedoButton);
+        AssertChip(state, frame, "[B base]", DefaultMouseMap.ConflictBaseButton);
+        AssertChip(state, frame, "[R re-create]", DefaultMouseMap.ConflictRecreateButton);
+        var chipLine = ChipLine(frame, "[o ours]");
+        Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine, 1, 120, 30));
+        Assert.Null(ConflictEditorFrameBuilder.ChipAt(state, chipLine - 1, 4, 120, 30));
+    }
+
+    [Fact]
+    public void GivenAnEdit_WhenRendering_ThenTheResultShowsTheTextWithACursorAndOnlyTheKeepChipIsLeft()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
+        state.Edit!.Editor.PlaceCursor(0, 0);
+        state.Edit.Editor.Insert("typed ");
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Esc or Alt-Enter keeps the text", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("[o ours]", StringComparison.Ordinal));
+        AssertChip(state, frame, "[Alt-Enter keep]", DefaultMouseMap.ConflictEditDoneButton);
+        Assert.Contains(
+            frame.Lines.SelectMany(line => line.Segments),
+            segment => segment.Role == SegmentRole.Cursor);
+    }
+
+    [Fact]
+    public void GivenAnEditedHunk_WhenRendering_ThenTheStripAndTheResultHeaderSayEdited()
+    {
+        var state = State(Text).BeginEdit();
+        state.Edit!.Editor.Insert("x");
+
+        var frame = ConflictEditorFrameBuilder.Build(state.AcceptEdit(), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        Assert.Contains("[1 edited]", lines[1], StringComparison.Ordinal);
+        Assert.Contains(lines, line => line.Contains("result  edited by you", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("<<<<<<<", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenTheBaseToggledOnADiffThreeFile_WhenRendering_ThenTheBaseLinesShowBetweenTheSidesAndTheResult()
+    {
+        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
+        var state = State(diffThree).ToggleBase();
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var lines = frame.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
+        Assert.True(header > 0);
+        Assert.Contains("ancestor", lines[header + 1], StringComparison.Ordinal);
+        Assert.True(header < lines.FindIndex(line => line.Contains("result  ", StringComparison.Ordinal)));
+        Assert.All(frame.Lines, line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenTheBaseToggledOnAMergeStyleFile_WhenRendering_ThenItSaysHowToGetABase()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text).ToggleBase(), 120, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains(
+            frame.Lines,
+            line => line.Text.Contains("merge.conflictStyle=diff3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void GivenNoRoomForTheBase_WhenRendering_ThenTheBaseIsLeftOutAndTheResultKeepsItsRow()
+    {
+        const string diffThree = "<<<<<<< HEAD\nmine\n||||||| base\nancestor\n=======\ntheirs\n>>>>>>> feature\n";
+        var state = State(diffThree).ToggleBase();
+
+        foreach (var height in new[] { 12, 13, 14, 16 })
+        {
+            var frame = ConflictEditorFrameBuilder.Build(state, 120, height, GraphGlyphSet.Unicode);
+
+            if (frame is not null)
+            {
+                Assert.Contains(frame.Lines, line => line.Text.Contains("result  ", StringComparison.Ordinal));
+                Assert.True(frame.Height <= height);
+            }
+        }
+    }
+
+    private static int ChipLine(OverlayFrame frame, string chip) =>
+        frame.Lines.ToList().FindIndex(line => line.Text.Contains(chip, StringComparison.Ordinal));
+
+    private static void AssertChip(ConflictEditorState state, OverlayFrame frame, string chip, string view)
+    {
+        var line = ChipLine(frame, chip);
+        Assert.True(line >= 0, chip);
+        var column = frame.Lines[line].Text.IndexOf(chip, StringComparison.Ordinal) + 1;
+        Assert.Equal(view, ConflictEditorFrameBuilder.ChipAt(state, line, column, 120, 30));
     }
 
     private static ConflictEditorState State(string text) =>

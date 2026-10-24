@@ -56,8 +56,15 @@ public static class MessageEditorRenderer
     /// <param name="width">Columns.</param>
     /// <param name="height">Rows.</param>
     /// <param name="showCursor">Draw the cursor.</param>
+    /// <param name="marksSubject">Mark the first line past the soft limit (a commit subject, not code).</param>
     /// <param name="scrollTop">The first visible row kept by the caller (see <see cref="ScrollTop"/>); null scrolls statelessly: the cursor row is the last visible row once the text is taller than the box.</param>
-    public static IReadOnlyList<StyledLine> Render(MessageEditor editor, int width, int height, bool showCursor, int? scrollTop = null)
+    public static IReadOnlyList<StyledLine> Render(
+        MessageEditor editor,
+        int width,
+        int height,
+        bool showCursor,
+        int? scrollTop = null,
+        bool marksSubject = true)
     {
         height = Math.Max(0, height);
         width = Math.Max(0, width);
@@ -67,7 +74,7 @@ public static class MessageEditorRenderer
         {
             var text = row < editor.Lines.Count ? editor.Lines[row] : string.Empty;
             var cursorColumn = showCursor && row == editor.CursorRow ? editor.CursorColumn : -1;
-            lines.Add(RenderLine(text, width, cursorColumn, row == 0));
+            lines.Add(RenderLine(text, width, cursorColumn, marksSubject && row == 0));
         }
 
         return lines;

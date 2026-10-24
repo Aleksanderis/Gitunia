@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -19,6 +19,7 @@
 # working-discard (<space>d on README.md, the second file of the Unstaged list; the first is a conflict, which is refused: the Confirm dialog); not for --repo.
 # rebase-editor (G <space>gi, then squash, drop and so on: the interactive rebase todo editor on a linear branch of a copy of the throwaway repository), rebase-reword (r: the message editor of a reword), rebase-confirm (Enter: the Confirm over the editor) and rebase-narrow (64x24); not for --repo.
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
+# conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (o B: the base block of the hunk); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
@@ -283,6 +284,8 @@ render() {
       working-commit | working-hook) keys="Space s Space a Space a Space c" ;;
       conflict-editor) keys="Space s Enter" keys_after="o n" ;;
       conflict-editor-narrow) columns=64 rows=30 keys="Space s Enter" keys_after="o n" ;;
+      conflict-editor-edit) keys="Space s Enter" keys_after="o e t y p e d" ;;
+      conflict-editor-base) keys="Space s Enter" keys_after="o B" ;;
       rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
       rebase-reword) keys="G Space g i" keys_after="j r" ;;
       rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;

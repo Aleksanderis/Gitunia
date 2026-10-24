@@ -14,4 +14,7 @@ public enum ConflictPick
 
     /// <summary>Both sides, ours first.</summary>
     Both,
+
+    /// <summary>Text the user typed (<see cref="ConflictEditorState.Texts"/>).</summary>
+    Edited,
 }
