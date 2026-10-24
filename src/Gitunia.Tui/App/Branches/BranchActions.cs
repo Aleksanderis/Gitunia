@@ -704,7 +704,9 @@ public sealed class BranchActions(
         {
             _deleteNames = names;
             _index = 0;
-            _label = chosen.RowKind == SidebarRowKind.Folder ? $"{chosen.Name}/" : ShortHash(chosen.CommitHash ?? string.Empty);
+            _label = chosen.RowKind == SidebarRowKind.Folder
+                ? $"{chosen.Name}/"
+                : ShortHash(chosen.CommitHash ?? string.Empty);
             Open(BranchPromptKind.Delete, tab, string.Empty);
             return string.Empty;
         }
@@ -722,7 +724,7 @@ public sealed class BranchActions(
     private static bool IsLocal(GitRef reference, string name) =>
         reference.Kind == RefKind.LocalBranch && reference.Name == name;
 
-    // The local branches a folder row holds, or those on the selected graph commit when the cursor is not a sidebar row.
+    // The local branches a folder row holds, or those on the selected graph commit (the cursor is not a sidebar row).
     private static List<string> DeleteChoices(RepositoryState tab, BranchSelection chosen)
     {
         var locals = tab.Refs.Where(reference => reference.Kind == RefKind.LocalBranch);
