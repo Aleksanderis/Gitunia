@@ -180,7 +180,7 @@ public static class ActionCatalog
         ["conflict-editor.redo"] = "Conflict editor: redo the undone pick or edit",
         ["conflict-editor.reset"] = "Conflict editor: make the hunk unresolved again (it keeps its conflict markers)",
         ["conflict-editor.edit"] = "Conflict editor: edit the result of the hunk as text",
-        ["conflict-editor.base"] = "Conflict editor: show or hide the base (common ancestor) below the sides on a narrow screen",
+        ["conflict-editor.base"] = "Conflict editor: show or hide the base below the sides (narrow screens)",
         ["conflict-editor.recreate"] = "Conflict editor: re-create the conflict of the file (asks first)",
         ["conflict-editor.edit-done"] = "Conflict editor: keep the edited text",
         ["conflict-editor.edit-newline"] = "Conflict editor: insert a new line in the edited text",
