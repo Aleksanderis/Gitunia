@@ -237,14 +237,50 @@ public class DiffRowRendererTests
     }
 
     [Fact]
-    public void GivenWhitespaceMarksOn_WhenALineHasInnerSpacesAndNoTrailingOnes_ThenItIsUnchanged()
+    public void GivenWhitespaceMarksOn_WhenALineHasLeadingAndInnerSpaces_ThenEachIsMarkedQuietInTheSameColumns()
     {
-        var row = new DiffRow(DiffRowKind.Context, "one  two", 1, 1, 0);
+        var row = new DiffRow(DiffRowKind.Context, "    one  two", 1, 1, 0);
 
+        var plain = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs);
         var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true);
 
-        Assert.Contains("one  two", marked.Text, StringComparison.Ordinal);
+        Assert.Contains("····one··two", marked.Text, StringComparison.Ordinal);
         Assert.DoesNotContain('•', marked.Text);
+        Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
+        Assert.Equal(SegmentRole.Faint, marked.Segments.First(segment => segment.Text == "····").Role);
+        Assert.Equal(SegmentRole.Plain, marked.Segments.First(segment => segment.Text == "one").Role);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOnInTheAsciiSet_WhenALineHasIndentation_ThenDotsMarkIt()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "  x", null, 1, 0);
+
+        var marked = DiffRowRenderer.Render(row, 20, 3, null, false, GraphGlyphSet.Ascii, null, true);
+
+        Assert.Contains("..x", marked.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOn_WhenRenderingTheRowsOfAPane_ThenIndentationOfEveryKindOfRowIsMarked()
+    {
+        var document = new DiffDocument(
+            [
+                new DiffRow(DiffRowKind.Context, "    ctx", 1, 1, 0),
+                new DiffRow(DiffRowKind.Added, "\tadded  ", null, 2, 0),
+                new DiffRow(DiffRowKind.Removed, "  gone", 2, null, 0),
+            ],
+            [],
+            [],
+            [["f"]],
+            2);
+        var pane = new DiffPaneModel(document, 0, 0, false, ShowWhitespace: true);
+
+        var lines = DiffPaneRenderer.RenderRows(pane, 40, 3, Glyphs, 0);
+
+        Assert.Contains("····ctx", lines[0].Text, StringComparison.Ordinal);
+        Assert.Contains("→   added••", lines[1].Text, StringComparison.Ordinal);
+        Assert.Contains("··gone", lines[2].Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -32,8 +32,11 @@ public sealed record GraphGlyphSet(
     /// <summary>Drawn in place of a tab's first column when whitespace is shown.</summary>
     public char TabMark => IsAscii ? '>' : '→';
 
-    /// <summary>Drawn in place of a trailing space when whitespace is shown.</summary>
+    /// <summary>Drawn in place of a trailing space (a heavier mark than inner ones) when whitespace is shown.</summary>
     public char SpaceMark => IsAscii ? '.' : '•';
+
+    /// <summary>Drawn in place of a leading or inner space when whitespace is shown.</summary>
+    public char InnerSpaceMark => IsAscii ? '.' : '·';
 
     /// <summary>Drawn in place of a carriage return when whitespace is shown.</summary>
     public char CarriageReturnMark => IsAscii ? '<' : '¶';

@@ -50,7 +50,7 @@ public static class DiffSplitRenderer
     /// <param name="glyphs">Supplies the ellipsis and the rule.</param>
     /// <param name="leftJump">The quick-jump label of the old side's row (the whole line's when it spans both).</param>
     /// <param name="rightJump">The quick-jump label of the new side's row.</param>
-    /// <param name="showWhitespace">Draw tabs, trailing spaces and carriage returns as marks.</param>
+    /// <param name="showWhitespace">Draw tabs, spaces and carriage returns as marks.</param>
     public static StyledLine Render(
         DiffDocument document,
         DiffSplitLine line,
