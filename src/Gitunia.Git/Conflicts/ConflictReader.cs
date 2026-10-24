@@ -10,8 +10,9 @@ namespace Gitunia.Git.Conflicts;
 /// Reads a conflicted path. <c>ls-files -u -z</c> names the stages that exist (1 base, 2 ours, 3 theirs): a missing
 /// stage is add/add or delete/modify, and a symlink or submodule entry is not text; none of these is editable here.
 /// The hunks come from the file git left in the working tree, because its markers hold exactly the conflicting
-/// text of each side (and the base for diff3) and show what the user already changed by hand. A merge-style hunk gets its base from
-/// the three stages merged in memory (<see cref="ConflictBaseFinder"/>); the working-tree file is never rewritten.
+/// text of each side (and the base for diff3) and show what the user already changed by hand.
+/// A merge-style hunk gets its base from the three stages merged in memory
+/// (<see cref="ConflictBaseFinder"/>); the working-tree file is never rewritten.
 /// </summary>
 public sealed class ConflictReader(GitRunner runner) : IConflictReader
 {

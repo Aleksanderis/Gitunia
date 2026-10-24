@@ -25,7 +25,9 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
         ReadOnly: true,
         AcceptedExitCodes: [.. Enumerable.Range(1, MaximumConflictCount)]);
 
-    /// <summary>Returns <paramref name="parts"/> with the base filled in where it can be found; never throws for git failures.</summary>
+    /// <summary>
+    /// Returns <paramref name="parts"/> with the base filled in where it can be found; never throws for git failures.
+    /// </summary>
     public async Task<IReadOnlyList<ConflictPart>> FillAsync(
         RepositoryLocation location,
         string path,
@@ -50,7 +52,10 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
 
     private static List<ConflictPart> Align(IReadOnlyList<ConflictPart> parts, IReadOnlyList<ConflictPart>? merged)
     {
-        var candidates = merged?.Where(part => part.Hunk is { Base: not null }).Select(part => part.Hunk!).ToList() ?? [];
+        var candidates = merged?
+            .Where(part => part.Hunk is { Base: not null })
+            .Select(part => part.Hunk!)
+            .ToList() ?? [];
         var next = 0;
         var result = new List<ConflictPart>(parts.Count);
         foreach (var part in parts)
@@ -78,7 +83,8 @@ internal sealed class ConflictBaseFinder(GitRunner runner)
     private static bool SameSides(ConflictHunk left, ConflictHunk right) =>
         Plain(left.Ours) == Plain(right.Ours) && Plain(left.Theirs) == Plain(right.Theirs);
 
-    private static string Plain(string text) => text.Replace(CarriageReturnLineFeed, LineFeed, StringComparison.Ordinal);
+    private static string Plain(string text) =>
+        text.Replace(CarriageReturnLineFeed, LineFeed, StringComparison.Ordinal);
 
     private async Task<string?> MergeStagesAsync(
         RepositoryLocation location,
