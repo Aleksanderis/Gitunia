@@ -99,6 +99,41 @@ public class StashDetailsReaderTests
     }
 
     [Fact]
+    public async Task GivenStagedCopyOfModifiedFile_WhenReadingFilesAndDiff_ThenItIsAnAdditionLikeGitStashShow()
+    {
+        using var repository = TestRepositories.Linear(2);
+        repository.Commit("Add", new TestFile("source.txt", Rows(changed: false)));
+        repository.WriteFile("source.txt", Rows(changed: true));
+        repository.WriteFile("copy.txt", Rows(changed: false));
+        repository.Git("add", "copy.txt");
+        repository.Git("stash", "push", "-q");
+        var location = await LocateAsync(repository);
+        var entry = await TopAsync(location);
+
+        var files = await Details.ReadFilesAsync(location, entry, null, Token);
+        var diff = await ReadDiffAsync(location, entry, StashFileOrigin.Tracked);
+
+        Assert.NotNull(files);
+        Assert.Equal(NameStatus(repository), Describe(files));
+        Assert.DoesNotContain(files.Files, file => file.Change.Kind == FileChangeKind.Copied);
+        Assert.DoesNotContain(diff, file => file.Status == DiffFileStatus.Copied);
+        Assert.Equal(PatchBody(repository.Git("stash", "show", "-p", "--no-color")), PatchBody(diff));
+    }
+
+    [Fact]
+    public async Task GivenDroppedStashWhoseCommitExists_WhenReadingDiff_ThenItStillStreams()
+    {
+        using var repository = TestRepositories.WithStash();
+        var location = await LocateAsync(repository);
+        var entry = await TopAsync(location);
+        await Writer.DropAsync(location, entry, Token);
+
+        var diff = await ReadDiffAsync(location, entry, StashFileOrigin.Tracked);
+
+        Assert.Equal("file.txt", Assert.Single(diff).Path);
+    }
+
+    [Fact]
     public async Task GivenStashDroppedMeanwhile_WhenReadingFiles_ThenResultIsNull()
     {
         using var repository = TestRepositories.WithStash();

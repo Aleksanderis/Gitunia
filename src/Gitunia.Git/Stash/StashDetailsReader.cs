@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Gitunia.Git.Commits;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Diff;
 using Gitunia.Git.Diff.Models;
 using Gitunia.Git.Execution;
@@ -11,6 +12,9 @@ namespace Gitunia.Git.Stash;
 /// <summary>Reads the files and diff of a stash by reusing the commit file parser and the diff reader.</summary>
 public sealed class StashDetailsReader : IStashDetailsReader
 {
+    /// <summary>Placed after <c>--find-copies</c> so it wins; <c>git stash show</c> finds renames only.</summary>
+    private const string RenamesOnlyOption = "--find-renames";
+
     private const int BaseParentField = 1;
     private const int UntrackedParentField = 3;
 
@@ -21,18 +25,16 @@ public sealed class StashDetailsReader : IStashDetailsReader
     private static readonly char[] FieldSeparators = [' ', '\n'];
 
     private readonly GitRunner _runner;
-    private readonly ICommitDetailsReader _commits;
     private readonly IDiffReader _diffs;
 
     public StashDetailsReader(GitRunner runner)
-        : this(runner, new CommitDetailsReader(runner), new DiffReader(runner))
+        : this(runner, new DiffReader(runner))
     {
     }
 
-    public StashDetailsReader(GitRunner runner, ICommitDetailsReader commits, IDiffReader diffs)
+    public StashDetailsReader(GitRunner runner, IDiffReader diffs)
     {
         _runner = runner;
-        _commits = commits;
         _diffs = diffs;
     }
 
@@ -54,16 +56,14 @@ public sealed class StashDetailsReader : IStashDetailsReader
         var files = new List<StashFileChange>();
         if (parents.Base is { } baseCommit && ObjectId.TryParse(entry.CommitHash, out var stash))
         {
-            var tracked = await _commits
-                .ReadFilesAsync(location, stash, baseCommit, warnings, cancellationToken)
+            var tracked = await ReadChangesAsync(location, stash, baseCommit, warnings, cancellationToken)
                 .ConfigureAwait(false);
             files.AddRange(tracked.Select(change => new StashFileChange(change, StashFileOrigin.Tracked)));
         }
 
         if (parents.Untracked is { } untracked)
         {
-            var added = await _commits
-                .ReadFilesAsync(location, untracked, null, warnings, cancellationToken)
+            var added = await ReadChangesAsync(location, untracked, null, warnings, cancellationToken)
                 .ConfigureAwait(false);
             files.AddRange(added.Select(change => new StashFileChange(change, StashFileOrigin.Untracked)));
         }
@@ -102,12 +102,40 @@ public sealed class StashDetailsReader : IStashDetailsReader
             yield break;
         }
 
+        var extra = (options ?? DiffOptions.Default).ToArguments();
+        IReadOnlyList<string> command = parent is { } baseCommit
+            ? ["diff", .. extra, RenamesOnlyOption, baseCommit.ToString(), target.ToString()]
+            : ["show", "--format=", .. extra, target.ToString()];
+
         await foreach (var file in _diffs
-            .ReadCommitAsync(location, target, parent, warnings, maximumLinesPerFile, options, cancellationToken)
+            .ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken)
             .ConfigureAwait(false))
         {
             yield return file;
         }
+    }
+
+    private async Task<IReadOnlyList<CommitFileChange>> ReadChangesAsync(
+        RepositoryLocation location,
+        ObjectId commit,
+        ObjectId? parent,
+        ICollection<string>? warnings,
+        CancellationToken cancellationToken)
+    {
+        var result = await _runner
+            .RunAsync(
+                location.CommandPath,
+                CommitDetailsFormat.RenameOnlyFileArguments(commit, parent),
+                GitRunOptions.ReadOnlyRun,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var changes = CommitFileChangeParser.Parse(result.StandardOutput);
+        foreach (var warning in changes.Warnings)
+        {
+            warnings?.Add(warning);
+        }
+
+        return changes.Items;
     }
 
     private async Task<StashParents> ReadParentsAsync(
