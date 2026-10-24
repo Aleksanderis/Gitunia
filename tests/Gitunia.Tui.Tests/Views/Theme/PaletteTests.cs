@@ -24,6 +24,9 @@ public class PaletteTests
     private const double DecorationRatio = 3.0;
     private const double MinimumTabTint = 1.15;
 
+    // Whitespace marks are meant to be barely there: readable, but far below the text ratio.
+    private const double SubtleRatio = 2.0;
+
     public static TheoryData<bool> Variants => [false, true];
 
     [Theory]
@@ -95,7 +98,7 @@ public class PaletteTests
                 var attribute = Palette.For(new StyledSegment("x", role), highlight.IsSelected, highlight.IsFocused, colors);
                 var background = attribute.Background == Color.None ? terminalBackground : ToRgb(attribute.Background);
                 var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
-                var minimum = role is SegmentRole.Border ? DecorationRatio : ReadableRatio;
+                var minimum = MinimumFor(role);
                 if (role is SegmentRole.Border && highlight.IsSelected)
                 {
                     // A divider is never on a selected row.
@@ -473,6 +476,13 @@ public class PaletteTests
     private static bool IsNamedOrDefault(Color color, HashSet<Color> named) => color == Color.None || named.Contains(color);
 
     private static int ToRgb(Color color) => (color.R << 16) | (color.G << 8) | color.B;
+
+    private static double MinimumFor(SegmentRole role) => role switch
+    {
+        SegmentRole.Border => DecorationRatio,
+        SegmentRole.WhitespaceMark => SubtleRatio,
+        _ => ReadableRatio,
+    };
 
     private static double Contrast(int first, int second)
     {

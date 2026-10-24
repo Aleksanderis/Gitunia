@@ -479,7 +479,7 @@ public static class DiffRowRenderer
         AppendMarked(builder, shown, position, shown.Length, role, marks, markOffset);
     }
 
-    // Appends shown[start..end]; the whitespace marks in it are drawn quiet.
+    // Appends shown[start..end]; the whitespace marks in it are drawn subtle.
     private static void AppendMarked(
         LineBuilder builder,
         string shown,
@@ -505,7 +505,7 @@ public static class DiffRowRenderer
                 runEnd++;
             }
 
-            builder.Append(shown[runStart..runEnd], isMark ? SegmentRole.Faint : role);
+            builder.Append(shown[runStart..runEnd], isMark ? SegmentRole.WhitespaceMark : role);
             runStart = runEnd;
         }
     }

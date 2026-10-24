@@ -20,6 +20,7 @@ public sealed class ThemeFileParserTests
         Assert.False(theme.IsLight);
         Assert.Equal(0x111111, theme.Colors[ThemeRoles.Muted]);
         Assert.Equal(0x111111, theme.Colors[ThemeRoles.MutedOnSelection]);
+        Assert.Equal(0x0a0a0b, theme.Colors[ThemeRoles.Subtle]);
         Assert.Equal(0x222222, theme.Colors[ThemeRoles.TabButtonBackground]);
         Assert.Equal(0x010203, theme.Colors[ThemeRoles.ChipBackground]);
         Assert.Equal(0x040506, theme.Colors[ThemeRoles.MatchBackground]);
@@ -125,6 +126,38 @@ public sealed class ThemeFileParserTests
 
         Assert.Null(ThemeFileParser.Parse("mine", Json(ansi: ansi), problems));
         Assert.StartsWith("mine: ansi.", Assert.Single(problems).Path, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenSubtleRoles_WhenParsing_ThenTheFileValuesWinOverTheDerivedOnes()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = Json().Replace(
+            "\"muted\": \"#111111\",",
+            "\"muted\": \"#111111\", \"subtle\": \"#0a0b0c\", \"subtleOnSelection\": \"#0d0e0f\",",
+            StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
+
+        Assert.NotNull(theme);
+        Assert.Equal(0x0a0b0c, theme.Colors[ThemeRoles.Subtle]);
+        Assert.Equal(0x0d0e0f, theme.Colors[ThemeRoles.SubtleOnSelection]);
+    }
+
+    [Fact]
+    public void GivenMutedOnSelection_WhenParsing_ThenSubtleOnSelectionMixesItIntoTheSelection()
+    {
+        var problems = new List<ConfigProblem>();
+        var text = Json().Replace(
+            "\"muted\": \"#111111\",",
+            "\"muted\": \"#111111\", \"mutedOnSelection\": \"#ffffff\",",
+            StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, problems);
+
+        // 70% of white into the selection #222222: 0.7 * 255 + 0.3 * 34 = 188.7.
+        Assert.NotNull(theme);
+        Assert.Equal(0xbdbdbd, theme.Colors[ThemeRoles.SubtleOnSelection]);
     }
 
     [Fact]

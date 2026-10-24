@@ -49,7 +49,11 @@ public static class Palette
         if (!role.KeepsBackground)
         {
             background = isFocused ? colors.SelectionFocused : colors.SelectionDim;
-            if (foreground == colors.Muted)
+            if (segment.Role == SegmentRole.WhitespaceMark)
+            {
+                foreground = colors.SubtleOnSelection;
+            }
+            else if (foreground == colors.Muted)
             {
                 foreground = colors.MutedOnSelection;
             }
@@ -81,6 +85,7 @@ public static class Palette
         {
             SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
             SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
+            SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.Punctuation => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.LocalBranch => new RoleAppearance(colors.Good, Color.None, TextStyle.Bold, false),
             SegmentRole.CurrentBranch => new RoleAppearance(colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),

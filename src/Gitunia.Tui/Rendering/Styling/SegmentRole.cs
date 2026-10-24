@@ -32,6 +32,11 @@ public enum SegmentRole
     Status,
     Faint,
 
+    /// <summary>
+    /// A whitespace mark of the diff (<c>·</c>, <c>→</c>): much dimmer than <see cref="Faint"/>, still readable.
+    /// </summary>
+    WhitespaceMark,
+
     /// <summary>The file name of a name-first file row: bold, so the dimmed directory after it recedes.</summary>
     FileName,
 

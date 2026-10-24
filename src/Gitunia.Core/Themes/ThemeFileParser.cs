@@ -24,6 +24,11 @@ public static class ThemeFileParser
     private const string DarkVariant = "dark";
     private const string ColorHint = "must be a colour like \"#1e1e2e\"";
     private const int HexLength = 7;
+
+    // The share of the text colour kept when it is blended into the background it sits on.
+    private const double SubtleWeight = 0.55;
+    private const double SubtleOnSelectionWeight = 0.7;
+    private static readonly int[] ChannelShifts = [16, 8, 0];
     private const char HexPrefix = '#';
 
     private static readonly JsonDocumentOptions Options = new()
@@ -176,9 +181,27 @@ public static class ThemeFileParser
         return colors;
     }
 
+    private static int Mix(int foreground, int background, double weight)
+    {
+        var result = 0;
+        foreach (var shift in ChannelShifts)
+        {
+            var channel = (((foreground >> shift) & 0xff) * weight) + (((background >> shift) & 0xff) * (1 - weight));
+            result |= (int)Math.Round(channel) << shift;
+        }
+
+        return result;
+    }
+
     private static void FillDefaults(Dictionary<string, int> colors)
     {
         colors.TryAdd(ThemeRoles.MutedOnSelection, colors[ThemeRoles.Muted]);
+        colors.TryAdd(
+            ThemeRoles.Subtle,
+            Mix(colors[ThemeRoles.Muted], colors[ThemeRoles.BaseBackground], SubtleWeight));
+        colors.TryAdd(
+            ThemeRoles.SubtleOnSelection,
+            Mix(colors[ThemeRoles.MutedOnSelection], colors[ThemeRoles.SelectionFocused], SubtleOnSelectionWeight));
         colors.TryAdd(ThemeRoles.TabButtonBackground, colors[ThemeRoles.SelectionFocused]);
         colors.TryAdd(ThemeRoles.ChipBackground, colors[ThemeRoles.Accent]);
         colors.TryAdd(ThemeRoles.MatchForeground, colors[ThemeRoles.ChipForeground]);

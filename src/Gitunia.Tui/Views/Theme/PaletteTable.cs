@@ -35,6 +35,14 @@ public sealed class PaletteTable
     /// <summary>The colour muted text gets on a selected row, where <see cref="Muted"/> would be too dim.</summary>
     public required Color MutedOnSelection { get; init; }
 
+    /// <summary>
+    /// Whitespace marks of the diff: dimmer than <see cref="Muted"/>, about 2:1 to 3.5:1 on the base background.
+    /// </summary>
+    public required Color Subtle { get; init; }
+
+    /// <summary>The colour whitespace marks get on a selected row.</summary>
+    public required Color SubtleOnSelection { get; init; }
+
     /// <summary>Lines between panes.</summary>
     public required Color Border { get; init; }
 
@@ -82,6 +90,9 @@ public sealed class PaletteTable
 
     /// <summary>Added to muted text (faint where there is no colour to mute it with).</summary>
     public TextStyle MutedStyle { get; init; } = TextStyle.None;
+
+    /// <summary>Added to whitespace marks (faint at 16 colours, where the named colours leave no dimmer one).</summary>
+    public TextStyle SubtleStyle { get; init; } = TextStyle.None;
 
     /// <summary>Added to search matches (bold and underlined where there is no colour to mark them with).</summary>
     public TextStyle MatchStyle { get; init; } = TextStyle.None;
@@ -134,6 +145,8 @@ public sealed class PaletteTable
         Info = Rgb(0x89dceb),
         Muted = Rgb(0x9399b2),
         MutedOnSelection = Rgb(0xa6adc8),
+        Subtle = Rgb(0x5e6277),
+        SubtleOnSelection = Rgb(0x8388a0),
         Border = Rgb(0x6c7086),
         BarBackground = Rgb(0x181825),
         SelectionFocused = Rgb(0x313244),
@@ -159,6 +172,8 @@ public sealed class PaletteTable
         Info = Rgb(0x116d72),
         Muted = Rgb(0x5f6175),
         MutedOnSelection = Rgb(0x5f6175),
+        Subtle = Rgb(0xa0a2af),
+        SubtleOnSelection = Rgb(0x848798),
         Border = Rgb(0x7c7f93),
         BarBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),
@@ -187,6 +202,9 @@ public sealed class PaletteTable
         Info = Named(ansi, ThemeRoles.Info, ColorName16.BrightCyan),
         Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
+        Subtle = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
+        SubtleOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
+        SubtleStyle = TextStyle.Faint,
         Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.DarkGray),
@@ -214,6 +232,9 @@ public sealed class PaletteTable
         Info = Named(ansi, ThemeRoles.Info, ColorName16.Cyan),
         Muted = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         MutedOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.DarkGray),
+        Subtle = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
+        SubtleOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.DarkGray),
+        SubtleStyle = TextStyle.Faint,
         Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.Gray),
@@ -242,6 +263,8 @@ public sealed class PaletteTable
         Info = Color.None,
         Muted = Color.None,
         MutedOnSelection = Color.None,
+        Subtle = Color.None,
+        SubtleOnSelection = Color.None,
         Border = Color.None,
         BarBackground = Color.None,
         SelectionFocused = Color.None,
@@ -256,6 +279,7 @@ public sealed class PaletteTable
         SelectionFocusedStyle = TextStyle.Reverse,
         SelectionDimStyle = TextStyle.Underline,
         MutedStyle = TextStyle.Faint,
+        SubtleStyle = TextStyle.Faint,
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,
         MatchStyle = TextStyle.Bold | TextStyle.Underline,
         CurrentStyle = TextStyle.Underline,
@@ -273,6 +297,8 @@ public sealed class PaletteTable
         Info = Role(definition, ThemeRoles.Info),
         Muted = Role(definition, ThemeRoles.Muted),
         MutedOnSelection = Role(definition, ThemeRoles.MutedOnSelection),
+        Subtle = Role(definition, ThemeRoles.Subtle),
+        SubtleOnSelection = Role(definition, ThemeRoles.SubtleOnSelection),
         Border = Role(definition, ThemeRoles.Border),
         BarBackground = Role(definition, ThemeRoles.BarBackground),
         SelectionFocused = Role(definition, ThemeRoles.SelectionFocused),

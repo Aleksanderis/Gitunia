@@ -30,6 +30,18 @@ public static class ThemeRoles
     /// <summary>Muted text on a selected row; defaults to <see cref="Muted"/>.</summary>
     public const string MutedOnSelection = "mutedOnSelection";
 
+    /// <summary>
+    /// Whitespace marks in the diff, much dimmer than <see cref="Muted"/>; defaults to a mix of <see cref="Muted"/>
+    /// and <see cref="BaseBackground"/>.
+    /// </summary>
+    public const string Subtle = "subtle";
+
+    /// <summary>
+    /// Whitespace marks on a selected row; defaults to a mix of <see cref="MutedOnSelection"/> and
+    /// <see cref="SelectionFocused"/>.
+    /// </summary>
+    public const string SubtleOnSelection = "subtleOnSelection";
+
     /// <summary>Lines between panes.</summary>
     public const string Border = "border";
 
@@ -76,7 +88,8 @@ public static class ThemeRoles
     /// <summary>The roles a theme file may leave out (the default is given at each key).</summary>
     public static IReadOnlyList<string> Optional { get; } =
     [
-        MutedOnSelection, GroupBackground, TabButtonBackground, ChipBackground, MatchForeground, MatchBackground,
+        MutedOnSelection, Subtle, SubtleOnSelection, GroupBackground, TabButtonBackground, ChipBackground,
+        MatchForeground, MatchBackground,
     ];
 
     /// <summary>The roles whose 16-colour name a theme file may set in its <c>ansi</c> object.</summary>
