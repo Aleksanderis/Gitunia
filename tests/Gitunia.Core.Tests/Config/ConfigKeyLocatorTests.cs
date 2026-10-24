@@ -136,6 +136,17 @@ public class ConfigKeyLocatorTests
     }
 
     [Fact]
+    public void GivenALoneSurrogateBeforeTheValue_WhenLocating_ThenTheSpanStillCoversTheValue()
+    {
+        var text = "{ \"note\": \"\ud83d\", \"key\": \"a\" }";
+
+        var span = ConfigKeyLocator.Find(text, ["key"]);
+
+        Assert.NotNull(span);
+        Assert.Equal("\"a\"", text.Substring(span.Value.Start, span.Value.Length));
+    }
+
+    [Fact]
     public void GivenTextAfterTheRootValue_WhenLocating_ThenItIsInvalid()
     {
         Assert.Equal(ConfigLocationKind.Invalid, ConfigKeyLocator.Locate("{} {}", ["a"]).Kind);
