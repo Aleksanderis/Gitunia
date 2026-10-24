@@ -1520,8 +1520,10 @@ public sealed class TuiApplication(
     {
         var index = _view.Graph.SelectedItem is { } item ? GraphListSource.CommitIndexOf(item) : -1;
         var graph = ActiveSession()?.Graph;
+        var hash = graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
 
-        return graph is not null && index >= 0 && index < graph.Count ? graph[index].Id.ToString() : null;
+        // While a stash is shown the pane is not the graph row: commit actions refuse instead of acting on it (#716).
+        return _stashView.ActionTarget(hash);
     }
 
     // The root commit has no parents, so no outgoing edge; its menu also offers the rebase of the whole history (#561).
@@ -1883,6 +1885,13 @@ public sealed class TuiApplication(
 
         // While the binder swaps or restores the list, the tab's saved selection must not be overwritten, but the details still follow.
         var record = !_binder.IsSuspended;
+
+        // A selection moved by the binder (reload, restore, tab switch) is not the user's choice (#716).
+        if (_stashView.KeepsViewOnSelectionChange(_binder.IsSuspended || _binder.IsReplacing))
+        {
+            return;
+        }
+
         var commitIndex = GraphListSource.CommitIndexOf(item);
         if (commitIndex >= 0 && commitIndex < session.Graph.Count)
         {
