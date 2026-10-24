@@ -28,7 +28,43 @@ public class ConflictReaderTests
         var hunk = Assert.Single(result.Parts, part => part.Hunk is not null).Hunk!;
         Assert.Equal("main\n", hunk.Ours);
         Assert.Equal("other\n", hunk.Theirs);
-        Assert.Null(hunk.Base);
+        Assert.Equal("original\n", hunk.Base);
+    }
+
+    [Fact]
+    public async Task GivenAMergeStyleFile_WhenReadingTheBase_ThenTheWorkingTreeFileIsNotRewritten()
+    {
+        using var repository = TestRepositories.Conflicted();
+        var full = Path.Combine(repository.WorkingTreePath, ConflictPath);
+        var before = await File.ReadAllTextAsync(full, Token);
+
+        await ReadAsync(repository, ConflictPath);
+
+        Assert.Equal(before, await File.ReadAllTextAsync(full, Token));
+        Assert.DoesNotContain("|||||||", before, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenAHandEditedHunkAmongMergeStyleHunks_WhenReading_ThenOnlyTheUntouchedOnesGetABase()
+    {
+        using var repository = TestRepository.Create();
+        var original = "l1\nl2\nl3\nl4\nl5\nl6\nl7\nl8\nl9\nl10\nl11\nl12\n";
+        repository.Commit("Initial", new TestFile(ConflictPath, original))
+            .CheckoutNewBranch("other")
+            .Commit("Other", new TestFile(ConflictPath, original.Replace("l2\n", "two\n").Replace("l11\n", "eleven\n")))
+            .Checkout("main")
+            .Commit("Main", new TestFile(ConflictPath, original.Replace("l2\n", "II\n").Replace("l11\n", "XI\n")))
+            .MergeExpectingConflict("other");
+        var full = Path.Combine(repository.WorkingTreePath, ConflictPath);
+        var text = await File.ReadAllTextAsync(full, Token);
+        await File.WriteAllTextAsync(full, text.Replace("II\n", "edited\n"), Token);
+
+        var result = await ReadAsync(repository, ConflictPath);
+
+        var hunks = result.Parts.Where(part => part.Hunk is not null).Select(part => part.Hunk!).ToList();
+        Assert.Equal(["edited\n", "XI\n"], hunks.Select(hunk => hunk.Ours));
+        Assert.Null(hunks[0].Base);
+        Assert.Equal("l11\n", hunks[1].Base);
     }
 
     [Fact]
@@ -41,6 +77,7 @@ public class ConflictReaderTests
         var hunk = Assert.Single(result.Parts, part => part.Hunk is not null).Hunk!;
         Assert.Equal("main\n", hunk.Ours);
         Assert.Equal("other\n", hunk.Theirs);
+        Assert.Equal("original\n", hunk.Base);
     }
 
     [Fact]
@@ -53,6 +90,7 @@ public class ConflictReaderTests
         var hunk = Assert.Single(result.Parts, part => part.Hunk is not null).Hunk!;
         Assert.Equal("main\n", hunk.Ours);
         Assert.Equal("other\n", hunk.Theirs);
+        Assert.Equal("original\n", hunk.Base);
     }
 
     [Theory]

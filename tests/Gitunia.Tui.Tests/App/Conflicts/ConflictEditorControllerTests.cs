@@ -374,9 +374,10 @@ public class ConflictEditorControllerTests
         harness.Run(ActionIds.ConflictEditorBase);
 
         Assert.True(harness.Controller.State!.IsBaseShown);
-        Assert.Contains(
-            harness.Controller.CurrentFrame()!.Lines,
-            line => line.Text.Contains("merge.conflictStyle=diff3", StringComparison.Ordinal));
+        var lines = harness.Controller.CurrentFrame()!.Lines.Select(line => line.Text).ToList();
+        var header = lines.FindIndex(line => line.Contains("base  common ancestor", StringComparison.Ordinal));
+        Assert.Contains("original", lines[header + 1], StringComparison.Ordinal);
+        Assert.DoesNotContain(lines, line => line.Contains("merge.conflictStyle", StringComparison.Ordinal));
         harness.Run(ActionIds.ConflictEditorBase);
         Assert.False(harness.Controller.State!.IsBaseShown);
     }

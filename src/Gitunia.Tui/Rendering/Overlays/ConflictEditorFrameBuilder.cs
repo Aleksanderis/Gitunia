@@ -47,7 +47,7 @@ public static class ConflictEditorFrameBuilder
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
     private const string EditingHint = "Esc or Alt-Enter keeps the text, Enter adds a line; undo takes it back";
-    private const string NoBaseText = "(no base in the markers: set merge.conflictStyle=diff3, then R)";
+    private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
     private static readonly ConflictEditorChip[] Chips =
     [

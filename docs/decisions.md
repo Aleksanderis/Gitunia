@@ -459,5 +459,5 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 ## 2026-10-24
 
 **UI:** Conflict editor (#689) is in the MVP, with per-hunk picks only (supersedes "post-MVP"). Hunks come from the markers in the working-tree file, not from `show :2:`/`:3:`, so hand edits are kept. Detail: `ux.md` workflow 4.
-**UI:** Conflict editor edit, undo, base, re-create (#690, owner-approved post-MVP): `u` is undo as in vim (the old hunk reset is `r`) and `Esc` in a text edit keeps the text, since an edit is one undo step; the base is the file's `diff3` section, not stage 1 (#706). Detail: `ux.md` workflow 4.
+**UI:** Conflict editor edit, undo, base, re-create (#690, owner-approved post-MVP): `u` is undo as in vim (the old hunk reset is `r`) and `Esc` in a text edit keeps the text, since an edit is one undo step; the base is the file's `diff3` section, and for merge-style files the stages merged in memory (#706). Detail: `ux.md` workflow 4.
 **Testing:** Windows screenshots use `scripts/screenshot.ps1` with resvg (`winget install linebender.resvg`, a single exe) instead of rsvg-convert (no native Windows build). Why: smallest dependency that renders the existing AnsiToSvg output with the same options; `tools/AnsiToSvg` gained `--in`/`--out` file options because redirected Windows stdio is not UTF-8.
