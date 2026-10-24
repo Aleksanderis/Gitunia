@@ -181,7 +181,17 @@ public class PaneHintsTests
     }
 
     public static TheoryData<string> ModalHintSets() =>
-        ["MessageEditing", "Confirm", "Reflog", "RebaseEditor", "ConflictEditor", "RebaseMessage", "Settings", "Picker", "Palette"];
+        [
+            "MessageEditing",
+            "Confirm",
+            "Reflog",
+            "RebaseEditor",
+            "ConflictEditor",
+            "RebaseMessage",
+            "Settings",
+            "Picker",
+            "Palette",
+        ];
 
     [Theory]
     [MemberData(nameof(ModalHintSets))]
@@ -200,7 +210,10 @@ public class PaneHintsTests
                 AssertKeysTriggerActions(PaneHints.ForReflog(), KeyMode.Normal, DefaultKeymap.ReflogView);
                 break;
             case "ConflictEditor":
-                AssertKeysTriggerActions(PaneHints.ForConflictEditor(), KeyMode.Normal, DefaultKeymap.ConflictEditorView);
+                AssertKeysTriggerActions(
+                    PaneHints.ForConflictEditor(),
+                    KeyMode.Normal,
+                    DefaultKeymap.ConflictEditorView);
                 break;
             case "RebaseEditor":
                 AssertKeysTriggerActions(PaneHints.ForRebaseEditor(), KeyMode.Normal, DefaultKeymap.RebaseEditorView);

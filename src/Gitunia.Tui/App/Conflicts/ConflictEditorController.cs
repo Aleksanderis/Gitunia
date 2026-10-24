@@ -62,7 +62,8 @@ public sealed class ConflictEditorController(
     private const string NothingPickedNotice = "No hunk is picked yet: nothing to save";
     private const string NotConflictedNotice = "Select a conflicted file (!) in the Unstaged list";
     private const string ChangedNotice = "The tab changed while the file was read: the conflict editor was not opened";
-    private const string CoveredNotice = "Another view opened while the file was read: the conflict editor was not opened";
+    private const string CoveredNotice =
+        "Another view opened while the file was read: the conflict editor was not opened";
     private const string FileChangedNotice = "The file changed on disk since it was opened: nothing was saved";
     private const string MergetoolHint = "use <space>tm for the mergetool";
 
