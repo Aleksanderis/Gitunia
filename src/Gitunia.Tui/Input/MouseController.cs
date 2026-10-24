@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 
@@ -22,6 +23,15 @@ public sealed class MouseController(MouseMap map, Action<ActionId, int?> execute
         if ((isSuppressed() && !DefaultMouseMap.OverlayViews.Contains(view)) || map.Resolve(view, gesture) is not { } binding)
         {
             return false;
+        }
+
+        // The first click of a double-click already toggled a folder row; the double-click must not leave that
+        // fold changed (#622).
+        if (gesture == MouseGesture.DoubleClick
+            && map.Resolve(view, MouseGesture.Click) is { } click
+            && (click.Action == ActionIds.DetailToggleFolder || click.Action == ActionIds.WorkingTreeToggleFolder))
+        {
+            execute(click.Action, click.Count);
         }
 
         execute(binding.Action, binding.UsesTarget ? target : binding.Count);
