@@ -207,6 +207,7 @@ public sealed class TuiApplication(
         _host.Changed += _stashView.Reconcile;
         _sidebar.IsGraphVisible = () => !CurrentPaneRects().Graph.IsEmpty;
         _sidebar.IsDiffVisible = () => !CurrentPaneRects().Diff.IsEmpty;
+
         _view = new MainView(
             CreateModel,
             width => DetailTitle(width, glyphs),
@@ -1202,55 +1203,59 @@ public sealed class TuiApplication(
         }
     }
 
-    private ScreenModel CreateModel() =>
-        ScreenModelFactory.Create(
+    private ScreenModel CreateModel()
+    {
+        var screenModel = ScreenModelFactory.Create(
             _host.Workspace,
             ActiveSession(),
             _keys.Mode,
             _keys.PendingText,
-            FirstNotEmpty(
-                _workspaceActions.Message,
-                _router.Message,
-                RemoteProgressNow(),
-                _statuses.Current?.Text ?? string.Empty),
+            FirstNotEmpty(_workspaceActions.Message, _router.Message, RemoteProgressNow(), _statuses.Current?.Text ?? string.Empty),
             _view.Graph.SelectedItem,
             TabLabelFactory.Create(
                 _host.Workspace,
                 tabId => _effects.SessionOf(tabId) is { IsLoading: true, IsPending: false },
                 _startupConfig.Options.ShowBranchInTab),
             _picker.State,
-            _homeDirectory)
-        with
-        {
-            RemoteBusy = RemoteIsBusy(),
-            Keys = _chipKeys,
-            SelectedName = FocusedSidebarName(),
-            MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
-                ? null
-                : _statuses.Current?.Severity,
-            MessageIsFresh = _statuses.IsFresh,
-            Hints = _overlays.State.Kind == OverlayKind.Confirm
-                ? PaneHints.ForConfirm()
-                : _settings.IsOpen
-                    ? PaneHints.ForSettings()
-                    : _conflictEditor.IsOpen
-                    ? (_conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor())
-                    : _rebaseEditor.IsOpen
-                    ? (_rebaseEditor.IsEditingMessage ? PaneHints.ForRebaseMessage() : PaneHints.ForRebaseEditor())
-                    : _reflog.IsOpen
-                    ? PaneHints.ForReflog()
-                    : _commits.IsEditing
-                    ? PaneHints.ForMessageEditing()
-                    : DetailChangesFocused()
-                    ? PaneHints.ForDetailChanges()
-                    : GraphComparing()
-                    ? PaneHints.ForGraphComparing()
-                    : PaneHints.For(
-                        _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-                        _diffPane.IsShowingContent),
-            SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0)
-                ?? PopupFallbackLine(),
-        };
+            _homeDirectory);
+
+        var newScreenModel = screenModel
+            with
+            {
+                RemoteBusy = RemoteIsBusy(),
+                Keys = _chipKeys,
+                SelectedName = FocusedSidebarName(),
+                MessageSeverity = _workspaceActions.Message.Length + _router.Message.Length > 0 || RemoteIsBusy()
+                    ? null
+                    : _statuses.Current?.Severity,
+                MessageIsFresh = _statuses.IsFresh,
+                Hints = _overlays.State.Kind == OverlayKind.Confirm
+                    ? PaneHints.ForConfirm()
+                    : _settings.IsOpen
+                        ? PaneHints.ForSettings()
+                        : _conflictEditor.IsOpen
+                            ? (_conflictEditor.IsEditing ? PaneHints.ForConflictEdit() : PaneHints.ForConflictEditor())
+                            : _rebaseEditor.IsOpen
+                                ? (_rebaseEditor.IsEditingMessage
+                                    ? PaneHints.ForRebaseMessage()
+                                    : PaneHints.ForRebaseEditor())
+                                : _reflog.IsOpen
+                                    ? PaneHints.ForReflog()
+                                    : _commits.IsEditing
+                                        ? PaneHints.ForMessageEditing()
+                                        : DetailChangesFocused()
+                                            ? PaneHints.ForDetailChanges()
+                                            : GraphComparing()
+                                                ? PaneHints.ForGraphComparing()
+                                                : PaneHints.For(
+                                                    _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+                                                    _diffPane.IsShowingContent),
+                SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
+                             PopupFallbackLine(),
+            };
+
+        return newScreenModel;
+    }
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
     private string FocusedSidebarName() =>

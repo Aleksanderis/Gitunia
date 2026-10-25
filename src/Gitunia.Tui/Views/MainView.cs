@@ -77,6 +77,7 @@ public sealed class MainView : IDisposable
         _arrangement = arrangement;
         _model = model;
         _glyphs = glyphs;
+
         _tabs = new TabBarView(model, glyphs)
         {
             X = 0,
@@ -84,6 +85,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
+
         Sidebar = new PaneListView
         {
             OpensRowMenu = true,
@@ -94,6 +96,7 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             Source = sidebarSource,
         };
+
         _sidebarFilter = new LineView(width =>
         {
             var chrome = sidebarChrome();
@@ -105,12 +108,14 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().SidebarFilter.Width),
             Height = Dim.Func(_ => Rects().SidebarFilter.Height),
         };
+
         _edges =
         [
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.FrameTop, Width = Dim.Fill(), Height = 1 },
             new FrameStripView(CurrentGrid) { X = 0, Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
             new FrameStripView(CurrentGrid) { X = Pos.Func(_ => Math.Max(0, ScreenWidth - 1)), Y = ScreenLayout.GraphTop, Width = 1, Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())) },
         ];
+
         _bottomEdge = new LineView(BottomEdgeLine)
         {
             X = 0,
@@ -118,6 +123,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Fill(),
             Height = 1,
         };
+
         _divider = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().SidebarDivider.X),
@@ -125,6 +131,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().SidebarDivider.Width),
             Height = Dim.Func(_ => Rects().SidebarDivider.Height),
         };
+
         Graph = new PaneListView
         {
             X = Pos.Func(_ => Rects().Graph.X),
@@ -134,6 +141,7 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             IgnoresBlankDoubleClick = true,
         };
+
         _detailTitle = new LineView(width => CurrentGrid().ResolveRules(detailTitleLine(width), Rects().DetailTitle.Y, Rects().DetailTitle.X))
         {
             X = Pos.Func(_ => Rects().DetailTitle.X),
@@ -141,6 +149,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().DetailTitle.Width),
             Height = Dim.Func(_ => Rects().DetailTitle.Height),
         };
+
         Detail = new PaneListView
         {
             X = Pos.Func(_ => Rects().Detail.X),
@@ -149,7 +158,9 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => Rects().Detail.Height),
             CanFocus = true,
         };
+
         Detail.SetScheme(Palette.BaseScheme());
+
         _bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),
@@ -157,6 +168,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().BottomDivider.Width),
             Height = Dim.Func(_ => Rects().BottomDivider.Height),
         };
+
         _diffTitle = new LineView(width => CurrentGrid().ResolveRules(diffTitleLine(width), Rects().DiffTitle.Y, Rects().DiffTitle.X))
         {
             X = Pos.Func(_ => Rects().DiffTitle.X),
@@ -164,6 +176,7 @@ public sealed class MainView : IDisposable
             Width = Dim.Func(_ => Rects().DiffTitle.Width),
             Height = Dim.Func(_ => Rects().DiffTitle.Height),
         };
+
         Diff = new PaneListView
         {
             X = Pos.Func(_ => Rects().Diff.X),
@@ -173,10 +186,12 @@ public sealed class MainView : IDisposable
             CanFocus = true,
             Source = diffSource,
         };
+
         UnstagedSource = new WorkingTreeListSource(WorkingTreeSection.Unstaged, glyphs);
         StagedSource = new WorkingTreeListSource(WorkingTreeSection.Staged, glyphs);
         WorkingUnstaged = CreateWorkingList(UnstagedSource, () => WorkingRects().Unstaged);
         WorkingStaged = CreateWorkingList(StagedSource, () => WorkingRects().Staged);
+
         _workingDivider = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => WorkingDividerRect().X),
@@ -185,10 +200,10 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => WorkingDividerRect().Height),
             Visible = false,
         };
-        _workingLeftEdge = CreateWorkingEdge(
-            () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
-        _workingRightEdge = CreateWorkingEdge(
-            () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+
+        _workingLeftEdge = CreateWorkingEdge( () => WorkingEdgeRect(WorkingRects().Unstaged, WorkingRects().Staged, isLeft: true));
+        _workingRightEdge = CreateWorkingEdge( () => WorkingEdgeRect(WorkingRects().Diff, WorkingRects().Message, isLeft: false));
+
         _workingDiffTitle = new LineView(WorkingDiffTitleLine)
         {
             X = Pos.Func(_ => WorkingRects().Diff.X),
@@ -197,6 +212,7 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => WorkingRects().Diff.IsEmpty ? 0 : 1),
             Visible = false,
         };
+
         WorkingDiff = new PaneListView
         {
             X = Pos.Func(_ => WorkingRects().Diff.X),
@@ -207,6 +223,7 @@ public sealed class MainView : IDisposable
             Source = new DiffListSource(glyphs) { GroupKeys = () => _model().Keys },
             Visible = false,
         };
+
         WorkingMessage = new PaneListView
         {
             X = Pos.Func(_ => WorkingRects().MessageEditor.X),
@@ -217,6 +234,7 @@ public sealed class MainView : IDisposable
             Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), glyphs),
             Visible = false,
         };
+
         _messageOptions = new LineView(OptionsLine)
         {
             X = Pos.Func(_ => WorkingRects().MessageOptions.X),
@@ -225,6 +243,7 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => WorkingRects().MessageOptions.Height),
             Visible = false,
         };
+
         _messageOptions.Clicked += OnMessageOptionsClicked;
         _stageAllButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.StageAll);
         _unstageAllButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.StageAll);
@@ -233,6 +252,7 @@ public sealed class MainView : IDisposable
         _resolveButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.Resolve);
         _unstagedDiffButton = CreateListButton(WorkingTreeSection.Unstaged, WorkingUnstaged, kind: ListButtonKind.Diff);
         _stagedDiffButton = CreateListButton(WorkingTreeSection.Staged, WorkingStaged, kind: ListButtonKind.Diff);
+
         _picker = new PickerView(model, glyphs)
         {
             X = 1,
@@ -241,16 +261,15 @@ public sealed class MainView : IDisposable
             Height = Dim.Func(_ => ScreenLayout.GraphHeight(ScreenHeight())),
             Visible = false,
         };
-        _status = new LineView(width => ChromeBuilder.Status(
-            BannerRenderer.ForStatusBar(model(), ScreenHeight()),
-            width,
-            glyphs))
+
+        _status = new LineView(width => ChromeBuilder.Status( BannerRenderer.ForStatusBar(model(), ScreenHeight()), width, glyphs))
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
             Width = Dim.Fill(),
             Height = 1,
         };
+
         Window = new Window { Title = string.Empty, BorderStyle = LineStyle.None, Width = Dim.Fill(), Height = Dim.Fill() };
         Overlay = new OverlayView();
         _tabs.TabClicked += number => Gestured?.Invoke(DefaultMouseMap.TabsView, MouseGesture.Click, number);
@@ -265,17 +284,13 @@ public sealed class MainView : IDisposable
         Sidebar.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
         Detail.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DetailView, gesture, target);
         Diff.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.DiffView, gesture, target);
-        WorkingUnstaged.GestureRaised +=
-            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
-        WorkingStaged.GestureRaised +=
-            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
-        WorkingDiff.GestureRaised +=
-            (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
-        WorkingDiff.ButtonAt = (column, row) =>
-            (WorkingDiff.Source as DiffListSource)?.ButtonAt(WorkingDiff, column, row);
+
+        WorkingUnstaged.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingUnstagedView, gesture, target);
+        WorkingStaged.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingStagedView, gesture, target);
+        WorkingDiff.GestureRaised += (gesture, target) => Gestured?.Invoke(WorkingDiffView(), gesture, target);
+        WorkingDiff.ButtonAt = (column, row) => (WorkingDiff.Source as DiffListSource)?.ButtonAt(WorkingDiff, column, row);
         WorkingDiff.ButtonClicked += buttonView => Gestured?.Invoke(buttonView, MouseGesture.Click, null);
-        WorkingMessage.GestureRaised +=
-            (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
+        WorkingMessage.GestureRaised += (gesture, target) => Gestured?.Invoke(DefaultKeymap.WorkingMessageView, gesture, target);
         WorkingMessage.ClickPositioned += OnMessageClicked;
         _divider.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Sidebar, column, row);
         _bottomDividerView.Dragged += (column, row) => EdgeDragged?.Invoke(PaneEdge.Detail, column, row);
@@ -287,6 +302,7 @@ public sealed class MainView : IDisposable
         _workingDiffTitle.Clicked += OnWorkingDiffTitleClicked;
         Overlay.LineClicked += line => OverlayLineClicked?.Invoke(line);
         Overlay.GestureRaised += gesture => Gestured?.Invoke(OverlayGestureView, gesture, null);
+
         Window.Add(
             _tabs,
             _edges[0],
@@ -321,6 +337,7 @@ public sealed class MainView : IDisposable
             _picker,
             _status,
             Overlay);
+        
         ApplyVisibility();
     }
 

@@ -50,7 +50,7 @@ public sealed class OperationInfoReader : IOperationInfoReader
         var isMerge = Directory.Exists(Path.Combine(gitDirectory, RebaseMerge));
         var directory = Path.Combine(gitDirectory, isMerge ? RebaseMerge : RebaseApply);
         var headName = ReadFirstLine(Path.Combine(directory, "head-name"));
-        var target = headName is null || headName == DetachedHeadName
+        var target = headName is null or DetachedHeadName
             ? null
             : headName.StartsWith(HeadsPrefix, StringComparison.Ordinal) ? headName[HeadsPrefix.Length..] : headName;
         var step = ReadNumber(Path.Combine(directory, isMerge ? "msgnum" : "next"));

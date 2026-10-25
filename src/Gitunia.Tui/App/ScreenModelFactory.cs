@@ -45,7 +45,10 @@ public static class ScreenModelFactory
             loaded = place.Count;
         }
 
-        return new ScreenModel(
+        var missingNotice = picker is null ? MissingNotice(tab) : string.Empty;
+        var notice = session?.LoadError is { Length: > 0 } loadError ? loadError : missingNotice;
+
+        var screenModel = new ScreenModel(
             tab?.DisplayName ?? string.Empty,
             tab?.Head?.BranchName,
             tabIndex + 1,
@@ -55,14 +58,14 @@ public static class ScreenModelFactory
             position,
             loaded,
             session?.IsLoading ?? false,
-            message.Length > 0 ? message : session?.LoadError is { Length: > 0 } loadError ? loadError : picker is null ? MissingNotice(tab) : string.Empty,
+            message.Length > 0 ? message : notice,
             Tabs: tabs,
             Picker: picker,
             HomeDirectory: homeDirectory,
-            Banner: OperationBannerBuilder.Build(
-                tab?.Operation,
-                OperationBannerBuilder.ConflictCount(tab?.WorkingTree)),
+            Banner: OperationBannerBuilder.Build( tab?.Operation, OperationBannerBuilder.ConflictCount(tab?.WorkingTree)),
             TruncatedTotal: session?.TruncatedTotal);
+
+        return screenModel;
     }
 
     private static string MissingNotice(RepositoryState? tab) =>
