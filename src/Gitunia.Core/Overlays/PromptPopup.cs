@@ -25,14 +25,22 @@ public sealed record PromptPopup(
     public static PromptPopup ForText(string title, string context, string input, string acceptLabel) =>
         new(title, [context], input, [], $"Enter {acceptLabel}{HintGap}{CancelHint}");
 
-    /// <summary>A prompt whose text filters candidates; <paramref name="detail"/> shows the highlighted one.</summary>
+    /// <summary>
+    /// A prompt whose text filters candidates (see <see cref="FilterPicker{T}"/>); <paramref name="rows"/> is the
+    /// visible candidate list and <paramref name="acceptLabel"/> names what <c>Enter</c> does.
+    /// </summary>
     public static PromptPopup ForFilter(
         string title,
         string context,
         string input,
-        string detail,
+        IReadOnlyList<string> rows,
         string acceptLabel) =>
-        new(title, [context], input, [detail], $"Enter {acceptLabel}{HintGap}Up/Down select{HintGap}{CancelHint}");
+        new(
+            title,
+            [context],
+            input,
+            rows,
+            $"Type filters{HintGap}Up/Down select{HintGap}Enter {acceptLabel}{HintGap}{CancelHint}");
 
     /// <summary>A prompt answered by one key; each option is written as <c>key  label</c>.</summary>
     public static PromptPopup ForChoice(string title, string context, IReadOnlyList<string> options) =>

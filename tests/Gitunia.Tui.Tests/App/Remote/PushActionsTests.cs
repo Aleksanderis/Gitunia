@@ -33,7 +33,7 @@ public class PushActionsTests
         harness.Run(ActionIds.RemotePush);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Push).Length > 0);
         Assert.Contains("Remote to push lonely to", PopupText.Of(harness.Push), StringComparison.Ordinal);
-        Assert.Contains("origin (1/1)", PopupText.Of(harness.Push), StringComparison.Ordinal);
+        Assert.Contains("> origin\n(1/1)", PopupText.Of(harness.Push), StringComparison.Ordinal);
         Assert.Equal(KeyMode.Insert, harness.Mode);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();

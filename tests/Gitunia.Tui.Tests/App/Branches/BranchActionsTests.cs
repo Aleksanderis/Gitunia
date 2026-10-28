@@ -415,7 +415,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchSwitch);
         harness.Type("topic");
 
-        Assert.Contains("topic (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+        Assert.Contains("> topic\n(1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -499,7 +499,7 @@ public class BranchActionsTests
 
         harness.Run(ActionIds.BranchSwitch);
         harness.Type("rel");
-        Assert.Contains("release (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+        Assert.Contains("> release\n(1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -558,6 +558,69 @@ public class BranchActionsTests
 
         Assert.Equal("topic", repository.Git("branch", "--show-current").Trim());
         Assert.Equal("origin/topic", repository.Git("rev-parse", "--abbrev-ref", "topic@{upstream}").Trim());
+    }
+
+    [Fact]
+    public async Task GivenARemoteBranchWithoutLocalTwin_WhenOpeningTheSwitchPrompt_ThenTheListShowsTheLocalNameItWillGet()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.AddOrigin();
+        repository.Git("push", "-q", "origin", "topic");
+        repository.Git("branch", "-D", "topic");
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, null));
+
+        harness.Run(ActionIds.BranchSwitch);
+        var text = PopupText.Of(harness.Branches);
+
+        Assert.Contains("> main", text, StringComparison.Ordinal);
+        Assert.Contains("origin/topic -> local topic", text, StringComparison.Ordinal);
+        Assert.Contains("Type filters   Up/Down select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenARemoteBranchHighlightedInTheList_WhenAcceptingWithoutTyping_ThenItIsCheckedOutUnderItsRemoteLessName()
+    {
+        using var repository = RepositoryWithTopic();
+        repository.AddOrigin();
+        repository.Git("push", "-q", "origin", "topic");
+        repository.Git("branch", "-D", "topic");
+        repository.Git("fetch", "-q", "origin");
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, null));
+
+        harness.Run(ActionIds.BranchSwitch);
+        harness.Press(KeyNames.Down);
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal("topic", repository.Git("branch", "--show-current").Trim());
+        Assert.Equal("origin/topic", repository.Git("rev-parse", "--abbrev-ref", "topic@{upstream}").Trim());
+    }
+
+    [Fact]
+    public async Task GivenMoreBranchesThanFitTheList_WhenMovingDown_ThenTheWindowScrollsAndKeepsTheHighlightVisible()
+    {
+        using var repository = RepositoryWithTopic();
+        for (var number = 0; number < 12; number++)
+        {
+            repository.Git("branch", $"b{number:D2}");
+        }
+
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(null, null, null));
+
+        harness.Run(ActionIds.BranchSwitch);
+        for (var step = 0; step < 10; step++)
+        {
+            harness.Press(KeyNames.Down);
+        }
+
+        var rows = harness.Branches.Popup!.Details;
+        Assert.Equal(PickerRows.VisibleRows + 1, rows.Count);
+        Assert.Single(rows, row => row.StartsWith("> ", StringComparison.Ordinal));
+        Assert.Equal("(11/14)", rows[^1]);
     }
 
     [Fact]
@@ -901,7 +964,7 @@ public class BranchActionsTests
         harness.Run(ActionIds.BranchSetUpstream);
         Assert.Contains("Upstream of lonely", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Type("main");
-        Assert.Contains("origin/main (1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
+        Assert.Contains("> origin/main\n(1/1)", PopupText.Of(harness.Branches), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 

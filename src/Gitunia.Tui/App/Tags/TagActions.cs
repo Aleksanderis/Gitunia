@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -69,8 +68,7 @@ public sealed class TagActions(
     private string _tagName = string.Empty;
     private string _newName = string.Empty;
     private IReadOnlyList<string> _remotes = [];
-    private List<string> _candidates = [];
-    private int _index;
+    private readonly FilterPicker<string> _picker = new();
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -138,7 +136,7 @@ public sealed class TagActions(
         var isPicker = _kind is TagPromptKind.PushRemote or TagPromptKind.DeleteRemote;
         if (isPicker && IsMove(normalized, out var step))
         {
-            _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
+            _picker.Move(step);
         }
         else if (PromptTextEditor.Apply(_text, key) is { } edited && edited != _text)
         {
@@ -400,39 +398,19 @@ public sealed class TagActions(
         redraw();
     }
 
-    private void RefreshCandidates()
-    {
-        var pattern = _text.Trim();
-        _candidates =
-        [
-            .. _remotes
-                .Where(remote => RemoteMatcher.Score(pattern, remote) is not null)
-                .OrderByDescending(remote => RemoteMatcher.Score(pattern, remote)),
-        ];
-        _index = 0;
-    }
+    private void RefreshCandidates() =>
+        _picker.Filter(_remotes, _text, remote => remote, RemoteMatcher.Score);
 
-    private PromptPopup RemotePopup(string title, string context)
-    {
-        var detail = "No matching remote";
-        if (_index < _candidates.Count)
-        {
-            var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-            var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-            detail = $"{_candidates[_index]} ({position}/{total})";
-        }
-
-        return PromptPopup.ForFilter(title, context, _text, detail, "choose");
-    }
+    private PromptPopup RemotePopup(string title, string context) =>
+        _picker.ToPopup(title, context, _text, "choose", remote => remote, "No matching remote");
 
     private string AcceptRemote(RepositoryState tab, TagPromptKind kind)
     {
-        if (_index >= _candidates.Count)
+        if (!_picker.TryGetSelected(out var remote))
         {
             return "No matching remote";
         }
 
-        var remote = _candidates[_index];
         var name = _tagName;
         Close();
         if (kind == TagPromptKind.PushRemote)

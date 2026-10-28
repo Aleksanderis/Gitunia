@@ -79,13 +79,15 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenAFilterPrompt_WhenBuilding_ThenTheCandidateAndTheChooseKeysAreShown()
     {
-        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", "release (1/2)", "switch");
+        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", ["> release", "  relay", "(1/2)"], "switch");
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Ascii);
 
         Assert.NotNull(frame);
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
-        Assert.Contains("release (1/2)", text, StringComparison.Ordinal);
+        Assert.Contains("> release", text, StringComparison.Ordinal);
+        Assert.Contains("  relay", text, StringComparison.Ordinal);
+        Assert.Contains("Type filters   Up/Down select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
         Assert.Contains("Up/Down select", text, StringComparison.Ordinal);
     }
 
@@ -103,9 +105,9 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenTwoPromptsWithTheSameText_WhenComparing_ThenTheyAreTheSameTextEvenWithOtherLists()
     {
-        var first = PromptPopup.ForFilter("T", "C", "x", "d", "ok");
-        var second = PromptPopup.ForFilter("T", "C", "x", "d", "ok");
-        var typed = PromptPopup.ForFilter("T", "C", "xy", "d", "ok");
+        var first = PromptPopup.ForFilter("T", "C", "x", ["d"], "ok");
+        var second = PromptPopup.ForFilter("T", "C", "x", ["d"], "ok");
+        var typed = PromptPopup.ForFilter("T", "C", "xy", ["d"], "ok");
 
         Assert.True(first.SameText(second));
         Assert.False(first.SameText(typed));
