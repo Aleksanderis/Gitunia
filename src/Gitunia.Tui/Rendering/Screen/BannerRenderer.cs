@@ -11,8 +11,8 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// Draws the in-progress operation banner (ux.md, workflow 4) on the bottom edge of the frame, in the status bar's
 /// colours, its title a warning chip aligned with the mode badge. Where the banner does not fit (a terminal under
 /// <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows) the status bar carries its text instead. The same line is
-/// used by the
-/// terminal view and the text frame, and its chips are the click targets.
+/// used by the terminal view and the text frame, and its chips are the click targets. The editor hint comes last and
+/// is left out when the chips would not leave room for it.
 /// </summary>
 public static class BannerRenderer
 {
@@ -41,6 +41,11 @@ public static class BannerRenderer
             {
                 areas.Add(new BannerChipArea(start, end - start, ViewOf(chip.Action)));
             }
+        }
+
+        if (banner.Hint.Length > 0 && builder.Remaining >= Gap.Length + TextWidth.Of(banner.Hint))
+        {
+            builder.Append($"{Gap}{banner.Hint}", SegmentRole.Status);
         }
 
         return new BannerLine(builder.Build(SegmentRole.Status), areas);

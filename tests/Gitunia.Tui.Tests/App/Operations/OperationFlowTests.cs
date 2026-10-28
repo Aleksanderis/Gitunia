@@ -39,7 +39,7 @@ public class OperationFlowTests
         using var repository = Fixture(operation);
         using var harness = await Harness.CreateAsync(repository);
         Assert.Equal(operation, harness.Tab.Operation!.Kind);
-        Assert.EndsWith("1 conflict (Enter, <space>to: resolve)", BannerDetail(harness), StringComparison.Ordinal);
+        Assert.EndsWith("1 conflict", BannerDetail(harness), StringComparison.Ordinal);
 
         harness.Execute(ActionIds.OperationContinue);
         Assert.StartsWith("1 file still conflicted", harness.Controller.Notice, StringComparison.Ordinal);
@@ -125,10 +125,7 @@ public class OperationFlowTests
 
         Assert.Equal(StatusSeverity.Warning, harness.Statuses.Log.Latest!.Severity);
         Assert.Equal(RepositoryOperation.Rebase, harness.Detect());
-        Assert.StartsWith(
-            "step 2/2  1 conflict (Enter, <space>to: resolve)",
-            BannerDetail(harness),
-            StringComparison.Ordinal);
+        Assert.StartsWith("step 2/2  1 conflict", BannerDetail(harness), StringComparison.Ordinal);
     }
 
     private static string BannerDetail(Harness harness) =>

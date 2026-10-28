@@ -7,7 +7,13 @@ namespace Gitunia.Core.Operations;
 /// <param name="Title">The operation and what it works on, such as <c>MERGING feature/x</c>.</param>
 /// <param name="Detail">Step and conflict counts, such as <c>step 2/5  3 conflicts</c>.</param>
 /// <param name="Chips">The actions on offer: continue, abort and, where git has it, skip.</param>
-public sealed record OperationBanner(string Title, string Detail, ImmutableArray<BannerChip> Chips)
+/// <param name="Hint">Where the conflict editor opens, shown after the chips only where it fits (#742); empty when no
+/// conflict is left.</param>
+public sealed record OperationBanner(
+    string Title,
+    string Detail,
+    ImmutableArray<BannerChip> Chips,
+    string Hint = "")
 {
     private const string Gap = "  ";
 
@@ -23,6 +29,11 @@ public sealed record OperationBanner(string Title, string Detail, ImmutableArray
             }
 
             parts.AddRange(Chips.Select(chip => $"{chip.Keys} {chip.Label}"));
+            if (Hint.Length > 0)
+            {
+                parts.Add(Hint);
+            }
+
             return string.Join(Gap, parts);
         }
     }

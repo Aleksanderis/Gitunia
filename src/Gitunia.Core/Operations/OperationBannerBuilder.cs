@@ -15,6 +15,10 @@ public static class OperationBannerBuilder
     private const int ShortHashLength = 7;
     private const string Gap = "  ";
 
+    // The editor keys are the ConflictOpen bindings of the Unstaged view; the text is not rebuilt from the keymap
+    // because the banner is plain data.
+    private const string EditorHint = "Unstaged: Enter, <space>to open conflict editor";
+
     private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
     private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);
     private static readonly BannerChip Skip = new("<space>gk", "skip", ActionIds.OperationSkip);
@@ -45,9 +49,10 @@ public static class OperationBannerBuilder
             parts.Add($"{remaining.ToString(CultureInfo.InvariantCulture)} commits left");
         }
 
-        parts.Add(ConflictText(conflictCount) + (conflictCount > 0 ? ResolveHint : string.Empty));
+        parts.Add(ConflictText(conflictCount));
         var chips = info.Kind == RepositoryOperation.Merge ? MergeChips : SkippableChips;
-        return new OperationBanner(title, string.Join(Gap, parts), chips);
+        var hint = conflictCount > 0 ? EditorHint : string.Empty;
+        return new OperationBanner(title, string.Join(Gap, parts), chips, hint);
     }
 
     /// <summary>Conflicted files in a tab's working tree, 0 while it is not loaded.</summary>
@@ -90,6 +95,4 @@ public static class OperationBannerBuilder
         1 => "1 conflict",
         _ => $"{count.ToString(CultureInfo.InvariantCulture)} conflicts",
     };
-
-    private const string ResolveHint = " (Enter, <space>to: resolve)";
 }

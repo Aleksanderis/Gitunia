@@ -46,6 +46,24 @@ public class BannerRendererTests
     }
 
     [Fact]
+    public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheChipsKeepTheirRoomAndTheHintGoes()
+    {
+        var banner = Rebase with
+        {
+            Detail = "3 conflicts",
+            Chips = Rebase.Chips.RemoveAt(2),
+            Hint = "Unstaged: Enter, <space>to open conflict editor",
+        };
+
+        var narrow = BannerRenderer.Build(banner, 80, GraphGlyphSet.Unicode);
+        var wide = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode);
+
+        Assert.Equal(2, narrow.Chips.Count);
+        Assert.DoesNotContain("Unstaged", narrow.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("Enter, <space>to", wide.Line.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenNoBanner_WhenComposing_ThenTheBottomEdgeStaysTheFrame()
     {
         var lines = Compose(Model(null), 100, 12);

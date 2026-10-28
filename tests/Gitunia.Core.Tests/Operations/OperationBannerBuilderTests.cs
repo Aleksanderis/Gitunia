@@ -17,16 +17,27 @@ public class OperationBannerBuilderTests
         Assert.Null(OperationBannerBuilder.Build(Info(RepositoryOperation.Bisect), 0));
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(2, true)]
+    public void GivenConflicts_WhenBuilding_ThenTheHintNamesTheEditorKeysOnlyWhileAnyRemain(int count, bool hinted)
+    {
+        var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
+
+        Assert.Equal(hinted, banner.Hint.Contains("Enter, <space>to", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void GivenAMerge_WhenBuilding_ThenTitleNamesTheBranchAndThereIsNoSkip()
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "feature/x"), 3)!;
 
         Assert.Equal("MERGING feature/x", banner.Title);
-        Assert.Equal("3 conflicts (Enter, <space>to: resolve)", banner.Detail);
+        Assert.Equal("3 conflicts", banner.Detail);
         Assert.Equal(["continue", "abort"], banner.Chips.Select(chip => chip.Label));
         Assert.Equal(
-            "MERGING feature/x  3 conflicts (Enter, <space>to: resolve)  <space>gc continue  <space>ga abort",
+            "MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  "
+            + "Unstaged: Enter, <space>to open conflict editor",
             banner.PlainText);
     }
 
@@ -36,7 +47,7 @@ public class OperationBannerBuilderTests
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge), 1)!;
 
         Assert.Equal("MERGING", banner.Title);
-        Assert.Equal("1 conflict (Enter, <space>to: resolve)", banner.Detail);
+        Assert.Equal("1 conflict", banner.Detail);
     }
 
     [Fact]
@@ -63,7 +74,7 @@ public class OperationBannerBuilderTests
         var banner = OperationBannerBuilder.Build(info, 1)!;
 
         Assert.Equal(title, banner.Title);
-        Assert.Equal("3 commits left  1 conflict (Enter, <space>to: resolve)", banner.Detail);
+        Assert.Equal("3 commits left  1 conflict", banner.Detail);
     }
 
     [Fact]
@@ -71,7 +82,7 @@ public class OperationBannerBuilderTests
     {
         var info = Info(RepositoryOperation.CherryPick, commit: FullHash) with { Remaining = 1 };
 
-        Assert.Equal("1 conflict (Enter, <space>to: resolve)", OperationBannerBuilder.Build(info, 1)!.Detail);
+        Assert.Equal("1 conflict", OperationBannerBuilder.Build(info, 1)!.Detail);
     }
 
     [Fact]
