@@ -49,7 +49,9 @@ public static class WhichKeyBuilder
         return [.. continuations
             .Where(continuation => continuation.Action is not { } action
                 || (!Unlisted.Contains(action) && (operationInProgress || !OperationOnly.Contains(action))))
-            .Select(continuation => (Continuation: continuation, Label: KeyFormatter.Format(continuation.Key)))
+            .Select(continuation => (
+                Continuation: continuation,
+                Label: KeyFormatter.BreakLigatures(KeyFormatter.Format(continuation.Key))))
             .OrderBy(item => item.Continuation.Action is null)
             .ThenBy(item => item.Label, StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(item => item.Label, StringComparer.Ordinal)

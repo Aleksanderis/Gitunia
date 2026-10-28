@@ -510,6 +510,19 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenWhichKeyAfterLeader_WhenRenderingTheTitle_ThenAThinSpaceSeparatesTheAngleBracketFromTheDash()
+    {
+        var engine = new KeymapEngine(Table);
+        var state = engine.Process(KeymapState.Initial, new KeyEvent(" "), DefaultKeymap.GraphView).State;
+        var rows = WhichKeyBuilder.Build(engine.Continuations(state, DefaultKeymap.GraphView), state.PendingSequence);
+
+        var frame = WhichKeyFrameBuilder.Build("<space>", rows, 60, 30, GraphGlyphSet.Unicode)!;
+
+        Assert.Contains("<space>\u2009-", frame.Lines[0].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(">-", frame.Lines[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenWhichKeyAfterLeader_WhenRenderingAt60x20_ThenGroupRowsNameTheirContents()
     {
         var engine = new KeymapEngine(Table);

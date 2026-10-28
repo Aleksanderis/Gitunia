@@ -6,6 +6,8 @@ namespace Gitunia.Core.Keymap;
 /// <summary>Writes keys the way <c>docs/ux.md</c> does (<c>gg</c>, <c>Ctrl-w c</c>, <c>&lt;space&gt;o</c>), for display.</summary>
 public static class KeyFormatter
 {
+    private const char ThinSpace = '\u2009';
+
     public static string Format(KeyEvent key)
     {
         if (key.Name == " ")
@@ -33,6 +35,33 @@ public static class KeyFormatter
             }
 
             builder.Append(tokens[index]);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>The sequence for display: <see cref="Format(KeySequence)"/>, no ligatures.</summary>
+    public static string Display(KeySequence sequence) => BreakLigatures(Format(sequence));
+
+    /// <summary>
+    /// Puts a thin space between a <c>&gt;</c> and a following <c>=</c>, <c>-</c> or <c>&gt;</c>, so a ligature font
+    /// cannot draw <c>&lt;space&gt;=</c> as <c>&gt;=</c> (#753). The thin space still takes one terminal cell.
+    /// </summary>
+    public static string BreakLigatures(string text)
+    {
+        if (!text.Contains('>'))
+        {
+            return text;
+        }
+
+        var builder = new StringBuilder(text.Length + 1);
+        for (var index = 0; index < text.Length; index++)
+        {
+            builder.Append(text[index]);
+            if (text[index] == '>' && index + 1 < text.Length && text[index + 1] is '=' or '-' or '>')
+            {
+                builder.Append(ThinSpace);
+            }
         }
 
         return builder.ToString();
