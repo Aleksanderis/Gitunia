@@ -1284,7 +1284,7 @@ public sealed class TuiApplication(
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
     // Taken before the driver starts, while the terminal is as the shell left it.
-    private ITerminalModes CaptureTerminalModes()
+    private static TerminalModes CaptureTerminalModes()
     {
         var modes = new TerminalModes();
         _ = modes.Capture();

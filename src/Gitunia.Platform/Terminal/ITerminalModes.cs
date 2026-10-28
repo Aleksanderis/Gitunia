@@ -12,7 +12,9 @@ public interface ITerminalModes
     /// </summary>
     bool IsSupported { get; }
 
-    /// <summary>Remembers the current modes. False when there is nothing to remember (no terminal, unsupported OS).</summary>
+    /// <summary>
+    /// Remembers the current modes; false when there is nothing to remember (no terminal, unsupported OS).
+    /// </summary>
     bool Capture();
 
     /// <summary>Puts the remembered modes back; does nothing when nothing was captured.</summary>
