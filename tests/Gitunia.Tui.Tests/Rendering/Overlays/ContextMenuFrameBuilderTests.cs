@@ -255,17 +255,17 @@ public class ContextMenuFrameBuilderTests
         int height)
     {
         var menu = new PaletteState(
-            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions));
+            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions, grouped: false));
         var glyphs = isAscii ? GraphGlyphSet.Ascii : GraphGlyphSet.Unicode;
 
         var frame = ContextMenuFrameBuilder.Build(menu, new MenuAnchor(width - 12, 0), width, height, glyphs, "View")!;
 
         Assert.Contains("View", frame.Lines[0].Text, StringComparison.Ordinal);
-        Assert.True(frame.Lines.Count - 2 >= RowActions.ViewOptions.Count);
+        Assert.Equal(RowActions.ViewOptions.Count, frame.Lines.Count - 2);
         Assert.True(frame.Column + frame.Width <= width);
         Assert.True(frame.Row + frame.Height <= height);
-        Assert.Contains(frame.Lines, line => line.Text.Contains("<space>vw", StringComparison.Ordinal));
-        Assert.Contains(frame.Lines, line => line.Text.Contains("<space>vc", StringComparison.Ordinal));
+        Assert.Contains("<space>vc", frame.Lines[^3].Text, StringComparison.Ordinal);
+        Assert.Contains("<space>z", frame.Lines[^2].Text, StringComparison.Ordinal);
         if (isAscii)
         {
             Assert.All(frame.Lines, line => Assert.All(line.Text, character => Assert.True(character < 128)));
@@ -276,7 +276,7 @@ public class ContextMenuFrameBuilderTests
     public void GivenTheViewOptionsDropdownNearTheBottom_WhenBuilding_ThenItHangsAboveTheTitleRow()
     {
         var menu = new PaletteState(
-            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions));
+            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions, grouped: false));
 
         var frame = ContextMenuFrameBuilder.Build(menu, new MenuAnchor(5, 20), 80, 24, GraphGlyphSet.Unicode, "View")!;
 
@@ -287,7 +287,7 @@ public class ContextMenuFrameBuilderTests
     public void GivenAScreenTooSmallForOneOption_WhenBuildingTheDropdown_ThenThereIsNoFrame()
     {
         var menu = new PaletteState(
-            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions));
+            ContextMenuBuilder.Build(Table, DefaultKeymap.DiffView, RowActions.ViewOptions, grouped: false));
 
         Assert.Null(ContextMenuFrameBuilder.Build(menu, new MenuAnchor(0, 0), 80, 3, GraphGlyphSet.Unicode, "View"));
     }

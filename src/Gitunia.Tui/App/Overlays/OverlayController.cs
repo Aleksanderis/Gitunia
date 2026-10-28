@@ -274,7 +274,7 @@ public sealed class OverlayController
             return;
         }
 
-        var entries = ContextMenuBuilder.Build(_engine.Table, view, target.Actions);
+        var entries = ContextMenuBuilder.Build(_engine.Table, view, target.Actions, grouped: target.Title is null);
         if (entries.Count == 0)
         {
             _statuses.Post("No actions for this row");
