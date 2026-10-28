@@ -30,7 +30,8 @@ public static class PickerRowButtons
         }
 
         var lookup = keys ?? ChipKeys.Default;
-        var specifications = new List<ButtonSpecification> { new(DefaultMouseMap.PickerPinButton, row.IsPinned ? "unpin" : "pin") };
+        var pinLabel = row.IsPinned ? "unpin" : "pin";
+        var specifications = new List<ButtonSpecification> { new(DefaultMouseMap.PickerPinButton, pinLabel) };
         if (row.IsRecent)
         {
             specifications.Add(new ButtonSpecification(DefaultMouseMap.PickerRemoveButton, "remove"));

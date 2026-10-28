@@ -51,7 +51,8 @@ public sealed class TabBarView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return true;
         }
 
-        if (model().Picker is null && RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X, model().Keys) is { } chipView)
+        if (model().Picker is null
+            && RemoteChips.ViewAt(Viewport.Width, model().RemoteBusy, position.X, model().Keys) is { } chipView)
         {
             RemoteChipClicked?.Invoke(chipView);
             return true;

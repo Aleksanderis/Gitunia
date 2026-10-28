@@ -41,7 +41,9 @@ public sealed class ChipKeys
     /// <param name="keyView">The keymap view the chip sits in, for example <c>Diff</c> or <c>Global</c>.</param>
     /// <param name="mode">The mode the keys are looked up in; the repository picker's are Insert-mode keys.</param>
     public string? For(string mouseView, string keyView, KeyMode mode = KeyMode.Normal) =>
-        _cache.GetOrAdd($"{mouseView}{CacheSeparator}{keyView}{CacheSeparator}{mode}", _ => Find(mouseView, keyView, mode));
+        _cache.GetOrAdd(
+            $"{mouseView}{CacheSeparator}{keyView}{CacheSeparator}{mode}",
+            _ => Find(mouseView, keyView, mode));
 
     private string? Find(string mouseView, string keyView, KeyMode mode)
     {

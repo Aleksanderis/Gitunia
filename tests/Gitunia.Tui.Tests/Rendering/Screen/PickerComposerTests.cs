@@ -217,7 +217,9 @@ public class PickerComposerTests
 
         var line = PickerComposer.Compose(picker, Home, 100, 6, GraphGlyphSet.Unicode)[PickerHeaderButtons.Row];
 
-        Assert.Contains(line.Segments, segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
         Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.Button);
     }
 }

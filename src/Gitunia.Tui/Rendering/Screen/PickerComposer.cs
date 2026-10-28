@@ -18,7 +18,13 @@ public static class PickerComposer
     /// <param name="width">Columns.</param>
     /// <param name="height">Rows available for the whole picker.</param>
     /// <param name="glyphs">The character set for the ellipsis and the cursor.</param>
-    public static IReadOnlyList<StyledLine> Compose(PickerState picker, string homeDirectory, int width, int height, GraphGlyphSet glyphs, ChipKeys? keys = null)
+    public static IReadOnlyList<StyledLine> Compose(
+        PickerState picker,
+        string homeDirectory,
+        int width,
+        int height,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var lines = new List<StyledLine>(height);
         if (height <= 0)
@@ -61,7 +67,13 @@ public static class PickerComposer
     /// <summary>The first list row shown for a highlight, so the highlight stays visible.</summary>
     public static int TopRow(int highlight, int listHeight) => highlight < listHeight ? 0 : highlight - listHeight + 1;
 
-    private static List<StyledLine> ListLines(PickerState picker, string homeDirectory, int width, int listHeight, GraphGlyphSet glyphs, ChipKeys? keys)
+    private static List<StyledLine> ListLines(
+        PickerState picker,
+        string homeDirectory,
+        int width,
+        int listHeight,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys)
     {
         var lines = new List<StyledLine>(listHeight);
         if (listHeight == 0)
