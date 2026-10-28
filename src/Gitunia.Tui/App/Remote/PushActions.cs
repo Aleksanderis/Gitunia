@@ -155,6 +155,23 @@ public sealed class PushActions(
         return true;
     }
 
+    /// <summary>
+    /// A plain push of the tab was rejected as a non-fast-forward (the branch was rewritten or diverged): offers the
+    /// force push Confirm of <c>&lt;space&gt;Rf</c> right away (#746). Nothing happens when the tab is not active, a
+    /// prompt is open or the branch cannot be force pushed; the push failure stays in the status bar.
+    /// </summary>
+    public void OfferForce(TabId tabId)
+    {
+        if (_kind != PushPromptKind.None || _busy.Contains(tabId) || host.Workspace.ActiveTabId != tabId
+            || host.Workspace.ActiveTab is not { } tab || CurrentBranchOf(tab) is not { } current
+            || !HasUpstream(current))
+        {
+            return;
+        }
+
+        LoadRemotes(tab, ActionIds.RemotePushForce, current);
+    }
+
     public void OnGraphChanged()
     {
     }
@@ -295,6 +312,7 @@ public sealed class PushActions(
             [
                 $"Force push {branch.Name} to {name}, overwriting it (now at {ShortHash(upstream.CommitHash)})?",
                 "A lease: refused when the remote moved since your last fetch.",
+                "Commits that are only on the remote branch are no longer on it afterwards.",
             ],
             $"Undo: git push --force-with-lease {target.Remote} {upstream.CommitHash}:{target.Branch}",
             "Force push");

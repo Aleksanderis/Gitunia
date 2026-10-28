@@ -57,6 +57,12 @@ public sealed class RemoteActions(
 
     private readonly Dictionary<TabId, Running> _running = [];
 
+    /// <summary>
+    /// Called (on the UI thread, tab active, no overlay open) after a plain push of the tab was rejected as a
+    /// non-fast-forward; the owner of the force push answers with its Confirm (#746).
+    /// </summary>
+    public Action<TabId>? PushRejected { get; set; }
+
     /// <summary>The notice for the status bar after the last <see cref="TryExecute"/>, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
 
@@ -191,6 +197,7 @@ public sealed class RemoteActions(
         string text;
         var severity = StatusSeverity.Info;
         var needsTerminal = false;
+        var rejected = false;
         try
         {
             text = await RunGitAsync(action, running.Plan, location, progress, token).ConfigureAwait(false);
@@ -207,9 +214,11 @@ public sealed class RemoteActions(
             severity = StatusSeverity.Error;
             needsTerminal = exception is GitCommandFailedException failed
                 && RemoteAuthFailure.Matches(failed.StandardError);
+            rejected = action == ActionIds.RemotePush && running.Plan is null
+                && RemoteFailureText.IsNonFastForward(exception);
         }
 
-        postToUi(() => Finish(tabId, running, action, text, severity, needsTerminal));
+        postToUi(() => Finish(tabId, running, action, text, severity, needsTerminal, rejected));
     }
 
     private async Task<string> RunGitAsync(
@@ -252,7 +261,8 @@ public sealed class RemoteActions(
         ActionId action,
         string text,
         StatusSeverity severity,
-        bool needsTerminal)
+        bool needsTerminal,
+        bool rejected)
     {
         running.Cancellation.Dispose();
         _running.Remove(tabId);
@@ -272,6 +282,10 @@ public sealed class RemoteActions(
             if (needsTerminal)
             {
                 OfferTerminal(tabId, running);
+            }
+            else if (rejected && host.Workspace.ActiveTabId == tabId && !isOverlayOpen())
+            {
+                PushRejected?.Invoke(tabId);
             }
         }
 
