@@ -28,12 +28,39 @@ public class BannerRendererTests
 
         Assert.Equal(12, lines.Count);
         Assert.StartsWith(
-            "  REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gk skip",
+            " REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gk skip",
             lines[^2].Text,
             StringComparison.Ordinal);
         Assert.DoesNotContain("╰", lines[^2].Text, StringComparison.Ordinal);
         Assert.StartsWith(" NORMAL ", lines[^1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("REBASING", lines[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenABanner_WhenBuilding_ThenTheTitleChipStartsAtColumnZeroInTheWarningRole()
+    {
+        var segments = BannerRenderer.Build(Rebase, 100, GraphGlyphSet.Unicode).Line.Segments;
+
+        Assert.Equal(SegmentRole.StatusOperation, segments[0].Role);
+        Assert.StartsWith(" REBASING", segments[0].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenAHintAndNarrowWidth_WhenBuilding_ThenTheChipsKeepTheirRoomAndTheHintGoes()
+    {
+        var banner = Rebase with
+        {
+            Detail = "3 conflicts",
+            Chips = Rebase.Chips.RemoveAt(2),
+            Hint = "Unstaged: Enter, <space>to open conflict editor",
+        };
+
+        var narrow = BannerRenderer.Build(banner, 80, GraphGlyphSet.Unicode);
+        var wide = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode);
+
+        Assert.Equal(2, narrow.Chips.Count);
+        Assert.DoesNotContain("Unstaged", narrow.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("Enter, <space>to", wide.Line.Text, StringComparison.Ordinal);
     }
 
     [Fact]
