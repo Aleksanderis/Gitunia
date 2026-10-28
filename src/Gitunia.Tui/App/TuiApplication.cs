@@ -963,17 +963,8 @@ public sealed class TuiApplication(
     private BranchSelection BranchSelectionNow()
     {
         var inSidebar = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Sidebar;
-        if (inSidebar && _sidebar.CursorRow is { IsContainer: false } row)
-        {
-            return new BranchSelection(row.Kind, row.Label, row.CommitHash);
-        }
 
-        if (inSidebar && _sidebar.CursorRow is { Kind: SidebarRowKind.Folder, Section: SidebarSection.Branches } folder)
-        {
-            return new BranchSelection(SidebarRowKind.Folder, SidebarFolders.PathOf(folder), null);
-        }
-
-        return new BranchSelection(null, null, SelectedCommitHash());
+        return BranchSelection.Of(inSidebar ? _sidebar.CursorRow : null, SelectedCommitHash);
     }
 
     private DiscardActions CreateDiscard(TabOperationGate gate) => new(
