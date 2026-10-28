@@ -26,6 +26,7 @@ using Gitunia.Git.Watching;
 using Gitunia.Git.Watching.Models;
 using Gitunia.Platform;
 using Gitunia.Platform.ExternalTools;
+using Gitunia.Platform.Terminal;
 using Gitunia.Platform.Urls;
 using Gitunia.Tui.App.Branches;
 using Gitunia.Tui.App.Tags;
@@ -139,6 +140,7 @@ public sealed class TuiApplication(
     private SessionPersistence? _persistence;
     private QuitGuard _quitGuard = null!;
     private SuspendableUiInvoker _uiInvoker = null!;
+    private TerminalHandOff _terminalHandOff = null!;
     private Action? _suspendedWork;
     private Action? _resumed;
 
@@ -177,6 +179,7 @@ public sealed class TuiApplication(
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
+        _terminalHandOff = new TerminalHandOff(CaptureTerminalModes());
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
@@ -1280,6 +1283,19 @@ public sealed class TuiApplication(
 
     private static string FirstNotEmpty(params string[] texts) => texts.FirstOrDefault(text => text.Length > 0) ?? string.Empty;
 
+    // Taken before the driver starts, while the terminal is as the shell left it.
+    private ITerminalModes CaptureTerminalModes()
+    {
+        var modes = new TerminalModes();
+        _ = modes.Capture();
+
+        return modes;
+    }
+
+    private static void DoNothing()
+    {
+    }
+
     private void RunSuspended()
     {
         var work = _suspendedWork;
@@ -1290,7 +1306,7 @@ public sealed class TuiApplication(
         _application.Dispose();
         try
         {
-            work?.Invoke();
+            _terminalHandOff.Run(work ?? DoNothing);
         }
         finally
         {
