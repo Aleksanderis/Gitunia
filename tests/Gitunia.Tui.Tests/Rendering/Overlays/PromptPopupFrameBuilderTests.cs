@@ -79,7 +79,8 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenAFilterPrompt_WhenBuilding_ThenTheCandidateAndTheChooseKeysAreShown()
     {
-        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", ["> release", "  relay", "(1/2)"], "switch");
+        var rows = new[] { "> release", "  relay", "(1/2)" };
+        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", rows, "switch");
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Ascii);
 

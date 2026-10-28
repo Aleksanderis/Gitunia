@@ -561,7 +561,7 @@ public class BranchActionsTests
     }
 
     [Fact]
-    public async Task GivenARemoteBranchWithoutLocalTwin_WhenOpeningTheSwitchPrompt_ThenTheListShowsTheLocalNameItWillGet()
+    public async Task GivenARemoteBranchWithoutLocalTwin_WhenOpeningTheSwitchPrompt_ThenTheListShowsTheLocalName()
     {
         using var repository = RepositoryWithTopic();
         repository.AddOrigin();
@@ -580,7 +580,7 @@ public class BranchActionsTests
     }
 
     [Fact]
-    public async Task GivenARemoteBranchHighlightedInTheList_WhenAcceptingWithoutTyping_ThenItIsCheckedOutUnderItsRemoteLessName()
+    public async Task GivenARemoteBranchHighlightedInTheList_WhenAcceptingWithoutTyping_ThenItIsCheckedOutLocally()
     {
         using var repository = RepositoryWithTopic();
         repository.AddOrigin();
