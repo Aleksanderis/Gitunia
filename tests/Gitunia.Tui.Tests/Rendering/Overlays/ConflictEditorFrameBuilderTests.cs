@@ -610,7 +610,9 @@ public class ConflictEditorFrameBuilderTests
         var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
 
         var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
-        Assert.DoesNotContain(segments, segment => segment.Role is SegmentRole.DiffRemovedWord or SegmentRole.DiffAddedWord);
+        Assert.DoesNotContain(
+            segments,
+            segment => segment.Role is SegmentRole.DiffRemovedWord or SegmentRole.DiffAddedWord);
     }
 
     [Fact]
