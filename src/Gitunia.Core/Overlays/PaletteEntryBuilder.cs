@@ -33,7 +33,7 @@ public static class PaletteEntryBuilder
         {
             var keys = group
                 .OrderBy(binding => binding.Mode == KeyMode.Normal ? 0 : 1)
-                .Select(binding => KeyFormatter.Format(binding.Sequence))
+                .Select(binding => KeyFormatter.Display(binding.Sequence))
                 .Distinct()
                 .Take(MaximumShownBindings);
             var entry = new PaletteEntry(
