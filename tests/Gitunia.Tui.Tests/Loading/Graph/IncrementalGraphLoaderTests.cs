@@ -169,76 +169,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenManyMergedFeatureBranchesAndAnotherTipListedFirst_WhenReading_ThenTheCurrentBranchChainIsStraightInLaneZero()
-    {
-        using var testRepository = LongHistory(3);
-        for (var number = 1; number <= 5; number++)
-        {
-            testRepository.CheckoutNewBranch($"feature-{number}").Commit($"feature {number}", new TestFile($"f{number}.txt", "1"));
-            testRepository.Checkout("main").Commit($"main {number}", new TestFile($"m{number}.txt", "1")).Merge($"feature-{number}");
-        }
-
-        // A branch whose tip is newer than HEAD, so it is listed before HEAD's tip.
-        testRepository.CheckoutNewBranch("ahead").Commit("ahead", new TestFile("ahead.txt", "1")).Checkout("main");
-
-        var entries = await ReadAllAsync(testRepository);
-
-        // The ahead tip sits directly above HEAD, so it continues the straight shaft in lane 0 (#307).
-        var ahead = testRepository.Git("rev-parse", "ahead").Trim();
-        Assert.Equal(ahead, entries[0].Id.ToString());
-        Assert.Equal(0, entries[0].Row.Lane);
-        AssertFirstParentChainInLaneZero(testRepository, entries, [ahead]);
-    }
-
-    [Fact]
-    public async Task GivenBranchSeveralCommitsAheadOfHead_WhenReadingAndReloadingAfterAnotherAheadCommit_ThenTheAheadChainStaysInLaneZero()
-    {
-        using var testRepository = LongHistory(5);
-        testRepository.CheckoutNewBranch("ahead")
-            .Commit("ahead 1", new TestFile("a1.txt", "1"))
-            .Commit("ahead 2", new TestFile("a2.txt", "1"))
-            .Commit("ahead 3", new TestFile("a3.txt", "1"))
-            .Checkout("main~2")
-            .CheckoutNewBranch("side")
-            .Commit("side 1", new TestFile("s1.txt", "1"))
-            .Checkout("main");
-
-        var entries = await ReadAllAsync(testRepository);
-
-        var aheadOfHead = AheadOfHead(testRepository);
-        Assert.Equal(3, aheadOfHead.Count);
-        AssertFirstParentChainInLaneZero(testRepository, entries, aheadOfHead);
-        Assert.All(entries.Where(entry => aheadOfHead.Contains(entry.Id.ToString())), entry => Assert.Equal(0, entry.Row.Lane));
-
-        testRepository.Checkout("ahead").Commit("ahead 4", new TestFile("a4.txt", "1")).Checkout("main");
-        var reload = await ReloadAsync(testRepository, entries);
-
-        await AssertEqualToFullReadAsync(testRepository, reload);
-        Assert.Equal(0, reload.Entries.Single(entry => entry.Subject == "ahead 4").Row.Lane);
-    }
-
-    [Fact]
-    public async Task GivenDetachedHead_WhenReading_ThenNoLaneIsReserved()
-    {
-        using var testRepository = LongHistory(3);
-        testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t.txt", "1")).Checkout("main");
-        testRepository.Git("checkout", "-q", "--detach", "HEAD~1");
-
-        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
-        var commits = new List<CommitInfo>();
-        await foreach (var commit in TestGit.Services.CommitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: CancellationToken.None))
-        {
-            commits.Add(commit);
-        }
-
-        var entries = await ReadAllAsync(testRepository);
-
-        Assert.Null(await TestGit.Services.CommitLog.ReadCurrentBranchTipAsync(location, CancellationToken.None));
-        Assert.Equal(GraphLayout.Compute(commits).Select(row => row.Edges), entries.Select(entry => entry.Row.Edges));
-    }
-
-    [Fact]
-    public async Task GivenHeadMovedToAnotherBranch_WhenReloading_ThenTheResultEqualsAFullReadWithTheNewChainInLaneZero()
+    public async Task GivenHeadMovedToAnotherBranch_WhenReloading_ThenTheResultEqualsAFullRead()
     {
         using var testRepository = LongHistory(20);
         testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Commit("topic 2", new TestFile("t2.txt", "1")).Checkout("main");
@@ -249,11 +180,10 @@ public class IncrementalGraphLoaderTests
         var reload = await ReloadAsync(testRepository, previous);
 
         await AssertEqualToFullReadAsync(testRepository, reload);
-        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries]);
     }
 
     [Fact]
-    public async Task GivenHeadMovedDownTheSameBranch_WhenReloading_ThenTheResultEqualsAFullReadWithTheChainInLaneZero()
+    public async Task GivenHeadMovedDownTheSameBranch_WhenReloading_ThenTheResultEqualsAFullRead()
     {
         using var testRepository = LongHistory(20);
         testRepository.CheckoutNewBranch("topic").Commit("topic 1", new TestFile("t1.txt", "1")).Checkout("main");
@@ -263,7 +193,6 @@ public class IncrementalGraphLoaderTests
         var reload = await ReloadAsync(testRepository, previous);
 
         await AssertEqualToFullReadAsync(testRepository, reload);
-        AssertFirstParentChainInLaneZero(testRepository, [.. reload.Entries], AheadOfHead(testRepository));
     }
 
     [Fact]
@@ -280,56 +209,24 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenACommitAboveHeadReachedOnlyThroughAMergeAfterItsBranchWasDeleted_WhenReloading_ThenTheResultEqualsAFullRead()
+    public async Task GivenCurrentBranchWithTheOldestTip_WhenReading_ThenTheNewestTipIsLeftmostAndHeadIsNot()
     {
-        using var testRepository = LongHistory(5);
-        testRepository.CheckoutNewBranch("feat").Commit("feat 1", new TestFile("f1.txt", "1"));
-        testRepository.Checkout("main~2").CheckoutNewBranch("other").Commit("other 1", new TestFile("o1.txt", "1"));
-        testRepository.Merge("feat").Commit("other 2", new TestFile("o2.txt", "1")).Checkout("main");
-        var previous = await ReadAllAsync(testRepository);
-        Assert.Equal(0, previous.Single(entry => entry.Subject == "feat 1").Row.Lane);
+        using var testRepository = LongHistory(3);
+        testRepository.Checkout("main~1").CheckoutNewBranch("older").Commit("older tip", new TestFile("o.txt", "1"));
+        testRepository.Checkout("main~1")
+            .CheckoutNewBranch("newest")
+            .Commit("newest tip", new TestFile("n.txt", "1"))
+            .Checkout("main");
 
-        // Feat 1 is above HEAD with or without the branch (the set does not depend on the refs), so its lane must not change.
-        testRepository.Git("branch", "-D", "feat");
-        testRepository.Checkout("other").Commit("other 3", new TestFile("o3.txt", "1")).Checkout("main");
-        var reload = await ReloadAsync(testRepository, previous);
+        var entries = await ReadAllAsync(testRepository);
 
-        await AssertEqualToFullReadAsync(testRepository, reload);
-        Assert.Equal(0, reload.Entries.Single(entry => entry.Subject == "feat 1").Row.Lane);
-    }
-
-    // The commits above HEAD whose first-parent chain reaches it, from first-parent walks of every local branch.
-    private static HashSet<string> AheadOfHead(TestRepository testRepository)
-    {
-        var head = testRepository.Head;
-        var ahead = new HashSet<string>();
-        foreach (var branch in testRepository.Git("for-each-ref", "--format=%(refname)", "refs/heads").Split('\n', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var chain = testRepository.Git("rev-list", "--first-parent", branch).Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            if (chain.Contains(head))
-            {
-                ahead.UnionWith(chain.TakeWhile(id => id != head));
-            }
-        }
-
-        return ahead;
-    }
-
-    private static void AssertFirstParentChainInLaneZero(
-        TestRepository testRepository,
-        GraphEntry[] entries,
-        HashSet<string>? aheadOfHead = null)
-    {
-        var chain = testRepository.Git("rev-list", "--first-parent", "HEAD").Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
-        var chainEntries = entries.Where(entry => chain.Contains(entry.Id.ToString())).ToArray();
-
-        Assert.Equal(chain.Count, chainEntries.Length);
-        Assert.All(chainEntries, entry => Assert.Equal(0, entry.Row.Lane));
-        var lastChainId = chainEntries[^1].Id.ToString();
-        var others = entries
-            .TakeWhile(entry => entry.Id.ToString() != lastChainId)
-            .Where(entry => !chain.Contains(entry.Id.ToString()) && (aheadOfHead is null || !aheadOfHead.Contains(entry.Id.ToString())));
-        Assert.All(others, entry => Assert.NotEqual(0, entry.Row.Lane));
+        // Main (HEAD) is the oldest tip: it gets no lane of its own, the newest branch is lane 0.
+        var newest = entries.Single(entry => entry.Subject == "newest tip");
+        var older = entries.Single(entry => entry.Subject == "older tip");
+        var head = entries.Single(entry => entry.Id.ToString() == testRepository.Head);
+        Assert.Equal(0, newest.Row.Lane);
+        Assert.Equal(1, older.Row.Lane);
+        Assert.NotEqual(0, head.Row.Lane);
     }
 
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)

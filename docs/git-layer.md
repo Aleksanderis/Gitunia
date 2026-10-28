@@ -83,9 +83,8 @@ All take the repository location, are never `ReadOnly`, and run one at a time pe
 - **Status:** staged/unstaged/untracked/conflicted per path. The Unstaged list holds worktree changes, untracked and conflicted paths; ignored entries are in no list.
 - **Commit graph:** hash (`ObjectId`, a fixed 40-byte struct), parents, author, date, subject, refs. Lane assignment is a pure function computed incrementally from `rev-list --parents` order, so it can be tested and cached.
   - A lane waits for exactly one commit id; lanes are not shifted left, so columns do not jump while scrolling or loading.
-  - **Lane 0** is reserved for the first-parent chain of the checked-out branch's tip (`GraphLayoutBuilder(headCommit)`; the tip comes from `ICommitLogReader.ReadCurrentBranchTipAsync`, read concurrently with the log). Commits above HEAD whose first-parent chain reaches it (a branch ahead of HEAD such as `origin/main`) continue the shaft upwards and take lane 0 while it is free; `ICommitLogReader.ReadHeadLayoutAsync` returns them as a set, computed from the history and the tip only, never from which refs reach a commit. A detached or unborn HEAD, or a failed tip read, gives no head commit and the leftmost free lane is used.
-  - The reservation is part of `GraphRow.LaneFingerprint`, so an incremental reload after HEAD moved cannot join rows laid out for another HEAD and falls back to reading further or fully.
-  - Known limit: the tip is read by a separate git process, so a commit made between the two reads can leave lane 0 reserved but empty until the next refresh.
+  - **Lane order (#757).** A commit no lane waits for (a branch tip) takes the leftmost free lane. The log is read newest first, so the branch with the newest tip is leftmost, the next newest right of it, and so on; the checked-out branch gets no lane of its own and the layout never reads HEAD (the lane 0 reservation of #308 was removed, with `ReadHeadLayoutAsync`).
+  - `GraphRow.LaneFingerprint` hashes the commits the open lanes wait for, so an incremental reload only joins old rows where the layout below is the same.
 
 ## Refresh
 
