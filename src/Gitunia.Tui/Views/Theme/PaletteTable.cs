@@ -46,7 +46,7 @@ public sealed class PaletteTable
     /// <summary>Background of changed words in an added line; <see cref="Color.None"/> if a style marks them.</summary>
     public required Color AddedWord { get; init; }
 
-    /// <summary>Background of changed words in a removed line; <see cref="Color.None"/> if a style marks them.</summary>
+    /// <summary>Background of changed words in a removed line; <see cref="Color.None"/> if a style marks it.</summary>
     public required Color RemovedWord { get; init; }
 
     /// <summary>Lines between panes.</summary>
