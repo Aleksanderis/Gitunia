@@ -35,13 +35,13 @@ public class RangeTextBuilderTests
     }
 
     [Fact]
-    public void GivenARangeOverDiffRows_WhenBuildingDiffText_ThenRowsKeepTheirPrefixAndNotesAreSkipped()
+    public void GivenARangeOverDiffRows_WhenBuildingDiffText_ThenRowsComeBackWithoutMarkersAndNotesAreSkipped()
     {
         using var source = DiffSource(wrapped: false);
 
         var text = RangeTextBuilder.Diff(source, new RowRange(0, 4));
 
-        Assert.Equal("@@ -1 +1 @@\n-old\n+new\n context\n", text);
+        Assert.Equal("@@ -1 +1 @@\nold\nnew\ncontext\n", text);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class RangeTextBuilderTests
         var text = RangeTextBuilder.Diff(source, new RowRange(firstLine, firstLine + 1));
 
         Assert.True(source.LineOf(4) - firstLine > 1);
-        Assert.Equal($"+{new string('n', 60)}\n", text);
+        Assert.Equal($"{new string('n', 60)}\n", text);
     }
 
     [Fact]

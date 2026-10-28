@@ -943,7 +943,7 @@ public class DiffPaneControllerTests
     }
 
     [Fact]
-    public async Task GivenAnAddedRow_WhenCopyingTheLine_ThenItGoesToTheClipboardWithItsPlusPrefix()
+    public async Task GivenAnAddedRow_WhenCopyingTheLine_ThenItGoesToTheClipboardWithoutTheMarker()
     {
         using var harness = await DiffHarness.LoadAsync();
         await harness.OpenAsync("a.txt");
@@ -951,7 +951,7 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DiffCopyLine);
 
-        Assert.Equal("+line 3 changed", harness.CopiedText());
+        Assert.Equal("line 3 changed", harness.CopiedText());
     }
 
     [Fact]
@@ -963,8 +963,8 @@ public class DiffPaneControllerTests
         harness.Execute(ActionIds.DiffCopyFile);
 
         var copied = harness.CopiedText();
-        Assert.Contains("-b\n", copied, StringComparison.Ordinal);
-        Assert.Contains("+b changed\n", copied, StringComparison.Ordinal);
+        Assert.Contains("b\n", copied, StringComparison.Ordinal);
+        Assert.Contains("b changed\n", copied, StringComparison.Ordinal);
         Assert.DoesNotContain("line 3", copied, StringComparison.Ordinal);
     }
 
@@ -1009,7 +1009,7 @@ public class DiffPaneControllerTests
 
         harness.Execute(ActionIds.DiffCopyLine);
 
-        Assert.Equal($"+{new string('x', 150)}", harness.CopiedText());
+        Assert.Equal(new string('x', 150), harness.CopiedText());
     }
 
     [Fact]
