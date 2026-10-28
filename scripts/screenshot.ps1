@@ -185,6 +185,8 @@ function Get-Scenario([string]$name) {
         'sidebar-ref' { $s.Keys = 'C-w h j j j' }
         'prompt' { $s.Keys = 'Space b c f e a t' }
         'prompt-narrow' { $s.Columns = 64; $s.Rows = 30; $s.Keys = 'Space b c f e a t' }
+        'picker' { $s.Keys = 'C-w h Space b s' }
+        'picker-narrow' { $s.Columns = 64; $s.Rows = 30; $s.Keys = 'C-w h Space b s' }
         'jump' { $s.Keys = 'Space j c' }
         'jump-narrow' { $s.Columns = 64; $s.Rows = 30; $s.Keys = 'Space j c' }
         'jump-diff' { $s.Keys = 'Enter Enter Space j e' }

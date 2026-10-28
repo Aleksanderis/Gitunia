@@ -137,7 +137,7 @@ public class PushActionsTests
 
         harness.Run(ActionIds.RemoteDeleteBranch);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Push).Length > 0);
-        Assert.Contains("branch to delete on origin", PopupText.Of(harness.Push), StringComparison.Ordinal);
+        Assert.Contains("Branch to delete on origin", PopupText.Of(harness.Push), StringComparison.Ordinal);
         harness.Type("topic");
         harness.Run(ActionIds.InputAccept);
 
