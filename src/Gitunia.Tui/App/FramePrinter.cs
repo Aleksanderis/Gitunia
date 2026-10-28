@@ -64,24 +64,27 @@ public sealed class FramePrinter
         }
 
         // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
+        // The Files tab pairs with the content pane only under a zoom of the pair: a simplification, the live UI
+        // shows the content beside the tree from the start (#784).
         arrangement ??= PaneArrangement.Normal;
-        if (tab == BottomTab.Changes && PaneLayout.ShowsDiffWithChanges(width, height, tab))
+        var zoomsPair = arrangement.Zoomed is { } zoomed && PaneZoom.IsZoomPair(zoomed, PaneKind.Diff);
+        if ((tab == BottomTab.Changes || (tab == BottomTab.Files && zoomsPair))
+            && PaneLayout.ShowsDiffWithChanges(width, height, tab))
         {
-            // A zoomed detail or diff pane zooms with its partner, as in the live UI (#632, #642).
-            arrangement = arrangement with
-            {
-                IsDiffOpen = true,
-                ZoomBoth = arrangement.Zoomed is { } zoomed && PaneZoom.IsZoomPair(zoomed, PaneKind.Diff),
-            };
+            // A zoomed detail or diff pane zooms with its partner, as in the live UI (#632, #642, #712).
+            arrangement = arrangement with { IsDiffOpen = true, ZoomBoth = zoomsPair };
         }
 
         var diffVisible = arrangement.Zoomed is null or PaneKind.Diff || arrangement.ZoomBoth;
-        var diff = arrangement.IsDiffOpen && diffVisible && selected is not null
-            ? await ReadDiffAsync(location, selected, detailState, cancellationToken)
-            : null;
         var treeView = tab == BottomTab.Files && selected is not null
             ? await ReadTreeAsync(location, selected, glyphs, cancellationToken)
             : null;
+        var paneVisible = arrangement.IsDiffOpen && diffVisible && selected is not null;
+        var diff = !paneVisible
+            ? null
+            : tab == BottomTab.Files
+                ? await ReadFileContentAsync(location, treeView, cancellationToken)
+                : await ReadDiffAsync(location, selected!, detailState, cancellationToken);
         var content = DetailContentBuilder.Build(selected, detailState, tab, treeView, FilePathStyle.NameFirst);
         var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
         var model = new ScreenModel(
@@ -121,6 +124,25 @@ public sealed class FramePrinter
         {
             await output.WriteLineAsync(line.Text.AsMemory(), cancellationToken);
         }
+    }
+
+    // The content pane of the Files tab for the row under the tree's initial cursor, as the live UI shows it.
+    private async Task<DiffPaneModel> ReadFileContentAsync(
+        RepositoryLocation location,
+        FileTreeView? treeView,
+        CancellationToken cancellationToken)
+    {
+        var row = treeView?.Rows.Count > 0 ? treeView.Rows[0] : null;
+        if (row is not { Kind: not FileTreeRowKind.Directory and not FileTreeRowKind.Submodule, Blob: { } blob })
+        {
+            var text = row?.Kind == FileTreeRowKind.Submodule ? FileContentDocument.SubmodulePlaceholder : FileContentDocument.FilePlaceholder;
+
+            return new DiffPaneModel(FileContentDocument.Placeholder(text), 0, 0, false);
+        }
+
+        var content = await _services.Blob.ReadAsync(location, blob, row.Size, cancellationToken);
+
+        return new DiffPaneModel(FileContentDocument.From(row.Path, content), 0, 0, false);
     }
 
     // The tree as a fresh tab shows it: every directory closed.

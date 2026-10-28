@@ -34,8 +34,6 @@ namespace Gitunia.Tui.App.Panes;
 public sealed class DiffPaneController : IPromptHandler
 {
     private const string SideBySideHint = " (zoom with <space>z)";
-    private const string FilePlaceholder = "Select a file to view its contents";
-    private const string SubmodulePlaceholder = "A submodule has no content to show";
 
     // Long enough that a cursor held down the tree reads only where it rests, short enough not to be felt.
     private static readonly TimeSpan ContentFollowDelay = TimeSpan.FromMilliseconds(40);
@@ -812,7 +810,7 @@ public sealed class DiffPaneController : IPromptHandler
             return;
         }
 
-        ShowPlaceholder(diff, row?.Kind == FileTreeRowKind.Submodule ? SubmodulePlaceholder : FilePlaceholder);
+        ShowPlaceholder(diff, row?.Kind == FileTreeRowKind.Submodule ? FileContentDocument.SubmodulePlaceholder : FileContentDocument.FilePlaceholder);
     }
 
     private void ShowPlaceholder(DiffSession diff, string text)
