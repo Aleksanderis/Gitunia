@@ -141,7 +141,7 @@ public class SettingsReducerTests
 
         var opened = Reduce(closed, SettingsCommandKind.Activate).State;
 
-        Assert.Equal(2, opened.Selected?.Index);
+        Assert.Equal(1, opened.Selected?.Index);
         Assert.Equal(ThemeChoice.FromText(ThemeChoice.MochaName), opened.PreviewTheme);
     }
 
