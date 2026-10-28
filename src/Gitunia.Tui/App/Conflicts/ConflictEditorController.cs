@@ -375,7 +375,7 @@ public sealed class ConflictEditorController(
         }
     }
 
-    // Esc keeps the text like Alt-Enter does: the edit is one step of undo, so nothing is lost by leaving it.
+    // Esc keeps the text like Ctrl-g does: the edit is one step of undo, so nothing is lost by leaving it.
     private void ExecuteInEdit(ConflictEditorState state, ActionId action)
     {
         if (action == ActionIds.ConflictEditorEditNewLine)

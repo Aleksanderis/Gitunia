@@ -166,7 +166,6 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> MessageEditing =
     [
         new("Esc", "stop writing", [ActionIds.Cancel]),
-        new("Alt-Enter", "commit", [ActionIds.WorkingTreeCommit]),
         new("Ctrl-g", "commit", [ActionIds.WorkingTreeCommit]),
         new("Alt-s/Alt-n/Alt-a", "options", [ActionIds.WorkingTreeToggleSignOff, ActionIds.WorkingTreeToggleNoVerify, ActionIds.WorkingTreeToggleAmend]),
     ];
@@ -240,13 +239,13 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> ConflictEdit =
     [
         new("Esc", "keep", [ActionIds.Cancel]),
-        new("Alt-Enter", "keep", [ActionIds.ConflictEditorEditDone]),
+        new("Ctrl-g", "keep", [ActionIds.ConflictEditorEditDone]),
         new("Enter", "new line", [ActionIds.ConflictEditorEditNewLine]),
     ];
 
     private static readonly ImmutableArray<KeyHint> RebaseMessage =
     [
-        new("Alt-Enter", "keep", [ActionIds.RebaseEditorMessageSave]),
+        new("Ctrl-g", "keep", [ActionIds.RebaseEditorMessageSave]),
         new("Enter", "new line", [ActionIds.RebaseEditorMessageNewLine]),
         new("Esc", "cancel", [ActionIds.Cancel]),
     ];

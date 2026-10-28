@@ -251,7 +251,7 @@ public class WorkingDiffControllerTests
         using var harness = await Harness.OpenAsync(repository);
 
         Assert.Equal(PaneKind.WorkingStaged, harness.Tab.View.FocusedPane);
-        Assert.Equal("R100 old.txt -> new.txt", harness.Rows()[harness.Document().FileRows[0]]);
+        Assert.Equal("R old.txt -> new.txt", harness.Rows()[harness.Document().FileRows[0]]);
     }
 
     [Fact]

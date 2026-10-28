@@ -99,7 +99,7 @@ public class DiffStoreTests
 
         var document = await LoadAsync(pump, store, testRepository, "HEAD", "HEAD~1");
 
-        Assert.Contains(document.Rows, row => row is { Kind: DiffRowKind.FileHeader, Text: "R100 old.txt -> new.txt" });
+        Assert.Contains(document.Rows, row => row is { Kind: DiffRowKind.FileHeader, Text: "R old.txt -> new.txt" });
         Assert.Contains(document.Rows, row => row is { Kind: DiffRowKind.Note, Text: "Binary file, content not shown" });
     }
 

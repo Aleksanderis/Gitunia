@@ -28,7 +28,7 @@ public static class RebaseEditorFrameBuilder
     private const int ChipGap = 2;
     private const string ChipGapText = "  ";
     private const string Note = "oldest first: the top commit is replayed first; squash and fixup meld upwards";
-    private const string MessageHint = "Alt-Enter or Ctrl-g keep the message   Enter new line   Esc cancel";
+    private const string MessageHint = "Ctrl-g keeps the message   Enter new line   Esc cancel";
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
 
