@@ -4,6 +4,7 @@ using static Gitunia.Core.Tests.Graph.GraphTestData;
 
 namespace Gitunia.Core.Tests.Graph;
 
+[Trait("Os", "Independent")]
 public class GraphBranchOrderTests
 {
     public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];

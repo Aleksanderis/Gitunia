@@ -226,7 +226,7 @@ public class IncrementalGraphLoaderTests
         var head = entries.Single(entry => entry.Id.ToString() == testRepository.Head);
         Assert.Equal(0, newest.Row.Lane);
         Assert.Equal(1, older.Row.Lane);
-        Assert.NotEqual(0, head.Row.Lane);
+        Assert.Equal(1, head.Row.Lane);
     }
 
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
