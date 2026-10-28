@@ -210,7 +210,7 @@ public class WorkingDiffControllerTests
     }
 
     [Fact]
-    public async Task GivenTheDiffFocused_WhenCopyingTheLine_ThenTheClipboardGetsItWithoutTheMarker()
+    public async Task GivenTheDiffFocused_WhenCopyingTheLine_ThenTheClipboardIsWritten()
     {
         using var harness = await Harness.OpenAsync(DefaultRepository());
         await harness.ExecuteAsync(ActionIds.WorkingTreeOpenDiff);

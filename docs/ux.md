@@ -551,7 +551,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Lists | `Ctrl-d` `Ctrl-u` | Half page down / up (mouse wheel scrolls) |
 | Lists | `Down` `Up` `PageDown` `PageUp` | Move / page (same as `j` `k` `Ctrl-d` `Ctrl-u`) |
 | Lists | `v` | Start / end range selection (Visual mode: motions move the far end, `Esc` / `q` / `v` end it; graph, detail, diff and the working-tree lists) |
-| Lists (Visual) | `y` | Copy the selected range (OSC 52) and end it when the copy worked (a refused or failed copy keeps the range): graph one hash per line, detail the rows' text, diff the rows as plain text (no `+`/`-`/space marker, no gutter) (a wrapped row once; notes skipped), a working-tree file list one path per line; text too large for OSC 52 (about 75 KB) is refused with a warning |
+| Lists (Visual) | `y` | Copy the selected range (OSC 52) and end it when the copy worked (a refused or failed copy keeps the range): graph one hash per line, detail the rows' text, diff the rows as plain text (no `+`/`-`/space marker or gutter; a wrapped row once; notes skipped), a working-tree file list one path per line; text too large for OSC 52 (about 75 KB) is refused with a warning |
 | Graph | `<space>h` | Jump to HEAD |
 | Graph | `<space>f` | Jump to ref or hash (fuzzy) |
 | Graph | `<space>j` | Quick jump: type text, labels appear on the commits in view whose subject or ref names (branches, tags) contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
@@ -660,7 +660,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingUnstagedDiff | `/` `n` `N` | Search in diff, next, previous |
 | WorkingUnstagedDiff | `<space>vw` | Toggle word wrap |
 | WorkingUnstagedDiff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options) |
-| WorkingUnstagedDiff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker, #756) |
+| WorkingUnstagedDiff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker) |
 | WorkingUnstagedDiff | `Y` | Copy the displayed rows of the file as plain text, without markers (not a pasteable patch) |
 | WorkingUnstagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
 | WorkingUnstagedDiff | `<space>vf` | Toggle showing the whole file instead of hunks (title `[file]`) |
@@ -684,7 +684,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | WorkingStagedDiff | `/` `n` `N` | Search in diff, next, previous |
 | WorkingStagedDiff | `<space>vw` | Toggle word wrap |
 | WorkingStagedDiff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options) |
-| WorkingStagedDiff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker, #756) |
+| WorkingStagedDiff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker) |
 | WorkingStagedDiff | `Y` | Copy the displayed rows of the file as plain text, without markers (not a pasteable patch) |
 | WorkingStagedDiff | `+` `-` | Show more / fewer unchanged lines around the changes (title `[ctx N]`) |
 | WorkingStagedDiff | `<space>vf` | Toggle showing the whole file instead of hunks (title `[file]`) |
@@ -739,7 +739,7 @@ The single source of truth for bindings. Add a row in the same change that adds 
 | Diff | `/` `n` `N` | Search in diff, next, previous |
 | Diff | `<space>vw` | Toggle word wrap (off by default; the cursor moves by screen line while on) |
 | Diff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options; not in a file's content, whose only option is wrap) |
-| Diff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker, #756) |
+| Diff | `y` | Copy the cursor line as plain text (no `+`, `-` or space marker) |
 | Diff | `Y` | Copy the displayed rows of the file under the cursor as plain text, without markers (not a pasteable patch) |
 | Diff | `+` `-` | Show more / fewer unchanged lines around the changes (3 at a time, default 3; the title shows `[ctx N]`) |
 | Diff | `<space>vf` | Toggle showing whole files instead of hunks (title `[file]`) |
