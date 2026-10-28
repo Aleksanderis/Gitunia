@@ -41,7 +41,7 @@ public class PickerComposerTests
             string.Empty,
             null);
 
-        var frame = Frame(picker, 70, 8);
+        var frame = Frame(picker, 76, 8);
         var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
 
         Assert.Equal(
@@ -50,7 +50,7 @@ public class PickerComposerTests
                 " Open repository: _",
                 $" type to filter, or a path starting with {starts} (Tab accepts)",
                 $" alpha  open            {Shown("code/alpha")}",
-                $"{$" beta   pinned          {Shown("code/beta")}".PadRight(62)}[unpin]",
+                $"{$" beta   pinned          {Shown("code/beta")}".PadRight(62)} Alt-p unpin",
                 $" gamma  recent          {Shown("code/gamma")}",
                 $" delta  found           {Shown("code/delta")}",
                 string.Empty,
@@ -144,8 +144,8 @@ public class PickerComposerTests
 
         var lines = PickerComposer.Compose(picker, Home, 80, 6, GraphGlyphSet.Unicode);
 
-        Assert.EndsWith("[pin] [remove] ", lines[2].Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("[pin]", lines[3].Text, StringComparison.Ordinal);
+        Assert.EndsWith(" Alt-p pin   Alt-d remove  ", lines[2].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-p", lines[3].Text, StringComparison.Ordinal);
         Assert.Equal(80, lines[2].Text.Length);
     }
 
@@ -155,7 +155,8 @@ public class PickerComposerTests
         var buttons = PickerRowButtons.Layout(Row("beta", PickerTags.Pinned), 80);
 
         var button = Assert.Single(buttons);
-        Assert.Equal("[unpin]", button.Label);
+        Assert.Equal(" Alt-p unpin ", button.Label);
+        Assert.Equal("Alt-p".Length, button.KeyLength);
         Assert.Equal(DefaultMouseMap.PickerPinButton, TitleButton.ViewAt(buttons, button.Start));
         Assert.Null(TitleButton.ViewAt(buttons, button.Start - 1));
     }
@@ -184,7 +185,7 @@ public class PickerComposerTests
         var lines = PickerComposer.Compose(picker, Home, 100, 6, GraphGlyphSet.Unicode);
         var buttons = PickerHeaderButtons.Layout(100);
 
-        Assert.EndsWith("[clone] [init] ", lines[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.EndsWith(" Alt-c clone   Alt-i init  ", lines[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
         Assert.Equal(100, lines[PickerHeaderButtons.Row].Text.Length);
         Assert.Equal(
             [DefaultMouseMap.PickerCloneButton, DefaultMouseMap.PickerInitButton],
@@ -205,7 +206,41 @@ public class PickerComposerTests
         var locate = PickerComposer.Compose(locating, Home, 100, 6, GraphGlyphSet.Unicode);
 
         Assert.Empty(PickerHeaderButtons.Layout(narrowWidth));
-        Assert.DoesNotContain("[clone]", narrow[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("[clone]", locate[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-c", narrow[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-c", locate[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheChips_WhenComposing_ThenTheKeyIsDrawnInTheKeyRoleLikeEveryOtherChip()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+
+        var line = PickerComposer.Compose(picker, Home, 100, 6, GraphGlyphSet.Unicode)[PickerHeaderButtons.Row];
+
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
+        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.Button);
+    }
+
+    [Fact]
+    public void GivenTheMinimumWidth_WhenComposing_ThenTheHintTextIsNotCutAndOneColumnLessHasNoChips()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+        var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
+
+        var atMinimum = PickerComposer.Compose(picker, Home, PickerHeaderButtons.MinimumWidth, 6, GraphGlyphSet.Unicode);
+        var below = PickerComposer.Compose(picker, Home, PickerHeaderButtons.MinimumWidth - 1, 6, GraphGlyphSet.Unicode);
+
+        Assert.Contains($"{starts} (Tab accepts)", atMinimum[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.Contains("Alt-c clone", atMinimum[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-c", below[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheRowMinimumWidth_WhenLayingOutTheChips_ThenTheyShowFromThereAndNotBelow()
+    {
+        Assert.NotEmpty(PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), PickerRowButtons.MinimumWidth));
+        Assert.Empty(PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), PickerRowButtons.MinimumWidth - 1));
     }
 }

@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Picker;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
@@ -204,5 +205,18 @@ public class RemoteChipsTests
 
         var chipsStart = RemoteChips.Start(Keyed)!.Value;
         Assert.All(cells, cell => Assert.True(cell.Start + cell.Width <= chipsStart));
+    }
+
+    [Fact]
+    public void GivenTheRepositoryPickerIsOpen_WhenRendering_ThenNoFetchPullOrPushChipShowsButCommandsStays()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+
+        var text = ChromeBuilder.Tabs(Model(false) with { Picker = picker }, Keyed, GraphGlyphSet.Unicode).Text;
+
+        Assert.DoesNotContain("fetch", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("push", text, StringComparison.Ordinal);
+        Assert.Contains(TabBarLayout.CommandsLabel, text, StringComparison.Ordinal);
     }
 }

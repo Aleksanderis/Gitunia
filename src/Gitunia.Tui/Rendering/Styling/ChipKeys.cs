@@ -32,24 +32,27 @@ public sealed class ChipKeys
     public static ChipKeys Default { get; } = new(DefaultKeymap.Create());
 
     /// <summary>
-    /// The shortest Normal-mode key of the action behind <paramref name="mouseView"/> in
+    /// The shortest key (Normal mode unless asked otherwise) of the action behind <paramref name="mouseView"/> in
     /// <paramref name="keyView"/>
     /// (and the views it inherits from), or null when the view has no click action or the action has no
     /// key.
     /// </summary>
     /// <param name="mouseView">The chip's mouse view, for example <c>RemoteButton.Fetch</c>.</param>
     /// <param name="keyView">The keymap view the chip sits in, for example <c>Diff</c> or <c>Global</c>.</param>
-    public string? For(string mouseView, string keyView) =>
-        _cache.GetOrAdd($"{mouseView}{CacheSeparator}{keyView}", _ => Find(mouseView, keyView));
+    /// <param name="mode">The mode the keys are looked up in; the repository picker's are Insert-mode keys.</param>
+    public string? For(string mouseView, string keyView, KeyMode mode = KeyMode.Normal) =>
+        _cache.GetOrAdd(
+            $"{mouseView}{CacheSeparator}{keyView}{CacheSeparator}{mode}",
+            _ => Find(mouseView, keyView, mode));
 
-    private string? Find(string mouseView, string keyView)
+    private string? Find(string mouseView, string keyView, KeyMode mode)
     {
         if (!_actions.TryGetValue(mouseView, out var action))
         {
             return null;
         }
 
-        var binding = _table.EffectiveBindings(KeyMode.Normal, keyView)
+        var binding = _table.EffectiveBindings(mode, keyView)
             .Where(candidate => candidate.Action == action)
             .OrderBy(candidate => candidate.Sequence.Length)
             .FirstOrDefault();
