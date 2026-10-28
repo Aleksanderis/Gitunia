@@ -50,7 +50,7 @@ public static class DetailContentBuilder
             PathStyle = pathStyle,
         };
 
-    /// <summary>Mark and path of a file as plain text, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
+    /// <summary>Mark and path of a file as plain text, for example <c>R old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(CommitFileChange file) => file.OldPath is { } oldPath
         ? $"{Mark(file)} {oldPath} -> {file.Path}"
         : $"{Mark(file)} {file.Path}";
@@ -444,8 +444,8 @@ public static class DetailContentBuilder
     {
         FileChangeKind.Added => "A",
         FileChangeKind.Deleted => "D",
-        FileChangeKind.Renamed => $"R{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
-        FileChangeKind.Copied => $"C{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
+        FileChangeKind.Renamed => "R",
+        FileChangeKind.Copied => "C",
         FileChangeKind.TypeChanged => "T",
         FileChangeKind.UpdatedButUnmerged => "U",
         _ => "M",

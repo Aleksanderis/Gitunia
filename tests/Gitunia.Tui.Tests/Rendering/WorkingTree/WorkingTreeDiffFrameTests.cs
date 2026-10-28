@@ -64,7 +64,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  change 1/1  s…─ stage ─ view ▾ ─ zoom ──╮",
+                "╭─ Unstaged 1 ────────────────┬─ Diff  unstaged  change 1/1 …─ stage ─ hunk › ─ view ▾ ──╮",
                 "│ M src/app.cs                │ M src/app.cs                                             │",
                 "│                             │ ── @@ -1,3 +1,3 @@ ───────────────────────────────────── │",
                 "│                             │   1   1  first                                           │",
@@ -101,7 +101,7 @@ public class WorkingTreeDiffFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Diff  unstaged  change 1/1  s…─ stage ─ view ▾ ─ zoom ──╮",
+                "╭─ Diff  unstaged  change 1/1 …─ stage ─ hunk › ─ view ▾ ──╮",
                 "│ M src/app.cs                                             │",
                 "│ ── @@ -1,3 +1,3 @@ ───────────────────────────────────── │",
                 "│   1   1  first                                           │",
@@ -162,7 +162,7 @@ public class WorkingTreeDiffFrameTests
     {
         var frame = Frame(Working(PaneKind.WorkingUnstagedDiff), 90, 16, GraphGlyphSet.Ascii);
 
-        Assert.Contains("- Diff  unstaged  change 1/1  ", frame, StringComparison.Ordinal);
+        Assert.Contains("- Diff  unstaged  change 1/1 ", frame, StringComparison.Ordinal);
         Assert.Contains("[stage]", frame, StringComparison.Ordinal);
         Assert.DoesNotContain('─', frame);
     }
@@ -194,7 +194,8 @@ public class WorkingTreeDiffFrameTests
         var title = frame.Split('\n')[1];
         Assert.Contains(" stage ", title, StringComparison.Ordinal);
         Assert.Contains(" discard ", title, StringComparison.Ordinal);
-        Assert.Contains(" zoom ", title, StringComparison.Ordinal);
+        Assert.DoesNotContain(" zoom ", title, StringComparison.Ordinal);
+        Assert.Contains(" view ▾ ", title, StringComparison.Ordinal);
         Assert.DoesNotContain(" unstage ", title, StringComparison.Ordinal);
     }
 

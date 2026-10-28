@@ -433,6 +433,7 @@ public sealed class OverlayControllerTests : IDisposable
         Assert.Equal(RowActions.ViewOptions, entries.Select(entry => entry.Action));
         Assert.Equal("<space>vf", entries.Single(entry => entry.Action == ActionIds.DiffToggleWholeFile).Keys);
         Assert.Equal("<space>vw", entries.Single(entry => entry.Action == ActionIds.DiffToggleWrap).Keys);
+        Assert.Equal("<space>z", entries.Single(entry => entry.Action == ActionIds.PaneZoom).Keys);
     }
 
     [Fact]

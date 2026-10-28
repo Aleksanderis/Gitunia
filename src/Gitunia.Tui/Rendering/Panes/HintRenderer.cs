@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Tui.Rendering.Styling;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -12,7 +13,7 @@ public static class HintRenderer
         {
             var hint = hints[index];
             builder.Append(index == 0 ? " " : gap, SegmentRole.Status);
-            builder.Append(hint.Keys, SegmentRole.StatusKey);
+            builder.Append(KeyFormatter.BreakLigatures(hint.Keys), SegmentRole.StatusKey);
             builder.Append($" {hint.Description}", SegmentRole.Status);
         }
     }

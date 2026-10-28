@@ -61,6 +61,17 @@ public class HelpBuilderTests
     }
 
     [Fact]
+    public void GivenTheCompareKey_WhenBuilding_ThenLeaderAndEqualsAreNotAdjacent()
+    {
+        var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);
+
+        var row = Assert.Single(rows, item => item.Description == ActionCatalog.Describe(ActionIds.GraphCompare));
+
+        Assert.DoesNotContain(">=", row.Keys, StringComparison.Ordinal);
+        Assert.Contains("<space>\u2009=", row.Keys, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GivenAnActionWithTwoKeys_WhenBuilding_ThenOneRowListsBoth()
     {
         var rows = HelpBuilder.Build(Table, DefaultKeymap.GraphView).SelectMany(section => section.Rows);

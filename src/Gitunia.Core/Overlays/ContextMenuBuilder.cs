@@ -13,8 +13,14 @@ public static class ContextMenuBuilder
     /// The entries for <paramref name="actions"/>, in that order. The key shown is the first Normal-mode binding of the
     /// action that works in <paramref name="view"/>; an action without one is left out, since the menu runs actions
     /// exactly like the keys do and would otherwise show a row nobody can repeat from the keyboard.
+    /// A menu titled by its caller (the <c>view ▾</c> dropdowns) passes <paramref name="grouped"/> false: it is one
+    /// list of options, and sub-headers would only repeat its title (#758).
     /// </summary>
-    public static IReadOnlyList<PaletteEntry> Build(KeyBindingTable table, string view, IReadOnlyList<ActionId> actions)
+    public static IReadOnlyList<PaletteEntry> Build(
+        KeyBindingTable table,
+        string view,
+        IReadOnlyList<ActionId> actions,
+        bool grouped = true)
     {
         var bindings = table.EffectiveBindings(KeyMode.Normal, view);
         var entries = new List<PaletteEntry>(actions.Count);
@@ -29,12 +35,12 @@ public static class ContextMenuBuilder
             entries.Add(new PaletteEntry(
                 action,
                 ActionCatalog.Describe(action),
-                KeyFormatter.Format(binding.Sequence),
+                KeyFormatter.Display(binding.Sequence),
                 !ActionCatalog.Unimplemented.Contains(action),
                 ActionCatalog.GroupOf(action)?.Header));
         }
 
-        return Grouped(entries);
+        return grouped ? Grouped(entries) : [.. entries.Select(entry => entry with { Group = null })];
     }
 
     // Entries of one group sit together (groups by first appearance); a short or one-group menu has no headers.

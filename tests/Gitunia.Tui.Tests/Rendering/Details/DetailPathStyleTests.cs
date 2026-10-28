@@ -62,10 +62,10 @@ public class DetailPathStyleTests
     public void GivenARename_WhenRenderingNameFirst_ThenTheRowShowsTheNewNameAndTheOldOneDimmed()
     {
         var content = Content(
-            FileRow("R100", "src/new.cs", "src/old.cs"),
+            FileRow("R", "src/new.cs", "src/old.cs"),
             FilePathStyle.NameFirst);
 
-        Assert.StartsWith("R100 new.cs  src <- old.cs", Render(content, 1, 60).Text, StringComparison.Ordinal);
+        Assert.StartsWith("R new.cs  src <- old.cs", Render(content, 1, 60).Text, StringComparison.Ordinal);
     }
 
     [Fact]
