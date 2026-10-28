@@ -8,6 +8,9 @@ public static class PickerRows
     /// <summary>How many candidate rows are shown at most; the list scrolls to keep the highlight in view.</summary>
     public const int VisibleRows = 8;
 
+    /// <summary>The prefix of the highlighted row.</summary>
+    public const string Mark = "> ";
+
     /// <summary>The window of <paramref name="items"/> around <paramref name="selected"/>, which is marked.</summary>
     public static List<string> Window(IReadOnlyList<string> items, int selected)
     {

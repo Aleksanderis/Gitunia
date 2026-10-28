@@ -93,6 +93,34 @@ public class PromptPopupFrameBuilderTests
     }
 
     [Theory]
+    [InlineData(14, 5, true)]
+    [InlineData(10, 1, true)]
+    [InlineData(9, 1, false)]
+    public void GivenAFullCandidateListOnAShortScreen_WhenBuilding_ThenThePopupShrinksAroundTheHighlight(
+        int screenHeight,
+        int expectedRows,
+        bool hasPosition)
+    {
+        var rows = new List<string>();
+        for (var number = 0; number < 8; number++)
+        {
+            rows.Add($"{(number == 6 ? "> " : "  ")}branch{number}");
+        }
+
+        rows.Add("(7/20)");
+        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", string.Empty, rows, "switch");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 80, screenHeight, GraphGlyphSet.Ascii);
+
+        Assert.NotNull(frame);
+        var text = string.Join('\n', frame.Lines.Select(line => line.Text));
+        Assert.True(frame.Lines.Count <= screenHeight - 2);
+        Assert.Contains("> branch6", text, StringComparison.Ordinal);
+        Assert.Equal(hasPosition, text.Contains("(7/20)", StringComparison.Ordinal));
+        Assert.Equal(expectedRows, frame.Lines.Count(line => line.Text.Contains("branch", StringComparison.Ordinal) && line.Text.Any(char.IsDigit)));
+    }
+
+    [Theory]
     [InlineData(10, 24)]
     [InlineData(80, 4)]
     [InlineData(0, 0)]
