@@ -10,6 +10,21 @@ public class KeymapEngineTests
 
     private static KeyFeeder CreateFeeder(string view = DefaultKeymap.GraphView) => new(new KeymapEngine(DefaultKeymap.Create()), view);
 
+    [Theory]
+    [InlineData(DefaultKeymap.DetailChangesView)]
+    [InlineData(DefaultKeymap.DetailFilesView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedView)]
+    public void GivenFileList_WhenPressingPageKeys_ThenCtrlPagesTheListAndShiftPagesTheDiff(string view)
+    {
+        var feeder = CreateFeeder(view);
+
+        Assert.Equal(ActionIds.ListHalfPageDown, feeder.Feed("Ctrl-d").Action);
+        Assert.Equal(ActionIds.ListHalfPageUp, feeder.Feed("Ctrl-u").Action);
+        Assert.Equal(ActionIds.DiffScrollHalfPageDown, feeder.Feed("D").Action);
+        Assert.Equal(ActionIds.DiffScrollHalfPageUp, feeder.Feed("U").Action);
+    }
+
     [Fact]
     public void GivenNormalMode_WhenPressingASingleKeyBinding_ThenTheActionFiresWithoutCount()
     {
