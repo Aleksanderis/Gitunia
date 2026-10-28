@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Gitunia.Tui.Tests.App.Branches;
 
+[Trait("Os", "Independent")]
 public sealed class BranchSelectionTests
 {
     [Theory]
@@ -11,13 +12,13 @@ public sealed class BranchSelectionTests
     [InlineData(SidebarRowKind.Folder, SidebarSection.Tags)]
     [InlineData(SidebarRowKind.Section, SidebarSection.Remotes)]
     [InlineData(SidebarRowKind.Section, SidebarSection.Tags)]
-    public void GivenAContainerRowOutsideBranches_WhenSelecting_ThenNeitherNameNorGraphCommitIsUsed(
+    public void GivenAContainerRowOutsideBranches_WhenSelecting_ThenOnlyTheGraphCommitIsCarried(
         SidebarRowKind kind,
         SidebarSection section)
     {
         var selection = BranchSelection.Of(Row(kind, section), () => "graphhash");
 
-        Assert.Equal(new BranchSelection(SidebarRowKind.Section, null, null), selection);
+        Assert.Equal(new BranchSelection(SidebarRowKind.Section, null, "graphhash"), selection);
     }
 
     [Fact]

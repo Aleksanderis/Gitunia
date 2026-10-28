@@ -11,14 +11,15 @@ public sealed record BranchSelection(SidebarRowKind? RowKind, string? Name, stri
     /// <summary>
     /// The selection for a focused sidebar row (null when another pane has focus, then the graph commit is used).
     /// A leaf row names itself, a folder of the Branches section its path, and any other section or folder row
-    /// (Remotes, Tags, ...) is a nameless Section selection and never falls back to the graph commit.
+    /// (Remotes, Tags, ...) is a nameless Section selection that still carries the graph commit, so the
+    /// create actions start there while rename and delete refuse.
     /// </summary>
     public static BranchSelection Of(SidebarRow? sidebarRow, Func<string?> graphCommit) => sidebarRow switch
     {
         { IsContainer: false } row => new BranchSelection(row.Kind, row.Label, row.CommitHash),
         { Kind: SidebarRowKind.Folder, Section: SidebarSection.Branches } folder =>
             new BranchSelection(SidebarRowKind.Folder, SidebarFolders.PathOf(folder), null),
-        { } => new BranchSelection(SidebarRowKind.Section, null, null),
+        { } => new BranchSelection(SidebarRowKind.Section, null, graphCommit()),
         null => new BranchSelection(null, null, graphCommit()),
     };
 }

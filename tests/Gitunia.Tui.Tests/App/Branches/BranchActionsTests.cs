@@ -145,6 +145,21 @@ public class BranchActionsTests
     }
 
     [Fact]
+    public async Task GivenASectionHeaderSelection_WhenCreating_ThenTheBranchStartsAtTheGraphCommit()
+    {
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Section, null, repository.Head));
+
+        harness.Run(ActionIds.BranchCreate);
+        harness.Type("from-header");
+        harness.Run(ActionIds.InputAccept);
+        await harness.FinishAsync();
+
+        Assert.Equal(repository.Head, repository.Git("rev-parse", "from-header").Trim());
+    }
+
+    [Fact]
     public async Task GivenABranchRow_WhenCreatingWithCheckout_ThenTheBranchStartsThereAndIsCheckedOut()
     {
         using var repository = RepositoryWithTopic();
@@ -618,7 +633,7 @@ public class BranchActionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task GivenARemotesFolderRow_WhenRenamingOrDeleting_ThenNothingActsOnTheGraphBranch(bool rename)
+    public async Task GivenASectionSelection_WhenRenamingOrDeleting_ThenNothingActsOnTheGraphBranch(bool rename)
     {
         var action = rename ? ActionIds.BranchRename : ActionIds.BranchDelete;
         using var repository = RepositoryWithTopic();
