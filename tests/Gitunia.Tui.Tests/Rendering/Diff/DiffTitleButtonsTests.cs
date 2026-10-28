@@ -33,7 +33,9 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenAnyDiffRow_WhenLayingOut_ThenZoomIsNoChipAndTheDropdownIsTheRightmostButton()
     {
-        foreach (var staging in new[] { WorkingTreeButtons.None, WorkingTreeButtons.Unstaged, WorkingTreeButtons.Staged })
+        WorkingTreeButtons[] sides = [WorkingTreeButtons.None, WorkingTreeButtons.Unstaged, WorkingTreeButtons.Staged];
+
+        foreach (var staging in sides)
         {
             var buttons = DiffTitleButtons.Layout(160, staging);
 

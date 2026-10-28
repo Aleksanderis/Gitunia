@@ -26,7 +26,9 @@ public static class RowActions
     /// <summary>The title of the dropdown of the diff's view options (#645).</summary>
     public const string ViewOptionsTitle = "View";
 
-    /// <summary>The view options the diff title's <c>view ▾</c> dropdown lists (#645), in this order, then zoom (#758).</summary>
+    /// <summary>
+    /// The view options the diff title's <c>view ▾</c> dropdown lists (#645), in this order, then zoom (#758).
+    /// </summary>
     public static IReadOnlyList<ActionId> ViewOptions { get; } =
     [
         ActionIds.DiffMoreContext,
