@@ -7,7 +7,7 @@ namespace Gitunia.Core.Diff;
 /// </summary>
 public static class DiffWordHighlights
 {
-    /// <summary>Longest run of removed or added rows that is paired; a longer run gets no word highlight at all.</summary>
+    /// <summary>Longest run of removed or added rows that is paired; a longer run gets no word highlight.</summary>
     public const int MaximumRunLength = 2000;
 
     /// <summary>The changed stretches of the text of <paramref name="row"/>; empty when it has no partner.</summary>
