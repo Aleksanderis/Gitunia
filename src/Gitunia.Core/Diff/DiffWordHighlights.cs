@@ -7,7 +7,7 @@ namespace Gitunia.Core.Diff;
 /// </summary>
 public static class DiffWordHighlights
 {
-    /// <summary>Longest run of changed rows that is searched for a partner; a longer run gets no word highlight.</summary>
+    /// <summary>Longest run of changed rows searched for a partner; a longer run gets no word highlight.</summary>
     public const int MaximumRunLength = 2000;
 
     /// <summary>The changed stretches of the text of <paramref name="row"/>; empty when it has no partner.</summary>
@@ -33,7 +33,7 @@ public static class DiffWordHighlights
         return isRemoved ? result.Old : result.New;
     }
 
-    /// <summary>The row <paramref name="row"/> is paired with (a removed row with an added one and back), or -1.</summary>
+    /// <summary>The row <paramref name="row"/> is paired with (a removed row with an added one), or -1.</summary>
     public static int PartnerOf(IReadOnlyList<DiffRow> rows, int row)
     {
         var kind = rows[row].Kind;

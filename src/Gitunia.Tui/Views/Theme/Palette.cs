@@ -87,9 +87,11 @@ public static class Palette
             SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.WhitespaceMarkAddedWord =>
-                new RoleAppearance(colors.SubtleOnSelection, colors.AddedWord, colors.SubtleStyle | colors.WordStyle, true),
+                new RoleAppearance(
+                    colors.SubtleOnSelection, colors.AddedWord, colors.SubtleStyle | colors.WordStyle, true),
             SegmentRole.WhitespaceMarkRemovedWord =>
-                new RoleAppearance(colors.SubtleOnSelection, colors.RemovedWord, colors.SubtleStyle | colors.WordStyle, true),
+                new RoleAppearance(
+                    colors.SubtleOnSelection, colors.RemovedWord, colors.SubtleStyle | colors.WordStyle, true),
             SegmentRole.Punctuation => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.LocalBranch => new RoleAppearance(colors.Good, Color.None, TextStyle.Bold, false),
             SegmentRole.CurrentBranch => new RoleAppearance(colors.Info, Color.None, TextStyle.Bold | colors.CurrentStyle, false),

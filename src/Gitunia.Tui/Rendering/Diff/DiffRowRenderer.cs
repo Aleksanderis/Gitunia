@@ -223,7 +223,7 @@ public static class DiffRowRenderer
     /// <param name="text">The row text.</param>
     /// <param name="marks">Supplies the marks; null draws none.</param>
     /// <param name="isCut"><paramref name="text"/> is only the start of a line, so it has no trailing spaces.</param>
-    /// <param name="changes">Stretches of <paramref name="text"/> that differ from the paired line, null for none.</param>
+    /// <param name="changes">Stretches of <paramref name="text"/> that differ from the paired line, or null.</param>
     internal static ShownText Expand(
         string text,
         GraphGlyphSet? marks,

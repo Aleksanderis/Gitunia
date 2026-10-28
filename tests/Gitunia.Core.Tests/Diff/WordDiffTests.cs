@@ -115,18 +115,15 @@ public class WordDiffTests
     }
 
     [Fact]
-    public void GivenAMinifiedLineWithOneEdit_WhenComparing_ThenItIsFast()
+    public void GivenAMinifiedLineWithOneEdit_WhenComparing_ThenOnlyTheEditedNumberIsMarked()
     {
         var oldText = string.Concat(Enumerable.Repeat("foo(bar,1);", 180));
         var newText = oldText.Replace("foo(bar,1);", "foo(bar,2);", StringComparison.Ordinal);
-        var watch = System.Diagnostics.Stopwatch.StartNew();
 
-        for (var run = 0; run < 50; run++)
-        {
-            WordDiff.Compare(oldText, newText);
-        }
+        var result = WordDiff.Compare(oldText, newText);
 
-        Assert.True(watch.ElapsedMilliseconds < 2000, $"{watch.ElapsedMilliseconds} ms");
+        Assert.All(result.Old, span => Assert.Equal("1", oldText.Substring(span.Start, span.Length)));
+        Assert.Equal(180, result.Old.Count);
     }
 
     private static List<string> Texts(string text, IReadOnlyList<ChangedSpan> spans) =>

@@ -381,7 +381,9 @@ public class DiffRowRendererTests
         var plain = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, changes: changes);
         var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true, changes);
 
-        Assert.Contains(plain.Segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "   b  ");
+        Assert.Contains(
+            plain.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "   b  ");
         Assert.Contains(
             marked.Segments,
             segment => segment.Role == SegmentRole.WhitespaceMarkAddedWord && segment.Text == "→");
