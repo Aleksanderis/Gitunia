@@ -33,8 +33,8 @@ public class SettingsValueReaderTests
 
     [Theory]
     [InlineData("{}", "auto", "auto")]
-    [InlineData("{ \"theme\": \"dark\" }", "dark", "dark")]
-    [InlineData("{ \"theme\": \"Light\" }", "light", "light")]
+    [InlineData("{ \"theme\": \"dark\" }", "catppuccin-mocha", "dark")]
+    [InlineData("{ \"theme\": \"Light\" }", "catppuccin-latte", "light")]
     public void GivenATheme_WhenReading_ThenTheChoiceAndTheRunningThemeHoldIt(
         string text,
         string choice,
@@ -141,16 +141,16 @@ public class SettingsValueReaderTests
     }
 
     [Fact]
-    public void GivenThemeNames_WhenBuildingTheSettings_ThenTheThemeOptionsAreTheBaseSchemesThenTheNames()
+    public void GivenThemeNames_WhenBuildingTheSettings_ThenTheThemeOptionsAreAutoThenTheNames()
     {
         var definitions = SettingsRegistry.WithThemes(["a", "b"]);
 
         var theme = definitions.Single(definition => definition.Id == SettingsRegistry.ThemeId);
 
-        Assert.Equal(["auto", "dark", "light", "a", "b"], theme.Choices);
+        Assert.Equal(["auto", "a", "b"], theme.Choices);
         Assert.Equal(SettingsRegistry.All.Count, definitions.Count);
         Assert.Equal(
-            ["auto", "dark", "light", .. BuiltInThemes.Names],
+            ["auto", .. BuiltInThemes.Names],
             SettingsRegistry.All.Single(definition => definition.Id == SettingsRegistry.ThemeId).Choices);
     }
 

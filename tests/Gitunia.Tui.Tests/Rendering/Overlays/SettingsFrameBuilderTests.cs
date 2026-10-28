@@ -106,7 +106,7 @@ public class SettingsFrameBuilderTests
         var text = frame.Lines.Select(line => line.Text).ToList();
 
         Assert.Contains("● auto", text[3], StringComparison.Ordinal);
-        Assert.Contains("○ dark", text[4], StringComparison.Ordinal);
+        Assert.Contains("○ catppuccin-mocha", text[4], StringComparison.Ordinal);
         Assert.Contains("Esc restore", text[^2], StringComparison.Ordinal);
     }
 

@@ -48,9 +48,14 @@ public static class SettingsValueReader
         return new SettingsLoad(values.ToImmutable(), WarningsOf(problems), banner, options, theme);
     }
 
-    /// <summary>The text of a theme as written in the file.</summary>
+    /// <summary>The option a theme shows as; the old dark and light values show as their Catppuccin themes.</summary>
     /// <param name="theme">The theme.</param>
-    public static string ThemeName(ThemeChoice theme) => theme.Name;
+    public static string ThemeName(ThemeChoice theme) => theme.Name switch
+    {
+        ThemeChoice.DarkName => ThemeChoice.MochaName,
+        ThemeChoice.LightName => ThemeChoice.LatteName,
+        _ => theme.Name,
+    };
 
     /// <summary>The theme a choice option stands for.</summary>
     /// <param name="text">The option text.</param>
