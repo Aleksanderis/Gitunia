@@ -121,8 +121,8 @@ public class PushActionsTests
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
         var seen = repository.Git("rev-parse", "origin/topic").Trim();
-        using var harness = await Harness.LoadAsync(repository);
         repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
+        using var harness = await Harness.LoadAsync(repository);
 
         Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
         await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
@@ -140,16 +140,18 @@ public class PushActionsTests
     }
 
     [Fact]
-    public async Task GivenARewrittenBranch_WhenTheForceConfirmIsNotAnswered_ThenTheRemoteIsUntouched()
+    public async Task GivenABranchOnlyBehindItsUpstream_WhenPushingPlainly_ThenNoForcePushIsOffered()
     {
         using var repository = TestRepositories.WithTrackingBranch(0, 0);
         var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        repository.Git("reset", "--hard", "-q", "HEAD~1");
         using var harness = await Harness.LoadAsync(repository);
-        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
 
         Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
-        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+        await harness.FinishAsync();
 
+        Assert.StartsWith("Push failed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
         Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
     }
 

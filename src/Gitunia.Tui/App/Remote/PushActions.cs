@@ -160,11 +160,12 @@ public sealed class PushActions(
     /// force push Confirm of <c>&lt;space&gt;Rf</c> right away (#746). Nothing happens when the tab is not active, a
     /// prompt is open or the branch cannot be force pushed; the push failure stays in the status bar.
     /// </summary>
-    public void OfferForce(TabId tabId)
+    public void OfferForce(TabId tabId, string pushedBranch)
     {
+        // A branch that is only behind its upstream is rejected too, but the answer there is a pull, not a force.
         if (_kind != PushPromptKind.None || _busy.Contains(tabId) || host.Workspace.ActiveTabId != tabId
             || host.Workspace.ActiveTab is not { } tab || CurrentBranchOf(tab) is not { } current
-            || !HasUpstream(current))
+            || !HasUpstream(current) || current.Name != pushedBranch || current.Ahead is not > 0)
         {
             return;
         }

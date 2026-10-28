@@ -5,6 +5,7 @@ using Gitunia.Core.Status;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Remotes;
 using Gitunia.Git.Remotes.Models;
 using Gitunia.Git.Repositories.Models;
@@ -61,7 +62,7 @@ public sealed class RemoteActions(
     /// Called (on the UI thread, tab active, no overlay open) after a plain push of the tab was rejected as a
     /// non-fast-forward; the owner of the force push answers with its Confirm (#746).
     /// </summary>
-    public Action<TabId>? PushRejected { get; set; }
+    public Action<TabId, string>? PushRejected { get; set; }
 
     /// <summary>The notice for the status bar after the last <see cref="TryExecute"/>, empty when none.</summary>
     public string Notice { get; private set; } = string.Empty;
@@ -171,7 +172,11 @@ public sealed class RemoteActions(
         }
 
         var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationOf(tab.Id));
-        var running = new Running(WordsOf(action), linked, plan, ArgumentsForTerminal(action, plan));
+        var current = tab.Refs.FirstOrDefault(item => item.Kind == RefKind.LocalBranch && item.IsCurrent);
+        var running = new Running(WordsOf(action), linked, plan, ArgumentsForTerminal(action, plan))
+        {
+            Branch = current?.Name ?? string.Empty,
+        };
         _running[tab.Id] = running;
         if (isPull)
         {
@@ -285,7 +290,7 @@ public sealed class RemoteActions(
             }
             else if (rejected && host.Workspace.ActiveTabId == tabId && !isOverlayOpen())
             {
-                PushRejected?.Invoke(tabId);
+                PushRejected?.Invoke(tabId, running.Branch);
             }
         }
 
@@ -374,6 +379,9 @@ public sealed class RemoteActions(
         IReadOnlyList<string> terminalArguments)
     {
         public IReadOnlyList<string> TerminalArguments { get; } = terminalArguments;
+
+        /// <summary>The branch that was checked out when the operation started.</summary>
+        public string Branch { get; init; } = string.Empty;
 
         public PushPlan? Plan { get; } = plan;
 
