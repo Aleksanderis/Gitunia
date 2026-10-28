@@ -171,6 +171,40 @@ public sealed class ThemeFileParserTests
         Assert.Contains("lanes", Assert.Single(problems).Path, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GivenNoWordRoles_WhenParsing_ThenTheWordTintsAreAFaintMixOfGoodAndBadIntoTheBase()
+    {
+        var text = Json()
+            .Replace("\"good\": \"#010203\"", "\"good\": \"#00ff00\"", StringComparison.Ordinal)
+            .Replace("\"bad\": \"#010203\"", "\"bad\": \"#ff0000\"", StringComparison.Ordinal)
+            .Replace("\"baseBackground\": \"#010203\"", "\"baseBackground\": \"#000000\"", StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, []);
+
+        Assert.NotNull(theme);
+        var added = theme.Colors[ThemeRoles.AddedWord];
+        var removed = theme.Colors[ThemeRoles.RemovedWord];
+        Assert.InRange((added >> 8) & 0xff, 1, 0x30);
+        Assert.Equal(0, added & 0xffff00ff);
+        Assert.InRange((removed >> 16) & 0xff, 1, 0x30);
+        Assert.Equal(0, removed & 0x00ffff);
+    }
+
+    [Fact]
+    public void GivenWordRolesInTheFile_WhenParsing_ThenTheyReplaceTheDefaults()
+    {
+        var text = Json().Replace(
+            "\"muted\": \"#111111\",",
+            "\"muted\": \"#111111\", \"addedWord\": \"#102030\", \"removedWord\": \"#302010\",",
+            StringComparison.Ordinal);
+
+        var theme = ThemeFileParser.Parse("mine", text, []);
+
+        Assert.NotNull(theme);
+        Assert.Equal(0x102030, theme.Colors[ThemeRoles.AddedWord]);
+        Assert.Equal(0x302010, theme.Colors[ThemeRoles.RemovedWord]);
+    }
+
     private static string Json(
         string variant = "dark",
         string extra = "",

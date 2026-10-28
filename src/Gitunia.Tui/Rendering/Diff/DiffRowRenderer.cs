@@ -552,7 +552,7 @@ public static class DiffRowRenderer
     }
 
     // The role of a run: marks are subtle, changed words of an added or removed line sit on their tint.
-    private static SegmentRole RoleOf(SegmentRole role, CellFlags flags)
+    internal static SegmentRole RoleOf(SegmentRole role, CellFlags flags)
     {
         var isMark = flags.HasFlag(CellFlags.Mark);
         if (!flags.HasFlag(CellFlags.Changed))
