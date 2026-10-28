@@ -18,7 +18,13 @@ public static class PickerComposer
     /// <param name="width">Columns.</param>
     /// <param name="height">Rows available for the whole picker.</param>
     /// <param name="glyphs">The character set for the ellipsis and the cursor.</param>
-    public static IReadOnlyList<StyledLine> Compose(PickerState picker, string homeDirectory, int width, int height, GraphGlyphSet glyphs)
+    public static IReadOnlyList<StyledLine> Compose(
+        PickerState picker,
+        string homeDirectory,
+        int width,
+        int height,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var lines = new List<StyledLine>(height);
         if (height <= 0)
@@ -34,17 +40,17 @@ public static class PickerComposer
             .Build());
         if (height > 1)
         {
-            var headerButtons = picker.LocatingTabId is null ? PickerHeaderButtons.Layout(width) : [];
+            var headerButtons = picker.LocatingTabId is null ? PickerHeaderButtons.Layout(width, keys) : [];
             var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
             var hint = new LineBuilder(headerButtons.Count > 0 ? headerButtons[0].Start - 1 : width, glyphs.Ellipsis)
                 .Append($" type to filter, or a path starting with {starts} (Tab accepts)", SegmentRole.Faint)
                 .Build();
-            lines.Add(WithButtons(hint, headerButtons));
+            lines.Add(WithButtons(hint, headerButtons, glyphs));
         }
 
         var hasMessage = picker.Message.Length > 0;
         var listHeight = Math.Max(0, height - HeaderRows - (hasMessage ? 1 : 0));
-        lines.AddRange(ListLines(picker, homeDirectory, width, listHeight, glyphs));
+        lines.AddRange(ListLines(picker, homeDirectory, width, listHeight, glyphs, keys));
         if (hasMessage && lines.Count < height)
         {
             lines.Add(new LineBuilder(width, glyphs.Ellipsis).Append($" {picker.Message}", SegmentRole.Error).Build());
@@ -61,7 +67,13 @@ public static class PickerComposer
     /// <summary>The first list row shown for a highlight, so the highlight stays visible.</summary>
     public static int TopRow(int highlight, int listHeight) => highlight < listHeight ? 0 : highlight - listHeight + 1;
 
-    private static List<StyledLine> ListLines(PickerState picker, string homeDirectory, int width, int listHeight, GraphGlyphSet glyphs)
+    private static List<StyledLine> ListLines(
+        PickerState picker,
+        string homeDirectory,
+        int width,
+        int listHeight,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys)
     {
         var lines = new List<StyledLine>(listHeight);
         if (listHeight == 0)
@@ -83,18 +95,18 @@ public static class PickerComposer
             var row = picker.Rows[index];
             var name = TextWidth.Fit(row.Name, nameWidth, glyphs.Ellipsis);
             var isHighlighted = index == picker.Highlight;
-            var buttons = isHighlighted ? PickerRowButtons.Layout(row, width) : [];
+            var buttons = isHighlighted ? PickerRowButtons.Layout(row, width, keys) : [];
             var builder = new LineBuilder(buttons.Count > 0 ? buttons[0].Start - 1 : width, glyphs.Ellipsis)
                 .Append($" {name}{new string(' ', Math.Max(0, nameWidth - TextWidth.Of(name)))}  ", SegmentRole.Plain)
                 .Append(Tags(row).PadRight(TagColumns), SegmentRole.Tag)
                 .Append(Abbreviate(row.Path, homeDirectory), SegmentRole.Faint);
-            lines.Add(WithButtons(builder.Build(isSelected: isHighlighted), buttons));
+            lines.Add(WithButtons(builder.Build(isSelected: isHighlighted), buttons, glyphs));
         }
 
         return lines;
     }
 
-    private static StyledLine WithButtons(StyledLine line, IReadOnlyList<TitleButton> buttons)
+    private static StyledLine WithButtons(StyledLine line, IReadOnlyList<TitleButton> buttons, GraphGlyphSet glyphs)
     {
         if (buttons.Count == 0)
         {
@@ -104,7 +116,7 @@ public static class PickerComposer
         var segments = new List<StyledSegment>(line.Segments) { new(" ", SegmentRole.Plain) };
         foreach (var button in buttons)
         {
-            segments.Add(new StyledSegment(button.Label, SegmentRole.Button));
+            segments.AddRange(KeyedChip.Segments(button, glyphs));
             segments.Add(new StyledSegment(" ", SegmentRole.Plain));
         }
 

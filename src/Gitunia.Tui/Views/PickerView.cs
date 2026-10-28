@@ -32,7 +32,13 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
             return true;
         }
 
-        var lines = PickerComposer.Compose(picker, model().HomeDirectory, Viewport.Width, Viewport.Height, glyphs);
+        var lines = PickerComposer.Compose(
+            picker,
+            model().HomeDirectory,
+            Viewport.Width,
+            Viewport.Height,
+            glyphs,
+            model().Keys);
         for (var row = 0; row < lines.Count; row++)
         {
             LinePainter.Paint(this, lines[row], 0, row, isFocused: true);
@@ -66,7 +72,9 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
 
         if (picker.LocatingTabId is null && position.Y == PickerHeaderButtons.Row
             && gesture is MouseGesture.Click or MouseGesture.DoubleClick
-            && TitleButton.ViewAt(PickerHeaderButtons.Layout(Viewport.Width), position.X) is { } headerButton)
+            && TitleButton.ViewAt(
+                PickerHeaderButtons.Layout(Viewport.Width, model().Keys),
+                position.X) is { } headerButton)
         {
             ButtonClicked?.Invoke(headerButton);
             return true;
@@ -97,5 +105,5 @@ public sealed class PickerView(Func<ScreenModel> model, GraphGlyphSet glyphs) : 
     }
 
     private string? ButtonAt(PickerRow row, int column) =>
-        TitleButton.ViewAt(PickerRowButtons.Layout(row, Viewport.Width), column);
+        TitleButton.ViewAt(PickerRowButtons.Layout(row, Viewport.Width, model().Keys), column);
 }

@@ -17,7 +17,7 @@ public static class ChromeBuilder
     {
         if (model.Tabs is { Count: > 0 } labels)
         {
-            return TabRow(labels, width, glyphs, model.RemoteBusy, model.Keys);
+            return TabRow(labels, width, glyphs, model.RemoteBusy, model.Keys, model.Picker is null);
         }
 
         if (model.TabCount == 0)
@@ -100,7 +100,8 @@ public static class ChromeBuilder
         int width,
         GraphGlyphSet glyphs,
         bool remoteBusy,
-        ChipKeys? keys)
+        ChipKeys? keys,
+        bool showRemoteChips)
     {
         var cells = TabBarLayout.Layout(labels, width, glyphs, keys);
         var builder = new LineBuilder(width, glyphs.Ellipsis).Append(new string(' ', TabBarLayout.LeftMargin), SegmentRole.Status);
@@ -119,7 +120,7 @@ public static class ChromeBuilder
 
         builder.Append(" ", SegmentRole.Status);
         builder.Append(TabBarLayout.NewTabLabel, SegmentRole.BarButton);
-        if (RemoteChips.Start(width, keys) is { } chipsStart)
+        if (showRemoteChips && RemoteChips.Start(width, keys) is { } chipsStart)
         {
             AppendRemoteChips(builder, width, chipsStart, remoteBusy, glyphs, keys);
         }

@@ -66,7 +66,14 @@ public static class ScreenComposer
         var overlays = new List<PaneLines>();
         if (isPicker)
         {
-            overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, PickerComposer.Compose(model.Picker!, model.HomeDirectory, rects.Graph.Width, rects.Graph.Height, glyphs), SegmentSelection.Focused));
+            var pickerLines = PickerComposer.Compose(
+                model.Picker!,
+                model.HomeDirectory,
+                rects.Graph.Width,
+                rects.Graph.Height,
+                glyphs,
+                model.Keys);
+            overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, pickerLines, SegmentSelection.Focused));
         }
         else
         {
