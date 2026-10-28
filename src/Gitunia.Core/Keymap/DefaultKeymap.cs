@@ -473,13 +473,14 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, view, "<space>v3", ActionIds.FilesPathTree);
     }
 
-    // The file lists scroll the diff beside them without taking focus (`J`/`K` as in the settings list; `Ctrl-d`/`Ctrl-u` take over the half pages from the list, `PageDown`/`PageUp` still move it).
+    // The file lists scroll the diff beside them without focus: `J`/`K` by a line, `D`/`U` by half a page (#755).
+    // `Ctrl-d`/`Ctrl-u` keep their meaning and page the list; `PageDown`/`PageUp` page it too.
     private static void AddDiffScrollKeys(List<KeyBinding> bindings, string view)
     {
         Add(bindings, NormalOnly, view, "J", ActionIds.DiffScrollDown);
         Add(bindings, NormalOnly, view, "K", ActionIds.DiffScrollUp);
-        Add(bindings, NormalOnly, view, "Ctrl-d", ActionIds.DiffScrollHalfPageDown);
-        Add(bindings, NormalOnly, view, "Ctrl-u", ActionIds.DiffScrollHalfPageUp);
+        Add(bindings, NormalOnly, view, "D", ActionIds.DiffScrollHalfPageDown);
+        Add(bindings, NormalOnly, view, "U", ActionIds.DiffScrollHalfPageUp);
     }
 
     // The message box: Normal mode is its own view of the keymap, Insert mode types into the editor (its editing keys are not in
