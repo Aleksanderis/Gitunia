@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -40,7 +41,8 @@ public static class DiffPaneRenderer
                         pane.Highlight,
                         pane.IsFocused && row == pane.SelectedRow,
                         glyphs,
-                        showWhitespace: pane.ShowWhitespace)
+                        showWhitespace: pane.ShowWhitespace,
+                        changes: DiffWordHighlights.ChangesOf(pane.Document, row))
                     : new LineBuilder(textWidth, glyphs.Ellipsis).Build(),
                 paddingColumns));
         }

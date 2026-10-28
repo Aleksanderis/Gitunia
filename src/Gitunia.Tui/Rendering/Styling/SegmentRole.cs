@@ -37,6 +37,12 @@ public enum SegmentRole
     /// </summary>
     WhitespaceMark,
 
+    /// <summary>A whitespace mark inside the changed words of an added line.</summary>
+    WhitespaceMarkAddedWord,
+
+    /// <summary>A whitespace mark inside the changed words of a removed line.</summary>
+    WhitespaceMarkRemovedWord,
+
     /// <summary>The file name of a name-first file row: bold, so the dimmed directory after it recedes.</summary>
     FileName,
 
@@ -102,6 +108,12 @@ public enum SegmentRole
 
     /// <summary>A removed line of a diff.</summary>
     DiffRemoved,
+
+    /// <summary>The words that changed inside an added line: the line's colour on a tinted background.</summary>
+    DiffAddedWord,
+
+    /// <summary>The words that changed inside a removed line: the line's colour on a tinted background.</summary>
+    DiffRemovedWord,
 
     /// <summary>The <c>@@</c> line of a hunk.</summary>
     DiffHunk,

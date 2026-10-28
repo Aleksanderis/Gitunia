@@ -480,7 +480,8 @@ public class PaletteTests
     private static double MinimumFor(SegmentRole role) => role switch
     {
         SegmentRole.Border => DecorationRatio,
-        SegmentRole.WhitespaceMark => SubtleRatio,
+        SegmentRole.WhitespaceMark or SegmentRole.WhitespaceMarkAddedWord
+            or SegmentRole.WhitespaceMarkRemovedWord => SubtleRatio,
         _ => ReadableRatio,
     };
 

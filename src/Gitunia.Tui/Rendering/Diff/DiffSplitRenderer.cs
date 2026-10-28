@@ -138,6 +138,7 @@ public static class DiffSplitRenderer
             DiffRowKind.Removed => SegmentRole.DiffRemoved,
             _ => SegmentRole.Plain,
         };
+        var changes = DiffWordHighlights.ChangesOf(document, rowIndex);
         var prefixWidth = SidePrefixWidth(gutterDigits);
         if (segment == 0)
         {
@@ -159,17 +160,18 @@ public static class DiffSplitRenderer
 
         if (isWrapped)
         {
-            var expanded = DiffRowRenderer.Expand(row.Text, showWhitespace ? glyphs : null, false);
+            var expanded = DiffRowRenderer.Expand(row.Text, showWhitespace ? glyphs : null, false, changes);
             var chunks = DiffRowRenderer.Chunks(expanded.Text, columns);
             var chunk = segment < chunks.Count ? chunks[segment] : string.Empty;
             var start = DiffRowRenderer.StartOf(chunks, segment);
-            AppendText(builder, chunk, role, highlight, segment == 0 ? jump : null, expanded.Marks, start);
+            AppendText(builder, chunk, role, highlight, segment == 0 ? jump : null, expanded.Cells, start);
         }
         else
         {
             var cut = DiffRowRenderer.CutToWidth(row.Text, columns);
-            var shown = DiffRowRenderer.Expand(cut, showWhitespace ? glyphs : null, cut.Length != row.Text.Length);
-            AppendText(builder, shown.Text, role, highlight, jump, shown.Marks, 0);
+            var shown = DiffRowRenderer.Expand(
+                cut, showWhitespace ? glyphs : null, cut.Length != row.Text.Length, changes);
+            AppendText(builder, shown.Text, role, highlight, jump, shown.Cells, 0);
         }
 
         return builder.Build();
@@ -181,8 +183,8 @@ public static class DiffSplitRenderer
         SegmentRole role,
         string? highlight,
         JumpLabel? jump,
-        bool[]? marks,
-        int markOffset)
+        DiffRowRenderer.CellFlags[]? cells,
+        int cellOffset)
     {
         if (jump is { } target)
         {
@@ -190,7 +192,7 @@ public static class DiffSplitRenderer
         }
         else
         {
-            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight, marks, markOffset);
+            DiffRowRenderer.AppendHighlighted(builder, shown, role, highlight, cells, cellOffset);
         }
     }
 }

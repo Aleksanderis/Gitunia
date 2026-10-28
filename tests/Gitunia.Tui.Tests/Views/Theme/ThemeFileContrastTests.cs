@@ -155,7 +155,9 @@ public sealed class ThemeFileContrastTests
                 var foreground = Quantize(Resolve(attribute.Foreground, definition, true));
                 var background = Quantize(Resolve(attribute.Background, definition, false));
                 var ratio = Contrast(foreground, background);
-                var minimum = role is SegmentRole.WhitespaceMark ? SubtleQuantizedRatio : QuantizedRatio;
+                var isMark = role is SegmentRole.WhitespaceMark
+                    or SegmentRole.WhitespaceMarkAddedWord or SegmentRole.WhitespaceMarkRemovedWord;
+                var minimum = isMark ? SubtleQuantizedRatio : QuantizedRatio;
                 if (ratio < minimum && role is not SegmentRole.Border)
                 {
                     failures.Add($"{role} (selected={highlight.IsSelected}): {ratio:F2}");
@@ -246,7 +248,8 @@ public sealed class ThemeFileContrastTests
     private static double MinimumFor(SegmentRole role) => role switch
     {
         SegmentRole.Border => DecorationRatio,
-        SegmentRole.WhitespaceMark => SubtleRatio,
+        SegmentRole.WhitespaceMark or SegmentRole.WhitespaceMarkAddedWord
+            or SegmentRole.WhitespaceMarkRemovedWord => SubtleRatio,
         _ => ReadableRatio,
     };
 
