@@ -38,7 +38,7 @@ public class WorkingTreeFrameTests
             string.Join(
                 '\n',
                 "   1 repo",
-                "╭─ Unstaged 3 ────────────────┬─ Diff ────────────────────────── stage ─ view ▾ ─ zoom ──╮",
+                "╭─ Unstaged 3 ────────────────┬─ Diff ──────────────────────── stage ─ hunk › ─ view ▾ ──╮",
                 "│ ! src/merge.cs  both modif… │                                                          │",
                 "│ M src/app.cs                │                                                          │",
                 "│ ? notes.txt                 │                                                          │",

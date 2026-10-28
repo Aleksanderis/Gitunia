@@ -18,10 +18,30 @@ public class DiffTitleButtonsTests
         var buttons = DiffTitleButtons.Layout(100);
 
         Assert.Equal(
-            [" ‹ file ", " file › ", " ‹ hunk ", " hunk › ", " view ▾ ", " zoom "],
-            buttons.Select(button => button.Label));
+            [
+                DefaultMouseMap.DiffPreviousFileButton,
+                DefaultMouseMap.DiffNextFileButton,
+                DefaultMouseMap.DiffPreviousHunkButton,
+                DefaultMouseMap.DiffNextHunkButton,
+                DefaultMouseMap.DiffViewButton,
+            ],
+            buttons.Select(button => button.View));
         Assert.Equal(98, buttons[^1].Start + buttons[^1].Width);
         Assert.Equal(1, buttons[1].Start - (buttons[0].Start + buttons[0].Width));
+    }
+
+    [Fact]
+    public void GivenAnyDiffRow_WhenLayingOut_ThenZoomIsNoChipAndTheDropdownIsTheRightmostButton()
+    {
+        WorkingTreeButtons[] sides = [WorkingTreeButtons.None, WorkingTreeButtons.Unstaged, WorkingTreeButtons.Staged];
+
+        foreach (var staging in sides)
+        {
+            var buttons = DiffTitleButtons.Layout(160, staging);
+
+            Assert.DoesNotContain(buttons, button => button.View == DefaultMouseMap.DiffZoomButton);
+            Assert.Equal(DefaultMouseMap.DiffViewButton, buttons[^1].View);
+        }
     }
 
     [Fact]
@@ -41,7 +61,7 @@ public class DiffTitleButtonsTests
     {
         var buttons = DiffTitleButtons.Layout(50);
 
-        Assert.Equal([" view ▾ ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal([" hunk › ", " view ▾ "], buttons.Select(button => button.Label));
         Assert.True(buttons[0].Start >= DiffTitleButtons.MinimumTitleWidth);
     }
 
@@ -50,7 +70,15 @@ public class DiffTitleButtonsTests
     {
         var buttons = DiffTitleButtons.Layout(80);
 
-        Assert.Equal([" ‹ hunk ", " hunk › ", " view ▾ ", " zoom "], buttons.Select(button => button.Label));
+        Assert.Equal(
+            [
+                DefaultMouseMap.DiffPreviousFileButton,
+                DefaultMouseMap.DiffNextFileButton,
+                DefaultMouseMap.DiffPreviousHunkButton,
+                DefaultMouseMap.DiffNextHunkButton,
+                DefaultMouseMap.DiffViewButton,
+            ],
+            buttons.Select(button => button.View));
     }
 
     [Fact]
@@ -60,7 +88,7 @@ public class DiffTitleButtonsTests
 
         Assert.Equal(
             [
-                " stage ", " discard ", " ‹ file ", " file › ", " ‹ hunk ", " hunk › ", " view ▾ ", " zoom ",
+                " stage ", " discard ", " ‹ file ", " file › ", " ‹ hunk ", " hunk › ", " view ▾ ",
             ],
             buttons.Select(button => button.Label));
     }
@@ -80,7 +108,7 @@ public class DiffTitleButtonsTests
     {
         var labels = DiffTitleButtons.Layout(62, WorkingTreeButtons.Unstaged).Select(button => button.Label).ToList();
 
-        Assert.Equal([" stage ", " view ▾ ", " zoom "], labels);
+        Assert.Equal([" stage ", " hunk › ", " view ▾ "], labels);
     }
 
     [Fact]
@@ -151,7 +179,6 @@ public class DiffTitleButtonsTests
     [InlineData(DefaultMouseMap.DiffPreviousHunkButton, 2)]
     [InlineData(DefaultMouseMap.DiffNextHunkButton, 3)]
     [InlineData(DefaultMouseMap.DiffViewButton, 4)]
-    [InlineData(DefaultMouseMap.DiffZoomButton, 5)]
     public void GivenAButton_WhenClickingAnyOfItsColumns_ThenTheLookupFindsItAndTheNeighbourColumnsMiss(string view, int index)
     {
         var buttons = DiffTitleButtons.Layout(100);
@@ -177,10 +204,10 @@ public class DiffTitleButtonsTests
         Assert.Equal(100, TextWidth.Of(title.Text));
         Assert.All(title.Text, character => Assert.True(character < 128));
         Assert.Contains(
-            "[< file]-[file >]-[< hunk]-[hunk >]-[view v]-[zoom]",
+            "[[f < file]-[]f file >]-[[c < hunk]-[]c hunk >]-[<space>vv view v]",
             title.Text,
             StringComparison.Ordinal);
-        Assert.EndsWith("[zoom]--", title.Text, StringComparison.Ordinal);
+        Assert.EndsWith("[<space>vv view v]--", title.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,11 +219,11 @@ public class DiffTitleButtonsTests
 
         Assert.Equal(100, TextWidth.Of(title.Text));
         Assert.EndsWith(
-            " ‹ file ─ file › ─ ‹ hunk ─ hunk › ─ view ▾ ─ zoom ──",
+            " [c ‹ hunk ─ ]c hunk › ─ <space>vv view ▾ ──",
             title.Text,
             StringComparison.Ordinal);
         Assert.Contains(" Diff ", title.Text, StringComparison.Ordinal);
-        Assert.Equal(6, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTab));
+        Assert.Contains(title.Segments, segment => segment.Role == SegmentRole.RepositoryTab);
     }
 
     [Fact]
@@ -229,7 +256,7 @@ public class DiffTitleButtonsTests
 
         var buttons = DiffTitleButtons.Layout(300);
 
-        Assert.Equal(6, buttons.Count);
+        Assert.Equal(5, buttons.Count);
         Assert.All(buttons, button =>
         {
             var binding = table.EffectiveBindings(KeyMode.Normal, DefaultKeymap.DiffView)
@@ -244,9 +271,9 @@ public class DiffTitleButtonsTests
     [Fact]
     public void GivenARowThatFitsAllButtonsOnlyWithoutKeys_WhenLayingOut_ThenTheKeysAreDroppedBeforeAnyButton()
     {
-        var plain = DiffTitleButtons.Layout(100);
+        var plain = DiffTitleButtons.Layout(90);
 
-        Assert.Equal(6, plain.Count);
+        Assert.Equal(5, plain.Count);
         Assert.All(plain, button => Assert.Equal(0, button.KeyLength));
     }
 
@@ -258,7 +285,7 @@ public class DiffTitleButtonsTests
 
         Assert.All(narrow, button => Assert.Equal(0, button.KeyLength));
         Assert.All(narrow, button => Assert.Contains(button.View, keyed));
-        Assert.Equal([" view ▾ ", " zoom "], narrow.Select(button => button.Label));
+        Assert.Equal([" hunk › ", " view ▾ "], narrow.Select(button => button.Label));
     }
 
     [Fact]
@@ -300,11 +327,11 @@ public class DiffTitleButtonsTests
         var title = DiffPaneRenderer.RenderTitle(new DiffPaneModel(DiffDocument.Empty, 0, 0, true), 300, glyphs);
 
         Assert.Equal(300, TextWidth.Of(title.Text));
-        Assert.Equal(6, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTabKey));
+        Assert.Equal(5, title.Segments.Count(segment => segment.Role == SegmentRole.RepositoryTabKey));
         Assert.All(buttons, button =>
             Assert.Equal(ButtonLabel.For(button.Label, isAscii), title.Text.Substring(button.Start, button.Width)));
         Assert.Contains(
             title.Segments,
-            segment => segment.Text == "<space>z" && segment.Role == SegmentRole.RepositoryTabKey);
+            segment => segment.Text == "<space>vv" && segment.Role == SegmentRole.RepositoryTabKey);
     }
 }
