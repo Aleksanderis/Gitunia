@@ -11,6 +11,7 @@ public class PromptPopupTrackerTests
     private PromptPopup? _popup;
     private ScreenSize _size = new(120, 36);
     private int _shows;
+    private bool _overlayOpen;
     private PromptPopupTracker? _tracker;
 
     [Fact]
@@ -52,6 +53,32 @@ public class PromptPopupTrackerTests
     }
 
     [Fact]
+    public void GivenAnotherOverlayIsShown_WhenTheScreenIsResized_ThenItIsDrawnAgain()
+    {
+        var tracker = Tracker();
+        _overlayOpen = true;
+        tracker.MarkShown(true);
+
+        _size = new ScreenSize(50, 20);
+        tracker.Sync();
+        tracker.Sync();
+
+        Assert.Equal(1, _shows);
+    }
+
+    [Fact]
+    public void GivenNoOverlayIsShown_WhenTheScreenIsResized_ThenNothingIsDrawn()
+    {
+        var tracker = Tracker();
+        tracker.MarkShown(false);
+
+        _size = new ScreenSize(50, 20);
+        tracker.Sync();
+
+        Assert.Equal(0, _shows);
+    }
+
+    [Fact]
     public void GivenAShownPopup_WhenItCloses_ThenTheLayerIsRedrawn()
     {
         var tracker = Tracker();
@@ -73,6 +100,6 @@ public class PromptPopupTrackerTests
     private void Show()
     {
         _shows++;
-        _tracker!.MarkShown();
+        _tracker!.MarkShown(_overlayOpen);
     }
 }

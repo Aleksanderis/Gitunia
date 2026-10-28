@@ -727,13 +727,14 @@ public sealed class TuiApplication(
 
     private void ShowOverlayFrame()
     {
-        _popups.MarkShown();
         var overlay = _settings.CurrentFrame()
             ?? _conflictEditor.CurrentFrame()
             ?? _rebaseEditor.CurrentFrame()
             ?? _reflog.CurrentFrame()
             ?? _overlays.CurrentFrame();
-        _view.Overlay.Show(overlay ?? MainlineFrame() ?? PopupFrame());
+        var frame = overlay ?? MainlineFrame() ?? PopupFrame();
+        _popups.MarkShown(frame is not null);
+        _view.Overlay.Show(frame);
     }
 
     private PromptPopup? CurrentPopup() =>
