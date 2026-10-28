@@ -37,6 +37,10 @@ public static class ThemeFileParser
     private const double BlueLuminance = 0.0722;
     private const double LinearThreshold = 0.03928;
     private const double LinearDivisor = 12.92;
+    private const double ChannelMaximum = 255.0;
+    private const double GammaOffset = 0.055;
+    private const double GammaScale = 1.055;
+    private const double GammaExponent = 2.4;
     private static readonly int[] ChannelShifts = [16, 8, 0];
     private const char HexPrefix = '#';
 
@@ -232,9 +236,11 @@ public static class ThemeFileParser
 
     private static double Linear(int channel)
     {
-        var value = channel / 255.0;
+        var value = channel / ChannelMaximum;
 
-        return value <= LinearThreshold ? value / LinearDivisor : Math.Pow((value + 0.055) / 1.055, 2.4);
+        return value <= LinearThreshold
+            ? value / LinearDivisor
+            : Math.Pow((value + GammaOffset) / GammaScale, GammaExponent);
     }
 
     private static void FillDefaults(Dictionary<string, int> colors)

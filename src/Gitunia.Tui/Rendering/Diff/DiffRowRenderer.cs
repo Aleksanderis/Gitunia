@@ -59,7 +59,14 @@ public static class DiffRowRenderer
                 break;
             default:
                 AppendChange(
-                    builder, row, width, gutterDigits, highlight, jump, showWhitespace ? glyphs : null, changes);
+                    builder,
+                    row,
+                    width,
+                    gutterDigits,
+                    highlight,
+                    jump,
+                    showWhitespace ? glyphs : null,
+                    changes);
                 break;
         }
 

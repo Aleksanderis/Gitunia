@@ -19,6 +19,7 @@ internal static class ChangedText
         if (changes is not { Count: > 0 })
         {
             builder.Append(text, role);
+
             return;
         }
 

@@ -78,6 +78,34 @@ public class DiffWordHighlightsTests
         Assert.Empty(DiffWordHighlights.ChangesOf(document, DiffWordHighlights.MaximumRunLength + 5));
     }
 
+    [Fact]
+    public void GivenTwoLongRuns_WhenAskingForChanges_ThenNoRowOfThemIsPairedNearItsEndsOrInTheMiddle()
+    {
+        var length = DiffWordHighlights.MaximumRunLength + 1;
+        var rows = Enumerable.Range(0, length).Select(index => Removed($"line {index}"))
+            .Concat(Enumerable.Range(0, length).Select(index => Added($"line {index}x")))
+            .ToArray();
+
+        Assert.Equal(-1, DiffWordHighlights.PartnerOf(rows, 0));
+        Assert.Equal(-1, DiffWordHighlights.PartnerOf(rows, length / 2));
+        Assert.Equal(-1, DiffWordHighlights.PartnerOf(rows, length - 1));
+        Assert.Equal(-1, DiffWordHighlights.PartnerOf(rows, length + length / 2));
+    }
+
+    [Fact]
+    public void GivenARunAtTheLimit_WhenAskingForChanges_ThenEveryRowIsPaired()
+    {
+        var length = DiffWordHighlights.MaximumRunLength;
+        var rows = Enumerable.Range(0, length).Select(index => Removed($"line {index}"))
+            .Concat(Enumerable.Range(0, length).Select(index => Added($"line {index}x")))
+            .ToArray();
+
+        Assert.Equal(length, DiffWordHighlights.PartnerOf(rows, 0));
+        Assert.Equal(length + (length / 2), DiffWordHighlights.PartnerOf(rows, length / 2));
+        Assert.Equal((2 * length) - 1, DiffWordHighlights.PartnerOf(rows, length - 1));
+        Assert.Equal(length / 2, DiffWordHighlights.PartnerOf(rows, length + (length / 2)));
+    }
+
     private static DiffRow Removed(string text) => new(DiffRowKind.Removed, text, 1, null, 0);
 
     private static DiffRow Added(string text) => new(DiffRowKind.Added, text, null, 1, 0);

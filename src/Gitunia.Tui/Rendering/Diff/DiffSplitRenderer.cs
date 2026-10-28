@@ -170,7 +170,10 @@ public static class DiffSplitRenderer
         {
             var cut = DiffRowRenderer.CutToWidth(row.Text, columns);
             var shown = DiffRowRenderer.Expand(
-                cut, showWhitespace ? glyphs : null, cut.Length != row.Text.Length, changes);
+                cut,
+                showWhitespace ? glyphs : null,
+                cut.Length != row.Text.Length,
+                changes);
             AppendText(builder, shown.Text, role, highlight, jump, shown.Cells, 0);
         }
 

@@ -7,7 +7,7 @@ namespace Gitunia.Core.Diff;
 /// </summary>
 public static class DiffWordHighlights
 {
-    /// <summary>Longest run of changed rows searched for a partner; a longer run gets no word highlight.</summary>
+    /// <summary>Longest run of removed or added rows that is paired; a longer run gets no word highlight at all.</summary>
     public const int MaximumRunLength = 2000;
 
     /// <summary>The changed stretches of the text of <paramref name="row"/>; empty when it has no partner.</summary>
@@ -37,34 +37,37 @@ public static class DiffWordHighlights
     public static int PartnerOf(IReadOnlyList<DiffRow> rows, int row)
     {
         var kind = rows[row].Kind;
-        var start = RunStart(rows, row, kind);
-        if (start < 0)
+        if (RunAround(rows, row, kind) is not { } run)
         {
             return -1;
         }
 
-        var offset = row - start;
+        var offset = row - run.Start;
         if (kind == DiffRowKind.Removed)
         {
-            var addedStart = RunEnd(rows, row, kind);
+            if (run.End >= rows.Count || rows[run.End].Kind != DiffRowKind.Added)
+            {
+                return -1;
+            }
 
-            return addedStart >= 0 && IsRun(rows, addedStart, offset + 1, DiffRowKind.Added)
-                ? addedStart + offset
-                : -1;
+            var added = RunAround(rows, run.End, DiffRowKind.Added);
+
+            return added is { } following && offset < following.End - following.Start ? following.Start + offset : -1;
         }
 
-        if (start == 0 || rows[start - 1].Kind != DiffRowKind.Removed)
+        if (run.Start == 0 || rows[run.Start - 1].Kind != DiffRowKind.Removed)
         {
             return -1;
         }
 
-        var removedStart = RunStart(rows, start - 1, DiffRowKind.Removed);
+        var removed = RunAround(rows, run.Start - 1, DiffRowKind.Removed);
 
-        return removedStart >= 0 && removedStart + offset < start ? removedStart + offset : -1;
+        return removed is { } preceding && offset < preceding.End - preceding.Start ? preceding.Start + offset : -1;
     }
 
-    // First row of the run of rows of one kind that contains row; -1 when the run is longer than the limit.
-    private static int RunStart(IReadOnlyList<DiffRow> rows, int row, DiffRowKind kind)
+    // The run of rows of one kind that contains row; null when the whole run is longer than the limit, so a long run
+    // is left alone from its first row to its last.
+    private static RunBounds? RunAround(IReadOnlyList<DiffRow> rows, int row, DiffRowKind kind)
     {
         var start = row;
         while (start > 0 && rows[start - 1].Kind == kind)
@@ -72,44 +75,22 @@ public static class DiffWordHighlights
             start--;
             if (row - start > MaximumRunLength)
             {
-                return -1;
+                return null;
             }
         }
 
-        return start;
-    }
-
-    // The row after the run that contains row; -1 when the run is longer than the limit.
-    private static int RunEnd(IReadOnlyList<DiffRow> rows, int row, DiffRowKind kind)
-    {
         var end = row + 1;
         while (end < rows.Count && rows[end].Kind == kind)
         {
             end++;
             if (end - row > MaximumRunLength)
             {
-                return -1;
+                return null;
             }
         }
 
-        return end;
+        return end - start > MaximumRunLength ? null : new RunBounds(start, end);
     }
 
-    private static bool IsRun(IReadOnlyList<DiffRow> rows, int start, int count, DiffRowKind kind)
-    {
-        if (start + count > rows.Count)
-        {
-            return false;
-        }
-
-        for (var index = start; index < start + count; index++)
-        {
-            if (rows[index].Kind != kind)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
+    private readonly record struct RunBounds(int Start, int End);
 }
