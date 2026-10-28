@@ -586,6 +586,34 @@ public class ConflictEditorFrameBuilderTests
     }
 
     [Fact]
+    public void GivenStackedSidesWithBase_WhenSidesChangeTheBase_ThenTheBaseWordsAreMarked()
+    {
+        var state = State(
+            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
+            + "int total = amount + 1;\n>>>>>>> feature\n").ToggleBase();
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 70, 40, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.Contains(frame.Lines, line => line.Text.Contains("base  common", StringComparison.Ordinal));
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "0");
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+    }
+
+    [Fact]
+    public void GivenBothSidesMakeTheSameEdit_WhenRendering_ThenNoPaneMarksWords()
+    {
+        var state = State(
+            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0 + 1;\n=======\n"
+            + "int total = count + 1;\n>>>>>>> feature\n");
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.DoesNotContain(segments, segment => segment.Role is SegmentRole.DiffRemovedWord or SegmentRole.DiffAddedWord);
+    }
+
+    [Fact]
     public void GivenNoBaseShown_WhenSidesDiffer_ThenWordsAreComparedBetweenOursAndTheirs()
     {
         var state = State(

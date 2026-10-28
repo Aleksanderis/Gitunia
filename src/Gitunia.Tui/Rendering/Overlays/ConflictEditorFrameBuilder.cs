@@ -341,7 +341,7 @@ public static class ConflictEditorFrameBuilder
                 baseCell,
                 common.TextAt(line),
                 common.RoleAt(line, plan),
-                common.BaseChangesAt(line, ours, theirs),
+                common.BaseChangesAt(line, ours, theirs, plan),
                 SegmentRole.DiffRemovedWord);
             lines.Add(JoinedThree(
                 baseCell.Build(),
@@ -512,7 +512,7 @@ public static class ConflictEditorFrameBuilder
                 builder,
                 side.TextAt(line),
                 side.RoleAt(line, plan),
-                side.BaseChangesAt(line, ours, theirs),
+                side.BaseChangesAt(line, ours, theirs, plan),
                 SegmentRole.DiffRemovedWord);
             lines.Add(OverlayBox.Wrap(builder.Build(), glyphs));
         }
@@ -808,7 +808,7 @@ public static class ConflictEditorFrameBuilder
 
             if (Base is { IsEmpty: false } reference)
             {
-                return line < reference.Lines.Count ? ChangesAgainst(reference.Lines[line], line) : [];
+                return line < reference.Lines.Count ? WordDiff.Compare(reference.Lines[line], Lines[line]).New : [];
             }
 
             if (other.IsEmpty || line >= other.Lines.Count)
@@ -824,9 +824,9 @@ public static class ConflictEditorFrameBuilder
         }
 
         // On the base side: the words of this line that ours or theirs changed.
-        public IReadOnlyList<ChangedSpan> BaseChangesAt(int line, SideText ours, SideText theirs)
+        public IReadOnlyList<ChangedSpan> BaseChangesAt(int line, SideText ours, SideText theirs, Plan plan)
         {
-            if (IsEmpty || line >= Lines.Count)
+            if (!IsDifferent(line, plan))
             {
                 return [];
             }
@@ -839,13 +839,6 @@ public static class ConflictEditorFrameBuilder
                 : [];
 
             return ChangedSpan.Union(fromOurs, fromTheirs);
-        }
-
-        private IReadOnlyList<ChangedSpan> ChangesAgainst(string baseLine, int line)
-        {
-            var result = WordDiff.Compare(baseLine, Lines[line]);
-
-            return result.New;
         }
 
         private bool IsDifferent(int line, Plan plan) =>
