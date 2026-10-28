@@ -163,6 +163,8 @@ public sealed class TuiApplication(
     /// <param name="location">A repository to open on top of the restored session, null for none.</param>
     public int Run(RepositoryLocation? location)
     {
+        // First of all: the background query below makes .NET switch the terminal to no-echo, line-less input.
+        _terminalHandOff = new TerminalHandOff(CaptureTerminalModes());
         _homeDirectory = HomeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _startupConfig = new ConfigStartup(platform.ConfigDirectory, _homeDirectory).Load();
         _chipKeys = new ChipKeys(_startupConfig.Keymap.Table);
@@ -179,7 +181,6 @@ public sealed class TuiApplication(
         var store = new SessionStore(platform.StateDirectory);
         var restored = store.LoadAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-        _terminalHandOff = new TerminalHandOff(CaptureTerminalModes());
         Application.MaximumIterationsPerSecond = IterationsPerSecond;
         CreateApplication();
         _uiInvoker = new SuspendableUiInvoker(_application.Invoke);
