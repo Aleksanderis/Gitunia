@@ -222,4 +222,25 @@ public class PickerComposerTests
             segment => segment.Text == "Alt-c" && segment.Role == SegmentRole.RepositoryTabKey);
         Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.Button);
     }
+
+    [Fact]
+    public void GivenTheMinimumWidth_WhenComposing_ThenTheHintTextIsNotCutAndOneColumnLessHasNoChips()
+    {
+        var picker = new PickerState(string.Empty, 0, [], string.Empty, null);
+        var starts = PathDisplay.PathStartsHint(OperatingSystem.IsWindows());
+
+        var atMinimum = PickerComposer.Compose(picker, Home, PickerHeaderButtons.MinimumWidth, 6, GraphGlyphSet.Unicode);
+        var below = PickerComposer.Compose(picker, Home, PickerHeaderButtons.MinimumWidth - 1, 6, GraphGlyphSet.Unicode);
+
+        Assert.Contains($"{starts} (Tab accepts)", atMinimum[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.Contains("Alt-c clone", atMinimum[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alt-c", below[PickerHeaderButtons.Row].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenTheRowMinimumWidth_WhenLayingOutTheChips_ThenTheyShowFromThereAndNotBelow()
+    {
+        Assert.NotEmpty(PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), PickerRowButtons.MinimumWidth));
+        Assert.Empty(PickerRowButtons.Layout(Row("alpha", PickerTags.Recent), PickerRowButtons.MinimumWidth - 1));
+    }
 }

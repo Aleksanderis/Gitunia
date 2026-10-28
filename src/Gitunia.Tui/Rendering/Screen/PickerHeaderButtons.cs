@@ -15,7 +15,7 @@ public static class PickerHeaderButtons
     public const int Row = 1;
 
     /// <summary>Screens narrower than this show no buttons; the hint text needs the room before.</summary>
-    public const int MinimumWidth = 84;
+    public const int MinimumWidth = 94;
 
     /// <summary>
     /// The chips on a line of <paramref name="width"/> columns, left to right (key first, then the action), with a
