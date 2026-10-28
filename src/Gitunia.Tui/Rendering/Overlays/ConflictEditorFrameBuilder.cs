@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Rendering.Overlays;
 /// <summary>
 /// Lays out the conflict editor (ux.md, workflow 4, "Conflict editor"): the hunk under the cursor with our side and
 /// their side next to each other, the result below it, a strip that marks every hunk as resolved or not, clickable
-/// chips and a footer. A frame of <see cref="ThreePaneFromWidth"/> columns or more shows ours, the base and theirs
+/// chips and a footer. A frame of <see cref="ThreePaneFromWidth"/> columns or more shows the base, ours and theirs
 /// side by side; a narrower one draws the two sides and the base below them on demand (<c>B</c>), and a frame narrower
 /// than <see cref="StackedBelowWidth"/> stacks the two sides above the result.
 /// </summary>
@@ -319,8 +319,8 @@ public static class ConflictEditorFrameBuilder
         var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
         var common = hunk.Base is null ? new SideText([NoBasePaneText], true) : SideText.Of(hunk.Base);
         lines.Add(JoinedThree(
-            Cell(SideTitle("ours", hunk.OursLabel, ours, plan), oursWidth, SegmentRole.LocalBranch, glyphs),
             Cell(SideTitle("base", "common ancestor", common, plan), baseWidth, SegmentRole.SectionTitle, glyphs),
+            Cell(SideTitle("ours", hunk.OursLabel, ours, plan), oursWidth, SegmentRole.LocalBranch, glyphs),
             Cell(SideTitle("theirs", hunk.TheirsLabel, theirs, plan), theirsWidth, SegmentRole.RemoteBranch, glyphs),
             divider,
             inner,
@@ -334,8 +334,8 @@ public static class ConflictEditorFrameBuilder
                 .Append(common.TextAt(line), common.RoleAt(line, plan))
                 .Build();
             lines.Add(JoinedThree(
-                NumberedCell(ours, line, oursWidth, plan, glyphs),
                 baseCell,
+                NumberedCell(ours, line, oursWidth, plan, glyphs),
                 NumberedCell(theirs, line, theirsWidth, plan, glyphs),
                 divider,
                 inner,
