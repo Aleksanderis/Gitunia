@@ -47,7 +47,7 @@ public class ChangesTreeTests
                 "  D readme.md",
                 "src/",
                 "  deep/",
-                "    R90 old/x.cs -> x.cs",
+                "    R old/x.cs -> x.cs",
                 "  M a.cs",
                 "  A b.cs",
                 "M top.txt",
@@ -73,7 +73,7 @@ public class ChangesTreeTests
         var content = DetailContentBuilder.Build(entry, state, BottomTab.Changes, null, FilePathStyle.Tree);
 
         Assert.Equal(
-            "  R100 old.cs -> new.cs",
+            "  R old.cs -> new.cs",
             string.Concat(content.Rows[2].Segments.Select(segment => segment.Text)));
     }
 

@@ -29,7 +29,7 @@ public static class HelpBuilder
                 .Select(group => (
                     Group: ActionCatalog.GroupOf(group.Key),
                     Row: new HelpRow(
-                        string.Join(" / ", group.Select(binding => KeyFormatter.Format(binding.Sequence))),
+                        string.Join(" / ", group.Select(binding => KeyFormatter.Display(binding.Sequence))),
                         ActionCatalog.Describe(group.Key))))
                 .ToList();
             if (rows.Count == 0)

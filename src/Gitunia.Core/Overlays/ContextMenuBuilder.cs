@@ -35,7 +35,7 @@ public static class ContextMenuBuilder
             entries.Add(new PaletteEntry(
                 action,
                 ActionCatalog.Describe(action),
-                KeyFormatter.Format(binding.Sequence),
+                KeyFormatter.Display(binding.Sequence),
                 !ActionCatalog.Unimplemented.Contains(action),
                 ActionCatalog.GroupOf(action)?.Header));
         }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Overlays;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Screen;
@@ -36,7 +37,7 @@ public static class WhichKeyFrameBuilder
         var wanted = OverlayBox.BorderWidth + 2 + keysWidth + KeyGap + descriptionWidth + 1;
         var width = Math.Clamp(wanted, OverlayBox.MinimumWidth, Math.Min(MaximumWidth, screenWidth));
 
-        var lines = new List<StyledLine> { OverlayBox.Title($"{pending}-", width, glyphs) };
+        var lines = new List<StyledLine> { OverlayBox.Title(KeyFormatter.BreakLigatures($"{pending}-"), width, glyphs) };
         for (var index = 0; index < shown.Count; index++)
         {
             if (withRule && index == firstGroup)

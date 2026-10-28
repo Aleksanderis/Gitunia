@@ -108,7 +108,7 @@ public class SettingsReducerTests
         Assert.Equal(
             [SettingRowKind.Setting, .. Enumerable.Repeat(SettingRowKind.Option, ThemeOptionCount)],
             outcome.State.Rows.Select(row => row.Kind));
-        Assert.Equal(2, outcome.State.Selected?.Index);
+        Assert.Equal(4, outcome.State.Selected?.Index);
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public class SettingsReducerTests
 
         var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Activate);
 
-        Assert.Equal("light", outcome.Commit?.Value.Choice);
+        Assert.Equal("catppuccin-macchiato", outcome.Commit?.Value.Choice);
         Assert.Null(outcome.State.Choice);
         Assert.Equal(SettingRowKind.Setting, outcome.State.Selected?.Kind);
     }
@@ -129,22 +129,33 @@ public class SettingsReducerTests
         var opened = Reduce(Open().Reveal(Definition(SettingsRegistry.ThemeId)), SettingsCommandKind.Activate).State;
 
         Assert.Equal(ThemeChoice.Auto, opened.PreviewTheme);
-        Assert.Equal(ThemeChoice.Dark, opened.MoveTo(2).PreviewTheme);
-        Assert.Equal(ThemeChoice.Light, opened.MoveTo(3).PreviewTheme);
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), opened.MoveTo(2).PreviewTheme);
+        Assert.Equal(ThemeChoice.FromText("catppuccin-macchiato"), opened.MoveTo(3).PreviewTheme);
         Assert.Null(Reduce(opened.MoveTo(3), SettingsCommandKind.Back).State.PreviewTheme);
     }
 
     [Fact]
-    public void GivenTheThemeOptions_WhenKeepingLight_ThenTheCommitWritesTheThemeKey()
+    public void GivenALegacyDarkConfig_WhenOpeningTheThemeList_ThenTheCursorIsOnCatppuccinMocha()
+    {
+        var closed = Open("{ \"theme\": \"dark\" }").Reveal(Definition(SettingsRegistry.ThemeId));
+
+        var opened = Reduce(closed, SettingsCommandKind.Activate).State;
+
+        Assert.Equal(1, opened.Selected?.Index);
+        Assert.Equal(ThemeChoice.FromText(ThemeChoice.MochaName), opened.PreviewTheme);
+    }
+
+    [Fact]
+    public void GivenTheThemeOptions_WhenKeepingAnotherTheme_ThenTheCommitWritesTheThemeKey()
     {
         var closed = Open("{ \"theme\": \"dark\" }").Reveal(Definition(SettingsRegistry.ThemeId));
         var opened = Reduce(closed, SettingsCommandKind.Activate).State;
-        Assert.Equal(ThemeChoice.Dark, opened.PreviewTheme);
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), opened.PreviewTheme);
 
         var outcome = Reduce(opened.MoveTo(3), SettingsCommandKind.Activate);
 
         Assert.Equal(["theme"], outcome.Commit?.Definition.ConfigPath);
-        Assert.Equal("\"light\"", outcome.Commit?.Value.ToJson(SettingControl.Choice));
+        Assert.Equal("\"catppuccin-macchiato\"", outcome.Commit?.Value.ToJson(SettingControl.Choice));
         Assert.Null(outcome.State.PreviewTheme);
     }
 

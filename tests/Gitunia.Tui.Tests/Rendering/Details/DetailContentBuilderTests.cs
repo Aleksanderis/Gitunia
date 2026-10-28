@@ -247,7 +247,7 @@ public class DetailContentBuilderTests
                 "3 files changed",
                 "M src/a.cs",
                 "A new.txt",
-                "R90 a.txt -> b ünï.txt",
+                "R a.txt -> b ünï.txt",
             ],
             Lines(content));
         Assert.Equal(1, content.FirstFileRow);
