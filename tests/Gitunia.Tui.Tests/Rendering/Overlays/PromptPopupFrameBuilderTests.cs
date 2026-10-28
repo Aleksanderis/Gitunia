@@ -117,7 +117,8 @@ public class PromptPopupFrameBuilderTests
         Assert.True(frame.Lines.Count <= screenHeight - 2);
         Assert.Contains("> branch6", text, StringComparison.Ordinal);
         Assert.Equal(hasPosition, text.Contains("(7/20)", StringComparison.Ordinal));
-        Assert.Equal(expectedRows, frame.Lines.Count(line => line.Text.Contains("branch", StringComparison.Ordinal) && line.Text.Any(char.IsDigit)));
+        var branchRows = frame.Lines.Where(line => line.Text.Contains("branch", StringComparison.Ordinal));
+        Assert.Equal(expectedRows, branchRows.Count(line => line.Text.Any(char.IsDigit)));
     }
 
     [Theory]
