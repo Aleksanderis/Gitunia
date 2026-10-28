@@ -228,7 +228,7 @@ public class TagActionsTests
 
         harness.Run(ActionIds.TagPush);
         await harness.PumpUntilAsync(() => PopupText.Of(harness.Tags).Length > 0);
-        Assert.Contains("origin (1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
+        Assert.Contains("> origin\n(1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);
         await harness.FinishAsync();
 
@@ -264,7 +264,7 @@ public class TagActionsTests
         Assert.Contains("(1/2)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Type("back");
 
-        Assert.Contains("backup (1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
+        Assert.Contains("> backup\n(1/1)", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Type("zzz");
         Assert.Contains("No matching remote", PopupText.Of(harness.Tags), StringComparison.Ordinal);
         harness.Run(ActionIds.InputAccept);

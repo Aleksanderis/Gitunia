@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -68,8 +67,7 @@ public sealed class PushActions(
     private string _chosenRemote = string.Empty;
     private IReadOnlyList<RemoteBranchRef> _branches = [];
     private IReadOnlyList<string> _options = [];
-    private List<string> _candidates = [];
-    private int _index;
+    private readonly FilterPicker<string> _picker = new();
     private string? _directName;
 
     public string Notice { get; private set; } = string.Empty;
@@ -82,7 +80,7 @@ public sealed class PushActions(
         {
             PushPromptKind.FirstPushRemote => FilterPopup("Push and set upstream", $"Remote to push {_branch} to"),
             PushPromptKind.DeleteRemote => FilterPopup("Delete remote branch", "Remote to delete a branch from"),
-            _ => FilterPopup("Delete remote branch", $"Type to filter, Enter picks the branch to delete on {_chosenRemote}"),
+            _ => FilterPopup("Delete remote branch", $"Branch to delete on {_chosenRemote}"),
         };
 
     public bool TryExecute(ActionId action, int? count)
@@ -145,7 +143,7 @@ public sealed class PushActions(
         var normalized = key.Normalize();
         if (IsMove(normalized, out var step))
         {
-            _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
+            _picker.Move(step);
         }
         else if (PromptTextEditor.Apply(_text, key) is { } edited && edited != _text)
         {
@@ -392,12 +390,11 @@ public sealed class PushActions(
             return string.Empty;
         }
 
-        if (_index >= _candidates.Count)
+        if (!_picker.TryGetSelected(out var chosen))
         {
             return "No match";
         }
 
-        var chosen = _candidates[_index];
         var kind = _kind;
         Close();
         if (kind == PushPromptKind.FirstPushRemote)
@@ -499,30 +496,11 @@ public sealed class PushActions(
         }
     }
 
-    private void RefreshCandidates()
-    {
-        var pattern = _text.Trim();
-        _candidates =
-        [
-            .. _options
-                .Where(option => PickerMatcher.Score(pattern, option) is not null)
-                .OrderByDescending(option => PickerMatcher.Score(pattern, option)),
-        ];
-        _index = 0;
-    }
+    private void RefreshCandidates() =>
+        _picker.Filter(_options, _text, option => option, PickerMatcher.Score);
 
-    private PromptPopup FilterPopup(string title, string context)
-    {
-        var detail = "No match";
-        if (_index < _candidates.Count)
-        {
-            var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-            var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-            detail = $"{_candidates[_index]} ({position}/{total})";
-        }
-
-        return PromptPopup.ForFilter(title, context, _text, detail, "choose");
-    }
+    private PromptPopup FilterPopup(string title, string context) =>
+        _picker.ToPopup(title, context, _text, "choose", option => option, "No match");
 
     private sealed record RemoteBranchRef(RemoteBranchName Name, string CommitHash);
 }

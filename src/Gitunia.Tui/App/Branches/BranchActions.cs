@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.Core.Branches;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -65,8 +64,8 @@ public sealed class BranchActions(
     private string _startPoint = string.Empty;
     private string _label = string.Empty;
     private string? _commitHash;
-    private IReadOnlyList<SwitchCandidate> _candidates = [];
-    private int _index;
+    private readonly FilterPicker<SwitchCandidate> _picker = new();
+    private int _deleteIndex;
     private IReadOnlySet<string>? _onlyBranches;
     private List<string> _deleteNames = [];
 
@@ -85,9 +84,20 @@ public sealed class BranchActions(
                 "create"),
             BranchPromptKind.Rename => PromptPopup.ForText("Rename branch", _label, _text, "rename"),
             BranchPromptKind.Delete => DeletePopup(),
-            BranchPromptKind.Upstream => PromptPopup.ForFilter(
-                "Set upstream", $"Upstream of {_label}", _text, UpstreamDetail(), "set"),
-            _ => PromptPopup.ForFilter("Switch branch", "Branch to check out", _text, SwitchDetail(), "switch"),
+            BranchPromptKind.Upstream => _picker.ToPopup(
+                "Set upstream",
+                $"Upstream of {_label}",
+                _text,
+                "set",
+                candidate => candidate.Label,
+                "No matching remote branch"),
+            _ => _picker.ToPopup(
+                "Switch branch",
+                "Branch to check out",
+                _text,
+                "switch",
+                SwitchRow,
+                "No matching branch"),
         };
 
     public bool TryExecute(ActionId action, int? count)
@@ -166,12 +176,12 @@ public sealed class BranchActions(
             // A list without a text field: j/k/h/l and the arrows move, so no letter is swallowed by a filter.
             if (IsMove(normalized, out var move) || IsLetterMove(normalized, out move))
             {
-                _index = (_index + move + _deleteNames.Count) % _deleteNames.Count;
+                _deleteIndex = (_deleteIndex + move + _deleteNames.Count) % _deleteNames.Count;
             }
         }
         else if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && IsMove(normalized, out var step))
         {
-            _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
+            _picker.Move(step);
         }
         else if (PromptTextEditor.Apply(_text, key) is { } edited && edited != _text)
         {
@@ -493,17 +503,15 @@ public sealed class BranchActions(
         return string.Empty;
     }
 
-    private string UpstreamDetail() => CandidateDetail("No matching remote branch");
-
     private string AcceptUpstream(RepositoryState tab)
     {
-        if (_index >= _candidates.Count)
+        if (!_picker.TryGetSelected(out var candidate))
         {
             return "No matching remote branch";
         }
 
         var name = _label;
-        var upstream = _candidates[_index].Target;
+        var upstream = candidate.Target;
         Start(tab, "Could not set the upstream", async token =>
         {
             await writer.SetUpstreamAsync(tab.Location, name, $"{GitRefPrefixes.Remotes}{upstream}", token).ConfigureAwait(false);
@@ -515,25 +523,15 @@ public sealed class BranchActions(
     private void RefreshCandidates()
     {
         var refs = host.Workspace.FindTab(_tabId)?.Refs ?? [];
-        _candidates = _kind == BranchPromptKind.Upstream
+        _picker.Reset(_kind == BranchPromptKind.Upstream
             ? SwitchCandidates.BuildRemote(refs, _text)
-            : SwitchCandidates.Build(refs, _commitHash, _text, _onlyBranches);
-        _index = 0;
+            : SwitchCandidates.Build(refs, _commitHash, _text, _onlyBranches));
     }
 
-    private string SwitchDetail() => CandidateDetail("No matching branch");
-
-    private string CandidateDetail(string none)
-    {
-        if (_index >= _candidates.Count)
-        {
-            return none;
-        }
-
-        var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-        var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-        return $"{_candidates[_index].Label} ({position}/{total})";
-    }
+    // A remote branch is checked out as a local branch of the same name without the remote prefix: say so up front.
+    private static string SwitchRow(SwitchCandidate candidate) => candidate.Kind == SwitchTargetKind.RemoteBranch
+        ? $"{candidate.Label} -> local {SwitchCandidates.LocalNameOf(candidate.Target)}"
+        : candidate.Label;
 
     // Finds the local branch a rename or a delete acts on, or returns why there is none.
     private string? ResolveLocalBranch(RepositoryState tab, out GitRef? branch)
@@ -634,12 +632,9 @@ public sealed class BranchActions(
 
     private string AcceptSwitch(RepositoryState tab)
     {
-        if (_index >= _candidates.Count)
-        {
-            return "No matching branch";
-        }
-
-        return CheckoutCandidate(tab, _candidates[_index]);
+        return _picker.TryGetSelected(out var candidate)
+            ? CheckoutCandidate(tab, candidate)
+            : "No matching branch";
     }
 
     private string CheckoutCandidate(RepositoryState tab, SwitchCandidate candidate)
@@ -703,7 +698,7 @@ public sealed class BranchActions(
         if (names.Count > 1)
         {
             _deleteNames = names;
-            _index = 0;
+            _deleteIndex = 0;
             _label = chosen.RowKind == SidebarRowKind.Folder
                 ? $"{chosen.Name}/"
                 : ShortHash(chosen.CommitHash ?? string.Empty);
@@ -742,13 +737,8 @@ public sealed class BranchActions(
 
     private PromptPopup DeletePopup()
     {
-        const int visible = 8;
-        var first = Math.Clamp(_index - visible / 2, 0, Math.Max(0, _deleteNames.Count - visible));
-        var rows = _deleteNames.Skip(first).Take(visible)
-            .Select((name, offset) => $"{(first + offset == _index ? "> " : "  ")}{name}")
-            .ToList();
-        var position = $"({(_index + 1).ToString(CultureInfo.InvariantCulture)}/" +
-            $"{_deleteNames.Count.ToString(CultureInfo.InvariantCulture)})";
+        var rows = PickerRows.Window(_deleteNames, _deleteIndex);
+        var position = PickerRows.Position(_deleteIndex, _deleteNames.Count);
         return new PromptPopup(
             "Delete branch",
             [$"Branch to delete at {_label} {position}"],
@@ -759,7 +749,7 @@ public sealed class BranchActions(
 
     private string AcceptDelete(RepositoryState tab)
     {
-        var name = _index < _deleteNames.Count ? _deleteNames[_index] : null;
+        var name = _deleteIndex < _deleteNames.Count ? _deleteNames[_deleteIndex] : null;
         var branch = tab.Refs.FirstOrDefault(reference => name is not null && IsLocal(reference, name));
         return branch is null ? "That branch is gone: nothing was deleted" : AskDelete(tab, branch);
     }

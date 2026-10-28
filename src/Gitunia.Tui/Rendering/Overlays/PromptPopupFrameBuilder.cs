@@ -15,6 +15,7 @@ public static class PromptPopupFrameBuilder
     private const int MaximumWidth = 96;
     private const int MinimumPopupWidth = 64;
     private const int ScreenMargin = 2;
+    private const int FooterLines = 3;
     private const string Marker = "> ";
     private const string Cursor = "_";
 
@@ -46,7 +47,9 @@ public static class PromptPopupFrameBuilder
             lines.Add(InputRow(input, textWidth, width, glyphs));
         }
 
-        lines.AddRange(prompt.Details.Select(detail => OverlayBox.Text(detail, width, glyphs)));
+        var fixedLines = lines.Count + FooterLines;
+        var rowRoom = screenHeight - ScreenMargin - fixedLines;
+        lines.AddRange(FitRows(prompt.Details, rowRoom).Select(detail => OverlayBox.Text(detail, width, glyphs)));
         lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         lines.Add(OverlayBox.Text(prompt.Hint, width, glyphs, SegmentRole.Faint));
         lines.Add(OverlayBox.Bottom(width, glyphs));
@@ -56,6 +59,36 @@ public static class PromptPopupFrameBuilder
         }
 
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
+    }
+
+    // On a short screen a candidate list shrinks around the highlighted row (marked "> ") instead of making the popup
+    // not fit: a prompt that is not drawn would still take Enter. A trailing "(n/m)" row is kept when two rows fit.
+    private static IReadOnlyList<string> FitRows(IReadOnlyList<string> rows, int room)
+    {
+        if (rows.Count <= room || rows.Count == 0)
+        {
+            return rows;
+        }
+
+        var marked = rows.ToList().FindIndex(row => row.StartsWith(PickerRows.Mark, StringComparison.Ordinal));
+        if (marked < 0)
+        {
+            return rows;
+        }
+
+        // Candidate rows start with two columns ("> " or spaces), so a row starting with a bracket is the position.
+        var hasPosition = rows[^1].StartsWith('(');
+        List<string> items = [.. rows.Take(hasPosition ? rows.Count - 1 : rows.Count)];
+        var keepPosition = hasPosition && room >= 2;
+        var size = Math.Max(1, room - (keepPosition ? 1 : 0));
+        var first = Math.Clamp(marked - (size / 2), 0, Math.Max(0, items.Count - size));
+        List<string> window = [.. items.Skip(first).Take(size)];
+        if (keepPosition)
+        {
+            window.Add(rows[^1]);
+        }
+
+        return window;
     }
 
     private static StyledLine InputRow(string input, int textWidth, int width, GraphGlyphSet glyphs)

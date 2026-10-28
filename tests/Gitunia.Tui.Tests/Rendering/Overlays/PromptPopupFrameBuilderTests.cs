@@ -79,14 +79,46 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenAFilterPrompt_WhenBuilding_ThenTheCandidateAndTheChooseKeysAreShown()
     {
-        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", "release (1/2)", "switch");
+        var rows = new[] { "> release", "  relay", "(1/2)" };
+        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", "rel", rows, "switch");
 
         var frame = PromptPopupFrameBuilder.Build(prompt, 80, 24, GraphGlyphSet.Ascii);
 
         Assert.NotNull(frame);
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
-        Assert.Contains("release (1/2)", text, StringComparison.Ordinal);
+        Assert.Contains("> release", text, StringComparison.Ordinal);
+        Assert.Contains("  relay", text, StringComparison.Ordinal);
+        Assert.Contains("Type filters   Up/Down select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
         Assert.Contains("Up/Down select", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(14, 5, true)]
+    [InlineData(10, 1, true)]
+    [InlineData(9, 1, false)]
+    public void GivenAFullCandidateListOnAShortScreen_WhenBuilding_ThenThePopupShrinksAroundTheHighlight(
+        int screenHeight,
+        int expectedRows,
+        bool hasPosition)
+    {
+        var rows = new List<string>();
+        for (var number = 0; number < 8; number++)
+        {
+            rows.Add($"{(number == 6 ? "> " : "  ")}branch{number}");
+        }
+
+        rows.Add("(7/20)");
+        var prompt = PromptPopup.ForFilter("Switch branch", "Branch", string.Empty, rows, "switch");
+
+        var frame = PromptPopupFrameBuilder.Build(prompt, 80, screenHeight, GraphGlyphSet.Ascii);
+
+        Assert.NotNull(frame);
+        var text = string.Join('\n', frame.Lines.Select(line => line.Text));
+        Assert.True(frame.Lines.Count <= screenHeight - 2);
+        Assert.Contains("> branch6", text, StringComparison.Ordinal);
+        Assert.Equal(hasPosition, text.Contains("(7/20)", StringComparison.Ordinal));
+        var branchRows = frame.Lines.Where(line => line.Text.Contains("branch", StringComparison.Ordinal));
+        Assert.Equal(expectedRows, branchRows.Count(line => line.Text.Any(char.IsDigit)));
     }
 
     [Theory]
@@ -103,9 +135,9 @@ public class PromptPopupFrameBuilderTests
     [Fact]
     public void GivenTwoPromptsWithTheSameText_WhenComparing_ThenTheyAreTheSameTextEvenWithOtherLists()
     {
-        var first = PromptPopup.ForFilter("T", "C", "x", "d", "ok");
-        var second = PromptPopup.ForFilter("T", "C", "x", "d", "ok");
-        var typed = PromptPopup.ForFilter("T", "C", "xy", "d", "ok");
+        var first = PromptPopup.ForFilter("T", "C", "x", ["d"], "ok");
+        var second = PromptPopup.ForFilter("T", "C", "x", ["d"], "ok");
+        var typed = PromptPopup.ForFilter("T", "C", "xy", ["d"], "ok");
 
         Assert.True(first.SameText(second));
         Assert.False(first.SameText(typed));

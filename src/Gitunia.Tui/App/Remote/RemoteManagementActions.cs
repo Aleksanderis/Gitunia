@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Overlays;
@@ -65,8 +64,7 @@ public sealed class RemoteManagementActions(
     private string _newName = string.Empty;
     private RemoteInfo _target = new(string.Empty, string.Empty);
     private IReadOnlyList<RemoteInfo> _remotes = [];
-    private List<RemoteInfo> _candidates = [];
-    private int _index;
+    private readonly FilterPicker<RemoteInfo> _picker = new();
 
     public string Notice { get; private set; } = string.Empty;
 
@@ -127,7 +125,7 @@ public sealed class RemoteManagementActions(
         var isPicker = IsPicker(_kind);
         if (isPicker && IsMove(normalized, out var step))
         {
-            _index = _candidates.Count == 0 ? 0 : (_index + step + _candidates.Count) % _candidates.Count;
+            _picker.Move(step);
         }
         else if (PromptTextEditor.Apply(_text, key) is { } edited && edited != _text)
         {
@@ -320,30 +318,11 @@ public sealed class RemoteManagementActions(
         redraw();
     }
 
-    private void RefreshCandidates()
-    {
-        var pattern = _text.Trim();
-        _candidates =
-        [
-            .. _remotes
-                .Where(remote => RemoteMatcher.Score(pattern, remote.Name) is not null)
-                .OrderByDescending(remote => RemoteMatcher.Score(pattern, remote.Name)),
-        ];
-        _index = 0;
-    }
+    private void RefreshCandidates() =>
+        _picker.Filter(_remotes, _text, remote => remote.Name, RemoteMatcher.Score);
 
-    private PromptPopup PickerPopup(string title, string context)
-    {
-        var detail = "No matching remote";
-        if (_index < _candidates.Count)
-        {
-            var position = (_index + 1).ToString(CultureInfo.InvariantCulture);
-            var total = _candidates.Count.ToString(CultureInfo.InvariantCulture);
-            detail = $"{_candidates[_index].Name} ({position}/{total})";
-        }
-
-        return PromptPopup.ForFilter(title, context, _text, detail, "choose");
-    }
+    private PromptPopup PickerPopup(string title, string context) =>
+        _picker.ToPopup(title, context, _text, "choose", remote => remote.Name, "No matching remote");
 
     private string Accept()
     {
@@ -375,12 +354,11 @@ public sealed class RemoteManagementActions(
 
     private string AcceptPick(RepositoryState tab)
     {
-        if (_index >= _candidates.Count)
+        if (!_picker.TryGetSelected(out var remote))
         {
             return "No matching remote";
         }
 
-        var remote = _candidates[_index];
         Close();
         return AfterPick(tab, remote);
     }
