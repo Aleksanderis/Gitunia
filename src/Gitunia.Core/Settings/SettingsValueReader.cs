@@ -52,8 +52,8 @@ public static class SettingsValueReader
     /// <param name="theme">The theme.</param>
     public static string ThemeName(ThemeChoice theme) => theme.Name switch
     {
-        ThemeChoice.DarkName => "catppuccin-mocha",
-        ThemeChoice.LightName => "catppuccin-latte",
+        ThemeChoice.DarkName => ThemeChoice.MochaName,
+        ThemeChoice.LightName => ThemeChoice.LatteName,
         _ => theme.Name,
     };
 

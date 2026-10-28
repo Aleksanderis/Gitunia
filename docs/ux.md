@@ -324,7 +324,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 
 ## Look and colours
 
-Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting picks the scheme: `auto` (Catppuccin Mocha or Latte by the terminal's background) or the name of a theme file (#61, "Theme files" below). `dark` and `light` are still accepted in the file as aliases of the Catppuccin Mocha and Latte tables (#747), but the settings screen no longer offers them and shows them as `catppuccin-mocha` and `catppuccin-latte`.
+Colours are decided in one place: `PaletteTable` (`Gitunia.Tui.Views`) holds the colours of a scheme and `Palette` says which role uses which colour, so a theme swaps the table and nothing else. The config file's `theme` setting picks the scheme: `auto` (Catppuccin Mocha or Latte by the terminal's background) or the name of a theme file (#61, "Theme files" below). `dark` and `light` are still accepted in the file as the built-in dark and light tables (#747), which are close to but not identical with the `catppuccin-mocha` and `catppuccin-latte` theme files (see "Theme files"). The settings screen no longer offers them and shows them as those two themes; keeping that option rewrites the value to the theme file name.
 
 **Frame.** Every pane is a box and neighbouring boxes share their edges, so the whole screen is one frame split into panes (`FrameGrid`, drawn the same way by the UI and by `--print-frame`):
 

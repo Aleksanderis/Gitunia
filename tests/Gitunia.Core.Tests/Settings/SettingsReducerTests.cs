@@ -135,6 +135,17 @@ public class SettingsReducerTests
     }
 
     [Fact]
+    public void GivenALegacyDarkConfig_WhenOpeningTheThemeList_ThenTheCursorIsOnCatppuccinMocha()
+    {
+        var closed = Open("{ \"theme\": \"dark\" }").Reveal(Definition(SettingsRegistry.ThemeId));
+
+        var opened = Reduce(closed, SettingsCommandKind.Activate).State;
+
+        Assert.Equal(2, opened.Selected?.Index);
+        Assert.Equal(ThemeChoice.FromText(ThemeChoice.MochaName), opened.PreviewTheme);
+    }
+
+    [Fact]
     public void GivenTheThemeOptions_WhenKeepingAnotherTheme_ThenTheCommitWritesTheThemeKey()
     {
         var closed = Open("{ \"theme\": \"dark\" }").Reveal(Definition(SettingsRegistry.ThemeId));
