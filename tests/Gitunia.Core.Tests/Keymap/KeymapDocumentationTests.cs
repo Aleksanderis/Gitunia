@@ -33,7 +33,8 @@ public class KeymapDocumentationTests
     [Fact]
     public void GivenTheDefaultKeymap_WhenLookingForAltEnter_ThenNothingIsBoundToIt()
     {
-        var bound = DefaultKeymap.CreateBindings().Where(binding => binding.Sequence.ToString().Contains("Alt-Enter", StringComparison.Ordinal));
+        var bound = DefaultKeymap.CreateBindings()
+            .Where(binding => binding.Sequence.ToString().Contains("Alt-Enter", StringComparison.Ordinal));
 
         Assert.Empty(bound);
     }
