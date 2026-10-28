@@ -615,6 +615,22 @@ public class BranchActionsTests
         Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GivenARemotesFolderRow_WhenRenamingOrDeleting_ThenNothingActsOnTheGraphBranch(bool rename)
+    {
+        var action = rename ? ActionIds.BranchRename : ActionIds.BranchDelete;
+        using var repository = RepositoryWithTopic();
+        using var harness = await Harness.LoadAsync(repository);
+        harness.Select(new BranchSelection(SidebarRowKind.Section, null, null));
+
+        harness.Run(action);
+
+        Assert.Equal("Select a local branch first", harness.Branches.Notice);
+        Assert.Equal(string.Empty, PopupText.Of(harness.Branches));
+    }
+
     [Fact]
     public async Task GivenAGraphCommitWithTwoBranches_WhenRenaming_ThenTheNoticeAsksForTheSidebar()
     {
