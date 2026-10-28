@@ -12,6 +12,12 @@ namespace Gitunia.Tui.Loading.Trees;
 /// </summary>
 public static class FileContentDocument
 {
+    /// <summary>The note shown while no file is under the cursor.</summary>
+    public const string FilePlaceholder = "Select a file to view its contents";
+
+    /// <summary>The note shown while a submodule is under the cursor.</summary>
+    public const string SubmodulePlaceholder = "A submodule has no content to show";
+
     /// <summary>The document for a loaded blob.</summary>
     public static DiffDocument From(string path, BlobContent blob)
     {

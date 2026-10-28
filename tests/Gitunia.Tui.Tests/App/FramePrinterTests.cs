@@ -104,8 +104,10 @@ public class FramePrinterTests
         var lines = await PrintAsync(repository, 100, 30, new PaneArrangement(false, zoomed), BottomTab.Files);
 
         Assert.Contains(lines, line => HasFileWithSize(line, "4 B"));
-        Assert.Contains(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("+one", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains(" File ", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("1  one", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains(" Diff ", StringComparison.Ordinal));
+        Assert.DoesNotContain(lines, line => line.Contains("+one", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("History", StringComparison.Ordinal));
     }
 
