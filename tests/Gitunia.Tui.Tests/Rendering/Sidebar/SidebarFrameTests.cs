@@ -142,8 +142,8 @@ public class SidebarFrameTests
 
         Assert.Equal("   1 repo", frame[0]);
         Assert.StartsWith("╭─ repo ─────────────┬─ History ─", frame[1], StringComparison.Ordinal);
-        Assert.StartsWith("│ ▾ Branches 3    ...│ ●  second", frame[2], StringComparison.Ordinal);
-        Assert.StartsWith("│  * main ↑2↓1 wt…   │ ●  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("│ ▾ Branches 3    ...│●  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("│  * main ↑2↓1 wt…   │●  first", frame[3], StringComparison.Ordinal);
         Assert.StartsWith("│    feat…gin wt…n   │", frame[4], StringComparison.Ordinal);
         Assert.StartsWith("│    old             │", frame[5], StringComparison.Ordinal);
         Assert.StartsWith("│ ▸ Tags 12", frame[6], StringComparison.Ordinal);
@@ -163,8 +163,8 @@ public class SidebarFrameTests
 
         var frame = Frame(sidebar, 80, 8, GraphGlyphSet.Ascii);
 
-        Assert.StartsWith("| v Branches 1    ...| *  second", frame[2], StringComparison.Ordinal);
-        Assert.StartsWith("|  * main +1-3       | *  first", frame[3], StringComparison.Ordinal);
+        Assert.StartsWith("| v Branches 1    ...|*  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("|  * main +1-3       |*  first", frame[3], StringComparison.Ordinal);
         Assert.StartsWith("| > Tags 2", frame[4], StringComparison.Ordinal);
     }
 
@@ -299,7 +299,7 @@ public class SidebarFrameTests
 
         var frame = Frame(model, 80, 6);
 
-        Assert.StartsWith("│                    │ ●  second", frame[2], StringComparison.Ordinal);
+        Assert.StartsWith("│                    │●  second", frame[2], StringComparison.Ordinal);
     }
 
     [Fact]

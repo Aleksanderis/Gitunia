@@ -229,7 +229,7 @@ public static class ScreenComposer
         if (!rects.Graph.IsEmpty)
         {
             var graphHeight = rects.Graph.Height;
-            var textWidth = PanePadding.TextWidth(rects.Graph.Width, paddingColumns);
+            var textWidth = PanePadding.GraphTextWidth(rects.Graph.Width, paddingColumns);
             var options = new GraphRowOptions(
                 textWidth,
                 GraphRowOptions.ChooseLaneColumns(graph.MaximumLaneCount, textWidth),
@@ -246,7 +246,7 @@ public static class ScreenComposer
                     : showsCutMarker && commitIndex == graph.Count
                         ? GraphRowRenderer.RenderCutMarker(options, item == selectedItem)
                         : GraphRowRenderer.RenderEmpty(options, item == selectedItem && graph.Count > 0);
-                graphLines.Add(PanePadding.Wrap(graphRow, paddingColumns));
+                graphLines.Add(PanePadding.WrapGraph(graphRow, paddingColumns));
             }
 
             overlays.Add(new PaneLines(rects.Graph.X, rects.Graph.Y, graphLines, SegmentSelection.Focused));
