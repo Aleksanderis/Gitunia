@@ -14,13 +14,15 @@ Invoke as `/work-readiness <milestone>` (for example `M<n>`; `<n>` is a placehol
 - All issues of the milestone: `gh issue list --milestone "<title>" --state all --json number,title,state,labels,body`, plus the issues they reference in `Blocked by:` lines.
 - Open PRs, in-flight worktrees and branches (`gh pr list`, `git worktree list`, `git branch -a`).
 - The milestone's section in `docs/roadmap.md` (goal and "Done when") and its open questions; `docs/decisions.md` entries about the area; the workflow rows in `docs/ux.md` the milestone relies on.
+- Every screenshot in an issue body or comment: download and look at it before judging scope or conflicts with decisions (command in `work-task`, step 1). Images are readable; never judge a UX issue from its text alone.
 - For each issue, `ls`/`grep` the code it will build on (do not read whole files) to see what exists.
 
 ## 2. Check
 
 1. **Issue quality:** each issue has a clear scope and an `Acceptance:` line that can be tested; a `Blocked by:` line that is consistent (every blocker exists, none is a cycle, closed blockers are not listed as open); correct labels (`spike`, `needs-review`); a milestone.
 2. **Owner-gated work:** list issues that will stop at an open PR (`needs-review`) or never merge (`spike`), so the owner can plan reviews.
-3. **Open decisions:** open issues labeled `needs-owner` (read the comments: if the owner answered, act and remove the label as `work-task` describes), open questions in `docs/roadmap.md` and unsettled choices in `docs/decisions.md` that this milestone depends on. For each, propose a default and say what changes if it is wrong, so agents are not blocked mid-run.
+3. **Questions:** answer every open issue labeled `question` in the issue itself (agent-marked comment, see `work-task` step 2), after checking the docs and the code; the report only links the answers.
+   **Open decisions:** open issues labeled `needs-owner` (read the comments: if the owner answered, act and remove the label as `work-task` describes), open questions in `docs/roadmap.md` and unsettled choices in `docs/decisions.md` that this milestone depends on. For each, propose a default and say what changes if it is wrong, so agents are not blocked mid-run.
 4. **Prerequisites and assumptions:** what each issue assumes about existing code versus what exists; missing pieces; unwired work from earlier milestones (follow-up issues such as session or clipboard wiring) that this milestone needs or that could break it.
 5. **Overlap:** which issues touch the same files, shared contracts or keymap rows (check the keymap table in `docs/ux.md`), so the orchestrator knows which can run together (max 3 agents) and in what order.
 6. **Docs:** design issues still to be written (flows in `docs/ux.md`), docs that are stale for this area, keymap rows that will be needed, and `docs/decisions.md` entries longer than 3 lines or holding implementation detail (move the detail to the area doc).
