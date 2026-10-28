@@ -117,6 +117,73 @@ public class PushActionsTests
     }
 
     [Fact]
+    public async Task GivenARewrittenBranch_WhenPushingPlainly_ThenTheRejectionOffersTheForcePush()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        repository.Git("commit", "--amend", "-q", "-m", "Rewritten");
+        using var harness = await Harness.LoadAsync(repository);
+
+        Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
+        await harness.PumpUntilAsync(() => harness.Prompts.Count > 0);
+
+        Assert.StartsWith("Push failed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        var prompt = Assert.Single(harness.Prompts);
+        Assert.Equal("Force push", prompt.Title);
+        Assert.Contains($"{seen}:topic", prompt.Consequence, StringComparison.Ordinal);
+        Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+
+        harness.Answer();
+        await harness.FinishAsync();
+
+        Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenABranchOnlyBehindItsUpstream_WhenPushingPlainly_ThenNoForcePushIsOffered()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(0, 0);
+        var seen = repository.Git("rev-parse", "origin/topic").Trim();
+        repository.Git("reset", "--hard", "-q", "HEAD~1");
+        using var harness = await Harness.LoadAsync(repository);
+
+        Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
+        await harness.FinishAsync();
+
+        Assert.StartsWith("Push failed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(seen, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenTheRemoteHasUnfetchedCommits_WhenPushingPlainly_ThenNoForcePushIsOffered()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(1, 0);
+        using var harness = await Harness.LoadAsync(repository);
+        var theirs = PushFromAnotherClone(repository, "topic");
+
+        Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
+        await harness.FinishAsync();
+
+        Assert.StartsWith("Push failed", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(theirs, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
+    public async Task GivenACleanFastForwardPush_WhenPushingPlainly_ThenNoForcePushIsOffered()
+    {
+        using var repository = TestRepositories.WithTrackingBranch(1, 0);
+        using var harness = await Harness.LoadAsync(repository);
+
+        Assert.True(harness.Remote.TryExecute(ActionIds.RemotePush, null));
+        await harness.FinishAsync();
+
+        Assert.Empty(harness.Prompts);
+        Assert.Equal(repository.Head, repository.GitIn(repository.OriginPath, ["rev-parse", "topic"]).Trim());
+    }
+
+    [Fact]
     public async Task GivenABranchWithoutUpstream_WhenForcePushing_ThenItIsRefusedWithoutAConfirm()
     {
         using var repository = TestRepositories.WithoutUpstreamBranch();
@@ -320,6 +387,7 @@ public class PushActionsTests
                 mode => Mode = mode,
                 () => { },
                 () => Selection);
+            Remote.PushRejected = Push.OfferForce;
         }
 
         public BranchSelection Selection { get; set; } = new(null, null, null);

@@ -10,6 +10,16 @@ public static class RemoteFailureText
 {
     private static readonly string[] ReasonPrefixes = ["fatal:", "error:", "! ["];
 
+    /// <summary>
+    /// Whether a push failed because the remote branch has commits the local one lacks while the local one has others
+    /// (git: <c>! [rejected] ... (non-fast-forward)</c>), the case a force push with a lease can answer. A "fetch
+    /// first" rejection is not: our remote-tracking branch is stale, so a lease would be refused as well.
+    /// </summary>
+    public static bool IsNonFastForward(Exception exception) =>
+        exception is GitCommandFailedException failed
+        && failed.StandardError.Contains("[rejected]", StringComparison.Ordinal)
+        && failed.StandardError.Contains("(non-fast-forward)", StringComparison.Ordinal);
+
     public static string Reason(Exception exception)
     {
         var text = exception is GitCommandFailedException failed ? failed.StandardError : exception.Message;
