@@ -34,10 +34,10 @@ public static class SettingsRegistry
             "Theme",
             SettingControl.Choice,
             ["theme"],
-            "The colours of the interface: auto follows the terminal, dark and light are the built-in schemes, "
+            "The colours of the interface: auto follows the terminal (Catppuccin Mocha or Latte), "
                 + "the rest are theme files. The cursor previews, Enter keeps, Esc restores.",
             ThemeChoice.AutoName,
-            [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. BuiltInThemes.Names]),
+            [ThemeChoice.AutoName, .. BuiltInThemes.Names]),
         new SettingDefinition(
             ScanRootsId,
             SettingCategory.Repositories,
@@ -78,14 +78,14 @@ public static class SettingsRegistry
             []),
     ];
 
-    /// <summary>The settings with the theme options replaced by auto, dark, light and the given theme names.</summary>
+    /// <summary>The settings with the theme options replaced by auto and the given theme names.</summary>
     /// <param name="themeNames">The names of all theme files on offer (built-in and the user's).</param>
     public static IReadOnlyList<SettingDefinition> WithThemes(IEnumerable<string> themeNames) =>
     [
         .. All.Select(definition => definition.Id == ThemeId
             ? definition with
             {
-                Choices = [ThemeChoice.AutoName, ThemeChoice.DarkName, ThemeChoice.LightName, .. themeNames],
+                Choices = [ThemeChoice.AutoName, .. themeNames],
             }
             : definition),
     ];

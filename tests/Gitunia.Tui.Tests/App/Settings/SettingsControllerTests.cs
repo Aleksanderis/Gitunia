@@ -82,8 +82,8 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
-        Assert.Equal("{\n  \"theme\": \"dark\"\n}\n", _harness.ReadConfig());
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal("{\n  \"theme\": \"catppuccin-mocha\"\n}\n", _harness.ReadConfig());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
     }
 
     [Fact]
@@ -92,12 +92,12 @@ public sealed class SettingsControllerTests : IDisposable
         await _harness.OpenThemeListAsync();
 
         _harness.Run(ActionIds.ListDown);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         _harness.Run(ActionIds.ListDown);
-        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-macchiato"), _harness.Themes.Last());
         _harness.Run(ActionIds.ListUp);
 
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         Assert.False(File.Exists(_harness.ConfigPath));
     }
 
@@ -107,7 +107,7 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.WriteConfig("{ \"theme\": \"light\" }");
         await _harness.OpenThemeListAsync();
         _harness.Run(ActionIds.ListUp);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-frappe"), _harness.Themes.Last());
 
         _harness.Run(ActionIds.NavigateBack);
 
@@ -121,7 +121,7 @@ public sealed class SettingsControllerTests : IDisposable
     {
         await _harness.OpenThemeListAsync();
         _harness.Run(ActionIds.ListDown, 2);
-        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-macchiato"), _harness.Themes.Last());
 
         _harness.Run(ActionIds.AppQuit);
 
@@ -138,17 +138,17 @@ public sealed class SettingsControllerTests : IDisposable
         _harness.Run(ActionIds.ListDown);
 
         _harness.Run(ActionIds.SettingsActivate);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         await _harness.PumpAsync();
 
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         Assert.Equal("Saved Theme", _harness.Statuses.Log.Latest!.Text);
         Assert.Contains("// keep me", _harness.ReadConfig(), StringComparison.Ordinal);
-        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Contains("\"theme\": \"catppuccin-mocha\"", _harness.ReadConfig(), StringComparison.Ordinal);
         var next = new ConfigStartup(Path.GetDirectoryName(_harness.ConfigPath)!, _harness.Root).Load();
-        Assert.Equal(ThemeChoice.Dark, next.Theme);
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), next.Theme);
         _harness.Run(ActionIds.AppQuit);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
     }
 
     [Fact]
@@ -199,15 +199,15 @@ public sealed class SettingsControllerTests : IDisposable
 
         var first = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
         Assert.Null(first);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         Assert.False(File.Exists(_harness.ConfigPath));
         var second = _harness.Settings.OnLineClicked(2 + 2, 30, out _);
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
         Assert.Equal(DefaultMouseMap.SettingsEditButton, second);
-        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Contains("\"theme\": \"catppuccin-mocha\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class SettingsControllerTests : IDisposable
     {
         await _harness.OpenThemeListAsync();
         _harness.Settings.OnLineClicked(2 + 3, 30, out _);
-        Assert.Equal(ThemeChoice.Light, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-macchiato"), _harness.Themes.Last());
 
         _harness.Settings.OnLineClicked(2, 30, out _);
 
@@ -588,13 +588,13 @@ public sealed class SettingsControllerTests : IDisposable
 
         var first = _harness.Settings.OnLineClicked(2 + 1 + 1, 30, out _);
         Assert.Null(first);
-        Assert.Equal(ThemeChoice.Dark, _harness.Themes.Last());
+        Assert.Equal(ThemeChoice.FromText("catppuccin-mocha"), _harness.Themes.Last());
         var second = _harness.Settings.OnLineClicked(2 + 1 + 1, 30, out _);
         _harness.Run(ActionIds.SettingsActivate);
         await _harness.PumpAsync();
 
         Assert.Equal(DefaultMouseMap.SettingsEditButton, second);
-        Assert.Contains("\"theme\": \"dark\"", _harness.ReadConfig(), StringComparison.Ordinal);
+        Assert.Contains("\"theme\": \"catppuccin-mocha\"", _harness.ReadConfig(), StringComparison.Ordinal);
     }
 
     [Fact]
