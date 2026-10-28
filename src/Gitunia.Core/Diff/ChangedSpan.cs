@@ -8,7 +8,7 @@ public readonly record struct ChangedSpan(int Start, int Length)
     /// <summary>Index after the last changed character.</summary>
     public int End => Start + Length;
 
-    /// <summary>The stretches of both lists as one ascending list without overlaps (touching ones are joined).</summary>
+    /// <summary>The stretches of both lists as one ascending list without overlaps.</summary>
     public static IReadOnlyList<ChangedSpan> Union(IReadOnlyList<ChangedSpan> first, IReadOnlyList<ChangedSpan> second)
     {
         if (second.Count == 0)

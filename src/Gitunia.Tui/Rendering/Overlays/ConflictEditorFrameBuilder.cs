@@ -772,7 +772,7 @@ public static class ConflictEditorFrameBuilder
         char Mark = ' ',
         SegmentRole DifferingRole = SegmentRole.Plain)
     {
-        // The base lines of the hunk when the layout shows them: the words are then compared with them, not the other side.
+        // The base lines when the layout shows them: words are compared with them, not with the other side.
         public SideText? Base { get; init; }
 
         public static SideText Of(string text, char mark = ' ', SegmentRole differingRole = SegmentRole.Plain)

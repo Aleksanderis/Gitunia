@@ -17,7 +17,7 @@ internal static class ChangedText
         IReadOnlyList<ChangedSpan>? changes) =>
         Append(builder, text, role, changes, DiffRowRenderer.RoleOf(role, DiffRowRenderer.CellFlags.Changed));
 
-    /// <summary>As above, with the role of the changed stretches given (for a line that is not added or removed).</summary>
+    /// <summary>As above, with the role of the changed stretches given (the line is not added or removed).</summary>
     public static void Append(
         LineBuilder builder,
         string text,
