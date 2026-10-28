@@ -43,10 +43,10 @@ public sealed class PaletteTable
     /// <summary>The colour whitespace marks get on a selected row.</summary>
     public required Color SubtleOnSelection { get; init; }
 
-    /// <summary>Background of changed words inside an added line; <see cref="Color.None"/> where a style marks them.</summary>
+    /// <summary>Background of changed words in an added line; <see cref="Color.None"/> if a style marks them.</summary>
     public required Color AddedWord { get; init; }
 
-    /// <summary>Background of changed words in a removed line; <see cref="Color.None"/> where a style marks them.</summary>
+    /// <summary>Background of changed words in a removed line; <see cref="Color.None"/> if a style marks them.</summary>
     public required Color RemovedWord { get; init; }
 
     /// <summary>Lines between panes.</summary>

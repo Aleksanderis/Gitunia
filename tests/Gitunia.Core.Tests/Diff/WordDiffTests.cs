@@ -115,15 +115,16 @@ public class WordDiffTests
     }
 
     [Fact]
-    public void GivenAMinifiedLineWithOneEdit_WhenComparing_ThenOnlyTheEditedNumberIsMarked()
+    public void GivenAMinifiedLineWithOneEdit_WhenComparing_ThenTheEditedStretchIsMarkedWholeWithoutFillingATable()
     {
         var oldText = string.Concat(Enumerable.Repeat("foo(bar,1);", 180));
         var newText = oldText.Replace("foo(bar,1);", "foo(bar,2);", StringComparison.Ordinal);
 
         var result = WordDiff.Compare(oldText, newText);
 
-        Assert.All(result.Old, span => Assert.Equal("1", oldText.Substring(span.Start, span.Length)));
-        Assert.Equal(180, result.Old.Count);
+        var stretch = Assert.Single(result.Old);
+        Assert.Equal(oldText.IndexOf('1', StringComparison.Ordinal), stretch.Start);
+        Assert.Equal(oldText.LastIndexOf('1'), stretch.End - 1);
     }
 
     private static List<string> Texts(string text, IReadOnlyList<ChangedSpan> spans) =>
