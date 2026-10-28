@@ -6,10 +6,11 @@ namespace Gitunia.Tui.Rendering.Diff;
 
 /// <summary>
 /// The buttons at the right end of the diff pane's title row: previous and next file and hunk, the <c>view ▾</c>
-/// dropdown (fewer and more context, whole file, ignore whitespace, side by side and word wrap, #645) and zoom,
+/// dropdown (fewer and more context, whole file, ignore whitespace, side by side, word wrap and zoom, #645, #758),
+/// last at the right edge,
 /// drawn as padded chips like the tabs (the ASCII tier uses plain arrows and brackets, see
 /// <see cref="ButtonLabel"/>). They are the mouse path of the keys <see cref="DefaultMouseMap"/> names, shown before
-/// each label (#536). Narrow panes show only the most useful ones (zoom, the view dropdown and the hunk buttons last
+/// each label (#536). Narrow panes show only the most useful ones (the view dropdown and the hunk buttons last
 /// to go; the title keeps at least <see cref="MinimumTitleWidth"/> columns). The row is the top edge of the pane's
 /// box: a column of line follows each button.
 /// </summary>
@@ -24,11 +25,10 @@ public static class DiffTitleButtons
 
     private static readonly ButtonSpecification Discard = new(DefaultMouseMap.DiffDiscardButton, " discard ");
 
-    // Most useful first: when the row is narrow the later ones are dropped. The first ContentButtonCount entries
-    // (zoom, wrap) are the ones a file's content shows.
+    // Most useful first: when the row is narrow the later ones are dropped. Zoom is an entry of the view
+    // dropdown here (#758); a file's content has no dropdown and shows ContentCandidates instead.
     private static readonly ButtonSpecification[] Candidates =
     [
-        new(DefaultMouseMap.DiffZoomButton, " zoom "),
         new(DefaultMouseMap.DiffViewButton, " view ▾ "),
         new(DefaultMouseMap.DiffNextHunkButton, " hunk › "),
         new(DefaultMouseMap.DiffPreviousHunkButton, " ‹ hunk "),
@@ -39,7 +39,7 @@ public static class DiffTitleButtons
     // A file's content has no diff options but wrap, so it shows that button beside zoom instead of the dropdown.
     private static readonly ButtonSpecification[] ContentCandidates =
     [
-        Candidates[0],
+        new(DefaultMouseMap.DiffZoomButton, " zoom "),
         new(DefaultMouseMap.DiffWrapButton, " wrap "),
     ];
 
@@ -53,9 +53,9 @@ public static class DiffTitleButtons
         DefaultMouseMap.DiffNextFileButton,
         DefaultMouseMap.DiffPreviousHunkButton,
         DefaultMouseMap.DiffNextHunkButton,
-        DefaultMouseMap.DiffViewButton,
         DefaultMouseMap.DiffWrapButton,
         DefaultMouseMap.DiffZoomButton,
+        DefaultMouseMap.DiffViewButton,
     ];
 
     /// <summary>The buttons that fit a title row of <paramref name="width"/> columns, left to right, one column of line between them.</summary>
