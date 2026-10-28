@@ -64,7 +64,8 @@ public sealed class FramePrinter
         }
 
         // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
-        // The Files tab pairs with the diff only under a zoom of the pair, so an unzoomed Files frame stays the plain tree.
+        // The Files tab pairs with the diff only under a zoom of the pair, so an unzoomed Files frame stays
+        // the plain tree.
         arrangement ??= PaneArrangement.Normal;
         var zoomsPair = arrangement.Zoomed is { } zoomed && PaneZoom.IsZoomPair(zoomed, PaneKind.Diff);
         if ((tab == BottomTab.Changes || (tab == BottomTab.Files && zoomsPair))
