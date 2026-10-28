@@ -328,7 +328,7 @@ public static class DefaultKeymap
 
     // The todo editor of an interactive rebase is a modal list like the settings screen: the single letters are git's
     // own todo words (pick, reword, squash, fixup, drop), keys of the list and not buffer commands. In Insert mode the
-    // reword's message editor takes text; only Enter, Esc and the Alt-Enter/Ctrl-g accept act.
+    // reword's message editor takes text; only Enter, Esc and the Ctrl-g accept act.
     private static void AddRebaseEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = RebaseEditorView;
@@ -345,7 +345,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
         Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.RebaseEditorMessageNewLine);
-        Add(bindings, [KeyMode.Insert], editor, "Alt-Enter", ActionIds.RebaseEditorMessageSave);
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
 
@@ -353,7 +352,7 @@ public static class DefaultKeymap
     // and b pick a side, O and T pick a side for every open hunk, e edits the result, r makes the hunk unresolved
     // again, u/Ctrl-r undo and redo, B shows the base, R re-creates the conflict) are keys of the modal, not buffer
     // commands, and shadow Lists' search keys. In Insert mode the result's text editor takes text; only Enter, Esc
-    // and the Alt-Enter/Ctrl-g accept act.
+    // and the Ctrl-g accept act.
     private static void AddConflictEditorKeys(List<KeyBinding> bindings)
     {
         const string editor = ConflictEditorView;
@@ -376,7 +375,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "Ctrl-u", ActionIds.ConflictEditorScrollUp);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
         Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.ConflictEditorEditNewLine);
-        Add(bindings, [KeyMode.Insert], editor, "Alt-Enter", ActionIds.ConflictEditorEditDone);
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.ConflictEditorEditDone);
         Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
@@ -497,7 +495,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, message, "Esc", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, message, "h", ActionIds.NavigateBack);
         Add(bindings, [KeyMode.Insert], message, "Enter", ActionIds.WorkingTreeMessageNewLine);
-        Add(bindings, [KeyMode.Insert], message, "Alt-Enter", ActionIds.WorkingTreeCommit);
         Add(bindings, [KeyMode.Insert], message, "Ctrl-g", ActionIds.WorkingTreeCommit);
         foreach (var view in (string[])[WorkingUnstagedView, WorkingStagedView, WorkingUnstagedDiffView, WorkingStagedDiffView, message])
         {

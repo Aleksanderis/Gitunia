@@ -174,7 +174,7 @@ public class RebaseEditorFrameBuilderTests
         Assert.Contains("Reword 1111111", lines[0], StringComparison.Ordinal);
         Assert.Contains("subject line", lines[1], StringComparison.Ordinal);
         Assert.Contains("body line", lines[3], StringComparison.Ordinal);
-        Assert.Contains("Alt-Enter or Ctrl-g keep the message", lines[^2], StringComparison.Ordinal);
+        Assert.Contains("Ctrl-g keeps the message", lines[^2], StringComparison.Ordinal);
         Assert.Contains(frame.Lines.SelectMany(line => line.Segments), segment => segment.Role == SegmentRole.Cursor);
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 5, 5, 80, 24));
         Assert.Null(RebaseEditorFrameBuilder.EntryIndexAt(state, 2, 80, 24));

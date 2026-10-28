@@ -1,4 +1,3 @@
-using System.Globalization;
 using Gitunia.Git.Diff.Models;
 
 namespace Gitunia.Core.Diff;
@@ -15,15 +14,15 @@ public sealed class DiffDocumentBuilder
     /// <summary>Rows added so far.</summary>
     public int RowCount => _rows.Count;
 
-    /// <summary>The mark and path text of a file header, for example <c>R100 old.txt -&gt; new.txt</c>.</summary>
+    /// <summary>The mark and path text of a file header, for example <c>R old.txt -&gt; new.txt</c>.</summary>
     public static string DescribeFile(DiffFile file)
     {
         var mark = file.Status switch
         {
             DiffFileStatus.Added => "A",
             DiffFileStatus.Deleted => "D",
-            DiffFileStatus.Renamed => $"R{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
-            DiffFileStatus.Copied => $"C{file.Similarity?.ToString(CultureInfo.InvariantCulture)}",
+            DiffFileStatus.Renamed => "R",
+            DiffFileStatus.Copied => "C",
             _ => "M",
         };
         return file.Status is DiffFileStatus.Renamed or DiffFileStatus.Copied && file.OldPath is { } oldPath

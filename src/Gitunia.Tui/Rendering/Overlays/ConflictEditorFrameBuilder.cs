@@ -59,7 +59,7 @@ public static class ConflictEditorFrameBuilder
     private const string CompleteHint = "every hunk is resolved: Enter saves the file";
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
-    private const string EditingHint = "Esc or Alt-Enter keeps the text, Enter adds a line; undo takes it back";
+    private const string EditingHint = "Esc or Ctrl-g keeps the text, Enter adds a line; undo takes it back";
     private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
@@ -92,7 +92,7 @@ public static class ConflictEditorFrameBuilder
 
     private static readonly ConflictEditorChip[] EditingChips =
     [
-        new("Alt-Enter", "keep", DefaultMouseMap.ConflictEditDoneButton),
+        new("Ctrl-g", "keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
     /// <summary>True when a screen is wide enough for ours, the base and theirs side by side.</summary>

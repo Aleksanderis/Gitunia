@@ -9,7 +9,7 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// <summary>
 /// Draws the commit message box of the working-tree view: the editor rows and the option row below them with the SignOff,
 /// No-Verify and Amend checkboxes and the Commit button (ux.md, workflow 2). The checkboxes and the button are the mouse path of
-/// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and <c>Alt-Enter</c>; <see cref="Buttons"/> says where they are for clicks.
+/// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and <c>Ctrl-g</c>; <see cref="Buttons"/> says where they are for clicks.
 /// </summary>
 public static class MessageBoxRenderer
 {

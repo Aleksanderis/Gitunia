@@ -356,9 +356,9 @@ public class ConflictEditorFrameBuilderTests
         var lines = frame.Lines.Select(line => line.Text).ToList();
         Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("Esc or Alt-Enter keeps the text", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Esc or Ctrl-g keeps the text", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("o ours", StringComparison.Ordinal));
-        AssertChip(state, frame, "Alt-Enter keep", DefaultMouseMap.ConflictEditDoneButton);
+        AssertChip(state, frame, "Ctrl-g keep", DefaultMouseMap.ConflictEditDoneButton);
         Assert.Contains(
             frame.Lines.SelectMany(line => line.Segments),
             segment => segment.Role == SegmentRole.Cursor);

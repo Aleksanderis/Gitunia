@@ -11,7 +11,7 @@ namespace Gitunia.Core.Editing;
 /// keys. Up and Down keep the display column (wide characters take two), <c>Tab</c> inserts spaces up to the next
 /// multiple of four columns, and a click places the cursor at a display column. Renderer-agnostic and pure: it never sees
 /// the terminal. The cursor always sits between whole text elements, so a wide character, an emoji sequence or a letter with combining marks is never split. Keys that do not edit
-/// (<c>Esc</c>, <c>Alt-Enter</c>, <c>Ctrl-g</c>, the <c>Alt-</c> option toggles) are left to the caller.
+/// (<c>Esc</c>, <c>Ctrl-g</c>, the <c>Alt-</c> option toggles) are left to the caller.
 /// </summary>
 public sealed class MessageEditor
 {

@@ -114,7 +114,7 @@ public class DiffDocumentBuilderTests
         var document = Build(TwoFiles);
 
         var header = document.Rows[document.FileRows[1]];
-        Assert.Equal("R100 old.txt -> new.txt", header.Text);
+        Assert.Equal("R old.txt -> new.txt", header.Text);
         Assert.Equal(DiffRowKind.Note, document.Rows[document.FileRows[1] + 1].Kind);
         Assert.Equal(1, document.FileIndexOf("old.txt"));
         Assert.Equal(1, document.FileIndexOf("new.txt"));
