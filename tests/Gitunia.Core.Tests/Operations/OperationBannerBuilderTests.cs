@@ -17,6 +17,16 @@ public class OperationBannerBuilderTests
         Assert.Null(OperationBannerBuilder.Build(Info(RepositoryOperation.Bisect), 0));
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(2, true)]
+    public void GivenConflicts_WhenBuilding_ThenTheHintNamesTheEditorKeysOnlyWhileAnyRemain(int count, bool hinted)
+    {
+        var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
+
+        Assert.Equal(hinted, banner.Hint.Contains("Enter, <space>to", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void GivenAMerge_WhenBuilding_ThenTitleNamesTheBranchAndThereIsNoSkip()
     {
@@ -26,7 +36,8 @@ public class OperationBannerBuilderTests
         Assert.Equal("3 conflicts", banner.Detail);
         Assert.Equal(["continue", "abort"], banner.Chips.Select(chip => chip.Label));
         Assert.Equal(
-            "MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort",
+            "MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  "
+            + "Unstaged: Enter, <space>to open conflict editor",
             banner.PlainText);
     }
 
