@@ -45,7 +45,7 @@ public static class OperationBannerBuilder
             parts.Add($"{remaining.ToString(CultureInfo.InvariantCulture)} commits left");
         }
 
-        parts.Add(ConflictText(conflictCount));
+        parts.Add(ConflictText(conflictCount) + (conflictCount > 0 ? ResolveHint : string.Empty));
         var chips = info.Kind == RepositoryOperation.Merge ? MergeChips : SkippableChips;
         return new OperationBanner(title, string.Join(Gap, parts), chips);
     }
@@ -90,4 +90,6 @@ public static class OperationBannerBuilder
         1 => "1 conflict",
         _ => $"{count.ToString(CultureInfo.InvariantCulture)} conflicts",
     };
+
+    private const string ResolveHint = " (Enter, <space>to: resolve)";
 }

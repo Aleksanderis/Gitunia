@@ -9,23 +9,21 @@ namespace Gitunia.Tui.Rendering.Screen;
 
 /// <summary>
 /// Draws the in-progress operation banner (ux.md, workflow 4) on the bottom edge of the frame, in the status bar's
-/// colours so it
-/// reads as a bar and needs no colour of its own. Where the banner does not fit (a terminal under
+/// colours, its title a warning chip aligned with the mode badge. Where the banner does not fit (a terminal under
 /// <see cref="ScreenLayout.MinimumHeightWithBanner"/> rows) the status bar carries its text instead. The same line is
 /// used by the
 /// terminal view and the text frame, and its chips are the click targets.
 /// </summary>
 public static class BannerRenderer
 {
-    private const string TitlePadding = " ";
     private const string Gap = "  ";
 
     /// <summary>The banner as one line of <paramref name="width"/> columns plus the columns each chip
     /// occupies.</summary>
     public static BannerLine Build(OperationBanner banner, int width, GraphGlyphSet glyphs)
     {
-        var builder = new LineBuilder(width, glyphs.Ellipsis).Append(TitlePadding, SegmentRole.Status);
-        builder.Append($" {banner.Title} ", SegmentRole.StatusMode);
+        var builder = new LineBuilder(width, glyphs.Ellipsis);
+        builder.Append($" {banner.Title} ", SegmentRole.StatusOperation);
         if (banner.Detail.Length > 0)
         {
             builder.Append($"{Gap}{banner.Detail}", SegmentRole.Status);

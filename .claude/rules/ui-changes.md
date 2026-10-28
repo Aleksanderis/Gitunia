@@ -26,6 +26,7 @@ Specs, the keymap table and the mouse table are in `docs/ux.md`. Checklist for a
 
 - Terminal.Gui types stay in `Gitunia.Tui` (`Views`, `Input`); `Rendering` and Core know only styled text frames and renderer-agnostic key events.
 - Colours are decided in one place: `PaletteTable` and `Palette`. Never hard-code a colour in a view. Contrast is tested (4.5, dividers 3.0).
+- A chip that starts a bar line (mode badge, operation banner title) starts at column 0; an in-progress operation uses the warning chip role (`StatusOperation`), not the plain mode chip.
 - Every colour tier has a path: 24-bit, 16-colour, `NO_COLOR`/`TERM=dumb`, and the ASCII glyph set. Focus and selection never rely on colour alone.
 - Layout is data (`PaneLayout`, `GraphColumnLayout`, `FrameGrid`) and is unit- and snapshot-tested at several terminal sizes, including narrow and tiny ones; nothing may crash on resize.
 - Wide characters are never split; text width goes through `TextWidth` (backed by `DisplayWidth` in Core).

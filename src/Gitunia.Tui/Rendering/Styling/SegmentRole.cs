@@ -27,6 +27,9 @@ public enum SegmentRole
     RepositoryTabKey,
     StatusMode,
 
+    /// <summary>The title of the in-progress operation banner: a chip like <see cref="StatusMode"/> in the warning colour.</summary>
+    StatusOperation,
+
     /// <summary>The keys of a status bar hint (the description is <see cref="Status"/>).</summary>
     StatusKey,
     Status,

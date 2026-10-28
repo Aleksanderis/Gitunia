@@ -28,12 +28,21 @@ public class BannerRendererTests
 
         Assert.Equal(12, lines.Count);
         Assert.StartsWith(
-            "  REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gk skip",
+            " REBASING feature/x   step 2/5  3 conflicts  <space>gc continue  <space>ga abort  <space>gk skip",
             lines[^2].Text,
             StringComparison.Ordinal);
         Assert.DoesNotContain("╰", lines[^2].Text, StringComparison.Ordinal);
         Assert.StartsWith(" NORMAL ", lines[^1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("REBASING", lines[^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GivenABanner_WhenBuilding_ThenTheTitleChipStartsAtColumnZeroInTheWarningRole()
+    {
+        var segments = BannerRenderer.Build(Rebase, 100, GraphGlyphSet.Unicode).Line.Segments;
+
+        Assert.Equal(SegmentRole.StatusOperation, segments[0].Role);
+        Assert.StartsWith(" REBASING", segments[0].Text, StringComparison.Ordinal);
     }
 
     [Fact]
