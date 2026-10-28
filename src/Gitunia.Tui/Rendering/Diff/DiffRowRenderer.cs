@@ -30,6 +30,7 @@ public static class DiffRowRenderer
     /// <param name="glyphs">Supplies the ellipsis.</param>
     /// <param name="jump">The quick-jump label of the row, null for none.</param>
     /// <param name="showWhitespace">Draw tabs, spaces and carriage returns as marks (same width).</param>
+    /// <param name="changes">The stretches of the text that differ from the paired line, null for none.</param>
     public static StyledLine Render(
         DiffRow row,
         int width,
@@ -38,7 +39,8 @@ public static class DiffRowRenderer
         bool isSelected,
         GraphGlyphSet glyphs,
         JumpLabel? jump = null,
-        bool showWhitespace = false)
+        bool showWhitespace = false,
+        IReadOnlyList<ChangedSpan>? changes = null)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         switch (row.Kind)
@@ -56,7 +58,15 @@ public static class DiffRowRenderer
                 AppendText(builder, row.Text, SegmentRole.Faint, highlight, width, "  ", jump);
                 break;
             default:
-                AppendChange(builder, row, width, gutterDigits, highlight, jump, showWhitespace ? glyphs : null);
+                AppendChange(
+                    builder,
+                    row,
+                    width,
+                    gutterDigits,
+                    highlight,
+                    jump,
+                    showWhitespace ? glyphs : null,
+                    changes);
                 break;
         }
 
@@ -128,7 +138,8 @@ public static class DiffRowRenderer
         bool isSelected,
         GraphGlyphSet glyphs,
         JumpLabel? jump = null,
-        bool showWhitespace = false)
+        bool showWhitespace = false,
+        IReadOnlyList<ChangedSpan>? changes = null)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
         var prefixWidth = PrefixWidth(row, gutterDigits);
@@ -145,7 +156,7 @@ public static class DiffRowRenderer
         };
         if (columns <= 0)
         {
-            return Render(row, width, gutterDigits, highlight, isSelected, glyphs, jump, showWhitespace);
+            return Render(row, width, gutterDigits, highlight, isSelected, glyphs, jump, showWhitespace, changes);
         }
 
         if (row.Kind == DiffRowKind.HunkHeader)
@@ -183,7 +194,7 @@ public static class DiffRowRenderer
             or DiffRowKind.Content
             or DiffRowKind.Added
             or DiffRowKind.Removed;
-        var expanded = Expand(row.Text, showWhitespace && isChange ? glyphs : null, false);
+        var expanded = Expand(row.Text, showWhitespace && isChange ? glyphs : null, false, changes);
         var chunks = Chunks(expanded.Text, columns);
         var shown = segment < chunks.Count ? chunks[segment] : string.Empty;
         if (segment == 0 && jump is { } target)
@@ -192,7 +203,7 @@ public static class DiffRowRenderer
         }
         else
         {
-            AppendHighlighted(builder, shown, textRole, highlight, expanded.Marks, StartOf(chunks, segment));
+            AppendHighlighted(builder, shown, textRole, highlight, expanded.Cells, StartOf(chunks, segment));
         }
 
         return builder.Build(SegmentRole.Plain, isSelected);
@@ -213,36 +224,53 @@ public static class DiffRowRenderer
     /// <summary>
     /// <see cref="ExpandTabs"/> that can also mark whitespace: a tab becomes the tab mark and spaces up to the stop,
     /// a space the space mark (a trailing one a heavier one), a carriage return the CR mark. Every mark takes the one
-    /// column the character it replaces took, so wrapping and cutting are the same with or without marks.
+    /// column the character it replaces took, so wrapping and cutting are the same with or without marks. The
+    /// characters of the <paramref name="changes"/> stretches are flagged as changed.
     /// </summary>
     /// <param name="text">The row text.</param>
     /// <param name="marks">Supplies the marks; null draws none.</param>
     /// <param name="isCut"><paramref name="text"/> is only the start of a line, so it has no trailing spaces.</param>
-    internal static ShownText Expand(string text, GraphGlyphSet? marks, bool isCut)
+    /// <param name="changes">Stretches of <paramref name="text"/> that differ from the paired line, or null.</param>
+    internal static ShownText Expand(
+        string text,
+        GraphGlyphSet? marks,
+        bool isCut,
+        IReadOnlyList<ChangedSpan>? changes = null)
     {
+        var hasChanges = changes is { Count: > 0 };
         var trailingFrom = isCut ? text.Length : TrailingSpacesFrom(text);
-        if (marks is null || (text.IndexOf(' ') < 0 && !ContainsControl(text)))
+        var needsMarks = marks is not null && (text.Contains(' ') || ContainsControl(text));
+        if (!hasChanges && !needsMarks)
         {
             return new ShownText(ExpandTabs(text), null);
         }
 
         var builder = new StringBuilder(text.Length + 8);
-        var positions = new List<int>();
+        var cells = new List<CellFlags>(text.Length + 8);
         var column = 0;
         var index = 0;
+        var spanIndex = 0;
         var counter = new WidthCounter();
         foreach (var rune in text.EnumerateRunes())
         {
+            while (hasChanges && spanIndex < changes!.Count && changes[spanIndex].End <= index)
+            {
+                spanIndex++;
+            }
+
+            var isChanged = hasChanges && spanIndex < changes!.Count && index >= changes[spanIndex].Start;
+            var start = builder.Length;
+            var isMark = false;
             if (rune.Value == '\t')
             {
                 var spaces = TabWidth - (column % TabWidth);
-                positions.Add(builder.Length);
-                builder.Append(marks.TabMark).Append(' ', spaces - 1);
+                isMark = marks is not null;
+                builder.Append(marks is null ? ' ' : marks.TabMark).Append(' ', spaces - 1);
                 column += spaces;
             }
-            else if (rune.Value == '\r')
+            else if (rune.Value == '\r' && marks is not null)
             {
-                positions.Add(builder.Length);
+                isMark = true;
                 builder.Append(marks.CarriageReturnMark);
                 column++;
             }
@@ -251,9 +279,9 @@ public static class DiffRowRenderer
                 builder.Append(' ');
                 column++;
             }
-            else if (rune.Value == ' ')
+            else if (rune.Value == ' ' && marks is not null)
             {
-                positions.Add(builder.Length);
+                isMark = true;
                 builder.Append(index >= trailingFrom ? marks.SpaceMark : marks.InnerSpaceMark);
                 column++;
             }
@@ -263,16 +291,21 @@ public static class DiffRowRenderer
                 column += counter.Next(rune);
             }
 
+            AddCells(cells, builder.Length - start, isMark, isChanged);
             index += rune.Utf16SequenceLength;
         }
 
-        var mask = new bool[builder.Length];
-        foreach (var position in positions)
-        {
-            mask[position] = true;
-        }
+        return new ShownText(builder.ToString(), [.. cells]);
+    }
 
-        return new ShownText(builder.ToString(), mask);
+    // The flags of the characters one source character was shown as: only the first of a tab's columns is the mark.
+    private static void AddCells(List<CellFlags> cells, int count, bool isMark, bool isChanged)
+    {
+        for (var position = 0; position < count; position++)
+        {
+            var flags = isChanged ? CellFlags.Changed : CellFlags.None;
+            cells.Add(isMark && position == 0 ? flags | CellFlags.Mark : flags);
+        }
     }
 
     // The index where the run of spaces at the end of the text starts, ignoring a carriage return after it (CRLF);
@@ -293,8 +326,21 @@ public static class DiffRowRenderer
         return index;
     }
 
-    /// <summary>Text as drawn and which of its characters are whitespace marks (null when there are none).</summary>
-    internal readonly record struct ShownText(string Text, bool[]? Marks);
+    /// <summary>Text as drawn and the flags of each of its characters (null when none is a mark or changed).</summary>
+    internal readonly record struct ShownText(string Text, CellFlags[]? Cells);
+
+    /// <summary>What a character of the shown text is besides its row's colour.</summary>
+    [Flags]
+    internal enum CellFlags : byte
+    {
+        None = 0,
+
+        /// <summary>A whitespace mark (tab, space or carriage return glyph).</summary>
+        Mark = 1,
+
+        /// <summary>Part of a stretch that differs from the paired line.</summary>
+        Changed = 2,
+    }
 
     /// <summary>
     /// A hunk header as a separator: a short rule, the header text and a rule to the right edge (the glyph is the
@@ -391,7 +437,8 @@ public static class DiffRowRenderer
         int gutterDigits,
         string? highlight,
         JumpLabel? jump,
-        GraphGlyphSet? marks)
+        GraphGlyphSet? marks,
+        IReadOnlyList<ChangedSpan>? changes)
     {
         var style = row.Kind switch
         {
@@ -406,7 +453,7 @@ public static class DiffRowRenderer
             builder.Append(style.Marker.ToString(), role == SegmentRole.Plain ? SegmentRole.Faint : role);
         }
 
-        AppendText(builder, row.Text, role, highlight, width, jump: jump, marks: marks);
+        AppendText(builder, row.Text, role, highlight, width, jump: jump, marks: marks, changes: changes);
     }
 
     private static void AppendText(
@@ -417,18 +464,19 @@ public static class DiffRowRenderer
         int width,
         string prefix = "",
         JumpLabel? jump = null,
-        GraphGlyphSet? marks = null)
+        GraphGlyphSet? marks = null,
+        IReadOnlyList<ChangedSpan>? changes = null)
     {
         builder.Append(prefix, role);
         var cut = CutToWidth(text, width);
-        var shown = Expand(cut, marks, cut.Length != text.Length);
+        var shown = Expand(cut, marks, cut.Length != text.Length, changes);
         if (jump is { } target)
         {
             JumpOverlay.Append(builder, shown.Text, role, target);
         }
         else
         {
-            AppendHighlighted(builder, shown.Text, role, highlight, shown.Marks);
+            AppendHighlighted(builder, shown.Text, role, highlight, shown.Cells);
         }
     }
 
@@ -453,12 +501,12 @@ public static class DiffRowRenderer
         string shown,
         SegmentRole role,
         string? highlight,
-        bool[]? marks = null,
-        int markOffset = 0)
+        CellFlags[]? cells = null,
+        int cellOffset = 0)
     {
         if (highlight is not { Length: > 0 })
         {
-            AppendMarked(builder, shown, 0, shown.Length, role, marks, markOffset);
+            AppendMarked(builder, shown, 0, shown.Length, role, cells, cellOffset);
             return;
         }
 
@@ -471,25 +519,25 @@ public static class DiffRowRenderer
                 break;
             }
 
-            AppendMarked(builder, shown, position, found, role, marks, markOffset);
+            AppendMarked(builder, shown, position, found, role, cells, cellOffset);
             builder.Append(shown.Substring(found, highlight.Length), SegmentRole.SearchMatch);
             position = found + highlight.Length;
         }
 
-        AppendMarked(builder, shown, position, shown.Length, role, marks, markOffset);
+        AppendMarked(builder, shown, position, shown.Length, role, cells, cellOffset);
     }
 
-    // Appends shown[start..end]; the whitespace marks in it are drawn subtle.
+    // Appends shown[start..end]; whitespace marks in it are drawn subtle and changed words on their tint.
     private static void AppendMarked(
         LineBuilder builder,
         string shown,
         int start,
         int end,
         SegmentRole role,
-        bool[]? marks,
-        int markOffset)
+        CellFlags[]? cells,
+        int cellOffset)
     {
-        if (marks is null)
+        if (cells is null)
         {
             builder.Append(shown[start..end], role);
             return;
@@ -498,16 +546,33 @@ public static class DiffRowRenderer
         var runStart = start;
         while (runStart < end)
         {
-            var isMark = marks[markOffset + runStart];
+            var flags = cells[cellOffset + runStart];
             var runEnd = runStart + 1;
-            while (runEnd < end && marks[markOffset + runEnd] == isMark)
+            while (runEnd < end && cells[cellOffset + runEnd] == flags)
             {
                 runEnd++;
             }
 
-            builder.Append(shown[runStart..runEnd], isMark ? SegmentRole.WhitespaceMark : role);
+            builder.Append(shown[runStart..runEnd], RoleOf(role, flags));
             runStart = runEnd;
         }
+    }
+
+    // The role of a run: marks are subtle, changed words of an added or removed line sit on their tint.
+    internal static SegmentRole RoleOf(SegmentRole role, CellFlags flags)
+    {
+        var isMark = flags.HasFlag(CellFlags.Mark);
+        if (!flags.HasFlag(CellFlags.Changed))
+        {
+            return isMark ? SegmentRole.WhitespaceMark : role;
+        }
+
+        return role switch
+        {
+            SegmentRole.DiffAdded => isMark ? SegmentRole.WhitespaceMarkAddedWord : SegmentRole.DiffAddedWord,
+            SegmentRole.DiffRemoved => isMark ? SegmentRole.WhitespaceMarkRemovedWord : SegmentRole.DiffRemovedWord,
+            _ => isMark ? SegmentRole.WhitespaceMark : role,
+        };
     }
 
     internal static string Number(int? value, int digits) =>

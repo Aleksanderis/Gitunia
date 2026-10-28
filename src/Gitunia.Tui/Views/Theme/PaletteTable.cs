@@ -43,6 +43,12 @@ public sealed class PaletteTable
     /// <summary>The colour whitespace marks get on a selected row.</summary>
     public required Color SubtleOnSelection { get; init; }
 
+    /// <summary>Background of changed words in an added line; <see cref="Color.None"/> if a style marks them.</summary>
+    public required Color AddedWord { get; init; }
+
+    /// <summary>Background of changed words in a removed line; <see cref="Color.None"/> if a style marks it.</summary>
+    public required Color RemovedWord { get; init; }
+
     /// <summary>Lines between panes.</summary>
     public required Color Border { get; init; }
 
@@ -93,6 +99,9 @@ public sealed class PaletteTable
 
     /// <summary>Added to whitespace marks (faint at 16 colours, where the named colours leave no dimmer one).</summary>
     public TextStyle SubtleStyle { get; init; } = TextStyle.None;
+
+    /// <summary>Added to changed words (bold; underlined where no background tint can mark them).</summary>
+    public TextStyle WordStyle { get; init; } = TextStyle.Bold;
 
     /// <summary>Added to search matches (bold and underlined where there is no colour to mark them with).</summary>
     public TextStyle MatchStyle { get; init; } = TextStyle.None;
@@ -147,6 +156,8 @@ public sealed class PaletteTable
         MutedOnSelection = Rgb(0xa6adc8),
         Subtle = Rgb(0x5e6277),
         SubtleOnSelection = Rgb(0x8388a0),
+        AddedWord = Rgb(0x323c3f),
+        RemovedWord = Rgb(0x3e2e40),
         Border = Rgb(0x6c7086),
         BarBackground = Rgb(0x181825),
         SelectionFocused = Rgb(0x313244),
@@ -174,6 +185,8 @@ public sealed class PaletteTable
         MutedOnSelection = Rgb(0x5f6175),
         Subtle = Rgb(0xa0a2af),
         SubtleOnSelection = Rgb(0x848798),
+        AddedWord = Rgb(0xdde5e2),
+        RemovedWord = Rgb(0xece1e8),
         Border = Rgb(0x7c7f93),
         BarBackground = Rgb(0xe6e9ef),
         SelectionFocused = Rgb(0xdce0e8),
@@ -205,6 +218,9 @@ public sealed class PaletteTable
         Subtle = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         SubtleOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.Gray),
         SubtleStyle = TextStyle.Faint,
+        AddedWord = Color.None,
+        RemovedWord = Color.None,
+        WordStyle = TextStyle.Bold | TextStyle.Underline,
         Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.DarkGray),
@@ -235,6 +251,9 @@ public sealed class PaletteTable
         Subtle = Named(ansi, ThemeRoles.Muted, ColorName16.DarkGray),
         SubtleOnSelection = Named(ansi, ThemeRoles.MutedOnSelection, ColorName16.DarkGray),
         SubtleStyle = TextStyle.Faint,
+        AddedWord = Color.None,
+        RemovedWord = Color.None,
+        WordStyle = TextStyle.Bold | TextStyle.Underline,
         Border = Named(ansi, ThemeRoles.Border, ColorName16.DarkGray),
         BarBackground = Color.None,
         SelectionFocused = Named(ColorName16.Gray),
@@ -265,6 +284,9 @@ public sealed class PaletteTable
         MutedOnSelection = Color.None,
         Subtle = Color.None,
         SubtleOnSelection = Color.None,
+        AddedWord = Color.None,
+        RemovedWord = Color.None,
+        WordStyle = TextStyle.Bold | TextStyle.Underline,
         Border = Color.None,
         BarBackground = Color.None,
         SelectionFocused = Color.None,
@@ -299,6 +321,8 @@ public sealed class PaletteTable
         MutedOnSelection = Role(definition, ThemeRoles.MutedOnSelection),
         Subtle = Role(definition, ThemeRoles.Subtle),
         SubtleOnSelection = Role(definition, ThemeRoles.SubtleOnSelection),
+        AddedWord = Role(definition, ThemeRoles.AddedWord),
+        RemovedWord = Role(definition, ThemeRoles.RemovedWord),
         Border = Role(definition, ThemeRoles.Border),
         BarBackground = Role(definition, ThemeRoles.BarBackground),
         SelectionFocused = Role(definition, ThemeRoles.SelectionFocused),

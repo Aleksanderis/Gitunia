@@ -28,6 +28,19 @@ public static class ThemeFileParser
     // The share of the text colour kept when it is blended into the background it sits on.
     private const double SubtleWeight = 0.55;
     private const double SubtleOnSelectionWeight = 0.7;
+    private const double WordWeight = 0.15;
+    private const double WordWeightStep = 0.01;
+    private const double WordContrast = 4.8;
+    private const double ContrastOffset = 0.05;
+    private const double RedLuminance = 0.2126;
+    private const double GreenLuminance = 0.7152;
+    private const double BlueLuminance = 0.0722;
+    private const double LinearThreshold = 0.03928;
+    private const double LinearDivisor = 12.92;
+    private const double ChannelMaximum = 255.0;
+    private const double GammaOffset = 0.055;
+    private const double GammaScale = 1.055;
+    private const double GammaExponent = 2.4;
     private static readonly int[] ChannelShifts = [16, 8, 0];
     private const char HexPrefix = '#';
 
@@ -193,6 +206,43 @@ public static class ThemeFileParser
         return result;
     }
 
+    // The background of changed words: the text colour blended into the base background, as strongly as the text
+    // stays readable on it (a light theme, whose text is barely dark enough, gets a faint tint).
+    private static int WordTint(int foreground, int background)
+    {
+        var weight = WordWeight;
+        var tint = Mix(foreground, background, weight);
+        while (weight > WordWeightStep && Contrast(foreground, tint) < WordContrast)
+        {
+            weight -= WordWeightStep;
+            tint = Mix(foreground, background, weight);
+        }
+
+        return tint;
+    }
+
+    private static double Contrast(int first, int second)
+    {
+        var lighter = Math.Max(Luminance(first), Luminance(second));
+        var darker = Math.Min(Luminance(first), Luminance(second));
+
+        return (lighter + ContrastOffset) / (darker + ContrastOffset);
+    }
+
+    private static double Luminance(int color) =>
+        (RedLuminance * Linear((color >> 16) & 0xff))
+        + (GreenLuminance * Linear((color >> 8) & 0xff))
+        + (BlueLuminance * Linear(color & 0xff));
+
+    private static double Linear(int channel)
+    {
+        var value = channel / ChannelMaximum;
+
+        return value <= LinearThreshold
+            ? value / LinearDivisor
+            : Math.Pow((value + GammaOffset) / GammaScale, GammaExponent);
+    }
+
     private static void FillDefaults(Dictionary<string, int> colors)
     {
         colors.TryAdd(ThemeRoles.MutedOnSelection, colors[ThemeRoles.Muted]);
@@ -206,6 +256,12 @@ public static class ThemeFileParser
         colors.TryAdd(ThemeRoles.ChipBackground, colors[ThemeRoles.Accent]);
         colors.TryAdd(ThemeRoles.MatchForeground, colors[ThemeRoles.ChipForeground]);
         colors.TryAdd(ThemeRoles.MatchBackground, colors[ThemeRoles.Warn]);
+        colors.TryAdd(
+            ThemeRoles.AddedWord,
+            WordTint(colors[ThemeRoles.Good], colors[ThemeRoles.BaseBackground]));
+        colors.TryAdd(
+            ThemeRoles.RemovedWord,
+            WordTint(colors[ThemeRoles.Bad], colors[ThemeRoles.BaseBackground]));
     }
 
     private static List<int>? ReadLanes(string file, JsonElement root, ICollection<ConfigProblem> problems)

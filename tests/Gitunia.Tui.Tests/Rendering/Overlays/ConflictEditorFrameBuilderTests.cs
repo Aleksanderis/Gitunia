@@ -539,6 +539,57 @@ public class ConflictEditorFrameBuilderTests
         Assert.Contains(frame.Lines, line => line.Text.Contains("diff3, then R)", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void GivenOursAndTheirsDifferInAWord_WhenRenderingTwoPanes_ThenOnlyThatWordIsHighlightedOnEachSide()
+    {
+        var state = State("<<<<<<< HEAD\nint total = count + 1;\n=======\nint total = amount + 1;\n>>>>>>> feature\n");
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemoved && segment.Text == "int total = ");
+    }
+
+    [Fact]
+    public void GivenThreePanes_WhenOursAndTheirsDifferInAWord_ThenTheWordsAreHighlightedAndTheBaseIsNot()
+    {
+        var state = State(
+            "<<<<<<< HEAD\nint total = count + 1;\n||||||| base\nint total = 0;\n=======\n"
+            + "int total = amount + 1;\n>>>>>>> feature\n");
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+        Assert.All(
+            frame.Lines,
+            line => Assert.Equal(frame.Width, TextWidth.Of(line.Text)));
+    }
+
+    [Fact]
+    public void GivenOursAndTheirsDifferInAWord_WhenRenderingStackedSides_ThenTheWordsAreHighlighted()
+    {
+        var state = State("<<<<<<< HEAD\nint total = count + 1;\n=======\nint total = amount + 1;\n>>>>>>> feature\n");
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 70, 30, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
+        Assert.Contains(segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+    }
+
+    [Fact]
+    public void GivenOneSideHasMoreLines_WhenRendering_ThenTheExtraLineIsNotWordHighlighted()
+    {
+        var frame = ConflictEditorFrameBuilder.Build(State(Text), 120, 30, GraphGlyphSet.Unicode)!;
+
+        var segments = frame.Lines.SelectMany(line => line.Segments).ToList();
+        Assert.DoesNotContain(segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "2");
+    }
+
     private static int ChipLine(OverlayFrame frame, string chip) =>
         frame.Lines.ToList().FindIndex(line => line.Text.Contains(chip, StringComparison.Ordinal));
 

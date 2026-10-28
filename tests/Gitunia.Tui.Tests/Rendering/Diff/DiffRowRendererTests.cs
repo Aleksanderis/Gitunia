@@ -346,4 +346,119 @@ public class DiffRowRendererTests
 
         Assert.Contains("x••¶", marked.Text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GivenChangedWords_WhenRenderingAnAddedRow_ThenOnlyThoseCharactersUseTheWordRole()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "let a = 2;", null, 1, 0);
+
+        var line = DiffRowRenderer.Render(
+            row, 30, 3, null, false, Glyphs, changes: [new ChangedSpan(8, 1)]);
+
+        var word = Assert.Single(line.Segments, segment => segment.Role == SegmentRole.DiffAddedWord);
+        Assert.Equal("2", word.Text);
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.DiffAdded && segment.Text == "let a = ");
+        Assert.Equal(30, TextWidth.Of(line.Text));
+    }
+
+    [Fact]
+    public void GivenChangedWords_WhenRenderingARemovedRow_ThenTheRemovedWordRoleIsUsed()
+    {
+        var row = new DiffRow(DiffRowKind.Removed, "let a = 1;", 1, null, 0);
+
+        var line = DiffRowRenderer.Render(
+            row, 30, 3, null, false, Glyphs, changes: [new ChangedSpan(8, 1)]);
+
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "1");
+    }
+
+    [Fact]
+    public void GivenChangedWordsAroundATab_WhenRenderingWithAndWithoutMarks_ThenTheTabColumnsAreChangedToo()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "a\tb  c", null, 1, 0);
+        var changes = new[] { new ChangedSpan(1, 4) };
+
+        var plain = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, changes: changes);
+        var marked = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true, changes);
+
+        Assert.Contains(
+            plain.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "   b  ");
+        Assert.Contains(
+            marked.Segments,
+            segment => segment.Role == SegmentRole.WhitespaceMarkAddedWord && segment.Text == "→");
+        Assert.Contains(
+            marked.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "  b");
+        Assert.Equal(TextWidth.Of(plain.Text), TextWidth.Of(marked.Text));
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksInAndOutsideChangedWords_WhenRendering_ThenOnlyTheInsideOnesSitOnTheTint()
+    {
+        var row = new DiffRow(DiffRowKind.Removed, "  a b", 1, null, 0);
+
+        var line = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, null, true, [new ChangedSpan(3, 3)]);
+
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.WhitespaceMark && segment.Text == "··");
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Role == SegmentRole.WhitespaceMarkRemovedWord && segment.Text == "·");
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "b");
+    }
+
+    [Fact]
+    public void GivenChangedWordsAndASearchMatch_WhenRendering_ThenTheMatchWinsOverTheTint()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "let a = 2;", null, 1, 0);
+
+        var line = DiffRowRenderer.Render(row, 30, 3, "a = 2", false, Glyphs, changes: [new ChangedSpan(8, 1)]);
+
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.SearchMatch && segment.Text == "a = 2");
+    }
+
+    [Fact]
+    public void GivenChangedWordsOnAWrappedRow_WhenRenderingTheSecondSegment_ThenTheTintFollowsTheChunk()
+    {
+        var row = new DiffRow(DiffRowKind.Added, "0123456789abcdef", null, 1, 0);
+
+        var second = DiffRowRenderer.RenderSegment(
+            row, 1, 20, 3, null, false, Glyphs, changes: [new ChangedSpan(12, 2)]);
+
+        Assert.Contains(second.Segments, segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "cd");
+    }
+
+    [Fact]
+    public void GivenAContextRowWithChanges_WhenRendering_ThenTheRowKeepsItsPlainRole()
+    {
+        var row = new DiffRow(DiffRowKind.Context, "same text", 1, 1, 0);
+
+        var line = DiffRowRenderer.Render(row, 30, 3, null, false, Glyphs, changes: [new ChangedSpan(0, 4)]);
+
+        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.DiffAddedWord);
+    }
+
+    [Fact]
+    public void GivenAPairedRemovedAndAddedRow_WhenRenderingThePane_ThenTheChangedWordIsHighlightedOnBothRows()
+    {
+        var document = new DiffDocument(
+            [
+                new DiffRow(DiffRowKind.Removed, "total = count + 1", 4, null, 0),
+                new DiffRow(DiffRowKind.Added, "total = amount + 1", null, 4, 0),
+            ],
+            [],
+            [],
+            [],
+            4);
+        var pane = new DiffPaneModel(document, 0, 0, false);
+
+        var lines = DiffPaneRenderer.RenderRows(pane, 40, 2, Glyphs, 0);
+
+        Assert.Contains(
+            lines[0].Segments,
+            segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
+        Assert.Contains(
+            lines[1].Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+    }
 }

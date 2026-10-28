@@ -42,6 +42,18 @@ public static class ThemeRoles
     /// </summary>
     public const string SubtleOnSelection = "subtleOnSelection";
 
+    /// <summary>
+    /// Background of the changed words inside an added line of a diff; defaults to a mix of <see cref="Good"/> and
+    /// <see cref="BaseBackground"/>.
+    /// </summary>
+    public const string AddedWord = "addedWord";
+
+    /// <summary>
+    /// Background of the changed words inside a removed line of a diff; defaults to a mix of <see cref="Bad"/> and
+    /// <see cref="BaseBackground"/>.
+    /// </summary>
+    public const string RemovedWord = "removedWord";
+
     /// <summary>Lines between panes.</summary>
     public const string Border = "border";
 
@@ -89,7 +101,7 @@ public static class ThemeRoles
     public static IReadOnlyList<string> Optional { get; } =
     [
         MutedOnSelection, Subtle, SubtleOnSelection, GroupBackground, TabButtonBackground, ChipBackground,
-        MatchForeground, MatchBackground,
+        MatchForeground, MatchBackground, AddedWord, RemovedWord,
     ];
 
     /// <summary>The roles whose 16-colour name a theme file may set in its <c>ansi</c> object.</summary>

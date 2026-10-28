@@ -1,7 +1,9 @@
 using System.Globalization;
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Diff;
 using Gitunia.Core.Mouse;
 using Gitunia.Git.Conflicts.Models;
+using Gitunia.Tui.Rendering.Diff;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -283,9 +285,9 @@ public static class ConflictEditorFrameBuilder
         {
             var line = plan.Scroll + row;
             lines.Add(Joined(
-                NumberedCell(ours, line, leftWidth, plan, glyphs),
+                NumberedCell(ours, theirs, true, line, leftWidth, plan, glyphs),
                 divider,
-                NumberedCell(theirs, line, rightWidth, plan, glyphs),
+                NumberedCell(theirs, ours, false, line, rightWidth, plan, glyphs),
                 inner,
                 glyphs));
         }
@@ -335,8 +337,8 @@ public static class ConflictEditorFrameBuilder
                 .Build();
             lines.Add(JoinedThree(
                 baseCell,
-                NumberedCell(ours, line, oursWidth, plan, glyphs),
-                NumberedCell(theirs, line, theirsWidth, plan, glyphs),
+                NumberedCell(ours, theirs, true, line, oursWidth, plan, glyphs),
+                NumberedCell(theirs, ours, false, line, theirsWidth, plan, glyphs),
                 divider,
                 inner,
                 glyphs));
@@ -437,15 +439,26 @@ public static class ConflictEditorFrameBuilder
             $"{name}  (lines {plan.Scroll + 1}-{last} of {side.Lines.Count})  {label}");
     }
 
-    private static StyledLine NumberedCell(SideText side, int line, int width, Plan plan, GraphGlyphSet glyphs)
+    private static StyledLine NumberedCell(
+        SideText side,
+        SideText other,
+        bool isOurs,
+        int line,
+        int width,
+        Plan plan,
+        GraphGlyphSet glyphs)
     {
         var gutter = GutterText(side.NumberAt(line, plan.ResultStart), plan.Gutter, side.MarkAt(line, plan));
-
-        return new LineBuilder(width, glyphs.Ellipsis)
+        var builder = new LineBuilder(width, glyphs.Ellipsis)
             .Append(" ", SegmentRole.Plain)
-            .Append(gutter, SegmentRole.Faint)
-            .Append(side.TextAt(line), side.RoleAt(line, plan))
-            .Build();
+            .Append(gutter, SegmentRole.Faint);
+        ChangedText.Append(
+            builder,
+            side.TextAt(line),
+            side.RoleAt(line, plan),
+            side.ChangesAt(line, other, isOurs, plan));
+
+        return builder.Build();
     }
 
     // The line number, then a mark for a line the other side does not have in the same row (so colour is not alone).
@@ -465,15 +478,15 @@ public static class ConflictEditorFrameBuilder
         string text,
         SegmentRole role,
         Plan plan,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        IReadOnlyList<ChangedSpan>? changes = null)
     {
-        var inner = new LineBuilder(OverlayBox.InnerWidth(plan.Width), glyphs.Ellipsis)
+        var builder = new LineBuilder(OverlayBox.InnerWidth(plan.Width), glyphs.Ellipsis)
             .Append(" ", SegmentRole.Plain)
-            .Append(gutter, SegmentRole.Faint)
-            .Append(text, role)
-            .Build();
+            .Append(gutter, SegmentRole.Faint);
+        ChangedText.Append(builder, text, role, changes);
 
-        return OverlayBox.Wrap(inner, glyphs);
+        return OverlayBox.Wrap(builder.Build(), glyphs);
     }
 
     private static void AddBase(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
@@ -491,8 +504,8 @@ public static class ConflictEditorFrameBuilder
     {
         var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
         var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
-        AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, ours, plan, glyphs);
-        AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, theirs, plan, glyphs);
+        AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, ours, theirs, true, plan, glyphs);
+        AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, theirs, ours, false, plan, glyphs);
     }
 
     private static void AddSide(
@@ -501,6 +514,8 @@ public static class ConflictEditorFrameBuilder
         string label,
         SegmentRole headerRole,
         SideText side,
+        SideText other,
+        bool isOurs,
         Plan plan,
         GraphGlyphSet glyphs)
     {
@@ -510,7 +525,8 @@ public static class ConflictEditorFrameBuilder
             var line = plan.Scroll + row;
             var number = side.NumberAt(line, plan.ResultStart);
             var gutter = GutterText(number, plan.Gutter, side.MarkAt(line, plan));
-            lines.Add(NumberedText(gutter, side.TextAt(line), side.RoleAt(line, plan), plan, glyphs));
+            var changes = side.ChangesAt(line, other, isOurs, plan);
+            lines.Add(NumberedText(gutter, side.TextAt(line), side.RoleAt(line, plan), plan, glyphs, changes));
         }
     }
 
@@ -758,6 +774,21 @@ public static class ConflictEditorFrameBuilder
             }
 
             return IsDifferent(line, plan) ? DifferingRole : SegmentRole.Plain;
+        }
+
+        // The words of this side's line that differ from the other side's line in the same row (ours is the old side).
+        public IReadOnlyList<ChangedSpan> ChangesAt(int line, SideText other, bool isOurs, Plan plan)
+        {
+            if (!IsDifferent(line, plan) || other.IsEmpty || line >= other.Lines.Count)
+            {
+                return [];
+            }
+
+            var result = isOurs
+                ? WordDiff.Compare(Lines[line], other.Lines[line])
+                : WordDiff.Compare(other.Lines[line], Lines[line]);
+
+            return isOurs ? result.Old : result.New;
         }
 
         private bool IsDifferent(int line, Plan plan) =>

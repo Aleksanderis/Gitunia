@@ -213,7 +213,15 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             ? WrappedLine(current, item, width, selected, jump)
             : current is null && item >= 0 && item < Document.Rows.Count
                 ? DiffRowRenderer.Render(
-                    Document.Rows[item], width, _gutterDigits, Highlight, selected, glyphs, jump, ShowsWhitespace)
+                    Document.Rows[item],
+                    width,
+                    _gutterDigits,
+                    Highlight,
+                    selected,
+                    glyphs,
+                    jump,
+                    ShowsWhitespace,
+                    DiffWordHighlights.ChangesOf(Document, item))
                 : new LineBuilder(width, glyphs.Ellipsis).Build();
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
@@ -365,7 +373,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             isSelected,
             glyphs,
             jump,
-            ShowsWhitespace);
+            ShowsWhitespace,
+            DiffWordHighlights.ChangesOf(Document, row));
     }
 
     // The labels are worked out once per frame (the first line asks); only the first line of a wrapped row shows its label.

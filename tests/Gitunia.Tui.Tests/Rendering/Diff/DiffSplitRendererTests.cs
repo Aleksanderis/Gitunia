@@ -59,6 +59,58 @@ public class DiffSplitRendererTests
     }
 
     [Fact]
+    public void GivenAPairedLine_WhenRendering_ThenEachSideHighlightsItsChangedWord()
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Removed, "total = count + 1", 4, null, 0),
+            new DiffRow(DiffRowKind.Added, "total = amount + 1", null, 4, 0));
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var rendered = DiffSplitRenderer.Render(document, line, 0, 60, Digits, null, false, false, Glyphs);
+
+        Assert.Contains(
+            rendered.Segments,
+            segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text == "count");
+        Assert.Contains(
+            rendered.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text == "amount");
+    }
+
+    [Fact]
+    public void GivenWhitespaceMarksOnAndAChangedIndent_WhenRenderingASplitLine_ThenTheMarksSitOnTheTint()
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Removed, "  x = 1;", 4, null, 0),
+            new DiffRow(DiffRowKind.Added, "\t x = 1;", null, 4, 0));
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var rendered = DiffSplitRenderer.Render(
+            document, line, 0, 61, Digits, null, false, false, Glyphs, showWhitespace: true);
+
+        Assert.Contains(rendered.Segments, segment => segment.Role == SegmentRole.WhitespaceMarkRemovedWord);
+        Assert.Contains(rendered.Segments, segment => segment.Role == SegmentRole.WhitespaceMarkAddedWord);
+        Assert.Equal(61, TextWidth.Of(rendered.Text));
+    }
+
+    [Fact]
+    public void GivenAWrappedPairedLine_WhenRenderingTheLastSegment_ThenTheChangedWordInItIsHighlighted()
+    {
+        var document = Document(
+            new DiffRow(DiffRowKind.Removed, "keep keep keep keep keep keep old", 4, null, 0),
+            new DiffRow(DiffRowKind.Added, "keep keep keep keep keep keep new", null, 4, 0));
+        var line = DiffSplitLayout.Build(document).Lines[0];
+
+        var last = DiffSplitRenderer.Render(document, line, 2, 41, Digits, null, false, true, Glyphs);
+
+        Assert.Contains(
+            last.Segments,
+            segment => segment.Role == SegmentRole.DiffRemovedWord && segment.Text.Contains("old"));
+        Assert.Contains(
+            last.Segments,
+            segment => segment.Role == SegmentRole.DiffAddedWord && segment.Text.Contains("new"));
+    }
+
+    [Fact]
     public void GivenALineWithOnlyAnAddedRow_WhenRendering_ThenTheOldSideIsBlank()
     {
         var document = Document(new DiffRow(DiffRowKind.Added, "extra", null, 9, 0));
