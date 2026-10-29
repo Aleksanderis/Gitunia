@@ -99,7 +99,7 @@ public class StashViewTests
         harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
 
         Assert.False(harness.Controller.IsShowing);
-        Assert.NotEqual(PaneKind.Detail, harness.Tab.View.FocusedPane);
+        Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
     }
 
     [Fact]
