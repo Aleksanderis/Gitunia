@@ -114,6 +114,9 @@ public sealed class PaletteTable
     /// </summary>
     public TextStyle RangeStyle { get; init; } = TextStyle.Bold;
 
+    /// <summary>Added to the moving end of a Visual range (#823), in every colour tier, so the cursor row differs from the other range rows without colour.</summary>
+    public TextStyle RangeCursorStyle { get; init; } = TextStyle.Underline;
+
     /// <summary>Added to muted text (faint where there is no colour to mute it with).</summary>
     public TextStyle MutedStyle { get; init; } = TextStyle.None;
 
@@ -354,7 +357,7 @@ public sealed class PaletteTable
         Lanes = [Color.None],
         SelectionFocusedStyle = TextStyle.Reverse,
         SelectionDimStyle = TextStyle.Underline,
-        RangeStyle = TextStyle.Bold | TextStyle.Reverse | TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse,
         MutedStyle = TextStyle.Faint,
         SubtleStyle = TextStyle.Faint,
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,

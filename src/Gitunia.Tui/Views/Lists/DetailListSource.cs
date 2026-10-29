@@ -74,9 +74,10 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
         width = PanePadding.TextWidth(width, columns);
         var isRange = Range?.Contains(item) == true;
         var isSelected = selected || isRange;
+        var isRangeCursor = isRange && selected;
         var jump = JumpLabelOf(listView, item);
         var line = LineAt(item, isSelected, width, jump);
-        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus, isRange);
+        LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus, isRange, isRangeCursor);
     }
 
     public void Dispose()
