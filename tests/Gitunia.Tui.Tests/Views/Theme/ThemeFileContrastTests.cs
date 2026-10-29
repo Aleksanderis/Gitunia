@@ -303,9 +303,17 @@ public sealed class ThemeFileContrastTests
         return Contrast(foreground, Resolve(attribute.Background, definition, false));
     }
 
-    private static int Resolve(Color color, ThemeDefinition definition, bool isForeground) => color != Color.None
-        ? ToRgb(color)
-        : definition.Colors[isForeground ? ThemeRoles.BaseForeground : ThemeRoles.BaseBackground];
+    private static int Resolve(Color color, ThemeDefinition definition, bool isForeground)
+    {
+        if (color != Color.None)
+        {
+            return ToRgb(color);
+        }
+
+        var role = isForeground ? ThemeRoles.BaseForeground : ThemeRoles.BaseBackground;
+
+        return definition.Colors[role];
+    }
 
     private static int ToRgb(Color color) => (color.R << 16) | (color.G << 8) | color.B;
 

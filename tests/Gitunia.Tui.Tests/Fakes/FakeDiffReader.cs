@@ -115,9 +115,13 @@ public sealed class FakeDiffReader : IDiffReader
     public Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return _commits.TryGetValue(commit, out var known)
-            ? Task.FromResult(known.Parent)
-            : throw new GitException($"unknown commit {commit}");
+
+        if (_commits.TryGetValue(commit, out var known))
+        {
+            return Task.FromResult(known.Parent);
+        }
+
+        throw new GitException($"unknown commit {commit}");
     }
 
     private static ObjectId IdOf(int number)

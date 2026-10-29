@@ -1,4 +1,5 @@
 using Gitunia.Core.Conflicts;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Tabs;
@@ -671,10 +672,7 @@ public class ConflictEditorFrameBuilderTests
     public void GivenARebinding_WhenRendering_ThenTheChipsShowTheNewKeysInBothModes()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.ConflictEditorOurs
-                || binding.Action == ActionIds.ConflictEditorEditDone
-                    ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-o") }
-                    : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
         var state = State(Text);
 
@@ -687,4 +685,15 @@ public class ConflictEditorFrameBuilderTests
 
     private static ConflictEditorState State(string text) =>
         ConflictEditorState.Create(new TabId(1), "file.txt", ConflictParser.Parse(text).Parts!);
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.ConflictEditorOurs
+            || binding.Action == ActionIds.ConflictEditorEditDone)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-o") };
+        }
+
+        return binding;
+    }
 }

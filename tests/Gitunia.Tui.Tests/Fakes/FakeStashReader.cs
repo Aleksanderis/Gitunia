@@ -21,8 +21,11 @@ public sealed class FakeStashReader : IStashReader
             return Task.FromCanceled<ParseResult<StashEntry>>(cancellationToken);
         }
 
-        return Failure is null
-            ? Task.FromResult(new ParseResult<StashEntry>(Stashes.ToArray(), []))
-            : Task.FromException<ParseResult<StashEntry>>(Failure);
+        if (Failure is null)
+        {
+            return Task.FromResult(new ParseResult<StashEntry>(Stashes.ToArray(), []));
+        }
+
+        return Task.FromException<ParseResult<StashEntry>>(Failure);
     }
 }

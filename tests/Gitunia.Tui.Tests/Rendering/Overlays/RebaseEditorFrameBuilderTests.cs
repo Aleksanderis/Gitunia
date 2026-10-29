@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Rebase;
@@ -195,9 +196,7 @@ public class RebaseEditorFrameBuilderTests
     public void GivenARebinding_WhenRendering_ThenTheChipShowsTheNewKeyAndTheClickColumnsFollowItsWidth()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.RebaseEditorDrop
-                ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-x") }
-                : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
         var state = State(2);
 
@@ -237,4 +236,14 @@ public class RebaseEditorFrameBuilderTests
             "tip",
             [.. Enumerable.Range(0, count).Select(index =>
                 new RebaseTodoCommit(new string((char)('1' + (index % 9)), 40), $"subject {index}"))]);
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.RebaseEditorDrop)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-x") };
+        }
+
+        return binding;
+    }
 }

@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Repositories;
@@ -77,10 +78,7 @@ public class WorkingListTitleButtonsTests
     public void GivenARebinding_WhenLayingOut_ThenTheButtonShowsTheNewKey()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.WorkingTreeStageAll
-                && binding.View == DefaultKeymap.WorkingUnstagedView
-                    ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-s") }
-                    : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
 
         var button = WorkingListTitleButtons.Layout(WorkingTreeSection.Unstaged, "Unstaged 12", 60, keys)!;
@@ -163,5 +161,16 @@ public class WorkingListTitleButtonsTests
             DefaultMouseMap.CreateBindings(),
             binding => binding.View == DefaultMouseMap.ListDiffButton
                 && binding.Action == ActionIds.WorkingTreeOpenDiff);
+    }
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.WorkingTreeStageAll
+            && binding.View == DefaultKeymap.WorkingUnstagedView)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-s") };
+        }
+
+        return binding;
     }
 }

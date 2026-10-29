@@ -2,6 +2,7 @@ using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Search;
 using Gitunia.Core.Search.Models;
+using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Tui.Tests.Fakes;
 using Gitunia.Tui.Tests.Rendering.Graph;
@@ -12,6 +13,8 @@ namespace Gitunia.Tui.Tests.Search;
 
 public class SearchControllerTests
 {
+    private const int NeedleInterval = 4000;
+
     private static CommitGraph Graph() => CommitFactory.Graph(
         CommitFactory.Commit(6, "Fix parser crash", [5]),
         CommitFactory.Commit(5, "Add search box", [4]),
@@ -203,7 +206,7 @@ public class SearchControllerTests
     public void GivenLargeGraph_WhenSearching_ThenSlicesRunUntilEveryRowWasScanned()
     {
         var commits = Enumerable.Range(1, 12_000)
-            .Select(number => CommitFactory.Commit(number, number % 4000 == 0 ? $"needle {number}" : $"hay {number}", number == 1 ? [] : [number - 1]))
+            .Select(NumberedCommit)
             .Reverse()
             .ToArray();
         using var harness = new PromptHarness(CommitFactory.Graph(commits));
@@ -445,5 +448,24 @@ public class SearchControllerTests
         harness.Session.Cancellation.Cancel();
 
         WaitUntil(harness, h => h.Search.BodySearchCount == 0);
+    }
+
+    private static CommitInfo NumberedCommit(int number)
+    {
+        var subject = $"hay {number}";
+
+        if (number % NeedleInterval == 0)
+        {
+            subject = $"needle {number}";
+        }
+
+        int[] parents = [];
+
+        if (number > 1)
+        {
+            parents = [number - 1];
+        }
+
+        return CommitFactory.Commit(number, subject, parents);
     }
 }

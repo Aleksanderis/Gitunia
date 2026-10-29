@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Tui.Rendering.Diff;
@@ -138,14 +139,22 @@ public class ChangeGroupButtonsTests
     public void GivenARebinding_WhenLayingOut_ThenTheGroupButtonShowsTheNewKey()
     {
         var bindings = DefaultKeymap.CreateBindings()
-            .Select(binding => binding.Action == ActionIds.WorkingTreeStage
-                && binding.View == DefaultKeymap.WorkingUnstagedDiffView
-                    ? binding with { Sequence = KeySequenceParser.Parse("Ctrl-s") }
-                    : binding);
+            .Select(Rebound);
         var keys = new ChipKeys(DefaultKeymap.Create().WithBindings(bindings));
 
         var buttons = ChangeGroupButtons.Layout(80, Padding, WorkingTreeButtons.Unstaged, keys);
 
         Assert.Equal(" Ctrl-s stage ", buttons[0].Label);
+    }
+
+    private static KeyBinding Rebound(KeyBinding binding)
+    {
+        if (binding.Action == ActionIds.WorkingTreeStage
+            && binding.View == DefaultKeymap.WorkingUnstagedDiffView)
+        {
+            return binding with { Sequence = KeySequenceParser.Parse("Ctrl-s") };
+        }
+
+        return binding;
     }
 }

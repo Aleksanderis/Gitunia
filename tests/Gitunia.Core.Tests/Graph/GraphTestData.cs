@@ -8,10 +8,15 @@ namespace Gitunia.Core.Tests.Graph;
 /// <summary>Synthetic commits for layout tests: commit <c>n</c> gets the id whose hex form is <c>n</c> zero-padded.</summary>
 public static class GraphTestData
 {
-    public static ObjectId Id(int number) =>
-        ObjectId.TryParse(number.ToString("x40", CultureInfo.InvariantCulture), out var objectId)
-            ? objectId
-            : throw new InvalidOperationException("Cannot build an id.");
+    public static ObjectId Id(int number)
+    {
+        if (ObjectId.TryParse(number.ToString("x40", CultureInfo.InvariantCulture), out var objectId))
+        {
+            return objectId;
+        }
+
+        throw new InvalidOperationException("Cannot build an id.");
+    }
 
     /// <summary>The edges without their colours, for tests of the shape of a layout.</summary>
     public static IReadOnlyList<GraphEdge> Shape(IReadOnlyList<GraphEdge> edges) =>

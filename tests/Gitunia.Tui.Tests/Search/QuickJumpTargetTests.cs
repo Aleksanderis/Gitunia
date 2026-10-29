@@ -145,9 +145,14 @@ public sealed class QuickJumpTargetTests : IDisposable
 
     public void Dispose() => _session.Dispose();
 
-    private ListJumpTarget? OpenTarget() => !_hasTarget
-        ? null
-        : new ListJumpTarget(
+    private ListJumpTarget? OpenTarget()
+    {
+        if (!_hasTarget)
+        {
+            return null;
+        }
+
+        return new ListJumpTarget(
             PaneKind.WorkingUnstaged,
             _ =>
             [
@@ -157,4 +162,5 @@ public sealed class QuickJumpTargetTests : IDisposable
             _shown.Add,
             _jumps.Add,
             () => _unavailable);
+    }
 }

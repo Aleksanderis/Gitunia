@@ -170,32 +170,7 @@ public sealed class WorktreeSwitchActionsTests
     {
         private Harness(string? rowPath, string? branchName)
         {
-            Row = branchName is not null
-                ? new SidebarRow(
-                    SidebarRowKind.LocalBranch,
-                    SidebarSection.Branches,
-                    branchName,
-                    string.Empty,
-                    null,
-                    false,
-                    false,
-                    0,
-                    null,
-                    null)
-                : rowPath is null
-                ? null
-                : new SidebarRow(
-                    SidebarRowKind.Worktree,
-                    SidebarSection.Worktrees,
-                    Path.GetFileName(rowPath),
-                    string.Empty,
-                    null,
-                    false,
-                    false,
-                    0,
-                    null,
-                    null,
-                    rowPath);
+            Row = CreateRow(rowPath, branchName);
             Host.EffectRaised += effect =>
             {
                 if (effect is LoadRepositoryEffect load)
@@ -262,6 +237,42 @@ public sealed class WorktreeSwitchActionsTests
         }
 
         // What the tab's load does in the app: fills the worktree list the action looks the selected row up in.
+        private static SidebarRow? CreateRow(string? rowPath, string? branchName)
+        {
+            if (branchName is not null)
+            {
+                return new SidebarRow(
+                    SidebarRowKind.LocalBranch,
+                    SidebarSection.Branches,
+                    branchName,
+                    string.Empty,
+                    null,
+                    false,
+                    false,
+                    0,
+                    null,
+                    null);
+            }
+
+            if (rowPath is null)
+            {
+                return null;
+            }
+
+            return new SidebarRow(
+                SidebarRowKind.Worktree,
+                SidebarSection.Worktrees,
+                Path.GetFileName(rowPath),
+                string.Empty,
+                null,
+                false,
+                false,
+                0,
+                null,
+                null,
+                rowPath);
+        }
+
         private async Task ReloadAsync(TabId tabId, RepositoryLocation location)
         {
             var details = new CommitDetailsStore(

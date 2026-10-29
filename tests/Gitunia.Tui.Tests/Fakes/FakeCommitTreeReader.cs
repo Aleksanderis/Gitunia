@@ -28,8 +28,11 @@ public sealed class FakeCommitTreeReader : ICommitTreeReader
         cancellationToken.ThrowIfCancellationRequested();
         ReadCount++;
 
-        return _trees.TryGetValue(commit, out var entries)
-            ? Task.FromResult(entries)
-            : throw new GitException($"unknown commit {commit}");
+        if (_trees.TryGetValue(commit, out var entries))
+        {
+            return Task.FromResult(entries);
+        }
+
+        throw new GitException($"unknown commit {commit}");
     }
 }

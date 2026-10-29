@@ -14,9 +14,12 @@ public static partial class UxKeymapReader
             .FirstOrDefault(attribute => attribute.Key == "RepoRoot")?.Value ?? string.Empty;
         var candidate = Path.Combine(root, "docs", "ux.md");
 
-        return File.Exists(candidate)
-            ? candidate
-            : throw new FileNotFoundException($"docs/ux.md not found at {candidate}");
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+
+        throw new FileNotFoundException($"docs/ux.md not found at {candidate}");
     }
 
     /// <summary>One binding per documented key token; Picker rows are Insert mode, Palette rows Command mode, all others Normal.</summary>
@@ -48,13 +51,18 @@ public static partial class UxKeymapReader
             const string insertSuffix = " (Insert)";
             var isVisual = view.EndsWith(visualSuffix, StringComparison.Ordinal);
             var isInsert = view.EndsWith(insertSuffix, StringComparison.Ordinal);
-            view = isVisual ? view[..^visualSuffix.Length] : isInsert ? view[..^insertSuffix.Length] : view;
-            var mode = isVisual ? KeyMode.Visual : isInsert ? KeyMode.Insert : view switch
+
+            if (isVisual)
             {
-                DefaultKeymap.PickerView => KeyMode.Insert,
-                DefaultKeymap.PaletteView => KeyMode.Command,
-                _ => KeyMode.Normal,
-            };
+                view = view[..^visualSuffix.Length];
+            }
+            else if (isInsert)
+            {
+                view = view[..^insertSuffix.Length];
+            }
+
+            var mode = ModeOf(view, isVisual, isInsert);
+
             foreach (var token in ReadTokens(cells[1]))
             {
                 bindings.Add(new KeyBinding(mode, view, KeySequenceParser.Parse(token), new ActionId(cells[2])));
@@ -62,6 +70,26 @@ public static partial class UxKeymapReader
         }
 
         return bindings;
+    }
+
+    private static KeyMode ModeOf(string view, bool isVisual, bool isInsert)
+    {
+        if (isVisual)
+        {
+            return KeyMode.Visual;
+        }
+
+        if (isInsert)
+        {
+            return KeyMode.Insert;
+        }
+
+        return view switch
+        {
+            DefaultKeymap.PickerView => KeyMode.Insert,
+            DefaultKeymap.PaletteView => KeyMode.Command,
+            _ => KeyMode.Normal,
+        };
     }
 
     private static IEnumerable<string> ReadTokens(string keyCell)

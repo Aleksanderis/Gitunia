@@ -418,20 +418,7 @@ public sealed class WorktreeActionsTests
             SidebarRow? selectedRow = null)
         {
             var location = await TestGit.Services.Discovery.DiscoverAsync(tabPath, Token);
-            var row = rowPath is null
-                ? null
-                : new SidebarRow(
-                    SidebarRowKind.Worktree,
-                    SidebarSection.Worktrees,
-                    Path.GetFileName(rowPath),
-                    string.Empty,
-                    null,
-                    false,
-                    false,
-                    0,
-                    null,
-                    null,
-                    rowPath);
+            var row = WorktreeRow(rowPath);
             var harness = new Harness(location, selectedRow ?? row, selectedCommit);
             harness._host.Dispatch(new OpenRepositoryCommand(location));
             await harness.ReloadAsync();
@@ -490,6 +477,27 @@ public sealed class WorktreeActionsTests
         public void Dispose() => _refreshed.Dispose();
 
         // What the tab's refresh does in the app: read the repository again.
+        private static SidebarRow? WorktreeRow(string? rowPath)
+        {
+            if (rowPath is null)
+            {
+                return null;
+            }
+
+            return new SidebarRow(
+                SidebarRowKind.Worktree,
+                SidebarSection.Worktrees,
+                Path.GetFileName(rowPath),
+                string.Empty,
+                null,
+                false,
+                false,
+                0,
+                null,
+                null,
+                rowPath);
+        }
+
         private async Task ReloadAsync()
         {
             var tabId = _host.Workspace.ActiveTabId!.Value;
