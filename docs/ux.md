@@ -1536,14 +1536,14 @@ Mouse paths are listed in the next section.
 
 ## Keymap rework (design #833; proposal, built by #839 and #840)
 
-Status: **proposal for the owner to edit in this PR.** The table in "Keymap" above stays the truth until #840 changes `DefaultKeymap`; nothing here is implemented, and the keymap test does not read this section.
+Status: **proposal for the owner to edit in this PR.** After #840 lands the tables below are folded into "Keymap" and this section is cut down to the rules and the level list, so the Old column does not go stale. The table in "Keymap" above stays the truth until #840 changes `DefaultKeymap`; nothing here is implemented, and the keymap test does not read this section.
 Source: the owner's feedback on #833 (too many keys, `<space>b` / `<space>r` confusing, tabs on `Ctrl-w` but repositories on `<space>o`, rare commands mixed with everyday ones).
-Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids (the issue said 244), 240 bound, 5 without a key (`help.tab-select` is mouse-only, `pick.mainline` modal, `remote.fetch-all`, `settings.open-theme` and `working-tree.open` palette-only), plus the nine `tab.go-to.N` ids (`Alt-1`..`Alt-9`, Everyday, unchanged). The design adds one action, `view.toggle-advanced`. 51 actions change their main key; the rest keep theirs.
+Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids (the issue said 244), 240 bound, 5 without a key (`help.tab-select` is mouse-only, `pick.mainline` modal, `remote.fetch-all`, `settings.open-theme` and `working-tree.open` palette-only), plus the nine `tab.go-to.N` ids (`Alt-1`..`Alt-9`, Everyday, unchanged). The design adds one action, `view.toggle-advanced`, and a key for `detail.retry`. 50 actions change their main key (the rows of the tables below with a key in "New"); the rest keep theirs.
 
 ### Layout rules
 
 1. **One noun, one prefix.** Every `<space>` group is one noun and a noun has exactly one group: `b` branch, `t` tag, `w` worktree, `k` stash, `r` remote, `o` repositories and tabs, `g` operation in progress, `e` external tools, `v` view options.
-2. **No lowercase/uppercase pair with unrelated meanings.** Gone: `s`/`S` (working tree / stash), `t`/`T` (tools / tags), `r`/`R` (refresh / remotes), `l`/`L` (reflog / pull), `p`/`P` (pin / push), `f`/`F` (jump to ref / fetch), `c`/`C` (commit / cancel), and `b`/`B`, `r`/`R` in the conflict editor. Kept, because the two keys are one action in two strengths: `bc`/`bC` (create and check out / create only), `bu`/`bU`, `bm`/`bM`, `bd`/`bD` (local / remote branch), `rp`/`rP` (push / force push), `td`/`tD`, `a`/`A`, `u`/`U` (stage and unstage, one file / all), `n`/`N`, `o`/`O`, `t`/`T`, `y`/`Y`, `j`/`J`, `k`/`K`.
+2. **No lowercase/uppercase pair with unrelated meanings.** Gone: `s`/`S` (working tree / stash), `t`/`T` (tools / tags), `r`/`R` (refresh / remotes), `l`/`L` (reflog / pull), `p`/`P` (pin / push), `f`/`F` (jump to ref / fetch), `c`/`C` (commit / cancel), and `b`/`B`, `r`/`R` in the conflict editor. Kept, because the two keys are one action in two strengths or its direct opposite: `bc`/`bC` (create and check out / create only), `bu`/`bU` (set / unset upstream), `bm`/`bM`, `bd`/`bD` (local / remote branch), `rp`/`rP` (push / force push), `td`/`tD`, `a`/`A`, `u`/`U` (stage and unstage, one file / all), `n`/`N`, `o`/`O`, `t`/`T`, `y`/`Y`, `j`/`J`, `k`/`K`.
 3. **All branch work under `<space>b`.** Create, switch, rename, delete (local `bd`, remote `bD`), upstream, fast-forward, merge (three kinds), rebase (the sub-group `<space>br`, which also holds fixup, reword and drop), reset, cherry-pick and revert. Tags and worktrees are nouns of their own (rule 1) and keep their own groups, listed next to `b` in the which-key popup.
 4. **Tabs and repositories together under `<space>o`** (`oo` open, `or` refresh, `oc` close tab, `on` rename tab, `op` pin, `ol` last tab). `Ctrl-t`, `Ctrl-w c`, `Ctrl-w r`, `Ctrl-^`, `<space><Tab>`, `gt`, `gT` and `Alt-1`..`Alt-9` stay (aliases, or the tab-switching keys).
 5. **Aliases on one row.** Help, palette and the tables below show one row per action: main key first, then the other keys (`Tab  also Ctrl-w w`). The main key is the first one in the "New" column. Built by #838.
@@ -1568,7 +1568,14 @@ Counts, read from `DefaultKeymap` and `ActionIds` at this commit: 245 action ids
 No leaf shares its letter with a group. Letters left free for later: `i` `n` `p` `q` `y`. The stash letter is `k` because `s` stays the working tree (the most used leader key) and `S` would be an unrelated pair; the owner may prefer another free letter.
 The which-key popup names the groups after the nouns (`+more (branch)`, `+more (rebase)`, `+more (tag)`, ...); `ActionGroups` stays the vocabulary of the palette, the row menu and the help subheaders.
 
-Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, `rP` is force push), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`.
+Old chords that now mean something else (muscle-memory hazards; every destructive one still asks first): `<space>td` (difftool, now delete tag), `<space>gs` (squash-merge, now skip), `<space>gr` (rebase, now resolve), `<space>br` (rename, now the rebase group), `<space>P` (push; push is now `rp`, and `rP` is force push: one Shift slip, but it is a lease push that asks first), `<space>r` and `<space>o` (leaves, now groups that wait for a second key). Chords that are simply gone: `<space>gm` `gM` `gp` `gv` `gx` `gi` `gI` `gf` `gw` `gd` `gk`, `<space>tm`, `<space>te`, `<space>to` (see #742 below), `<space>p`, `<space>F` `L` `C`, `<space>R...`, `<space>S...`, `<space>T...`. In the conflict editor `B` (base) becomes `<space>vb` and `R` (re-create) `Ctrl-x`. `detail.retry` moves from `<space>r` to `<space>od` because `<space>r` is now a group and a key cannot be both a complete binding and the start of a longer chord.
+
+### Decisions for the owner
+
+- **Tags and worktrees stay their own groups** (`t`, `w`), and fetch, pull, push stay under `r`, although the issue's rule "all branch work under `<space>b`" listed `T` and `w` among today's places of branch work. Rule 1 (one noun, one prefix) and the length of everyday chords (`<space>bwa` for adding a worktree) decided it; only deleting a branch on a remote moved into `b` (`bD`). To follow the rule literally, move them to `<space>bt` and `<space>bw` and say so in the PR.
+- **Stash is `k`**, and the working tree keeps `s` (see the leader map).
+- **Levels** (the Level column) and the judgement notes in it.
+- **`<space>*`** as the toggle key.
 
 ### Conflicts with other issues
 
@@ -1585,10 +1592,11 @@ It flips the same setting as the Settings row (Settings, Keys; the row shows the
 ### Levels (Everyday and Advanced)
 
 - **Hidden, never disabled.** An Advanced action keeps its key, its palette id and its command (typing its exact id in `:` still runs it); it is only left out of the places that teach keys: the help tabs, the which-key popup, the palette list, the row menu and the status bar hints. A user `keys` entry for an Advanced action keeps working.
+- **Messages keep their keys.** A message or confirm text that names a key (`<space>vl` load all, the reflog hint after a reset, the retry key) always names it, whatever the level; only the lists that teach keys (help, which-key, palette, row menu, status hints) filter. So an undo hint never points at nothing.
 - **Default off.** `Show advanced commands` defaults to off; Settings (Keys) and `<space>*` change it.
-- **Where the level lives.** One level per action in `ActionCatalog` (metadata like the group; a test fails when an action has none), so every surface reads the same list. A which-key group whose actions are all Advanced is hidden with them (`<space>br`, `<space>e`, `<space>t` is not: it holds `tc` and `td` as Everyday).
+- **Where the level lives.** One level per action in `ActionCatalog` (metadata like the group; a test fails when an action has none), so every surface reads the same list. A which-key group whose actions are all Advanced is hidden with them (`<space>e` and `<space>br` disappear when advanced commands are off; `<space>t` stays visible because it holds two Everyday actions).
 - **Modal screens.** The keys of a screen follow the level of the way into it: the rebase todo keys are Advanced because rebasing is; the conflict editor keys are Everyday except base, re-create, redo, the diff jumps and the side scroll. While a screen is open its footer and help show all its keys, whatever the level, since a screen hiding its own keys is unusable.
-- **How the proposal was made.** It starts from the issue (Everyday: move and search, details and diff, tabs and opening repositories, stage/unstage/discard, commit/amend, branch create/switch/delete, merge, fetch/pull/push, stash push/pop, worktree add/switch, copy; Advanced: reflog, reset, interactive and quick rebase, cherry-pick/revert, upstream, fast-forward, remote management, tag push and remote delete, force push, difftool/mergetool/`$EDITOR` commit, squash and no-ff merge, extra view options, status history) and fills the rest with one test: would someone who just wants to commit and push see this daily? Judgement calls have a note. Current count: 164 Everyday, 81 Advanced.
+- **How the proposal was made.** It starts from the issue (Everyday: move and search, details and diff, tabs and opening repositories, stage/unstage/discard, commit/amend, branch create/switch/delete, merge, fetch/pull/push, stash push/pop, worktree add/switch, copy; Advanced: reflog, reset, interactive and quick rebase, cherry-pick/revert, upstream, fast-forward, remote management, tag push and remote delete, force push, difftool/mergetool/`$EDITOR` commit, squash and no-ff merge, extra view options, status history) and fills the rest with one test: would someone who just wants to commit and push see this daily? Judgement calls have a note. `conflict.open` is plain Everyday (the `g` group is shown even with no operation running; the row only acts in a conflict). Current count: 165 Everyday, 81 Advanced (246 ids with the new action; the nine `tab.go-to.N` are Everyday and not counted).
 - **Edit the Level column** (`Everyday` or `Advanced`) and any key in this PR; #839 implements whatever stands there when the PR is approved.
 
 ### Old key and new key, level per action
@@ -1801,7 +1809,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 | `detail.open-diff` | Go to the file diff | `Enter` | same | Everyday |  |
 | `detail.open-link` | Open the issue link in the message line (a count picks the nth link) | `gx` | same | Advanced |  |
 | `detail.previous-tab` | Previous bottom pane tab | `[` | same | Everyday |  |
-| `detail.retry` | Retry loading the commit details | `<space>r` | same | Advanced |  |
+| `detail.retry` | Retry loading the commit details | `<space>r` | `<space>od` | Advanced |  |
 | `detail.tab-changes` | Show the Changes tab | `gc` | same | Everyday |  |
 | `detail.tab-details` | Show the Details tab | `gd` | same | Everyday |  |
 | `detail.tab-files` | Show the Files tab | `gf` | same | Everyday |  |
@@ -1811,7 +1819,7 @@ Grouped as the palette groups them (`ActionCatalog.GroupOf`). "Old" lists every 
 
 | Action | What | Old | New | Level | Note |
 |---|---|---|---|---|---|
-| `conflict.open` | Resolve the conflicted file under the cursor in the conflict editor | `<space>to` | `<space>gr` | Everyday | Everyday while an operation is in progress |
+| `conflict.open` | Resolve the conflicted file under the cursor in the conflict editor | `<space>to` | `<space>gr` | Everyday | also `Enter` / `l` on the row |
 | `tool.commit-editor` | Commit the staged changes in $EDITOR | `<space>te` | `<space>ec` | Advanced |  |
 | `tool.difftool` | Open the commit in the difftool | `<space>td` | `<space>ed` | Advanced |  |
 | `tool.mergetool` | Resolve conflicts in the mergetool | `<space>tm` | `<space>em` | Advanced |  |
