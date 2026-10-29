@@ -893,7 +893,7 @@ The settings screen no longer offers them and shows them as those two themes; ke
 **Selection and focus.** The selected row is a background tint, never inverse video, so the row keeps its own colours (branch, hash, diff colours stay readable).
 The focused pane's selection uses the full tint (blue), a pane without focus keeps a quieter grey tint, so the cursor stays findable.
 This holds for the graph, sidebar, detail, diff, picker rows and overlay rows.
-The rows of a Visual range are drawn stronger than the selected row (#814): a bluer, brighter tint at 24-bit colour, and in every tier bold text, plus reverse video at 16 colours and `NO_COLOR` (where no tint can tell the range from the cursor row), so a range never relies on colour alone. Muted text and whitespace marks get their own readable colours on the range tint.
+The rows of a Visual range are drawn stronger than the selected row (#814): a background one step further towards the accent at 24-bit colour (text that would lose its 4.5 contrast on it is lightened or darkened), and in every tier bold text, plus reverse video at 16 colours and `NO_COLOR` (where no tint can tell the range from the cursor row), so a range never relies on colour alone. A range looks the same whether the pane has focus or not (Visual mode ends when the focus changes), and its far end is drawn like the other rows.
 Focus is also shown by the frame (above): the focused pane's box is accent, its title is a filled accent chip and the other titles are dim chips.
 The active tab, the status mode (`NORMAL`, `INSERT`...) and an overlay's title bar are the same accent chip; the tab row and the status bar sit on a slightly lighter bar.
 An overlay's frame is drawn in the accent colour.

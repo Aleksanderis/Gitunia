@@ -38,7 +38,7 @@ public sealed class ThemeFileContrastTests
         var failures = new List<string>();
         foreach (var role in Enum.GetValues<SegmentRole>())
         {
-            foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false) })
+            foreach (var highlight in new SegmentHighlight[] { new(false, false), new(true, true), new(true, false), new(true, true, true) })
             {
                 if (role is SegmentRole.Border && highlight.IsSelected)
                 {
@@ -49,7 +49,7 @@ public sealed class ThemeFileContrastTests
                 var minimum = MinimumFor(role);
                 if (ratio < minimum)
                 {
-                    var state = $"selected={highlight.IsSelected}, focused={highlight.IsFocused}";
+                    var state = $"selected={highlight.IsSelected}, focused={highlight.IsFocused}, range={highlight.IsRange}";
                     failures.Add($"{role} ({state}): {ratio:F2}");
                 }
             }
@@ -289,6 +289,19 @@ public sealed class ThemeFileContrastTests
         return new LoadedTheme(PaletteTable.For(settings), definition);
     }
 
+    [Theory]
+    [MemberData(nameof(Names))]
+    public void GivenABuiltInTheme_WhenDrawingARangeRow_ThenItIsApartFromTheBaseMoreThanTheSelectedRow(string name)
+    {
+        var (colors, definition) = TableOf(name);
+        var baseBackground = Resolve(Color.None, definition, false);
+
+        var range = Contrast(ToRgb(colors.RangeBackground), baseBackground);
+        var selected = Contrast(ToRgb(colors.SelectionFocused), baseBackground);
+
+        Assert.True(range > selected, $"{name}: range {range:F2}, selected {selected:F2}");
+    }
+
     private static double RatioOf(
         SegmentRole role,
         SegmentHighlight highlight,
@@ -297,7 +310,7 @@ public sealed class ThemeFileContrastTests
         int lane)
     {
         var segment = new StyledSegment("x", role, lane);
-        var attribute = Palette.For(segment, highlight.IsSelected, highlight.IsFocused, colors);
+        var attribute = Palette.For(segment, highlight, colors);
         var foreground = Resolve(attribute.Foreground, definition, true);
 
         return Contrast(foreground, Resolve(attribute.Background, definition, false));

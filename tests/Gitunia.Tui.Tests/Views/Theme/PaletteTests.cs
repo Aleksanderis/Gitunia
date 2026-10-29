@@ -594,10 +594,8 @@ public class PaletteTests
     {
         var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
         var terminalText = isLight ? LightText : DarkText;
-        SegmentRole[] roles = [SegmentRole.Plain, SegmentRole.Hash, SegmentRole.Faint, SegmentRole.WhitespaceMark];
-
         var failures = new List<string>();
-        foreach (var role in roles)
+        foreach (var role in Enum.GetValues<SegmentRole>())
         {
             var attribute = Palette.For(new StyledSegment("x", role), RangeHighlight, colors);
             var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);

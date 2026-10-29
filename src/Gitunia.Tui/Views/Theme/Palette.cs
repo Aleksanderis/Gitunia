@@ -93,14 +93,8 @@ public static class Palette
         if (!role.KeepsBackground)
         {
             background = colors.RangeBackground;
-            if (segment.Role == SegmentRole.WhitespaceMark)
-            {
-                foreground = colors.SubtleOnRange;
-            }
-            else if (foreground == colors.Muted)
-            {
-                foreground = colors.MutedOnRange;
-            }
+            var minimum = segment.Role == SegmentRole.WhitespaceMark ? PaletteTable.SubtleContrast : PaletteTable.ReadableContrast;
+            foreground = PaletteTable.EnsureReadable(foreground, background, minimum);
         }
 
         return new Attribute(foreground, background, style | colors.RangeStyle);
