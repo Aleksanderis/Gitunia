@@ -1,4 +1,5 @@
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
 
 namespace Gitunia.Core.Keymap;
 
@@ -63,6 +64,8 @@ public static class DefaultKeymap
         [RebaseEditorView] = ListsView,
         [ConflictEditorView] = ListsView,
         [SettingsView] = ListsView,
+        [RepeatMode.ContextView] = KeyBindingTable.GlobalView,
+        [RepeatMode.ResizeView] = KeyBindingTable.GlobalView,
     };
 
     public static KeyBindingTable Create() => new(CreateBindings(), ViewParents);
@@ -82,6 +85,7 @@ public static class DefaultKeymap
         AddContextMenu(bindings);
         AddHelp(bindings);
         AddModals(bindings);
+        AddRepeatModes(bindings);
         return bindings;
     }
 
@@ -593,6 +597,20 @@ public static class DefaultKeymap
         Add(bindings, [KeyMode.Command], global, "Enter", ActionIds.CommandExecute);
         Add(bindings, [KeyMode.Confirm], global, "y", ActionIds.ConfirmYes);
         Add(bindings, [KeyMode.Confirm], global, "n", ActionIds.ConfirmNo);
+    }
+
+    // The sticky repeat modes: bare step keys while the mode lasts. Any other key ends the mode and acts normally.
+    private static void AddRepeatModes(List<KeyBinding> bindings)
+    {
+        Add(bindings, NormalOnly, RepeatMode.ContextView, "+", ActionIds.DiffMoreContext);
+        Add(bindings, NormalOnly, RepeatMode.ContextView, "-", ActionIds.DiffLessContext);
+        Add(bindings, NormalOnly, RepeatMode.ContextView, "Esc", ActionIds.RepeatEnd);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, ">", ActionIds.PaneWider);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, "<", ActionIds.PaneNarrower);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, "+", ActionIds.PaneTaller);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, "-", ActionIds.PaneShorter);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, "=", ActionIds.PaneResetSizes);
+        Add(bindings, NormalOnly, RepeatMode.ResizeView, "Esc", ActionIds.RepeatEnd);
     }
 
     private static void Add(List<KeyBinding> bindings, KeyMode[] modes, string view, string keys, ActionId action)

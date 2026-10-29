@@ -54,6 +54,7 @@ public static class ActionCatalog
         ActionIds.SettingsIncrease,
         ActionIds.SettingsDecrease,
         ActionIds.PickMainline,
+        ActionIds.RepeatEnd,
         ActionIds.HelpTabNext,
         ActionIds.HelpTabPrevious,
         ActionIds.HelpTabSelect,
@@ -145,6 +146,7 @@ public static class ActionCatalog
         ["menu"] = ActionGroups.General,
         ["command"] = ActionGroups.General,
         ["confirm"] = ActionGroups.General,
+        ["repeat"] = ActionGroups.General,
         ["input"] = ActionGroups.General,
         ["cancel"] = ActionGroups.General,
     };
@@ -297,6 +299,7 @@ public static class ActionCatalog
         ["picker.remove-recent"] = "Remove from recents",
         ["repo.pin"] = "Pin to the top of the picker (toggle)",
         ["repo.refresh"] = "Refresh the repository",
+        ["repeat.end"] = "Leave the repeat mode",
         ["settings.open"] = "Open the settings",
         ["settings.open-theme"] = "Open the settings at the theme",
         ["settings.activate"] = "Settings: enter the column, edit the setting or keep the option",

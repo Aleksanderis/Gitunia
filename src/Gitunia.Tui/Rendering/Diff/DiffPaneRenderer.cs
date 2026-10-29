@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
@@ -118,6 +119,11 @@ public static class DiffPaneRenderer
             .Append(
                 pane.Document.IsFileContent ? " File " : " Diff ",
                 pane.IsFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab);
+        if (pane.IsRepeating)
+        {
+            builder.Append($" {RepeatMode.TitleMarker}", SegmentRole.Faint);
+        }
+
         if (pane.Document.ContentPath is { } contentPath)
         {
             if (pane.Document.MaximumLineNumber > 0)

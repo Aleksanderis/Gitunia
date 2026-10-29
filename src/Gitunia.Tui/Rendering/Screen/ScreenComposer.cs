@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Search.Models;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
@@ -49,14 +50,18 @@ public static class ScreenComposer
             lines.Add(ChromeBuilder.Tabs(model, width, glyphs));
         }
 
+        detail = detail is null ? null : detail with { IsRepeating = model.RepeatPane == PaneKind.Detail };
+        diff = model.RepeatPane == PaneKind.Diff ? WithRepeatMarker(diff) : diff;
         var layout = arrangement ?? PaneArrangement.Normal;
         var isPicker = model.Picker is not null;
         var rects = RectsFor(isPicker, width, height, layout, diff);
         var focused = FocusedPane(sidebar, detail, diff);
         var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
         var gridFocus = isPicker ? PaneKind.Graph : focused;
-        var gridSidebarTitle = isPicker ? string.Empty : sidebarTitle;
-        var gridGraphTitle = isPicker ? string.Empty : "History";
+        var isSidebarRepeating = model.RepeatPane == PaneKind.Sidebar;
+        var isGraphRepeating = model.RepeatPane == PaneKind.Graph;
+        var gridSidebarTitle = isPicker ? string.Empty : RepeatMode.Mark(sidebarTitle, isSidebarRepeating);
+        var gridGraphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", isGraphRepeating);
         var grid = FrameGrid.Build(width, height, rects, gridFocus, glyphs, gridSidebarTitle, gridGraphTitle);
         var overlays = new List<PaneLines>();
         if (isPicker)
@@ -146,8 +151,10 @@ public static class ScreenComposer
         {
             var diffRows = WorkingTreePaneRenderer.DiffLines(working.Diff, rects.Diff, padding, glyphs);
             overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y, diffRows, SegmentSelection.Focused));
+            var isRepeating = model.RepeatPane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
+            var shownDiff = isRepeating ? WithRepeatMarker(working.Diff) : working.Diff;
             var titleLine = DiffPaneRenderer.RenderWorkingTitle(
-                WorkingTreePaneRenderer.DiffTitle(tree, working.Diff),
+                WorkingTreePaneRenderer.DiffTitle(tree, shownDiff),
                 WorkingPanes.IsDiff(working.Focused),
                 WorkingTreePaneRenderer.StagingButtons(tree),
                 rects.Diff.Width,
@@ -279,6 +286,9 @@ public static class ScreenComposer
             overlays.Add(new PaneLines(rects.DiffTitle.X, rects.DiffTitle.Y, DiffPaneRenderer.RenderPane(diff!, rects.DiffTitle.Width, rects.Diff.Height, glyphs, paddingColumns), SegmentSelection.Focused));
         }
     }
+
+    private static DiffPaneModel? WithRepeatMarker(DiffPaneModel? diff) =>
+        diff is null ? null : diff with { IsRepeating = true };
 
     // The picker takes the place of the panes: one box between the edges.
     private static PaneRects PickerRects(int width, int height)

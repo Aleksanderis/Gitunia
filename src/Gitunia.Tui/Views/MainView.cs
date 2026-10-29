@@ -1,5 +1,6 @@
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Workspaces.Panes;
@@ -955,11 +956,12 @@ public sealed class MainView : IDisposable
             focused,
             title,
             isPicker,
-            _glyphs.IsAscii);
+            _glyphs.IsAscii,
+            _model().RepeatPane);
         if (_grid is null || _gridKey != key)
         {
-            var sidebarTitle = isPicker ? string.Empty : title;
-            var graphTitle = isPicker ? string.Empty : "History";
+            var sidebarTitle = isPicker ? string.Empty : RepeatMode.Mark(title, key.RepeatPane == PaneKind.Sidebar);
+            var graphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", key.RepeatPane == PaneKind.Graph);
             _grid = FrameGrid.Build(ScreenWidth, ScreenHeight(), rects, focused, _glyphs, sidebarTitle, graphTitle);
             _gridKey = key;
         }

@@ -76,13 +76,17 @@ public sealed class WorkingDiffController : IPromptHandler
     public string StatusLine => _actions.StatusLine(_activeSession()?.WorkingDiff);
 
     /// <summary>The title of the diff box: the side, the hunk the cursor is in and the file, plus the markers of the diff options.</summary>
-    public string TitleText()
+    /// <param name="isRepeating">The repeat mode is on for the diff box: the title shows its marker.</param>
+    public string TitleText(bool isRepeating = false)
     {
         var tab = _host.Workspace.ActiveTab;
         var model = default(DiffPaneModel);
         if (_activeSession()?.WorkingDiff is { } diff)
         {
-            model = ModelOf(diff, WorkingPanes.IsDiff(tab?.View.FocusedPane ?? PaneKind.Graph));
+            model = ModelOf(diff, WorkingPanes.IsDiff(tab?.View.FocusedPane ?? PaneKind.Graph)) with
+            {
+                IsRepeating = isRepeating,
+            };
         }
 
         return WorkingTreePaneRenderer.DiffTitle(tab?.WorkingTree, model);

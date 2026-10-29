@@ -170,6 +170,8 @@ function Get-Scenario([string]$name) {
         'default' { }
         'diff' { $s.Keys = 'Enter Enter' }
         'zoom-both' { $s.Keys = 'Enter Enter Space z' }
+        'repeat' { $s.Keys = 'Enter Enter +' }
+        'repeat-resize' { $s.Keys = 'C-w h C-w > >' }
         'view-menu' { $s.Keys = 'Enter Enter Space v v' }
         'working-view-menu' { $s.Keys = 'Space s j Enter j Space v v' }
         'list-view-menu' { $s.Keys = 'Enter Space v v' }

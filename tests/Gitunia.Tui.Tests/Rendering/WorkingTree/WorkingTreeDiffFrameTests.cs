@@ -151,6 +151,19 @@ public class WorkingTreeDiffFrameTests
     }
 
     [Fact]
+    public void GivenTheRepeatMode_WhenBuildingTheTitle_ThenTheMarkerComesRightAfterTheName()
+    {
+        var model = Working(PaneKind.WorkingUnstagedDiff);
+        var diff = model.Diff! with { OptionsLabel = "[ctx 6]", IsRepeating = true };
+
+        var title = WorkingTreePaneRenderer.DiffTitle(model.Tree, diff);
+        var empty = WorkingTreePaneRenderer.DiffTitle(null, diff);
+
+        Assert.Equal("Diff  [repeat]  unstaged  change 1/1  [ctx 6]  src/app.cs", title);
+        Assert.Equal("Diff  [repeat]", empty);
+    }
+
+    [Fact]
     public void GivenNoFileOrNoDiff_WhenBuildingTheTitle_ThenItIsJustDiff()
     {
         Assert.Equal("Diff", WorkingTreePaneRenderer.DiffTitle(null, null));

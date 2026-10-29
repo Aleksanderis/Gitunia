@@ -31,6 +31,9 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
 
     public KeymapState State => _state;
 
+    /// <summary>Gets every key before the keymap does (the repeat mode); true means it consumed the key.</summary>
+    public Func<KeyEvent, KeymapState, bool>? Interceptor { get; set; }
+
     /// <summary>Switches the input mode, dropping any pending chord or count.</summary>
     public void SetMode(KeyMode mode)
     {
@@ -84,6 +87,13 @@ public sealed class KeyController(KeymapEngine engine, Action<ActionId, int?> ex
     /// <returns>True when the key was consumed.</returns>
     public bool Handle(KeyEvent keyEvent, string view)
     {
+        if (Interceptor?.Invoke(keyEvent, _state) == true)
+        {
+            PendingChanged?.Invoke();
+
+            return true;
+        }
+
         var result = engine.Process(_state, keyEvent, view);
         _state = result.State;
         if (result is { Outcome: KeyOutcome.Action, Action: { } action })

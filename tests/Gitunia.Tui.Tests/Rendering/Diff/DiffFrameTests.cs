@@ -46,6 +46,38 @@ public class DiffFrameTests
     }
 
     [Theory]
+    [InlineData(PaneKind.Sidebar, "[repeat] repo")]
+    [InlineData(PaneKind.Graph, "[repeat] History")]
+    [InlineData(PaneKind.Detail, "Details")]
+    [InlineData(PaneKind.Diff, " Diff ")]
+    public void GivenTheRepeatModeOnAPane_WhenComposing_ThenOnlyThatPaneTitleShowsTheMarker(PaneKind pane, string anchor)
+    {
+        string[] titles = ["repo", "History", "Details", " Diff "];
+
+        var lines = Compose(120, 30, new PaneArrangement(true, null), repeatPane: pane);
+
+        var text = string.Join('\n', lines);
+        Assert.Equal(1, text.Split("[repeat]").Length - 1);
+        var row = lines.Single(line => line.Contains("[repeat]", StringComparison.Ordinal));
+        var marker = row.IndexOf("[repeat]", StringComparison.Ordinal);
+        var from = row.IndexOf(anchor, StringComparison.Ordinal);
+        Assert.True(from >= 0, $"anchor '{anchor}' not in: {row}");
+        var start = Math.Min(from, marker);
+        var between = row[start..Math.Max(from, marker)];
+        var others = titles.Where(title => !anchor.Contains(title, StringComparison.Ordinal));
+        Assert.All(others, title => Assert.DoesNotContain(title, between, StringComparison.Ordinal));
+        Assert.True(anchor.StartsWith("[repeat]", StringComparison.Ordinal) ? from == marker : marker > from);
+    }
+
+    [Fact]
+    public void GivenNoRepeatMode_WhenComposing_ThenNoTitleShowsTheMarker()
+    {
+        var lines = Compose(120, 30, new PaneArrangement(true, null));
+
+        Assert.DoesNotContain(lines, line => line.Contains("[repeat]", StringComparison.Ordinal));
+    }
+
+    [Theory]
     [InlineData(40)]
     [InlineData(100)]
     [InlineData(160)]
@@ -139,7 +171,12 @@ public class DiffFrameTests
         Assert.Equal(30, lines.Count);
     }
 
-    private static List<string> Compose(int width, int height, PaneArrangement arrangement, bool withDiff = true)
+    private static List<string> Compose(
+        int width,
+        int height,
+        PaneArrangement arrangement,
+        bool withDiff = true,
+        PaneKind? repeatPane = null)
     {
         var graph = CommitFactory.Graph(CommitFactory.Commit(2, "commit two", [1]), CommitFactory.Commit(1, "root", []));
         var details = new CommitDetails(
@@ -160,7 +197,10 @@ public class DiffFrameTests
             [0],
             [["a.txt"]],
             1);
-        var model = new ScreenModel("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 2, false, string.Empty);
+        var model = new ScreenModel("repo", "main", 1, 1, "NORMAL", string.Empty, 1, 2, false, string.Empty)
+        {
+            RepeatPane = repeatPane,
+        };
         var diff = withDiff ? new DiffPaneModel(document, 0, 0, false) : null;
         return [.. ScreenComposer.Compose(model, graph, 0, 0, width, height, GraphGlyphSet.Unicode, new DetailPaneModel(content, 0, 0, false), null, null, diff, arrangement).Select(line => line.Text)];
     }
