@@ -17,7 +17,7 @@ public static class MainlineFrameBuilder
     // The index "[n]", " unavailable" and the gap before it.
     private const int UnavailableSuffixWidth = 16;
     private const int ScreenMargin = 2;
-    private const string Hint = "Esc or a click outside cancels";
+    private static readonly HintItem[] Hint = [new("Esc", "or a click outside cancels")];
 
     /// <summary>The overlay for a screen, or null when it does not fit.</summary>
     public static OverlayFrame? Build(

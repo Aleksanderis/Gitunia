@@ -15,7 +15,8 @@ public static class ReflogFrameBuilder
     private const int ActionRows = 4;
     private const int ScreenMargin = 2;
     private const int ShortHashLength = 7;
-    private const string Footer = "Esc close";
+
+    private static readonly HintItem[] PickerHints = [new("Enter", "open"), new("Esc", "back")];
 
     // The mouse paths of an entry: a click on a row runs the action on the highlighted entry.
     private static readonly ReflogEntryAction[] Actions =
@@ -146,19 +147,19 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(OverlayBox.Hints("Enter open  Esc back", width, glyphs, $"> {picker.Text}_"));
+        lines.Add(OverlayBox.Hints(PickerHints, width, glyphs, $"> {picker.Text}_"));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
 
-    private static string FooterHints(ReflogState state)
+    private static HintItem[] FooterHints(ReflogState state)
     {
         if (!state.HasSearch)
         {
-            return $"/ search  {Footer}";
+            return [new("/", "search"), new("Esc", "close")];
         }
 
-        return $"Esc {(state.IsEditingSearch ? "cancel" : "clear")}";
+        return [new("Esc", state.IsEditingSearch ? "cancel" : "clear")];
     }
 
     private static string FooterLead(ReflogState state)

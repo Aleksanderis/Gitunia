@@ -59,6 +59,16 @@ public class PickerComposerTests
     }
 
     [Fact]
+    public void GivenThePickerHint_WhenComposing_ThenTabIsDrawnAsAKey()
+    {
+        var picker = new PickerState("a", 1, [], string.Empty, null);
+
+        var lines = PickerComposer.Compose(picker, Home, 100, 6, GraphGlyphSet.Unicode);
+
+        Assert.Contains(lines[1].Segments, segment => segment.Role == SegmentRole.OverlayKey && segment.Text == "Tab");
+    }
+
+    [Fact]
     public void GivenHighlight_WhenComposing_ThenOnlyThatRowIsSelected()
     {
         var picker = new PickerState("a", 1, [Row("alpha", PickerTags.Recent), Row("beta", PickerTags.Recent)], string.Empty, null);

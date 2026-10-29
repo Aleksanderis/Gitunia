@@ -358,7 +358,7 @@ public class ConflictEditorFrameBuilderTests
         var lines = frame.Lines.Select(line => line.Text).ToList();
         Assert.Contains(lines, line => line.Contains("result  editing", StringComparison.Ordinal));
         Assert.Contains(lines, line => line.Contains("typed ours 1", StringComparison.Ordinal));
-        Assert.Contains(lines, line => line.Contains("Esc or Ctrl-g keeps the text", StringComparison.Ordinal));
+        Assert.Contains(lines, line => line.Contains("Esc/Ctrl-g keeps the text", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("o ours", StringComparison.Ordinal));
         AssertChip(state, frame, "Ctrl-g keep", DefaultMouseMap.ConflictEditDoneButton);
         Assert.Contains(
@@ -695,5 +695,20 @@ public class ConflictEditorFrameBuilderTests
         }
 
         return binding;
+    }
+
+    [Fact]
+    public void GivenAnEdit_WhenRendering_ThenTheFooterKeysAreDrawnAsKeys()
+    {
+        var state = State(Text).Pick(ConflictPick.Ours).BeginEdit();
+
+        var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
+
+        var keys = frame.Lines.SelectMany(line => line.Segments)
+            .Where(segment => segment.Role == SegmentRole.StatusKey)
+            .Select(segment => segment.Text)
+            .ToList();
+        Assert.Contains("Esc/Ctrl-g", keys);
+        Assert.Contains("Enter", keys);
     }
 }

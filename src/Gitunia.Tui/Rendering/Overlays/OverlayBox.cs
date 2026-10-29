@@ -47,6 +47,18 @@ public static class OverlayBox
         int width,
         GraphGlyphSet glyphs,
         string lead = "",
+        string gap = HintGap) =>
+        Hints(HintBar.Parse(hints), width, glyphs, lead, gap);
+
+    /// <summary>
+    /// A footer row of explicit hints: the keys are named by the caller, nothing is guessed from the text. An item
+    /// with empty keys is a plain note.
+    /// </summary>
+    public static StyledLine Hints(
+        IEnumerable<HintItem> hints,
+        int width,
+        GraphGlyphSet glyphs,
+        string lead = "",
         string gap = HintGap)
     {
         var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis);
@@ -55,7 +67,7 @@ public static class OverlayBox
             builder.Append($" {lead} ", SegmentRole.Status);
         }
 
-        HintBar.Append(builder, HintBar.Parse(hints), gap);
+        HintBar.Append(builder, hints, gap);
         return Wrap(builder.Build(SegmentRole.Status), glyphs);
     }
 

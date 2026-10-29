@@ -125,11 +125,11 @@ public static class ChromeBuilder
             AppendRemoteChips(builder, width, chipsStart, remoteBusy, glyphs, keys);
         }
 
-        if (TabBarLayout.CommandsStart(width) is { } commandsStart)
+        if (TabBarLayout.CommandsStart(width, keys) is { } commandsStart)
         {
             builder.Append(new string(' ', Math.Max(0, commandsStart - (width - builder.Remaining))), SegmentRole.Status);
             foreach (var piece in KeyedChip.Segments(
-                TabBarLayout.CommandsChip(),
+                TabBarLayout.CommandsChip(keys),
                 glyphs,
                 ChipStyle.Bar(glyphs.IsAscii)))
             {
