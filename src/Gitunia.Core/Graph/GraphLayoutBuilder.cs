@@ -188,8 +188,9 @@ public sealed class GraphLayoutBuilder
 
     // The chip colour of every branch name on the commit (#849): a branch has one colour for the whole graph, the same
     // for its local and its remote-tracking ref, and different branches differ while a colour is free, even when they
-    // share a lane. The name that started the lane of this row has the lane colour; every other name takes the colour of
-    // its name, moved on to one no open lane and no chip of the last rows uses. All of them are remembered as recent tips.
+    // share a lane. The name that started the lane of this row has the lane colour; every other name takes the colour
+    // of its name, moved on at its first appearance to one no open lane and no chip of the last rows uses. All of them
+    // are remembered as recent tips.
     private BranchSlot[]? LabelSlotsOf(ObjectId commitId, bool isTip, int nodeColor)
     {
         if (!_branchTips.TryGetValue(commitId, out var primary))

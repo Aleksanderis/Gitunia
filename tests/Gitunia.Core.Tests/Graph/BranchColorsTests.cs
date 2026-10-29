@@ -92,13 +92,16 @@ public class BranchColorsTests
     [Fact]
     public void GivenSeveralBranchesAndRemotesOnACommit_WhenListingNames_ThenPrimaryComesFirstAndNamesAreDistinct()
     {
-        var decorations = new[] { Remote("origin/main"), Remote("upstream/main"), Remote("origin/HEAD"), Branch("zed"), Branch("main") };
+        var decorations = new[]
+        {
+            Remote("origin/main"), Remote("upstream/main"), Remote("origin/HEAD"), Branch("zed"), Branch("main"),
+        };
+        var byCommit = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [GraphTestData.Id(1)] = decorations };
 
         var names = BranchColors.NamesOf(decorations);
 
         Assert.Equal(["main", "zed"], names);
-        Assert.Equal(["zed"], BranchColors.ExtraNamesOf(
-            new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [GraphTestData.Id(1)] = decorations })[GraphTestData.Id(1)]);
+        Assert.Equal(["zed"], BranchColors.ExtraNamesOf(byCommit)[GraphTestData.Id(1)]);
     }
 
     [Fact]

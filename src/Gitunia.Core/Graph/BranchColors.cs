@@ -35,7 +35,9 @@ public static class BranchColors
         return tips;
     }
 
-    /// <summary>The branch names of the commits that carry more than one (see <see cref="NamesOf"/>), without the first.</summary>
+    /// <summary>
+    /// The branch names of the commits that carry more than one (see <see cref="NamesOf"/>), without the first.
+    /// </summary>
     /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
     public static IReadOnlyDictionary<ObjectId, IReadOnlyList<string>> ExtraNamesOf(
         IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)

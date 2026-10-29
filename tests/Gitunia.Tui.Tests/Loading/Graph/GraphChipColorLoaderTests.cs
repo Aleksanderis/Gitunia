@@ -11,7 +11,7 @@ namespace Gitunia.Tui.Tests.Loading.Graph;
 public class GraphChipColorLoaderTests
 {
     [Fact]
-    public async Task GivenBranchStackedOnMainWithItsRemote_WhenRendering_ThenChipsDifferWhileMainAndOriginMainShareOne()
+    public async Task GivenBranchStackedOnMainWithRemote_WhenRendering_ThenChipsDifferAndMainWithOriginMainShareOne()
     {
         using var testRepository = TestRepository.Create();
         testRepository.Commit("root", new TestFile("a.txt", "1"));
@@ -80,7 +80,8 @@ public class GraphChipColorLoaderTests
 
     private static async Task<List<GraphEntry>> LoadAsync(TestRepository testRepository)
     {
-        var location = await TestGit.Services.Discovery.DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
+        var location = await TestGit.Services.Discovery
+            .DiscoverAsync(testRepository.WorkingTreePath, CancellationToken.None);
         var entries = new List<GraphEntry>();
         await foreach (var batch in TestGit.Services.GraphLoader
             .StreamAsync(location, CommitOrder.Topological, null, CancellationToken.None))

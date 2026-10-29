@@ -153,7 +153,7 @@ public class GraphBranchColorTests
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]
-    public void GivenAnyCommitThatChoseNoLaneColour_WhenItGetsABranchName_ThenNoLaneMovesAndNoRowAboveItChanges(int seed)
+    public void GivenACommitWithoutLaneColourChoice_WhenItGetsABranchName_ThenNoLaneMovesAndRowsAboveStayTheSame(int seed)
     {
         var commits = RandomHistory(seed, count: 150, window: 8);
         var tips = commits.Where((_, index) => index % 4 == 0)
@@ -173,8 +173,12 @@ public class GraphBranchColorTests
 
             // Its chip colour may steer the colour of a lane that starts within the next rows (#849), never a lane.
             Assert.True(GraphRowComparer.AreEqual(rows, other, ignoreColors: true));
-            Assert.Equal(rows.Take(index + 1).Select(row => row.NodeColor), other.Take(index + 1).Select(row => row.NodeColor));
-            Assert.Equal(rows.Take(index + 1).Select(row => row.LaneFingerprint), other.Take(index + 1).Select(row => row.LaneFingerprint));
+            Assert.Equal(
+                rows.Take(index + 1).Select(row => row.NodeColor),
+                other.Take(index + 1).Select(row => row.NodeColor));
+            Assert.Equal(
+                rows.Take(index + 1).Select(row => row.LaneFingerprint),
+                other.Take(index + 1).Select(row => row.LaneFingerprint));
             checkedCommits++;
         }
 

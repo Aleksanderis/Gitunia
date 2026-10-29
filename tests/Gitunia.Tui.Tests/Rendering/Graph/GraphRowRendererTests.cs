@@ -227,6 +227,34 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenABranchTheLayoutDidNotSee_WhenRendering_ThenItsChipTakesTheHashColourOfItsName()
+    {
+        const string known = "known";
+        var added = Enumerable.Range(0, 50).Select(number => $"added-{number}")
+            .First(name => BranchColors.PreferredSlot(name) != 3);
+        var commit = CommitFactory.Commit(
+            1,
+            "tip",
+            [],
+            new CommitDecoration($"refs/heads/{known}", known, RefKind.LocalBranch, false),
+            new CommitDecoration($"refs/remotes/origin/{added}", $"origin/{added}", RefKind.RemoteBranch, false));
+        var row = new GraphRow(commit.Id, 0, 1, [], 1, 3, true, [new BranchSlot(known, 3)]);
+        var entry = new GraphEntry(
+            commit.Id,
+            commit.Subject,
+            commit.AuthorName,
+            commit.AuthorTime,
+            commit.Decorations,
+            row);
+
+        var line = GraphRowRenderer.Render(entry, new GraphRowOptions(120, 1, GraphGlyphSet.Unicode), false);
+
+        var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
+        Assert.Equal(3, labels[0].ColorIndex);
+        Assert.Equal(BranchColors.PreferredSlot(added), labels[1].ColorIndex);
+    }
+
+    [Fact]
     public void GivenBranchLabels_WhenRendering_ThenEachBranchChipCarriesItsOwnColourAndTagsDoNot()
     {
         // A name whose colour is not the first one, so a label that lost its colour index would show.
