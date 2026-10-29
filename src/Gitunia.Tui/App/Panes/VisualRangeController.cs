@@ -27,8 +27,8 @@ public sealed class VisualRangeController(
     Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null,
     Action<string>? postNotice = null)
 {
-    /// <summary>The status message when the rows under a range changed and the range ended.</summary>
-    public const string InvalidatedNotice = "Selection ended: the content changed";
+    /// <summary>The status message when the pane ended the range (new rows, or a wrap, width or view change).</summary>
+    public const string InvalidatedNotice = "Selection ended: the rows changed";
 
     private PaneKind _pane;
     private IRangeSource? _source;
