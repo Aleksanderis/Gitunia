@@ -214,8 +214,8 @@ Outside Insert and Command mode a paste does nothing.
      Matches in the message show underlined in the accent colour; where two matches overlap the earlier one (then the earlier section) wins.
      `gx` (`Enter`, `l` or a double-click on such a line does the same) opens the first link on the line under the cursor in the default browser, `2gx` the second.
      Opening uses `xdg-open` (Linux), `open` (macOS) or the shell (Windows); when no opener starts, the address is copied through OSC 52 and the status line says so.
-     A missing, empty or malformed file, or a bad regex, means no links and no error.
-     The file is read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
+     A missing, empty or malformed file or config section, or a bad regex, means no links and no error.
+     The file and the git config are read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
    - **Changes:** the changed files with status `A` `M` `D` `T`, `R old -> new`, `C old -> new` (the similarity score is not shown); merges show changes against the first parent by default, and the heading names the parent (`(merge: against first parent <hash>)`).
      `<space>vp` (detail and diff panes) switches a merge commit to its next parent, wrapping from the last back to the first (`(merge: against parent 2 <hash>)`, status line `Switching to parent 2 of 2...`): the file list is read again against that parent (`diff-tree` with it) and the diff viewer shows the files of that list against it.
      The choice belongs to the selected commit and is not remembered: selecting another commit, or coming back to this one, starts at the first parent.

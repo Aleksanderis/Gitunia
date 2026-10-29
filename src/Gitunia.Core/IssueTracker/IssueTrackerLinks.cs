@@ -7,7 +7,7 @@ using Gitunia.Git.IssueTracker.Models;
 namespace Gitunia.Core.IssueTracker;
 
 /// <summary>
-/// The compiled rules of a repository's <c>.issuetracker</c> file. Finds the references in a line of text. Uses the
+/// The compiled rules of a repository's <c>.issuetracker</c> file and git config. Finds the references in a line of text. Uses the
 /// interpreting regex engine (no runtime code generation), so it works in the Native AOT binary.
 /// </summary>
 public sealed class IssueTrackerLinks
