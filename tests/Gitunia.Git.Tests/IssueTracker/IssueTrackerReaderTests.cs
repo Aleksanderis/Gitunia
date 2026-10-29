@@ -11,6 +11,23 @@ public class IssueTrackerReaderTests
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task GivenASectionNameWithSpacesAndParentheses_WhenReading_ThenTheRuleIsFound()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        WriteFile(
+            testRepository,
+            "# Integration with Issue Tracker\n#\n# (note that '\\' need to be escaped).\n\n"
+            + "[issuetracker \"Jira (GTN)\"]\n  regex = \"GTN-(\\\\d+)\"\n"
+            + "  url = \"https://my-org.atlassian.net/browse/GTN-$1\"\n");
+
+        var rules = await ReadAsync(testRepository);
+
+        var rule = Assert.Single(rules);
+        Assert.Equal("Jira (GTN)", rule.Name);
+        Assert.Equal("GTN-(\\d+)", rule.Pattern);
+    }
+
+    [Fact]
     public async Task GivenAFileWithTwoSections_WhenReading_ThenBothRulesComeInFileOrder()
     {
         using var testRepository = TestRepositories.Linear(1);
@@ -24,6 +41,35 @@ public class IssueTrackerReaderTests
         Assert.Equal(["gh.main", "jira"], rules.Select(rule => rule.Name));
         Assert.Equal("#(\\d+)", rules[0].Pattern);
         Assert.Equal("https://jira.example.org/$1", rules[1].UrlTemplate);
+    }
+
+    [Fact]
+    public async Task GivenASectionInTheRepositoryGitConfig_WhenReading_ThenTheRuleIsFound()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        AppendConfig(
+            testRepository,
+            "[issuetracker \"Jira (GTN)\"]\n  regex = \"GTN-(\\\\d+)\"\n  url = \"https://x.example/browse/GTN-$1\"\n");
+
+        var rule = Assert.Single(await ReadAsync(testRepository));
+
+        Assert.Equal("Jira (GTN)", rule.Name);
+        Assert.Equal("GTN-(\\d+)", rule.Pattern);
+    }
+
+    [Fact]
+    public async Task GivenTheSameNameInFileAndGitConfig_WhenReading_ThenTheFileWinsAndOthersAreKept()
+    {
+        using var testRepository = TestRepositories.Linear(1);
+        AppendConfig(
+            testRepository,
+            "[issuetracker \"a\"]\n  regex = fromconfig\n  url = https://c/$1\n"
+            + "[issuetracker \"b\"]\n  regex = other\n  url = https://b/$1\n");
+        WriteFile(testRepository, "[issuetracker \"a\"]\n  regex = fromfile\n  url = https://f/$1\n");
+
+        var rules = await ReadAsync(testRepository);
+
+        Assert.Equal(["a:fromfile", "b:other"], rules.Select(rule => $"{rule.Name}:{rule.Pattern}"));
     }
 
     [Fact]
@@ -84,6 +130,9 @@ public class IssueTrackerReaderTests
 
         Assert.Equal("two", Assert.Single(rules).Pattern);
     }
+
+    private static void AppendConfig(TestRepository testRepository, string text) =>
+        File.AppendAllText(Path.Combine(testRepository.WorkingTreePath, ".git", "config"), text);
 
     private static void WriteFile(TestRepository testRepository, string text) =>
         File.WriteAllText(Path.Combine(testRepository.WorkingTreePath, IssueTrackerReader.FileName), text);

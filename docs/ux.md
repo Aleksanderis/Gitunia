@@ -207,8 +207,8 @@ Outside Insert and Command mode a paste does nothing.
    The pane follows the graph selection while the graph is focused.
    It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
-   - **Issue links (#213).** A `.issuetracker` file in the repository (or worktree) root turns references in the message into links.
-     It is git-config syntax, read with `git config --file` (VS Code's proposal): one `[issuetracker "name"]` section per tracker with `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded where a URL needs it).
+   - **Issue links (#213).** The `[issuetracker "name"]` sections of the git config (repository, global or system, so what other clients read) and of a `.issuetracker` file in the repository (or worktree) root turn references in the message into links.
+     The file is git-config syntax, read with `git config --file` (VS Code's proposal); a section of the same name in the file wins over the config. One `[issuetracker "name"]` section per tracker with `regex` (group 1 is the reference; without a group the whole match) and `url` (`$1` is the reference, percent-encoded where a URL needs it).
      Quote values that contain `#` or `;`, which start a comment in git config: `regex = "#(\\d+)"`.
      Only `http` and `https` addresses become links.
      Matches in the message show underlined in the accent colour; where two matches overlap the earlier one (then the earlier section) wins.
