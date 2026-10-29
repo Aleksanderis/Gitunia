@@ -170,7 +170,14 @@ public static class ScreenComposer
             AddPlaceholder(
                 overlays,
                 rects.MessageOptions,
-                [MessageBoxRenderer.OptionsLine(working.Draft, rects.MessageOptions.Width, padding, glyphs, model.Keys)]);
+                [
+                    MessageBoxRenderer.OptionsLine(
+                        working.Draft,
+                        rects.MessageOptions.Width,
+                        padding,
+                        glyphs,
+                        model.Keys),
+                ]);
         }
 
         for (var row = ScreenLayout.FrameTop; row < height - 1; row++)

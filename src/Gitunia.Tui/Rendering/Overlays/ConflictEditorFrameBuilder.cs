@@ -160,11 +160,19 @@ public static class ConflictEditorFrameBuilder
     /// <summary>
     /// The most lines our side and their side scroll down at this size (0 when everything fits or nothing is drawn).
     /// </summary>
-    public static int MaxSideScroll(ConflictEditorState state, int screenWidth, int screenHeight, ChipKeys? keys = null) =>
+    public static int MaxSideScroll(
+        ConflictEditorState state,
+        int screenWidth,
+        int screenHeight,
+        ChipKeys? keys = null) =>
         PlanFor(state, screenWidth, screenHeight, keys)?.MaxScroll ?? 0;
 
     /// <summary>The rows each side pane shows at this size (0 when nothing is drawn).</summary>
-    public static int SideRowCount(ConflictEditorState state, int screenWidth, int screenHeight, ChipKeys? keys = null) =>
+    public static int SideRowCount(
+        ConflictEditorState state,
+        int screenWidth,
+        int screenHeight,
+        ChipKeys? keys = null) =>
         PlanFor(state, screenWidth, screenHeight, keys)?.SideRows ?? 0;
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>

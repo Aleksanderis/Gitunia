@@ -13,7 +13,8 @@ namespace Gitunia.Tui.Rendering.WorkingTree;
 /// No-Verify and Amend checkboxes and the Commit button (ux.md, workflow 2). The checkboxes and the button are the mouse path of
 /// <c>Alt-s</c>, <c>Alt-n</c>, <c>Alt-a</c> and the commit key; <see cref="Buttons"/> says where they are for clicks.
 /// The Commit button is a <see cref="KeyedChip"/> showing the key the keymap gives it in Insert mode (where the box is
-/// typed in), and drops the key when the row is too narrow; the checkboxes are state, not chips, and keep their brackets.
+/// typed in), and drops the key when the row is too narrow; the checkboxes are state, not chips, and keep their
+/// brackets.
 /// </summary>
 public static class MessageBoxRenderer
 {

@@ -26,7 +26,9 @@ public class MessageBoxRendererTests
 
         Assert.Equal(60, TextWidth.Of(Text(line)));
         Assert.Equal($" [x] SignOff  [ ] No-Verify  [x] Amend{new string(' ', 7)}Ctrl-g Commit  ", Text(line));
-        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "Ctrl-g");
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Role == SegmentRole.RepositoryTabKey && segment.Text == "Ctrl-g");
     }
 
     [Fact]
