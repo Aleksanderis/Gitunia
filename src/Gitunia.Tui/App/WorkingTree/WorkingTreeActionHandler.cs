@@ -106,7 +106,7 @@ public sealed class WorkingTreeActionHandler(
         }
         else if (TryFolder(tab, action))
         {
-            // za or h acted on the folder under the cursor (or left the view).
+            // za, h or l acted on the folder under the cursor (or had nothing to do).
         }
         else if (action == ActionIds.NavigateBack)
         {
@@ -230,7 +230,7 @@ public sealed class WorkingTreeActionHandler(
         return PaneNavigator.StepVertically(focused, down, WorkingPanes.Lists);
     }
 
-    // Enter and l on a file: its diff takes the focus (on a narrow screen it replaces the list until h or Esc).
+    // Enter on a file: its diff takes the focus (on a narrow screen it replaces the list until Esc).
     private bool TryOpenDiff(RepositoryState tab, ActionId action)
     {
         if (action != ActionIds.WorkingTreeOpenDiff)
@@ -279,12 +279,13 @@ public sealed class WorkingTreeActionHandler(
         return true;
     }
 
-    // za opens or closes the folder under the cursor. h closes an open folder, else moves to the parent
-    // folder, else leaves.
+    // za opens or closes the folder under the cursor. h closes an open folder, else moves to the parent folder;
+    // l opens a closed folder. Neither changes the focus.
     private bool TryFolder(RepositoryState tab, ActionId action)
     {
         var isToggle = action == ActionIds.WorkingTreeToggleFolder;
-        if (!isToggle && action != ActionIds.WorkingTreeCollapse)
+        var isExpand = action == ActionIds.WorkingTreeExpand;
+        if (!isToggle && !isExpand && action != ActionIds.WorkingTreeCollapse)
         {
             return false;
         }
@@ -305,6 +306,16 @@ public sealed class WorkingTreeActionHandler(
                 return true;
             }
 
+            if (isExpand)
+            {
+                if (selection.IsFolder && tree.CollapsedOf(section).Contains(selection.Path))
+                {
+                    Send(tab, new ToggleWorkingFolderCommand(section, selection.Path, false));
+                }
+
+                return true;
+            }
+
             if (!isToggle && selection.IsFolder && !tree.CollapsedOf(section).Contains(selection.Path))
             {
                 Send(tab, new ToggleWorkingFolderCommand(section, selection.Path, true));
@@ -319,11 +330,7 @@ public sealed class WorkingTreeActionHandler(
             }
         }
 
-        if (!isToggle)
-        {
-            Send(tab, new LeaveWorkingTreeCommand());
-        }
-
+        // Nothing to fold or climb: h and l stay in the pane (Esc leaves the view).
         return true;
     }
 

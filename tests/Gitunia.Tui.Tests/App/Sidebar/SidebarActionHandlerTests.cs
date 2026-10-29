@@ -214,7 +214,7 @@ public class SidebarActionHandlerTests
     }
 
     [Fact]
-    public async Task GivenCursorOnLeaf_WhenPressingL_ThenFocusMovesToTheGraph()
+    public async Task GivenCursorOnLeaf_WhenPressingL_ThenFocusStaysInTheSidebar()
     {
         using var repository = MergedFeatureBranchRepository();
         using var harness = await SidebarHarness.LoadAsync(repository.WorkingTreePath);
@@ -222,7 +222,7 @@ public class SidebarActionHandlerTests
 
         harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
 
-        Assert.Equal(PaneKind.Graph, harness.Tab.View.FocusedPane);
+        Assert.Equal(PaneKind.Sidebar, harness.Tab.View.FocusedPane);
     }
 
     [Fact]

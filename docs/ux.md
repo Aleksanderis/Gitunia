@@ -72,6 +72,8 @@ Outside Insert and Command mode a paste does nothing.
 
 - **Panes:** sidebar (left), graph (centre), detail pane with Details, Changes and Files tabs (bottom), and the diff (it belongs to the Changes tab and sits beside its file list, and on the Files tab it shows the file content beside the tree; on screens too narrow for both it opens on demand and replaces the detail pane, see 1c).
 - **Moving focus.** `Tab` cycles sidebar, graph, detail, diff (skipping closed panes); `Shift-Tab` reverses.
+  **Pane rule (owner, #834):** `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` move between panes everywhere, bare `h` `j` `k` `l` only inside a pane: they never change the focus (in a tree they fold, unfold and move the cursor; in the message box they move the text cursor).
+  Going into a pane from a list is `Enter` (a commit to the detail pane, a file to its diff or content), coming back is `Esc`; `Ctrl-l`/`Ctrl-h` do the same by direction.
   `Ctrl-w` + `h` `j` `k` `l` (or `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l`, no prefix, Normal mode only) moves by direction (sidebar and graph on top, detail and diff below; `j` from the sidebar or graph goes to the detail pane, or the diff when the detail pane is hidden; `k` from a bottom pane goes to the graph); `Ctrl-w w` cycles; `Ctrl-w c` closes the tab.
   The focused pane has a highlighted border and its own status hints.
 - **Keys.** Frequent actions are single keys per view (`Enter`, `y`, `/`). Global actions use the `<space>` leader (`<space>o` open repository, `<space>p` pin, `<space>z` zoom). `g`, `]`/`[` and `Ctrl-w` start chords; counts prefix motions (`5j`, `3gt`).
@@ -82,7 +84,7 @@ Outside Insert and Command mode a paste does nothing.
 - **Insert mode.** Printable keys are text; only `Esc`, `Enter` and `Ctrl-`/`Alt-` combinations act, so the leader and chords never fire while typing.
 - **`Esc` precedence:** cancel a pending chord, then leave Insert mode, then clear a filter or search highlight, then go back one pane level (diff to detail to graph).
   In the graph, when nothing else claims it, `Esc` clears the comparison mark (#535), and when there is none it dismisses the status message.
-- **`q` always quits,** from any pane, except that it first closes an open overlay or ends a Visual range. `h` is back in Detail and Diff and collapse in the Sidebar; `l` is forward (Detail to the diff, Sidebar expand; the diff has no horizontal scroll).
+- **`q` always quits,** from any pane, except that it first closes an open overlay or ends a Visual range. `Esc` is back in Detail and Diff; `h` and `l` collapse and expand in the Sidebar and in trees and never change the pane (the diff has no horizontal scroll).
 - **Notation:** keys are spelled out everywhere (`Ctrl-d`, `Alt-1`, `Shift-Tab`, `gg`, `<space>o`), never `^d` or `c-d`, in the help overlay, the palette, the which-key popup and the status bar.
 - **Help overlay (`?`):** the keys of the focused view, generated from the keymap table and the action titles, never hand-written, in two columns separated by a vertical line (`Ctrl-d │ Half page down`).
   It has one tab per source (#652): the view's own bindings, then the inherited `Lists` and `Global` ones, and `Markers` on the graph and the sidebar; an overlay with a single page (the status history, a command's output) shows no tab row.
@@ -203,7 +205,7 @@ Outside Insert and Command mode a paste does nothing.
    A faint row `⋮ more commits below, G loads the rest` follows the last loaded commit while the log is cut and idle; the cursor can rest on it, it has no details and no commit (#555).
 7. **Jump.** `<space>h` jumps to HEAD.
    `<space>f` opens a status bar prompt (Insert mode) that fuzzy-filters refs (branches, tags, remotes) and also accepts a hash prefix of at least 4 hex digits; the best candidate is shown, `Up`/`Down`/`Tab` cycle through the others, `Enter` selects that commit, `Esc` cancels.
-8. **Details.** `Enter` on a commit moves focus to the detail pane; `Esc` or `h` returns.
+8. **Details.** `Enter` on a commit moves focus to the detail pane; `Esc` or `Ctrl-k` returns.
    The pane follows the graph selection while the graph is focused.
    It sits below the graph (hidden on screens under 14 rows, where `Enter` only shows a notice) and has three tabs, shown as buttons on its title row:
    - **Details:** hash, author, committer (only when different), parents, refs and the full message.
@@ -212,7 +214,7 @@ Outside Insert and Command mode a paste does nothing.
      Quote values that contain `#` or `;`, which start a comment in git config: `regex = "#(\\d+)"`.
      Only `http` and `https` addresses become links.
      Matches in the message show underlined in the accent colour; where two matches overlap the earlier one (then the earlier section) wins.
-     `gx` (`Enter`, `l` or a double-click on such a line does the same) opens the first link on the line under the cursor in the default browser, `2gx` the second.
+     `gx` (`Enter` or a double-click on such a line does the same) opens the first link on the line under the cursor in the default browser, `2gx` the second.
      Opening uses `xdg-open` (Linux), `open` (macOS) or the shell (Windows); when no opener starts, the address is copied through OSC 52 and the status line says so.
      A missing, empty or malformed file or config section, or a bad regex, means no links and no error.
      The file and the git config are read when the tab loads and again on a manual refresh (`r`), so an edit shows after `r`; the browser is started in the background and the status line reports the outcome; no network access is involved.
@@ -223,10 +225,10 @@ Outside Insert and Command mode a paste does nothing.
      Combined diffs (`--cc`) are not offered, and the difftool (`<space>td`) always uses the first parent (#95, #497).
    - **Files:** the file tree of the commit (`ls-tree -r -z --long`): directories first, then files, each ordinal by name; a directory whose only child is a directory folds into one row (`src/Gitunia.Core`).
      Every directory starts closed (the open ones are remembered per repository tab while the selection moves to other commits); a closed directory shows its file count, a file its size, and executables, symbolic links and submodules say so (`(executable, 1.2 KB)`, `(symlink, 12 B)`, `(submodule)`).
-     `Enter`, `l` and a double-click open or close the directory under the cursor; `h` closes an open directory, else moves to the parent row, and at the top goes back to the graph.
+     `Enter` and a double-click open or close the directory under the cursor, `l` opens a closed one; `h` closes an open directory, else moves to the parent row, and at the top does nothing (`Esc` goes back to the graph).
      `/` filters by path (case-insensitive substring, typed in the status bar, Insert mode): the rows narrow as you type and every directory that holds a match is open (and cannot be closed) until the filter is cleared; `Enter` keeps the filter, `Esc` in the box clears it, and `Esc` in Normal mode clears an active filter before it goes back to the graph.
      The filter stays when the selection moves to another commit.
-     The pane beside the tree shows the content of the file under the cursor at once and follows the cursor (see 1c, "File content"); `Enter`, `l` and a double-click on a file move focus into it.
+     The pane beside the tree shows the content of the file under the cursor at once and follows the cursor (see 1c, "File content"); `Enter` and a double-click on a file move focus into it.
      `y` copies the path of the row.
      The tree is listed off the UI thread when the tab is shown (not while another tab is selected), cancelled when the selection moves on, and the last four trees are kept; the title shows the number of files in the tree.
      Timing of large trees: `docs/architecture.md`.
@@ -238,7 +240,7 @@ Outside Insert and Command mode a paste does nothing.
      `full path` the path from the repository root as before (`src/Core/Git/parser.cs`),
      and `tree` (#548, and in the working-tree lists #617) folders as a tree like the Files tab: a folder row (`src/`) with its files indented below it, each with its change mark and its name only (a rename `R old.cs -> new.cs`, the old path in full when it sits in another folder);
      folders come before files.
-     Folders open and close (#616): `za` or a click toggles the folder under the cursor (a double-click leaves the fold as it was: its first click toggles, the double-click undoes that and acts, #622), `h` closes an open folder, else moves the cursor to the parent folder and at the top level goes back to the graph (`Enter`/`l` keep going to the folder diff).
+     Folders open and close (#616): `za` or a click toggles the folder under the cursor (a double-click leaves the fold as it was: its first click toggles, the double-click undoes that and acts, #622), `h` closes an open folder, else moves the cursor to the parent folder and at the top level does nothing, `l` opens a closed folder (`Enter` goes to the folder diff).
      A closed folder hides its rows and shows its file count (`src/  3 files`); its diff is still the whole folder.
      Closed folders are remembered per repository tab (by path, across commits and style changes, not saved with the session); every folder starts open.
      Switching from a flat style puts the cursor on the closed folder when its file is hidden.
@@ -255,7 +257,7 @@ Outside Insert and Command mode a paste does nothing.
      Copy (`y`) still copies the whole path.
    - `j`/`k` scroll the rows of the tab.
      On Changes, focus lands on the first file row, that file's diff is already shown beside the list and `j`/`k` show the diff of each file as the cursor reaches it, no `Enter` (see 1c).
-     `Enter` or `l` moves focus into the diff (on Details they only say to open Changes; on Files they focus the content beside the tree).
+     `Enter` moves focus into the diff (on Details it only says to open Changes; on Files it focuses the content beside the tree); `Ctrl-l` does the same by direction.
    - When the details fail to load the pane says so and `<space>r` in the detail pane (or the palette) retries. The title row shows the file count (`.. files` until the details have arrived). The rows of all tabs start at the same left edge; only the commit message is indented.
 9. **Search.** `/` opens the search box (Insert mode).
    Plain text matches the commit subject, `author:` matches the author name, `hash:` the start of the hash and `body:` the whole commit message (subject and body).
@@ -311,9 +313,9 @@ Outside Insert and Command mode a paste does nothing.
 
 ### 1b. Sidebar navigation
 
-1. `Ctrl-w h` (or `Tab` cycling) focuses the sidebar (sections: branches, remotes, tags, worktrees, stashes). `j`/`k` move, `l`/`Enter` expand a section or folder, `h` collapses it (or moves to the parent).
-2. `Enter` on a branch, remote branch or tag selects its commit in the graph and keeps focus in the sidebar; `l` on a leaf moves focus to the graph.
-   A stash is not a graph node, so `Enter` or `l` on it shows the stash's files and diff in the detail pane (workflow 7, item 4); `l` also moves focus to the detail pane.
+1. `Ctrl-w h` (or `Tab` cycling) focuses the sidebar (sections: branches, remotes, tags, worktrees, stashes). `j`/`k` move, `l`/`Enter` expand a section or folder, `h` collapses it (or moves to the parent); bare `h`/`l` never leave the sidebar.
+2. `Enter` on a branch, remote branch or tag selects its commit in the graph and keeps focus in the sidebar; `Ctrl-l` moves focus to the graph, and `l` on a leaf does nothing.
+   A stash is not a graph node, so `Enter` on it shows the stash's files and diff in the detail pane (workflow 7, item 4) and keeps focus in the sidebar; `Ctrl-j` moves on to the detail pane.
 3. `/` filters the entries by name (Insert mode: type, `Backspace` erases, `Enter` keeps the filter and returns to Normal mode, `Esc` drops it).
    The filter also matches the worktree shown beside a branch and unfolds every section with a match.
    In Normal mode `Esc` clears an active filter, and otherwise returns focus to the graph.
@@ -344,9 +346,9 @@ Outside Insert and Command mode a paste does nothing.
    `]f` and `[f` then step from file to file inside it (and stop at the first and last), the options (`+`/`-`, `<space>vf`, ...) keep the folder, and moving the list's cursor to a file or another folder switches the pane.
    The whole commit diff is loaded once as before, so selecting a folder costs no extra read.
    - It is there as soon as the tab is, for the first file. Moving the file cursor with `j`/`k` (or a click on a row) shows that file's diff at once. Selecting another commit in the graph loads that commit's diff at its first file (a load in flight is cancelled when another commit is asked for).
-   - `Enter` or `l` on the file list moves focus into the diff to scroll, search and copy; `h` or `Esc` comes back and the diff stays. On the Details tab the pane is not shown; on the Files tab it shows the content of the file under the tree's cursor (item 11).
+   - `Enter` or `Ctrl-l` on the file list moves focus into the diff to scroll, search and copy; `Esc` or `Ctrl-h` comes back and the diff stays. On the Details tab the pane is not shown; on the Files tab it shows the content of the file under the tree's cursor (item 11).
    - The diff sits beside the compact file list (a third of the width, 24-60 columns) on screens of 72 columns or more, so both are visible together at 80 columns.
-     Narrow or short screens (under 72 columns, or without the bottom strip) keep the on-demand behaviour: the diff opens with `Enter` or `l` on a file row, takes focus and replaces the detail pane (screens under 14 rows zoom it), and `Esc` or `h` closes it.
+     Narrow or short screens (under 72 columns, or without the bottom strip) keep the on-demand behaviour: the diff opens with `Enter` on a file row, takes focus and replaces the detail pane (screens under 14 rows zoom it), and `Esc` closes it.
      An on-demand diff on a screen that is then widened stays open and also keeps showing a Details or Files tab beside it, following the graph selection.
    - `<space>z` zooms the focused graph, detail or diff pane to the full area between the tab row and the status bar and back (the sidebar does not zoom; moving focus to another pane ends the zoom).
      Where the Changes or Files tab sits beside the diff / file content (72 columns or more, bottom strip shown) the two zoom as one view, side by side, whichever has focus (#632): moving focus between them keeps the zoom, moving it to another pane ends it.
@@ -394,7 +396,7 @@ Outside Insert and Command mode a paste does nothing.
    - It needs a pane of 80 text columns; on a narrower pane the unified rows stay and the title says `[split 80+]` (zoom to get room).
    - The cursor is one line of the pair: the old side's row (the new side's for an added-only line). `y` copies that row, `Y` still copies the file's rows in diff order, and a Visual range copies from the first row of its first line to the last row of its last line, in diff order.
    - Wrap wraps each side inside its half and a line takes as many screen lines as its longer side. Search, `]c`, `]f` and the options work as in the unified view (a match on either side puts the cursor on its line).
-8. **Back.** `Esc` or `h` first clears an active search, then returns focus to the file list (beside the file list the diff stays; an on-demand diff closes). If the tab is changed away from Changes while the diff has focus, focus returns to the detail pane.
+8. **Back.** `Esc` (or `Ctrl-h`) first clears an active search, then returns focus to the file list (beside the file list the diff stays; an on-demand diff closes). If the tab is changed away from Changes while the diff has focus, focus returns to the detail pane.
 9. **Limits.** A diff is capped at 400,000 rows and 100,000 lines per file (the last row, or the file's note row, says it was cut short).
    `<space>vl` loads the same commit again without the caps (the cursor stays on the same file; with nothing cut it only says so; binary files have no content to load and stay a note).
 10. **Following the graph.** While the pane is shown, moving the graph (or a refresh that moves the selection) loads the newly selected commit once its details have arrived; the old diff stays until then.
@@ -406,8 +408,8 @@ Outside Insert and Command mode a paste does nothing.
     With no file under the cursor (a folder row, a submodule, a tree still loading) it shows a placeholder (`Select a file to view its contents`).
     Moving the cursor (`j`/`k`, a click, jumps) changes the content; the read is off the UI thread, starts 40 ms after the cursor rests and is cancelled when it moves on, and the old content stays until the new one arrives.
     `J`/`K` scroll the content by a line and `D`/`U` by half a page from the tree (`Ctrl-d`/`Ctrl-u` page the tree).
-    `Enter`, `l` or a double-click on a file moves focus into the pane; `Esc` or `h` returns to the tree and the content stays; `Tab`/`Ctrl-w` and the zoom work as for Changes.
-    Where the diff is not shown beside the list (narrow or short screens) the content opens on demand with `Enter`, `l` or a double-click, takes focus and replaces the detail pane (zoomed under 14 rows), and `Esc` or `h` closes it.
+    `Enter` or a double-click on a file moves focus into the pane; `Esc` returns to the tree and the content stays; `Tab`/`Ctrl-w` and the zoom work as for Changes.
+    Where the diff is not shown beside the list (narrow or short screens) the content opens on demand with `Enter` or a double-click, takes focus and replaces the detail pane (zoomed under 14 rows), and `Esc` closes it.
     The title reads `File  <n> lines  <path>` (`File` alone on the placeholder); the rows are the lines, each with one line number column and no change marker (side by side does not apply).
     The 1 MiB blob limit is the only cap: a file of blank lines is about 1M rows and is shown in full (measured in `docs/performance.md`); a binary file shows a note.
     Scrolling, `/` search with `n`/`N`, quick jump, `<space>vw` wrap and the mouse work as in a diff; `y` copies the line, `Y` the whole file as plain text; the status bar hints and the title buttons name no hunk, file or diff option (only `zoom` and `wrap` remain as buttons).
@@ -438,25 +440,25 @@ The sidebar is hidden (the view gets the whole width); the tab bar stays.
 
 **Open and leave.** `<space>s` toggles the view for the active tab; so do a click on the tab's dirty marker and the palette entry `Open or leave the working tree`. The history status bar hints `<space>s working tree` right after `j/k move` in the graph, sidebar and detail panes.
 - The view is per tab: a tab keeps its view mode, cursors, draft message and option checkboxes while another tab or the history is shown. The view mode is not saved with the session (a restart opens on the history); the draft is.
-- Leave with `h`/`Esc` from a list (in the tree style `h` first closes a folder or climbs to its parent, see "Tree style in the lists"; back to the history with the same graph selection) or `<space>s` again.
+- Leave with `Esc` from a list (back to the history with the same graph selection) or `<space>s` again; bare `h` only folds and climbs in the tree style, see "Tree style in the lists".
   `Esc` in the diff and the message box steps back to the lists first (the 1c rule).
   `q` quits from every pane.
 - Opening focuses the first non-empty list (Unstaged, else Staged). A clean tree shows "Nothing to commit, working tree clean"; the message box stays usable for Amend.
 
 **Focus.** `Tab`/`Shift-Tab` cycle Unstaged, Staged, Diff, Message.
 `Ctrl-w h/j/k/l` move by direction (lists left, diff top right, message below it); `Ctrl-w j`/`k` move between the stacked lists, `Ctrl-w l` from either goes to the diff.
-`l`/`Enter` on a file or folder moves into its diff, `h`/`Esc` back.
+`Enter` (or `Ctrl-l`) on a file or folder moves into its diff, `Esc` (or `Ctrl-h`) back.
 `y` copies the file's or folder's path.
 `<space>1`..`<space>4` jump straight to Unstaged, Staged, Diff (of the file under the cursor) and Message from any pane, including the message box in Normal mode; not in Insert mode, where space is text (`Esc` first).
 
 **Tree style in the lists (#617).** `<space>vn` cycles name first, full path and tree for both lists, as on the Changes tab (same rows: folders before files, each level in ordinal order, a folder with its files indented below it; an untracked directory stays one file row, `dir/`).
 Every row is a file or a folder, and everything that acts on rows goes through the row-to-file map of the state (`WorkingRows`), never through the row number as a file number.
-- **Cursor.** `j`/`k`, `gg`/`G`, ranges and clicks move over folder and file rows; `za` or a click opens and closes the folder under the cursor (a double-click leaves the fold as it was and stages or unstages the folder, #622; each list keeps its own closed folders per tab, not saved with the session; a refresh keeps them); `h` closes an open folder, else moves to the parent folder, else leaves the view.
+- **Cursor.** `j`/`k`, `gg`/`G`, ranges and clicks move over folder and file rows; `za` or a click opens and closes the folder under the cursor (a double-click leaves the fold as it was and stages or unstages the folder, #622; each list keeps its own closed folders per tab, not saved with the session; a refresh keeps them); `h` closes an open folder, else moves to the parent folder, else does nothing; `l` opens a closed folder.
   A closed folder shows its file count (`src/  3 files`).
   The cursor stays on the same file or folder when the style or a fold changes (on the folder that hides it, or, going to a flat style, on the first file under a folder); after a stage or unstage it stays at the same row, as in the flat styles.
 - **Folder diff.** A folder row selects the combined diff of every file under it, hidden ones in a closed folder included (the working-tree diff for Unstaged, the index diff for Staged, files in list order; the same row and per-file limits, and at most 200 files, one git call each: a longer folder ends with "Showing the first 200 of N files; M more files left out (<space>vl loads all of them)", #625).
   The title reads `Diff  unstaged  change n/m  src/`.
-  Hunks and lines cannot be staged or discarded from it (the status bar says to pick a file); `Enter`/`l` focus it, `y` copies the folder path, `]f`/`[f` from it go to the next / previous file row.
+  Hunks and lines cannot be staged or discarded from it (the status bar says to pick a file); `Enter` focuses it, `y` copies the folder path, `]f`/`[f` from it go to the next / previous file row.
 - **Stage and unstage.** `<space>a` / `<space>u` (and a double-click) on a folder row act on every file under it in one call to the index (conflicted files skipped and counted; status "Staged src/ (3 files)"); no confirm, as for files.
   In a Visual range a folder row stands for all the files under it, each file counted once, also when its own row is in the range.
 - **Discard.** `<space>d` on a folder row opens one Confirm, "Discard changes to N files in src/?", that counts every file under the folder (hidden ones too), names the untracked ones (deleted from disk) and says it cannot be undone, like a range of files; `n`/`Esc` do nothing.
@@ -584,13 +586,14 @@ There is no key for discarding staged changes (unstage first) and no "discard al
 Key labels in help, the palette, context menus, which-key and the status bar therefore get a thin space (U+2009, one cell wide) between a `>` and a following `=`, `-` or `>`; the config file and the Settings key reference (whose text is also filtered and copied into config snippets) keep the plain text.
 Fonts that still join other pairs need ligatures turned off in the terminal font.
 
-**Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...).
+**Key rule.** Standard vim/neovim keys keep their vim meaning (`j` `k` `h` `l` `gg` `G` `/` `n` `N` `v` `y` `i` `Ctrl-d` `Ctrl-u` ...): `h` `j` `k` `l` move inside a pane and never between panes, which is `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` (#834; supersedes the `h` `l` navigation exception of #338 and the `l`/`h` focus moves of #198).
+The modal screens that replace the panes (reflog, rebase todo, conflict editor, settings, help) are not panes: there `h` still closes or steps back.
 A Gitunia-specific action never takes a bare vim command (`s` substitute, `u` undo, `c` change, `a` append, `x` delete, `r` replace, `D` `M` `E` motions and so on) but a leader chord (`<space>` then a key) or a `Ctrl-`/`Alt-` combination.
 Check this before adding a binding.
 In an Insert-mode picker or prompt printable keys are text (they filter or are typed), so pickers move with `Up`/`Down`/`Tab` or `Ctrl-j`/`Ctrl-k`, the same in all of them (the delete-branch list has no field and also takes `j`/`k`/`h`/`l`).
 - **Leader keys in use:** `<space>o` `p` `x` `m` `s` `z` `<Tab>` (global); `<space>a` `A` `u` `U` `d` `c` `r` (working tree and refresh; `<space>c` is a single key in each of the lists, the diff and the box, each its own view); `<space>t` + `d` `m` `e` `o` (external tools; `o` opens the conflict editor); `<space>,` (settings, #523); `<space>h` (jump to HEAD) and `<space>f` (find a ref) in the graph; `<space>v` + `w` `i` `f` `s` `l` (diff view options) and `p` (merge parent); `<space>j` (quick jump); `<space>1`..`<space>4` (working-tree pane jumps).
 - **`Alt-`:** `Alt-p` and `Alt-d` are Picker-only, `Alt-1`..`Alt-9` jump tabs, `Alt-s` `Alt-n` `Alt-a` act only in the working-tree view.
-- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (quit; vim records a macro), `h` `l` `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context), `J` `K` `D` `U` in the Changes, Files and working-tree lists (scroll the diff or content beside them by a line or half a page, #755) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
+- **Documented exceptions:** a few bare keys keep a non-vim meaning on purpose, because the panes are read-only or the key is navigation: `q` (quit; vim records a macro), `]` `[` (navigation), `?` (help; vim searches backwards, same as `less` and lazygit), `Y` (copy the file's rows; close to vim's yank line), `+` `-` (diff context), `J` `K` `D` `U` in the Changes, Files and working-tree lists (scroll the diff or content beside them by a line or half a page, #755) and `gd` `gc` `gf` (bottom-pane tabs, paired with the `]`/`[` cycling).
   The conflict editor (#689) binds bare `n` `N` `o` `t` `b` `u` for the same reason: it is a modal like the rebase todo editor and shadows the search keys there.
   The settings screen (#523) is a modal list, not a buffer, so its view keys `x` `a` `d` `J` `K` `+` `-` are bare on purpose (owner to confirm, asked in the PR of #523).
 
@@ -758,7 +761,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
    It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
 2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (graph) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item).
 2a.
-**Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list).
+**Conflict editor** (#689; `Enter` or `<space>to` on a `!` row of the Unstaged list).
 A modal view of one conflict hunk at a time in one continuous box-drawing frame (the title set into the top border;
 rules join the side borders, with T-junctions where the divider between the two sides meets them;
 the key hints and the footer sit in a bottom section above the closing border; #733): the base (common ancestor), ours and theirs as three panes side by side on top, in that order (as in KDiff3, #739;
@@ -793,7 +796,7 @@ A hunk without a pick keeps its conflict markers in the result, so a partial sav
      The git index is only touched by the Confirm's `git add`.
    - **What opens.** Text files that both sides changed (`UU`), including a merge, rebase, cherry-pick and revert stop, with `merge`, `diff3` and `zdiff3` markers (CRLF kept).
      Add/add, delete/modify, binary, non-UTF-8 and over-1-MiB files, a symlink or submodule, a file whose markers are unbalanced or gone, and a name that is not valid UTF-8 are refused with the reason and a pointer to the mergetool (`<space>tm`).
-     `Enter` and `l` on a `!` row both go to the editor (or to that refusal); the file's combined diff is still shown beside the list while the row is selected, and the pane keys move focus into it.
+     `Enter` on a `!` row goes to the editor (or to that refusal); the file's combined diff is still shown beside the list while the row is selected, and the pane keys move focus into it.
 3. **Continue** (`<space>gc`, or the banner chip): refused while conflicted files remain ("2 files still conflicted"); otherwise runs `<op> --continue` with no editor (`-c core.editor=true`, so git's prepared message is used).
    A rebase may stop again at the next commit: the status line warns and the banner updates.
    A continue that fails without a new conflict (a dirty tree, a hook) shows git's reason and leaves the operation as it was.
@@ -867,7 +870,7 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
 3. `Sd` drop: Confirm with the stash name and subject; the hint is `git stash store -m "<subject>" <hash>`, and the same command with the full hash is in the status message after the drop.
    The target travels as its commit hash and is looked up again right before the call, so a stack that changed meanwhile does not redirect it ("no longer in the stash list", nothing happens).
    The restore command is written for a POSIX shell.
-4. `Enter` (or `l`, which also moves focus to the detail pane; a click on the row) on a stash row shows what is inside it in the detail pane, read-only (#699).
+4. `Enter` (or a click on the row) on a stash row shows what is inside it in the detail pane, read-only (#699); focus stays in the sidebar, `Ctrl-j` moves to the detail pane.
    The pane is the commit pane: the Changes tab lists the stash's files (tracked changes with their status letters, then the untracked files saved by `Su` marked `?`) under a heading that names the stash (`Stash stash@{0}: 2 files changed, 1 untracked`), the title shows its name instead of a hash, the Details tab shows the stash commit's message and people with a `stash` row, and the Files tab says a stash has no tree.
    The file under the cursor opens in the diff pane exactly as for a commit (tracked changes as `git stash show -p`, untracked files as additions; context, whole-file, whitespace and split options apply).
    There is no stage or unstage inside a stash (git has none).
@@ -1246,7 +1249,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Graph | `<space>.` | Open the actions menu of the row under the cursor (same menu as a double-click on the row) |
 | Graph | `]` `[` | Next / previous tab of the bottom detail pane (Details, Changes, Files; wraps) |
 | Graph | `gd` `gc` `gf` | Show the Details / Changes / Files tab of the bottom detail pane |
-| Detail | `Enter` `l` | Go to the diff of the selected file, or of the folder under the cursor in the tree style (Changes tab): focus it; on narrow screens open it on demand. Files tab: open or close the directory under the cursor; on a file, move focus into the content pane beside the tree (on narrow screens: open it) |
+| Detail | `Enter` | Go to the diff of the selected file, or of the folder under the cursor in the tree style (Changes tab): focus it; on narrow screens open it on demand. Files tab: open or close the directory under the cursor; on a file, move focus into the content pane beside the tree (on narrow screens: open it) |
 | Detail | `y` | Copy the path of the selected file (Files tab: of the row) |
 | Detail | `gx` | Details tab: open the issue link on the message line under the cursor (`2gx` the second); falls back to copying the address |
 | Detail | `/` | Filter the file tree by path (Files tab; Insert mode: `Enter` keeps the filter, `Esc` clears it) |
@@ -1262,7 +1265,8 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | DetailChanges | `J` `K` `D` `U` | Scroll the diff beside the file list by a line (a count multiplies) / half a page, without moving focus into it (the diff cursor moves) |
 | DetailFiles | `J` `K` `D` `U` | Scroll the file content beside the tree by a line (a count multiplies) / half a page, without moving focus into it |
 | DetailChanges | `<space>vp` | Show a merge commit against its next parent (Changes tab and diff; wraps to the first; per selected commit) |
-| Detail | `h` | Back to graph (Files tab: close the open directory, else move to the parent row; back to graph at the top. Changes tab, tree style: the same for folders) |
+| Detail | `h` | Files tab: close the open directory, else move to the parent row; Changes tab, tree style: the same for folders; nothing at the top level (never changes the focus) |
+| Detail | `l` | Files tab and Changes tab, tree style: open a closed directory or folder; nothing on a file (never changes the focus) |
 | Detail | `Esc` | Back to graph (Files tab: first clears an active filter) |
 | WorkingUnstaged | `<space>j` | Quick jump: type text, labels appear on the files in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingUnstaged | `J` `K` `D` `U` | Scroll the diff beside the list by a line / half a page without moving focus into it |
@@ -1274,12 +1278,13 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingUnstaged | `y` | Copy the path of the file or folder under the cursor |
 | WorkingUnstaged | `<space>a` | Stage the file under the cursor, or every file under the folder there (the cursor keeps its index; a conflicted file asks to mark it resolved) |
 | WorkingUnstaged | `<space>A` | Stage all files except conflicted ones |
-| WorkingUnstaged | `<space>to` | Open the conflict editor on the conflicted file under the cursor (`Enter` and `l` do the same on a `!` row) |
+| WorkingUnstaged | `<space>to` | Open the conflict editor on the conflicted file under the cursor (`Enter` does the same on a `!` row) |
 | WorkingUnstaged | `<space>d` | Discard the changes of the file under the cursor, or of every file under the folder there, after a Confirm that names it (the folder dialog counts the files and names the untracked ones); an untracked file is deleted (no undo) |
 | WorkingUnstaged (Visual) | `<space>a` | Stage the files of the range (a folder row stands for all the files under it; the range ends; conflicted files are skipped) |
 | WorkingUnstaged (Visual) | `<space>d` | Discard the files of the range after one Confirm that counts them and names the untracked ones, which are deleted (the range ends when confirmed; no undo) |
 | WorkingUnstaged | `Esc` | Leave the working-tree view (back to the history) |
-| WorkingUnstaged | `h` | Tree style: close the open folder under the cursor, else move to the parent folder; on a file at the top level, and in the flat styles, leave the working-tree view (back to the history) |
+| WorkingUnstaged | `h` | Tree style: close the open folder under the cursor, else move to the parent folder; nothing at the top level and in the flat styles (`Esc` leaves the view) |
+| WorkingUnstaged | `l` | Tree style: open the closed folder under the cursor; nothing otherwise (never changes the focus) |
 | WorkingUnstaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingUnstaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
 | WorkingUnstaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
@@ -1296,7 +1301,8 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingStaged | `<space>U` | Unstage all files |
 | WorkingStaged (Visual) | `<space>u` | Unstage the files of the range (a folder row stands for all the files under it; the range ends; conflicted files are skipped) |
 | WorkingStaged | `Esc` | Leave the working-tree view (back to the history) |
-| WorkingStaged | `h` | Tree style: close the open folder under the cursor, else move to the parent folder; on a file at the top level, and in the flat styles, leave the working-tree view (back to the history) |
+| WorkingStaged | `h` | Tree style: close the open folder under the cursor, else move to the parent folder; nothing at the top level and in the flat styles (`Esc` leaves the view) |
+| WorkingStaged | `l` | Tree style: open the closed folder under the cursor; nothing otherwise (never changes the focus) |
 | WorkingStaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
 | WorkingStaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
 | WorkingStaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
@@ -1326,13 +1332,13 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingMessage (Insert) | `Enter` | Start a new line (the other editing keys are in workflow 2 and are not rebindable rows) |
 | WorkingMessage (Insert) | `Ctrl-g` | Commit |
 | WorkingMessage (Insert) | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend |
-| WorkingUnstaged | `Enter` `l` | Go to the diff of the file or folder under the cursor (on a conflicted `!` file: open the conflict editor; on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
-| WorkingStaged | `Enter` `l` | Go to the diff of the file or folder under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
+| WorkingUnstaged | `Enter` | Go to the diff of the file or folder under the cursor (on a conflicted `!` file: open the conflict editor; on a screen under 80 columns the diff replaces the list until `Esc`) |
+| WorkingStaged | `Enter` | Go to the diff of the file or folder under the cursor (on a screen under 80 columns the diff replaces the list until `Esc`) |
 | WorkingUnstagedDiff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | WorkingUnstagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
 | WorkingUnstagedDiff | `]c` `[c` | Next / previous change group |
 | WorkingUnstagedDiff | `]f` `[f` | Next / previous file (the pane shows that one file; the file list cursor follows; stops at the first / last file; in the folder view of the tree style the diff cursor steps between the folder's files and the list stays) |
-| WorkingUnstagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingUnstagedDiff | `Esc` | Back to the file list (closes a search first) |
 | WorkingUnstagedDiff | `/` `n` `N` | Search in diff, next, previous |
 | WorkingUnstagedDiff | `<space>vw` | Toggle word wrap |
 | WorkingUnstagedDiff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options and zoom) |
@@ -1356,7 +1362,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingStagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
 | WorkingStagedDiff | `]c` `[c` | Next / previous change group |
 | WorkingStagedDiff | `]f` `[f` | Next / previous file (the pane shows that one file; the file list cursor follows; stops at the first / last file) |
-| WorkingStagedDiff | `Esc` / `h` | Back to the file list (closes a search first) |
+| WorkingStagedDiff | `Esc` | Back to the file list (closes a search first) |
 | WorkingStagedDiff | `/` `n` `N` | Search in diff, next, previous |
 | WorkingStagedDiff | `<space>vw` | Toggle word wrap |
 | WorkingStagedDiff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options and zoom) |
@@ -1374,7 +1380,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingStagedDiff | `<space>te` | Commit with `$EDITOR` (the editor of the repository configuration; the TUI suspends) |
 | WorkingStagedDiff | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | WorkingStagedDiff | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |
-| Sidebar | `l` | Expand section or folder; on a leaf, focus graph; on a stash, show it in the detail pane and focus that |
+| Sidebar | `l` | Expand section or folder; on a leaf or a stash nothing (never changes the focus; `Enter` selects, `Ctrl-l` / `Ctrl-j` move on) |
 | Sidebar | `Enter` | Expand or collapse a folder, expand a section; on a ref, select it in graph (focus stays); on a stash, show its files and diff in the detail pane (focus stays) |
 | Sidebar | `h` | Collapse section or folder / move to parent |
 | Sidebar | `/` | Filter entries |
@@ -1411,7 +1417,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Diff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
 | Diff | `]c` `[c` | Next / previous hunk |
 | Diff | `]f` `[f` | Next / previous file (the pane shows that one file; the file list cursor follows; stops at the first / last file) |
-| Diff | `Esc` / `h` | Back to the file list (closes an on-demand diff) |
+| Diff | `Esc` | Back to the file list (closes an on-demand diff) |
 | Diff | `/` `n` `N` | Search in diff, next, previous |
 | Diff | `<space>vw` | Toggle word wrap (off by default; the cursor moves by screen line while on) |
 | Diff | `<space>vv` | Open the `view ▾` dropdown (title row menu of the view options and zoom; not in a file's content, whose only option is wrap) |
@@ -1541,7 +1547,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | Lists | Drag start | `visual.toggle` | Pressing a row and moving the pointer starts Visual mode (range selection, like `v`) at the pressed row; graph, detail, diff, the working-tree diff and the two working-tree file lists (to stage the files or lines, press `<space>a` / `<space>u`, or run the action from the palette, `:`) |
 | Lists | Drag up | `list.up` | While dragging, the cursor follows the pointer: moves up by as many rows as the pointer is above it |
 | Lists | Drag down | `list.down` | The same downwards |
-| Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `l` or the menu's Open details row |
+| Graph | Double-click | `menu.open-for-row` | Same as `<space>.`: open the actions menu of the row (the first click selected it); a double-click on blank space below the last row does nothing; the details pane is reached by a click on it, `Enter`, `Ctrl-j` or the menu's Open details row |
 | Detail | Click | `detail.toggle-folder` | Open or close the folder row under the pointer (Changes tab, tree style; nothing on other tabs and styles; the row is selected as usual, so the diff follows; a click on a file only selects it, and a double-click undoes the toggle of its first click, then opens the diff, #622) |
 | Detail | Double-click | `detail.open-diff` | Same as `Enter`: go to the file diff (Files tab: open or close the directory, or focus the file's content; Details tab: open the issue link on the line, if any) |
 | Sidebar | Click | `sidebar.activate` | Same as `Enter`: expand or collapse a section, select the ref's commit in the graph, show a stash in the detail pane (then a click on its file rows opens their diff) |
@@ -1638,7 +1644,7 @@ Views inherit like in the keymap: `Lists` covers Graph, Detail, Sidebar, Diff an
 | ListButton.StageAll | Click | `working-tree.stage-all` | Button `stage all` at the right end of the Unstaged list's title row, same as `<space>A` (also focuses the list) |
 | ListButton.UnstageAll | Click | `working-tree.unstage-all` | Button `unstage all` in the Staged list's title row, same as `<space>U` |
 | ListButton.Resolve | Click | `conflict.open` | The `resolve` chip in the Unstaged list's title row, left of the `view ▾` chip; shown only while the cursor is on a conflicted file, same as `Enter` / `<space>to`: opens the conflict editor (also focuses the list; #701) |
-| ListButton.Diff | Click | `working-tree.open-diff` | The `diff ›` chip in the title row of either file list, shown only on screens under 80 columns where the diff is not beside the list; left of the stage all / unstage all button and ahead of the `view ▾` and `resolve` chips (they give way to it), same as `Enter` / `l`: the diff of the file or folder under the cursor takes focus and replaces the list (also focuses the list; #376) |
+| ListButton.Diff | Click | `working-tree.open-diff` | The `diff ›` chip in the title row of either file list, shown only on screens under 80 columns where the diff is not beside the list; left of the stage all / unstage all button and ahead of the `view ▾` and `resolve` chips (they give way to it), same as `Enter`: the diff of the file or folder under the cursor takes focus and replaces the list (also focuses the list; #376) |
 | ListButton.View | Click | `files.open-view-options` | The `view ▾` chip in the title row of either file list, left of the stage all / unstage all button, same as `<space>vv`: opens the dropdown of the path style |
 | WorkingMessage | Click | `working-tree.edit-message` | Focus the message box and start writing (Insert mode), same as `i`; the cursor goes where the pointer is (the position is not part of the action id) |
 | MessageButton.SignOff | Click | `working-tree.toggle-sign-off` | The `[ ] SignOff` checkbox of the message box, same as `Alt-s` |
@@ -1681,7 +1687,7 @@ The path gets the room first: the diff options that used to be five chips (`ctx-
 The working-tree diff has the same title row and buttons, with the staging buttons of its side first: `stage` and `discard` on the Unstaged side (`stage` is the last to be dropped on a narrow row, `discard` sits after the hunk buttons in the drop order), `unstage` on the Staged side; they act on the change group under the cursor or the Visual range like `<space>a`, `<space>u` and `<space>d`, and `discard` opens the Confirm dialog first.
 The change group under the cursor also carries the same chips on its first line, at the right edge (`stage` and `discard` on the Unstaged side, `unstage` on the Staged side; the history diff and a Visual range have none; a line whose text reaches the chips gets none, the title row still has them): a click or double-click on one runs the title button's action, so `discard` still opens the Confirm first.
 A row that would keep fewer than 30 columns of diff text drops `discard`, then `stage`/`unstage`; the keys and the title buttons stay.
-`<space>z` and the `zoom` entry of the `view ▾` dropdown give the diff the whole view (lists and message box hidden) until focus leaves the diff (`h`, `Esc`) or zoom is used again; in the history view with the Changes tab beside the diff they zoom the file list and the diff together and `h`/`Esc` only return focus to the list (#632).
+`<space>z` and the `zoom` entry of the `view ▾` dropdown give the diff the whole view (lists and message box hidden) until focus leaves the diff (`Esc`, `Ctrl-h`) or zoom is used again; in the history view with the Changes tab beside the diff they zoom the file list and the diff together and `Esc`/`Ctrl-h` only return focus to the list (#632).
 In the working-tree view a click on the diff box focuses it (the mouse path from a list to its diff on screens of 80 columns or more; narrow screens use the `diff ›` chip in the title row of the list).
 The highlighted picker row shows the chips `Alt-p pin`/`Alt-p unpin` and, for a recent repository, `Alt-d remove` at its right edge, the same key-first chips as the diff title (#744; rows of 72 columns or more).
 The repository picker (the opener) hides the fetch, pull and push chips of the tab row, since they act on the active tab's repository; `: commands` stays.

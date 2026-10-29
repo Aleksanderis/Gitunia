@@ -332,7 +332,7 @@ public class WorkingTreeActionHandlerTests
     }
 
     [Fact]
-    public void GivenTheTreeStyle_WhenPressingHRepeatedly_ThenItClosesTheFolderThenClimbsThenLeaves()
+    public void GivenTheTreeStyle_WhenPressingHRepeatedly_ThenItClosesTheFolderThenClimbsAndNeverLeaves()
     {
         var harness = Harness.Open(Modified("src/deep/a.cs"));
         harness.Send(new TogglePathStyleCommand());
@@ -351,7 +351,35 @@ public class WorkingTreeActionHandlerTests
 
         harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
         harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
-        Assert.Equal(TabViewMode.History, harness.Tab.View.Mode);
+        Assert.Equal(TabViewMode.WorkingTree, harness.Tab.View.Mode);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenAClosedFolder_WhenPressingL_ThenItOpensAndTheFocusStays()
+    {
+        var harness = Harness.Open(Modified("src/a.cs"));
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new TogglePathStyleCommand());
+        harness.Send(new SelectWorkingTreeFileCommand(WorkingTreeSection.Unstaged, 0));
+        harness.Handler.TryExecute(ActionIds.WorkingTreeCollapse, null);
+        Assert.Contains("src", harness.Tab.WorkingTree!.CollapsedUnstaged);
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeExpand, null);
+        harness.Handler.TryExecute(ActionIds.WorkingTreeExpand, null);
+
+        Assert.DoesNotContain("src", harness.Tab.WorkingTree!.CollapsedUnstaged);
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
+    }
+
+    [Fact]
+    public void GivenAFileRow_WhenPressingL_ThenTheDiffIsNotFocused()
+    {
+        var harness = Harness.Open(Modified("a.cs"));
+
+        harness.Handler.TryExecute(ActionIds.WorkingTreeExpand, null);
+
+        Assert.Equal(PaneKind.WorkingUnstaged, harness.Tab.View.FocusedPane);
     }
 
     [Fact]

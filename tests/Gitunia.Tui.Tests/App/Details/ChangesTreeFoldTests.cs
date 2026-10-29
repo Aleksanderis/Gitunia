@@ -120,7 +120,6 @@ public class ChangesTreeFoldTests : IDisposable
     {
         _cursor = 1;
 
-        Assert.Equal(ActionIds.DetailCollapse, _controller.Resolve(ActionIds.DetailCollapse));
         _controller.TryExecute(ActionIds.DetailCollapse, null);
 
         Assert.Equal(["src/  3 files", "M top.txt"], Outline());
@@ -150,20 +149,37 @@ public class ChangesTreeFoldTests : IDisposable
     }
 
     [Fact]
-    public void GivenATopLevelFile_WhenPressingH_ThenItGoesBackToTheGraph()
+    public void GivenATopLevelFile_WhenPressingH_ThenNothingChanges()
     {
         _cursor = 6;
 
-        Assert.Equal(ActionIds.NavigateBack, _controller.Resolve(ActionIds.DetailCollapse));
+        _controller.TryExecute(ActionIds.DetailCollapse, null);
+
+        Assert.Equal(6, _cursor);
+        Assert.Empty(_session.CollapsedFolders);
     }
 
     [Fact]
-    public void GivenAClosedTopLevelFolder_WhenPressingH_ThenItGoesBackToTheGraph()
+    public void GivenAClosedTopLevelFolder_WhenPressingL_ThenItOpensAndTheCursorStays()
     {
         _cursor = 1;
         _controller.TryExecute(ActionIds.DetailToggleFolder, null);
 
-        Assert.Equal(ActionIds.NavigateBack, _controller.Resolve(ActionIds.DetailCollapse));
+        _controller.TryExecute(ActionIds.DetailExpand, null);
+
+        Assert.Empty(_session.CollapsedFolders);
+        Assert.Equal(1, _cursor);
+    }
+
+    [Fact]
+    public void GivenAFile_WhenPressingL_ThenNothingChanges()
+    {
+        _cursor = 6;
+
+        _controller.TryExecute(ActionIds.DetailExpand, null);
+
+        Assert.Equal(6, _cursor);
+        Assert.Empty(_session.CollapsedFolders);
     }
 
     [Fact]

@@ -228,7 +228,7 @@ public sealed class SidebarActionHandler(
         }
         else if (action == ActionIds.SidebarExpand)
         {
-            ExpandCursor(tab);
+            Send(tab, new ExpandSidebarCommand());
         }
         else if (action == ActionIds.SidebarCollapse)
         {
@@ -278,30 +278,6 @@ public sealed class SidebarActionHandler(
         {
             view.Show(row);
         }
-    }
-
-    // On a stash row l shows the stash and moves into the detail pane (a stash is not in the graph).
-    private void ExpandCursor(RepositoryState tab)
-    {
-        if (CursorRow is { Kind: SidebarRowKind.Stash } row && StashView is { } view)
-        {
-            if (!view.Show(row))
-            {
-                Message = $"{row.Label} is no longer in the stash list";
-            }
-            else if (isDetailVisible())
-            {
-                FocusPane(tab, PaneKind.Detail);
-            }
-            else
-            {
-                Message = $"{row.Label} is shown, but the detail pane is hidden at this size";
-            }
-
-            return;
-        }
-
-        Send(tab, new ExpandSidebarCommand());
     }
 
     private void CopyCursor(RepositoryState tab)
