@@ -22,4 +22,3 @@ public sealed record GraphRow(
     ulong LaneFingerprint = 0,
     int NodeColor = 0,
     bool ColorChosenByName = false);
-

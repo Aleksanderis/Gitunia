@@ -40,9 +40,8 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
     /// now), since refs may have moved without the commits changing.
     /// Returns null when the branch name of a reused commit that chose a lane colour changed
     /// (<see cref="GraphRow.ColorChosenByName"/>; a branch moved onto any other commit leaves the rows as they are)
-    /// or a reused tip
-    /// (a row without incoming edge) lost all its refs (it may be a commit that no longer exists): the caller must read
-    /// the whole log then.
+    /// or a reused tip (a row without incoming edge) lost all its refs (it may be a commit that no longer exists):
+    /// the caller must read the whole log then.
     /// </summary>
     public List<GraphEntry>? Splice(IReadOnlyList<GraphEntry> newRows, int joinIndex, IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
     {
