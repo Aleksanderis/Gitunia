@@ -65,6 +65,15 @@ public static class Palette
         return new Attribute(foreground, background, style | (isFocused ? colors.SelectionFocusedStyle : colors.SelectionDimStyle));
     }
 
+    // A branch label of the graph: a chip in the colour of its lane (inverse video where there are no colours).
+    private static RoleAppearance LaneLabel(int colorIndex, PaletteTable colors)
+    {
+        var index = colorIndex % colors.Lanes.Length;
+        var foreground = colors.LaneLabelForegrounds?[index] ?? colors.ChipForeground;
+
+        return new RoleAppearance(foreground, colors.Lanes[index], colors.ChipStyle, true);
+    }
+
     private static Color BackgroundOf(StyledSegment segment, Color background, PaletteTable colors)
     {
         if (background != Color.None)
@@ -87,9 +96,7 @@ public static class Palette
         return segment.Role switch
         {
             SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
-            SegmentRole.LaneLabel =>
-                new RoleAppearance(
-                    colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.Bold, false),
+            SegmentRole.LaneLabel => LaneLabel(segment.ColorIndex, colors),
             SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.WhitespaceMarkAddedWord =>

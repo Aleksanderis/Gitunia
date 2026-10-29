@@ -249,7 +249,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenBranchesOnConsecutiveCommitsOfMain_WhenReading_ThenMainIsOneStraightLane()
+    public async Task GivenBranchesOnConsecutiveCommitsOfMain_WhenReading_ThenTheLineStaysOneStraightLane()
     {
         using var testRepository = LongHistory(6);
         testRepository.Branch("first", "HEAD~1");
@@ -262,7 +262,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenTheDemoRepository_WhenReading_ThenMainIsStraightAndEveryBranchHasOneLaneFromTipToFork()
+    public async Task GivenTheDemoRepository_WhenReading_ThenTheLeftmostLaneIsStraightAndBranchesKeepOneLane()
     {
         using var testRepository = DemoRepository();
 

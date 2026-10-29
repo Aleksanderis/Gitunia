@@ -173,7 +173,6 @@ public class PaletteTests
     [InlineData(SegmentRole.Tag)]
     [InlineData(SegmentRole.DiffAdded)]
     [InlineData(SegmentRole.Lane)]
-    [InlineData(SegmentRole.LaneLabel)]
     public void GivenTrueColorScheme_WhenSelectingARow_ThenTheTextKeepsItsOwnColour(SegmentRole role)
     {
         var colors = PaletteTable.For(PaletteSettings.Default);
@@ -402,18 +401,67 @@ public class PaletteTests
     [InlineData(ColorDepth.Ansi256)]
     [InlineData(ColorDepth.Ansi16)]
     [InlineData(ColorDepth.None)]
-    public void GivenAnyColourTier_WhenColouringABranchLabel_ThenItHasTheColourOfItsLaneAndIsBold(ColorDepth depth)
+    public void GivenAnyColourTier_WhenColouringABranchLabel_ThenItIsAChipInTheLaneColour(ColorDepth depth)
     {
         var colors = PaletteTable.For(new PaletteSettings(depth, false));
 
-        for (var slot = 0; slot < 12; slot++)
+        for (var slot = 0; slot < colors.Lanes.Length; slot++)
         {
             var lane = Palette.For(new StyledSegment("x", SegmentRole.Lane, slot), false, false, colors);
             var label = Palette.For(new StyledSegment("x", SegmentRole.LaneLabel, slot), false, false, colors);
 
-            Assert.Equal(lane.Foreground, label.Foreground);
             Assert.True(label.Style.HasFlag(TextStyle.Bold), $"slot {slot} at {depth}");
+            if (depth == ColorDepth.None)
+            {
+                Assert.True(label.Style.HasFlag(TextStyle.Reverse), "without colours the box is inverse video");
+                continue;
+            }
+
+            Assert.Equal(lane.Foreground, label.Background);
+            Assert.NotEqual(label.Foreground, label.Background);
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenColouringBranchLabels_ThenTheTextIsReadableOnTheLaneColour(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        for (var slot = 0; slot < colors.Lanes.Length; slot++)
+        {
+            var label = Palette.For(new StyledSegment("x", SegmentRole.LaneLabel, slot), false, false, colors);
+
+            Assert.True(Contrast(ToRgb(label.Foreground), ToRgb(label.Background)) >= ReadableRatio, $"slot {slot}");
+        }
+    }
+
+    [Fact]
+    public void GivenNoColours_WhenSelectingTheRowOfABranchLabel_ThenTheLabelStaysBoldInsideTheReversedRow()
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.None, false));
+        var segment = new StyledSegment("x", SegmentRole.LaneLabel, 3);
+
+        var focused = Palette.For(segment, true, true, colors);
+        var unfocused = Palette.For(segment, true, false, colors);
+
+        Assert.True(focused.Style.HasFlag(TextStyle.Bold));
+        Assert.True(focused.Style.HasFlag(TextStyle.Reverse));
+        Assert.True(unfocused.Style.HasFlag(TextStyle.Bold));
+        Assert.True(unfocused.Style.HasFlag(TextStyle.Reverse));
+    }
+
+    [Fact]
+    public void GivenABranchLabel_WhenSelectingItsRow_ThenTheChipKeepsItsColours()
+    {
+        var colors = PaletteTable.For(PaletteSettings.Default);
+        var segment = new StyledSegment("x", SegmentRole.LaneLabel, 3);
+
+        var plain = Palette.For(segment, false, true, colors);
+        var selected = Palette.For(segment, true, true, colors);
+
+        Assert.Equal(plain.Foreground, selected.Foreground);
+        Assert.Equal(plain.Background, selected.Background);
     }
 
     [Theory]
