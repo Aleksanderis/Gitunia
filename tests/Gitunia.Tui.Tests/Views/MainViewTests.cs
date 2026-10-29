@@ -24,6 +24,19 @@ public class MainViewTests
     }
 
     [Fact]
+    public void GivenTheMainView_WhenBuilt_ThenEveryListPaneHasThePaletteScheme()
+    {
+        using var view = CreateView();
+
+        foreach (var pane in new[] { view.Graph, view.Sidebar, view.Detail, view.Diff, view.WorkingUnstaged, view.WorkingStaged, view.WorkingDiff, view.WorkingMessage })
+        {
+            Assert.True(pane.HasScheme, "An empty pane would paint the toolkit default background.");
+            Assert.Equal(Palette.BaseScheme().Normal, pane.GetScheme().Normal);
+            Assert.Equal(Palette.BaseScheme().Focus, pane.GetScheme().Focus);
+        }
+    }
+
+    [Fact]
     public void GivenTheMainView_WhenBuilt_ThenOnlyTheGraphIgnoresDoubleClicksOnBlankSpace()
     {
         using var view = CreateView();

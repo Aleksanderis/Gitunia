@@ -159,8 +159,6 @@ public sealed class MainView : IDisposable
             CanFocus = true,
         };
 
-        Detail.SetScheme(Palette.BaseScheme());
-
         _bottomDividerView = new FrameStripView(CurrentGrid)
         {
             X = Pos.Func(_ => Rects().BottomDivider.X),
@@ -234,6 +232,8 @@ public sealed class MainView : IDisposable
             Source = new MessageBoxListSource(() => ActiveDraft(), () => IsEditingMessage(), glyphs),
             Visible = false,
         };
+
+        ApplyPaneSchemes();
 
         _messageOptions = new LineView(OptionsLine)
         {
@@ -524,7 +524,7 @@ public sealed class MainView : IDisposable
     /// <summary>Repaints every view after the palette changed (the settings screen previews a theme).</summary>
     public void RefreshPalette()
     {
-        Detail.SetScheme(Palette.BaseScheme());
+        ApplyPaneSchemes();
         RefreshChrome();
         Window.SetNeedsDraw();
         Graph.SetNeedsDraw();
@@ -591,6 +591,16 @@ public sealed class MainView : IDisposable
         _diffTitle.Visible = history;
         Diff.Visible = history;
         Graph.Visible = history && !isPicker;
+    }
+
+    // Every list pane gets the palette scheme: the toolkit paints the cells no row covers (an empty list, the space below the
+    // last row) with the scheme of the view, and without its own it falls back to the toolkit default (#805).
+    private void ApplyPaneSchemes()
+    {
+        foreach (var pane in new[] { Graph, Sidebar, Detail, Diff, WorkingUnstaged, WorkingStaged, WorkingDiff, WorkingMessage })
+        {
+            pane.SetScheme(Palette.BaseScheme());
+        }
     }
 
     private static PaneListView CreateWorkingList(WorkingTreeListSource source, Func<PaneRect> rect) => new()
