@@ -468,3 +468,7 @@ Format: dated heading, entries appended at the end, each starting with a bold to
 **UI:** File lists scroll the diff beside them with `D`/`U` (half page) and `J`/`K` (line) (#755, owner): bare `D`/`U` break the vim-clash rule on purpose, so `Ctrl-d`/`Ctrl-u` keep paging the focused list.
 
 **UI:** Graph lane order (#757, owner): the branch with the newest tip is leftmost, the next newest to its right, with no exception for the checked-out branch (supersedes the lane 0 rule of #308). Why: the most compact graph; HEAD keeps its `◆` mark and label. The HEAD reads (`ReadHeadLayoutAsync`, the above-HEAD walk) are gone, one git call less per graph load.
+
+## 2026-10-29
+
+**UI:** Graph colours (#761, owner): one colour per branch name (remote prefix ignored), a hash of the name moved to a free slot. Why: colours that follow the name, not the position; local and remote of one branch match. Detail: `git-layer.md`.

@@ -21,10 +21,18 @@ public sealed class GraphLoader
     private static readonly TimeSpan MaximumBatchAge = TimeSpan.FromMilliseconds(40);
 
     private readonly ICommitLogReader _commitLog;
+    private readonly Func<int> _colorCount;
 
-    public GraphLoader(ICommitLogReader commitLog, int softRowLimit = DefaultSoftRowLimit)
+    /// <param name="commitLog">Where the log comes from.</param>
+    /// <param name="softRowLimit">Rows a tab loads eagerly.</param>
+    /// <param name="colorCount">The distinct colours of the palette, read per load; all of them when null.</param>
+    public GraphLoader(
+        ICommitLogReader commitLog,
+        int softRowLimit = DefaultSoftRowLimit,
+        Func<int>? colorCount = null)
     {
         _commitLog = commitLog;
+        _colorCount = colorCount ?? (static () => BranchColors.SlotCount);
         SoftRowLimit = softRowLimit;
     }
 
@@ -80,7 +88,9 @@ public sealed class GraphLoader
         int? maximumCommits,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var builder = new GraphLayoutBuilder();
+        // Started before the log so the extra git call overlaps with git producing the first rows.
+        using var tipRead = StartTipRead(location, cancellationToken);
+        GraphLayoutBuilder? builder = null;
         var batch = new List<GraphEntry>(FirstBatchSize);
         var batchSize = FirstBatchSize;
         var batchAge = Stopwatch.StartNew();
@@ -88,6 +98,7 @@ public sealed class GraphLoader
 
         await foreach (var commit in _commitLog.ReadAsync(location, order, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
+            builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
             var row = builder.Append(commit);
             batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));
             total++;
@@ -109,5 +120,13 @@ public sealed class GraphLoader
         {
             yield return batch;
         }
+
+        await tipRead.Decorations.ConfigureAwait(false);
     }
+
+    /// <summary>Starts reading the branch tips of a repository for a layout (dispose it after the log read).</summary>
+    /// <param name="location">The repository to read.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    public BranchTipRead StartTipRead(RepositoryLocation location, CancellationToken cancellationToken) =>
+        new(_commitLog, location, _colorCount(), cancellationToken);
 }

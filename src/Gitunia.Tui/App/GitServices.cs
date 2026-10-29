@@ -27,6 +27,7 @@ using Gitunia.Git.Worktrees;
 using Gitunia.Git.Status;
 using Gitunia.Tui.Loading;
 using Gitunia.Tui.Loading.Graph;
+using Gitunia.Tui.Views.Theme;
 
 namespace Gitunia.Tui.App;
 
@@ -122,7 +123,7 @@ public sealed record GitServices(
         var refs = new RefReader(runner);
         var status = new StatusReader(runner);
         var stashes = new StashReader(runner);
-        var graphLoader = new GraphLoader(commitLog);
+        var graphLoader = new GraphLoader(commitLog, colorCount: static () => Palette.LaneColorCount);
         var operationDetector = new RepositoryOperationDetector();
         var operationRunner = new OperationRunner(runner, operationDetector);
         var remoteRunner = new RemoteRunner(runner);
