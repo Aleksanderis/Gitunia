@@ -378,6 +378,40 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public void GivenAnEarlierChange_WhenInsertEndsByAFocusMoveWithNothingTyped_ThenUndoRevertsTheEarlierChange()
+    {
+        using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("first");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.WorkingTreeEditMessage);
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstaged));
+        harness.Commits.LeaveInsertWhenFocusMoved();
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingMessage));
+
+        harness.Run(ActionIds.WorkingTreeMessageUndo);
+
+        Assert.Equal(string.Empty, harness.Draft.Editor.Text);
+    }
+
+    [Fact]
+    public void GivenAnEarlierChange_WhenDeleteCharAndDeleteLineDoNothing_ThenUndoRevertsTheEarlierChange()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("first");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
+        harness.Run(ActionIds.WorkingTreeMessageDeleteChar);
+        harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
+
+        harness.Run(ActionIds.WorkingTreeMessageUndo);
+        harness.Run(ActionIds.WorkingTreeMessageUndo);
+
+        Assert.Equal(string.Empty, harness.Draft.Editor.Text);
+    }
+
+    [Fact]
     public void GivenInsertModeInTheBox_WhenFocusMovesAway_ThenInsertModeEnds()
     {
         using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));

@@ -83,6 +83,7 @@ public sealed class CommitActions(
     private readonly Dictionary<TabId, CancellationTokenSource> _running = [];
     private readonly Dictionary<TabId, IReadOnlyList<string>> _pendingFailures = [];
     private bool _ownsInsert;
+    private TabId _insertTab;
 
     /// <summary>
     /// Stages every unstaged file of a tab and calls back once the status shows it; returns a notice when nothing
@@ -260,6 +261,7 @@ public sealed class CommitActions(
         if (!isInBox)
         {
             _ownsInsert = false;
+            DraftOf(_insertTab)?.Editor.DropUndoPointIfUnchanged();
             if (keyMode() == KeyMode.Insert)
             {
                 setMode(KeyMode.Normal);
@@ -268,6 +270,7 @@ public sealed class CommitActions(
         else if (keyMode() != KeyMode.Insert)
         {
             _ownsInsert = false;
+            DraftOf(_insertTab)?.Editor.DropUndoPointIfUnchanged();
         }
     }
 
@@ -444,6 +447,7 @@ public sealed class CommitActions(
         {
             editor.MarkUndoPoint();
             editor.DeleteUnderCursor();
+            editor.DropUndoPointIfUnchanged();
             return string.Empty;
         }
 
@@ -451,6 +455,7 @@ public sealed class CommitActions(
         {
             editor.MarkUndoPoint();
             editor.DeleteLine();
+            editor.DropUndoPointIfUnchanged();
             return string.Empty;
         }
 
@@ -491,6 +496,7 @@ public sealed class CommitActions(
 
         StartMergeMessageRead(tab, draft);
         _ownsInsert = true;
+        _insertTab = tab.Id;
         setMode(KeyMode.Insert);
         return string.Empty;
     }
