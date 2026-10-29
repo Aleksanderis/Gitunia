@@ -395,7 +395,7 @@ public class CommitActionsTests
     }
 
     [Fact]
-    public void GivenAnEarlierChange_WhenDeleteCharAndDeleteLineDoNothing_ThenUndoRevertsTheEarlierChange()
+    public void GivenAnEarlierChange_WhenDeleteCharAndDeleteLineDoNothing_ThenOneUndoRevertsTheEarlierChange()
     {
         using var harness = new Harness(StagedModified("a.txt"));
         harness.Run(ActionIds.WorkingTreeWriteMessage);
@@ -406,9 +406,8 @@ public class CommitActionsTests
         harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
 
         harness.Run(ActionIds.WorkingTreeMessageUndo);
-        harness.Run(ActionIds.WorkingTreeMessageUndo);
 
-        Assert.Equal(string.Empty, harness.Draft.Editor.Text);
+        Assert.Equal("first", harness.Draft.Editor.Text);
     }
 
     [Fact]
