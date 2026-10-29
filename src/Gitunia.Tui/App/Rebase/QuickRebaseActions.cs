@@ -65,13 +65,22 @@ public sealed class QuickRebaseActions(
 
     public string Notice { get; private set; } = string.Empty;
 
-    public PromptPopup? Popup => _plan is null || host.Workspace.ActiveTabId != _promptTab
-        ? null
-        : PromptPopup.ForText(
-            "Reword commit",
-            $"New subject for {RebaseGuard.ShortHash(_plan.Commit)}; the rest of the message is kept",
-            _text,
-            "next");
+    public PromptPopup? Popup
+    {
+        get
+        {
+            if (_plan is null || host.Workspace.ActiveTabId != _promptTab)
+            {
+                return null;
+            }
+
+            return PromptPopup.ForText(
+                "Reword commit",
+                $"New subject for {RebaseGuard.ShortHash(_plan.Commit)}; the rest of the message is kept",
+                _text,
+                "next");
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -136,6 +145,21 @@ public sealed class QuickRebaseActions(
         return action == ActionIds.RebaseDrop ? QuickRebaseKind.Drop : null;
     }
 
+    private static string ReplayNote(QuickRebasePlan plan, string branch)
+    {
+        if (plan.LaterCommits == 0)
+        {
+            return $"It is the tip of {branch}: the branch gets a new tip commit hash.";
+        }
+
+        if (plan.LaterCommits == 1)
+        {
+            return $"1 later commit of {branch} is replayed and gets new hashes.";
+        }
+
+        return $"{plan.LaterCommits} later commits of {branch} are replayed and get new hashes.";
+    }
+
     private static string Quoted(QuickRebasePlan plan) =>
         $"{RebaseGuard.ShortHash(plan.Commit)} \"{plan.Subject}\"";
 
@@ -159,15 +183,7 @@ public sealed class QuickRebaseActions(
                 $"Drop {Quoted(plan)} from {branch}? Its changes disappear from the branch.",
                 "Drop"),
         };
-        List<string> lines =
-        [
-            first,
-            plan.LaterCommits == 0
-                ? $"It is the tip of {branch}: the branch gets a new tip commit hash."
-                : plan.LaterCommits == 1
-                    ? $"1 later commit of {branch} is replayed and gets new hashes."
-                    : $"{plan.LaterCommits} later commits of {branch} are replayed and get new hashes.",
-        ];
+        List<string> lines = [first, ReplayNote(plan, branch)];
         if (RebaseGuard.UpstreamWarning(current) is { } warning)
         {
             lines.Add(warning);

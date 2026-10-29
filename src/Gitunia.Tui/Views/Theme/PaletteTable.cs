@@ -154,12 +154,20 @@ public sealed class PaletteTable
     public static PaletteTable For(PaletteSettings settings) => settings.Depth switch
     {
         ColorDepth.None => Monochrome(),
-        ColorDepth.Ansi16 => settings.IsLightBackground
-            ? Ansi16Light(settings.PaintsBase, settings.Definition?.Ansi)
-            : Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi),
+        ColorDepth.Ansi16 => Ansi16For(settings),
         _ when settings.Definition is { } definition => FromDefinition(definition),
         _ => settings.IsLightBackground ? TrueColorLight(settings.PaintsBase) : TrueColorDark(settings.PaintsBase),
     };
+
+    private static PaletteTable Ansi16For(PaletteSettings settings)
+    {
+        if (settings.IsLightBackground)
+        {
+            return Ansi16Light(settings.PaintsBase, settings.Definition?.Ansi);
+        }
+
+        return Ansi16Dark(settings.PaintsBase, settings.Definition?.Ansi);
+    }
 
     // Catppuccin Mocha (dark) and Latte (light), https://catppuccin.com/palette (MIT licensed colour values, see docs/decisions.md).
     private static PaletteTable TrueColorDark(bool paintsBase) => new()
@@ -407,10 +415,15 @@ public sealed class PaletteTable
     private static Color Named(ColorName16 name) => new(name);
 
     // The colour a theme maps a role to in its ansi object, else the default of the variant.
-    private static Color Named(IReadOnlyDictionary<string, string>? ansi, string role, ColorName16 fallback) =>
-        ansi is not null && ansi.TryGetValue(role, out var text) && AnsiNames.TryGetValue(text, out var name)
-            ? new Color(name)
-            : new Color(fallback);
+    private static Color Named(IReadOnlyDictionary<string, string>? ansi, string role, ColorName16 fallback)
+    {
+        if (ansi is not null && ansi.TryGetValue(role, out var text) && AnsiNames.TryGetValue(text, out var name))
+        {
+            return new Color(name);
+        }
+
+        return new Color(fallback);
+    }
 
     private static Color[] Named(params ColorName16[] names) => [.. names.Select(Named)];
 }

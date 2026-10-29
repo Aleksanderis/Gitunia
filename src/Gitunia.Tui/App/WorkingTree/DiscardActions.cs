@@ -82,9 +82,12 @@ public sealed class DiscardActions(
             return AskFolder(tab, tree, folder.Path);
         }
 
-        var entry = tree.Selection is { } selection && selection.Section == WorkingTreeSection.Unstaged
-            ? tree.Unstaged.FirstOrDefault(candidate => candidate.Path == selection.Path)
-            : null;
+        var entry = default(StatusEntry);
+        if (tree.Selection is { } selection && selection.Section == WorkingTreeSection.Unstaged)
+        {
+            entry = tree.Unstaged.FirstOrDefault(candidate => candidate.Path == selection.Path);
+        }
+
         if (entry is null)
         {
             return "Select a file first";
@@ -111,9 +114,12 @@ public sealed class DiscardActions(
     {
         if (tab.View.FocusedPane != PaneKind.WorkingUnstaged)
         {
-            return tab.View.FocusedPane == PaneKind.WorkingStaged
-                ? "Discard works in the Unstaged list: unstage the files first"
-                : "Focus a file list first";
+            if (tab.View.FocusedPane == PaneKind.WorkingStaged)
+            {
+                return "Discard works in the Unstaged list: unstage the files first";
+            }
+
+            return "Focus a file list first";
         }
 
         if (tab.WorkingTree is not { } tree)
@@ -187,9 +193,13 @@ public sealed class DiscardActions(
     {
         var untracked = files.Where(entry => entry.Kind == StatusEntryKind.Untracked).ToList();
         var subject = OperationText.Plural(files.Count, "file");
-        List<string> lines = [folderName is null
-            ? $"Discard changes to {subject}?"
-            : $"Discard changes to {subject} in {folderName}?"];
+        var question = $"Discard changes to {subject}?";
+        if (folderName is not null)
+        {
+            question = $"Discard changes to {subject} in {folderName}?";
+        }
+
+        List<string> lines = [question];
         if (untracked.Count > 0)
         {
             var names = untracked.Take(NamedUntrackedLimit).Select(entry => WorkingTreeRowRenderer.Printable(entry.Path)).ToList();
@@ -498,15 +508,26 @@ public sealed class DiscardActions(
         };
     }
 
-    private static string Describe(DiffStagingRequest? request, PatchStagingResult result) =>
-        request is { IsRange: true }
-            ? OperationText.Plural(result.LineCount, "line")
-            : $"change ({OperationText.Plural(result.LineCount, "line")})";
+    private static string Describe(DiffStagingRequest? request, PatchStagingResult result)
+    {
+        var lines = OperationText.Plural(result.LineCount, "line");
+        if (request is { IsRange: true })
+        {
+            return lines;
+        }
 
-    private static StatusSeverity SeverityOf(PatchStagingResult result) =>
-        result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable
-            ? StatusSeverity.Warning
-            : StatusSeverity.Info;
+        return $"change ({lines})";
+    }
+
+    private static StatusSeverity SeverityOf(PatchStagingResult result)
+    {
+        if (result.Outcome is PatchStagingOutcome.FileChanged or PatchStagingOutcome.NotSplittable)
+        {
+            return StatusSeverity.Warning;
+        }
+
+        return StatusSeverity.Info;
+    }
 
     private void Finish(TabId tabId, string message, StatusSeverity severity)
     {

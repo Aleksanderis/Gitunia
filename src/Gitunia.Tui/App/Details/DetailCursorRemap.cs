@@ -32,10 +32,13 @@ public static class DetailCursorRemap
 
             // A file hidden by a closed folder: the cursor goes to the deepest folder row above it
             // (open ancestors come first, the closed one is last).
-            return fileRow >= 0 || file >= previous.Files.Count
-                ? fileRow
-                : content.Rows.ToList().FindLastIndex(candidate =>
-                    candidate.Folder is { } closed && FileTreePath.IsUnder(closed, previous.Files[file].Path));
+            if (fileRow >= 0 || file >= previous.Files.Count)
+            {
+                return fileRow;
+            }
+
+            return content.Rows.ToList().FindLastIndex(candidate =>
+                candidate.Folder is { } closed && FileTreePath.IsUnder(closed, previous.Files[file].Path));
         }
 
         if (previous.FolderAt(row) is not { } folder)

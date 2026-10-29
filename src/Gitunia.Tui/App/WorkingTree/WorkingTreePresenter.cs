@@ -67,10 +67,15 @@ public sealed class WorkingTreePresenter
     }
 
     // The side of the selected file names the diff's view for the mouse map.
-    private string DiffView() =>
-        _host.Workspace.ActiveTab?.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged
-            ? DefaultKeymap.WorkingStagedDiffView
-            : DefaultKeymap.WorkingUnstagedDiffView;
+    private string DiffView()
+    {
+        if (_host.Workspace.ActiveTab?.WorkingTree?.Selection?.Section == WorkingTreeSection.Staged)
+        {
+            return DefaultKeymap.WorkingStagedDiffView;
+        }
+
+        return DefaultKeymap.WorkingUnstagedDiffView;
+    }
 
     private static void Select(ListView list, int? index)
     {

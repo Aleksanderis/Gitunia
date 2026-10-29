@@ -21,10 +21,16 @@ public static class RowMenuMarker
         IsShown(paneWidth) ? Math.Max(0, Width - paddingColumns) : 0;
 
     /// <summary>The line followed by <paramref name="reserved"/> blank columns.</summary>
-    public static StyledLine WithReserve(StyledLine line, int reserved) =>
-        reserved <= 0
-            ? line
-            : line with { Segments = [.. line.Segments, new StyledSegment(new string(' ', reserved), SegmentRole.Plain)] };
+    public static StyledLine WithReserve(StyledLine line, int reserved)
+    {
+        if (reserved <= 0)
+        {
+            return line;
+        }
+
+        var blank = new StyledSegment(new string(' ', reserved), SegmentRole.Plain);
+        return line with { Segments = [.. line.Segments, blank] };
+    }
 
     /// <summary>True when a click at <paramref name="column"/> of a pane row hits the marker of the selected row.</summary>
     public static bool IsHit(int paneWidth, int column, bool isSelectedRow) =>

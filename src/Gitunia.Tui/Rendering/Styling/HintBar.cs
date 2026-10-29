@@ -126,8 +126,11 @@ public static class HintBar
         var space = entry.IndexOf(Space, StringComparison.Ordinal);
         var word = space < 0 ? entry : entry[..space];
 
-        return space > 0 && IsKey(word)
-            ? new HintItem(word, entry[(space + 1)..].TrimStart())
-            : new HintItem(string.Empty, entry);
+        if (space > 0 && IsKey(word))
+        {
+            return new HintItem(word, entry[(space + 1)..].TrimStart());
+        }
+
+        return new HintItem(string.Empty, entry);
     }
 }

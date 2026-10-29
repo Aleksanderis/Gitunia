@@ -74,16 +74,25 @@ public sealed class TagActions(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _kind == TagPromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? null
-        : _kind switch
+    public PromptPopup? Popup
+    {
+        get
         {
-            TagPromptKind.CreateName => PromptPopup.ForText("New tag", $"At {_label}", _text, "next"),
-            TagPromptKind.CreateMessage => PromptPopup.ForText(
-                "Tag message", $"{_newName}: empty makes a lightweight tag", _text, "create"),
-            TagPromptKind.PushRemote => RemotePopup("Push tag", $"Remote to push {_tagName} to"),
-            _ => RemotePopup("Delete tag on remote", $"Remote to delete {_tagName} from"),
-        };
+            if (_kind == TagPromptKind.None || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            return _kind switch
+            {
+                TagPromptKind.CreateName => PromptPopup.ForText("New tag", $"At {_label}", _text, "next"),
+                TagPromptKind.CreateMessage => PromptPopup.ForText(
+                    "Tag message", $"{_newName}: empty makes a lightweight tag", _text, "create"),
+                TagPromptKind.PushRemote => RemotePopup("Push tag", $"Remote to push {_tagName} to"),
+                _ => RemotePopup("Delete tag on remote", $"Remote to delete {_tagName} from"),
+            };
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -232,15 +241,20 @@ public sealed class TagActions(
         var tags = tab.Refs.Where(reference => reference.Kind == RefKind.Tag).ToList();
         if (chosen.RowKind is not null)
         {
-            tag = chosen.RowKind == SidebarRowKind.Tag
-                ? tags.FirstOrDefault(reference => reference.Name == chosen.Name)
-                : null;
+            if (chosen.RowKind == SidebarRowKind.Tag)
+            {
+                tag = tags.FirstOrDefault(reference => reference.Name == chosen.Name);
+            }
+
             return tag is null ? "Select a tag first" : null;
         }
 
-        var here = chosen.CommitHash is null
-            ? []
-            : tags.Where(reference => reference.CommitHash == chosen.CommitHash).ToList();
+        var here = new List<GitRef>();
+        if (chosen.CommitHash is not null)
+        {
+            here = [.. tags.Where(reference => reference.CommitHash == chosen.CommitHash)];
+        }
+
         if (here.Count > 1)
         {
             return $"{here.Count} tags point here: pick one in the sidebar";

@@ -58,9 +58,11 @@ public sealed class FramePrinter
         if (selected is not null && DetailLayout.PaneHeight(height) > 0)
         {
             var details = await _services.CommitDetails.ReadAsync(location, selected.Id, cancellationToken: cancellationToken);
-            detailState = details is null
-                ? new CommitDetailsState(selected.Id, CommitDetailsStatus.Failed, null, "Commit not found")
-                : new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
+            detailState = new CommitDetailsState(selected.Id, CommitDetailsStatus.Loaded, details, string.Empty);
+            if (details is null)
+            {
+                detailState = new CommitDetailsState(selected.Id, CommitDetailsStatus.Failed, null, "Commit not found");
+            }
         }
 
         // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
@@ -74,17 +76,26 @@ public sealed class FramePrinter
         }
 
         var diffVisible = arrangement.Zoomed is null or PaneKind.Diff || arrangement.ZoomBoth;
-        var treeView = tab == BottomTab.Files && selected is not null
-            ? await ReadTreeAsync(location, selected, glyphs, cancellationToken)
-            : null;
+        var treeView = default(FileTreeView);
+        if (tab == BottomTab.Files && selected is not null)
+        {
+            treeView = await ReadTreeAsync(location, selected, glyphs, cancellationToken);
+        }
+
         var paneVisible = arrangement.IsDiffOpen && diffVisible && selected is not null;
-        var diff = !paneVisible
-            ? null
-            : tab == BottomTab.Files
-                ? await ReadFileContentAsync(location, treeView, cancellationToken)
-                : await ReadDiffAsync(location, selected!, detailState, cancellationToken);
+        var diff = default(DiffPaneModel);
+        if (paneVisible && tab == BottomTab.Files)
+        {
+            diff = await ReadFileContentAsync(location, treeView, cancellationToken);
+        }
+        else if (paneVisible)
+        {
+            diff = await ReadDiffAsync(location, selected!, detailState, cancellationToken);
+        }
+
         var content = DetailContentBuilder.Build(selected, detailState, tab, treeView, FilePathStyle.NameFirst);
-        var detail = new DetailPaneModel(content, content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0, 0, false);
+        var firstRow = content.Tab == BottomTab.Changes && content.Files.Count > 0 ? content.FirstFileRow : 0;
+        var detail = new DetailPaneModel(content, firstRow, 0, false);
         var model = new ScreenModel(
             Path.GetFileName(Path.TrimEndingDirectorySeparator(location.RootPath)),
             head.BranchName,

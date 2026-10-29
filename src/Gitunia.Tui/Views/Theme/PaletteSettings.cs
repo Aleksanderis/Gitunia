@@ -34,14 +34,17 @@ public sealed record PaletteSettings(
     {
         if (theme.IsNamedTheme)
         {
-            return themes.Find(theme.Name, []) is { } definition
-                ? this with
-                {
-                    IsLightBackground = definition.IsLight,
-                    PaintsBase = IsLightBackground != definition.IsLight,
-                    Definition = definition,
-                }
-                : this;
+            if (themes.Find(theme.Name, []) is not { } definition)
+            {
+                return this;
+            }
+
+            return this with
+            {
+                IsLightBackground = definition.IsLight,
+                PaintsBase = IsLightBackground != definition.IsLight,
+                Definition = definition,
+            };
         }
 
         return theme.Name switch

@@ -5,6 +5,7 @@ using Gitunia.Core.Lists;
 using Gitunia.Tui.Rendering.Details;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Views.Theme;
 using Terminal.Gui.Views;
 
@@ -73,16 +74,27 @@ public sealed class DetailListSource(GraphGlyphSet glyphs) : IListDataSource, IR
         width = PanePadding.TextWidth(width, columns);
         var isSelected = selected || Range?.Contains(item) == true;
         var jump = JumpLabelOf(listView, item);
-        var line = item >= 0 && item < Content.Rows.Count
-            ? jump is { } label
-                ? DetailPaneRenderer.RenderRow(Content, item, isSelected, width, glyphs, label)
-                : DetailPaneRenderer.RenderRow(Content.Rows[item], isSelected, width, glyphs, Content.PathStyle)
-            : DetailPaneRenderer.RenderEmpty(width, glyphs);
+        var line = LineAt(item, isSelected, width, jump);
         LinePainter.Paint(listView, PanePadding.Wrap(line, columns), col, row, listView.HasFocus);
     }
 
     public void Dispose()
     {
+    }
+
+    private StyledLine LineAt(int item, bool isSelected, int width, JumpLabel? jump)
+    {
+        if (item < 0 || item >= Content.Rows.Count)
+        {
+            return DetailPaneRenderer.RenderEmpty(width, glyphs);
+        }
+
+        if (jump is { } label)
+        {
+            return DetailPaneRenderer.RenderRow(Content, item, isSelected, width, glyphs, label);
+        }
+
+        return DetailPaneRenderer.RenderRow(Content.Rows[item], isSelected, width, glyphs, Content.PathStyle);
     }
 
     // The labels are worked out once per frame (the first row asks), not once per row.

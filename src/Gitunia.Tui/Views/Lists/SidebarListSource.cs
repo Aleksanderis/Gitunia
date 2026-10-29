@@ -96,9 +96,12 @@ public sealed class SidebarListSource(GraphGlyphSet glyphs) : IListDataSource
         var paneWidth = width;
         var reserved = RowMenuMarker.ReservedColumns(paneWidth, PanePadding.Columns);
         width = PanePadding.TextWidth(width) - reserved;
-        var line = item >= 0 && item < Rows.Length
-            ? SidebarRowRenderer.Render(Rows[item], width, selected, glyphs)
-            : new LineBuilder(width, glyphs.Ellipsis).Build();
+        var line = new LineBuilder(width, glyphs.Ellipsis).Build();
+        if (item >= 0 && item < Rows.Length)
+        {
+            line = SidebarRowRenderer.Render(Rows[item], width, selected, glyphs);
+        }
+
         LinePainter.Paint(
             listView,
             RowMenuMarker.Apply(

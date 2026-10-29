@@ -27,18 +27,26 @@ public static class MergeTexts
                 $"Squashed {target} into the index of {branch}: the changes are staged, commit them (<space>s); " +
                 "nothing is committed yet",
                 StatusSeverity.Info),
-            _ => mode == MergeMode.Squash
-                ? new OperationReport(
-                    $"The squash of {target} stopped on conflicts: resolve the files marked !, then commit " +
-                    "(git reset --merge undoes it; no operation is in progress)",
-                    StatusSeverity.Warning)
-                : new OperationReport(
-                    $"The merge of {target} into {branch} stopped on conflicts: resolve the files marked !, " +
-                    "then <space>gc to continue or <space>ga to abort",
-                    StatusSeverity.Warning),
+            _ => ConflictReport(mode, branch, target),
         };
     }
 
     public static string Failure(string branch, string target, string reason) =>
         $"Could not merge {target} into {branch}: {reason}";
+
+    private static OperationReport ConflictReport(MergeMode mode, string branch, string target)
+    {
+        if (mode == MergeMode.Squash)
+        {
+            return new OperationReport(
+                $"The squash of {target} stopped on conflicts: resolve the files marked !, then commit " +
+                "(git reset --merge undoes it; no operation is in progress)",
+                StatusSeverity.Warning);
+        }
+
+        return new OperationReport(
+            $"The merge of {target} into {branch} stopped on conflicts: resolve the files marked !, " +
+            "then <space>gc to continue or <space>ga to abort",
+            StatusSeverity.Warning);
+    }
 }

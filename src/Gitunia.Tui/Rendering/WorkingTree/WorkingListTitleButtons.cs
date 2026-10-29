@@ -53,9 +53,7 @@ public static class WorkingListTitleButtons
 
             var chip = ViewChip.Layout(
                 DefaultMouseMap.ListViewButton,
-                section == WorkingTreeSection.Staged
-                    ? DefaultKeymap.WorkingStagedView
-                    : DefaultKeymap.WorkingUnstagedView,
+                ListViewOf(section),
                 TextWidth.Of(title) + TitleOverhead,
                 rightEdge,
                 keys);
@@ -123,9 +121,7 @@ public static class WorkingListTitleButtons
     {
         var stage = Layout(section, title, paneWidth, keys, showStageKey);
         var rightEdge = stage is null ? paneWidth - EndGap : stage.Start - 1;
-        var view = section == WorkingTreeSection.Staged
-            ? DefaultKeymap.WorkingStagedView
-            : DefaultKeymap.WorkingUnstagedView;
+        var view = ListViewOf(section);
         var key = (keys ?? ChipKeys.Default).For(DefaultMouseMap.ListDiffButton, view);
         var earliest = TextWidth.Of(title) + TitleOverhead + 1;
         var keyed = KeyedChip.Keyed(DefaultMouseMap.ListDiffButton, DiffLabel, key);
@@ -163,11 +159,12 @@ public static class WorkingListTitleButtons
         var isStaged = section == WorkingTreeSection.Staged;
         var view = isStaged ? DefaultMouseMap.UnstageAllButton : DefaultMouseMap.StageAllButton;
         var label = isStaged ? UnstageAllLabel : StageAllLabel;
-        var key = showKey
-            ? (keys ?? ChipKeys.Default).For(
-                view,
-                isStaged ? DefaultKeymap.WorkingStagedView : DefaultKeymap.WorkingUnstagedView)
-            : null;
+        var key = default(string);
+        if (showKey)
+        {
+            key = (keys ?? ChipKeys.Default).For(view, ListViewOf(section));
+        }
+
         var earliest = TextWidth.Of(title) + TitleOverhead + 1;
         foreach (var candidate in (TitleButton[])[KeyedChip.Keyed(view, label, key), KeyedChip.Plain(view, label)])
         {
@@ -179,5 +176,15 @@ public static class WorkingListTitleButtons
         }
 
         return null;
+    }
+
+    private static string ListViewOf(WorkingTreeSection section)
+    {
+        if (section == WorkingTreeSection.Staged)
+        {
+            return DefaultKeymap.WorkingStagedView;
+        }
+
+        return DefaultKeymap.WorkingUnstagedView;
     }
 }

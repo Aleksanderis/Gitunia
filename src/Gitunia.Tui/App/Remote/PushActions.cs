@@ -74,14 +74,23 @@ public sealed class PushActions(
 
     public string StatusLine => string.Empty;
 
-    public PromptPopup? Popup => _kind == PushPromptKind.None || host.Workspace.ActiveTabId != _tabId
-        ? null
-        : _kind switch
+    public PromptPopup? Popup
+    {
+        get
         {
-            PushPromptKind.FirstPushRemote => FilterPopup("Push and set upstream", $"Remote to push {_branch} to"),
-            PushPromptKind.DeleteRemote => FilterPopup("Delete remote branch", "Remote to delete a branch from"),
-            _ => FilterPopup("Delete remote branch", $"Branch to delete on {_chosenRemote}"),
-        };
+            if (_kind == PushPromptKind.None || host.Workspace.ActiveTabId != _tabId)
+            {
+                return null;
+            }
+
+            return _kind switch
+            {
+                PushPromptKind.FirstPushRemote => FilterPopup("Push and set upstream", $"Remote to push {_branch} to"),
+                PushPromptKind.DeleteRemote => FilterPopup("Delete remote branch", "Remote to delete a branch from"),
+                _ => FilterPopup("Delete remote branch", $"Branch to delete on {_chosenRemote}"),
+            };
+        }
+    }
 
     public bool TryExecute(ActionId action, int? count)
     {
@@ -238,9 +247,12 @@ public sealed class PushActions(
     {
         if (action == ActionIds.RemotePushForce && (current is null || !HasUpstream(current)))
         {
-            return current is null
-                ? "No branch is checked out: nothing to force push"
-                : $"{current.Name} has no upstream: push it first";
+            if (current is null)
+            {
+                return "No branch is checked out: nothing to force push";
+            }
+
+            return $"{current.Name} has no upstream: push it first";
         }
 
         _busy.Add(tab.Id);

@@ -144,8 +144,11 @@ public static class TabBarLayout
         var markers = string.Empty;
         markers += label.IsDirty ? "*" : string.Empty;
         markers += label.HasOperation ? "!" : string.Empty;
-        markers += label.Ahead > 0 ? $"{(!glyphs.IsAscii ? "↑" : "+")}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
-        markers += label.Behind > 0 ? $"{(!glyphs.IsAscii ? "↓" : "-")}{label.Behind.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+        var aheadGlyph = glyphs.IsAscii ? "+" : "↑";
+        var behindGlyph = glyphs.IsAscii ? "-" : "↓";
+        markers += label.Ahead > 0 ? $"{aheadGlyph}{label.Ahead.ToString(CultureInfo.InvariantCulture)}" : string.Empty;
+        var behind = label.Behind.ToString(CultureInfo.InvariantCulture);
+        markers += label.Behind > 0 ? $"{behindGlyph}{behind}" : string.Empty;
         markers += label.IsLoading ? glyphs.Ellipsis : string.Empty;
         if (markers.Length == 0)
         {

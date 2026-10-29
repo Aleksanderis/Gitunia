@@ -91,9 +91,12 @@ public sealed class OperationController(
             return OperationTexts.CannotSkipMerge;
         }
 
-        return confirm(OperationTexts.SkipPrompt(info), () => StartSkip(tab.Id, tab.Location, info))
-            ? string.Empty
-            : TooSmallNotice;
+        if (confirm(OperationTexts.SkipPrompt(info), () => StartSkip(tab.Id, tab.Location, info)))
+        {
+            return string.Empty;
+        }
+
+        return TooSmallNotice;
     }
 
     private string StartContinue(RepositoryState tab, OperationInfo info, string? branch)

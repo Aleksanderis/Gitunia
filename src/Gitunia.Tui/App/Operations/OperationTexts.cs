@@ -30,11 +30,7 @@ public static class OperationTexts
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
         var where = branch is null ? string.Empty : $" on {branch}";
-        var back = info.Kind == RepositoryOperation.Merge
-            ? $"The working tree and index go back to {ShortHash(oldTip)}; the branch itself has not moved."
-            : oldTip is null
-                ? "Everything the operation changed is thrown away."
-                : $"{branch ?? "HEAD"} goes back to {ShortHash(oldTip)}; that commit stays in the reflog.";
+        var back = AbortEffect(info, branch, oldTip);
         return new ConfirmPrompt(
             $"Abort {name}",
             [
@@ -75,9 +71,15 @@ public static class OperationTexts
     {
         var name = OperationBannerBuilder.NameOf(info.Kind);
         var skipped = $"Skipped {(info.Commit is null ? "the commit" : ShortHash(info.Commit))}";
-        return result.Outcome == OperationOutcome.Conflicted
-            ? StoppedAgain(skipped, name)
-            : new OperationReport($"{skipped}; the {name} is finished ({ShortHash(result.Head)})", StatusSeverity.Info);
+
+        if (result.Outcome == OperationOutcome.Conflicted)
+        {
+            return StoppedAgain(skipped, name);
+        }
+
+        return new OperationReport(
+            $"{skipped}; the {name} is finished ({ShortHash(result.Head)})",
+            StatusSeverity.Info);
     }
 
     public static OperationReport AbortReport(OperationInfo info, string? branch, OperationResult result)
@@ -89,6 +91,21 @@ public static class OperationTexts
 
     public static string Failure(string verb, OperationInfo info, string reason) =>
         $"Could not {verb} the {OperationBannerBuilder.NameOf(info.Kind)}: {reason}";
+
+    private static string AbortEffect(OperationInfo info, string? branch, string? oldTip)
+    {
+        if (info.Kind == RepositoryOperation.Merge)
+        {
+            return $"The working tree and index go back to {ShortHash(oldTip)}; the branch itself has not moved.";
+        }
+
+        if (oldTip is null)
+        {
+            return "Everything the operation changed is thrown away.";
+        }
+
+        return $"{branch ?? "HEAD"} goes back to {ShortHash(oldTip)}; that commit stays in the reflog.";
+    }
 
     private static OperationReport StoppedAgain(string done, string name) =>
         new(

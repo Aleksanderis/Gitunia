@@ -507,9 +507,7 @@ public sealed class ConflictEditorController(
             }
 
             await writer.WriteAsync(tab.Location, state.Path, state.ToText(), token).ConfigureAwait(false);
-            var message = state.IsComplete
-                ? $"Saved {name}: every hunk resolved"
-                : $"Saved {name}: {Plural(state.UnresolvedCount, "hunk")} still unresolved";
+            var message = SavedMessage(name, state);
             postToUi(() => Done(tab.Id, message, StatusSeverity.Info, state, true));
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -663,10 +661,25 @@ public sealed class ConflictEditorController(
         redraw();
     }
 
-    private static StatusEntry? ConflictedUnderCursor(RepositoryState tab) =>
-        tab.View.FocusedPane == PaneKind.WorkingUnstaged
-        ? ConflictedSelection.Find(tab.WorkingTree)
-        : null;
+    private static StatusEntry? ConflictedUnderCursor(RepositoryState tab)
+    {
+        if (tab.View.FocusedPane == PaneKind.WorkingUnstaged)
+        {
+            return ConflictedSelection.Find(tab.WorkingTree);
+        }
+
+        return null;
+    }
+
+    private static string SavedMessage(string name, ConflictEditorState state)
+    {
+        if (state.IsComplete)
+        {
+            return $"Saved {name}: every hunk resolved";
+        }
+
+        return $"Saved {name}: {Plural(state.UnresolvedCount, "hunk")} still unresolved";
+    }
 
     private static string Describe(ConflictKind kind) => kind switch
     {

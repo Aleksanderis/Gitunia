@@ -168,9 +168,12 @@ public sealed class SettingsController(
         var hit = SettingsFrameBuilder.HitAt(state, column, line, size.Width, size.Height, glyphs);
         if (hit.Kind is SettingsHitKind.ConfirmYes or SettingsHitKind.ConfirmNo)
         {
-            return hit.Kind == SettingsHitKind.ConfirmYes
-                ? DefaultMouseMap.ConfirmYesButton
-                : DefaultMouseMap.ConfirmNoButton;
+            if (hit.Kind == SettingsHitKind.ConfirmYes)
+            {
+                return DefaultMouseMap.ConfirmYesButton;
+            }
+
+            return DefaultMouseMap.ConfirmNoButton;
         }
 
         if (state.IsTyping || state.Removal is not null)

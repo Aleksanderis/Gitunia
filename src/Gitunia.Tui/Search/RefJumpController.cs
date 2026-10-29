@@ -27,9 +27,14 @@ public sealed class RefJumpController(GraphViewHandle view, Func<IEnumerable<Git
             }
 
             var line = $"ref {_prompt.Text}_  ";
-            return _prompt.Selected is { } selected
-                ? $"{line}{selected.Label} ({(_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture)}/{_prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture)})"
-                : $"{line}no matching ref or commit";
+            if (_prompt.Selected is not { } selected)
+            {
+                return $"{line}no matching ref or commit";
+            }
+
+            var position = (_prompt.SelectedIndex + 1).ToString(CultureInfo.InvariantCulture);
+            var total = _prompt.Candidates.Length.ToString(CultureInfo.InvariantCulture);
+            return $"{line}{selected.Label} ({position}/{total})";
         }
     }
 

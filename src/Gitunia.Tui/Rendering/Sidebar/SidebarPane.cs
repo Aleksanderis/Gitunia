@@ -17,11 +17,7 @@ public static class SidebarPane
         for (var offset = 0; offset < capacity; offset++)
         {
             var index = model.TopRow + offset;
-            lines.Add(index >= 0 && index < model.Rows.Length
-                ? RowMenuMarker.WithReserve(
-                    SidebarRowRenderer.Render(model.Rows[index], width - reservedColumns, index == model.Cursor, glyphs),
-                    reservedColumns)
-                : new LineBuilder(width, glyphs.Ellipsis).Build());
+            lines.Add(RenderLine(model, index, width, glyphs, reservedColumns));
         }
 
         if (height > 0)
@@ -30,5 +26,21 @@ public static class SidebarPane
         }
 
         return lines;
+    }
+
+    private static StyledLine RenderLine(
+        SidebarModel model,
+        int index,
+        int width,
+        GraphGlyphSet glyphs,
+        int reservedColumns)
+    {
+        if (index < 0 || index >= model.Rows.Length)
+        {
+            return new LineBuilder(width, glyphs.Ellipsis).Build();
+        }
+
+        var row = SidebarRowRenderer.Render(model.Rows[index], width - reservedColumns, index == model.Cursor, glyphs);
+        return RowMenuMarker.WithReserve(row, reservedColumns);
     }
 }

@@ -176,11 +176,7 @@ public sealed class DiffListActions
     /// <summary>Moves the diff's cursor for a scroll key pressed in the file list beside it; false for any other action.</summary>
     public bool TryScroll(IDiffViewState diff, ActionId action, int? count)
     {
-        ActionId? motion = action == ActionIds.DiffScrollDown ? ActionIds.ListDown
-            : action == ActionIds.DiffScrollUp ? ActionIds.ListUp
-            : action == ActionIds.DiffScrollHalfPageDown ? ActionIds.ListHalfPageDown
-            : action == ActionIds.DiffScrollHalfPageUp ? ActionIds.ListHalfPageUp
-            : null;
+        var motion = MotionOf(action);
         if (motion is null || !ListMotion.TryMove(motion.Value, count, _diffList.SelectedItem ?? 0, diff.Source.Count, _diffList.Viewport.Height, out var target))
         {
             return false;
@@ -286,10 +282,15 @@ public sealed class DiffListActions
 
     // Side by side, the cursor row is the first row of a line, but a match may sit on the line's other row:
     // stepping starts from the matched row while the cursor is still on its line.
-    public int SearchRow(IDiffViewState diff) =>
-        diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0)
-            ? matched
-            : CursorRow(diff);
+    public int SearchRow(IDiffViewState diff)
+    {
+        if (diff.SearchRow is { } matched && diff.Source.LineOf(matched) == (_diffList.SelectedItem ?? 0))
+        {
+            return matched;
+        }
+
+        return CursorRow(diff);
+    }
 
     public int CursorRow(IDiffViewState diff) => diff.Source.RowOf(_diffList.SelectedItem ?? 0);
 
@@ -437,9 +438,31 @@ public sealed class DiffListActions
         else
         {
             var needed = DiffSplitRenderer.MinimumWidth.ToString(CultureInfo.InvariantCulture);
-            Notice = diff.Source.ShowsSideBySide
-                ? "Side by side on"
-                : $"Side by side on: needs {needed} columns{_sideBySideHint}";
+            Notice = $"Side by side on: needs {needed} columns{_sideBySideHint}";
+            if (diff.Source.ShowsSideBySide)
+            {
+                Notice = "Side by side on";
+            }
         }
+    }
+
+    private static ActionId? MotionOf(ActionId action)
+    {
+        if (action == ActionIds.DiffScrollDown)
+        {
+            return ActionIds.ListDown;
+        }
+
+        if (action == ActionIds.DiffScrollUp)
+        {
+            return ActionIds.ListUp;
+        }
+
+        if (action == ActionIds.DiffScrollHalfPageDown)
+        {
+            return ActionIds.ListHalfPageDown;
+        }
+
+        return action == ActionIds.DiffScrollHalfPageUp ? ActionIds.ListHalfPageUp : null;
     }
 }
