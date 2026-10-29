@@ -460,7 +460,7 @@ public class OverlayFrameTests
                 "│                       │ selection                            │",
                 "│  <space>gi            │ Interactive rebase onto the selection│",
                 "│                       │ (edit the todo)                      │",
-                "│ 1-18/73  Esc close  Tab next tab  list keys scroll           │",
+                "│ 1-18/71  Esc close  Tab next tab  list keys scroll           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }

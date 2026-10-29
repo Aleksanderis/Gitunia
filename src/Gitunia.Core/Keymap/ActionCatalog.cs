@@ -185,7 +185,7 @@ public static class ActionCatalog
         ["rebase-editor.start"] = "Rebase todo: start the rebase (asks first)",
         ["rebase-editor.message-save"] = "Rebase todo: keep the edited message",
         ["rebase-editor.message-newline"] = "Rebase todo: new line in the message",
-        ["conflict.open"] = "Open the conflict editor on the conflicted file under the cursor",
+        ["conflict.open"] = "Open the conflict editor (selected or first conflicted file)",
         ["conflict-editor.next"] = "Conflict editor: go to the next conflict hunk",
         ["conflict-editor.previous"] = "Conflict editor: go to the previous conflict hunk",
         ["conflict-editor.ours"] = "Conflict editor: take our side for the hunk",

@@ -15,6 +15,13 @@ public static class PaneHints
         new("q", "quit", [ActionIds.AppQuit]),
     ];
 
+    private const string ConflictEditorLabel = "conflict editor";
+
+    private static readonly KeyHint ConflictEditorHint = new(
+        "<space>to",
+        ConflictEditorLabel,
+        [ActionIds.ConflictOpen]);
+
     // Ctrl-h/j/k/l move between panes in every view; bare h/j/k/l act inside the pane (ux.md, "Moving focus").
     private static readonly KeyHint PaneMove = new(
         "Ctrl-h/j/k/l",
@@ -160,14 +167,14 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingUnstagedConflict =
     [
         .. Pinned,
-        new("Enter", "conflict editor", [ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", ConflictEditorLabel, [ActionIds.WorkingTreeOpenDiff]),
         .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
     ];
 
     private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiffConflict =
     [
         .. Pinned,
-        new("<space>to", "conflict editor", [ActionIds.ConflictOpen]),
+        ConflictEditorHint,
         .. WorkingUnstagedDiff.Skip(Pinned.Length),
     ];
 
@@ -328,6 +335,22 @@ public static class PaneHints
         }
 
         return pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+    }
+
+    /// <summary>
+    /// <paramref name="hints"/> with <c>&lt;space&gt;to conflict editor</c> right after help, commands and quit: a
+    /// merge, rebase, cherry-pick or revert is stopped on a conflict, and the key works from every pane (#742). Hints
+    /// that already lead with the editor are returned as they are.
+    /// </summary>
+    /// <param name="hints">The hints of the focused pane.</param>
+    public static IReadOnlyList<KeyHint> WithConflictEditor(IReadOnlyList<KeyHint> hints)
+    {
+        if (hints.Any(hint => hint.Description == ConflictEditorLabel))
+        {
+            return hints;
+        }
+
+        return [.. hints.Take(Pinned.Length), ConflictEditorHint, .. hints.Skip(Pinned.Length)];
     }
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>

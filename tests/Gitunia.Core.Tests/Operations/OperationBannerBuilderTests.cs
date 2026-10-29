@@ -24,8 +24,8 @@ public class OperationBannerBuilderTests
     {
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
 
-        Assert.Equal(hinted, banner.Hint.Contains("Enter, <space>to", StringComparison.Ordinal));
-        Assert.Equal(hinted, banner.ShortHint.Contains("Enter", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.Hint.Contains("<space>to open", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.ShortHint.Contains("<space>to", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class OperationBannerBuilderTests
         Assert.Equal(["continue", "abort"], banner.Chips.Select(chip => chip.Label));
         Assert.Equal(
             "MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  "
-            + "Unstaged: Enter, <space>to open conflict editor",
+            + "<space>to open conflict editor",
             banner.PlainText);
     }
 

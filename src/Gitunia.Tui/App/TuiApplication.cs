@@ -7,6 +7,7 @@ using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Operations;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
 using Gitunia.Core.Picker;
@@ -1321,6 +1322,13 @@ public sealed class TuiApplication(
             return PaneHints.ForRepeat(repeating.Kind);
         }
 
+        var hints = PaneHintsOfFocus();
+
+        return ConflictPending() ? PaneHints.WithConflictEditor(hints) : hints;
+    }
+
+    private IReadOnlyList<KeyHint> PaneHintsOfFocus()
+    {
         if (DetailChangesFocused())
         {
             return PaneHints.ForDetailChanges();
@@ -1336,6 +1344,11 @@ public sealed class TuiApplication(
             _diffPane.IsShowingContent,
             OnConflictedFile());
     }
+
+    // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>to opens the editor from every pane.
+    private bool ConflictPending() =>
+        _host.Workspace.ActiveTab is { Operation: not null } tab
+        && OperationBannerBuilder.ConflictCount(tab.WorkingTree) > 0;
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
     private string FocusedSidebarName()

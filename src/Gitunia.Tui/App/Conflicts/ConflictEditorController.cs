@@ -13,6 +13,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views;
@@ -20,8 +21,9 @@ using Gitunia.Tui.Views;
 namespace Gitunia.Tui.App.Conflicts;
 
 /// <summary>
-/// The conflict editor (ux.md, workflow 4, "Conflict editor"): <c>Enter</c> (or <c>&lt;space&gt;to</c>) on a
-/// conflicted file of the Unstaged list reads it off the UI thread and opens a modal view of one conflict hunk at a
+/// The conflict editor (ux.md, workflow 4, "Conflict editor"): <c>Enter</c> on a conflicted file of the Unstaged list,
+/// or <c>&lt;space&gt;to</c> from any pane (the file under the Unstaged cursor, else the first conflicted one), reads
+/// it off the UI thread and opens a modal view of one conflict hunk at a
 /// time. Each hunk gets a pick (ours, theirs, both), text typed by the user (<c>e</c>, in Insert mode) or none, and
 /// every change can be undone and redone; <c>B</c> shows the base of the hunk and <c>R</c> re-creates the conflict of
 /// the file after a Confirm. <c>Enter</c> saves the result to the working tree file,
@@ -69,7 +71,8 @@ public sealed class ConflictEditorController(
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was saved";
     private const string NothingPickedNotice = "No hunk is picked yet: nothing to save";
-    private const string NotConflictedNotice = "Select a conflicted file (!) in the Unstaged list of the working tree (<space>s)";
+    private const string NoConflictsNotice = "No conflicts to resolve: no file is conflicted";
+    private const string NotLoadedNotice = "The working tree is not loaded yet: try again in a moment";
     private const string ChangedNotice = "The tab changed while the file was read: the conflict editor was not opened";
     private const string CoveredNotice =
         "Another view opened while the file was read: the conflict editor was not opened";
@@ -95,15 +98,15 @@ public sealed class ConflictEditorController(
             return null;
         }
 
-        var size = screenSize();
+        var size = EditorArea(state);
 
         return ConflictEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs, keys);
     }
 
     /// <summary>
-    /// Handles an action: opens the editor on <see cref="ActionIds.ConflictOpen"/>, or on <c>Enter</c> over a
-    /// conflicted file of the Unstaged list; while it is open and no dialog covers it, consumes every action (nothing
-    /// behind it may move). Returns true when the action was consumed.
+    /// Handles an action: opens the editor on <see cref="ActionIds.ConflictOpen"/> (any pane), or on <c>Enter</c>
+    /// over a conflicted file of the Unstaged list; while it is open and no dialog covers it, consumes every action
+    /// (nothing behind it may move). Returns true when the action was consumed.
     /// </summary>
     public bool TryExecute(ActionId action, int? count)
     {
@@ -141,7 +144,7 @@ public sealed class ConflictEditorController(
             return null;
         }
 
-        var size = screenSize();
+        var size = EditorArea(State);
         var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height, keys);
         handled = view is not null;
 
@@ -187,13 +190,14 @@ public sealed class ConflictEditorController(
             return false;
         }
 
-        var entry = ConflictedUnderCursor(tab);
+        // <space>to works from any pane: the file under the Unstaged cursor, else the first conflicted one. Enter keeps
+        // its meaning on every other row.
+        var entry = isOpenKey ? ConflictedToOpen(tab) : ConflictedUnderCursor(tab);
         if (entry is null)
         {
-            // Enter on any other row keeps its meaning; only the dedicated key explains itself.
             if (isOpenKey)
             {
-                statuses.Warning(NotConflictedNotice);
+                statuses.Warning(tab.WorkingTree is null ? NotLoadedNotice : NoConflictsNotice);
             }
 
             return isOpenKey;
@@ -395,9 +399,20 @@ public sealed class ConflictEditorController(
         }
     }
 
-    private int ScrollLimit(ConflictEditorState state)
+    // The screen minus the row of the operation banner, which the editor must not cover (a rebase or merge stopped on
+    // the conflict always has one).
+    private ScreenSize EditorArea(ConflictEditorState state)
     {
         var size = screenSize();
+        var hasBanner = host.Workspace.FindTab(state.TabId)?.Operation is not null
+            && size.Height >= ScreenLayout.MinimumHeightWithBanner;
+
+        return hasBanner ? size with { Height = size.Height - 1 } : size;
+    }
+
+    private int ScrollLimit(ConflictEditorState state)
+    {
+        var size = EditorArea(state);
 
         return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
     }
@@ -405,7 +420,7 @@ public sealed class ConflictEditorController(
     // A half page of the side panes, at least one line.
     private void ScrollSides(ConflictEditorState state, int direction)
     {
-        var size = screenSize();
+        var size = EditorArea(state);
         var rows = ConflictEditorFrameBuilder.SideRowCount(state, size.Width, size.Height, keys);
         var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
         Update(state.ScrollSides(direction * Math.Max(1, rows / 2), maximum));
@@ -660,6 +675,9 @@ public sealed class ConflictEditorController(
         State = ConflictEditorState.Create(tabId, old.Path, result.Parts) with { IsBaseShown = old.IsBaseShown };
         redraw();
     }
+
+    private static StatusEntry? ConflictedToOpen(RepositoryState tab) =>
+        ConflictedUnderCursor(tab) ?? ConflictedSelection.FindFirst(tab.WorkingTree);
 
     private static StatusEntry? ConflictedUnderCursor(RepositoryState tab)
     {

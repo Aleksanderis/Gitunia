@@ -147,6 +147,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, global, "<space>gc", ActionIds.OperationContinue);
         Add(bindings, NormalOnly, global, "<space>ga", ActionIds.OperationAbort);
         Add(bindings, NormalOnly, global, "<space>gk", ActionIds.OperationSkip);
+        Add(bindings, NormalOnly, global, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, [.. Enum.GetValues<KeyMode>()], global, "Esc", ActionIds.Cancel);
     }
 
@@ -181,7 +182,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
         Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
-        Add(bindings, NormalOnly, GraphView, "<space>to", ActionIds.ConflictOpen);
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
@@ -416,7 +416,6 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
-            Add(bindings, NormalOnly, view, "<space>to", ActionIds.ConflictOpen);
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeExpand);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
@@ -465,7 +464,6 @@ public static class DefaultKeymap
         }
 
         // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
-        Add(bindings, NormalOnly, WorkingUnstagedDiffView, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);

@@ -52,20 +52,20 @@ public class BannerRendererTests
         {
             Detail = "3 conflicts",
             Chips = Rebase.Chips.RemoveAt(2),
-            Hint = "Unstaged: Enter, <space>to open conflict editor",
-            ShortHint = "Unstaged: Enter conflict editor",
+            Hint = "<space>to open conflict editor",
+            ShortHint = "<space>to conflict editor",
         };
 
-        var tight = BannerRenderer.Build(banner, 105, GraphGlyphSet.Unicode);
+        var tight = BannerRenderer.Build(banner, 100, GraphGlyphSet.Unicode);
         var narrow = BannerRenderer.Build(banner, 80, GraphGlyphSet.Unicode);
         var wide = BannerRenderer.Build(banner, 160, GraphGlyphSet.Unicode);
 
         Assert.Equal(2, narrow.Chips.Count);
         Assert.DoesNotContain("conflict editor", narrow.Line.Text, StringComparison.Ordinal);
         Assert.Contains("<space>ga abort", narrow.Line.Text, StringComparison.Ordinal);
-        Assert.Contains("Unstaged: Enter conflict editor", tight.Line.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("<space>to", tight.Line.Text, StringComparison.Ordinal);
-        Assert.Contains("Enter, <space>to", wide.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>to conflict editor", tight.Line.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("<space>to open", tight.Line.Text, StringComparison.Ordinal);
+        Assert.Contains("<space>to open", wide.Line.Text, StringComparison.Ordinal);
     }
 
     [Fact]

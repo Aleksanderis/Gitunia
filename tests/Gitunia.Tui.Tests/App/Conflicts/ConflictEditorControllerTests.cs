@@ -9,6 +9,7 @@ using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Git.Conflicts;
 using Gitunia.Git.Execution;
+using Gitunia.Git.Operations.Models;
 using Gitunia.Git.Refs;
 using Gitunia.Git.Repositories;
 using Gitunia.Git.Repositories.Models;
@@ -187,7 +188,7 @@ public class ConflictEditorControllerTests
         Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
 
         Assert.False(harness.Controller.IsOpen);
-        Assert.Contains("conflicted file", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("No conflicts", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -213,18 +214,72 @@ public class ConflictEditorControllerTests
         Assert.True(harness.Controller.IsOpen);
     }
 
-    [Fact]
-    public async Task GivenTheGraphFocused_WhenPressingTheEditorKey_ThenTheStatusBarSaysWhereItOpens()
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.Detail)]
+    [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingStaged)]
+    [InlineData(PaneKind.WorkingStagedDiff)]
+    [InlineData(PaneKind.WorkingMessage)]
+    public async Task GivenAnyPaneFocused_WhenPressingTheEditorKey_ThenTheEditorOpensOnTheConflictedFile(PaneKind pane)
     {
         using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(pane));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+        await harness.Pump.RunUntilAsync(() => harness.Controller.IsOpen);
+
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Equal(ConflictPath, harness.Controller.State!.Path);
+    }
+
+    [Fact]
+    public async Task GivenARebaseStoppedOnAConflictAndTheGraphFocused_WhenPressingTheEditorKey_ThenTheEditorOpens()
+    {
+        using var repository = TestRepositories.RebaseConflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+        await harness.Pump.RunUntilAsync(() => harness.Controller.IsOpen);
+
+        Assert.True(harness.Controller.IsOpen);
+        Assert.Equal(ConflictPath, harness.Controller.State!.Path);
+        Assert.NotEmpty(harness.Controller.State.Hunks);
+    }
+
+    [Fact]
+    public async Task GivenTwoConflictedFilesAndTheGraphFocused_WhenPressingTheEditorKey_ThenTheFirstOpens()
+    {
+        using var repository = TestRepository.Create()
+            .Commit("Initial", new TestFile("a.txt", "a\n"), new TestFile("b.txt", "b\n"));
+        repository.CheckoutNewBranch("other")
+            .Commit("Other", new TestFile("a.txt", "a other\n"), new TestFile("b.txt", "b other\n"));
+        repository.Checkout("main")
+            .Commit("Main", new TestFile("a.txt", "a main\n"), new TestFile("b.txt", "b main\n"))
+            .MergeExpectingConflict("other");
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+        await harness.Pump.RunUntilAsync(() => harness.Controller.IsOpen);
+
+        Assert.Equal("a.txt", harness.Controller.State!.Path);
+    }
+
+    [Fact]
+    public async Task GivenNoConflictAndTheGraphFocused_WhenPressingTheEditorKey_ThenItSaysThereIsNothingToResolve()
+    {
+        using var repository = TestRepositories.Linear(2);
         using var harness = await Harness.CreateAsync(repository);
         harness.Send(new FocusPaneCommand(PaneKind.Graph));
 
         Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
 
         Assert.False(harness.Controller.IsOpen);
-        Assert.Contains("<space>s", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
-        Assert.Contains("Unstaged", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+        Assert.Contains("No conflicts", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -238,7 +293,7 @@ public class ConflictEditorControllerTests
         Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
 
         Assert.False(harness.Controller.IsOpen);
-        Assert.Contains("conflicted file", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("No conflicts", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -453,6 +508,22 @@ public class ConflictEditorControllerTests
         Assert.DoesNotContain(lines, line => line.Contains("merge.conflictStyle", StringComparison.Ordinal));
         harness.Run(ActionIds.ConflictEditorBase);
         Assert.False(harness.Controller.State!.IsBaseShown);
+    }
+
+    [Fact]
+    public async Task GivenARebaseStoppedOnTheConflict_WhenDrawingTheEditor_ThenTheBannerRowStaysFree()
+    {
+        using var repository = TestRepositories.RebaseConflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Screen = new ScreenSize(100, 30);
+        harness.Send(new OperationLoadedCommand(
+            new OperationInfo(RepositoryOperation.Rebase, "x", 1, 1, null, null, null, null)));
+        await harness.OpenAsync();
+
+        var frame = harness.Controller.CurrentFrame()!;
+
+        // Rows: the status bar is the last one and the banner the one above it.
+        Assert.True(frame.Row + frame.Height <= harness.Screen.Height - 2);
     }
 
     [Fact]

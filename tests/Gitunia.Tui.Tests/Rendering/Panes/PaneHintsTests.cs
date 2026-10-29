@@ -108,6 +108,29 @@ public class PaneHintsTests
 
     [Theory]
     [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.Sidebar)]
+    [InlineData(PaneKind.Diff)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenAConflictPending_WhenAddingTheEditorHint_ThenItFollowsHelpCommandsAndQuitAndIsBound(PaneKind pane)
+    {
+        var hints = PaneHints.WithConflictEditor(PaneHints.For(pane));
+
+        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        Assert.Equal(PaneHints.For(pane).Count + 1, hints.Count);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, ViewFor(pane));
+    }
+
+    [Fact]
+    public void GivenHintsThatAlreadyLeadWithTheEditor_WhenAddingTheEditorHint_ThenTheyAreLeftAlone()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+
+        Assert.Same(hints, PaneHints.WithConflictEditor(hints));
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
     [InlineData(PaneKind.WorkingStaged)]
     public void GivenAConflictedFileButAnotherPane_WhenAskingForHints_ThenTheyAreTheUsualOnes(PaneKind pane)
     {
