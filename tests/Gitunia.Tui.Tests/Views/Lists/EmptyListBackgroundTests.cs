@@ -27,7 +27,7 @@ public class EmptyListBackgroundTests
         using var application = Application.Create();
         application.Init(DriverRegistry.Names.ANSI);
         application.Driver!.SetScreenSize(20, 6);
-        using var pane = new PaneListView
+        var pane = new PaneListView
         {
             X = 0,
             Y = 0,
@@ -37,8 +37,12 @@ public class EmptyListBackgroundTests
             Source = new WorkingTreeListSource(WorkingTreeSection.Staged, GraphGlyphSet.Unicode),
         };
         pane.SetScheme(Palette.BaseScheme(table));
-        using var other = new PaneListView { X = 19, Y = 0, Width = 1, Height = 1, CanFocus = true };
-        using var window = new Window { Width = Dim.Fill(), Height = Dim.Fill(), BorderStyle = LineStyle.None };
+        var other = new PaneListView { X = 19, Y = 0, Width = 1, Height = 1, CanFocus = true };
+        using var window = new Window();
+        window.Width = Dim.Fill();
+        window.Height = Dim.Fill();
+        window.BorderStyle = LineStyle.None;
+        // The window owns and disposes both panes.
         window.Add(pane, other);
         application.Begin(window);
         if (focused)
