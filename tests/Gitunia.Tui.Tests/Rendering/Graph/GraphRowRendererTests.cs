@@ -142,11 +142,14 @@ public class GraphRowRendererTests
     [Fact]
     public void GivenBranchLabels_WhenRendering_ThenTheyCarryTheColourOfTheLaneAndTagsDoNot()
     {
+        // A name whose colour is not the first one, so a label that lost its colour index would show.
+        var current = Enumerable.Range(0, 50).Select(number => $"branch-{number}")
+            .First(name => BranchColors.PreferredSlot(name) != 0);
         var commit = CommitFactory.Commit(
             1,
             "release",
             [],
-            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration($"refs/heads/{current}", current, RefKind.LocalBranch, true),
             new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false),
             new CommitDecoration("refs/remotes/origin/other", "origin/other", RefKind.RemoteBranch, false),
             new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false));
@@ -155,10 +158,11 @@ public class GraphRowRendererTests
 
         var line = GraphRowRenderer.Render(graph[0], options, false);
 
-        var slot = BranchColors.PreferredSlot("main");
+        var slot = BranchColors.PreferredSlot(current);
+        Assert.NotEqual(0, slot);
         Assert.Equal(slot, graph[0].Row.NodeColor);
         var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
-        Assert.Equal(["main", "topic", "origin/other"], labels.Select(segment => segment.Text));
+        Assert.Equal([current, "topic", "origin/other"], labels.Select(segment => segment.Text));
         Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.CurrentBranch);

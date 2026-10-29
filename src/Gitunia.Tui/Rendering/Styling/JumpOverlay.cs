@@ -74,7 +74,7 @@ public static class JumpOverlay
                 if (jump.HasLetter && replaced > 0 && from == end)
                 {
                     builder.Append(jump.Letter.ToString(), SegmentRole.JumpLabel);
-                    builder.Append(new string(' ', padding), part.Role);
+                    builder.Append(new string(' ', padding), part.Role, part.ColorIndex);
                 }
                 else if (from >= start && from < end)
                 {
@@ -82,7 +82,7 @@ public static class JumpOverlay
                 }
                 else
                 {
-                    builder.Append(piece, part.Role);
+                    builder.Append(piece, part.Role, part.ColorIndex);
                 }
             }
 
