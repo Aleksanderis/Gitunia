@@ -18,8 +18,6 @@ public static class BranchColors
     private const uint HashOffset = 2166136261;
     private const uint HashPrime = 16777619;
 
-    private static readonly string[] TrunkNames = ["main", "master", "trunk"];
-
     /// <summary>The branch name of every commit that carries a branch ref, see <see cref="PrimaryName"/>.</summary>
     /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
     public static IReadOnlyDictionary<ObjectId, string> TipsOf(
@@ -70,53 +68,6 @@ public static class BranchColors
     }
 
     /// <summary>
-    /// The branch whose line the shared history below a fork belongs to: <c>main</c>, <c>master</c> or <c>trunk</c>
-    /// when a branch of that name exists (in this order; local or remote, on any commit), else the checked-out
-    /// branch, else none. Where several lanes meet at a commit, the lane of this branch keeps it, so the main line
-    /// stays straight whatever order the tips of the other branches come in.
-    /// </summary>
-    /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
-    public static string? TrunkOf(IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
-    {
-        foreach (var candidate in TrunkNames)
-        {
-            foreach (var decorations in decorationsByCommit.Values)
-            {
-                if (HasBranch(decorations, candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return CheckedOutBranchOf(decorationsByCommit);
-    }
-
-    /// <summary>The commits that carry a branch of the trunk's name (local or remote), and whatever else.</summary>
-    /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
-    /// <param name="trunk">The trunk branch, see <see cref="TrunkOf"/>; null for none.</param>
-    public static IReadOnlySet<ObjectId> TrunkCommitsOf(
-        IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit,
-        string? trunk)
-    {
-        var commits = new HashSet<ObjectId>();
-        if (trunk is null)
-        {
-            return commits;
-        }
-
-        foreach (var (commit, decorations) in decorationsByCommit)
-        {
-            if (HasBranch(decorations, trunk))
-            {
-                commits.Add(commit);
-            }
-        }
-
-        return commits;
-    }
-
-    /// <summary>
     /// Whether two ref lists of one commit have the same branches (remote prefix ignored) and the same primary name:
     /// what the layout of the rows depends on. Tags and the order of the refs do not matter.
     /// </summary>
@@ -141,25 +92,6 @@ public static class BranchColors
         }
 
         return PrimaryName(first) == PrimaryName(second);
-    }
-
-    /// <summary>The checked-out local branch among the refs, or null (detached HEAD, unborn branch).</summary>
-    /// <param name="decorationsByCommit">The refs of the commits that carry one.</param>
-    public static string? CheckedOutBranchOf(
-        IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
-    {
-        foreach (var decorations in decorationsByCommit.Values)
-        {
-            foreach (var decoration in decorations)
-            {
-                if (decoration is { IsCurrent: true, Kind: RefKind.LocalBranch })
-                {
-                    return decoration.Name;
-                }
-            }
-        }
-
-        return null;
     }
 
     private static bool HasBranch(IReadOnlyList<CommitDecoration> decorations, string name)

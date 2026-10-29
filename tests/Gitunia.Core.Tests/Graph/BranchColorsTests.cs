@@ -90,43 +90,6 @@ public class BranchColorsTests
     }
 
     [Fact]
-    public void GivenBranchesNamedMainAndOthers_WhenChoosingTheTrunk_ThenMainWinsOverTheCheckedOutBranch()
-    {
-        var checkedOut = new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, true);
-        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>
-        {
-            [GraphTestData.Id(1)] = [checkedOut],
-            [GraphTestData.Id(2)] = [Remote("origin/master")],
-            [GraphTestData.Id(3)] = [Branch("main")],
-        };
-
-        Assert.Equal("main", BranchColors.TrunkOf(decorations));
-        decorations.Remove(GraphTestData.Id(3));
-        Assert.Equal("master", BranchColors.TrunkOf(decorations));
-        decorations.Remove(GraphTestData.Id(2));
-        Assert.Equal("feature", BranchColors.TrunkOf(decorations));
-        decorations.Remove(GraphTestData.Id(1));
-        Assert.Null(BranchColors.TrunkOf(decorations));
-    }
-
-    [Fact]
-    public void GivenMainAndDevelopOnOneCommit_WhenFindingTheTrunkCommits_ThenTheCommitCountsDespiteItsPrimaryName()
-    {
-        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>
-        {
-            [GraphTestData.Id(1)] = [Branch("develop"), Branch("main")],
-            [GraphTestData.Id(2)] = [Remote("origin/main")],
-            [GraphTestData.Id(3)] = [Branch("other")],
-        };
-
-        var commits = BranchColors.TrunkCommitsOf(decorations, BranchColors.TrunkOf(decorations));
-
-        Assert.Equal("develop", BranchColors.PrimaryName(decorations[GraphTestData.Id(1)]));
-        Assert.Equal([GraphTestData.Id(1), GraphTestData.Id(2)], commits.OrderBy(id => id.ToString()));
-        Assert.Empty(BranchColors.TrunkCommitsOf(decorations, null));
-    }
-
-    [Fact]
     public void GivenRefListsOfOneCommit_WhenComparingTheBranches_ThenTagsAndOrderDoNotMatterButBranchesDo()
     {
         var tag = new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false);
@@ -136,20 +99,6 @@ public class BranchColorsTests
         Assert.False(BranchColors.HaveSameBranches([Branch("a")], [Branch("a"), Branch("b")]));
         Assert.False(BranchColors.HaveSameBranches([], [Branch("a")]));
         Assert.True(BranchColors.HaveSameBranches([tag], []));
-    }
-
-    [Fact]
-    public void GivenARefList_WhenFindingTheCheckedOutBranch_ThenOnlyACurrentLocalBranchCounts()
-    {
-        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>
-        {
-            [GraphTestData.Id(1)] = [Branch("other")],
-            [GraphTestData.Id(2)] = [new CommitDecoration("HEAD", "HEAD", RefKind.Head, true)],
-        };
-
-        Assert.Null(BranchColors.CheckedOutBranchOf(decorations));
-        decorations[GraphTestData.Id(3)] = [new CommitDecoration("refs/heads/work", "work", RefKind.LocalBranch, true)];
-        Assert.Equal("work", BranchColors.CheckedOutBranchOf(decorations));
     }
 
     private static CommitDecoration Branch(string name) =>

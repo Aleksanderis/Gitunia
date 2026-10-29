@@ -87,7 +87,7 @@ public class GraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenAllCommitsWithOneTimestampAndMainListedLast_WhenStreaming_ThenMainIsStillOneStraightLane()
+    public async Task GivenOneTimestampAndMainListedLast_WhenStreaming_ThenTheLeftmostLaneGoesToTheBottom()
     {
         // The demo history as git lists it when every commit has the same timestamp: the feature tips first, main last.
         var commitLog = new FakeCommitLogReader();
@@ -110,14 +110,16 @@ public class GraphLoaderTests
 
         var entries = (await LoadAsync(commitLog)).SelectMany(batch => batch).ToList();
 
-        var mainSubjects = new[] { "Add docs", "Merge merged-topic", "Add cli", "Add formatter", "Initial commit" };
+        // feat-a is the newest tip: its lane is lane 0 and goes on below the fork, main and the others bend into it.
+        var below = new[] { "Add cli", "Add formatter", "Initial commit" };
+        Assert.All(entries.Where(entry => below.Contains(entry.Subject)), entry => Assert.Equal(0, entry.Row.Lane));
+        var fork = entries.Single(entry => entry.Subject == "Add cli");
+        Assert.Equal(
+            [0, 1, 2, 3],
+            fork.Row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane));
         var mainLane = entries.Single(entry => entry.Subject == "Add docs").Row.Lane;
-        Assert.All(
-            entries.Where(entry => mainSubjects.Contains(entry.Subject)),
-            entry => Assert.Equal(mainLane, entry.Row.Lane));
-        Assert.Equal(2, entries.Single(entry => entry.Subject == "Add docs").Row.Lane);
-        var colours = entries.Where(entry => mainSubjects.Contains(entry.Subject)).Select(entry => entry.Row.NodeColor);
-        Assert.Single(colours.Distinct());
+        Assert.Equal(mainLane, entries.Single(entry => entry.Subject == "Merge merged-topic").Row.Lane);
+        Assert.NotEqual(0, mainLane);
     }
 
     [Fact]
