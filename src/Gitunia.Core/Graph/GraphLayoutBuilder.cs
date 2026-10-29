@@ -14,6 +14,11 @@ namespace Gitunia.Core.Graph;
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
+    /// <summary>
+    /// Rows within which two different branch tips avoid sharing a colour while a free one remains: about one screen.
+    /// </summary>
+    public const int NearRowCount = 50;
+
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
 
@@ -51,11 +56,6 @@ public sealed class GraphLayoutBuilder
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
 
-    /// <summary>
-    /// Rows within which two different branch tips avoid sharing a colour while a free one remains: about one screen.
-    /// </summary>
-    public const int NearRowCount = 50;
-
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
 
@@ -67,6 +67,10 @@ public sealed class GraphLayoutBuilder
     {
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
+        while (_recentTips.Count > 0 && _rows.Count - _recentTips.Peek().Row > NearRowCount)
+        {
+            _recentTips.Dequeue();
+        }
 
         var nodeLane = NodeLaneOf(commitId, out var isTip);
         var nodeColor = _laneSlots[nodeLane];
@@ -231,11 +235,6 @@ public sealed class GraphLayoutBuilder
 
     private bool IsSlotInUse(int slot)
     {
-        while (_recentTips.Count > 0 && _rows.Count - _recentTips.Peek().Row > NearRowCount)
-        {
-            _recentTips.Dequeue();
-        }
-
         foreach (var tip in _recentTips)
         {
             if (tip.Slot == slot)
