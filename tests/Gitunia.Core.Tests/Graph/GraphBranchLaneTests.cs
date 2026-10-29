@@ -10,9 +10,10 @@ namespace Gitunia.Core.Tests.Graph;
 public class GraphBranchLaneTests
 {
     private static readonly int[] MainRows = [0, 1, 12, 13, 14, 15, 16];
-    private static readonly int[] MainCommits = [1, 2, 13, 14, 15, 16, 17];
     private static readonly int[] BranchTipRows = [2, 3, 4, 5];
     private static readonly int[] LastBranchRows = [9, 10, 11];
+    private static readonly int[] BelowFork = [13, 14, 15, 16, 17];
+    private static readonly int[] MainTopCommits = [1, 2];
 
     public static TheoryData<int> Seeds => [.. Enumerable.Range(1, 40)];
 
@@ -72,20 +73,29 @@ public class GraphBranchLaneTests
     [InlineData(new[] { 4, 5, 6, 1, 2, 3 })]
     [InlineData(new[] { 6, 1, 5, 2, 4, 3 })]
     [InlineData(new[] { 5, 4, 1, 2, 3, 6 })]
-    public void GivenTheTipsInAnyOrder_WhenLayingOut_ThenMainIsOneStraightLaneAndEveryBranchHasOne(int[] topRows)
+    public void GivenTheTipsInAnyOrder_WhenLayingOut_ThenTheLeftmostLaneGoesToTheBottomAndTheOthersJoinIt(int[] topRows)
     {
         // The same history with its first rows reordered, as it comes when all commits share one timestamp.
         var commits = DemoWithTopRows(topRows);
-        var trunk = Commits(1, 13, 14, 15, 16, 17);
-        var rows = new GraphLayoutBuilder(DemoTips(), trunkCommits: trunk).AppendRange(commits);
+        var rows = new GraphLayoutBuilder(DemoTips()).AppendRange(commits);
 
         Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
-        var main = MainCommits.Select(Id).ToHashSet();
-        var mainLanes = Enumerable.Range(0, commits.Length)
-            .Where(index => main.Contains(commits[index].Id))
-            .Select(index => rows[index].Lane)
-            .Distinct();
-        var mainLane = Assert.Single(mainLanes);
+        var firstLane = rows[0].Lane;
+        Assert.Equal(0, firstLane);
+
+        // The fork commit and everything below it stay in the lane of the first row (the newest tip).
+        foreach (var number in BelowFork)
+        {
+            var index = Array.FindIndex(commits, commit => commit.Id == Id(number));
+            Assert.Equal(firstLane, rows[index].Lane);
+        }
+
+        // Every other line (main above the fork, the merged topic, the feature branches) has one lane and bends into
+        // the leftmost one at the fork commit.
+        var forkIndex = Array.FindIndex(commits, commit => commit.Id == Id(13));
+        var edges = rows[forkIndex].Edges;
+        var incoming = edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane);
+        Assert.Equal(5, incoming.Count());
         foreach (var number in BranchTipRows.Select(row => row + 1))
         {
             var chain = ChainOf(number);
@@ -93,34 +103,13 @@ public class GraphBranchLaneTests
                 .Where(index => chain.Contains(commits[index].Id))
                 .Select(index => rows[index].Lane)
                 .Distinct();
-            Assert.NotEqual(mainLane, Assert.Single(lanes));
+            Assert.Single(lanes);
         }
-    }
 
-    [Fact]
-    public void GivenTheTrunkTipInsideTheLaneOfAnotherBranch_WhenLanesMeetBelow_ThenTheTrunkLaneKeepsTheCommit()
-    {
-        // 1 (x) is the newest tip and sits in lane 0; 2 (feat) has main (3) as its first parent, so main's commit lies
-        // in feat's lane 1; both lanes meet at 5. Main's line must not jump to lane 0 there.
-        var commits = new[] { Commit(1, 5), Commit(2, 3), Commit(3, 4), Commit(4, 5), Commit(5, 6), Commit(6) };
-        var tips = Tips(Tip(1, "x"), Tip(2, "feat"), Tip(3, "main"));
-
-        var rows = new GraphLayoutBuilder(tips, trunkCommits: Commits(3)).AppendRange(commits);
-
-        Assert.Equal([0, 1, 1, 1, 1, 1], rows.Select(row => row.Lane));
-    }
-
-    [Fact]
-    public void GivenNoTrunkBranch_WhenSeveralLanesMeetAtACommit_ThenTheLeftmostKeepsIt()
-    {
-        var commits = DemoWithTopRows([4, 5, 6, 1, 2, 3]);
-        var tips = DemoTips();
-        tips.Remove(Id(1));
-
-        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
-
-        // Without a trunk the shared history below the fork goes to the lane of feat-c, the leftmost.
-        Assert.Equal(rows[0].Lane, rows[commits.Length - 5].Lane);
+        var mainTop = MainTopCommits
+            .Select(number => rows[Array.FindIndex(commits, commit => commit.Id == Id(number))].Lane)
+            .Distinct();
+        Assert.Single(mainTop);
     }
 
     [Theory]
@@ -209,8 +198,6 @@ public class GraphBranchLaneTests
         Tip(14, "hotfix"),
         Tip(15, "develop"),
         Tip(16, "release"));
-
-    private static HashSet<ObjectId> Commits(params int[] numbers) => [.. numbers.Select(Id)];
 
     private static Dictionary<ObjectId, string> Tips(params KeyValuePair<ObjectId, string>[] tips) => new(tips);
 

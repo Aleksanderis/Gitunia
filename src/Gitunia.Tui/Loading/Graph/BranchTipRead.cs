@@ -46,9 +46,8 @@ public sealed class BranchTipRead : IDisposable
         }
 
         var tips = BranchColors.TipsOf(decorations);
-        var trunkCommits = BranchColors.TrunkCommitsOf(decorations, BranchColors.TrunkOf(decorations));
 
-        return new GraphLayoutBuilder(tips, _colorCount, trunkCommits);
+        return new GraphLayoutBuilder(tips, _colorCount);
     }
 
     public void Dispose()
