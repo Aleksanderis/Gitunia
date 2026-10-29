@@ -1,3 +1,4 @@
+using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search.Models;
@@ -186,6 +187,61 @@ public class GraphRowRendererTests
             Assert.Equal(2, boxes.Length);
             Assert.All(boxes, box => Assert.Matches(@"^ \S.*\S $", box.Text));
         }
+    }
+
+    [Theory]
+    [InlineData(LabelCapStyle.Rounded, "\uE0B6", "\uE0B4")]
+    [InlineData(LabelCapStyle.Angled, "\uE0B2", "\uE0B0")]
+    public void GivenCaps_WhenRendering_ThenEachBoxIsWrappedInLaneColouredCapsAndThePaddingStays(
+        LabelCapStyle style,
+        string left,
+        string right)
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true),
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false));
+        var graph = CommitFactory.Graph(commit);
+        var glyphs = GraphGlyphSet.Unicode.WithLabelCaps(style, hasColors: true);
+
+        var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+        var segments = line.Segments.ToList();
+        var boxes = segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToList();
+        Assert.Equal(2, boxes.Count);
+        foreach (var box in boxes)
+        {
+            var at = segments.IndexOf(box);
+            Assert.Equal(new StyledSegment(left, SegmentRole.Lane, box.ColorIndex), segments[at - 1]);
+            Assert.Equal(new StyledSegment(right, SegmentRole.Lane, box.ColorIndex), segments[at + 1]);
+            Assert.Matches(@"^ \S.*\S $", box.Text);
+        }
+
+        Assert.Contains($"{left} {glyphs.CurrentBranch}main", line.Text, StringComparison.Ordinal);
+        Assert.Equal(1, TextWidth.Of(left));
+        Assert.Equal(1, TextWidth.Of(right));
+    }
+
+    [Fact]
+    public void GivenNoCapsOrTiersThatCannotShowThem_WhenAskingForCaps_ThenTheSetKeepsThePlainBox()
+    {
+        Assert.Equal(GraphGlyphSet.Unicode, GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.None, hasColors: true));
+        Assert.Equal(GraphGlyphSet.Unicode, GraphGlyphSet.Unicode.WithLabelCaps(LabelCapStyle.Rounded, hasColors: false));
+        Assert.Equal(GraphGlyphSet.Ascii, GraphGlyphSet.Ascii.WithLabelCaps(LabelCapStyle.Rounded, hasColors: true));
+    }
+
+    [Fact]
+    public void GivenNoCaps_WhenRendering_ThenNoCapSegmentIsDrawn()
+    {
+        var commit = CommitFactory.Commit(
+            1, "release", [], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var graph = CommitFactory.Graph(commit);
+
+        var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, GraphGlyphSet.Unicode), false);
+
+        Assert.DoesNotContain(line.Segments, segment => segment.Text is "\uE0B6" or "\uE0B4");
     }
 
     [Fact]

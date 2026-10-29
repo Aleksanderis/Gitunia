@@ -243,7 +243,11 @@ public static class GraphRowRenderer
             case RefKind.LocalBranch or RefKind.RemoteBranch:
                 var prefix = BranchPrefix(label, glyphs);
                 var suffix = label.HasRemote ? glyphs.Remote : "";
+                // The caps are lane-coloured text on the row background (the Lane role), so they meet the box on a
+                // selected row too.
+                AppendCap(builder, glyphs.LabelCapLeft, colorIndex);
                 builder.Add(new StyledSegment($" {prefix}{label.Name}{suffix} ", SegmentRole.LaneLabel, colorIndex));
+                AppendCap(builder, glyphs.LabelCapRight, colorIndex);
                 break;
             case RefKind.Tag:
                 builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
@@ -259,6 +263,14 @@ public static class GraphRowRenderer
         if (label.IsUpstreamGone)
         {
             builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
+        }
+    }
+
+    private static void AppendCap(List<StyledSegment> builder, string cap, int colorIndex)
+    {
+        if (cap.Length > 0)
+        {
+            builder.Add(new StyledSegment(cap, SegmentRole.Lane, colorIndex));
         }
     }
 

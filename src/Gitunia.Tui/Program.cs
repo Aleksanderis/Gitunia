@@ -6,6 +6,7 @@ using Gitunia.Git.Repositories.Models;
 using Gitunia.Platform;
 using Gitunia.Tui.App;
 using Gitunia.Tui.App.CommandLine;
+using Gitunia.Tui.App.Config;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
 
@@ -55,11 +56,15 @@ public static class Program
 
         if (options.PrintsFrame)
         {
+            // The frame follows the user's config for the label caps (#851), so a capture shows what the app draws.
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var labelCaps = new ConfigStartup(PlatformInfo.Current.ConfigDirectory, home).Load().Options.LabelCaps;
+            var hasColors = options.Colors is null || options.Colors.Depth != ColorDepth.None;
             new FramePrinter(services).PrintAsync(
                 location!,
                 options.FrameWidth!.Value,
                 options.FrameHeight!.Value,
-                GraphGlyphSet.For(capabilities.Unicode),
+                GraphGlyphSet.For(capabilities.Unicode).WithLabelCaps(labelCaps, hasColors),
                 Console.Out,
                 new PaneArrangement(options.OpenDiff, options.Zoom),
                 options.Tab,

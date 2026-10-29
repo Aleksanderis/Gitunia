@@ -27,4 +27,10 @@ public sealed record ConfigDocument
     /// <c>true</c> turns on live file watching (off by default: tabs poll), read by <c>OptionsConfigurator</c>.
     /// </summary>
     public JsonElement? WatchFiles { get; init; }
+
+    /// <summary>
+    /// <c>none</c> (default), <c>rounded</c> or <c>angled</c>: the ends of the branch label chips, read by
+    /// <c>OptionsConfigurator</c>.
+    /// </summary>
+    public JsonElement? LabelCaps { get; init; }
 }
