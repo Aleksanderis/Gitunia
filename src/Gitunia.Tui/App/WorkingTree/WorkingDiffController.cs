@@ -423,7 +423,11 @@ public sealed class WorkingDiffController : IPromptHandler
             }
             else
             {
-                _actions.Select(diff, 0, atTop: true);
+                if (diff.Source.Range is null)
+                {
+                    // A Visual range that survived (same rows) keeps its cursor too (#806).
+                    _actions.Select(diff, 0, atTop: true);
+                }
 
                 // Staging changes the file's status letters, so it reads as another request while it loads: the jump waits for the same path.
                 if (IsSamePath(diff.Store.Request, previous))

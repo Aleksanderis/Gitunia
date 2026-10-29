@@ -807,7 +807,11 @@ public sealed class DiffPaneController : IPromptHandler
         {
             _actions.ForgetSearch(diff);
             diff.Source.Update(store.Current.Document);
-            _actions.Select(diff, 0, atTop: true);
+            if (diff.Source.Range is null)
+            {
+                // A Visual range that survived (same rows) keeps its cursor too (#806).
+                _actions.Select(diff, 0, atTop: true);
+            }
         }
 
         _diffList.SetNeedsDraw();
@@ -977,7 +981,11 @@ public sealed class DiffPaneController : IPromptHandler
         {
             _actions.ForgetSearch(diff);
             diff.Source.Update(diff.ShownDocument);
-            _actions.Select(diff, 0, atTop: true);
+            if (diff.Source.Range is null)
+            {
+                // A Visual range that survived (same rows) keeps its cursor too (#806).
+                _actions.Select(diff, 0, atTop: true);
+            }
         }
 
         _diffList.SetNeedsDraw();

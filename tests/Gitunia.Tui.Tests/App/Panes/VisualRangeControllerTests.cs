@@ -22,6 +22,7 @@ public sealed class VisualRangeControllerTests : IDisposable
     private readonly VisualRangeController _controller;
     private PaneKind _focused = PaneKind.Graph;
     private CopiedRange? _copied;
+    private readonly List<string> _notices = [];
     private KeyMode _mode = KeyMode.Normal;
     private bool _copySucceeds = true;
 
@@ -38,7 +39,8 @@ public sealed class VisualRangeControllerTests : IDisposable
             {
                 _copied = new CopiedRange(pane, range);
                 return new RangeCopyResult(_copySucceeds, "copy notice");
-            });
+            },
+            _notices.Add);
     }
 
     public void Dispose()
@@ -180,6 +182,30 @@ public sealed class VisualRangeControllerTests : IDisposable
 
         Assert.False(emptyController.IsActive);
         Assert.Equal("Nothing to select", emptyController.Notice);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenTheRowsChange_ThenTheRangeEndsWithANotice()
+    {
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
+
+        _source.Invalidate();
+
+        Assert.False(_controller.IsActive);
+        Assert.Equal(KeyMode.Normal, _mode);
+        Assert.Equal([VisualRangeController.InvalidatedNotice], _notices);
+    }
+
+    [Fact]
+    public void GivenAnActiveRange_WhenTheUserEndsIt_ThenNoNoticeIsPosted()
+    {
+        _list.SelectedItem = 4;
+        _controller.TryExecute(ActionIds.VisualToggle, null);
+
+        _controller.TryExecute(ActionIds.Cancel, null);
+
+        Assert.Empty(_notices);
     }
 
     [Fact]
