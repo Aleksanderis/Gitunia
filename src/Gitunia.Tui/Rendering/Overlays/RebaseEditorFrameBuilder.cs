@@ -1,7 +1,7 @@
 using System.Globalization;
-using Gitunia.Core.Overlays;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
+using Gitunia.Core.Overlays;
 using Gitunia.Core.Rebase;
 using Gitunia.Git.Rebase;
 using Gitunia.Tui.Rendering.Graph;

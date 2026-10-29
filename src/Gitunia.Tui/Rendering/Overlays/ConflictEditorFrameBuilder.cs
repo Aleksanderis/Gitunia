@@ -58,6 +58,8 @@ public static class ConflictEditorFrameBuilder
     private const string DiscardHint = "Esc again discards your picks";
     private const string EmptySide = "(nothing)";
     private const string Unresolved = "-";
+    private const string NoBasePaneText = "(no base: set diff3, then R)";
+    private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
     private static readonly HintItem[] EditingHints =
     [
@@ -71,8 +73,6 @@ public static class ConflictEditorFrameBuilder
         new(string.Empty, "every hunk is resolved"),
         new("Enter", "saves the file"),
     ];
-    private const string NoBasePaneText = "(no base: set diff3, then R)";
-    private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
     private static readonly HintChip[] ChipLabels =
     [

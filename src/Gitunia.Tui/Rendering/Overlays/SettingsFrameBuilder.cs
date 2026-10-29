@@ -17,10 +17,6 @@ public static class SettingsFrameBuilder
     private const string ReadOnlyTitle = "Settings (read-only)";
     private const string FilterPlaceholder = "/ filter";
 
-    private static readonly HintItem Move = new("j/k", "move");
-    private static readonly HintItem Back = new("h", "back");
-    private static readonly HintItem Filter = new("/", "filter");
-    private static readonly HintItem Close = new("Esc", "close");
     private const string Cursor = "_";
     private const string TooSmallText = "Terminal too small for the settings";
     private const string TooSmallHint = "Needs 40x12. Esc closes.";
@@ -28,6 +24,12 @@ public static class SettingsFrameBuilder
     private const string AnswerNo = "n  keep it";
     private const string CategoryHelp = "Enter or l opens the category; j and k move between categories.";
     private const int MaximumHelpLines = 2;
+
+
+    private static readonly HintItem Move = new("j/k", "move");
+    private static readonly HintItem Back = new("h", "back");
+    private static readonly HintItem Filter = new("/", "filter");
+    private static readonly HintItem Close = new("Esc", "close");
 
     /// <summary>The settings frame for a screen, or null when the screen is too small to show even a title.</summary>
     /// <param name="state">The settings state.</param>
@@ -452,10 +454,19 @@ public static class SettingsFrameBuilder
 
         return state.Selected switch
         {
-            { Kind: SettingRowKind.Item } => [new("Enter", "edit"), new("d", "remove"), new("J/K", "reorder"), new("a", "add"), Back, Close],
+            { Kind: SettingRowKind.Item } =>
+            [
+                new("Enter", "edit"),
+                new("d", "remove"),
+                new("J/K", "reorder"),
+                new("a", "add"),
+                Back,
+                Close,
+            ],
             { Definition.Control: SettingControl.PathList } => [new("Enter/a", "add"), Move, Back, Filter, Close],
             { Definition.Control: SettingControl.Toggle } => [new("Enter/x", "flip"), Move, Back, Filter, Close],
-            { Definition.Control: SettingControl.Number } => [new("Enter", "type"), new("+/-", "step"), Move, Back, Close],
+            { Definition.Control: SettingControl.Number } =>
+                [new("Enter", "type"), new("+/-", "step"), Move, Back, Close],
             { Kind: SettingRowKind.Binding } => [new("Enter", "show config entry"), Move, Back, Filter, Close],
             { Definition.Control: SettingControl.KeyReference } => [Move, Back, Filter, Close],
             { Definition.Control: SettingControl.Action } => [new("Enter", "open"), Move, Back, Filter, Close],

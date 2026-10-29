@@ -704,7 +704,10 @@ public class ConflictEditorFrameBuilderTests
 
         var frame = ConflictEditorFrameBuilder.Build(state, 120, 30, GraphGlyphSet.Unicode)!;
 
-        var keys = frame.Lines.SelectMany(line => line.Segments).Where(segment => segment.Role == SegmentRole.StatusKey).Select(segment => segment.Text).ToList();
+        var keys = frame.Lines.SelectMany(line => line.Segments)
+            .Where(segment => segment.Role == SegmentRole.StatusKey)
+            .Select(segment => segment.Text)
+            .ToList();
         Assert.Contains("Esc/Ctrl-g", keys);
         Assert.Contains("Enter", keys);
     }
