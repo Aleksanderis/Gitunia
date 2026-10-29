@@ -67,10 +67,72 @@ public static class BranchColors
         return local ?? remote;
     }
 
+    /// <summary>
+    /// Whether two ref lists of one commit have the same branches (remote prefix ignored) and the same primary name:
+    /// what the layout of the rows depends on. Tags and the order of the refs do not matter.
+    /// </summary>
+    /// <param name="first">The refs of the commit.</param>
+    /// <param name="second">The refs of the same commit at another time.</param>
+    public static bool HaveSameBranches(IReadOnlyList<CommitDecoration> first, IReadOnlyList<CommitDecoration> second)
+    {
+        foreach (var decoration in first)
+        {
+            if (BranchNameOf(decoration) is { } name && !HasBranch(second, name))
+            {
+                return false;
+            }
+        }
+
+        foreach (var decoration in second)
+        {
+            if (BranchNameOf(decoration) is { } name && !HasBranch(first, name))
+            {
+                return false;
+            }
+        }
+
+        return PrimaryName(first) == PrimaryName(second);
+    }
+
+    private static bool HasBranch(IReadOnlyList<CommitDecoration> decorations, string name)
+    {
+        foreach (var decoration in decorations)
+        {
+            if (BranchNameOf(decoration) == name)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The branch a ref stands for: a local branch's name, a remote branch's without its remote; null for the rest.
+    private static string? BranchNameOf(CommitDecoration decoration)
+    {
+        if (decoration.Kind == RefKind.LocalBranch)
+        {
+            return decoration.Name;
+        }
+
+        if (decoration.Kind != RefKind.RemoteBranch)
+        {
+            return null;
+        }
+
+        var name = decoration.Name[(decoration.Name.IndexOf('/', StringComparison.Ordinal) + 1)..];
+
+        return name == SymbolicRemoteHeadName ? null : name;
+    }
+
     /// <summary>The colour slot a branch name starts from: a stable hash of the name, never of the position.</summary>
     /// <param name="name">The branch name without a remote prefix.</param>
     /// <param name="slotCount">Distinct colours the palette has.</param>
-    public static int PreferredSlot(string name, int slotCount = SlotCount)
+    public static int PreferredSlot(string name, int slotCount = SlotCount) => (int)(HashOf(name) % (uint)slotCount);
+
+    /// <summary>A stable 32-bit hash of a branch name (FNV-1a over its UTF-16 characters).</summary>
+    /// <param name="name">The branch name without a remote prefix.</param>
+    public static uint HashOf(string name)
     {
         var hash = HashOffset;
         foreach (var character in name)
@@ -78,7 +140,7 @@ public static class BranchColors
             hash = (hash ^ character) * HashPrime;
         }
 
-        return (int)(hash % (uint)slotCount);
+        return hash;
     }
 
     private static string Smaller(string? current, string candidate) =>

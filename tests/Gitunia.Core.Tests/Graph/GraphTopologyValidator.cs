@@ -38,9 +38,14 @@ public static class GraphTopologyValidator
                 problems.Add($"{where}: incoming lanes [{string.Join(",", incomingLanes)}] but lanes waiting for the commit are [{string.Join(",", expectedIncoming)}]");
             }
 
-            if (expectedIncoming.Length > 0 && row.Lane != expectedIncoming[0])
+            if (expectedIncoming.Length > 0 && !expectedIncoming.Contains(row.Lane))
             {
-                problems.Add($"{where}: node is not in the leftmost lane waiting for it");
+                problems.Add($"{where}: node is not in a lane waiting for it");
+            }
+
+            if (waiting.TryGetValue(row.Lane, out var laneOwner) && laneOwner != commit.Id)
+            {
+                problems.Add($"{where}: node sits in a lane that waits for another commit");
             }
 
             var throughLanes = row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Through).ToArray();

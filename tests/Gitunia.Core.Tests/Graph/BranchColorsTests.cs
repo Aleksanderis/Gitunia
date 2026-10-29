@@ -89,6 +89,18 @@ public class BranchColorsTests
         Assert.Equal("topic", tips[GraphTestData.Id(3)]);
     }
 
+    [Fact]
+    public void GivenRefListsOfOneCommit_WhenComparingTheBranches_ThenTagsAndOrderDoNotMatterButBranchesDo()
+    {
+        var tag = new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false);
+
+        Assert.True(BranchColors.HaveSameBranches([Branch("a"), Branch("b")], [tag, Branch("b"), Branch("a")]));
+        Assert.True(BranchColors.HaveSameBranches([Branch("a")], [Remote("origin/a")]));
+        Assert.False(BranchColors.HaveSameBranches([Branch("a")], [Branch("a"), Branch("b")]));
+        Assert.False(BranchColors.HaveSameBranches([], [Branch("a")]));
+        Assert.True(BranchColors.HaveSameBranches([tag], []));
+    }
+
     private static CommitDecoration Branch(string name) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
 

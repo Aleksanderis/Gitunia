@@ -87,6 +87,42 @@ public class GraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenOneTimestampAndMainListedLast_WhenStreaming_ThenTheLeftmostLaneGoesToTheBottom()
+    {
+        // The demo history as git lists it when every commit has the same timestamp: the feature tips first, main last.
+        var commitLog = new FakeCommitLogReader();
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        commitLog.Commits.AddRange(
+        [
+            Node(4, "feat-a step 3", [7], Branch("feat-a")),
+            Node(5, "feat-b step 3", [8], Branch("feat-b")),
+            Node(1, "Add docs", [2], main),
+            Node(2, "Merge merged-topic", [11, 3]),
+            Node(3, "Topic work", [11], Branch("merged-topic")),
+            Node(7, "feat-a step 2", [9]),
+            Node(8, "feat-b step 2", [10]),
+            Node(9, "feat-a step 1", [11]),
+            Node(10, "feat-b step 1", [11]),
+            Node(11, "Add cli", [12]),
+            Node(12, "Add formatter", [13], Branch("hotfix")),
+            Node(13, "Initial commit", []),
+        ]);
+
+        var entries = (await LoadAsync(commitLog)).SelectMany(batch => batch).ToList();
+
+        // feat-a is the newest tip: its lane is lane 0 and goes on below the fork, main and the others bend into it.
+        var below = new[] { "Add cli", "Add formatter", "Initial commit" };
+        Assert.All(entries.Where(entry => below.Contains(entry.Subject)), entry => Assert.Equal(0, entry.Row.Lane));
+        var fork = entries.Single(entry => entry.Subject == "Add cli");
+        Assert.Equal(
+            [0, 1, 2, 3],
+            fork.Row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane));
+        var mainLane = entries.Single(entry => entry.Subject == "Add docs").Row.Lane;
+        Assert.Equal(mainLane, entries.Single(entry => entry.Subject == "Merge merged-topic").Row.Lane);
+        Assert.NotEqual(0, mainLane);
+    }
+
+    [Fact]
     public async Task GivenTheTipsCannotBeRead_WhenStreaming_ThenTheGraphStillLoads()
     {
         var commitLog = FakeCommitLogReader.Chain(5);
@@ -185,6 +221,16 @@ public class GraphLoaderTests
 
         await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
     }
+
+    private static CommitInfo Node(int number, string subject, int[] parents, params CommitDecoration[] decorations) =>
+        new(
+            FakeObjectIds.Of(number),
+            [.. parents.Select(FakeObjectIds.Of)],
+            "Author",
+            "author@example.com",
+            DateTimeOffset.UnixEpoch,
+            subject,
+            decorations);
 
     private static CommitDecoration Branch(string name) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, false);

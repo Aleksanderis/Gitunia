@@ -249,6 +249,56 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenBranchesOnConsecutiveCommitsOfMain_WhenReading_ThenMainIsOneStraightLane()
+    {
+        using var testRepository = LongHistory(6);
+        testRepository.Branch("first", "HEAD~1");
+        testRepository.Branch("second", "HEAD~3");
+
+        var entries = await ReadAllAsync(testRepository);
+
+        Assert.All(entries, entry => Assert.Equal(0, entry.Row.Lane));
+        Assert.Single(entries.Select(entry => entry.Row.NodeColor).Distinct());
+    }
+
+    [Fact]
+    public async Task GivenTheDemoRepository_WhenReading_ThenMainIsStraightAndEveryBranchHasOneLaneFromTipToFork()
+    {
+        using var testRepository = DemoRepository();
+
+        var entries = await ReadAllAsync(testRepository);
+
+        AssertDemoLayout(entries);
+    }
+
+    [Fact]
+    public async Task GivenTheDemoRepository_WhenAMainCommitIsAddedAndTheGraphReloaded_ThenTheResultEqualsAFullRead()
+    {
+        using var testRepository = DemoRepository();
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Commit("Add changelog", new TestFile("changelog.txt", "1"));
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        AssertDemoLayout([.. reload.Entries.Skip(1)]);
+    }
+
+    [Fact]
+    public async Task GivenBranchesOnCommitsOfOneChain_WhenReloadingAfterANewCommit_ThenTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(30);
+        testRepository.Branch("first", "HEAD~1");
+        testRepository.Branch("second", "HEAD~10");
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+    }
+
+    [Fact]
     public async Task GivenCurrentBranchWithTheOldestTip_WhenReading_ThenTheNewestTipIsLeftmostAndHeadIsNot()
     {
         using var testRepository = LongHistory(3);
@@ -266,8 +316,79 @@ public class IncrementalGraphLoaderTests
         var head = entries.Single(entry => entry.Id.ToString() == testRepository.Head);
         Assert.Equal(0, newest.Row.Lane);
         Assert.Equal(1, older.Row.Lane);
-        Assert.Equal(1, head.Row.Lane);
+        Assert.Equal(2, head.Row.Lane);
     }
+
+    // The history of the owner's demo: a main line with release, develop and hotfix on consecutive commits, three
+    // feature branches forked from "Add cli" and committed round-robin, and a merged topic branch.
+    private static TestRepository DemoRepository()
+    {
+        var repository = TestRepository.Create();
+        repository.Commit("Initial commit", new TestFile("f.txt", "0"));
+        repository.Commit("Add parser", new TestFile("f.txt", "1")).Branch("release");
+        repository.Commit("Add lexer", new TestFile("f.txt", "2")).Branch("develop");
+        repository.Commit("Add formatter", new TestFile("f.txt", "3")).Branch("hotfix");
+        repository.Commit("Add cli", new TestFile("f.txt", "4"));
+        foreach (var feature in DemoFeatures)
+        {
+            repository.Branch(feature);
+        }
+
+        for (var step = 1; step <= 3; step++)
+        {
+            foreach (var feature in DemoFeatures)
+            {
+                repository.Checkout(feature)
+                    .Commit($"{feature} step {step}", new TestFile($"{feature}{step}.txt", "1"));
+            }
+        }
+
+        repository.Checkout("main").CheckoutNewBranch("merged-topic").Commit("Topic work", new TestFile("t.txt", "1"));
+        repository.Checkout("main").Merge("merged-topic");
+        repository.Commit("Add docs", new TestFile("f.txt", "5"));
+
+        return repository;
+    }
+
+    private static void AssertDemoLayout(GraphEntry[] entries)
+    {
+        var main = DemoMainSubjects.Select(subject => Find(entries, subject)).ToArray();
+        Assert.All(main, entry => Assert.Equal(0, entry.Row.Lane));
+        Assert.Single(main.Select(entry => entry.Row.NodeColor).Distinct());
+
+        // Newest tip nearest main: the merged topic, then feat-c, feat-b, feat-a.
+        Assert.Equal(1, Find(entries, "Topic work").Row.Lane);
+        var expectedLane = 2;
+        var colours = new List<int> { main[0].Row.NodeColor, Find(entries, "Topic work").Row.NodeColor };
+        foreach (var feature in DemoFeaturesNewestFirst)
+        {
+            var lanes = Enumerable.Range(1, 3).Select(step => Find(entries, $"{feature} step {step}")).ToArray();
+            Assert.All(lanes, entry => Assert.Equal(expectedLane, entry.Row.Lane));
+            Assert.Single(lanes.Select(entry => entry.Row.NodeColor).Distinct());
+            colours.Add(lanes[0].Row.NodeColor);
+            expectedLane++;
+        }
+
+        Assert.Equal(colours.Count, colours.Distinct().Count());
+
+        // Every tip is on its own row and the branch lanes join main at the fork commit.
+        var fork = Find(entries, "Add cli");
+        Assert.Equal(
+            [0, 1, 2, 3, 4],
+            fork.Row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane));
+    }
+
+    private static GraphEntry Find(GraphEntry[] entries, string subject) =>
+        entries.Single(entry => entry.Subject == subject);
+
+    private static readonly string[] DemoMainSubjects =
+    [
+        "Add docs", "Merge merged-topic", "Add cli", "Add formatter", "Add lexer", "Add parser", "Initial commit",
+    ];
+
+    private static readonly string[] DemoFeaturesNewestFirst = ["feat-c", "feat-b", "feat-a"];
+
+    private static readonly string[] DemoFeatures = ["feat-a", "feat-b", "feat-c"];
 
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
     {

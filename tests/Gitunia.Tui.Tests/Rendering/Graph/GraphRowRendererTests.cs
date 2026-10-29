@@ -37,8 +37,8 @@ public class GraphRowRendererTests
             [
                 "○─╮  merge side",
                 "├ │  main work",
-                "├─●  side work",
-                "●  root",
+                "│ ├  side work",
+                "●─╯  root",
             ],
             rows);
     }
@@ -52,8 +52,8 @@ public class GraphRowRendererTests
             [
                 "o-\\  merge side",
                 "| |  main work",
-                "|-*  side work",
-                "*  root",
+                "| |  side work",
+                "*-/  root",
             ],
             rows);
     }
@@ -82,16 +82,16 @@ public class GraphRowRendererTests
     [Fact]
     public void GivenEdgeSpanningAThroughLane_WhenRendering_ThenCrossingIsDrawn()
     {
-        // Lanes 0, 1 and 2 wait for 10, 11 and 12; commit 12 sits in lane 2 and its parent is commit 10 in lane 0.
+        // Lanes 0, 1 and 2 wait for 10, 11 and 12; commit 12 sits in lane 2 and merges commit 10 in lane 0.
         var rows = Rows(
             GraphGlyphSet.Unicode,
             30,
             CommitFactory.Commit(20, "a", [10]),
             CommitFactory.Commit(21, "b", [11]),
             CommitFactory.Commit(22, "c", [12]),
-            CommitFactory.Commit(12, "d", [10]));
+            CommitFactory.Commit(12, "d", [13, 10]));
 
-        Assert.Equal("├─┼─●  d", rows[3]);
+        Assert.Equal("├─┼─○  d", rows[3]);
     }
 
     [Fact]
@@ -185,6 +185,22 @@ public class GraphRowRendererTests
         Assert.Equal(graph[0].Row.NodeColor, laneSegments[0].ColorIndex);
         Assert.Equal(graph[1].Row.NodeColor, laneSegments[^1].ColorIndex);
         Assert.NotEqual(graph[0].Row.NodeColor, graph[1].Row.NodeColor);
+    }
+
+    [Fact]
+    public void GivenABranchTipAheadOfAnotherBranchTipOnTheSameChain_WhenRendering_ThenBothLabelsSitOnOneStraightLine()
+    {
+        var feature = CommitFactory.Commit(
+            1, "feature work", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var main = CommitFactory.Commit(
+            2, "main work", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var root = CommitFactory.Commit(3, "root", []);
+
+        var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, root);
+
+        Assert.StartsWith("●  (feature) feature work", rows[0]);
+        Assert.StartsWith("●  (", rows[1]);
+        Assert.StartsWith("●  root", rows[2]);
     }
 
     [Fact]
@@ -364,6 +380,6 @@ public class GraphRowRendererTests
             line.Segments,
             segment => segment.Role == SegmentRole.Lane
                 && segment.ColorIndex == nodeColor
-                && segment.Text.Contains('●', StringComparison.Ordinal));
+                && segment.Text.Contains('├', StringComparison.Ordinal));
     }
 }

@@ -39,9 +39,11 @@ public class GraphLayoutShapeTests
             Shape(rows[0].Edges));
         Assert.Equal(2, rows[0].LaneCount);
         Assert.Equal(1, rows[2].Lane);
-        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 0), Shape(rows[2].Edges));
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 1), Shape(rows[2].Edges));
         Assert.Equal(0, rows[3].Lane);
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], Shape(rows[3].Edges));
+        Assert.Equal(
+            [new GraphEdge(GraphEdgeKind.Incoming, 0, 0), new GraphEdge(GraphEdgeKind.Incoming, 1, 0)],
+            Shape(rows[3].Edges));
     }
 
     [Fact]
@@ -53,7 +55,7 @@ public class GraphLayoutShapeTests
         Assert.Equal([0, 1, 2, 3], rows[0].Edges.Select(edge => edge.ToLane));
         Assert.Equal([0, 1, 2, 3], rows.Skip(1).Take(4).Select(row => row.Lane));
         Assert.Equal(0, rows[5].Lane);
-        Assert.Equal(1, rows[5].LaneCount);
+        Assert.Equal(4, rows[5].Edges.Count(edge => edge.Kind == GraphEdgeKind.Incoming));
     }
 
     [Fact]
@@ -70,16 +72,17 @@ public class GraphLayoutShapeTests
         Assert.Equal(4, rows.Max(row => row.LaneCount));
         Assert.Equal([0, 1, 2, 3], rows.Skip(4).Take(4).Select(row => row.Lane));
         Assert.Equal(0, rows[8].Lane);
-        Assert.Equal(1, rows[8].LaneCount);
+        Assert.Equal(4, rows[8].Edges.Count(edge => edge.Kind == GraphEdgeKind.Incoming));
     }
 
     [Fact]
-    public void GivenManyChildrenOfOneCommit_WhenLayingOut_ThenTheyShareOneIncomingLane()
+    public void GivenManyChildrenOfOneCommit_WhenLayingOut_ThenEachKeepsItsLaneUntilTheyJoinAtTheParent()
     {
         var rows = GraphLayout.Compute([Commit(1, 5), Commit(2, 5), Commit(3, 5), Commit(4, 5), Commit(5)]);
 
-        Assert.Equal([0, 1, 1, 1, 0], rows.Select(row => row.Lane));
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], Shape(rows[4].Edges));
+        Assert.Equal([0, 1, 2, 3, 0], rows.Select(row => row.Lane));
+        Assert.Equal([0, 1, 2, 3], rows[4].Edges.Select(edge => edge.FromLane));
+        Assert.All(rows[4].Edges, edge => Assert.Equal(GraphEdgeKind.Incoming, edge.Kind));
     }
 
     [Fact]
@@ -93,20 +96,20 @@ public class GraphLayoutShapeTests
     }
 
     [Fact]
-    public void GivenFirstParentAlreadyTracked_WhenLayingOut_ThenSecondParentReusesTheNodeLane()
+    public void GivenFirstParentAlreadyTracked_WhenLayingOut_ThenTheNodeLaneKeepsWaitingAndTheSecondParentOpensANewOne()
     {
-        // 1 and 2 both lead to 3; 2 also merges 4, which continues straight down from 2's lane.
+        // 1 and 2 both lead to 3; 2 also merges 4, which gets a lane of its own.
         var rows = GraphLayout.Compute([Commit(1, 3), Commit(2, 3, 4), Commit(3), Commit(4)]);
 
         Assert.Equal(1, rows[1].Lane);
         Assert.Equal(
             [
                 new GraphEdge(GraphEdgeKind.Through, 0, 0),
-                new GraphEdge(GraphEdgeKind.Outgoing, 1, 0),
                 new GraphEdge(GraphEdgeKind.Outgoing, 1, 1),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 2),
             ],
             Shape(rows[1].Edges));
-        Assert.Equal(1, rows[3].Lane);
+        Assert.Equal(2, rows[3].Lane);
     }
 
     [Fact]

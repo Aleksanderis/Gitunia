@@ -19,6 +19,7 @@ public sealed class GraphLayoutBuilder
 
     // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
     private readonly List<int> _laneSlots = [];
+
     private readonly List<GraphRow> _rows = [];
 
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
@@ -54,15 +55,7 @@ public sealed class GraphLayoutBuilder
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
-        var nodeLane = IndexOfLane(commitId);
-        if (nodeLane < 0)
-        {
-            nodeLane = FindFreeLane();
-            EnsureLane(nodeLane);
-            _laneSlots[nodeLane] = SlotForNewLane(commitId);
-        }
-
-        EnsureLane(nodeLane);
+        var nodeLane = NodeLaneOf(commitId);
         var nodeColor = _laneSlots[nodeLane];
 
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -86,14 +79,25 @@ public sealed class GraphLayoutBuilder
         for (var parentIndex = 0; parentIndex < commit.Parents.Count; parentIndex++)
         {
             var parent = commit.Parents[parentIndex];
-            var parentLane = IndexOfLane(parent);
-            if (parentLane < 0)
+            int parentLane;
+            if (parentIndex == 0)
             {
-                parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
-                EnsureLane(parentLane);
-
-                _laneSlots[parentLane] = parentIndex == 0 ? nodeColor : SlotForNewLane(parent);
+                // The first parent continues the node's own lane even when another lane already waits for it: every
+                // branch keeps its lane down to the commit it forked from, where the lanes join (#759).
+                parentLane = nodeLane;
+                _laneSlots[parentLane] = nodeColor;
                 _lanes[parentLane] = parent;
+            }
+            else
+            {
+                parentLane = IndexOfLane(parent);
+                if (parentLane < 0)
+                {
+                    parentLane = FindFreeLane();
+                    EnsureLane(parentLane);
+                    _laneSlots[parentLane] = SlotForNewLane(parent);
+                    _lanes[parentLane] = parent;
+                }
             }
 
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
@@ -121,6 +125,23 @@ public sealed class GraphLayoutBuilder
         }
 
         return added;
+    }
+
+    // The lane of the commit's node: the leftmost lane that waits for it, so where several lanes meet the leftmost one
+    // (the newest tip's) goes on to the bottom and the others bend into it; a commit no lane waits for starts a lane.
+    private int NodeLaneOf(ObjectId commitId)
+    {
+        var nodeLane = IndexOfLane(commitId);
+        if (nodeLane >= 0)
+        {
+            return nodeLane;
+        }
+
+        nodeLane = FindFreeLane();
+        EnsureLane(nodeLane);
+        _laneSlots[nodeLane] = SlotForNewLane(commitId);
+
+        return nodeLane;
     }
 
     private int IndexOfLane(ObjectId commitId)
