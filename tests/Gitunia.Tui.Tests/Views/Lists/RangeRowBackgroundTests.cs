@@ -55,6 +55,35 @@ public class RangeRowBackgroundTests
         Assert.NotEqual(Table.SelectionFocused, BackgroundOf(contents[PlainRow, Columns - 1].Attribute));
     }
 
+    [Fact]
+    public void GivenTheCursorInsideARange_WhenDrawn_ThenOnlyTheCursorRowIsUnderlined()
+    {
+        using var application = Application.Create();
+        application.Init(DriverRegistry.Names.ANSI);
+        application.Driver!.SetScreenSize(Columns, 8);
+        var source = NewSource();
+        source.Range = new RowRange(RangeFirstRow, RangeLastRow);
+        var pane = new PaneListView { X = 0, Y = 0, Width = Columns, Height = 8, CanFocus = true, Source = source };
+        pane.SetScheme(Palette.BaseScheme(Table));
+        using var window = new Window();
+        window.Width = Dim.Fill();
+        window.Height = Dim.Fill();
+        window.BorderStyle = LineStyle.None;
+        window.Add(pane);
+        application.Begin(window);
+        pane.SetFocus();
+        pane.SelectedItem = RangeLastRow;
+
+        application.LayoutAndDraw(true);
+
+        var contents = application.Driver.Contents!;
+        var cursor = contents[RangeLastRow, Columns - 1].Attribute!.Value;
+        var other = contents[RangeFirstRow, Columns - 1].Attribute!.Value;
+        Assert.True(cursor.Style.HasFlag(TextStyle.Underline));
+        Assert.False(other.Style.HasFlag(TextStyle.Underline));
+        Assert.Equal(other.Background, cursor.Background);
+    }
+
     private static Color BackgroundOf(Attribute? attribute) => attribute!.Value.Background;
 
     private static DiffListSource NewSource()

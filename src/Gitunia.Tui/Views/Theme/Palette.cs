@@ -36,19 +36,21 @@ public static class Palette
     public static Attribute For(StyledSegment segment, SegmentHighlight highlight) => For(segment, highlight, table);
 
     public static Attribute For(StyledSegment segment, SegmentHighlight highlight, PaletteTable colors) =>
-        For(segment, highlight.IsSelected, highlight.IsFocused, colors, highlight.IsRange);
+        For(segment, highlight.IsSelected, highlight.IsFocused, colors, highlight.IsRange, highlight.IsRangeCursor);
 
     /// <param name="segment">The text to draw.</param>
     /// <param name="isSelected">The segment is on the selected row (or in a selected range).</param>
     /// <param name="isFocused">The pane holding the row has focus: the selection is the full tint, otherwise the quieter one.</param>
     /// <param name="colors">The colours of the scheme.</param>
     /// <param name="isRange">The row is in a Visual range (#814): the stronger range tint and style instead of the selection ones.</param>
+    /// <param name="isRangeCursor">The row is the moving end of the range (#823): <see cref="PaletteTable.RangeCursorStyle"/> on top.</param>
     public static Attribute For(
         StyledSegment segment,
         bool isSelected,
         bool isFocused,
         PaletteTable colors,
-        bool isRange = false)
+        bool isRange = false,
+        bool isRangeCursor = false)
     {
         var role = Role(segment, colors);
         var foreground = role.Foreground == Color.None ? colors.BaseForeground : role.Foreground;
@@ -62,7 +64,7 @@ public static class Palette
 
         if (isRange)
         {
-            return RangeAttribute(segment, role, foreground, background, style, colors);
+            return RangeAttribute(segment, role, foreground, background, style, colors, isRangeCursor);
         }
 
         if (!role.KeepsBackground)
@@ -88,7 +90,8 @@ public static class Palette
         Color foreground,
         Color background,
         TextStyle style,
-        PaletteTable colors)
+        PaletteTable colors,
+        bool isCursor)
     {
         if (!role.KeepsBackground)
         {
@@ -97,7 +100,7 @@ public static class Palette
             foreground = PaletteTable.EnsureReadable(foreground, background, minimum);
         }
 
-        return new Attribute(foreground, background, style | colors.RangeStyle);
+        return new Attribute(foreground, background, style | colors.RangeStyle | (isCursor ? colors.RangeCursorStyle : TextStyle.None));
     }
 
     // A branch label of the graph: a chip in the colour of its lane (inverse video where there are no colours).
