@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mechanical checks on the current branch against main that the build cannot do and reviewers keep finding:
-# added C# lines over 120 columns, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
+# added C# lines over 120 columns, added doc lines over 600 characters, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
 # without the agent author name or Agent: trailer. Run it before asking for review; exit code 1 when anything is found.
 # Usage: check-diff.sh [base-ref]   (default: main)
 set -euo pipefail
@@ -24,6 +24,16 @@ while IFS=$'\t' read -r file line text; do
         report "$file:$line: fully qualified name, use a using import"
     fi
 done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- '*.cs' | awk '
+    /^\+\+\+ b\// { file = substr($0, 7); next }
+    /^@@/ { match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) - 1; next }
+    /^\+/ { line++; print file "\t" line "\t" substr($0, 2) }')
+
+# Long doc lines make parallel edits conflict on the whole line: one sentence or bullet per line (table rows excepted).
+while IFS=$'\t' read -r file line text; do
+    if (( ${#text} > 600 )) && [[ "$text" != '|'* ]]; then
+        report "$file:$line: doc line over 600 characters (${#text}), split it into one sentence per line"
+    fi
+done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- 'docs/*.md' | awk '
     /^\+\+\+ b\// { file = substr($0, 7); next }
     /^@@/ { match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) - 1; next }
     /^\+/ { line++; print file "\t" line "\t" substr($0, 2) }')
