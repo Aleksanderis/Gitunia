@@ -242,7 +242,7 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenAMainTipOlderThanTheFeatureTip_WhenRendering_ThenMainStillOwnsTheLineBelowTheFork()
+    public void GivenAMainTipOlderThanTheFeatureTip_WhenRendering_ThenTheLeftmostLaneGoesToTheBottomAndMainBendsIn()
     {
         var tip = CommitFactory.Commit(
             1, "feature tip", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
@@ -257,11 +257,11 @@ public class GraphRowRendererTests
         Assert.StartsWith("●  (feature) feature tip", rows[0]);
         Assert.StartsWith("├  feature first", rows[1]);
         Assert.StartsWith("│ ●  (", rows[2]);
-        Assert.StartsWith("╰─●  fork point", rows[3]);
-        Assert.StartsWith("  ●  root", rows[4]);
+        Assert.StartsWith("●─╯  fork point", rows[3]);
+        Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(tip, first, main, fork, root);
-        Assert.Equal(graph[2].Row.NodeColor, graph[3].Row.NodeColor);
-        Assert.NotEqual(graph[0].Row.NodeColor, graph[3].Row.NodeColor);
+        Assert.Equal(graph[0].Row.NodeColor, graph[3].Row.NodeColor);
+        Assert.NotEqual(graph[2].Row.NodeColor, graph[3].Row.NodeColor);
     }
 
     [Fact]
