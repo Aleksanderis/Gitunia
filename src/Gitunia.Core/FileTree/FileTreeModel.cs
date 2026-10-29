@@ -106,10 +106,15 @@ public sealed class FileTreeModel
         directory.Children.Sort(CompareNodes);
     }
 
-    private static int CompareNodes(FileTreeNode left, FileTreeNode right) =>
-        left.IsDirectory != right.IsDirectory
-            ? left.IsDirectory ? -1 : 1
-            : string.CompareOrdinal(left.Name, right.Name);
+    private static int CompareNodes(FileTreeNode left, FileTreeNode right)
+    {
+        if (left.IsDirectory == right.IsDirectory)
+        {
+            return string.CompareOrdinal(left.Name, right.Name);
+        }
+
+        return left.IsDirectory ? -1 : 1;
+    }
 
     private HashSet<string> DirectoriesWithMatches(string filter)
     {

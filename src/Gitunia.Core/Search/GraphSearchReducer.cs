@@ -171,9 +171,14 @@ public static class GraphSearchReducer
             return new GraphSearchUpdate(state with { IsScanning = true, IsComplete = false }, [new ScanSearchEffect(state.Generation)]);
         }
 
-        return grew.LoadComplete && !state.IsComplete
-            ? Progress(state, new ScanProgressCommand(state.Generation, [], state.Scanned, grew.LoadedCount, true))
-            : Plain(state);
+        if (grew.LoadComplete && !state.IsComplete)
+        {
+            var progress = new ScanProgressCommand(state.Generation, [], state.Scanned, grew.LoadedCount, true);
+
+            return Progress(state, progress);
+        }
+
+        return Plain(state);
     }
 
     private static GraphSearchUpdate Replaced(GraphSearchState state)
@@ -212,9 +217,12 @@ public static class GraphSearchReducer
             return Plain(state with { JumpPending = true });
         }
 
-        return state.Matches.IsEmpty
-            ? Plain(state with { JumpPending = false, Notice = NoMatchNotice })
-            : Reveal(state with { Notice = WrappedNotice }, state.Matches[0]);
+        if (state.Matches.IsEmpty)
+        {
+            return Plain(state with { JumpPending = false, Notice = NoMatchNotice });
+        }
+
+        return Reveal(state with { Notice = WrappedNotice }, state.Matches[0]);
     }
 
     private static GraphSearchUpdate Reveal(GraphSearchState state, int index) =>

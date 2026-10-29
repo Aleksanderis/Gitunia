@@ -45,9 +45,18 @@ public sealed class WorkingRows
         new(PathTree.Rows(paths, collapsed), paths, collapsed, paths.Count);
 
     /// <summary>The row at an index.</summary>
-    public WorkingRow this[int row] => _tree is null
-        ? new WorkingRow(0, string.Empty, string.Empty, row)
-        : ToRow(_tree[row]);
+    public WorkingRow this[int row]
+    {
+        get
+        {
+            if (_tree is null)
+            {
+                return new WorkingRow(0, string.Empty, string.Empty, row);
+            }
+
+            return ToRow(_tree[row]);
+        }
+    }
 
     /// <summary>The row of a file, -1 when it is hidden under a closed folder.</summary>
     /// <param name="entryIndex">The index of the file in the list.</param>

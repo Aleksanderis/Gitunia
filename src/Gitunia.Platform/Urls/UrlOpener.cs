@@ -35,9 +35,12 @@ public sealed class UrlOpener : IUrlOpener
             var process = Process.Start(startInfo);
             if (process is null)
             {
-                return OperatingSystem.IsWindows()
-                    ? new UrlOpenResult(true)
-                    : new UrlOpenResult(false, $"could not start {startInfo.FileName}");
+                if (OperatingSystem.IsWindows())
+                {
+                    return new UrlOpenResult(true);
+                }
+
+                return new UrlOpenResult(false, $"could not start {startInfo.FileName}");
             }
 
             if (startInfo.RedirectStandardOutput)

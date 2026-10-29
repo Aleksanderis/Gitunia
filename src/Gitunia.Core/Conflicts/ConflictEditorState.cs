@@ -100,22 +100,34 @@ public sealed record ConflictEditorState(
     public ConflictEditorState Previous() => MoveTo(Hunks.Count == 0 ? 0 : (Index + Hunks.Count - 1) % Hunks.Count);
 
     /// <summary>Moves to <paramref name="index"/>, clamped to the hunks.</summary>
-    public ConflictEditorState MoveTo(int index) => IsEditing
-        ? this
-        : this with
+    public ConflictEditorState MoveTo(int index)
+    {
+        if (IsEditing)
+        {
+            return this;
+        }
+
+        return this with
         {
             SelectedIndex = Hunks.Count == 0 ? 0 : Math.Clamp(index, 0, Hunks.Count - 1),
             IsDiscardPending = false,
             SideScroll = 0,
         };
+    }
 
     /// <summary>
     /// Scrolls the side panes (ours, theirs and the base together) by <paramref name="delta"/> lines, from the
     /// position that is drawn, never past <paramref name="maximum"/> (the largest scroll the screen allows).
     /// </summary>
-    public ConflictEditorState ScrollSides(int delta, int maximum) => IsEditing || Hunks.Count == 0
-        ? this
-        : this with { SideScroll = Math.Clamp(Math.Min(SideScroll, maximum) + delta, 0, Math.Max(0, maximum)) };
+    public ConflictEditorState ScrollSides(int delta, int maximum)
+    {
+        if (IsEditing || Hunks.Count == 0)
+        {
+            return this;
+        }
+
+        return this with { SideScroll = Math.Clamp(Math.Min(SideScroll, maximum) + delta, 0, Math.Max(0, maximum)) };
+    }
 
     /// <summary>
     /// Scrolls the side panes to the next line where our side and their side differ, below the first line shown; a

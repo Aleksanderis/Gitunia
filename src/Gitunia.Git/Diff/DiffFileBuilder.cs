@@ -96,9 +96,15 @@ internal sealed class DiffFileBuilder
     }
 
     /// <summary>Whether <paramref name="line"/> belongs to the open hunk, so the parser must not treat it as the start of the next file.</summary>
-    public bool TakesBodyLine(string line) => _combinedParents > 0
-        ? _openHeaderText is not null && !line.StartsWith("diff ", StringComparison.Ordinal)
-        : IsInHunkBody;
+    public bool TakesBodyLine(string line)
+    {
+        if (_combinedParents > 0)
+        {
+            return _openHeaderText is not null && !line.StartsWith("diff ", StringComparison.Ordinal);
+        }
+
+        return IsInHunkBody;
+    }
 
     /// <summary>A line of this file was not valid UTF-8, so the decoded text is not an exact copy.</summary>
     public void MarkInvalidText() => _hasInvalidText = true;
@@ -153,11 +159,7 @@ internal sealed class DiffFileBuilder
     public DiffFile Build()
     {
         CloseHunk();
-        var status = _isAdded ? DiffFileStatus.Added
-            : _isDeleted ? DiffFileStatus.Deleted
-            : _renameFrom is not null && _isCopy ? DiffFileStatus.Copied
-            : _renameFrom is not null ? DiffFileStatus.Renamed
-            : DiffFileStatus.Modified;
+        var status = CurrentStatus();
         var oldPath = _renameFrom ?? (_hasMinusPlus ? _minusPath : _headerOldPath);
         var newPath = _renameTo ?? (_hasMinusPlus ? _plusPath : _headerNewPath);
         if (status == DiffFileStatus.Added)
@@ -170,6 +172,31 @@ internal sealed class DiffFileBuilder
         }
 
         return new DiffFile(oldPath, newPath, status, _oldMode, _newMode, _similarity, _isBinary, _headerLines, _hunks) { IsTruncated = _isTruncated, HasInvalidText = _hasInvalidText };
+    }
+
+    private DiffFileStatus CurrentStatus()
+    {
+        if (_isAdded)
+        {
+            return DiffFileStatus.Added;
+        }
+
+        if (_isDeleted)
+        {
+            return DiffFileStatus.Deleted;
+        }
+
+        if (_renameFrom is null)
+        {
+            return DiffFileStatus.Modified;
+        }
+
+        if (_isCopy)
+        {
+            return DiffFileStatus.Copied;
+        }
+
+        return DiffFileStatus.Renamed;
     }
 
     private void AddCombined(string line)

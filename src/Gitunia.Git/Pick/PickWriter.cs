@@ -82,9 +82,16 @@ public sealed class PickWriter(
 
     private List<string> ArgumentsOf(PickKind kind, IReadOnlyList<string> commits, int? mainline, bool dropEmpty)
     {
-        List<string> arguments = kind == PickKind.CherryPick
-            ? dropEmpty ? ["cherry-pick", NoEdit, dropEmptyOption] : ["cherry-pick", NoEdit]
-            : ["revert", NoEdit];
+        List<string> arguments = ["revert", NoEdit];
+        if (kind == PickKind.CherryPick && dropEmpty)
+        {
+            arguments = ["cherry-pick", NoEdit, dropEmptyOption];
+        }
+        else if (kind == PickKind.CherryPick)
+        {
+            arguments = ["cherry-pick", NoEdit];
+        }
+
         if (mainline is { } parent)
         {
             arguments.Add(MainlineOption);

@@ -226,10 +226,16 @@ public sealed class DiffReader : IDiffReader
         CancellationToken cancellationToken = default)
     {
         var extra = (options ?? DiffOptions.Default).ToArguments();
-        IReadOnlyList<string> command = firstParent is { } parent
-            ? ["diff", .. extra, parent.ToString(), commit.ToString()]
-            : ["show", "--format=", .. extra, commit.ToString()];
-        return ReadAsync(location, command, warnings, maximumLinesPerFile, cancellationToken);
+        if (firstParent is { } parent)
+        {
+            string[] diffCommand = ["diff", .. extra, parent.ToString(), commit.ToString()];
+
+            return ReadAsync(location, diffCommand, warnings, maximumLinesPerFile, cancellationToken);
+        }
+
+        string[] showCommand = ["show", "--format=", .. extra, commit.ToString()];
+
+        return ReadAsync(location, showCommand, warnings, maximumLinesPerFile, cancellationToken);
     }
 
     public async Task<ObjectId?> ReadFirstParentAsync(RepositoryLocation location, ObjectId commit, CancellationToken cancellationToken)

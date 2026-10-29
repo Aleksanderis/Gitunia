@@ -104,9 +104,12 @@ public sealed class ConflictReader(GitRunner runner) : IConflictReader
             return ConflictReadResult.Unsupported($"{parsed.Problem}: use the mergetool");
         }
 
-        return parts.Any(part => part.Hunk is not null)
-            ? ConflictReadResult.OfText(parts)
-            : ConflictReadResult.Unsupported("The file has no conflict markers left: use the mergetool");
+        if (parts.Any(part => part.Hunk is not null))
+        {
+            return ConflictReadResult.OfText(parts);
+        }
+
+        return ConflictReadResult.Unsupported("The file has no conflict markers left: use the mergetool");
     }
 
     private static string? UnsupportedStages(List<StageEntry> entries)
@@ -128,9 +131,12 @@ public sealed class ConflictReader(GitRunner runner) : IConflictReader
             return "One side deleted the file (delete/modify): use the mergetool";
         }
 
-        return entries.Any(entry => entry.Stage == BaseStage)
-            ? null
-            : "Both sides added the file (add/add): use the mergetool";
+        if (entries.Any(entry => entry.Stage == BaseStage))
+        {
+            return null;
+        }
+
+        return "Both sides added the file (add/add): use the mergetool";
     }
 
     // Records are `<mode> <object> <stage>\t<path>`, NUL separated.

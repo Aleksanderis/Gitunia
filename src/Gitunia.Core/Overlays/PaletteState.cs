@@ -57,6 +57,16 @@ public sealed record PaletteState(IReadOnlyList<PaletteEntry> Entries, string Qu
     {
         var title = FuzzyMatcher.Score(Query, entry.Title);
         var identifier = FuzzyMatcher.Score(Query, entry.Action.Value);
-        return title is null ? identifier : identifier is null ? title : Math.Max(title.Value, identifier.Value);
+        if (title is null)
+        {
+            return identifier;
+        }
+
+        if (identifier is null)
+        {
+            return title;
+        }
+
+        return Math.Max(title.Value, identifier.Value);
     }
 }

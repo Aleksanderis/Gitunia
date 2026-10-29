@@ -20,7 +20,15 @@ public sealed class RepositoryPathComparer : IEqualityComparer<string>
     /// <inheritdoc />
     public int GetHashCode(string obj) => _comparer.GetHashCode(Normalize(obj)!);
 
-    private static string? Normalize(string? path) => path is null
-        ? null
-        : Path.TrimEndingDirectorySeparator(path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar));
+    private static string? Normalize(string? path)
+    {
+        if (path is null)
+        {
+            return null;
+        }
+
+        var unified = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        return Path.TrimEndingDirectorySeparator(unified);
+    }
 }

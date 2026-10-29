@@ -15,9 +15,7 @@ public static class SidebarReducer
         var cursor = SidebarBuilder.ClampCursor(tab.Sidebar.Cursor, rows.Length);
         return command switch
         {
-            MoveSidebarCursorCommand move => ListMotion.TryMove(move.Action, move.Count, cursor, rows.Length, move.PageHeight, out var target)
-                ? WithCursor(tab, target)
-                : tab,
+            MoveSidebarCursorCommand move => Move(tab, move, cursor, rows.Length),
             SetSidebarCursorCommand set => WithCursor(tab, SidebarBuilder.ClampCursor(set.Index, rows.Length)),
             ExpandSidebarCommand => Expand(tab, rows, cursor),
             CollapseSidebarCommand => Collapse(tab, rows, cursor),
@@ -25,6 +23,16 @@ public static class SidebarReducer
             SetSidebarFilterCommand filter => SetFilter(tab, filter.Text),
             _ => tab,
         };
+    }
+
+    private static RepositoryState Move(RepositoryState tab, MoveSidebarCursorCommand move, int cursor, int rowCount)
+    {
+        if (ListMotion.TryMove(move.Action, move.Count, cursor, rowCount, move.PageHeight, out var target))
+        {
+            return WithCursor(tab, target);
+        }
+
+        return tab;
     }
 
     private static RepositoryState Expand(RepositoryState tab, ImmutableArray<SidebarRow> rows, int cursor)

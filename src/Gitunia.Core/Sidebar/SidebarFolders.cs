@@ -9,10 +9,15 @@ public static class SidebarFolders
     public static string KeyOf(SidebarSection section, string path) => $"{section}:{path}";
 
     /// <summary>The branch-name prefix of a folder row (<c>feature/ui</c>), without the section.</summary>
-    public static string PathOf(SidebarRow folder) =>
-        folder.Key is { } key && key.StartsWith($"{folder.Section}:", StringComparison.Ordinal)
-            ? key[(folder.Section.ToString().Length + 1)..]
-            : folder.Label;
+    public static string PathOf(SidebarRow folder)
+    {
+        if (folder.Key is { } key && key.StartsWith($"{folder.Section}:", StringComparison.Ordinal))
+        {
+            return key[(folder.Section.ToString().Length + 1)..];
+        }
+
+        return folder.Label;
+    }
 
     /// <summary>
     /// The rows with folders: each branch below its prefix folders (in first-seen order), the entries of a closed

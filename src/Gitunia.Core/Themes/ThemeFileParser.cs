@@ -110,17 +110,26 @@ public static class ThemeFileParser
         }
     }
 
-    private static string ReadName(JsonElement root, string fallbackName) =>
-        root.TryGetProperty(NameKey, out var name) && name.ValueKind == JsonValueKind.String
-        && !string.IsNullOrWhiteSpace(name.GetString())
-            ? name.GetString()!.Trim()
-            : fallbackName;
+    private static string ReadName(JsonElement root, string fallbackName)
+    {
+        if (root.TryGetProperty(NameKey, out var name)
+            && name.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(name.GetString()))
+        {
+            return name.GetString()!.Trim();
+        }
+
+        return fallbackName;
+    }
 
     private static bool? ReadVariant(string file, JsonElement root, ICollection<ConfigProblem> problems)
     {
-        var text = root.TryGetProperty(VariantKey, out var variant) && variant.ValueKind == JsonValueKind.String
-            ? variant.GetString()?.Trim().ToLowerInvariant()
-            : null;
+        string? text = null;
+        if (root.TryGetProperty(VariantKey, out var variant) && variant.ValueKind == JsonValueKind.String)
+        {
+            text = variant.GetString()?.Trim().ToLowerInvariant();
+        }
+
         switch (text)
         {
             case LightVariant:
@@ -238,9 +247,12 @@ public static class ThemeFileParser
     {
         var value = channel / ChannelMaximum;
 
-        return value <= LinearThreshold
-            ? value / LinearDivisor
-            : Math.Pow((value + GammaOffset) / GammaScale, GammaExponent);
+        if (value <= LinearThreshold)
+        {
+            return value / LinearDivisor;
+        }
+
+        return Math.Pow((value + GammaOffset) / GammaScale, GammaExponent);
     }
 
     private static void FillDefaults(Dictionary<string, int> colors)
@@ -310,9 +322,12 @@ public static class ThemeFileParser
             var path = $"{file}: {AnsiKey}.{property.Name}";
             var role = ThemeRoles.AnsiRoles.FirstOrDefault(
                 candidate => string.Equals(candidate, property.Name, StringComparison.OrdinalIgnoreCase));
-            var colorName = property.Value.ValueKind == JsonValueKind.String
-                ? AnsiColorNames.Find(property.Value.GetString() ?? string.Empty)
-                : null;
+            string? colorName = null;
+            if (property.Value.ValueKind == JsonValueKind.String)
+            {
+                colorName = AnsiColorNames.Find(property.Value.GetString() ?? string.Empty);
+            }
+
             if (role is null)
             {
                 var roles = string.Join(", ", ThemeRoles.AnsiRoles);
@@ -344,8 +359,11 @@ public static class ThemeFileParser
             return null;
         }
 
-        return int.TryParse(text.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value)
-            ? value
-            : null;
+        if (int.TryParse(text.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var value))
+        {
+            return value;
+        }
+
+        return null;
     }
 }

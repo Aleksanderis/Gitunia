@@ -83,9 +83,12 @@ public static class RemoteCommands
             arguments.Add(request.Remote);
             if (request.Branch is not null)
             {
-                var target = request.Lease is { } leased
-                    ? $"{request.Branch}:{GitRefPrefixes.Heads}{leased.RemoteBranch}"
-                    : request.Branch;
+                var target = request.Branch;
+                if (request.Lease is { } leased)
+                {
+                    target = $"{request.Branch}:{GitRefPrefixes.Heads}{leased.RemoteBranch}";
+                }
+
                 arguments.Add(target);
             }
         }

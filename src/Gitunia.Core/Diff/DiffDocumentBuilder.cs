@@ -25,9 +25,12 @@ public sealed class DiffDocumentBuilder
             DiffFileStatus.Copied => "C",
             _ => "M",
         };
-        return file.Status is DiffFileStatus.Renamed or DiffFileStatus.Copied && file.OldPath is { } oldPath
-            ? $"{mark} {oldPath} -> {file.Path}"
-            : $"{mark} {file.Path}";
+        if (file.Status is DiffFileStatus.Renamed or DiffFileStatus.Copied && file.OldPath is { } oldPath)
+        {
+            return $"{mark} {oldPath} -> {file.Path}";
+        }
+
+        return $"{mark} {file.Path}";
     }
 
     /// <param name="file">The file to add.</param>

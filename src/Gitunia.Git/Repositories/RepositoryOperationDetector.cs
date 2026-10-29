@@ -15,9 +15,12 @@ public sealed class RepositoryOperationDetector : IRepositoryOperationDetector
 
         if (Directory.Exists(Path.Combine(gitDirectory, "rebase-apply")))
         {
-            return File.Exists(Path.Combine(gitDirectory, "rebase-apply", "applying"))
-                ? RepositoryOperation.ApplyMailbox
-                : RepositoryOperation.Rebase;
+            if (File.Exists(Path.Combine(gitDirectory, "rebase-apply", "applying")))
+            {
+                return RepositoryOperation.ApplyMailbox;
+            }
+
+            return RepositoryOperation.Rebase;
         }
 
         if (File.Exists(Path.Combine(gitDirectory, "MERGE_HEAD")))

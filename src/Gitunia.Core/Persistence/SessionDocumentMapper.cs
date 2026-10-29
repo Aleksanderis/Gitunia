@@ -28,9 +28,7 @@ public static class SessionDocumentMapper
                 activeIndex = index;
             }
 
-            var draft = drafts is not null && drafts.TryGetValue(tab.Id, out var found) && !found.IsEmpty
-                ? found
-                : null;
+            var draft = FindDraft(drafts, tab.Id);
             tabs.Add(new SessionTabDocument
             {
                 DraftMessage = draft?.Message,
@@ -124,6 +122,16 @@ public static class SessionDocumentMapper
         return new RestoredSession(new WorkspaceUpdate(workspace, effects.ToImmutable()), drafts.ToImmutable());
     }
 
+    private static SessionDraft? FindDraft(IReadOnlyDictionary<TabId, SessionDraft>? drafts, TabId id)
+    {
+        if (drafts is not null && drafts.TryGetValue(id, out var found) && !found.IsEmpty)
+        {
+            return found;
+        }
+
+        return null;
+    }
+
     private static RepositoryLocation? ReadLocation(SessionTabDocument tab)
     {
         if (!IsAbsolute(tab.GitDirectory) || (tab.WorkingTreePath is not null && !IsAbsolute(tab.WorkingTreePath)))
@@ -143,12 +151,18 @@ public static class SessionDocumentMapper
     private static RepositoryViewState ReadView(SessionTabDocument tab)
     {
         ObjectId? selected = ObjectId.TryParse(tab.SelectedCommit ?? string.Empty, out var objectId) ? objectId : null;
-        var pane = Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed)
-            ? SavedPane(parsed)
-            : PaneKind.Graph;
-        var bottomTab = Enum.TryParse<BottomTab>(tab.BottomTab, ignoreCase: false, out var parsedTab) && Enum.IsDefined(parsedTab)
-            ? parsedTab
-            : RepositoryViewState.Initial.BottomTab;
+        var pane = PaneKind.Graph;
+        if (Enum.TryParse<PaneKind>(tab.FocusedPane, ignoreCase: false, out var parsed) && Enum.IsDefined(parsed))
+        {
+            pane = SavedPane(parsed);
+        }
+
+        var bottomTab = RepositoryViewState.Initial.BottomTab;
+        if (Enum.TryParse<BottomTab>(tab.BottomTab, ignoreCase: false, out var parsedTab) && Enum.IsDefined(parsedTab))
+        {
+            bottomTab = parsedTab;
+        }
+
         return new RepositoryViewState(selected, Math.Max(0, tab.ScrollOffset), tab.FilterText ?? string.Empty, pane, PositiveOrNull(tab.SidebarWidth), PositiveOrNull(tab.BottomHeight), PositiveOrNull(tab.DetailWidth), bottomTab);
     }
 

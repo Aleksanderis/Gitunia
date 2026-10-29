@@ -49,9 +49,12 @@ public static class RepositoryReducer
     {
         var toggled = state with { View = state.View with { PathStyle = style } };
 
-        return state.WorkingTree is { } tree
-            ? toggled with { WorkingTree = tree.WithLayout(style, tree.CollapsedUnstaged, tree.CollapsedStaged) }
-            : toggled;
+        if (state.WorkingTree is not { } tree)
+        {
+            return toggled;
+        }
+
+        return toggled with { WorkingTree = tree.WithLayout(style, tree.CollapsedUnstaged, tree.CollapsedStaged) };
     }
 
     private static RepositoryState ToggleFolder(RepositoryState state, ToggleWorkingFolderCommand command)
@@ -134,9 +137,12 @@ public static class RepositoryReducer
         if (WorkingPanes.IsDiff(pane))
         {
             // A diff shows the selected file: focus the side that file is on, and none when nothing is selected.
-            return state.WorkingTree?.Selection is { } selected
-                ? state with { View = state.View with { FocusedPane = WorkingPanes.DiffOf(selected.Section) } }
-                : state;
+            if (state.WorkingTree?.Selection is not { } selected)
+            {
+                return state;
+            }
+
+            return state with { View = state.View with { FocusedPane = WorkingPanes.DiffOf(selected.Section) } };
         }
 
         var focused = state with { View = state.View with { FocusedPane = pane } };
@@ -146,7 +152,12 @@ public static class RepositoryReducer
         }
 
         var section = pane == PaneKind.WorkingUnstaged ? WorkingTreeSection.Unstaged : WorkingTreeSection.Staged;
-        return tree.Selection?.Section == section ? focused : SelectFile(focused, new SelectWorkingTreeFileCommand(section, tree.Selection?.Index ?? 0));
+        if (tree.Selection?.Section == section)
+        {
+            return focused;
+        }
+
+        return SelectFile(focused, new SelectWorkingTreeFileCommand(section, tree.Selection?.Index ?? 0));
     }
 
     private static PaneKind PaneOf(WorkingTreeSection section) =>

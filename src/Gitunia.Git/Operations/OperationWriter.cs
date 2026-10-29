@@ -37,10 +37,15 @@ public sealed class OperationWriter(OperationRunner runner) : IOperationWriter
     public Task<OperationResult> SkipAsync(
         RepositoryLocation location,
         RepositoryOperation operation,
-        CancellationToken cancellationToken) =>
-        operation == RepositoryOperation.Merge
-            ? throw new NotSupportedException("A merge cannot be skipped")
-            : RunAsync(location, operation, SkipOption, cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        if (operation == RepositoryOperation.Merge)
+        {
+            throw new NotSupportedException("A merge cannot be skipped");
+        }
+
+        return RunAsync(location, operation, SkipOption, cancellationToken);
+    }
 
     private Task<OperationResult> RunAsync(
         RepositoryLocation location,

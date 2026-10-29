@@ -17,8 +17,11 @@ public static class RemoteProgressText
             return $"{activity}...";
         }
 
-        return progress.Percent is { } percent
-            ? $"{activity}: {progress.Stage} {percent}%"
-            : $"{activity}: {progress.Stage}";
+        if (progress.Percent is { } percent)
+        {
+            return $"{activity}: {progress.Stage} {percent}%";
+        }
+
+        return $"{activity}: {progress.Stage}";
     }
 }

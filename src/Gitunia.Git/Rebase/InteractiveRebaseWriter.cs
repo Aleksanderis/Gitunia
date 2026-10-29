@@ -68,6 +68,12 @@ public sealed class InteractiveRebaseWriter(
         CancellationToken cancellationToken)
     {
         RejectOption(rebaseBase);
+        var revision = GitOptions.HeadRevision;
+        if (!rebaseBase.IsRoot)
+        {
+            revision = $"{rebaseBase.Onto}{CommitSuffix}{RangeSeparator}{GitOptions.HeadRevision}";
+        }
+
         var arguments = new List<string>
         {
             "log",
@@ -76,9 +82,7 @@ public sealed class InteractiveRebaseWriter(
             "--reverse",
             GitOptions.NulTerminated,
             LogFormat,
-            rebaseBase.IsRoot
-                ? GitOptions.HeadRevision
-                : $"{rebaseBase.Onto}{CommitSuffix}{RangeSeparator}{GitOptions.HeadRevision}",
+            revision,
             GitOptions.EndOfOptions,
         };
         var result = await git.RunAsync(location.CommandPath, arguments, ReadOptions, cancellationToken)
@@ -223,10 +227,12 @@ public sealed class InteractiveRebaseWriter(
         if (marker < 0)
         {
             var reason = result.StandardError.Trim();
-            throw new RebaseRangeException(
-                reason.Length == 0
-                    ? "Git did not prepare a todo for the range"
-                    : $"Git did not prepare a todo: {reason}");
+            if (reason.Length == 0)
+            {
+                throw new RebaseRangeException("Git did not prepare a todo for the range");
+            }
+
+            throw new RebaseRangeException($"Git did not prepare a todo: {reason}");
         }
 
         var todo = RebaseTodoParser.Parse(output[(marker + DumpMarker.Length)..]);

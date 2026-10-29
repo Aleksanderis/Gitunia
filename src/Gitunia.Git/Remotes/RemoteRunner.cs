@@ -88,22 +88,36 @@ public sealed class RemoteRunner(GitRunner runner, Func<string, string?> environ
         // Git's order is the variable, then core.sshCommand, then GIT_SSH.
         if (string.IsNullOrWhiteSpace(sshCommand))
         {
-            var result = location is null
-                ? await runner
-                    .RunGlobalAsync(SshConfigArguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
-                    .ConfigureAwait(false)
-                : await runner
-                    .RunAsync(
-                        location.CommandPath,
-                        SshConfigArguments,
-                        GitRunOptions.ReadOnlyRunAllowingNoMatch,
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            configured = result.StandardOutputText.Trim();
+            configured = await ReadConfiguredSshAsync(location, cancellationToken).ConfigureAwait(false);
         }
 
-        return SshCommandPolicy.BatchCommand(sshCommand, sshProgram, configured) is { } batch
-            ? new Dictionary<string, string?> { [SshCommandVariable] = batch }
-            : null;
+        if (SshCommandPolicy.BatchCommand(sshCommand, sshProgram, configured) is { } batch)
+        {
+            return new Dictionary<string, string?> { [SshCommandVariable] = batch };
+        }
+
+        return null;
+    }
+
+    private async Task<string> ReadConfiguredSshAsync(RepositoryLocation? location, CancellationToken cancellationToken)
+    {
+        if (location is null)
+        {
+            var global = await runner
+                .RunGlobalAsync(SshConfigArguments, GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
+                .ConfigureAwait(false);
+
+            return global.StandardOutputText.Trim();
+        }
+
+        var result = await runner
+            .RunAsync(
+                location.CommandPath,
+                SshConfigArguments,
+                GitRunOptions.ReadOnlyRunAllowingNoMatch,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.StandardOutputText.Trim();
     }
 }

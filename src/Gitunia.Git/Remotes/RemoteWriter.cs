@@ -40,9 +40,12 @@ public sealed class RemoteWriter(RemoteRunner remoteRunner) : IRemoteWriter
             var result = await remoteRunner
                 .RunAsync(location, [Merge, FastForwardOnly, UpstreamRevision], null, CancellationToken.None)
                 .ConfigureAwait(false);
-            return result.StandardOutputText.Contains(UpToDateText, StringComparison.Ordinal)
-                ? PullOutcome.UpToDate
-                : PullOutcome.FastForwarded;
+            if (result.StandardOutputText.Contains(UpToDateText, StringComparison.Ordinal))
+            {
+                return PullOutcome.UpToDate;
+            }
+
+            return PullOutcome.FastForwarded;
         }
         catch (GitCommandFailedException exception)
             when (exception.StandardError.Contains(CannotFastForwardText, StringComparison.Ordinal))

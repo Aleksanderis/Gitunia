@@ -148,10 +148,14 @@ public static class WordDiff
         {
             for (var column = newCount - 1; column >= 0; column--)
             {
-                var isSame = Same(oldText, oldTokens[offset + row], newText, newTokens[offset + column]);
-                table[(row * width) + column] = isSame
-                    ? (ushort)(table[((row + 1) * width) + column + 1] + 1)
-                    : Math.Max(table[((row + 1) * width) + column], table[(row * width) + column + 1]);
+                var cell = (row * width) + column;
+                var below = table[((row + 1) * width) + column];
+                var right = table[cell + 1];
+                table[cell] = Math.Max(below, right);
+                if (Same(oldText, oldTokens[offset + row], newText, newTokens[offset + column]))
+                {
+                    table[cell] = (ushort)(table[((row + 1) * width) + column + 1] + 1);
+                }
             }
         }
 

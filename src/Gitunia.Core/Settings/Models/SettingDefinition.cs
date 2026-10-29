@@ -32,7 +32,16 @@ public sealed record SettingDefinition(
     public string ConfigKey => string.Join('.', ConfigPath);
 
     /// <summary>The help line under the lists: where it is written and what applies when it is absent.</summary>
-    public string Detail => ConfigPath.Count == 0
-        ? string.Empty
-        : $"Written to config.json as \"{ConfigKey}\". Default: {Default}.";
+    public string Detail
+    {
+        get
+        {
+            if (ConfigPath.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return $"Written to config.json as \"{ConfigKey}\". Default: {Default}.";
+        }
+    }
 }

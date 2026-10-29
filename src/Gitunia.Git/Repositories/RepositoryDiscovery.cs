@@ -61,10 +61,33 @@ public sealed class RepositoryDiscovery
             return new RepositoryLocation(null, gitDirectory, commonDirectory, true, false);
         }
 
-        var workingTree = isInsideGitDirectory
-            ? await ResolveWorkingTreeFromGitDirectoryAsync(fullPath, gitDirectory, isLinkedWorktree, cancellationToken).ConfigureAwait(false)
-            : await ReadTopLevelAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        var workingTree = await ResolveWorkingTreeAsync(
+            fullPath,
+            gitDirectory,
+            isInsideGitDirectory,
+            isLinkedWorktree,
+            cancellationToken).ConfigureAwait(false);
+
         return new RepositoryLocation(workingTree, gitDirectory, commonDirectory, false, isLinkedWorktree);
+    }
+
+    private async Task<string> ResolveWorkingTreeAsync(
+        string fullPath,
+        string gitDirectory,
+        bool isInsideGitDirectory,
+        bool isLinkedWorktree,
+        CancellationToken cancellationToken)
+    {
+        if (isInsideGitDirectory)
+        {
+            return await ResolveWorkingTreeFromGitDirectoryAsync(
+                fullPath,
+                gitDirectory,
+                isLinkedWorktree,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return await ReadTopLevelAsync(fullPath, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string> ReadTopLevelAsync(string path, CancellationToken cancellationToken)

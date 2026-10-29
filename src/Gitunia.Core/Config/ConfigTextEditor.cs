@@ -94,9 +94,12 @@ public static class ConfigTextEditor
 
     private static string NotObjectMessage(IReadOnlyList<string> path, int depth)
     {
-        return depth == 0
-            ? "config.json must hold a JSON object at the top level"
-            : $"\"{string.Join('.', path.Take(depth))}\" in config.json is not an object";
+        if (depth == 0)
+        {
+            return "config.json must hold a JSON object at the top level";
+        }
+
+        return $"\"{string.Join('.', path.Take(depth))}\" in config.json is not an object";
     }
 
     private static bool IsSingleValue(string jsonValue)
@@ -142,9 +145,14 @@ public static class ConfigTextEditor
         var lineEnding = LineEnding(text);
         var closeIndex = container.Start + container.Length - 1;
         var scan = ScanMembers(text, container);
-        var edited = scan is null
-            ? InsertIntoEmpty(text, container, member, lineEnding)
-            : InsertAfterLast(text, scan, closeIndex, member, lineEnding);
+        if (scan is null)
+        {
+            var inserted = InsertIntoEmpty(text, container, member, lineEnding);
+
+            return new ConfigEditResult(true, inserted, string.Empty, location.Shadowed);
+        }
+
+        var edited = InsertAfterLast(text, scan, closeIndex, member, lineEnding);
 
         return new ConfigEditResult(true, edited, string.Empty, location.Shadowed);
     }
