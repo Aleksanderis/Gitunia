@@ -20,6 +20,9 @@ public sealed class GraphLayoutBuilder
     // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
     private readonly List<int> _laneSlots = [];
 
+    // Whether the lane was started by a second parent whose branch name chose its colour (GraphRow.ColorChosenByName).
+    private readonly List<bool> _laneNamedByParent = [];
+
     private readonly List<GraphRow> _rows = [];
 
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
@@ -55,8 +58,9 @@ public sealed class GraphLayoutBuilder
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
-        var nodeLane = NodeLaneOf(commitId);
+        var nodeLane = NodeLaneOf(commitId, out var isTip);
         var nodeColor = _laneSlots[nodeLane];
+        var isColorChosenByName = isTip;
 
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
@@ -68,6 +72,8 @@ public sealed class GraphLayoutBuilder
             if (_lanes[lane] == commitId)
             {
                 edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane, _laneSlots[lane]));
+                isColorChosenByName |= _laneNamedByParent[lane];
+                _laneNamedByParent[lane] = false;
                 _lanes[lane] = default;
             }
             else
@@ -97,6 +103,7 @@ public sealed class GraphLayoutBuilder
                     EnsureLane(parentLane);
                     _laneSlots[parentLane] = SlotForNewLane(parent);
                     _lanes[parentLane] = parent;
+                    _laneNamedByParent[parentLane] = true;
                 }
             }
 
@@ -110,7 +117,14 @@ public sealed class GraphLayoutBuilder
         }
 
         TrimFreeLanes();
-        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes(), nodeColor);
+        var row = new GraphRow(
+            commitId,
+            nodeLane,
+            laneCount,
+            edges.ToArray(),
+            FingerprintLanes(),
+            nodeColor,
+            isColorChosenByName);
         _rows.Add(row);
         return row;
     }
@@ -129,10 +143,11 @@ public sealed class GraphLayoutBuilder
 
     // The lane of the commit's node: the leftmost lane that waits for it, so where several lanes meet the leftmost one
     // (the newest tip's) goes on to the bottom and the others bend into it; a commit no lane waits for starts a lane.
-    private int NodeLaneOf(ObjectId commitId)
+    private int NodeLaneOf(ObjectId commitId, out bool isTip)
     {
         var nodeLane = IndexOfLane(commitId);
-        if (nodeLane >= 0)
+        isTip = nodeLane < 0;
+        if (!isTip)
         {
             return nodeLane;
         }
@@ -163,6 +178,7 @@ public sealed class GraphLayoutBuilder
         {
             _lanes.Add(default);
             _laneSlots.Add(0);
+            _laneNamedByParent.Add(false);
         }
     }
 
@@ -252,5 +268,6 @@ public sealed class GraphLayoutBuilder
 
         _lanes.RemoveRange(count, _lanes.Count - count);
         _laneSlots.RemoveRange(count, _laneSlots.Count - count);
+        _laneNamedByParent.RemoveRange(count, _laneNamedByParent.Count - count);
     }
 }
