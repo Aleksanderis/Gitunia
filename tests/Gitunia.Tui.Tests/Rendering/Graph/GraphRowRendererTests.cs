@@ -138,8 +138,8 @@ public class GraphRowRendererTests
             var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(80, 1, glyphs), false);
 
             var box = line.Segments.Single(segment => segment.Role == SegmentRole.LaneLabel);
-            Assert.StartsWith($"{glyphs.CurrentBranch}main", box.Text, StringComparison.Ordinal);
-            Assert.EndsWith(glyphs.Remote, box.Text, StringComparison.Ordinal);
+            Assert.StartsWith($" {glyphs.CurrentBranch}main", box.Text, StringComparison.Ordinal);
+            Assert.EndsWith($"{glyphs.Remote} ", box.Text, StringComparison.Ordinal);
             Assert.DoesNotContain("(", line.Text.Replace("(r)", ""), StringComparison.Ordinal);
             Assert.DoesNotContain(")", line.Text.Replace("(r)", ""), StringComparison.Ordinal);
         }
@@ -163,8 +163,50 @@ public class GraphRowRendererTests
             .Where(segment => segment.Role == SegmentRole.LaneLabel)
             .Select(segment => segment.Text)
             .ToArray();
-        Assert.Equal($"{GraphGlyphSet.Unicode.LocalBranch}topic{GraphGlyphSet.Unicode.Remote}", labels[0]);
-        Assert.Equal("origin/other", labels[1]);
+        Assert.Equal($" {GraphGlyphSet.Unicode.LocalBranch}topic{GraphGlyphSet.Unicode.Remote} ", labels[0]);
+        Assert.Equal(" origin/other ", labels[1]);
+    }
+
+    [Fact]
+    public void GivenAnyBranchLabel_WhenRendering_ThenTheBoxHasOneSpaceOfPaddingOnEachSide()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false),
+            new CommitDecoration("refs/remotes/origin/other", "origin/other", RefKind.RemoteBranch, false));
+        var graph = CommitFactory.Graph(commit);
+
+        foreach (var glyphs in new[] { GraphGlyphSet.Unicode, GraphGlyphSet.Ascii })
+        {
+            var line = GraphRowRenderer.Render(graph[0], new GraphRowOptions(120, 1, glyphs), false);
+
+            var boxes = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
+            Assert.Equal(2, boxes.Length);
+            Assert.All(boxes, box => Assert.Matches(@"^ \S.*\S $", box.Text));
+        }
+    }
+
+    [Fact]
+    public void GivenUpstreamGoneBranch_WhenRendering_ThenTheMarkFollowsTheBoxAfterASpace()
+    {
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false));
+        var graph = CommitFactory.Graph(commit);
+
+        foreach (var glyphs in new[] { GraphGlyphSet.Unicode, GraphGlyphSet.Ascii })
+        {
+            var options = new GraphRowOptions(120, 1, glyphs, UpstreamGoneBranches: new HashSet<string> { "topic" });
+
+            var line = GraphRowRenderer.Render(graph[0], options, false);
+
+            Assert.Contains($" {glyphs.LocalBranch}topic {glyphs.UpstreamGone}", line.Text, StringComparison.Ordinal);
+            Assert.StartsWith(" ", glyphs.UpstreamGone, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -181,7 +223,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
-        Assert.StartsWith("●  ◆ ⎇ main   ⎇ topic tag: v1 release", row);
+        Assert.StartsWith("●   ◆ ⎇ main    ⎇ topic  tag: v1 release", row);
     }
 
     [Fact]
@@ -199,7 +241,7 @@ public class GraphRowRendererTests
             new CommitDecoration("refs/remotes/origin/other", "origin/other", RefKind.RemoteBranch, false),
             new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false));
         var graph = CommitFactory.Graph(commit);
-        var options = new GraphRowOptions(80, 1, GraphGlyphSet.Unicode);
+        var options = new GraphRowOptions(120, 1, GraphGlyphSet.Unicode);
 
         var line = GraphRowRenderer.Render(graph[0], options, false);
 
@@ -209,7 +251,7 @@ public class GraphRowRendererTests
         var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
         var glyphs = GraphGlyphSet.Unicode;
         Assert.Equal(
-            [$"{glyphs.CurrentBranch}{current}", $"{glyphs.LocalBranch}topic", "origin/other"],
+            [$" {glyphs.CurrentBranch}{current} ", $" {glyphs.LocalBranch}topic ", " origin/other "],
             labels.Select(segment => segment.Text));
         Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
@@ -245,8 +287,8 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, root);
 
-        Assert.StartsWith("●  ⎇ feature feature work", rows[0]);
-        Assert.StartsWith("●  ◆ ⎇ main", rows[1]);
+        Assert.StartsWith("●   ⎇ feature  feature work", rows[0]);
+        Assert.StartsWith("●   ◆ ⎇ main", rows[1]);
         Assert.StartsWith("●  root", rows[2]);
     }
 
@@ -263,8 +305,8 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, main, tip, first, fork, root);
 
-        Assert.StartsWith("●  ◆ ⎇ main main tip", rows[0]);
-        Assert.StartsWith("│ ●  ⎇ feature feature tip", rows[1]);
+        Assert.StartsWith("●   ◆ ⎇ main  main tip", rows[0]);
+        Assert.StartsWith("│ ●   ⎇ feature  feature tip", rows[1]);
         Assert.StartsWith("│ ├  feature first", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
@@ -301,9 +343,9 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, tip, first, main, fork, root);
 
-        Assert.StartsWith("●  ⎇ feature feature tip", rows[0]);
+        Assert.StartsWith("●   ⎇ feature  feature tip", rows[0]);
         Assert.StartsWith("├  feature first", rows[1]);
-        Assert.StartsWith("│ ●  ◆ ⎇ main", rows[2]);
+        Assert.StartsWith("│ ●   ◆ ⎇ main", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
         Assert.StartsWith("●  root", rows[4]);
         var graph = CommitFactory.Graph(tip, first, main, fork, root);
@@ -324,7 +366,7 @@ public class GraphRowRendererTests
 
         var row = Rows(GraphGlyphSet.Ascii, 120, commit)[0];
 
-        Assert.StartsWith("*  HEAD -> main (r) release", row);
+        Assert.StartsWith("*   HEAD -> main (r)  release", row);
     }
 
     [Fact]

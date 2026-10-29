@@ -212,7 +212,8 @@ public static class GraphRowRenderer
         return builder;
     }
 
-    // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804).
+    // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804), with a space of
+    // padding on each side so the text never touches the box edge (#827).
     private static void AppendLabel(List<StyledSegment> builder, RefLabel label, int colorIndex, GraphGlyphSet glyphs)
     {
         switch (label.Kind)
@@ -220,7 +221,7 @@ public static class GraphRowRenderer
             case RefKind.LocalBranch or RefKind.RemoteBranch:
                 var prefix = BranchPrefix(label, glyphs);
                 var suffix = label.HasRemote ? glyphs.Remote : "";
-                builder.Add(new StyledSegment($"{prefix}{label.Name}{suffix}", SegmentRole.LaneLabel, colorIndex));
+                builder.Add(new StyledSegment($" {prefix}{label.Name}{suffix} ", SegmentRole.LaneLabel, colorIndex));
                 break;
             case RefKind.Tag:
                 builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
