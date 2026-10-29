@@ -58,7 +58,7 @@ public class GraphJumpRowsTests
         Assert.Equal(1, label.Row);
         Assert.True(label.HasLetter);
         var line = GraphRowRenderer.Render(graph[1], options, false, label);
-        Assert.Contains("(tag: v1.", line.Text, StringComparison.Ordinal);
+        Assert.Contains("tag: v1.", line.Text, StringComparison.Ordinal);
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.SearchMatch && segment.Text == "v1.");
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.JumpLabel && segment.Text == label.Letter.ToString());
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Plain && segment.Text == "Unrelated subject");

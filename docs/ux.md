@@ -158,11 +158,11 @@ Outside Insert and Command mode a paste does nothing.
    - Example at 120 columns (without the sidebar):
      ```
      ●  Fix parser crash on empty input                Ada Lovelace       2026-10-13 09:00   7a21f84
-     ●  (◆ main ↔) Merge branch 'topic'                Alexander the G…   2026-10-12 23:30   ee3f455
+     ●  ⎇ main   Merge branch 'topic'              Alexander the G…   2026-10-12 23:30   ee3f455
      ```
 3. **Ref labels.** The symbolic `origin/HEAD` is hidden.
-   A local branch and its remote-tracking branch of the same name on the same commit are one label, `main ↔` (ASCII: `main (r)`).
-   The branch HEAD is on gets a `◆` before it (ASCII: `HEAD -> main`).
+   A local branch and its remote-tracking branch of the same name on the same commit are one label, `main ` (ASCII: `main (r)`).
+   The branch HEAD is on gets a `⎇` before it (ASCII: `HEAD -> main`).
    A remote branch with no local branch of that name, or on another commit, keeps its own `origin/x` label.
    A local branch whose upstream is gone carries the same dimmed mark after its label (`topic ✗`, ASCII `topic (x)`; see the sidebar, #570).
 4. **Lanes.** Branches are laid out by tip date (#757): the branch with the newest tip commit runs in the leftmost lane, the next newest to its right, and so on, so the graph stays as compact as possible; the checked-out branch gets no lane of its own (it keeps the `◆` mark and its HEAD label).
@@ -175,7 +175,7 @@ Outside Insert and Command mode a paste does nothing.
    When the log lists the tips in another order (a feature tip newer than main's, or every commit with one timestamp and git's own order) the same rule gives the same picture with another branch leftmost.
    With more lanes than fit (at most 40% of the pane), the lanes past the limit are drawn in the last column.
    **Colours (#761):** every branch gets one colour, a hash of its name, so the same name starts from the same colour in every repository and session; when another lane that is open at the same row already has that colour it moves on to the next free one, so the colour of a branch can change when a colliding branch appears (never while scrolling or loading: within one graph a name keeps its colour); a local branch and its remote-tracking branch (`main`, `origin/main`) are one branch and share it, wherever their tips are.
-   The lane line, the node and the branch labels of the commit use it; a label is a box in that colour (#760): a branch's label sits on its tip, in the colour of the branch's lane, which runs down to the fork commit where a curve in that colour joins the parent's lane, while the unlabelled commits of a run stay part of the plain line (the `↔` after a label keeps its own colour; tags are yellow everywhere); a lane that no branch name starts (a merged feature whose branch is gone) takes a colour derived from its first commit.
+   The lane line, the node and the branch labels of the commit use it; a label is a box in that colour (#760) with no parentheses around it (several labels on one commit are told apart by their boxes, a space between them): the HEAD mark (`⎇ `, ASCII `HEAD -> `) and the remote glyph (cloud, ASCII ` (r)`) sit inside the box, a space between glyph and name (#804); a branch's label sits on its tip, in the colour of the branch's lane, which runs down to the fork commit where a curve in that colour joins the parent's lane, while the unlabelled commits of a run stay part of the plain line (tags are yellow everywhere); a lane that no branch name starts (a merged feature whose branch is gone) takes a colour derived from its first commit.
    Colours are the theme's `lanes` list (at most 12, 6 at 16-colour depth, one without colour; the layout uses only as many as the palette has, so open lanes differ while a colour is free: the lines are told apart by position alone and the labels are bold inverse video boxes, which on a focused selected row merge into the reversed row and are bold only).
    A commit with several branch names shows them all in the colour of its lane, which follows its checked-out branch, else the smallest local branch name, else the smallest remote one.
 5. **Straight lines.** A commit with one child and one parent on its own lane is drawn as part of the line (`│`, ASCII `|`), not as a node.
@@ -865,7 +865,7 @@ The settings screen no longer offers them and shows them as those two themes; ke
 ```
  1 gitunia                                                   <- tab row
 ╭─ gitunia ────────────┬─ History ──────────────────────────────╮
-│  ▾ Branches 2        │ ○─╮  (main) Merge feature x    Ada ... │
+│  ▾ Branches 2        │ ○─╮  main Merge feature x      Ada ... │
 │     feature/x        │ ●  │  Fix parser                       │
 ├─ Details ─ Changes ─ Files ─ 64d72f2 ─ 3 files ┬─ Diff ... ──┤
 │ commit  64d72f2...                             │ @@ -1 +1 @@  │

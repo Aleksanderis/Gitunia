@@ -18,6 +18,9 @@ public static class GraphRowRenderer
     // Blank columns between a row's own lines and its message.
     private const int MinimumLaneGap = 2;
 
+    // Between two labels and after the last one.
+    private const string LabelSeparator = " ";
+
     /// <summary>Before the labels of the commit marked for a comparison.</summary>
     private const string MarkText = "[mark] ";
 
@@ -194,51 +197,45 @@ public static class GraphRowRenderer
             return builder;
         }
 
-        builder.Add(new StyledSegment("(", SegmentRole.Punctuation));
         for (var index = 0; index < labels.Count; index++)
         {
             if (index > 0)
             {
-                builder.Add(new StyledSegment(", ", SegmentRole.Punctuation));
+                builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
             }
 
-            var label = labels[index];
-            switch (label.Kind)
-            {
-                case RefKind.LocalBranch when label.IsCurrent:
-                    builder.Add(new StyledSegment(glyphs.CurrentBranch, SegmentRole.CurrentBranch));
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
-                    break;
-                case RefKind.LocalBranch:
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
-                    break;
-                case RefKind.RemoteBranch:
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
-                    break;
-                case RefKind.Tag:
-                    builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
-                    break;
-                case RefKind.Head:
-                    builder.Add(new StyledSegment("HEAD", SegmentRole.CurrentBranch));
-                    break;
-                default:
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.Faint));
-                    break;
-            }
-
-            if (label.HasRemote)
-            {
-                builder.Add(new StyledSegment(glyphs.Remote, SegmentRole.RemoteBranch));
-            }
-
-            if (label.IsUpstreamGone)
-            {
-                builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
-            }
+            AppendLabel(builder, labels[index], entry.Row.NodeColor, glyphs);
         }
 
-        builder.Add(new StyledSegment(") ", SegmentRole.Punctuation));
+        builder.Add(new StyledSegment(LabelSeparator, SegmentRole.Punctuation));
 
         return builder;
+    }
+
+    // A branch is one box: the HEAD mark and the remote glyph sit inside it, next to the name (#804).
+    private static void AppendLabel(List<StyledSegment> builder, RefLabel label, int colorIndex, GraphGlyphSet glyphs)
+    {
+        switch (label.Kind)
+        {
+            case RefKind.LocalBranch or RefKind.RemoteBranch:
+                var prefix = label is { Kind: RefKind.LocalBranch, IsCurrent: true } ? glyphs.CurrentBranch : "";
+                var suffix = label.HasRemote ? glyphs.Remote : "";
+                builder.Add(new StyledSegment($"{prefix}{label.Name}{suffix}", SegmentRole.LaneLabel, colorIndex));
+                break;
+            case RefKind.Tag:
+                builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));
+                break;
+            case RefKind.Head:
+                builder.Add(new StyledSegment("HEAD", SegmentRole.CurrentBranch));
+                break;
+            default:
+                builder.Add(new StyledSegment(label.Name, SegmentRole.Faint));
+                break;
+        }
+
+        if (label.IsUpstreamGone)
+        {
+            builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
+        }
     }
 }

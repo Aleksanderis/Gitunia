@@ -7,8 +7,8 @@ namespace Gitunia.Tui.Rendering.Graph;
 /// <param name="LineNode">A commit in the middle of a branch: one line in and one out on its own lane, drawn as part of the line.</param>
 /// <param name="Lines">Line characters indexed by <see cref="LineDirections"/> flags (16 entries).</param>
 /// <param name="Ellipsis">Shown where text was cut.</param>
-/// <param name="CurrentBranch">Before the label of the branch HEAD is on.</param>
-/// <param name="Remote">After a branch label that also stands for its remote-tracking branch.</param>
+/// <param name="CurrentBranch">Before the name of the branch HEAD is on, inside its label box.</param>
+/// <param name="Remote">After the name, inside the label box (the Unicode glyph keeps a trailing space as padding so the wide icon does not touch the box edge), of a branch that also stands for its remote-tracking branch.</param>
 /// <param name="UpstreamGone">After the label of a local branch whose upstream no longer exists.</param>
 public sealed record GraphGlyphSet(
     char Node,
@@ -21,7 +21,7 @@ public sealed record GraphGlyphSet(
     string UpstreamGone)
 {
     // Index: Up=1, Down=2, Left=4, Right=8. Lone strokes borrow the straight line of their axis.
-    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", " ", " ✗");
+    public static GraphGlyphSet Unicode { get; } = new('●', '○', '├', " │││─╯╮┤─╰╭├─┴┬┼", "…", "⎇ ", "  ", " ✗");
 
     public static GraphGlyphSet Ascii { get; } =
         new('*', 'o', '|', " |||-/\\|-\\/|---+", "~", "HEAD -> ", " (r)", " (x)");
