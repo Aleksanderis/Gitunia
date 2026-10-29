@@ -107,7 +107,7 @@ public class TabBarTests
         var wide = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 80, GraphGlyphSet.Unicode);
         var narrow = ChromeBuilder.Tabs(Model(Label(1, "alpha", isActive: true, branch: null)), 40, GraphGlyphSet.Unicode);
 
-        Assert.Equal(TabBarLayout.CommandsLabel, wide.Segments.Last(segment => segment.Role == SegmentRole.BarButton).Text);
+        Assert.Contains(wide.Segments, segment => segment.Role == SegmentRole.StatusKey && segment.Text == ":");
         Assert.EndsWith($"{TabBarLayout.CommandsLabel} ", wide.Text, StringComparison.Ordinal);
         Assert.True(TabBarLayout.IsOnCommands(80, 70));
         Assert.False(TabBarLayout.IsOnCommands(80, 10));

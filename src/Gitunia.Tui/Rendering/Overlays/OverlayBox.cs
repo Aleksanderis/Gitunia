@@ -12,6 +12,9 @@ public static class OverlayBox
     /// <summary>Columns of padding a text row keeps inside the side rules.</summary>
     public const int TextPadding = 2;
 
+    /// <summary>The text between two hints of a footer row.</summary>
+    public const string HintGap = "  ";
+
     /// <summary>The smallest outer width an overlay is drawn at.</summary>
     public const int MinimumWidth = 16;
 
@@ -34,6 +37,27 @@ public static class OverlayBox
     /// <summary>A body row of plain text.</summary>
     public static StyledLine Text(string text, int width, GraphGlyphSet glyphs, SegmentRole role = SegmentRole.Plain) =>
         Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs);
+
+    /// <summary>
+    /// A footer row of key hints (<see cref="HintBar.Parse"/>), drawn like the status bar's: bold keys on the bar
+    /// colours. <paramref name="lead"/> is plain text before the hints, such as a position.
+    /// </summary>
+    public static StyledLine Hints(
+        string hints,
+        int width,
+        GraphGlyphSet glyphs,
+        string lead = "",
+        string gap = HintGap)
+    {
+        var builder = new LineBuilder(InnerWidth(width), glyphs.Ellipsis);
+        if (lead.Length > 0)
+        {
+            builder.Append($" {lead} ", SegmentRole.Status);
+        }
+
+        HintBar.Append(builder, HintBar.Parse(hints), gap);
+        return Wrap(builder.Build(SegmentRole.Status), glyphs);
+    }
 
     /// <summary>A body row with a left part and a right part pushed to the right edge.</summary>
     public static StyledLine TwoColumns(

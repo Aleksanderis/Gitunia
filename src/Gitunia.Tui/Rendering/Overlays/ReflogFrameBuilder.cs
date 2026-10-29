@@ -80,7 +80,7 @@ public static class ReflogFrameBuilder
                 SegmentRole.Faint));
         }
 
-        lines.Add(OverlayBox.Text(FooterText(state), width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints(FooterHints(state), width, glyphs, FooterLead(state)));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
@@ -143,17 +143,27 @@ public static class ReflogFrameBuilder
             lines.Add(OverlayBox.Text(string.Empty, width, glyphs));
         }
 
-        lines.Add(OverlayBox.Text($"> {picker.Text}_  Enter open  Esc back", width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints("Enter open  Esc back", width, glyphs, $"> {picker.Text}_"));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
 
-    private static string FooterText(ReflogState state)
+    private static string FooterHints(ReflogState state)
+    {
+        if (!state.HasSearch)
+        {
+            return $"/ search  {Footer}";
+        }
+
+        return $"Esc {(state.IsEditingSearch ? "cancel" : "clear")}";
+    }
+
+    private static string FooterLead(ReflogState state)
     {
         if (!state.HasSearch)
         {
             var position = state.Entries.Count == 0 ? 0 : state.MoveTo(state.SelectedIndex).SelectedIndex + 1;
-            return string.Create(CultureInfo.InvariantCulture, $"{position}/{state.Entries.Count}  / search  {Footer}");
+            return string.Create(CultureInfo.InvariantCulture, $"{position}/{state.Entries.Count}");
         }
 
         var matches = state.MatchIndexes;
@@ -162,8 +172,8 @@ public static class ReflogFrameBuilder
             ? "no match"
             : string.Create(CultureInfo.InvariantCulture, $"{current}/{matches.Count} matches");
         var cursor = state.IsEditingSearch ? "_" : string.Empty;
-        var escape = state.IsEditingSearch ? "cancel" : "clear";
-        return $"/{state.SearchText}{cursor}  {count}  Esc {escape}";
+
+        return $"/{state.SearchText}{cursor}  {count}";
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>

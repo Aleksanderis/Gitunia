@@ -22,11 +22,16 @@ public static class KeyedChip
 
     /// <summary>The pieces a chip is drawn in: key in the key style, the rest like the tabs; in the ASCII tier with
     /// brackets.</summary>
-    public static IReadOnlyList<StyledSegment> Segments(TitleButton button, GraphGlyphSet glyphs) => ChipSegments.Split(
-        ButtonLabel.For(button.Label, glyphs.IsAscii),
-        button.KeyLength,
-        SegmentRole.RepositoryTab,
-        SegmentRole.RepositoryTab,
-        SegmentRole.RepositoryTabKey,
-        SegmentRole.RepositoryTab);
+    public static IReadOnlyList<StyledSegment> Segments(TitleButton button, GraphGlyphSet glyphs) =>
+        Segments(button, glyphs, ChipStyle.Pane);
+
+    /// <summary>The pieces a chip is drawn in with the roles of <paramref name="style"/>.</summary>
+    public static IReadOnlyList<StyledSegment> Segments(TitleButton button, GraphGlyphSet glyphs, ChipStyle style) =>
+        ChipSegments.Split(
+            ButtonLabel.For(button.Label, glyphs.IsAscii),
+            button.KeyLength,
+            style.Plain,
+            style.Edge,
+            style.Key,
+            style.Description);
 }

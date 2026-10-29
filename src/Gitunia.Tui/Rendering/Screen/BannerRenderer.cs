@@ -34,8 +34,7 @@ public static class BannerRenderer
         {
             builder.Append(Gap, SegmentRole.Status);
             var start = width - builder.Remaining;
-            builder.Append(chip.Keys, SegmentRole.StatusKey);
-            builder.Append($" {chip.Label}", SegmentRole.Status);
+            HintBar.AppendOne(builder, new HintItem(chip.Keys, chip.Label));
             var end = width - builder.Remaining;
             if (end > start)
             {

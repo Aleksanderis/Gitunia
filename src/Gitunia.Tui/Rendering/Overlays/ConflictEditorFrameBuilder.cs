@@ -34,8 +34,6 @@ public static class ConflictEditorFrameBuilder
     private const int MaximumWidth = 180;
     private const int ScreenMargin = 2;
     private const int HorizontalMargin = 6;
-    private const int ChipStartColumn = 2;
-    private const int ChipGap = 2;
     private const int ContextLines = 2;
     private const int TitleAndStripRows = 3;
     private const int FooterAndBottomRows = 3;
@@ -63,7 +61,7 @@ public static class ConflictEditorFrameBuilder
     private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
-    private static readonly ConflictEditorChip[] Chips =
+    private static readonly HintChip[] Chips =
     [
         new("o", "ours", DefaultMouseMap.ConflictOursButton),
         new("t", "theirs", DefaultMouseMap.ConflictTheirsButton),
@@ -87,10 +85,10 @@ public static class ConflictEditorFrameBuilder
     ];
 
     // The base is always on screen in three panes, so the chip that toggles it is left out.
-    private static readonly ConflictEditorChip[] ThreePaneChips =
+    private static readonly HintChip[] ThreePaneChips =
         [.. Chips.Where(chip => chip.View != DefaultMouseMap.ConflictBaseButton)];
 
-    private static readonly ConflictEditorChip[] EditingChips =
+    private static readonly HintChip[] EditingChips =
     [
         new("Ctrl-g", "keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
@@ -147,7 +145,7 @@ public static class ConflictEditorFrameBuilder
         lines.Add(Rule(plan, glyphs, Junction.None));
         foreach (var chips in plan.ChipRows)
         {
-            lines.Add(ChipLine(chips, plan.Width, glyphs));
+            lines.Add(HintChipRows.Line(chips, plan.Width, glyphs));
         }
 
         lines.Add(FooterLine(state, plan.Width, glyphs));
@@ -185,19 +183,7 @@ public static class ConflictEditorFrameBuilder
             return null;
         }
 
-        var start = ChipStartColumn;
-        foreach (var chip in plan.ChipRows[chipRow])
-        {
-            var end = start + TextWidth.Of(chip.Text);
-            if (frameColumn >= start && frameColumn < end)
-            {
-                return chip.View;
-            }
-
-            start = end + ChipGap;
-        }
-
-        return null;
+        return HintChipRows.ViewAt(plan.ChipRows[chipRow], frameColumn);
     }
 
     private static Plan? PlanFor(ConflictEditorState state, int screenWidth, int screenHeight)
@@ -211,7 +197,7 @@ public static class ConflictEditorFrameBuilder
         var isStacked = width < StackedBelowWidth;
         var isThreePane = !isStacked && width >= ThreePaneFromWidth;
         var chipSet = state.IsEditing ? EditingChips : isThreePane ? ThreePaneChips : Chips;
-        var chipRows = ChipRowsFor(chipSet, width);
+        var chipRows = HintChipRows.Flow(chipSet, width);
         var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
         var sideCount = isStacked ? StackedSides : 1;
         var available = screenHeight - ScreenMargin - TitleAndStripRows - FooterAndBottomRows - chipRows.Count
@@ -679,19 +665,6 @@ public static class ConflictEditorFrameBuilder
     private static SegmentRole RoleOfPick(ConflictPick pick) =>
         pick == ConflictPick.None ? SegmentRole.Error : SegmentRole.Plain;
 
-    private static StyledLine ChipLine(List<ConflictEditorChip> chips, int width, GraphGlyphSet glyphs)
-    {
-        var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis).Append(" ", SegmentRole.Status);
-        for (var index = 0; index < chips.Count; index++)
-        {
-            builder.Append(index == 0 ? string.Empty : ChipGapText, SegmentRole.Status);
-            builder.Append(chips[index].Keys, SegmentRole.StatusKey);
-            builder.Append($" {chips[index].Description}", SegmentRole.Status);
-        }
-
-        return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
-    }
-
     private static StyledLine FooterLine(ConflictEditorState state, int width, GraphGlyphSet glyphs)
     {
         if (state.IsEditing)
@@ -716,29 +689,6 @@ public static class ConflictEditorFrameBuilder
         return OverlayBox.Text(text, width, glyphs, SegmentRole.Faint);
     }
 
-    // The chips flow left to right and start a new row where the next one would not fit, so none is cut off.
-    private static List<List<ConflictEditorChip>> ChipRowsFor(ConflictEditorChip[] chipSet, int frameWidth)
-    {
-        var available = OverlayBox.InnerWidth(frameWidth) - 1;
-        var rows = new List<List<ConflictEditorChip>> { new() };
-        var used = 0;
-        foreach (var chip in chipSet)
-        {
-            var width = TextWidth.Of(chip.Text);
-            var needed = rows[^1].Count == 0 ? width : used + ChipGap + width;
-            if (rows[^1].Count > 0 && needed > available)
-            {
-                rows.Add([]);
-                needed = width;
-            }
-
-            rows[^1].Add(chip);
-            used = needed;
-        }
-
-        return rows;
-    }
-
     private enum Junction
     {
         None,
@@ -753,7 +703,7 @@ public static class ConflictEditorFrameBuilder
         int SideRows,
         int BaseRows,
         int ResultRowCount,
-        List<List<ConflictEditorChip>> ChipRows,
+        List<List<HintChip>> ChipRows,
         int FirstChipLine,
         int Scroll,
         int MaxScroll,

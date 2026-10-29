@@ -76,7 +76,7 @@ public static class PaletteFrameBuilder
         var position = count == 0 ? 0 : selected + 1;
         var builder = new LineBuilder(OverlayBox.InnerWidth(width), glyphs.Ellipsis)
             .Append(string.Create(CultureInfo.InvariantCulture, $" {position}/{count}"), SegmentRole.Status);
-        HintRenderer.Append(builder, PaneHints.ForPalette(), HintGap);
+        HintBar.Append(builder, PaneHints.ForPalette().Select(hint => hint.Item), HintGap);
         return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);
     }
 

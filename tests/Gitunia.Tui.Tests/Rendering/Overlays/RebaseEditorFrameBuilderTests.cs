@@ -69,13 +69,13 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(State(2), 80, 24, GraphGlyphSet.Unicode);
 
         var chipRows = frame!.Lines.Skip(frame.Height - 4).Take(2).ToList();
-        const string firstRow = "[p pick]  [r reword]  [s squash]  [f fixup]  [d drop]  [K move up]";
-        const string secondRow = "[J move down]  [Enter start]  [Esc cancel]";
+        const string firstRow = "p pick  r reword  s squash  f fixup  d drop  K move up  J move down";
+        const string secondRow = "Enter start  Esc cancel";
         Assert.Contains(firstRow, chipRows[0].Text, StringComparison.Ordinal);
         Assert.Contains(secondRow, chipRows[1].Text, StringComparison.Ordinal);
         Assert.Contains(
             chipRows[0].Segments,
-            segment => segment.Role == SegmentRole.Button && segment.Text == "[r reword]");
+            segment => segment.Role == SegmentRole.StatusKey && segment.Text == "r");
     }
 
     [Fact]
@@ -87,11 +87,11 @@ public class RebaseEditorFrameBuilderTests
         var firstRow = frame.Lines[chipLine].Text;
         var secondRow = frame.Lines[chipLine + 1].Text;
 
-        Assert.Equal(DefaultMouseMap.RebasePickButton, ChipAt(state, chipLine, firstRow, "[p pick]", 0));
-        Assert.Equal(DefaultMouseMap.RebaseDropButton, ChipAt(state, chipLine, firstRow, "[d drop]", 3));
-        Assert.Null(ChipAt(state, chipLine, firstRow, "[p pick]", "[p pick]".Length));
-        Assert.Equal(DefaultMouseMap.RebaseCancelButton, ChipAt(state, chipLine + 1, secondRow, "[Esc cancel]", 0));
-        Assert.Equal(DefaultMouseMap.RebaseStartButton, ChipAt(state, chipLine + 1, secondRow, "[Enter start]", 0));
+        Assert.Equal(DefaultMouseMap.RebasePickButton, ChipAt(state, chipLine, firstRow, "p pick", 0));
+        Assert.Equal(DefaultMouseMap.RebaseDropButton, ChipAt(state, chipLine, firstRow, "d drop", 3));
+        Assert.Null(ChipAt(state, chipLine, firstRow, "p pick", "p pick".Length));
+        Assert.Equal(DefaultMouseMap.RebaseCancelButton, ChipAt(state, chipLine + 1, secondRow, "Esc cancel", 0));
+        Assert.Equal(DefaultMouseMap.RebaseStartButton, ChipAt(state, chipLine + 1, secondRow, "Enter start", 0));
         Assert.Null(RebaseEditorFrameBuilder.ChipAt(state, 1, 5, 80, 24));
     }
 
@@ -117,13 +117,13 @@ public class RebaseEditorFrameBuilderTests
         var frame = RebaseEditorFrameBuilder.Build(state, 40, 30, GraphGlyphSet.Unicode)!;
         var text = string.Join('\n', frame.Lines.Select(line => line.Text));
 
-        foreach (var chip in new[] { "[p pick]", "[r reword]", "[s squash]", "[f fixup]", "[d drop]", "[K move up]",
-            "[J move down]", "[Enter start]", "[Esc cancel]" })
+        foreach (var chip in new[] { "p pick", "r reword", "s squash", "f fixup", "d drop", "K move up",
+            "J move down", "Enter start", "Esc cancel" })
         {
             Assert.Contains(chip, text, StringComparison.Ordinal);
         }
 
-        const string start = "[Enter start]";
+        const string start = "Enter start";
         var startLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains(start, StringComparison.Ordinal));
         var startColumn = frame.Lines[startLine].Text.IndexOf(start, StringComparison.Ordinal);
         var view = RebaseEditorFrameBuilder.ChipAt(state, startLine, startColumn, 40, 30);

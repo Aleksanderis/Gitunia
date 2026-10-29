@@ -441,8 +441,8 @@ public class RebaseEditorControllerTests
         Assert.Equal(2, harness.Controller.State!.SelectedIndex);
 
         var frame = harness.Controller.CurrentFrame()!;
-        var chipLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("[p pick]", StringComparison.Ordinal));
-        var column = frame.Lines[chipLine].Text.IndexOf("[d drop]", StringComparison.Ordinal);
+        var chipLine = frame.Lines.ToList().FindIndex(line => line.Text.Contains("p pick", StringComparison.Ordinal));
+        var column = frame.Lines[chipLine].Text.IndexOf("d drop", StringComparison.Ordinal);
         var view = harness.Controller.OnLineClicked(chipLine, column, out var chipHandled);
         Assert.Equal(DefaultMouseMap.RebaseDropButton, view);
         Assert.True(chipHandled);

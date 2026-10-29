@@ -52,7 +52,7 @@ public static class SettingsFrameBuilder
         lines.AddRange(BodyLines(state, layout, glyphs));
         lines.Add(RuleLine(layout, glyphs));
         lines.AddRange(HelpLines(state, layout, glyphs));
-        lines.Add(OverlayBox.Text(HintText(state), layout.Width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints(HintText(state), layout.Width, glyphs));
         lines.Add(OverlayBox.Bottom(layout.Width, glyphs));
 
         return new OverlayFrame(left, 1, lines);
