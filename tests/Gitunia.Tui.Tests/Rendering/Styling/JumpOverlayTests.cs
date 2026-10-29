@@ -31,7 +31,9 @@ public class JumpOverlayTests
 
         var line = builder.Build();
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.LaneLabel && segment.ColorIndex == 5);
-        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.LaneLabel && segment.ColorIndex != 5);
+        Assert.DoesNotContain(
+            line.Segments,
+            segment => segment.Role == SegmentRole.LaneLabel && segment.ColorIndex != 5);
     }
 
     [Fact]
