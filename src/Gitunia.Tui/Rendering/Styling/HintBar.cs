@@ -2,7 +2,7 @@ using Gitunia.Core.Keymap;
 
 namespace Gitunia.Tui.Rendering.Styling;
 
-/// <summary>One entry of a hint row: the key text (bold) and what it does. An empty key makes it a plain note.</summary>
+/// <summary>One entry of a hint row: the key text (bold) and what it does; an empty key is a plain note.</summary>
 /// <param name="Keys">The key text, such as <c>Enter</c> or <c>j/k</c>; empty for a plain note.</param>
 /// <param name="Label">What the key does.</param>
 public readonly record struct HintItem(string Keys, string Label)
