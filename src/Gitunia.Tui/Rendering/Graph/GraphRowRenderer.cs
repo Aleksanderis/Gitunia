@@ -218,7 +218,7 @@ public static class GraphRowRenderer
         switch (label.Kind)
         {
             case RefKind.LocalBranch or RefKind.RemoteBranch:
-                var prefix = label is { Kind: RefKind.LocalBranch, IsCurrent: true } ? glyphs.CurrentBranch : "";
+                var prefix = label.Kind != RefKind.LocalBranch ? "" : label.IsCurrent ? glyphs.CurrentBranch : glyphs.LocalBranch;
                 var suffix = label.HasRemote ? glyphs.Remote : "";
                 builder.Add(new StyledSegment($"{prefix}{label.Name}{suffix}", SegmentRole.LaneLabel, colorIndex));
                 break;
