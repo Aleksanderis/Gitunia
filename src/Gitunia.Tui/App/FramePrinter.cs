@@ -64,12 +64,10 @@ public sealed class FramePrinter
         }
 
         // The Changes tab shows the diff of its first file beside the file list whenever the screen has room for both.
-        // The Files tab pairs with the content pane only under a zoom of the pair: a simplification, the live UI
-        // shows the content beside the tree from the start (#784).
+        // The Files tab shows the content pane beside the tree from the start, as the live UI does (#784).
         arrangement ??= PaneArrangement.Normal;
         var zoomsPair = arrangement.Zoomed is { } zoomed && PaneZoom.IsZoomPair(zoomed, PaneKind.Diff);
-        if ((tab == BottomTab.Changes || (tab == BottomTab.Files && zoomsPair))
-            && PaneLayout.ShowsDiffWithChanges(width, height, tab))
+        if (PaneLayout.ShowsDiffWithChanges(width, height, tab))
         {
             // A zoomed detail or diff pane zooms with its partner, as in the live UI (#632, #642, #712).
             arrangement = arrangement with { IsDiffOpen = true, ZoomBoth = zoomsPair };

@@ -14,7 +14,16 @@ internal static class ChangedText
         LineBuilder builder,
         string text,
         SegmentRole role,
-        IReadOnlyList<ChangedSpan>? changes)
+        IReadOnlyList<ChangedSpan>? changes) =>
+        Append(builder, text, role, changes, DiffRowRenderer.RoleOf(role, DiffRowRenderer.CellFlags.Changed));
+
+    /// <summary>As above, with the role of the changed stretches given (the line is not added or removed).</summary>
+    public static void Append(
+        LineBuilder builder,
+        string text,
+        SegmentRole role,
+        IReadOnlyList<ChangedSpan>? changes,
+        SegmentRole changedRole)
     {
         if (changes is not { Count: > 0 })
         {
@@ -23,7 +32,6 @@ internal static class ChangedText
             return;
         }
 
-        var changedRole = DiffRowRenderer.RoleOf(role, DiffRowRenderer.CellFlags.Changed);
         var position = 0;
         foreach (var span in changes)
         {
