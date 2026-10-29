@@ -218,7 +218,7 @@ public static class GraphRowRenderer
         switch (label.Kind)
         {
             case RefKind.LocalBranch or RefKind.RemoteBranch:
-                var prefix = label is { Kind: RefKind.LocalBranch, IsCurrent: true } ? glyphs.CurrentBranch : "";
+                var prefix = BranchPrefix(label, glyphs);
                 var suffix = label.HasRemote ? glyphs.Remote : "";
                 builder.Add(new StyledSegment($"{prefix}{label.Name}{suffix}", SegmentRole.LaneLabel, colorIndex));
                 break;
@@ -237,5 +237,15 @@ public static class GraphRowRenderer
         {
             builder.Add(new StyledSegment(glyphs.UpstreamGone, SegmentRole.Faint));
         }
+    }
+
+    private static string BranchPrefix(RefLabel label, GraphGlyphSet glyphs)
+    {
+        if (label.Kind != RefKind.LocalBranch)
+        {
+            return "";
+        }
+
+        return label.IsCurrent ? glyphs.CurrentBranch : glyphs.LocalBranch;
     }
 }
