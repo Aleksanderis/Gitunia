@@ -285,7 +285,7 @@ public sealed class CommitActions(
 
         if (action == ActionIds.Cancel)
         {
-            return TryStopEditing(isInBox);
+            return TryStopEditing(tab, isInBox);
         }
 
         if (action == ActionIds.NavigateBack && isInBox)
@@ -802,12 +802,14 @@ public sealed class CommitActions(
         return true;
     }
 
-    private bool TryStopEditing(bool isInBox)
+    private bool TryStopEditing(RepositoryState tab, bool isInBox)
     {
         if (!isInBox || !IsEditing)
         {
             return false;
         }
+
+        DraftFor(tab.Id).Editor.DropUndoPointIfUnchanged();
 
         _ownsInsert = false;
         setMode(KeyMode.Normal);

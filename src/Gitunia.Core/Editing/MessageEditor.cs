@@ -121,6 +121,15 @@ public sealed class MessageEditor
         }
     }
 
+    /// <summary>Forgets the last undo point when the text still equals it (a change that changed nothing, e.g. <c>i</c> then <c>Esc</c>).</summary>
+    public void DropUndoPointIfUnchanged()
+    {
+        if (_undo.Count > 0 && _undo[^1].Lines.SequenceEqual(_lines))
+        {
+            _undo.RemoveAt(_undo.Count - 1);
+        }
+    }
+
     /// <summary>Returns to the last undo point; false when there is none.</summary>
     public bool Undo()
     {

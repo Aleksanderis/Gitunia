@@ -311,6 +311,21 @@ public class CommitActionsTests
     }
 
     [Fact]
+    public void GivenAnEarlierChange_WhenInsertEndsWithNothingTyped_ThenUndoRevertsTheEarlierChange()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type("first");
+        harness.Run(ActionIds.Cancel);
+        harness.Run(ActionIds.WorkingTreeEditMessage);
+        harness.Run(ActionIds.Cancel);
+
+        harness.Run(ActionIds.WorkingTreeMessageUndo);
+
+        Assert.Equal(string.Empty, harness.Draft.Editor.Text);
+    }
+
+    [Fact]
     public void GivenNormalKeysRunWithTheFocusElsewhere_WhenTheBoxIsNotFocused_ThenTheTextIsUntouched()
     {
         using var harness = new Harness(Modified("a.txt"), StagedModified("b.txt"));
