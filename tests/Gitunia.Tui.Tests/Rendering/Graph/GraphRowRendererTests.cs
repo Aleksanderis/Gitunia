@@ -184,6 +184,22 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenABranchTipAheadOfAnotherBranchTip_WhenRendering_ThenTheTwoCommitsSitInDifferentColumns()
+    {
+        var feature = CommitFactory.Commit(
+            1, "feature work", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var main = CommitFactory.Commit(
+            2, "main work", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var root = CommitFactory.Commit(3, "root", []);
+
+        var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, root);
+
+        Assert.StartsWith("●  (feature) feature work", rows[0]);
+        Assert.StartsWith("╰─●  (", rows[1]);
+        Assert.StartsWith("  ●  root", rows[2]);
+    }
+
+    [Fact]
     public void GivenAsciiGlyphs_WhenRenderingMergedBranch_ThenAsciiMarkersAreUsed()
     {
         var commit = CommitFactory.Commit(

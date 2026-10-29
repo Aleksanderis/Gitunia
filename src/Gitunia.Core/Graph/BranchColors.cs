@@ -70,7 +70,11 @@ public static class BranchColors
     /// <summary>The colour slot a branch name starts from: a stable hash of the name, never of the position.</summary>
     /// <param name="name">The branch name without a remote prefix.</param>
     /// <param name="slotCount">Distinct colours the palette has.</param>
-    public static int PreferredSlot(string name, int slotCount = SlotCount)
+    public static int PreferredSlot(string name, int slotCount = SlotCount) => (int)(HashOf(name) % (uint)slotCount);
+
+    /// <summary>A stable 32-bit hash of a branch name (FNV-1a over its UTF-16 characters).</summary>
+    /// <param name="name">The branch name without a remote prefix.</param>
+    public static uint HashOf(string name)
     {
         var hash = HashOffset;
         foreach (var character in name)
@@ -78,7 +82,7 @@ public static class BranchColors
             hash = (hash ^ character) * HashPrime;
         }
 
-        return (int)(hash % (uint)slotCount);
+        return hash;
     }
 
     private static string Smaller(string? current, string candidate) =>

@@ -11,7 +11,16 @@ namespace Gitunia.Core.Tests.Graph;
 /// </summary>
 public static class GraphTopologyValidator
 {
-    public static IReadOnlyList<string> Validate(IReadOnlyList<CommitInfo> commits, IReadOnlyList<GraphRow> rows)
+    /// <param name="commits">The commits, children first.</param>
+    /// <param name="rows">Their layout.</param>
+    /// <param name="allowsOwnLane">
+    /// A branch tip may start a lane of its own although another lane waits for it (#759), so its node need not be in
+    /// the leftmost waiting lane; it still must not sit in a lane that waits for another commit.
+    /// </param>
+    public static IReadOnlyList<string> Validate(
+        IReadOnlyList<CommitInfo> commits,
+        IReadOnlyList<GraphRow> rows,
+        bool allowsOwnLane = false)
     {
         var problems = new List<string>();
         if (commits.Count != rows.Count)
@@ -38,9 +47,15 @@ public static class GraphTopologyValidator
                 problems.Add($"{where}: incoming lanes [{string.Join(",", incomingLanes)}] but lanes waiting for the commit are [{string.Join(",", expectedIncoming)}]");
             }
 
-            if (expectedIncoming.Length > 0 && row.Lane != expectedIncoming[0])
+            var isNodeLaneAllowed = allowsOwnLane || row.Lane == expectedIncoming.FirstOrDefault();
+            if (expectedIncoming.Length > 0 && !isNodeLaneAllowed)
             {
                 problems.Add($"{where}: node is not in the leftmost lane waiting for it");
+            }
+
+            if (waiting.TryGetValue(row.Lane, out var laneOwner) && laneOwner != commit.Id)
+            {
+                problems.Add($"{where}: node sits in a lane that waits for another commit");
             }
 
             var throughLanes = row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Through).ToArray();

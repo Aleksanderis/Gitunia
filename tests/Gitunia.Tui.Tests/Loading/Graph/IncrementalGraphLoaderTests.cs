@@ -249,6 +249,68 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenBranchesOnCommitsOfOneChain_WhenReading_ThenCommitsOfDifferentBranchesSitInDifferentLanes()
+    {
+        using var testRepository = LongHistory(6);
+        testRepository.Branch("first", "HEAD~1");
+        testRepository.Branch("second", "HEAD~3");
+
+        var entries = await ReadAllAsync(testRepository);
+
+        var tip = entries.Single(entry => entry.Id.ToString() == testRepository.Head);
+        var first = entries.Single(entry => entry.Id.ToString() == testRepository.Git("rev-parse", "HEAD~1").Trim());
+        var second = entries.Single(entry => entry.Id.ToString() == testRepository.Git("rev-parse", "HEAD~3").Trim());
+        Assert.NotEqual(tip.Row.Lane, first.Row.Lane);
+        Assert.NotEqual(first.Row.Lane, second.Row.Lane);
+        Assert.Contains(first.Row.Edges, edge => edge.Kind == GraphEdgeKind.Incoming && edge.FromLane == tip.Row.Lane);
+    }
+
+    [Fact]
+    public async Task GivenThreeParallelBranches_WhenReading_ThenTheirCommitsNeverShareALaneWhileTheyAreOpen()
+    {
+        using var testRepository = LongHistory(3);
+
+        // Two commits per branch, committed round-robin so their dates interleave.
+        foreach (var branch in ParallelBranches)
+        {
+            testRepository.Checkout("main~1").CheckoutNewBranch(branch)
+                .Commit($"{branch} 1", new TestFile($"{branch}1.txt", "1"));
+        }
+
+        foreach (var branch in ParallelBranches)
+        {
+            testRepository.Checkout(branch).Commit($"{branch} 2", new TestFile($"{branch}2.txt", "1"));
+        }
+
+        testRepository.Checkout("main");
+
+        var entries = await ReadAllAsync(testRepository);
+
+        var lanes = ParallelBranches.ToDictionary(
+            branch => branch,
+            branch => entries.Single(entry => entry.Subject == $"{branch} 2").Row.Lane);
+        Assert.Equal(3, lanes.Values.Distinct().Count());
+        foreach (var (branch, lane) in lanes)
+        {
+            Assert.Equal(lane, entries.Single(entry => entry.Subject == $"{branch} 1").Row.Lane);
+        }
+    }
+
+    [Fact]
+    public async Task GivenBranchesOnCommitsOfOneChain_WhenReloadingAfterANewCommit_ThenTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(30);
+        testRepository.Branch("first", "HEAD~1");
+        testRepository.Branch("second", "HEAD~10");
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+    }
+
+    [Fact]
     public async Task GivenCurrentBranchWithTheOldestTip_WhenReading_ThenTheNewestTipIsLeftmostAndHeadIsNot()
     {
         using var testRepository = LongHistory(3);
@@ -268,6 +330,8 @@ public class IncrementalGraphLoaderTests
         Assert.Equal(1, older.Row.Lane);
         Assert.Equal(1, head.Row.Lane);
     }
+
+    private static readonly string[] ParallelBranches = ["alpha", "beta", "gamma"];
 
     private static async Task<GraphEntry[]> ReadAllAsync(FakeCommitLogReader commitLog)
     {

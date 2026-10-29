@@ -19,6 +19,10 @@ public sealed class GraphLayoutBuilder
 
     // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
     private readonly List<int> _laneSlots = [];
+
+    // The branch each lane belongs to (null when no branch name started it) and a hash of the name for fingerprints.
+    private readonly List<string?> _laneBranches = [];
+    private readonly List<uint> _laneBranchHashes = [];
     private readonly List<GraphRow> _rows = [];
 
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
@@ -54,15 +58,7 @@ public sealed class GraphLayoutBuilder
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
-        var nodeLane = IndexOfLane(commitId);
-        if (nodeLane < 0)
-        {
-            nodeLane = FindFreeLane();
-            EnsureLane(nodeLane);
-            _laneSlots[nodeLane] = SlotForNewLane(commitId);
-        }
-
-        EnsureLane(nodeLane);
+        var nodeLane = NodeLaneOf(commitId);
         var nodeColor = _laneSlots[nodeLane];
 
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -92,7 +88,16 @@ public sealed class GraphLayoutBuilder
                 parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
                 EnsureLane(parentLane);
 
-                _laneSlots[parentLane] = parentIndex == 0 ? nodeColor : SlotForNewLane(parent);
+                if (parentIndex == 0)
+                {
+                    _laneSlots[parentLane] = nodeColor;
+                }
+                else
+                {
+                    _branchTips.TryGetValue(parent, out var parentBranch);
+                    StartLane(parentLane, parent, parentBranch);
+                }
+
                 _lanes[parentLane] = parent;
             }
 
@@ -123,6 +128,49 @@ public sealed class GraphLayoutBuilder
         return added;
     }
 
+    // The lane of the commit's node. A lane waiting for it that belongs to the same branch (or any lane waiting for a
+    // commit that no branch name starts) is the node's lane, the leftmost one. A commit that carries a branch name and
+    // is only waited for by lanes of other branches starts a lane of its own: the other branches' lines bend into it
+    // (#759), so commits of different branches never share a column.
+    private int NodeLaneOf(ObjectId commitId)
+    {
+        _branchTips.TryGetValue(commitId, out var branch);
+        for (var lane = 0; lane < _lanes.Count; lane++)
+        {
+            if (_lanes[lane] != commitId)
+            {
+                continue;
+            }
+
+            if (branch is null || _laneBranches[lane] == branch)
+            {
+                return lane;
+            }
+        }
+
+        var nodeLane = FindFreeLane();
+        EnsureLane(nodeLane);
+        StartLane(nodeLane, commitId, branch);
+
+        return nodeLane;
+    }
+
+    // A new lane that starts at this commit: coloured by its branch name, else by the commit.
+    private void StartLane(int lane, ObjectId commitId, string? branch)
+    {
+        _laneSlots[lane] = SlotForNewLane(commitId, branch);
+        if (branch is not null)
+        {
+            _laneBranches[lane] = branch;
+            _laneBranchHashes[lane] = BranchColors.HashOf(branch);
+        }
+        else
+        {
+            _laneBranches[lane] = null;
+            _laneBranchHashes[lane] = 0;
+        }
+    }
+
     private int IndexOfLane(ObjectId commitId)
     {
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -142,14 +190,16 @@ public sealed class GraphLayoutBuilder
         {
             _lanes.Add(default);
             _laneSlots.Add(0);
+            _laneBranches.Add(null);
+            _laneBranchHashes.Add(0);
         }
     }
 
     // The slot of a lane that starts at this commit: its branch's slot when it is a branch tip, else one derived from
     // the commit, in both cases moved on to the next slot no open lane of another branch is using.
-    private int SlotForNewLane(ObjectId commitId)
+    private int SlotForNewLane(ObjectId commitId, string? name)
     {
-        if (!_branchTips.TryGetValue(commitId, out var name))
+        if (name is null)
         {
             return FreeSlotFrom((int)(commitId.Hash64 % (uint)_colorCount));
         }
@@ -213,7 +263,8 @@ public sealed class GraphLayoutBuilder
         {
             if (_lanes[lane].IsValid)
             {
-                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48))
+                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48)
+                    ^ ((ulong)_laneBranchHashes[lane] << 8))
                     * 1099511628211UL;
             }
         }
@@ -231,5 +282,7 @@ public sealed class GraphLayoutBuilder
 
         _lanes.RemoveRange(count, _lanes.Count - count);
         _laneSlots.RemoveRange(count, _laneSlots.Count - count);
+        _laneBranches.RemoveRange(count, _laneBranches.Count - count);
+        _laneBranchHashes.RemoveRange(count, _laneBranchHashes.Count - count);
     }
 }
