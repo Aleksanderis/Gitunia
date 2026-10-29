@@ -216,7 +216,7 @@ public class GraphRowRendererTests
 
         var rows = Rows(GraphGlyphSet.Unicode, 60, main, tip, first, fork, root);
 
-        Assert.StartsWith("●  (◆ main) main tip", rows[0].Replace("⎇ ", "◆ ", StringComparison.Ordinal));
+        Assert.StartsWith("●  (⎇ main) main tip", rows[0]);
         Assert.StartsWith("│ ●  (feature) feature tip", rows[1]);
         Assert.StartsWith("│ ├  feature first", rows[2]);
         Assert.StartsWith("●─╯  fork point", rows[3]);
@@ -226,6 +226,19 @@ public class GraphRowRendererTests
         Assert.Equal(graph[0].Row.NodeColor, graph[4].Row.NodeColor);
         Assert.Equal(graph[1].Row.NodeColor, graph[2].Row.NodeColor);
         Assert.NotEqual(graph[0].Row.NodeColor, graph[1].Row.NodeColor);
+
+        // The label of the feature tip is a box in the feature lane's colour, the curve at the fork is drawn in it too
+        // while the node of the fork keeps main's colour.
+        var options = new GraphRowOptions(60, 2, GraphGlyphSet.Unicode);
+        var tipLine = GraphRowRenderer.Render(graph[1], options, false);
+        var label = tipLine.Segments.Single(segment => segment.Role == SegmentRole.LaneLabel);
+        Assert.Equal(graph[1].Row.NodeColor, label.ColorIndex);
+        var forkLine = GraphRowRenderer.Render(graph[3], options, false);
+        var curve = forkLine.Segments.Where(segment => segment.Role == SegmentRole.Lane).ToArray();
+        Assert.Equal(graph[0].Row.NodeColor, curve[0].ColorIndex);
+        Assert.Contains("●", curve[0].Text, StringComparison.Ordinal);
+        Assert.Equal(graph[1].Row.NodeColor, curve[^1].ColorIndex);
+        Assert.Contains("╯", curve[^1].Text, StringComparison.Ordinal);
     }
 
     [Fact]
