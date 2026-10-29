@@ -267,7 +267,8 @@ public sealed class TuiApplication(
             PaneView,
             () => _keys.Mode,
             mode => _keys.SetMode(mode),
-            new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy);
+            new RangeCopier(clipboard, ActiveSession, () => _host.Workspace.ActiveTab?.WorkingTree).Copy,
+            text => _statuses.Post(text));
         _router.Visual = _visual;
         var operationGate = new TabOperationGate();
         var staging = CreateStaging(operationGate);

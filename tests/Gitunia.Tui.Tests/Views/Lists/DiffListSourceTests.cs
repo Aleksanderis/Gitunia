@@ -197,6 +197,46 @@ public class DiffListSourceTests
         Assert.Equal(DefaultMouseMap.DiffStageButton, source.ButtonAt(list, chip.Start + 1, source.LineOf(0)));
     }
 
+    [Fact]
+    public void GivenAnIdenticalDocument_WhenUpdating_ThenTheRangeIsNotInvalidated()
+    {
+        var source = NewSource();
+        var raised = 0;
+        source.RangeInvalidated += () => raised++;
+        source.Range = new RowRange(0, 1);
+
+        source.Update(new DiffDocument([.. Rows], [0, 4], [], [["f"]], 5));
+
+        Assert.Equal(0, raised);
+        Assert.Equal(new RowRange(0, 1), source.Range);
+    }
+
+    [Fact]
+    public void GivenAChangedRow_WhenUpdating_ThenTheRangeIsInvalidated()
+    {
+        var source = NewSource();
+        var raised = 0;
+        source.RangeInvalidated += () => raised++;
+        var changed = Rows.ToArray();
+        changed[1] = changed[1] with { Text = "other" };
+
+        source.Update(new DiffDocument(changed, [0, 4], [], [["f"]], 5));
+
+        Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public void GivenTheSameRowsInAnotherFile_WhenUpdating_ThenTheRangeIsInvalidated()
+    {
+        var source = NewSource();
+        var raised = 0;
+        source.RangeInvalidated += () => raised++;
+
+        source.Update(new DiffDocument([.. Rows], [0, 4], [], [["g"]], 5));
+
+        Assert.Equal(1, raised);
+    }
+
     private static List<int> Marked(DiffListSource source, ListView list) =>
         [.. Enumerable.Range(0, source.Count).Where(item => source.IsInCursorGroup(list, item))];
 

@@ -1,5 +1,6 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git;
+using Gitunia.Git.Commits.Models;
 using Xunit;
 using static Gitunia.Core.Tests.Graph.GraphTestData;
 
@@ -177,4 +178,57 @@ public class GraphBranchColorTests
 
         Assert.True(checkedCommits > 50);
     }
+
+    [Fact]
+    public void GivenTwoCollidingNamesWhoseLanesDoNotOverlap_WhenTheTipsAreClose_ThenTheirSlotsDiffer()
+    {
+        var first = "branch-0";
+        var second = CollidingName(first);
+        var commits = new[] { Commit(1, 2), Commit(2), Commit(3, 4), Commit(4) };
+        var tips = new Dictionary<ObjectId, string> { [Id(1)] = first, [Id(3)] = second };
+
+        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+
+        Assert.NotEqual(rows[0].NodeColor, rows[2].NodeColor);
+    }
+
+    [Fact]
+    public void GivenTwoCollidingNamesFarApart_WhenLayingOut_ThenTheyMayShareTheSlot()
+    {
+        var first = "branch-0";
+        var second = CollidingName(first);
+        var commits = new List<CommitInfo> { Commit(1, 2), Commit(2) };
+        var filler = GraphLayoutBuilder.NearRowCount + 1;
+        commits.AddRange(Enumerable.Range(10, filler).Select(number => Commit(number, number + 1)));
+        commits.Add(Commit(10 + filler));
+        commits.Add(Commit(5000, 5001));
+        commits.Add(Commit(5001));
+        var tips = new Dictionary<ObjectId, string> { [Id(1)] = first, [Id(5000)] = second };
+
+        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+
+        Assert.Equal(rows[0].NodeColor, rows[^2].NodeColor);
+    }
+
+    [Fact]
+    public void GivenManyCloseTips_WhenLayingOut_ThenNoSlotRepeatsWhileOneIsFree()
+    {
+        var commits = new List<CommitInfo>();
+        var tips = new Dictionary<ObjectId, string>();
+        for (var index = 0; index < BranchColors.SlotCount; index++)
+        {
+            commits.Add(Commit(100 + index * 2, 101 + index * 2));
+            commits.Add(Commit(101 + index * 2));
+            tips[Id(100 + index * 2)] = $"topic-{index}";
+        }
+
+        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+
+        var tipSlots = rows.Where((_, index) => index % 2 == 0).Select(row => row.NodeColor).ToArray();
+        Assert.Equal(BranchColors.SlotCount, tipSlots.Distinct().Count());
+    }
+
+    private static string CollidingName(string name) =>
+        Enumerable.Range(1, 1000).Select(number => $"branch-{number}")
+            .First(other => BranchColors.PreferredSlot(other) == BranchColors.PreferredSlot(name));
 }
