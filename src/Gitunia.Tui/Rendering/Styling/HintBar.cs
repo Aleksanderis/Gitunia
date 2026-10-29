@@ -20,16 +20,6 @@ public readonly record struct HintItem(string Keys, string Label)
 public static class HintBar
 {
     private const string Margin = " ";
-    private const int MinimumGapColumns = 2;
-    private const char Space = ' ';
-
-    private static readonly HashSet<string> NamedKeys = new(StringComparer.Ordinal)
-    {
-        "Enter", "Esc", "Tab", "Space", "Backspace", "Delete", "Up", "Down", "Left", "Right", "Home", "End",
-        "PageUp", "PageDown",
-    };
-
-    private static readonly string[] KeyPrefixes = ["Ctrl-", "Alt-", "Shift-", "<"];
 
     /// <summary>Appends <paramref name="items"/> separated by <paramref name="gap"/>, starting with a one-column
     /// margin.</summary>
@@ -58,79 +48,5 @@ public static class HintBar
 
         builder.Append(KeyFormatter.BreakLigatures(item.Keys), SegmentRole.StatusKey);
         builder.Append($" {item.Label}", SegmentRole.Status);
-    }
-
-    /// <summary>
-    /// Reads a hint text written as <c>key label</c> entries separated by two or more spaces
-    /// (<c>Enter choose   Esc cancel</c>). An entry whose first word is not a key (see <see cref="IsKey"/>) is a
-    /// plain note.
-    /// </summary>
-    public static IReadOnlyList<HintItem> Parse(string text)
-    {
-        var items = new List<HintItem>();
-        var start = 0;
-        while (start < text.Length)
-        {
-            var end = EndOfEntry(text, start);
-            var entry = text[start..end].Trim();
-            if (entry.Length > 0)
-            {
-                items.Add(ToItem(entry));
-            }
-
-            start = end;
-            while (start < text.Length && text[start] == Space)
-            {
-                start++;
-            }
-        }
-
-        return items;
-    }
-
-    /// <summary>
-    /// Whether <paramref name="word"/> reads as a key: a named key (<c>Enter</c>, <c>Up</c>), a chord prefix
-    /// (<c>Ctrl-g</c>, <c>&lt;space&gt;o</c>), one character, or anything with a digit or punctuation (<c>j/k</c>,
-    /// <c>+/-</c>, <c>1-9</c>). Ordinary words are not.
-    /// </summary>
-    public static bool IsKey(string word) =>
-        word.Length == 1
-        || NamedKeys.Contains(word)
-        || KeyPrefixes.Any(prefix => word.StartsWith(prefix, StringComparison.Ordinal))
-        || word.Any(character => !char.IsLetter(character));
-
-    private static int EndOfEntry(string text, int start)
-    {
-        var index = start;
-        while (index < text.Length)
-        {
-            var run = 0;
-            while (index + run < text.Length && text[index + run] == Space)
-            {
-                run++;
-            }
-
-            if (run >= MinimumGapColumns)
-            {
-                return index;
-            }
-
-            index += Math.Max(1, run);
-        }
-
-        return text.Length;
-    }
-
-    private static HintItem ToItem(string entry)
-    {
-        var space = entry.IndexOf(Space, StringComparison.Ordinal);
-        var word = space < 0 ? entry : entry[..space];
-
-        if (space > 0 && IsKey(word))
-        {
-            return new HintItem(word, entry[(space + 1)..].TrimStart());
-        }
-
-        return new HintItem(string.Empty, entry);
     }
 }

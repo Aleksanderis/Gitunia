@@ -39,20 +39,9 @@ public static class OverlayBox
         Wrap(new LineBuilder(InnerWidth(width), glyphs.Ellipsis).Append($" {text}", role).Build(), glyphs);
 
     /// <summary>
-    /// A footer row of key hints (<see cref="HintBar.Parse"/>), drawn like the status bar's: bold keys on the bar
-    /// colours. <paramref name="lead"/> is plain text before the hints, such as a position.
-    /// </summary>
-    public static StyledLine Hints(
-        string hints,
-        int width,
-        GraphGlyphSet glyphs,
-        string lead = "",
-        string gap = HintGap) =>
-        Hints(HintBar.Parse(hints), width, glyphs, lead, gap);
-
-    /// <summary>
-    /// A footer row of explicit hints: the keys are named by the caller, nothing is guessed from the text. An item
-    /// with empty keys is a plain note.
+    /// A footer row of key hints, drawn like the status bar's: bold keys on the bar colours. The keys are named by
+    /// the caller, nothing is guessed from the text. An item with empty keys is a plain note.
+    /// <paramref name="lead"/> is plain text before the hints, such as a position.
     /// </summary>
     public static StyledLine Hints(
         IEnumerable<HintItem> hints,
