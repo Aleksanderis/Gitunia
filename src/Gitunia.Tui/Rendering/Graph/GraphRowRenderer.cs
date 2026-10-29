@@ -174,7 +174,7 @@ public static class GraphRowRenderer
     {
         foreach (var segment in segments)
         {
-            builder.Append(segment.Text, segment.Role);
+            builder.Append(segment.Text, segment.Role, segment.ColorIndex);
         }
     }
 

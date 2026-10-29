@@ -18,6 +18,23 @@ public class JumpOverlayTests
     }
 
     [Fact]
+    public void GivenPartsWithAColourIndex_WhenDrawingALabel_ThenThePiecesKeepTheirColourIndex()
+    {
+        var builder = new LineBuilder(30, "…");
+        var parts = new[]
+        {
+            new StyledSegment("main", SegmentRole.LaneLabel, 5),
+            new StyledSegment(" subject text", SegmentRole.Plain),
+        };
+
+        JumpOverlay.Append(builder, parts, new JumpLabel(0, 8, 4, 'k'));
+
+        var line = builder.Build();
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.LaneLabel && segment.ColorIndex == 5);
+        Assert.DoesNotContain(line.Segments, segment => segment.Role == SegmentRole.LaneLabel && segment.ColorIndex != 5);
+    }
+
+    [Fact]
     public void GivenAWideCharacterAfterTheMatch_WhenDrawing_ThenABlankKeepsTheRestOfTheRowInPlace()
     {
         var line = Draw("ab中cd", new JumpLabel(0, 0, 2, 'k'), 10);
