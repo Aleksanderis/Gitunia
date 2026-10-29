@@ -1045,6 +1045,7 @@ public sealed class TuiApplication(
         _remote,
         services.Remote,
         services.Tags.ListRemotesAsync,
+        services.Ancestry.IsAncestorAsync,
         _statuses,
         InvokeOnUi,
         tabId => _effects.SessionOf(tabId)?.Cancellation.Token ?? CancellationToken.None,

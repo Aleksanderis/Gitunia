@@ -31,6 +31,8 @@ namespace Gitunia.Tui.App.Remote;
 /// <param name="remote">Runs the pushes as the tab's remote operation.</param>
 /// <param name="writer">Deletes a branch on a remote.</param>
 /// <param name="remotesOf">Lists the configured remotes of a repository.</param>
+/// <param name="isAncestor">Whether the first commit is in the history of the second (a first push is only offered a
+/// force when the local branch is not just behind the remote one).</param>
 /// <param name="statuses">Where the outcome is reported.</param>
 /// <param name="postToUi">Runs an action on the UI thread.</param>
 /// <param name="cancellationOf">The token that ends the work of a tab (the tab was closed).</param>
@@ -44,6 +46,7 @@ public sealed class PushActions(
     RemoteActions remote,
     IRemoteWriter writer,
     Func<RepositoryLocation, CancellationToken, Task<IReadOnlyList<string>>> remotesOf,
+    Func<RepositoryLocation, string, string, CancellationToken, Task<bool>> isAncestor,
     StatusChannel statuses,
     Action<Action> postToUi,
     Func<TabId, CancellationToken> cancellationOf,
@@ -206,7 +209,11 @@ public sealed class PushActions(
             return;
         }
 
-        ConfirmForce(tab, current, new RemoteBranchName(remoteName, pushedBranch), tracking, true);
+        // Only a branch with commits of its own is worth a force: one that is just behind needs a pull or rebase.
+        _busy.Add(tabId);
+        var token = cancellationOf(tabId);
+        var target = new RemoteBranchName(remoteName, pushedBranch);
+        _ = Task.Run(() => CheckAheadAsync(tab, current, target, tracking, token), CancellationToken.None);
     }
 
     public void OnGraphChanged()
@@ -219,6 +226,58 @@ public sealed class PushActions(
     private static bool HasUpstream(GitRef branch) => branch.UpstreamFullName is not null && !branch.IsUpstreamGone;
 
     private static string ShortHash(string hash) => hash[..Math.Min(ShortHashLength, hash.Length)];
+
+    private async Task CheckAheadAsync(
+        RepositoryState tab,
+        GitRef current,
+        RemoteBranchName target,
+        GitRef tracking,
+        CancellationToken token)
+    {
+        try
+        {
+            var behind = await isAncestor(tab.Location, current.CommitHash, tracking.CommitHash, token)
+                .ConfigureAwait(false);
+            postToUi(() => OnAheadChecked(tab, current, target, tracking, behind));
+        }
+        catch (OperationCanceledException)
+        {
+            postToUi(() => _busy.Remove(tab.Id));
+        }
+        catch (Exception exception)
+        {
+            var failure = $"Could not compare {current.Name} with {target.Remote}/{target.Branch}: "
+                + RemoteFailureText.Reason(exception);
+            postToUi(() => Finish(tab.Id, failure, StatusSeverity.Error, false));
+        }
+    }
+
+    private void OnAheadChecked(
+        RepositoryState tab,
+        GitRef current,
+        RemoteBranchName target,
+        GitRef tracking,
+        bool behind)
+    {
+        _busy.Remove(tab.Id);
+        if (_kind != PushPromptKind.None || host.Workspace.ActiveTabId != tab.Id
+            || host.Workspace.ActiveTab is not { } active || CurrentBranchOf(active)?.CommitHash != current.CommitHash)
+        {
+            return;
+        }
+
+        if (behind)
+        {
+            statuses.Warning(
+                $"{current.Name} is behind {target.Remote}/{target.Branch}: pull or rebase it, no force push offered");
+        }
+        else
+        {
+            ConfirmForce(tab, current, target, tracking, true);
+        }
+
+        redraw();
+    }
 
     private bool TryHandleOpenPrompt(ActionId action)
     {
