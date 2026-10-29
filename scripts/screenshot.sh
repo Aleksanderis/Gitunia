@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,stash,whitespace] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,stash,whitespace] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -23,6 +23,7 @@
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (100 columns, under the three-pane width; o B: the base block below the two sides); not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
+# working-empty-staged (<space>s Tab: the empty Staged list focused beside an Unstaged list with one modified file; a copy of the throwaway repository; not for --repo).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
 # Fonts differ from the owner's terminal, so glyph widths stay a manual check (#196).
 set -euo pipefail
@@ -140,6 +141,12 @@ make_dirty_repo() { # make_dirty_repo SOURCE DIR: a copy of the throwaway reposi
   printf 'todo\n' >"$dir/notes/todo.txt"
   printf 'x\n' >"$dir/Ünïcode name.txt"
   )
+}
+
+make_unstaged_repo() { # make_unstaged_repo SOURCE DIR: a copy with one unstaged modification and nothing staged
+  local source="$1" dir="$2"
+  cp -r "$source" "$dir"
+  printf 'Edited, not staged.\n' >>"$dir/README.md"
 }
 
 make_conflict_repo() { # make_conflict_repo SOURCE DIR: a copy of the throwaway repository stopped on a merge conflict with two hunks in one file
@@ -290,6 +297,7 @@ render() {
       working-lines) keys="Space s j Enter" keys_after="j j j j j v" ;;
       working-discard) keys="Space s j" keys_after="Space d" ;;
       working-resolve) keys="Space s" keys_after="Space a" ;;
+      working-empty-staged) keys="Space s Tab" ;;
       settings) keys="Space ," ;;
       settings-choice) keys="Space , Enter Enter j" ;;
       settings-narrow) columns=64 rows=24 keys="Space ," ;;
@@ -328,6 +336,9 @@ render() {
     elif [[ "$scenario" == stash && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-stash"
       [ -d "$scenario_repo" ] || make_stash_repo "$repo" "$scenario_repo"
+    elif [[ "$scenario" == working-empty-staged && -z "$source_repo" ]]; then
+      scenario_repo="$work/repo-unstaged"
+      [ -d "$scenario_repo" ] || make_unstaged_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == working* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-dirty"
       [ -d "$scenario_repo" ] || make_dirty_repo "$repo" "$scenario_repo"
