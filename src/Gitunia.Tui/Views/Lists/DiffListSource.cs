@@ -211,7 +211,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var padded = PanePadding.Wrap(line, columns);
         if (IsInCursorGroup(listView, item))
         {
-            if (GroupButtonsAt(item, columns, width) is { Count: > 0 } buttons)
+            if (GroupButtonsAt(listView, item, columns, width) is { Count: > 0 } buttons)
             {
                 padded = ChangeGroupButtons.Overlay(padded, buttons, columns, glyphs);
             }
@@ -237,7 +237,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var columns = ScreenPadding.Columns(listView);
         var width = PanePadding.TextWidth(listView.Viewport.Width, columns);
 
-        if (IsInCursorGroup(listView, item) && GroupButtonsAt(item, columns, width) is { } buttons)
+        if (IsInCursorGroup(listView, item) && GroupButtonsAt(listView, item, columns, width) is { } buttons)
         {
             return TitleButton.ViewAt(buttons, column);
         }
@@ -268,14 +268,22 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
     }
 
     // The buttons for screen line item, which must be in the cursor's group: only its first line has them.
-    private IReadOnlyList<TitleButton>? GroupButtonsAt(int item, int columns, int width)
+    // They only go where the line's text ends before them; a longer line keeps all its text (#808).
+    private IReadOnlyList<TitleButton>? GroupButtonsAt(ListView listView, int item, int columns, int width)
     {
         if (_group is not { } group || item != LineOf(group.First))
         {
             return null;
         }
 
-        return ChangeGroupButtons.Layout(width, columns, GroupButtons(), GroupKeys());
+        var line = LineAt(listView, Map(), item, width, false, null);
+
+        return ChangeGroupButtons.Layout(
+            width,
+            columns,
+            GroupButtons(),
+            GroupKeys(),
+            ChangeGroupButtons.ContentWidth(line));
     }
 
     private DiffWrapMap? Map()

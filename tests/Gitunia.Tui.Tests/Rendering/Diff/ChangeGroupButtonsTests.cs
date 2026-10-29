@@ -42,6 +42,37 @@ public class ChangeGroupButtonsTests
     }
 
     [Theory]
+    [InlineData(0, 2)]
+    [InlineData(31, 2)]
+    [InlineData(60, 2)]
+    [InlineData(61, 1)]
+    [InlineData(70, 1)]
+    [InlineData(71, 0)]
+    [InlineData(78, 0)]
+    public void GivenALongLine_WhenLayingOut_ThenTheButtonsNeverCoverItsText(int contentWidth, int expected)
+    {
+        var buttons = ChangeGroupButtons.Layout(78, Padding, WorkingTreeButtons.Unstaged, null, contentWidth);
+
+        Assert.Equal(expected, buttons.Count);
+        foreach (var button in buttons)
+        {
+            Assert.True(button.Start - 1 - Padding >= contentWidth);
+        }
+    }
+
+    [Fact]
+    public void GivenTrailingBlanksAndWideCharacters_WhenMeasuringContent_ThenOnlyTheTextCounts()
+    {
+        var line = new StyledLine(
+        [
+            new StyledSegment("ab", SegmentRole.Plain),
+            new StyledSegment("\u4e2d  ", SegmentRole.Plain),
+        ]);
+
+        Assert.Equal(4, ChangeGroupButtons.ContentWidth(line));
+    }
+
+    [Theory]
     [InlineData(80, 2)]
     [InlineData(48, 2)]
     [InlineData(47, 1)]
