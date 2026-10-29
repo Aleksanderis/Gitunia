@@ -63,7 +63,9 @@ public class EmptyListBackgroundTests
             for (var column = 0; column < 19; column++)
             {
                 var attribute = contents[row, column].Attribute!.Value;
-                Assert.True(table.BaseBackground == attribute.Background, $"{depth} focused={focused} cell {column},{row}: {attribute.Background}");
+                Assert.True(
+                    table.BaseBackground == attribute.Background,
+                    $"{depth} focused={focused} cell {column},{row}: {attribute.Background}");
             }
         }
     }
