@@ -156,6 +156,21 @@ public static class PaneHints
         PaneMove,
     ];
 
+    // The cursor is on a conflicted file: the editor is the first pane hint, so a narrow bar cuts the others (#742).
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedConflict =
+    [
+        .. Pinned,
+        new("l/Enter", "conflict editor", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> WorkingUnstagedDiffConflict =
+    [
+        .. Pinned,
+        new("<space>to", "conflict editor", [ActionIds.ConflictOpen]),
+        .. WorkingUnstagedDiff.Skip(Pinned.Length),
+    ];
+
     private static readonly ImmutableArray<KeyHint> WorkingStaged =
     [
         .. Pinned,
@@ -296,8 +311,24 @@ public static class PaneHints
         kind == RepeatKind.Context ? RepeatContext : RepeatResize;
 
     /// <summary>The hints of the focused <paramref name="pane"/>; file content has its own.</summary>
-    public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent) =>
-        pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+    /// <param name="pane">The focused pane.</param>
+    /// <param name="showsFileContent">Whether the diff pane shows file content.</param>
+    /// <param name="onConflict">Whether the working-tree selection is a conflicted file: the Unstaged list and its
+    /// diff then lead with the conflict editor's keys (#742).</param>
+    public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent, bool onConflict = false)
+    {
+        if (onConflict && pane == PaneKind.WorkingUnstaged)
+        {
+            return WorkingUnstagedConflict;
+        }
+
+        if (onConflict && pane == PaneKind.WorkingUnstagedDiff)
+        {
+            return WorkingUnstagedDiffConflict;
+        }
+
+        return pane == PaneKind.Diff && showsFileContent ? FileContent : For(pane);
+    }
 
     /// <summary>The hints of the detail pane while its Changes tab is selected.</summary>
     public static IReadOnlyList<KeyHint> ForDetailChanges() => DetailChanges;

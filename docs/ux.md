@@ -748,7 +748,7 @@ The graph `<space>l` still opens HEAD's reflog directly; the picker is one key a
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase (#399, editor #458) reuses it. `RepositoryOperationDetector` names the operation from the git directory.
 
 1. **Banner.** While an operation is in progress the tab shows a banner on the frame's bottom edge (the line under the panes, in the status bar's colours;
-   the title is a warning-coloured chip starting at column 0 like the `NORMAL` badge): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  Unstaged: Enter, <space>to open conflict editor` (while conflicts remain the line ends with the keys that open the conflict editor, said to work in the Unstaged list (item 2a, #742), and left out when the chips would not leave room for it (an 80-column terminal);
+   the title is a warning-coloured chip starting at column 0 like the `NORMAL` badge): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  Unstaged: Enter, <space>to open conflict editor` (while conflicts remain the line ends with the keys that open the conflict editor, said to work in the Unstaged list (item 2a, #742); where the chips leave no room for that, a short form `Enter: conflict editor` is tried, and where the chips do not fit beside the step and conflict counts the counts go first. The line is never relied on alone: while the cursor is on a conflicted file the status bar's own hints lead with `l/Enter conflict editor` in the Unstaged list and `<space>to conflict editor` in its diff, right after help, commands and quit, and the which-key popup docks above the banner instead of covering it;
    a rebase adds `step 2/5` and `<space>gk skip`;
    a cherry-pick or revert of a range shows how many commits are left, `3 commits left`).
    The title names the merged branch (read from git's default merge message, so a custom message gives just `MERGING`), the rebased branch, or the short hash of the picked or reverted commit.
@@ -1329,6 +1329,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingUnstaged | `Enter` `l` | Go to the diff of the file or folder under the cursor (on a conflicted `!` file: open the conflict editor; on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
 | WorkingStaged | `Enter` `l` | Go to the diff of the file or folder under the cursor (on a screen under 80 columns the diff replaces the list until `h` / `Esc`) |
 | WorkingUnstagedDiff | `<space>j` | Quick jump: type text, labels appear on the diff rows in view that contain it, press a label to move the cursor there (`Enter` nearest, `Esc` cancels) |
+| WorkingUnstagedDiff | `<space>to` | Open the conflict editor on the conflicted file the diff shows (#742) |
 | WorkingUnstagedDiff | `<space>r` | Refresh the status (the diff reloads with it) |
 | WorkingUnstagedDiff | `]c` `[c` | Next / previous change group |
 | WorkingUnstagedDiff | `]f` `[f` | Next / previous file (the pane shows that one file; the file list cursor follows; stops at the first / last file; in the folder view of the tree style the diff cursor steps between the folder's files and the list stays) |

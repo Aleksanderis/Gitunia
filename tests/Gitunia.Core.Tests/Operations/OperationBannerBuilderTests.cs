@@ -25,6 +25,7 @@ public class OperationBannerBuilderTests
         var banner = OperationBannerBuilder.Build(Info(RepositoryOperation.Merge, target: "x"), count)!;
 
         Assert.Equal(hinted, banner.Hint.Contains("Enter, <space>to", StringComparison.Ordinal));
+        Assert.Equal(hinted, banner.ShortHint.Contains("Enter", StringComparison.Ordinal));
     }
 
     [Fact]

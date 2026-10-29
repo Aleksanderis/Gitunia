@@ -18,6 +18,7 @@ public static class OperationBannerBuilder
     // The editor keys are the ConflictOpen bindings of the Unstaged view; the text is not rebuilt from the keymap
     // because the banner is plain data.
     private const string EditorHint = "Unstaged: Enter, <space>to open conflict editor";
+    private const string ShortEditorHint = "Enter: conflict editor";
 
     private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
     private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);
@@ -51,8 +52,11 @@ public static class OperationBannerBuilder
 
         parts.Add(ConflictText(conflictCount));
         var chips = info.Kind == RepositoryOperation.Merge ? MergeChips : SkippableChips;
-        var hint = conflictCount > 0 ? EditorHint : string.Empty;
-        return new OperationBanner(title, string.Join(Gap, parts), chips, hint);
+        var hasConflicts = conflictCount > 0;
+        var hint = hasConflicts ? EditorHint : string.Empty;
+        var shortHint = hasConflicts ? ShortEditorHint : string.Empty;
+
+        return new OperationBanner(title, string.Join(Gap, parts), chips, hint, shortHint);
     }
 
     /// <summary>Conflicted files in a tab's working tree, 0 while it is not loaded.</summary>

@@ -6,6 +6,7 @@ using Gitunia.Core.Status;
 using Gitunia.Tui.Input;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Screen;
 using Gitunia.Tui.Views;
 
 namespace Gitunia.Tui.App.Overlays;
@@ -95,8 +96,9 @@ public sealed class OverlayController
         var height = size.Height;
         var pending = _keys.State.PendingSequence;
         var rows = WhichKeyRowsFor(pending);
+        var bannerShown = OperationInProgress() && height >= ScreenLayout.MinimumHeightWithBanner;
 
-        return OverlayFrameFactory.Create(State, _helpTabs, _keys.PendingText, rows, width, height, _glyphs);
+        return OverlayFrameFactory.Create(State, _helpTabs, _keys.PendingText, rows, width, height, _glyphs, bannerShown);
     }
 
     /// <summary>Handles an action while an overlay may be open; returns true when it was consumed.</summary>

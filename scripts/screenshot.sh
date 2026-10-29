@@ -5,7 +5,7 @@
 # Windows is unsupported here (no tmux): the script says so and exits 2; use scripts/screenshot.ps1 (psmux, resvg). See the screenshots skill (.claude/skills/screenshots/SKILL.md).
 #
 # Usage:
-#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,stash,whitespace] [--repo <dir>]
+#   scripts/screenshot.sh render  --binary <gitunia> [--out <dir>] [--scenarios default,opener,diff,split,narrow,light,files,files-filter,file-content,palette,help,help-lists,whichkey,menu,menu-sidebar,sidebar-ref,prompt,prompt-narrow,picker,picker-narrow,jump,jump-narrow,jump-diff,jump-working,working,working-narrow,working-diff,working-diff-narrow,working-zoom,zoom-both,repeat,repeat-resize,view-menu,working-view-menu,list-view-menu,files-view-menu,working-list-menu,working-stage,working-hunk,working-lines,working-commit,working-hook,working-discard,working-resolve,working-empty-staged,status-fresh,status-settled,settings,settings-choice,settings-narrow,settings-keys,settings-keys-entry,theme-preview,theme-kept,theme-tokyo,theme-latte,rebase-editor,rebase-reword,rebase-confirm,rebase-narrow,conflict-editor,conflict-editor-narrow,conflict-editor-edit,conflict-editor-base,conflict-entry,conflict-entry-keys,stash,whitespace] [--repo <dir>]
 #   scripts/screenshot.sh publish --pr <number> [--out <dir>]     push the PNGs of `render` to the screenshots repository,
 #                                                                  print markdown for a PR comment
 #   scripts/screenshot.sh clean                                    remove images of merged/closed PRs from the screenshots repository
@@ -22,6 +22,7 @@
 # whitespace (Enter Enter <space>vc: the diff of the latest commit with whitespace marks; meant for --repo with tabs and trailing spaces in it).
 # conflict-editor and conflict-editor-narrow (<space>s, Enter on a merge conflict with two hunks, then o and n: the conflict editor after one pick; a copy of the throwaway repository stopped on a merge; not for --repo).
 # conflict-editor-edit (o e then typed text: the result as a text edit) and conflict-editor-base (100 columns, under the three-pane width; o B: the base block below the two sides); not for --repo.
+# conflict-entry (100x24, <space>s: the Unstaged list on a conflicted file, its status hints leading with the conflict editor, the banner whole) and conflict-entry-keys (the same after <space>t: the which-key popup lists o and sits above the banner); a copy of the throwaway repository stopped on a merge; not for --repo.
 # working-resolve (<space>a on the conflicted first file: the mark-resolved Confirm dialog); not for --repo.
 # working-empty-staged (<space>s Tab: the empty Staged list focused beside an Unstaged list with one modified file; a copy of the throwaway repository; not for --repo).
 # Without --repo a deterministic throwaway repo is generated under a temp dir (never a real repo).
@@ -316,6 +317,8 @@ render() {
       conflict-editor-narrow) columns=64 rows=30 keys="Space s Enter" keys_after="o n" ;;
       conflict-editor-edit) keys="Space s Enter" keys_after="o e t y p e d" ;;
       conflict-editor-base) columns=100 rows=36 keys="Space s Enter" keys_after="o B" ;;
+      conflict-entry) columns=100 rows=24 keys="Space s" ;;
+      conflict-entry-keys) columns=100 rows=24 keys="Space s Space t" ;;
       rebase-editor) keys="G Space g i" keys_after="j s j j d" ;;
       rebase-reword) keys="G Space g i" keys_after="j r" ;;
       rebase-confirm) keys="G Space g i" keys_after="j s j j d Enter" ;;
@@ -329,7 +332,7 @@ render() {
     elif [[ "$scenario" == working-hook && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-hook"
       [ -d "$scenario_repo" ] || make_commit_repo "$repo" "$scenario_repo" hook
-    elif [[ "$scenario" == conflict-editor* && -z "$source_repo" ]]; then
+    elif [[ "$scenario" == conflict-* && -z "$source_repo" ]]; then
       scenario_repo="$work/repo-conflict"
       [ -d "$scenario_repo" ] || make_conflict_repo "$repo" "$scenario_repo"
     elif [[ "$scenario" == rebase-* && -z "$source_repo" ]]; then

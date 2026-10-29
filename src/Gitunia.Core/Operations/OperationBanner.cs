@@ -9,11 +9,13 @@ namespace Gitunia.Core.Operations;
 /// <param name="Chips">The actions on offer: continue, abort and, where git has it, skip.</param>
 /// <param name="Hint">Where the conflict editor opens, shown after the chips only where it fits (#742); empty when no
 /// conflict is left.</param>
+/// <param name="ShortHint">The same in fewer columns, tried when <paramref name="Hint"/> does not fit.</param>
 public sealed record OperationBanner(
     string Title,
     string Detail,
     ImmutableArray<BannerChip> Chips,
-    string Hint = "")
+    string Hint = "",
+    string ShortHint = "")
 {
     private const string Gap = "  ";
 

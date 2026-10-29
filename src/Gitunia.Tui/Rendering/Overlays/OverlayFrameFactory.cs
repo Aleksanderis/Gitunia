@@ -13,6 +13,7 @@ public static class OverlayFrameFactory
     /// <param name="screenWidth">Terminal columns.</param>
     /// <param name="screenHeight">Terminal rows.</param>
     /// <param name="glyphs">The characters to draw rules with.</param>
+    /// <param name="bannerShown">Whether the operation banner is drawn above the status bar.</param>
     public static OverlayFrame? Create(
         OverlayState state,
         IReadOnlyList<HelpTab> helpTabs,
@@ -20,7 +21,8 @@ public static class OverlayFrameFactory
         IReadOnlyList<WhichKeyRow> whichKeyRows,
         int screenWidth,
         int screenHeight,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        bool bannerShown = false)
     {
         return state.Kind switch
         {
@@ -60,7 +62,7 @@ public static class OverlayFrameFactory
                     screenHeight,
                     glyphs,
                     state.MenuTitle ?? ContextMenuFrameBuilder.DefaultTitle),
-            _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(pendingKeys, whichKeyRows, screenWidth, screenHeight, glyphs),
+            _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(pendingKeys, whichKeyRows, screenWidth, screenHeight, glyphs, bannerShown),
             _ => null,
         };
     }

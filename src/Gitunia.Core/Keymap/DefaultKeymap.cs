@@ -466,6 +466,7 @@ public static class DefaultKeymap
         }
 
         // In the diff the same keys act on the hunk under the cursor, or on the Visual lines (also bound in Visual mode).
+        Add(bindings, NormalOnly, WorkingUnstagedDiffView, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, Navigation, WorkingUnstagedDiffView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedDiffView, "<space>u", ActionIds.WorkingTreeUnstage);

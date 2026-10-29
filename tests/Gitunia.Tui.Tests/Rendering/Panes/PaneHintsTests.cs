@@ -85,6 +85,36 @@ public class PaneHintsTests
     }
 
     [Fact]
+    public void GivenAConflictedFileInTheUnstagedList_WhenAskingForHints_ThenTheEditorLeadsTheListsOwnHints()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
+
+        Assert.Equal("l/Enter", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        Assert.DoesNotContain(hints, hint => hint.Description == "diff");
+        Assert.DoesNotContain(PaneHints.For(PaneKind.WorkingUnstaged), hint => hint.Description == "conflict editor");
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedView);
+    }
+
+    [Fact]
+    public void GivenAConflictedFileInItsDiff_WhenAskingForHints_ThenTheLeaderKeysOfTheEditorLeadAndAreBound()
+    {
+        var hints = PaneHints.For(PaneKind.WorkingUnstagedDiff, showsFileContent: false, onConflict: true);
+
+        Assert.Equal("<space>to", hints[3].Keys);
+        Assert.Equal("conflict editor", hints[3].Description);
+        AssertKeysTriggerActions(hints, KeyMode.Normal, DefaultKeymap.WorkingUnstagedDiffView);
+    }
+
+    [Theory]
+    [InlineData(PaneKind.Graph)]
+    [InlineData(PaneKind.WorkingStaged)]
+    public void GivenAConflictedFileButAnotherPane_WhenAskingForHints_ThenTheyAreTheUsualOnes(PaneKind pane)
+    {
+        Assert.Equal(PaneHints.For(pane), PaneHints.For(pane, showsFileContent: false, onConflict: true));
+    }
+
+    [Fact]
     public void GivenThePickerHints_WhenListing_ThenEveryHintHasADescription()
     {
         foreach (var hint in PaneHints.ForPicker())

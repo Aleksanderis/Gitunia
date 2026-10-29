@@ -510,6 +510,18 @@ public class OverlayFrameTests
     }
 
     [Fact]
+    public void GivenABanner_WhenRenderingTheWhichKeyPopup_ThenItDocksOneRowHigherAndKeepsTheBannerRowFree()
+    {
+        var rows = new[] { new WhichKeyRow("o", "Open the conflict editor") };
+
+        var plain = WhichKeyFrameBuilder.Build("<space>t", rows, 100, 24, GraphGlyphSet.Unicode)!;
+        var withBanner = WhichKeyFrameBuilder.Build("<space>t", rows, 100, 24, GraphGlyphSet.Unicode, bannerShown: true)!;
+
+        Assert.Equal(23, plain.Row + plain.Height);
+        Assert.Equal(22, withBanner.Row + withBanner.Height);
+    }
+
+    [Fact]
     public void GivenWhichKeyAfterLeader_WhenRenderingTheTitle_ThenAThinSpaceSeparatesTheAngleBracketFromTheDash()
     {
         var engine = new KeymapEngine(Table);

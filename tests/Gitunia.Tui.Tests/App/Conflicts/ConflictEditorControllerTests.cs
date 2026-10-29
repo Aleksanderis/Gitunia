@@ -201,6 +201,19 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenTheDiffOfAConflictedFileFocused_WhenPressingTheEditorKey_ThenTheEditorOpensOnThatFile()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+        await harness.Pump.RunUntilAsync(() => harness.Controller.IsOpen);
+
+        Assert.True(harness.Controller.IsOpen);
+    }
+
+    [Fact]
     public async Task GivenPicksMade_WhenPressingEscOnce_ThenItAsksAndTheSecondEscCloses()
     {
         using var repository = TestRepositories.Conflicted();

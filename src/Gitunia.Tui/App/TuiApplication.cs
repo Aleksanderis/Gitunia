@@ -1333,7 +1333,8 @@ public sealed class TuiApplication(
 
         return PaneHints.For(
             _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
-            _diffPane.IsShowingContent);
+            _diffPane.IsShowingContent,
+            _host.Workspace.ActiveTab is { } tab && ConflictedSelection.Find(tab.WorkingTree) is not null);
     }
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).

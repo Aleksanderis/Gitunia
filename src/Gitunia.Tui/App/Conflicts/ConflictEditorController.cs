@@ -663,7 +663,7 @@ public sealed class ConflictEditorController(
 
     private static StatusEntry? ConflictedUnderCursor(RepositoryState tab)
     {
-        if (tab.View.FocusedPane == PaneKind.WorkingUnstaged)
+        if (tab.View.FocusedPane is PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff)
         {
             return ConflictedSelection.Find(tab.WorkingTree);
         }
