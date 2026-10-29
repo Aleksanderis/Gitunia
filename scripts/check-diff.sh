@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mechanical checks on the current branch against main that the build cannot do and reviewers keep finding:
-# added C# lines over 120 columns, added doc lines over 600 characters, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
+# added C# lines over 120 columns, nested or wrapped ?: (one per line), added doc lines over 600 characters, fully qualified System.* names, over-long, rewritten or misdated docs/decisions.md entries, test hygiene (home dir, wall-clock), commits
 # without the agent author name or Agent: trailer. Run it before asking for review; exit code 1 when anything is found.
 # Usage: check-diff.sh [base-ref]   (default: main)
 set -euo pipefail

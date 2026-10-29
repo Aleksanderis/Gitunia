@@ -194,7 +194,6 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
         _ => entry.IsUnstaged,
     };
 
-    // The row now at the old index (clamped) of the same list, null when the list is empty.
     private WorkingTreeSelection? SelectionAfterSnapshot(WorkingTreeSelection? old)
     {
         if (old is null)
@@ -211,6 +210,7 @@ public sealed record WorkingTreeState(StatusSnapshot Snapshot, WorkingTreeSelect
         return SelectionAt(old.Section, Locate(old)) ?? SelectionNear(old) ?? SelectionAt(other, 0);
     }
 
+    // The row now at the old index (clamped) of the same list, null when the list is empty.
     private WorkingTreeSelection? SelectionNear(WorkingTreeSelection old)
     {
         var count = RowsOf(old.Section).Count;

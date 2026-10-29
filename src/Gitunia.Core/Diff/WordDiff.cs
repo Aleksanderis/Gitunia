@@ -149,12 +149,13 @@ public static class WordDiff
             for (var column = newCount - 1; column >= 0; column--)
             {
                 var cell = (row * width) + column;
-                var below = table[((row + 1) * width) + column];
-                var right = table[cell + 1];
-                table[cell] = Math.Max(below, right);
                 if (Same(oldText, oldTokens[offset + row], newText, newTokens[offset + column]))
                 {
                     table[cell] = (ushort)(table[((row + 1) * width) + column + 1] + 1);
+                }
+                else
+                {
+                    table[cell] = Math.Max(table[((row + 1) * width) + column], table[cell + 1]);
                 }
             }
         }

@@ -516,7 +516,6 @@ public sealed class RemoteManagementActions(
             lines.Add($"{gone}: {BranchList(branches)}.");
         }
 
-
         lines.Add("Branches that track it lose their upstream. The remote itself is not touched.");
         var prompt = new ConfirmPrompt(
             "Remove remote",

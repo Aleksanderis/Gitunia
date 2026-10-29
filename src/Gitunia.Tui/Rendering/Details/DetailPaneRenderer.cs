@@ -206,7 +206,6 @@ public static class DetailPaneRenderer
     public static StyledLine RenderEmpty(int width, GraphGlyphSet glyphs) =>
         new LineBuilder(width, glyphs.Ellipsis).Build();
 
-    // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static StyledLine RenderLine(DetailPaneModel pane, int row, int textWidth, GraphGlyphSet glyphs)
     {
         if (row < 0 || row >= pane.Content.Rows.Count)
@@ -232,6 +231,7 @@ public static class DetailPaneRenderer
         return isFocused ? SegmentRole.ActiveTab : SegmentRole.SelectedTab;
     }
 
+    // ".. files" until the count is known, so the title does not show 0 and then jump to the real number.
     private static string FileCountText(int? count) => count switch
     {
         null => ".. files",
