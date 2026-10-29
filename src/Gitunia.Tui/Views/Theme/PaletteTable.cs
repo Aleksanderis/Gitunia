@@ -61,6 +61,13 @@ public sealed class PaletteTable
     /// <summary>The selected row of a pane without focus: visible but quieter.</summary>
     public required Color SelectionDim { get; init; }
 
+    /// <summary>
+    /// The background of the rows of a Visual range (#814): <see cref="SelectionFocused"/> moved a step towards the accent. Text that
+    /// would fall below the readable contrast on it is lightened or darkened per segment (<see cref="EnsureReadable"/>).
+    /// <see cref="Color.None"/> where a style carries the range (16 colours, styles only).
+    /// </summary>
+    public Color RangeBackground { get; init; } = Color.None;
+
     /// <summary>The tint behind the change group under the cursor of the working-tree diff, quieter than the selection; <see cref="Color.None"/> where the bar beside the group is the only mark.</summary>
     public required Color GroupBackground { get; init; }
 
@@ -101,6 +108,12 @@ public sealed class PaletteTable
     /// <summary>Added to selected text of a pane without focus.</summary>
     public TextStyle SelectionDimStyle { get; init; } = TextStyle.None;
 
+    /// <summary>
+    /// Added to the text of a Visual range, so a range never relies on its tint alone: bold and reverse where there is no tint
+    /// to tell the range from the selected row.
+    /// </summary>
+    public TextStyle RangeStyle { get; init; } = TextStyle.Bold;
+
     /// <summary>Added to muted text (faint where there is no colour to mute it with).</summary>
     public TextStyle MutedStyle { get; init; } = TextStyle.None;
 
@@ -119,7 +132,16 @@ public sealed class PaletteTable
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
 
-    private const double ReadableContrast = 4.5;
+    /// <summary>The contrast text needs on its background.</summary>
+    public const double ReadableContrast = 4.5;
+
+    /// <summary>The contrast whitespace marks keep on a tinted row: faint, but still seen.</summary>
+    public const double SubtleContrast = 3.0;
+
+    // How far the range tint of a theme file moves from its selection tint towards its accent.
+    private const double LightnessMiddle = 0.18;
+    private const double ReadableStep = 0.05;
+    private const double RangeAccentShare = 0.2;
 
     // Shared by every table and never changed.
     private static readonly Color[] DarkLanes = Rgbs(
@@ -196,6 +218,7 @@ public sealed class PaletteTable
         MatchBackground = Rgb(0xf9e2af),
         BaseForeground = paintsBase ? Rgb(0xcdd6f4) : Color.None,
         BaseBackground = paintsBase ? Rgb(0x1e1e2e) : Color.None,
+        RangeBackground = Blend(Rgb(0x313244), Rgb(0x89b4fa), RangeAccentShare),
         Lanes = DarkLanes,
         LaneLabelForegrounds = ReadableOn(DarkLanes, Rgb(0x11111b)),
     };
@@ -226,6 +249,7 @@ public sealed class PaletteTable
         MatchBackground = Rgb(0xf2c97a),
         BaseForeground = paintsBase ? Rgb(0x4c4f69) : Color.None,
         BaseBackground = paintsBase ? Rgb(0xeff1f5) : Color.None,
+        RangeBackground = Blend(Rgb(0xdce0e8), Rgb(0x1a59d7), RangeAccentShare),
         Lanes = LightLanes,
         LaneLabelForegrounds = ReadableOn(LightLanes, Rgb(0xeff1f5)),
     };
@@ -264,6 +288,7 @@ public sealed class PaletteTable
         Lanes = Named(ColorName16.BrightBlue, ColorName16.BrightGreen, ColorName16.BrightYellow, ColorName16.BrightMagenta, ColorName16.BrightRed, ColorName16.BrightCyan),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse,
     };
 
     private static PaletteTable Ansi16Light(bool paintsBase, IReadOnlyDictionary<string, string>? ansi) => new()
@@ -297,6 +322,7 @@ public sealed class PaletteTable
         Lanes = Named(ColorName16.Blue, ColorName16.Green, ColorName16.Magenta, ColorName16.Red, ColorName16.Cyan, ColorName16.DarkGray),
         SelectionFocusedStyle = TextStyle.Bold,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse,
     };
 
     // NO_COLOR or a dumb terminal: styles only.
@@ -328,6 +354,7 @@ public sealed class PaletteTable
         Lanes = [Color.None],
         SelectionFocusedStyle = TextStyle.Reverse,
         SelectionDimStyle = TextStyle.Underline,
+        RangeStyle = TextStyle.Bold | TextStyle.Reverse | TextStyle.Underline,
         MutedStyle = TextStyle.Faint,
         SubtleStyle = TextStyle.Faint,
         ChipStyle = TextStyle.Bold | TextStyle.Reverse,
@@ -365,7 +392,47 @@ public sealed class PaletteTable
         BaseBackground = Role(definition, ThemeRoles.BaseBackground),
         Lanes = [.. definition.Lanes.Select(Rgb)],
         LaneLabelForegrounds = LabelForegrounds(definition),
+        RangeBackground = Blend(Role(definition, ThemeRoles.SelectionFocused), Role(definition, ThemeRoles.Accent), RangeAccentShare),
     };
+
+    /// <summary>
+    /// The foreground moved towards white (on a dark background) or black (on a light one) until it reaches
+    /// <paramref name="minimum"/> contrast on <paramref name="background"/>; unchanged when it already does or when either
+    /// colour is not a 24-bit one.
+    /// </summary>
+    public static Color EnsureReadable(Color foreground, Color background, double minimum)
+    {
+        if (foreground == Color.None || background == Color.None || ContrastOf(foreground, background) >= minimum)
+        {
+            return foreground;
+        }
+
+        var target = LuminanceOf(background) < LightnessMiddle ? Rgb(0xffffff) : Rgb(0x000000);
+        for (var share = ReadableStep; share < 1.0; share += ReadableStep)
+        {
+            var candidate = Blend(foreground, target, share);
+            if (ContrastOf(candidate, background) >= minimum)
+            {
+                return candidate;
+            }
+        }
+
+        return target;
+    }
+
+    // A step from one colour towards another; the second one missing leaves the first.
+    private static Color Blend(Color from, Color to, double share)
+    {
+        if (from == Color.None || to == Color.None)
+        {
+            return from;
+        }
+
+        return new Color(
+            (int)Math.Round(from.R + ((to.R - from.R) * share)),
+            (int)Math.Round(from.G + ((to.G - from.G) * share)),
+            (int)Math.Round(from.B + ((to.B - from.B) * share)));
+    }
 
     private static Color[] LabelForegrounds(ThemeDefinition definition) =>
         ReadableOn([.. definition.Lanes.Select(Rgb)], Role(definition, ThemeRoles.ChipForeground));

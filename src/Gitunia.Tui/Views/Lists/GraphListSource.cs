@@ -132,14 +132,16 @@ public sealed class GraphListSource(CommitGraph graph, GraphGlyphSet glyphs) : I
         var columns = ScreenPadding.Columns(listView);
         var options = OptionsFor(PanePadding.GraphTextWidth(width, columns));
         var commitIndex = CommitIndexOf(item);
-        selected |= Range?.Contains(item) == true;
+        var isRange = Range?.Contains(item) == true;
+        selected |= isRange;
         var line = LineAt(listView, commitIndex, options, selected);
         LinePainter.Paint(
             listView,
             PanePadding.WrapGraph(line, columns),
             col,
             row,
-            listView.HasFocus);
+            listView.HasFocus,
+            isRange);
     }
 
     public void Dispose()

@@ -14,6 +14,8 @@ public class PaletteTests
     private static readonly ThemeCatalog Themes = new(
         Path.Combine(Path.GetTempPath(), $"gitunia-no-themes-{Guid.NewGuid():N}"));
 
+    private static readonly SegmentHighlight RangeHighlight = new(true, true, true);
+
     // What a terminal typically draws behind and in front of default text.
     private const int DarkBackground = 0x1e1e2e;
     private const int DarkText = 0xcdd6f4;
@@ -572,6 +574,93 @@ public class PaletteTests
     }
 
     private static bool IsNamedOrDefault(Color color, HashSet<Color> named) => color == Color.None || named.Contains(color);
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenDrawingARangeRow_ThenItIsApartFromTheTerminalMoreThanTheSelectedRow(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var terminalBackground = isLight ? LightBackground : DarkBackground;
+
+        var range = Palette.For(new StyledSegment("x", SegmentRole.Plain), RangeHighlight, colors);
+        var selected = Palette.For(new StyledSegment("x", SegmentRole.Plain), true, true, colors);
+
+        Assert.True(Contrast(ToRgb(range.Background), terminalBackground) > Contrast(ToRgb(selected.Background), terminalBackground));
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenDrawingARangeRow_ThenTextIsReadableOnTheRangeTint(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+        var terminalText = isLight ? LightText : DarkText;
+        var failures = new List<string>();
+        foreach (var role in Enum.GetValues<SegmentRole>())
+        {
+            var attribute = Palette.For(new StyledSegment("x", role), RangeHighlight, colors);
+            var foreground = attribute.Foreground == Color.None ? terminalText : ToRgb(attribute.Foreground);
+            var ratio = Contrast(foreground, ToRgb(attribute.Background));
+            if (ratio < MinimumFor(role))
+            {
+                failures.Add($"{role}: contrast {ratio:F2}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.TrueColor, false)]
+    [InlineData(ColorDepth.TrueColor, true)]
+    [InlineData(ColorDepth.Ansi16, false)]
+    [InlineData(ColorDepth.Ansi16, true)]
+    [InlineData(ColorDepth.None, false)]
+    public void GivenAnyColourTier_WhenDrawingARangeRow_ThenItDiffersFromTheSelectedRowByStyleAsWell(ColorDepth depth, bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, isLight));
+
+        var range = Palette.For(new StyledSegment("x", SegmentRole.Plain), RangeHighlight, colors);
+        var selected = Palette.For(new StyledSegment("x", SegmentRole.Plain), true, true, colors);
+
+        Assert.NotEqual(selected.Style, range.Style);
+        Assert.True(range.Style.HasFlag(TextStyle.Bold), "A range must not rely on colour alone.");
+        Assert.NotEqual(selected, range);
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.None)]
+    public void GivenAColourlessOrSixteenColourTier_WhenDrawingARangeRow_ThenItIsReversed(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        var range = Palette.For(new StyledSegment("x", SegmentRole.Plain), RangeHighlight, colors);
+
+        Assert.True(range.Style.HasFlag(TextStyle.Reverse));
+    }
+
+    [Fact]
+    public void GivenARowOutsideTheRange_WhenDrawingASelectedRow_ThenItKeepsTheSelectionLook()
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, false));
+        var segment = new StyledSegment("x", SegmentRole.Plain);
+
+        var viaHighlight = Palette.For(segment, new SegmentHighlight(true, true), colors);
+
+        Assert.Equal(Palette.For(segment, true, true, colors), viaHighlight);
+        Assert.Equal(colors.SelectionFocused, viaHighlight.Background);
+    }
+
+    [Fact]
+    public void GivenAThemeFile_WhenDrawingARangeRow_ThenItIsAStepAwayFromTheSelectionTint()
+    {
+        var settings = new PaletteSettings(ColorDepth.TrueColor, false).WithTheme(ThemeChoice.FromText("tokyo-night"), Themes);
+
+        var colors = PaletteTable.For(settings);
+
+        Assert.NotEqual(Color.None, colors.RangeBackground);
+        Assert.NotEqual(colors.SelectionFocused, colors.RangeBackground);
+    }
 
     private static int ToRgb(Color color) => (color.R << 16) | (color.G << 8) | color.B;
 

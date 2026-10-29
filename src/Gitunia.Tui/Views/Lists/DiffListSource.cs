@@ -213,7 +213,8 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
         var columns = ScreenPadding.Columns(listView);
         var current = Map();
         width = PanePadding.TextWidth(width, columns);
-        selected |= Range?.Contains(item) == true;
+        var isRange = Range?.Contains(item) == true;
+        selected |= isRange;
         var jump = ShowsSideBySide ? null : JumpLabelAt(listView, current, item);
         var line = LineAt(listView, current, item, width, selected, jump);
         var padded = PanePadding.Wrap(line, columns);
@@ -227,7 +228,7 @@ public sealed class DiffListSource(GraphGlyphSet glyphs) : IListDataSource, IRan
             padded = ChangeGroupMarker.Mark(padded, glyphs);
         }
 
-        LinePainter.Paint(listView, padded, col, row, listView.HasFocus);
+        LinePainter.Paint(listView, padded, col, row, listView.HasFocus, isRange);
     }
 
     public void Dispose()
