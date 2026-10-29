@@ -18,8 +18,18 @@ namespace Gitunia.Tui.App.Panes;
 /// <param name="currentMode">The input mode now.</param>
 /// <param name="setMode">Switches the input mode (Visual while a range is active).</param>
 /// <param name="copyRange">Copies the rows of a range, the range ends only when it was copied; null disables <c>y</c>.</param>
-public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneKind, ListView> listOf, Func<KeyMode> currentMode, Action<KeyMode> setMode, Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null)
+/// <param name="postNotice">Shows a status message when the pane ends the range by itself (new rows); null shows none.</param>
+public sealed class VisualRangeController(
+    Func<PaneKind> focusedPane,
+    Func<PaneKind, ListView> listOf,
+    Func<KeyMode> currentMode,
+    Action<KeyMode> setMode,
+    Func<PaneKind, RowRange, RangeCopyResult>? copyRange = null,
+    Action<string>? postNotice = null)
 {
+    /// <summary>The status message when the rows under a range changed and the range ended.</summary>
+    public const string InvalidatedNotice = "Selection ended: the content changed";
+
     private PaneKind _pane;
     private IRangeSource? _source;
 
@@ -110,7 +120,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
 
         if (_source is not null)
         {
-            _source.RangeInvalidated -= End;
+            _source.RangeInvalidated -= OnInvalidated;
             _source.Range = null;
         }
 
@@ -122,6 +132,12 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
         {
             setMode(KeyMode.Normal);
         }
+    }
+
+    private void OnInvalidated()
+    {
+        End();
+        postNotice?.Invoke(InvalidatedNotice);
     }
 
     private void Begin()
@@ -148,7 +164,7 @@ public sealed class VisualRangeController(Func<PaneKind> focusedPane, Func<PaneK
 
         _pane = focused;
         _source = rangeSource;
-        rangeSource.RangeInvalidated += End;
+        rangeSource.RangeInvalidated += OnInvalidated;
         IsActive = true;
         Show(list, new RowRange(item, item));
         setMode(KeyMode.Visual);

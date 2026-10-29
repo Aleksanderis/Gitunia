@@ -472,6 +472,7 @@ Paths are always passed literally.
 3. **Hunks and lines.** In the diff of an Unstaged file `<space>a` stages the change group under the cursor (the cursor on unchanged lines belongs to the group above); in the diff of a Staged file `<space>u` unstages it.
    The patch of a group is built like a Visual range patch, so the other groups of the same hunk stay as they were.
    `v` (or a drag) starts a Visual range in the diff and `<space>a`/`<space>u` then act on the added and removed lines inside it only (context, header and note rows are ignored; a range with no change is refused).
+   The range survives a refresh that brings the same diff rows (a file watcher or fetch reload with no change, #806); if the rows really changed it ends and the status bar says "Selection ended: the content changed".
    A double-click on a diff row acts on its change group.
    - The patch is never taken from the rows on screen: the file's diff is read again with git's default context (so the context, whole-file and whitespace options do not matter), the picked lines are found in it by line number and text, and the resulting patch is applied to the index.
      Git refuses a patch that does not apply and leaves the index alone.
