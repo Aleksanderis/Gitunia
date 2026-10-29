@@ -18,7 +18,7 @@ public class AncestryReaderTests
     [Fact]
     public async Task GivenAnOlderCommit_WhenAskingIfItIsAnAncestor_ThenYes()
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
         var location = await Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
         var older = repository.Git("rev-parse", "HEAD~1").Trim();
 
@@ -29,7 +29,7 @@ public class AncestryReaderTests
     [Fact]
     public async Task GivenANewerCommit_WhenAskingIfItIsAnAncestor_ThenNo()
     {
-        using var repository = TestRepositories.Linear(3);
+        using var repository = TestRepositories.Linear();
         var location = await Discovery.DiscoverAsync(repository.WorkingTreePath, Token);
         var older = repository.Git("rev-parse", "HEAD~1").Trim();
 
