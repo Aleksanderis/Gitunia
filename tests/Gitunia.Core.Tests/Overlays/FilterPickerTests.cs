@@ -72,9 +72,18 @@ public class FilterPickerTests
     [Fact]
     public void GivenAFilterPopup_WhenBuilt_ThenTheHintIsTheOneFilterPickerLine()
     {
+        var popup = Picker(string.Empty, "origin", "second")
+            .ToPopup("Pick", "Remote", "q", "choose", name => name, "none");
+
+        Assert.Equal("Type filters   Ctrl-j/k select   Enter choose   Esc cancel", popup.Hint);
+        Assert.Equal("q", popup.Input);
+    }
+
+    [Fact]
+    public void GivenOneCandidate_WhenBuilt_ThenTheHintHasNoSelectKey()
+    {
         var popup = Picker(string.Empty, "origin").ToPopup("Pick", "Remote", "q", "choose", name => name, "none");
 
-        Assert.Equal("Type filters   Up/Down select   Enter choose   Esc cancel", popup.Hint);
-        Assert.Equal("q", popup.Input);
+        Assert.Equal("Type filters   Enter choose   Esc cancel", popup.Hint);
     }
 }

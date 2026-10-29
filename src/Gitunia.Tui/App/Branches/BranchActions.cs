@@ -183,12 +183,12 @@ public sealed class BranchActions(
         if (_kind == BranchPromptKind.Delete)
         {
             // A list without a text field: j/k/h/l and the arrows move, so no letter is swallowed by a filter.
-            if (IsMove(normalized, out var move) || IsLetterMove(normalized, out move))
+            if (PickerKeys.IsMove(normalized, out var move) || IsLetterMove(normalized, out move))
             {
                 _deleteIndex = (_deleteIndex + move + _deleteNames.Count) % _deleteNames.Count;
             }
         }
-        else if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && IsMove(normalized, out var step))
+        else if (_kind is BranchPromptKind.Switch or BranchPromptKind.Upstream && PickerKeys.IsMove(normalized, out var step))
         {
             _picker.Move(step);
         }
@@ -255,21 +255,6 @@ public sealed class BranchActions(
             return $"HEAD is detached at {ShortHash(commitHash)}";
         }, CommitOf(tab, commitHash));
         return string.Empty;
-    }
-
-    private static bool IsMove(KeyEvent key, out int step)
-    {
-        step = 0;
-        if (key is { Name: KeyNames.Up, Modifiers: KeyModifiers.None })
-        {
-            step = -1;
-        }
-        else if (key is { Name: KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-        {
-            step = 1;
-        }
-
-        return step != 0;
     }
 
     private static bool IsLetterMove(KeyEvent key, out int step)

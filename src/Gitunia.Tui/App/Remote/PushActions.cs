@@ -150,7 +150,7 @@ public sealed class PushActions(
         }
 
         var normalized = key.Normalize();
-        if (IsMove(normalized, out var step))
+        if (PickerKeys.IsMove(normalized, out var step))
         {
             _picker.Move(step);
         }
@@ -182,23 +182,35 @@ public sealed class PushActions(
         LoadRemotes(tab, ActionIds.RemotePushForce, current);
     }
 
-    public void OnGraphChanged()
+    /// <summary>
+    /// The first push of a branch (<c>--set-upstream</c>) was rejected as a non-fast-forward: the remote already has a
+    /// branch of that name with other commits. Offers the lease force push that also sets the upstream, when the
+    /// remote branch is known locally (the lease needs its tip); otherwise the status says to fetch first.
+    /// </summary>
+    public void OfferForceFirstPush(TabId tabId, string pushedBranch, string remoteName)
     {
+        if (_kind != PushPromptKind.None || _busy.Contains(tabId) || host.Workspace.ActiveTabId != tabId
+            || host.Workspace.ActiveTab is not { } tab || CurrentBranchOf(tab) is not { } current
+            || current.Name != pushedBranch)
+        {
+            return;
+        }
+
+        var tracking = tab.Refs.FirstOrDefault(
+            reference => reference.Kind == RefKind.RemoteBranch
+                && reference.SymbolicTarget is null
+                && reference.Name == $"{remoteName}/{pushedBranch}");
+        if (tracking is null)
+        {
+            statuses.Warning($"{remoteName}/{pushedBranch} is not known here: fetch first, then force push (<space>Rf)");
+            return;
+        }
+
+        ConfirmForce(tab, current, new RemoteBranchName(remoteName, pushedBranch), tracking, true);
     }
 
-    private static bool IsMove(KeyEvent key, out int step)
+    public void OnGraphChanged()
     {
-        step = 0;
-        if (key is { Name: KeyNames.Up, Modifiers: KeyModifiers.None })
-        {
-            step = -1;
-        }
-        else if (key is { Name: KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-        {
-            step = 1;
-        }
-
-        return step != 0;
     }
 
     private static GitRef? CurrentBranchOf(RepositoryState tab) =>
@@ -294,6 +306,18 @@ public sealed class PushActions(
         else if (action == ActionIds.RemotePush)
         {
             _branch = current!.Name;
+            if (remotes is [var only])
+            {
+                // One remote: asking for it is a step without a choice.
+                if (StartFirstPush(tab, only) is { Length: > 0 } notice)
+                {
+                    statuses.Warning(notice);
+                }
+
+                redraw();
+                return;
+            }
+
             var ordered = remotes.OrderByDescending(name => name == DefaultRemote).ToList();
             Open(PushPromptKind.FirstPushRemote, tab, ordered);
         }
@@ -319,6 +343,16 @@ public sealed class PushActions(
             return;
         }
 
+        ConfirmForce(tab, branch, target, upstream, false);
+    }
+
+    private void ConfirmForce(
+        RepositoryState tab,
+        GitRef branch,
+        RemoteBranchName target,
+        GitRef upstream,
+        bool setUpstream)
+    {
         var name = $"{target.Remote}/{target.Branch}";
         var prompt = new ConfirmPrompt(
             "Force push",
@@ -330,7 +364,7 @@ public sealed class PushActions(
             $"Undo: git push --force-with-lease {target.Remote} {upstream.CommitHash}:{target.Branch}",
             "Force push");
         var lease = new PushLease(target.Branch, upstream.CommitHash);
-        var request = new PushRequest(target.Remote, branch.Name, false, lease);
+        var request = new PushRequest(target.Remote, branch.Name, setUpstream, lease);
         var done = $"Force pushed {branch.Name} to {name} (was {ShortHash(upstream.CommitHash)})";
         if (!confirm(prompt, () => StartForce(tab.Id, request, done)))
         {

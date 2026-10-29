@@ -132,7 +132,7 @@ public sealed class RemoteManagementActions(
 
         var normalized = key.Normalize();
         var isPicker = IsPicker(_kind);
-        if (isPicker && IsMove(normalized, out var step))
+        if (isPicker && PickerKeys.IsMove(normalized, out var step))
         {
             _picker.Move(step);
         }
@@ -155,21 +155,6 @@ public sealed class RemoteManagementActions(
 
     private static bool IsPicker(RemotePromptKind kind) =>
         kind is RemotePromptKind.RemovePick or RemotePromptKind.RenamePick or RemotePromptKind.UrlPick;
-
-    private static bool IsMove(KeyEvent key, out int step)
-    {
-        step = 0;
-        if (key is { Name: KeyNames.Up, Modifiers: KeyModifiers.None })
-        {
-            step = -1;
-        }
-        else if (key is { Name: KeyNames.Down or KeyNames.Tab, Modifiers: KeyModifiers.None })
-        {
-            step = 1;
-        }
-
-        return step != 0;
-    }
 
     // The remote a selected remote branch row belongs to; the longest name wins when one remote name prefixes another.
     private static RemoteInfo? RemoteOfBranch(IReadOnlyList<RemoteInfo> remotes, BranchSelection chosen)

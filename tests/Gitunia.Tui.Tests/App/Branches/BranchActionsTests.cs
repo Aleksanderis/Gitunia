@@ -576,7 +576,7 @@ public class BranchActionsTests
 
         Assert.Contains("> main", text, StringComparison.Ordinal);
         Assert.Contains("origin/topic -> local topic", text, StringComparison.Ordinal);
-        Assert.Contains("Type filters   Up/Down select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
+        Assert.Contains("Type filters   Ctrl-j/k select   Enter switch   Esc cancel", text, StringComparison.Ordinal);
     }
 
     [Fact]

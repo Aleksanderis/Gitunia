@@ -323,6 +323,7 @@ public sealed class TuiApplication(
         _push = CreatePush();
         _router.Push = _push;
         _remote.PushRejected = _push.OfferForce;
+        _remote.FirstPushRejected = _push.OfferForceFirstPush;
         _router.DetailTabs = new DetailTabController(_host);
         _router.PaneSizes = new PaneSizeController(
             () => _diffPane.Arrangement(),
