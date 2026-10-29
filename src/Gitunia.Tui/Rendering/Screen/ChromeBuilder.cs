@@ -135,7 +135,6 @@ public static class ChromeBuilder
             {
                 builder.Append(piece.Text, piece.Role);
             }
-
         }
 
         return builder.Build(SegmentRole.Status);

@@ -54,7 +54,7 @@ public static class MainlineFrameBuilder
                 isUsable ? SegmentRole.OverlayKey : SegmentRole.Faint));
         }
 
-        lines.Add(OverlayBox.Text(Hint, width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints(Hint, width, glyphs));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, Math.Max(0, (screenHeight - lines.Count) / 2), lines);
     }

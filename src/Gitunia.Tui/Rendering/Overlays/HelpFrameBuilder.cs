@@ -104,13 +104,8 @@ public static class HelpFrameBuilder
         }
 
         lines.AddRange(content.Skip(first).Take(rowCount));
-        var hints = new List<string>();
-        if (content.Count > rowCount)
-        {
-            hints.Add($"{first + 1}-{first + rowCount}/{content.Count}");
-        }
-
-        hints.Add("Esc close");
+        var lead = content.Count > rowCount ? $"{first + 1}-{first + rowCount}/{content.Count}" : string.Empty;
+        var hints = new List<string> { "Esc close" };
         if (tabs.Count > 1)
         {
             hints.Add("Tab next tab");
@@ -121,7 +116,7 @@ public static class HelpFrameBuilder
             hints.Add("list keys scroll");
         }
 
-        lines.Add(OverlayBox.Text(string.Join("  ", hints), width, glyphs, SegmentRole.Faint));
+        lines.Add(OverlayBox.Hints(string.Join("  ", hints), width, glyphs, lead));
         lines.Add(OverlayBox.Bottom(width, glyphs));
         return new OverlayFrame((screenWidth - width) / 2, 1, lines);
     }
