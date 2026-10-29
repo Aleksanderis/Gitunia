@@ -1,4 +1,5 @@
 using Gitunia.Core.Graph;
+using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Repositories.Models;
@@ -62,8 +63,10 @@ public sealed class IncrementalGraphLoader
             return new GraphReload(rows, 0);
         }
 
-        if (decorations is null)
+        if (decorations is null || BranchColors.TrunkOf(decorations) != BranchColors.TrunkOf(DecorationsOf(previous)))
         {
+            // A changed trunk (a main branch appeared, another branch was checked out) changes which lane keeps the
+            // commits where lanes meet, also below the join.
             return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
@@ -79,6 +82,21 @@ public sealed class IncrementalGraphLoader
         return spliced is null
             ? await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false)
             : new GraphReload(spliced, previous.Count - joinIndex - 1);
+    }
+
+    private static Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> DecorationsOf(
+        IReadOnlyList<GraphEntry> entries)
+    {
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>();
+        foreach (var entry in entries)
+        {
+            if (entry.Decorations.Count > 0)
+            {
+                decorations[entry.Id] = entry.Decorations;
+            }
+        }
+
+        return decorations;
     }
 
     private async Task<GraphReload> ReadAllAsync(

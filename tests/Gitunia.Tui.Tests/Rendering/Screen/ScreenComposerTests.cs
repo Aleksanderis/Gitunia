@@ -42,13 +42,25 @@ public class ScreenComposerTests
                 '\n',
                 "   1 repo",
                 "╭─ History ────────────────────────────╮",
-                "│ ○─╮  merge side                      │",
-                "│ ├ │  main work                       │",
-                "│ ├─●  side work                       │",
-                "│ ●  root                              │",
+                "│○─╮  merge side                       │",
+                "│├ │  main work                        │",
+                "││ ├  side work                        │",
+                "│●─╯  root                             │",
                 "╰──────────────────────────────────────╯",
                 " NORMAL  1/4  ? help  : commands  q quit"),
             frame);
+    }
+
+    [Theory]
+    [InlineData(40)]
+    [InlineData(120)]
+    public void GivenAnyScreenWidth_WhenComposing_ThenTheFirstLaneSitsNextToTheLeftFrame(int width)
+    {
+        var lines = ScreenComposer.Compose(Model(1, 4), Diamond(), 0, 0, width, 8, GraphGlyphSet.Unicode);
+
+        Assert.Contains("│○", lines[2].Text, StringComparison.Ordinal);
+        Assert.Contains("│●", lines[5].Text, StringComparison.Ordinal);
+        Assert.All(lines, line => Assert.Equal(width, TextWidth.Of(line.Text)));
     }
 
     [Fact]
@@ -61,10 +73,10 @@ public class ScreenComposerTests
                 '\n',
                 "   1 repo",
                 "+- History ----------------------------+",
-                "| o-\\  merge side                      |",
-                "| | |  main work                       |",
-                "| |-*  side work                       |",
-                "| *  root                              |",
+                "|o-\\  merge side                       |",
+                "|| |  main work                        |",
+                "|| |  side work                        |",
+                "|*-/  root                             |",
                 "+--------------------------------------+",
                 " NORMAL  1/4  ? help  : commands  q quit"),
             frame);
@@ -77,8 +89,8 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(3, 4), graph, 2, 1, 40, 8, GraphGlyphSet.Unicode);
 
-        Assert.StartsWith("│ ├ │  ", lines[2].Text, StringComparison.Ordinal);
-        Assert.StartsWith("│ ├─●  ", lines[3].Text, StringComparison.Ordinal);
+        Assert.StartsWith("│├ │  ", lines[2].Text, StringComparison.Ordinal);
+        Assert.StartsWith("││ ├  ", lines[3].Text, StringComparison.Ordinal);
         Assert.Equal([false, true, false], [.. lines.Skip(2).Take(3).Select(line => line.Segments.Any(segment => segment.Selection == SegmentSelection.Focused))]);
     }
 
@@ -192,16 +204,16 @@ public class ScreenComposerTests
 
         var lines = ScreenComposer.Compose(Model(1, 2), graph, 0, 0, 30, 7, GraphGlyphSet.Unicode);
 
-        Assert.Equal("│ ●  修正バグ                │", lines[2].Text);
-        Assert.Equal("│ ●  emoji 🎉 ok             │", lines[3].Text);
+        Assert.Equal("│●  修正バグ                 │", lines[2].Text);
+        Assert.Equal("│●  emoji 🎉 ok              │", lines[3].Text);
         Assert.All(lines, line => Assert.Equal(30, TextWidth.Of(line.Text)));
     }
 
     [Theory]
     [InlineData(80, 12, false, "⋮ more commits below, G loads the rest")]
     [InlineData(80, 12, true, ": more commits below, G loads the rest")]
-    [InlineData(30, 12, false, "⋮ more commits below, G l…")]
-    [InlineData(30, 12, true, ": more commits below, G l~")]
+    [InlineData(30, 12, false, "⋮ more commits below, G lo…")]
+    [InlineData(30, 12, true, ": more commits below, G lo~")]
     public void GivenCutLog_WhenComposing_ThenMarkerFollowsLastCommit(int width, int height, bool ascii, string text)
     {
         var model = Model(1, 4) with { TruncatedTotal = 500 };

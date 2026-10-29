@@ -264,8 +264,12 @@ public static class ConflictEditorFrameBuilder
             maxScroll,
             resultStart,
             gutter,
-            state.DifferingRows());
+            state.DifferingRows(),
+            state.Selected.Base is not null && (isThreePane || baseRows > 0));
     }
+
+    private static SideText? BaseOf(ConflictHunk hunk, Plan plan) =>
+        plan.ShowsBase && hunk.Base is not null ? SideText.Of(hunk.Base) : null;
 
     private static void AddSideBySide(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
@@ -273,8 +277,8 @@ public static class ConflictEditorFrameBuilder
         var leftWidth = SideBySideLeftWidth(plan.Width);
         var rightWidth = inner - 1 - leftWidth;
         var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
-        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
-        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved) with { Base = BaseOf(hunk, plan) };
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded) with { Base = BaseOf(hunk, plan) };
         lines.Add(Joined(
             Cell(SideTitle("ours", hunk.OursLabel, ours, plan), leftWidth, SegmentRole.LocalBranch, glyphs),
             divider,
@@ -317,8 +321,8 @@ public static class ConflictEditorFrameBuilder
         var baseWidth = oursWidth;
         var theirsWidth = inner - 2 - oursWidth - baseWidth;
         var divider = glyphs.For(LineDirections.Up | LineDirections.Down).ToString();
-        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
-        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved) with { Base = BaseOf(hunk, plan) };
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded) with { Base = BaseOf(hunk, plan) };
         var common = hunk.Base is null ? new SideText([NoBasePaneText], true) : SideText.Of(hunk.Base);
         lines.Add(JoinedThree(
             Cell(SideTitle("base", "common ancestor", common, plan), baseWidth, SegmentRole.SectionTitle, glyphs),
@@ -332,11 +336,15 @@ public static class ConflictEditorFrameBuilder
             var line = plan.Scroll + row;
             var baseCell = new LineBuilder(baseWidth, glyphs.Ellipsis)
                 .Append(" ", SegmentRole.Plain)
-                .Append(GutterText(null, plan.Gutter), SegmentRole.Faint)
-                .Append(common.TextAt(line), common.RoleAt(line, plan))
-                .Build();
-            lines.Add(JoinedThree(
+                .Append(GutterText(null, plan.Gutter), SegmentRole.Faint);
+            ChangedText.Append(
                 baseCell,
+                common.TextAt(line),
+                common.RoleAt(line, plan),
+                common.BaseChangesAt(line, ours, theirs, plan),
+                SegmentRole.DiffRemovedWord);
+            lines.Add(JoinedThree(
+                baseCell.Build(),
                 NumberedCell(ours, theirs, true, line, oursWidth, plan, glyphs),
                 NumberedCell(theirs, ours, false, line, theirsWidth, plan, glyphs),
                 divider,
@@ -493,17 +501,27 @@ public static class ConflictEditorFrameBuilder
     {
         lines.Add(OverlayBox.Text("base  common ancestor", plan.Width, glyphs, SegmentRole.SectionTitle));
         var side = hunk.Base is null ? new SideText([NoBaseText], true) : SideText.Of(hunk.Base);
+        var ours = SideText.Of(hunk.Ours);
+        var theirs = SideText.Of(hunk.Theirs);
         for (var row = 0; row < plan.BaseRows; row++)
         {
             var line = plan.Scroll + row;
-            lines.Add(OverlayBox.Text(side.TextAt(line), plan.Width, glyphs, side.RoleAt(line, plan)));
+            var builder = new LineBuilder(OverlayBox.InnerWidth(plan.Width), glyphs.Ellipsis)
+                .Append(" ", SegmentRole.Plain);
+            ChangedText.Append(
+                builder,
+                side.TextAt(line),
+                side.RoleAt(line, plan),
+                side.BaseChangesAt(line, ours, theirs, plan),
+                SegmentRole.DiffRemovedWord);
+            lines.Add(OverlayBox.Wrap(builder.Build(), glyphs));
         }
     }
 
     private static void AddStackedSides(List<StyledLine> lines, ConflictHunk hunk, Plan plan, GraphGlyphSet glyphs)
     {
-        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved);
-        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded);
+        var ours = SideText.Of(hunk.Ours, OursMark, SegmentRole.DiffRemoved) with { Base = BaseOf(hunk, plan) };
+        var theirs = SideText.Of(hunk.Theirs, TheirsMark, SegmentRole.DiffAdded) with { Base = BaseOf(hunk, plan) };
         AddSide(lines, "ours", hunk.OursLabel, SegmentRole.LocalBranch, ours, theirs, true, plan, glyphs);
         AddSide(lines, "theirs", hunk.TheirsLabel, SegmentRole.RemoteBranch, theirs, ours, false, plan, glyphs);
     }
@@ -741,7 +759,8 @@ public static class ConflictEditorFrameBuilder
         int MaxScroll,
         int ResultStart,
         int Gutter,
-        IReadOnlyList<bool> Different);
+        IReadOnlyList<bool> Different,
+        bool ShowsBase);
 
     private readonly record struct ResultRow(string Text, SegmentRole Role, int? Number = null);
 
@@ -753,6 +772,9 @@ public static class ConflictEditorFrameBuilder
         char Mark = ' ',
         SegmentRole DifferingRole = SegmentRole.Plain)
     {
+        // The base lines when the layout shows them: words are compared with them, not with the other side.
+        public SideText? Base { get; init; }
+
         public static SideText Of(string text, char mark = ' ', SegmentRole differingRole = SegmentRole.Plain)
         {
             var lines = ConflictEditorState.Lines(text).Select(Printable).ToList();
@@ -779,7 +801,17 @@ public static class ConflictEditorFrameBuilder
         // The words of this side's line that differ from the other side's line in the same row (ours is the old side).
         public IReadOnlyList<ChangedSpan> ChangesAt(int line, SideText other, bool isOurs, Plan plan)
         {
-            if (!IsDifferent(line, plan) || other.IsEmpty || line >= other.Lines.Count)
+            if (!IsDifferent(line, plan))
+            {
+                return [];
+            }
+
+            if (Base is { IsEmpty: false } reference)
+            {
+                return line < reference.Lines.Count ? WordDiff.Compare(reference.Lines[line], Lines[line]).New : [];
+            }
+
+            if (other.IsEmpty || line >= other.Lines.Count)
             {
                 return [];
             }
@@ -789,6 +821,24 @@ public static class ConflictEditorFrameBuilder
                 : WordDiff.Compare(other.Lines[line], Lines[line]);
 
             return isOurs ? result.Old : result.New;
+        }
+
+        // On the base side: the words of this line that ours or theirs changed.
+        public IReadOnlyList<ChangedSpan> BaseChangesAt(int line, SideText ours, SideText theirs, Plan plan)
+        {
+            if (!IsDifferent(line, plan))
+            {
+                return [];
+            }
+
+            var fromOurs = line < ours.Lines.Count && !ours.IsEmpty
+                ? WordDiff.Compare(Lines[line], ours.Lines[line]).Old
+                : [];
+            var fromTheirs = line < theirs.Lines.Count && !theirs.IsEmpty
+                ? WordDiff.Compare(Lines[line], theirs.Lines[line]).Old
+                : [];
+
+            return ChangedSpan.Union(fromOurs, fromTheirs);
         }
 
         private bool IsDifferent(int line, Plan plan) =>

@@ -50,8 +50,7 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
         {
             var entry = previous[index];
             decorationsByCommit.TryGetValue(entry.Id, out var decorations);
-            var oldBranch = BranchColors.PrimaryName(entry.Decorations);
-            if (oldBranch != (decorations is null ? null : BranchColors.PrimaryName(decorations)))
+            if (!BranchColors.HaveSameBranches(entry.Decorations, decorations ?? []))
             {
                 // The colours of the lanes below were chosen by this branch name, so the old rows would be stale.
                 return null;

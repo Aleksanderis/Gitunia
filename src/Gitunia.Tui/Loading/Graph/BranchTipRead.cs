@@ -40,8 +40,15 @@ public sealed class BranchTipRead : IDisposable
     public async Task<GraphLayoutBuilder> CreateBuilderAsync()
     {
         var decorations = await Decorations.ConfigureAwait(false);
+        if (decorations is null)
+        {
+            return new GraphLayoutBuilder(null, _colorCount);
+        }
 
-        return new GraphLayoutBuilder(decorations is null ? null : BranchColors.TipsOf(decorations), _colorCount);
+        var tips = BranchColors.TipsOf(decorations);
+        var trunkCommits = BranchColors.TrunkCommitsOf(decorations, BranchColors.TrunkOf(decorations));
+
+        return new GraphLayoutBuilder(tips, _colorCount, trunkCommits);
     }
 
     public void Dispose()

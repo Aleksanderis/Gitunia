@@ -20,15 +20,16 @@ public sealed class GraphLayoutBuilder
     // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
     private readonly List<int> _laneSlots = [];
 
-    // The branch each lane belongs to (null when no branch name started it) and a hash of the name for fingerprints.
-    private readonly List<string?> _laneBranches = [];
-    private readonly List<uint> _laneBranchHashes = [];
+    // Whether the lane belongs to the trunk branch (BranchColors.TrunkOf); only meaningful while the lane is occupied.
+    private readonly List<bool> _laneIsTrunk = [];
+
     private readonly List<GraphRow> _rows = [];
 
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
     private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
     private readonly int _colorCount;
+    private readonly IReadOnlySet<ObjectId> _trunkCommits;
 
     /// <param name="branchTips">
     /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
@@ -38,10 +39,17 @@ public sealed class GraphLayoutBuilder
     /// Distinct colours the palette has (at most <see cref="BranchColors.SlotCount"/>): lanes open at the same time
     /// get different colours while one is free, so a short palette (16 colours, a small theme) never repeats one early.
     /// </param>
+    /// <param name="trunkCommits">
+    /// The commits that carry the trunk branch (<see cref="BranchColors.TrunkCommitsOf"/>): the lane of such a
+    /// commit is the trunk's from its row down, and where several lanes meet at a commit the trunk's lane keeps it;
+    /// null for none (the leftmost lane keeps it).
+    /// </param>
     public GraphLayoutBuilder(
         IReadOnlyDictionary<ObjectId, string>? branchTips = null,
-        int colorCount = BranchColors.SlotCount)
+        int colorCount = BranchColors.SlotCount,
+        IReadOnlySet<ObjectId>? trunkCommits = null)
     {
+        _trunkCommits = trunkCommits ?? FrozenSet<ObjectId>.Empty;
         _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
@@ -59,6 +67,13 @@ public sealed class GraphLayoutBuilder
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
         var nodeLane = NodeLaneOf(commitId);
+
+        if (_trunkCommits.Contains(commitId))
+        {
+            // A trunk commit inside the lane of another branch makes that lane the trunk's from here down.
+            _laneIsTrunk[nodeLane] = true;
+        }
+
         var nodeColor = _laneSlots[nodeLane];
 
         for (var lane = 0; lane < _lanes.Count; lane++)
@@ -82,23 +97,25 @@ public sealed class GraphLayoutBuilder
         for (var parentIndex = 0; parentIndex < commit.Parents.Count; parentIndex++)
         {
             var parent = commit.Parents[parentIndex];
-            var parentLane = IndexOfLane(parent);
-            if (parentLane < 0)
+            int parentLane;
+            if (parentIndex == 0)
             {
-                parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
-                EnsureLane(parentLane);
-
-                if (parentIndex == 0)
-                {
-                    _laneSlots[parentLane] = nodeColor;
-                }
-                else
-                {
-                    _branchTips.TryGetValue(parent, out var parentBranch);
-                    StartLane(parentLane, parent, parentBranch);
-                }
-
+                // The first parent continues the node's own lane even when another lane already waits for it: every
+                // branch keeps its lane down to the commit it forked from, where the lanes join (#759).
+                parentLane = nodeLane;
+                _laneSlots[parentLane] = nodeColor;
                 _lanes[parentLane] = parent;
+            }
+            else
+            {
+                parentLane = IndexOfLane(parent);
+                if (parentLane < 0)
+                {
+                    parentLane = FindFreeLane();
+                    EnsureLane(parentLane);
+                    StartLane(parentLane, parent);
+                    _lanes[parentLane] = parent;
+                }
             }
 
             edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
@@ -128,13 +145,11 @@ public sealed class GraphLayoutBuilder
         return added;
     }
 
-    // The lane of the commit's node. A lane waiting for it that belongs to the same branch (or any lane waiting for a
-    // commit that no branch name starts) is the node's lane, the leftmost one. A commit that carries a branch name and
-    // is only waited for by lanes of other branches starts a lane of its own: the other branches' lines bend into it
-    // (#759), so commits of different branches never share a column.
+    // The lane of the commit's node: where several lanes meet at it, the lane of the trunk branch if one is among them
+    // (the main line stays straight), else the leftmost; a commit no lane waits for starts a lane.
     private int NodeLaneOf(ObjectId commitId)
     {
-        _branchTips.TryGetValue(commitId, out var branch);
+        var found = -1;
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
             if (_lanes[lane] != commitId)
@@ -142,33 +157,31 @@ public sealed class GraphLayoutBuilder
                 continue;
             }
 
-            if (branch is null || _laneBranches[lane] == branch)
+            if (_laneIsTrunk[lane])
             {
                 return lane;
             }
+
+            found = found < 0 ? lane : found;
+        }
+
+        if (found >= 0)
+        {
+            return found;
         }
 
         var nodeLane = FindFreeLane();
         EnsureLane(nodeLane);
-        StartLane(nodeLane, commitId, branch);
+        StartLane(nodeLane, commitId);
 
         return nodeLane;
     }
 
-    // A new lane that starts at this commit: coloured by its branch name, else by the commit.
-    private void StartLane(int lane, ObjectId commitId, string? branch)
+    // A lane that starts at this commit: its colour and whether it is the trunk's.
+    private void StartLane(int lane, ObjectId commitId)
     {
-        _laneSlots[lane] = SlotForNewLane(commitId, branch);
-        if (branch is not null)
-        {
-            _laneBranches[lane] = branch;
-            _laneBranchHashes[lane] = BranchColors.HashOf(branch);
-        }
-        else
-        {
-            _laneBranches[lane] = null;
-            _laneBranchHashes[lane] = 0;
-        }
+        _laneSlots[lane] = SlotForNewLane(commitId);
+        _laneIsTrunk[lane] = _trunkCommits.Contains(commitId);
     }
 
     private int IndexOfLane(ObjectId commitId)
@@ -190,16 +203,15 @@ public sealed class GraphLayoutBuilder
         {
             _lanes.Add(default);
             _laneSlots.Add(0);
-            _laneBranches.Add(null);
-            _laneBranchHashes.Add(0);
+            _laneIsTrunk.Add(false);
         }
     }
 
     // The slot of a lane that starts at this commit: its branch's slot when it is a branch tip, else one derived from
     // the commit, in both cases moved on to the next slot no open lane of another branch is using.
-    private int SlotForNewLane(ObjectId commitId, string? name)
+    private int SlotForNewLane(ObjectId commitId)
     {
-        if (name is null)
+        if (!_branchTips.TryGetValue(commitId, out var name))
         {
             return FreeSlotFrom((int)(commitId.Hash64 % (uint)_colorCount));
         }
@@ -264,7 +276,7 @@ public sealed class GraphLayoutBuilder
             if (_lanes[lane].IsValid)
             {
                 hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48)
-                    ^ ((ulong)_laneBranchHashes[lane] << 8))
+                    ^ (_laneIsTrunk[lane] ? 0x5851F42D4C957F2DUL : 0UL))
                     * 1099511628211UL;
             }
         }
@@ -282,7 +294,6 @@ public sealed class GraphLayoutBuilder
 
         _lanes.RemoveRange(count, _lanes.Count - count);
         _laneSlots.RemoveRange(count, _laneSlots.Count - count);
-        _laneBranches.RemoveRange(count, _laneBranches.Count - count);
-        _laneBranchHashes.RemoveRange(count, _laneBranchHashes.Count - count);
+        _laneIsTrunk.RemoveRange(count, _laneIsTrunk.Count - count);
     }
 }

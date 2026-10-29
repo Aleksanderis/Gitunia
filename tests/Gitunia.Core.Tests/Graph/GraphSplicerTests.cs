@@ -31,15 +31,15 @@ public class GraphSplicerTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
-    public void GivenNewTipOnAnOlderCommit_WhenSplicingWhereverItJoins_ThenResultEqualsFullLayout(int seed)
+    public void GivenNewTipOnAnOlderCommit_WhenSplicingWhereverOrIfItJoins_ThenResultEqualsFullLayout(int seed)
     {
         var old = RandomHistory(seed, count: 300, window: 10);
         var updated = new List<CommitInfo> { Commit(10_000, 150) };
         updated.AddRange(old);
 
-        var (result, joinIndex) = Reload(old, updated);
+        var (result, _) = Reload(old, updated);
 
-        Assert.True(joinIndex >= 0);
+        // The lane of the new tip waits for the old commit, so a join may come late or not at all, never wrongly.
         AssertEqualToFullLayout(updated, result);
     }
 

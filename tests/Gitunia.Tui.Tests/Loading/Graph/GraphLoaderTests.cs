@@ -87,6 +87,40 @@ public class GraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenAllCommitsWithOneTimestampAndMainListedLast_WhenStreaming_ThenMainIsStillOneStraightLane()
+    {
+        // The demo history as git lists it when every commit has the same timestamp: the feature tips first, main last.
+        var commitLog = new FakeCommitLogReader();
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        commitLog.Commits.AddRange(
+        [
+            Node(4, "feat-a step 3", [7], Branch("feat-a")),
+            Node(5, "feat-b step 3", [8], Branch("feat-b")),
+            Node(1, "Add docs", [2], main),
+            Node(2, "Merge merged-topic", [11, 3]),
+            Node(3, "Topic work", [11], Branch("merged-topic")),
+            Node(7, "feat-a step 2", [9]),
+            Node(8, "feat-b step 2", [10]),
+            Node(9, "feat-a step 1", [11]),
+            Node(10, "feat-b step 1", [11]),
+            Node(11, "Add cli", [12]),
+            Node(12, "Add formatter", [13], Branch("hotfix")),
+            Node(13, "Initial commit", []),
+        ]);
+
+        var entries = (await LoadAsync(commitLog)).SelectMany(batch => batch).ToList();
+
+        var mainSubjects = new[] { "Add docs", "Merge merged-topic", "Add cli", "Add formatter", "Initial commit" };
+        var mainLane = entries.Single(entry => entry.Subject == "Add docs").Row.Lane;
+        Assert.All(
+            entries.Where(entry => mainSubjects.Contains(entry.Subject)),
+            entry => Assert.Equal(mainLane, entry.Row.Lane));
+        Assert.Equal(2, entries.Single(entry => entry.Subject == "Add docs").Row.Lane);
+        var colours = entries.Where(entry => mainSubjects.Contains(entry.Subject)).Select(entry => entry.Row.NodeColor);
+        Assert.Single(colours.Distinct());
+    }
+
+    [Fact]
     public async Task GivenTheTipsCannotBeRead_WhenStreaming_ThenTheGraphStillLoads()
     {
         var commitLog = FakeCommitLogReader.Chain(5);
@@ -185,6 +219,16 @@ public class GraphLoaderTests
 
         await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
     }
+
+    private static CommitInfo Node(int number, string subject, int[] parents, params CommitDecoration[] decorations) =>
+        new(
+            FakeObjectIds.Of(number),
+            [.. parents.Select(FakeObjectIds.Of)],
+            "Author",
+            "author@example.com",
+            DateTimeOffset.UnixEpoch,
+            subject,
+            decorations);
 
     private static CommitDecoration Branch(string name) =>
         new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
