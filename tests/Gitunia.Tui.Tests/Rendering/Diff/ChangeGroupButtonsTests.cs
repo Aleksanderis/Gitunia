@@ -63,7 +63,11 @@ public class ChangeGroupButtonsTests
     [Fact]
     public void GivenTrailingBlanksAndWideCharacters_WhenMeasuringContent_ThenOnlyTheTextCounts()
     {
-        var line = new StyledLine([new StyledSegment("ab", SegmentRole.Plain), new StyledSegment("\u4e2d  ", SegmentRole.Plain)]);
+        var line = new StyledLine(
+        [
+            new StyledSegment("ab", SegmentRole.Plain),
+            new StyledSegment("\u4e2d  ", SegmentRole.Plain),
+        ]);
 
         Assert.Equal(4, ChangeGroupButtons.ContentWidth(line));
     }
