@@ -97,6 +97,7 @@ public sealed class TuiApplication(
     private MainView _view = null!;
     private ActionRouter _router = null!;
     private KeyController _keys = null!;
+    private RepeatController _repeat = null!;
     private MouseController _mouse = null!;
     private long _overlayClickTicks = long.MinValue / 2;
     private long _statusAgingGeneration;
@@ -222,7 +223,7 @@ public sealed class TuiApplication(
             sidebarSource,
             () => _sidebar.Chrome,
             () => _diffPane.Arrangement(),
-            width => _diffPane.TitleLine(width, glyphs, _chipKeys),
+            width => _diffPane.TitleLine(width, glyphs, _chipKeys, _repeat.Active?.Pane == PaneKind.Diff),
             new DiffListSource(glyphs));
 
         _commits = CreateCommits();
@@ -259,7 +260,7 @@ public sealed class TuiApplication(
             _view.RefreshChrome,
             clipboard,
             Relayout);
-        _view.WorkingDiffTitle = _workingDiff.TitleText;
+        _view.WorkingDiffTitle = () => _workingDiff.TitleText(_repeat.Active?.Pane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff);
         _view.IsWorkingDiffZoomed = () => _workingDiff.IsZoomed;
         _view.WorkingDiffButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
         _visual = new VisualRangeController(
@@ -355,6 +356,13 @@ public sealed class TuiApplication(
         var configured = _startupConfig.Keymap;
         var engine = new KeymapEngine(configured.Table);
         _keys = new KeyController(engine, RouteAction);
+        _repeat = new RepeatController(
+            configured.Table,
+            () => _host.Workspace.ActiveTabId,
+            () => _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
+            () => IsAnyOverlayOpen() || _picker.IsOpen,
+            RouteAction);
+        _keys.Interceptor = _repeat.TryHandle;
         _fileTree = new FileTreeController(
             _host,
             ActiveSession,
@@ -565,6 +573,23 @@ public sealed class TuiApplication(
             && !_workspaceActions.TryExecute(action, count))
         {
             _router.Execute(action, count);
+            StartRepeat(action);
+        }
+    }
+
+    // A step that took effect (the resize did not refuse, the context belongs to a diff) starts the sticky repeat mode.
+    private void StartRepeat(ActionId action)
+    {
+        var isResize = action == ActionIds.PaneWider
+            || action == ActionIds.PaneNarrower
+            || action == ActionIds.PaneTaller
+            || action == ActionIds.PaneShorter;
+        var isContext = action == ActionIds.DiffMoreContext || action == ActionIds.DiffLessContext;
+        var isRefused = isResize && _router.PaneSizes?.Notice.Length > 0;
+        var hasNoDiffOptions = isContext && _view.Diff.Source is DiffListSource { Document.IsFileContent: true };
+        if (!isRefused && !hasNoDiffOptions)
+        {
+            _repeat.Started(action);
         }
     }
 
@@ -1238,6 +1263,7 @@ public sealed class TuiApplication(
                 MessageSeverity = CurrentMessageSeverity(),
                 MessageIsFresh = _statuses.IsFresh,
                 Hints = CurrentHints(),
+                RepeatPane = _repeat.Active?.Pane,
                 SearchLine = _prompts.Select(prompt => prompt.StatusLine).FirstOrDefault(line => line.Length > 0) ??
                              PopupFallbackLine(),
             };
@@ -1285,6 +1311,11 @@ public sealed class TuiApplication(
         if (_commits.IsEditing)
         {
             return PaneHints.ForMessageEditing();
+        }
+
+        if (_repeat.Active is { } repeating)
+        {
+            return PaneHints.ForRepeat(repeating.Kind);
         }
 
         if (DetailChangesFocused())
@@ -1824,7 +1855,13 @@ public sealed class TuiApplication(
     {
         var content = ActiveSession()?.DetailSource.Content ?? DetailContent.Empty;
         var isFocused = _view.Detail.HasFocus;
-        return DetailPaneRenderer.RenderTitle(content, isFocused, width, glyphs, _chipKeys);
+        return DetailPaneRenderer.RenderTitle(
+            content,
+            isFocused,
+            width,
+            glyphs,
+            _chipKeys,
+            _repeat.Active?.Pane == PaneKind.Detail);
     }
 
     private bool IsMessageFocused() =>

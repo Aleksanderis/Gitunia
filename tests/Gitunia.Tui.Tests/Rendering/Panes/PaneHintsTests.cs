@@ -1,5 +1,6 @@
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Panes;
@@ -178,6 +179,16 @@ public class PaneHintsTests
             PaneHints.ForDetailChanges(),
             hint => hint.Keys == "<space>v" && hint.Description == "view options");
         AssertKeysTriggerActions(PaneHints.ForDetailChanges(), KeyMode.Normal, DefaultKeymap.DetailChangesView);
+    }
+
+    [Theory]
+    [InlineData(RepeatKind.Context, RepeatMode.ContextView)]
+    [InlineData(RepeatKind.Resize, RepeatMode.ResizeView)]
+    public void GivenARepeatMode_WhenCheckingItsHints_ThenEveryKeyTriggersItsActionInTheModesView(
+        RepeatKind kind,
+        string view)
+    {
+        AssertKeysTriggerActions(PaneHints.ForRepeat(kind), KeyMode.Normal, view);
     }
 
     public static TheoryData<string> ModalHintSets() =>

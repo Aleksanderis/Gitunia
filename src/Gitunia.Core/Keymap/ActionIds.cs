@@ -166,7 +166,9 @@ public static class ActionIds
 
     public static ActionId PaneResetSizes { get; } = new("pane.reset-sizes");
 
-    public static ActionId PickerAccept { get; } = new("picker.accept");
+    public static ActionId RepeatEnd { get; } = new("repeat.end");
+
+    public static ActionId PickerAccept{ get; } = new("picker.accept");
 
     public static ActionId BranchCreate { get; } = new("branch.create");
 

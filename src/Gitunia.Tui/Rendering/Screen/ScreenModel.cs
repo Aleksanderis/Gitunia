@@ -1,6 +1,7 @@
 using Gitunia.Core.Operations;
 using Gitunia.Core.Picker;
 using Gitunia.Core.Status;
+using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.Tabs;
@@ -34,6 +35,7 @@ namespace Gitunia.Tui.Rendering.Screen;
 /// <param name="TruncatedTotal">The commits in the whole log when only its newest rows are loaded (the soft row limit),
 /// null otherwise; the position then reads <c>12/100000+ of 1204331</c>.</param>
 /// <param name="Keys">Where the tab row chips take their key text from; null uses the default keymap.</param>
+/// <param name="RepeatPane">The pane whose title shows the repeat marker while the repeat mode is on; null when it is off.</param>
 /// <param name="Hints">The key hints of the focused pane for the status bar; null uses the graph's.</param>
 public sealed record ScreenModel(
     string RepositoryName,
@@ -58,4 +60,5 @@ public sealed record ScreenModel(
     bool MessageIsFresh = false,
     int? TruncatedTotal = null,
     ChipKeys? Keys = null,
-    string SelectedName = "");
+    string SelectedName = "",
+    PaneKind? RepeatPane = null);

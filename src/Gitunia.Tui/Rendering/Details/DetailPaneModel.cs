@@ -5,4 +5,10 @@ namespace Gitunia.Tui.Rendering.Details;
 /// <param name="SelectedRow">The row under the cursor.</param>
 /// <param name="TopRow">The first visible row.</param>
 /// <param name="IsFocused">The pane has focus (the cursor row is highlighted and the title is marked).</param>
-public sealed record DetailPaneModel(DetailContent Content, int SelectedRow, int TopRow, bool IsFocused);
+/// <param name="IsRepeating">The repeat mode is on for this pane: the title shows its marker.</param>
+public sealed record DetailPaneModel(
+    DetailContent Content,
+    int SelectedRow,
+    int TopRow,
+    bool IsFocused,
+    bool IsRepeating = false);

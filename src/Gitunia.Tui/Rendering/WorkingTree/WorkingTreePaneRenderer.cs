@@ -1,5 +1,6 @@
 using System.Globalization;
 using Gitunia.Core.Jump.Models;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Repositories;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Diff;
@@ -162,11 +163,17 @@ public static class WorkingTreePaneRenderer
     {
         if (tree?.Selection is not { } selection || diff is null || diff.Document.FileRows.Count == 0)
         {
-            return DiffTitleName;
+            return diff is { IsRepeating: true } ? $"{DiffTitleName}  {RepeatMode.TitleMarker}" : DiffTitleName;
         }
 
         var side = selection.Section == WorkingTreeSection.Staged ? "staged" : "unstaged";
-        var parts = new List<string> { DiffTitleName, side };
+        var parts = new List<string> { DiffTitleName };
+        if (diff.IsRepeating)
+        {
+            parts.Add(RepeatMode.TitleMarker);
+        }
+
+        parts.Add(side);
         var hunks = diff.Document.HunkRows.Count;
         if (hunks > 0)
         {

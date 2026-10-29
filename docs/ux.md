@@ -26,6 +26,23 @@ How decisions came about and which issue built what: `docs/history/ux.md` and th
 
 Normal (navigate, act), Visual (select a range of lines, commits or files), Insert (text input: commit message, filters, prompts), Command (`:` palette), Confirm (y/n dialogs).
 
+**Repeat mode** (#758) is a sticky sub-mode of Normal for step actions, so a value can be nudged several times without the popup or the prefix each time.
+
+- **Which actions.** Only steppers: the context lines `+`/`-` in the diffs (history diff and both working-tree diffs; not the file content, which has no diff options) and the pane resize keys `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` in the sidebar, graph, detail and history diff panes.
+  Toggles (wrap, whole file, split, whitespace) are not repeatable and never enter the mode.
+- **Entering.** No extra key: running a step by key, chip or the `view ▾` dropdown (which closes as usual) starts the mode on the focused pane after that first step.
+  A step that did nothing (a pane that cannot be resized, a zoomed pane) does not start it.
+- **While on.** The step keys work bare: in the context mode `+` `-`; in the resize mode `>` `<` (wider / narrower), `+` `-` (taller / shorter) and `=` (reset the sizes); they have the meaning of the mode, also where the pane binds the key otherwise (`+` in the diff).
+  Each press runs the step again and keeps the mode.
+  Any other key ends the mode and then acts as usual (no key is swallowed); only `Esc` ends it and does nothing else.
+  The bare `>` and `<` exist only in this mode, so they are not in the vim-clash list.
+- **Feedback.** The status bar shows one hint line instead of the pane's own (`+/- more/fewer context   Esc done`; resize: `>/< wider/narrower   +/- taller/shorter   = reset   Esc done`) and the title of the pane gets the marker `[repeat]` (first thing after the pane name or tabs, so a narrow row cuts other title text before it; in the Details pane's title it sits after the tab labels); nothing else is tinted.
+  The mode is not saved with the session.
+- **Scope.** It belongs to one tab and one pane: switching tab or moving focus ends it, as does opening any overlay, prompt or search.
+  Chip clicks and the dropdown keep working as before.
+  There is no click target to end it: `Esc`, any other key or a click on another pane do.
+  The state is a small pure value (`RepeatMode` in Core), the keys are the keymap views `ContextRepeat` and `ResizeRepeat` (Keymap table), so remapping and the key text follow the keymap.
+
 **Paste** (#575).
 A terminal paste works in every text input (prompt popups such as the clone URL, the picker and path filter, tree and search filters, the `:` palette, the message editors).
 A bracketed paste (`ESC[200~ ... ESC[201~`) is replayed as the keys typing it would have sent, so each input uses its normal typing path; a terminal without bracketed paste sends plain keys, a line break as `Enter`, which cannot be told from a typed one (so there a pasted `url` plus newline accepts the prompt; known limit).
@@ -366,6 +383,7 @@ Outside Insert and Command mode a paste does nothing.
    A side line without a base line in its row is not marked.
    Binary files, renames without edits, mode changes and "no newline" markers get a note row; parser warnings (such as invalid UTF-8 in the patch) show as a red `!` row above the first file.
 6. **Options** (per tab, not saved with the session): `+`/`-` show 3 more/fewer unchanged lines around each change (title `[ctx N]`), `<space>vf` shows whole files (`[file]`), `<space>vi` ignores whitespace-only changes (`[-w]`).
+   `+`/`-` start the repeat mode (see Modes), so more presses, also after choosing them in the `view ▾` dropdown, need no prefix; the title shows `[repeat]` until `Esc` or another key.
    Each reloads the commit with git's `-U<n>` / `-w` (the cache is dropped, the cursor returns to the same file).
    - In whole-file mode `]c`/`[c` still visit each group of changes, grouped as git's own hunks would be for the current context (changes closer than twice the context lines are one hunk), and the title's `hunk n/m` counts those groups.
      The grouping uses the context set with `+`/`-` (3 by default), not a `diff.context` from the user's config.
@@ -1161,6 +1179,15 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Global | `Ctrl-w >` `Ctrl-w <` | Focused pane wider / narrower: moves the divider beside it by 2 columns (a count multiplies; dragging a divider with the mouse does the same) |
 | Global | `Ctrl-w +` `Ctrl-w -` | Focused pane taller / shorter: moves the edge between the graph and the bottom panes by 1 row |
 | Global | `Ctrl-w =` | Reset the pane sizes to automatic |
+| ContextRepeat | `+` | Repeat mode after a context step (see Modes): 3 more unchanged lines around each change; any other key ends the mode |
+| ContextRepeat | `-` | Repeat mode: fewer context lines |
+| ContextRepeat | `Esc` | Leave the repeat mode, nothing else happens |
+| ResizeRepeat | `>` | Repeat mode after a resize step: focused pane wider |
+| ResizeRepeat | `<` | Repeat mode: focused pane narrower |
+| ResizeRepeat | `+` | Repeat mode: focused pane taller |
+| ResizeRepeat | `-` | Repeat mode: focused pane shorter |
+| ResizeRepeat | `=` | Repeat mode: reset the pane sizes (the mode stays) |
+| ResizeRepeat | `Esc` | Leave the repeat mode, nothing else happens |
 | Global | `<space>x` | Dismiss the status message |
 | Global | `<space>m` | Show the status message history (overlay; `j`/`k` scroll, `Esc` closes) |
 | Global | `<space>,` | Open the settings screen (overlay over the tab; `Esc` closes; see "Settings screen") |
@@ -1640,7 +1667,7 @@ The release leaves the range active; a click on a row, `Esc`, `q`, `v` or moving
 The sidebar and the message box have no ranges (a drag there only moves the selection); a drag also does not start a range while a prompt (search, filter, ref jump) or the picker is open.
 
 Drag to resize: the line between the sidebar and the graph, the line between the detail and diff panes, and the title rows of the detail and diff panes (the line between the graph and the bottom panes) follow the pointer while the button is held.
-Sizes are clamped to what fits (at least 12 columns for the sidebar and detail, 20 for the graph and diff, 3 rows for the bottom panes, 4 for the graph), belong to the tab and are saved with the session; `Ctrl-w =` (or `:`, then "Reset the pane sizes") returns to automatic, and `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` are the keyboard path.
+Sizes are clamped to what fits (at least 12 columns for the sidebar and detail, 20 for the graph and diff, 3 rows for the bottom panes, 4 for the graph), belong to the tab and are saved with the session; `Ctrl-w =` (or `:`, then "Reset the pane sizes") returns to automatic, and `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` are the keyboard path; after a step the repeat mode (see Modes) takes bare `>` `<` `+` `-` `=` until `Esc` or another key.
 A single zoomed pane has no dividers to drag (the divider between the paired Changes and diff panes does not drag while zoomed, but `Ctrl-w >` `Ctrl-w <` move it, #683).
 
 Clickable titles and buttons: a click on the title row of the detail or diff pane focuses that pane.

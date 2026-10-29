@@ -2,6 +2,7 @@ using System.Globalization;
 using Gitunia.Core.FileTree;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Workspaces.Tabs;
 using Gitunia.Tui.Rendering.Files;
@@ -17,7 +18,7 @@ public static class DetailPaneRenderer
     /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at the pane's top row; the rows are padded (<see cref="PanePadding"/>).</summary>
     public static IReadOnlyList<StyledLine> RenderPane(DetailPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
-        var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane.Content, pane.IsFocused, width, glyphs) };
+        var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane.Content, pane.IsFocused, width, glyphs, isRepeating: pane.IsRepeating) };
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;
@@ -42,16 +43,17 @@ public static class DetailPaneRenderer
         bool isFocused,
         int width,
         GraphGlyphSet glyphs,
-        ChipKeys? keys = null)
+        ChipKeys? keys = null,
+        bool isRepeating = false)
     {
         var builder = new LineBuilder(width, glyphs.Ellipsis);
-        AppendTitleText(builder, content, isFocused, width, glyphs);
+        AppendTitleText(builder, content, isFocused, width, glyphs, isRepeating);
         if (ViewButton(content, width, glyphs, keys) is not { } chip)
         {
             return builder.BuildRule(glyphs.Horizontal);
         }
 
-        var used = width - builder.Remaining;
+        var used = Math.Min(width - builder.Remaining, chip.Start);
         builder.Append(new string(glyphs.Horizontal, chip.Start - used), SegmentRole.Rule);
         builder.Append(ViewChip.Line(chip, glyphs));
 
@@ -94,7 +96,8 @@ public static class DetailPaneRenderer
         DetailContent content,
         bool isFocused,
         int width,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        bool isRepeating = false)
     {
         var strip = DetailTabStrip.Layout(width, content.Tab);
         var column = 0;
@@ -104,6 +107,13 @@ public static class DetailPaneRenderer
             var isSelected = DetailTabStrip.TabOf(button) == content.Tab;
             builder.Append(ButtonLabel.For(button.Label, glyphs.IsAscii), TabRole(isSelected, isFocused));
             column = button.Start + button.Width;
+        }
+
+        // Right after the tabs, so a narrow row cuts the commit and its file count first.
+        if (isRepeating)
+        {
+            builder.Append(new string(glyphs.Horizontal, 1), SegmentRole.Rule);
+            builder.Append($" {RepeatMode.TitleMarker} ", SegmentRole.Faint);
         }
 
         if (content.ShortHash.Length > 0)

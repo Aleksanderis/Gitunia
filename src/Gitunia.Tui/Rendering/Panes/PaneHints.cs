@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Workspaces.Panes;
 
 namespace Gitunia.Tui.Rendering.Panes;
@@ -274,6 +275,25 @@ public static class PaneHints
         new("/", "filter", [ActionIds.SettingsFilter]),
         new("Esc", "close", [ActionIds.NavigateBack]),
     ];
+
+    private static readonly ImmutableArray<KeyHint> RepeatContext =
+    [
+        new("+/-", "more/fewer context", [ActionIds.DiffMoreContext, ActionIds.DiffLessContext]),
+        new("Esc", "done", [ActionIds.RepeatEnd]),
+    ];
+
+    private static readonly ImmutableArray<KeyHint> RepeatResize =
+    [
+        new(">/<", "wider/narrower", [ActionIds.PaneWider, ActionIds.PaneNarrower]),
+        new("+/-", "taller/shorter", [ActionIds.PaneTaller, ActionIds.PaneShorter]),
+        new("=", "reset", [ActionIds.PaneResetSizes]),
+        new("Esc", "done", [ActionIds.RepeatEnd]),
+    ];
+
+    /// <summary>The only hint line of a pane while its repeat mode is on (#758).</summary>
+    /// <param name="kind">What the mode repeats.</param>
+    public static IReadOnlyList<KeyHint> ForRepeat(RepeatKind kind) =>
+        kind == RepeatKind.Context ? RepeatContext : RepeatResize;
 
     /// <summary>The hints of the focused <paramref name="pane"/>; file content has its own.</summary>
     public static IReadOnlyList<KeyHint> For(PaneKind pane, bool showsFileContent) =>

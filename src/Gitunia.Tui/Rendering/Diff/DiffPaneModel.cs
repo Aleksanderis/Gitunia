@@ -15,6 +15,7 @@ namespace Gitunia.Tui.Rendering.Diff;
 /// <param name="FileCount">Files of the commit, 0 when the pane does not show a commit's files; in the folder view the
 /// files of the folder.</param>
 /// <param name="IsFolder">The pane shows the files of a folder (tree style of the Changes tab).</param>
+/// <param name="IsRepeating">The repeat mode is on for this pane: the title shows its marker first.</param>
 public sealed record DiffPaneModel(
     DiffDocument Document,
     int SelectedRow,
@@ -26,4 +27,5 @@ public sealed record DiffPaneModel(
     int FileNumber = 0,
     int FileCount = 0,
     bool IsFolder = false,
-    bool ShowWhitespace = false);
+    bool ShowWhitespace = false,
+    bool IsRepeating = false);

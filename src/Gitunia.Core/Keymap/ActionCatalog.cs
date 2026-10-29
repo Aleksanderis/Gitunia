@@ -59,6 +59,7 @@ public static class ActionCatalog
         ActionIds.HelpTabSelect,
         ActionIds.CommandExecute,
         ActionIds.ConfirmNo,
+        ActionIds.RepeatEnd,
         ActionIds.ConfirmYes,
         ActionIds.InputAccept,
         ActionIds.PaletteNext,
@@ -145,6 +146,7 @@ public static class ActionCatalog
         ["menu"] = ActionGroups.General,
         ["command"] = ActionGroups.General,
         ["confirm"] = ActionGroups.General,
+        ["repeat"] = ActionGroups.General,
         ["input"] = ActionGroups.General,
         ["cancel"] = ActionGroups.General,
     };
@@ -285,6 +287,7 @@ public static class ActionCatalog
         ["pane.shorter"] = "Make the focused pane shorter",
         ["pane.taller"] = "Make the focused pane taller",
         ["pane.wider"] = "Make the focused pane wider",
+        ["repeat.end"] = "Leave the repeat mode",
         ["pane.zoom"] = "Zoom the focused pane",
         ["picker.accept"] = "Open the repository",
         ["picker.clone"] = "Clone a repository into a new tab",
