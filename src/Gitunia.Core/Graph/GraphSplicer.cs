@@ -39,7 +39,8 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
     /// below the join. Rows below the join get their refs from <paramref name="decorationsByCommit"/> (every commit that carries a ref
     /// now), since refs may have moved without the commits changing.
     /// Returns null when the branch name of a reused commit that chose a lane colour changed
-    /// (<see cref="GraphRow.ColorChosenByName"/>; a branch moved onto any other commit leaves the rows as they are) or a reused tip
+    /// (<see cref="GraphRow.ColorChosenByName"/>; a branch moved onto any other commit leaves the rows as they are)
+    /// or a reused tip
     /// (a row without incoming edge) lost all its refs (it may be a commit that no longer exists): the caller must read
     /// the whole log then.
     /// </summary>

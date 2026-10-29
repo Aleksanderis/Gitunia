@@ -153,7 +153,8 @@ public class GraphSplicerTests
     {
         var side = Local("side");
         var added = Local("aaa");
-        var old = new[] { Commit(5, 4), Commit(4, 3), Commit(9, 2) with { Decorations = [side] }, Commit(3, 2), Commit(2) };
+        var sideTip = Commit(9, 2) with { Decorations = [side] };
+        var old = new[] { Commit(5, 4), Commit(4, 3), sideTip, Commit(3, 2), Commit(2) };
         var updated = new[] { Commit(6, 5), Commit(5, 4), Commit(4, 3), Commit(9, 2), Commit(3, 2), Commit(2) };
         var splicer = new GraphSplicer(Entries(old, Tips(5, 9)));
         var builder = new GraphLayoutBuilder(Tips(6, 9));

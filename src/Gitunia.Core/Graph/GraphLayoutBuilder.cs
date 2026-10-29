@@ -20,7 +20,7 @@ public sealed class GraphLayoutBuilder
     // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
     private readonly List<int> _laneSlots = [];
 
-    // Whether the lane was started by a second parent, whose branch name chose its colour (see GraphRow.ColorChosenByName).
+    // Whether the lane was started by a second parent whose branch name chose its colour (GraphRow.ColorChosenByName).
     private readonly List<bool> _laneNamedByParent = [];
 
     private readonly List<GraphRow> _rows = [];
@@ -117,7 +117,14 @@ public sealed class GraphLayoutBuilder
         }
 
         TrimFreeLanes();
-        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes(), nodeColor, isColorChosenByName);
+        var row = new GraphRow(
+            commitId,
+            nodeLane,
+            laneCount,
+            edges.ToArray(),
+            FingerprintLanes(),
+            nodeColor,
+            isColorChosenByName);
         _rows.Add(row);
         return row;
     }

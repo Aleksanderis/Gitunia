@@ -132,7 +132,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenBranchMovedOntoAnotherOldCommitWithNothingNew_WhenReloading_ThenEverythingIsReusedAndTheResultEqualsAFullRead()
+    public async Task GivenBranchesMovedOntoOldCommits_WhenReloading_ThenEverythingIsReusedAndEqualsAFullRead()
     {
         using var testRepository = LongHistory(30);
         testRepository.Branch("topic", "HEAD~20");
@@ -150,7 +150,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenBranchAddedOnTheTipOfAnotherBranch_WhenReloading_ThenTheLaneColourFollowsAndTheResultEqualsAFullRead()
+    public async Task GivenBranchAddedOnAnotherBranchTip_WhenReloading_ThenTheResultEqualsAFullRead()
     {
         using var testRepository = LongHistory(20);
         testRepository.CheckoutNewBranch("zzz").Commit("zzz tip", new TestFile("z.txt", "1")).Checkout("main");
