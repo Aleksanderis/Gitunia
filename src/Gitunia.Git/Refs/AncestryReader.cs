@@ -9,10 +9,6 @@ public sealed class AncestryReader(GitRunner runner) : IAncestryReader
     private const string MergeBase = "merge-base";
     private const string IsAncestor = "--is-ancestor";
 
-    private static readonly GitRunOptions Options = new(
-        ReadOnly: true,
-        AcceptedExitCodes: [GitRunOptions.NoMatchExitCode]);
-
     public async Task<bool> IsAncestorAsync(
         RepositoryLocation location,
         string ancestor,
@@ -20,7 +16,7 @@ public sealed class AncestryReader(GitRunner runner) : IAncestryReader
         CancellationToken cancellationToken)
     {
         var result = await runner
-            .RunAsync(location.CommandPath, [MergeBase, IsAncestor, ancestor, descendant], Options, cancellationToken)
+            .RunAsync(location.CommandPath, [MergeBase, IsAncestor, ancestor, descendant], GitRunOptions.ReadOnlyRunAllowingNoMatch, cancellationToken)
             .ConfigureAwait(false);
         return result.ExitCode == 0;
     }

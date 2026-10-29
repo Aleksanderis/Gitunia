@@ -261,7 +261,7 @@ public sealed class PushActions(
     {
         _busy.Remove(tab.Id);
         if (_kind != PushPromptKind.None || host.Workspace.ActiveTabId != tab.Id
-            || host.Workspace.ActiveTab is not { } active || CurrentBranchOf(active)?.CommitHash != current.CommitHash)
+            || host.Workspace.ActiveTab is not { } active || CurrentBranchOf(active) is not { } now || now.Name != current.Name || now.CommitHash != current.CommitHash)
         {
             return;
         }

@@ -111,7 +111,7 @@ public class PushActionsTests
 
         harness.Run(ActionIds.RemotePush);
         await harness.PumpUntilAsync(
-            () => harness.Statuses.Log.Latest?.Text.Contains("behind", StringComparison.Ordinal) == true);
+            () => harness.Statuses.Log.Latest?.Text.Contains("pull or rebase", StringComparison.Ordinal) == true);
 
         Assert.Empty(harness.Prompts);
         Assert.Contains("pull or rebase", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
