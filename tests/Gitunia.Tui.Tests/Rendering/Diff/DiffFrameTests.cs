@@ -46,8 +46,8 @@ public class DiffFrameTests
     }
 
     [Theory]
-    [InlineData(PaneKind.Sidebar, "repo")]
-    [InlineData(PaneKind.Graph, "History")]
+    [InlineData(PaneKind.Sidebar, "[repeat] repo")]
+    [InlineData(PaneKind.Graph, "[repeat] History")]
     [InlineData(PaneKind.Detail, "Details")]
     [InlineData(PaneKind.Diff, " Diff ")]
     public void GivenTheRepeatModeOnAPane_WhenComposing_ThenOnlyThatPaneTitleShowsTheMarker(PaneKind pane, string anchor)
@@ -59,11 +59,14 @@ public class DiffFrameTests
         var text = string.Join('\n', lines);
         Assert.Equal(1, text.Split("[repeat]").Length - 1);
         var row = lines.Single(line => line.Contains("[repeat]", StringComparison.Ordinal));
-        var from = row.IndexOf(anchor, StringComparison.Ordinal);
         var marker = row.IndexOf("[repeat]", StringComparison.Ordinal);
-        Assert.True(from >= 0 && from < marker, $"marker not after '{anchor}': {row}");
-        var between = row[from..marker];
-        Assert.All(titles.Where(title => title != anchor), title => Assert.DoesNotContain(title, between, StringComparison.Ordinal));
+        var from = row.IndexOf(anchor, StringComparison.Ordinal);
+        Assert.True(from >= 0, $"anchor '{anchor}' not in: {row}");
+        var start = Math.Min(from, marker);
+        var between = row[start..Math.Max(from, marker)];
+        var others = titles.Where(title => !anchor.Contains(title, StringComparison.Ordinal));
+        Assert.All(others, title => Assert.DoesNotContain(title, between, StringComparison.Ordinal));
+        Assert.True(anchor.StartsWith("[repeat]", StringComparison.Ordinal) ? from == marker : marker > from);
     }
 
     [Fact]

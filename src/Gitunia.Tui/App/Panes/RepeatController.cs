@@ -39,7 +39,7 @@ public sealed class RepeatController(
         }
     }
 
-    /// <summary>Starts the mode that <paramref name="action"/> belongs to, if any; call it after the action ran.</summary>
+    /// <summary>Starts the mode that <paramref name="action"/> belongs to, if any; call after the action ran.</summary>
     /// <param name="action">The action that just ran.</param>
     public void Started(ActionId action)
     {

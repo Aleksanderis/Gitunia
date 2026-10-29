@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Gitunia.Core.Tests.Keymap.Repeat;
 
+[Trait("Os", "Independent")]
 public class RepeatModeTests
 {
     private static readonly TabId Tab = new(3);

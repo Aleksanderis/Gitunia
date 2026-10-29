@@ -18,7 +18,8 @@ public static class DetailPaneRenderer
     /// <summary>The title row followed by <paramref name="contentHeight"/> rows starting at the pane's top row; the rows are padded (<see cref="PanePadding"/>).</summary>
     public static IReadOnlyList<StyledLine> RenderPane(DetailPaneModel pane, int width, int contentHeight, GraphGlyphSet glyphs, int paddingColumns = PanePadding.Columns)
     {
-        var lines = new List<StyledLine>(contentHeight + 1) { RenderTitle(pane.Content, pane.IsFocused, width, glyphs, isRepeating: pane.IsRepeating) };
+        var title = RenderTitle(pane.Content, pane.IsFocused, width, glyphs, isRepeating: pane.IsRepeating);
+        var lines = new List<StyledLine>(contentHeight + 1) { title };
         for (var offset = 0; offset < contentHeight; offset++)
         {
             var row = pane.TopRow + offset;

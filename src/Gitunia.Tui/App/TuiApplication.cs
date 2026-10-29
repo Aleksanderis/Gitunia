@@ -5,6 +5,7 @@ using Gitunia.Core.Config.Models;
 using Gitunia.Core.Graph;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
+using Gitunia.Core.Keymap.Repeat;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Overlays;
 using Gitunia.Core.Persistence;
@@ -260,7 +261,7 @@ public sealed class TuiApplication(
             _view.RefreshChrome,
             clipboard,
             Relayout);
-        _view.WorkingDiffTitle = () => _workingDiff.TitleText(_repeat.Active?.Pane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff);
+        _view.WorkingDiffTitle = () => _workingDiff.TitleText(IsWorkingDiffRepeating());
         _view.IsWorkingDiffZoomed = () => _workingDiff.IsZoomed;
         _view.WorkingDiffButtons = () => WorkingTreePaneRenderer.StagingButtons(_host.Workspace.ActiveTab?.WorkingTree);
         _visual = new VisualRangeController(
@@ -577,16 +578,17 @@ public sealed class TuiApplication(
         }
     }
 
+    private bool IsWorkingDiffRepeating() =>
+        _repeat.Active?.Pane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
+
     // A step that took effect (the resize did not refuse, the context belongs to a diff) starts the sticky repeat mode.
     private void StartRepeat(ActionId action)
     {
-        var isResize = action == ActionIds.PaneWider
-            || action == ActionIds.PaneNarrower
-            || action == ActionIds.PaneTaller
-            || action == ActionIds.PaneShorter;
-        var isContext = action == ActionIds.DiffMoreContext || action == ActionIds.DiffLessContext;
-        var isRefused = isResize && _router.PaneSizes?.Notice.Length > 0;
-        var hasNoDiffOptions = isContext && _view.Diff.Source is DiffListSource { Document.IsFileContent: true };
+        var isRefused = RepeatMode.IsResizeStep(action) && _router.PaneSizes?.Notice.Length > 0;
+        var isHistoryDiff = _host.Workspace.ActiveTab?.View.FocusedPane == PaneKind.Diff;
+        var hasNoDiffOptions = RepeatMode.IsContextStep(action)
+            && isHistoryDiff
+            && _view.Diff.Source is DiffListSource { Document.IsFileContent: true };
         if (!isRefused && !hasNoDiffOptions)
         {
             _repeat.Started(action);

@@ -58,8 +58,10 @@ public static class ScreenComposer
         var focused = FocusedPane(sidebar, detail, diff);
         var sidebarTitle = model.RepositoryName.Length > 0 ? model.RepositoryName : "Repository";
         var gridFocus = isPicker ? PaneKind.Graph : focused;
-        var gridSidebarTitle = isPicker ? string.Empty : RepeatMode.Mark(sidebarTitle, model.RepeatPane == PaneKind.Sidebar);
-        var gridGraphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", model.RepeatPane == PaneKind.Graph);
+        var isSidebarRepeating = model.RepeatPane == PaneKind.Sidebar;
+        var isGraphRepeating = model.RepeatPane == PaneKind.Graph;
+        var gridSidebarTitle = isPicker ? string.Empty : RepeatMode.Mark(sidebarTitle, isSidebarRepeating);
+        var gridGraphTitle = isPicker ? string.Empty : RepeatMode.Mark("History", isGraphRepeating);
         var grid = FrameGrid.Build(width, height, rects, gridFocus, glyphs, gridSidebarTitle, gridGraphTitle);
         var overlays = new List<PaneLines>();
         if (isPicker)
@@ -149,10 +151,10 @@ public static class ScreenComposer
         {
             var diffRows = WorkingTreePaneRenderer.DiffLines(working.Diff, rects.Diff, padding, glyphs);
             overlays.Add(new PaneLines(rects.Diff.X, rects.Diff.Y, diffRows, SegmentSelection.Focused));
+            var isRepeating = model.RepeatPane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff;
+            var shownDiff = isRepeating ? WithRepeatMarker(working.Diff) : working.Diff;
             var titleLine = DiffPaneRenderer.RenderWorkingTitle(
-                WorkingTreePaneRenderer.DiffTitle(
-                    tree,
-                    model.RepeatPane is PaneKind.WorkingUnstagedDiff or PaneKind.WorkingStagedDiff ?WithRepeatMarker(working.Diff) : working.Diff),
+                WorkingTreePaneRenderer.DiffTitle(tree, shownDiff),
                 WorkingPanes.IsDiff(working.Focused),
                 WorkingTreePaneRenderer.StagingButtons(tree),
                 rects.Diff.Width,
@@ -285,7 +287,8 @@ public static class ScreenComposer
         }
     }
 
-    private static DiffPaneModel? WithRepeatMarker(DiffPaneModel? diff) => diff is null ? null : diff with { IsRepeating = true };
+    private static DiffPaneModel? WithRepeatMarker(DiffPaneModel? diff) =>
+        diff is null ? null : diff with { IsRepeating = true };
 
     // The picker takes the place of the panes: one box between the edges.
     private static PaneRects PickerRects(int width, int height)

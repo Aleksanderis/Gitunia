@@ -168,7 +168,7 @@ public static class ActionIds
 
     public static ActionId RepeatEnd { get; } = new("repeat.end");
 
-    public static ActionId PickerAccept{ get; } = new("picker.accept");
+    public static ActionId PickerAccept { get; } = new("picker.accept");
 
     public static ActionId BranchCreate { get; } = new("branch.create");
 
@@ -492,4 +492,5 @@ public static class ActionIds
 
     /// <summary>Jump to tab <paramref name="number"/> (1-based).</summary>
     public static ActionId TabGoTo(int number) => new($"tab.go-to.{number}");
+
 }

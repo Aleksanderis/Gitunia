@@ -31,12 +31,12 @@ Normal (navigate, act), Visual (select a range of lines, commits or files), Inse
 - **Which actions.** Only steppers: the context lines `+`/`-` in the diffs (history diff and both working-tree diffs; not the file content, which has no diff options) and the pane resize keys `Ctrl-w >` `Ctrl-w <` `Ctrl-w +` `Ctrl-w -` in the sidebar, graph, detail and history diff panes.
   Toggles (wrap, whole file, split, whitespace) are not repeatable and never enter the mode.
 - **Entering.** No extra key: running a step by key, chip or the `view ▾` dropdown (which closes as usual) starts the mode on the focused pane after that first step.
-  A step that did nothing (a pane that cannot be resized, a zoomed pane) does not start it.
+  A resize that was refused (a pane that cannot be resized, a zoomed pane) does not start it; a context step that only hit its limit does, since more presses are the likely next thing.
 - **While on.** The step keys work bare: in the context mode `+` `-`; in the resize mode `>` `<` (wider / narrower), `+` `-` (taller / shorter) and `=` (reset the sizes); they have the meaning of the mode, also where the pane binds the key otherwise (`+` in the diff).
   Each press runs the step again and keeps the mode.
   Any other key ends the mode and then acts as usual (no key is swallowed); only `Esc` ends it and does nothing else.
   The bare `>` and `<` exist only in this mode, so they are not in the vim-clash list.
-- **Feedback.** The status bar shows one hint line instead of the pane's own (`+/- more/fewer context   Esc done`; resize: `>/< wider/narrower   +/- taller/shorter   = reset   Esc done`) and the title of the pane gets the marker `[repeat]` (first thing after the pane name or tabs, so a narrow row cuts other title text before it; in the Details pane's title it sits after the tab labels); nothing else is tinted.
+- **Feedback.** The status bar shows one hint line instead of the pane's own (`+/- more/fewer context   Esc done`; resize: `>/< wider/narrower   +/- taller/shorter   = reset   Esc done`) and the title of the pane gets the marker `[repeat]` (in front of the name in the sidebar and graph titles, so a narrow box cuts the name first; right after `Diff` in the diff titles and after the tab labels in the detail pane, where the option markers such as `[ctx 6]` and the path are cut first); nothing else is tinted.
   The mode is not saved with the session.
 - **Scope.** It belongs to one tab and one pane: switching tab or moving focus ends it, as does opening any overlay, prompt or search.
   Chip clicks and the dropdown keep working as before.
