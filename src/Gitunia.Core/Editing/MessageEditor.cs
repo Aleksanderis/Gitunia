@@ -57,9 +57,10 @@ public sealed class MessageEditor
     /// <summary>True when there is nothing but whitespace (git refuses such a message).</summary>
     public bool IsBlank => _lines.All(string.IsNullOrWhiteSpace);
 
-    /// <summary>Replaces the whole text and puts the cursor at its end.</summary>
+    /// <summary>Replaces the whole text and puts the cursor at its end. The undo history is dropped.</summary>
     public void SetText(string text)
     {
+        _undo.Clear();
         _lines.Clear();
         _lines.Add(string.Empty);
         CursorRow = 0;

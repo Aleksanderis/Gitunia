@@ -338,6 +338,18 @@ public class MessageEditorTests
         Assert.Equal("b", editor.Text);
     }
 
+    [Fact]
+    public void GivenUndoPoints_WhenTheTextIsReplaced_ThenNothingCanBeUndone()
+    {
+        var editor = Editor("old");
+        editor.MarkUndoPoint();
+
+        editor.SetText("new");
+
+        Assert.False(editor.Undo());
+        Assert.Equal("new", editor.Text);
+    }
+
     private static MessageEditor Editor(string text)
     {
         var editor = new MessageEditor();

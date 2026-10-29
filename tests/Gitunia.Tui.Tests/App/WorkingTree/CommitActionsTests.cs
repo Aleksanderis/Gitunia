@@ -1,3 +1,4 @@
+using Gitunia.Tui.Rendering.Panes;
 using Gitunia.Core.Editing;
 using Gitunia.Core.Keymap;
 using Gitunia.Core.Keymap.Models;
@@ -318,6 +319,34 @@ public class CommitActionsTests
         harness.Run(ActionIds.WorkingTreeMessageDeleteLine);
 
         Assert.Equal("keep", harness.Draft.Editor.Text);
+    }
+
+    [Fact]
+    public void GivenAnotherPromptOwnsInsertMode_WhenTheBoxIsFocused_ThenTheBoxShowsNoCursor()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingMessage));
+
+        harness.Mode = KeyMode.Insert;
+
+        Assert.False(harness.Commits.ShowsCursor);
+    }
+
+    [Fact]
+    public void GivenALongLineAndNormalMode_WhenClickingPastTheBoxWidth_ThenTheCursorLandsWhereTheTextIsScrolledTo()
+    {
+        using var harness = new Harness(StagedModified("a.txt"));
+        harness.Run(ActionIds.WorkingTreeWriteMessage);
+        harness.Type(new string('x', 30));
+        harness.Run(ActionIds.Cancel);
+
+        var offset = MessageEditorRenderer.ScrollOffset(harness.Draft.Editor, 10);
+
+        harness.Commits.PlaceCursor(2, 0, 10);
+
+        var expected = offset + 2;
+        Assert.True(expected > 2);
+        Assert.Equal(expected, harness.Draft.Editor.CursorColumn);
     }
 
     [Fact]

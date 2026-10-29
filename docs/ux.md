@@ -516,7 +516,7 @@ There is no key for discarding staged changes (unstage first) and no "discard al
    `h` `j` `k` `l` move the cursor inside the text (`h`/`l` stop at the line ends, `j`/`k` keep the display column), `w`/`b` go to the next or previous word, `0`/`$` to the line start or end;
    `i` and `Enter` insert at the cursor, `a` after it, `I` at the line start, `A` at the line end, `o` opens a line below;
    `x` deletes the character under the cursor, `dd` the line, `u` undoes the last change (an Insert session counts as one change; the history is kept while the tab lives, not in the session file).
-   Leaving the box is `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l`, `Ctrl-w` plus a direction, `Tab`, `<space>1`..`<space>3`, or `Esc` in Normal mode (back to the lists); bare `h`/`j`/`k`/`l` never leave it.
+   Leaving the box (Normal mode; in Insert mode these are editing keys) is `Ctrl-h`/`Ctrl-j`/`Ctrl-k`/`Ctrl-l`, `Ctrl-w` plus a direction, `Tab`, `<space>1`..`<space>3`, or `Esc` in Normal mode (back to the lists); bare `h`/`j`/`k`/`l` never leave it.
    The status bar names the pane-move keys on every pane (`Ctrl-h/j/k/l pane`; second in the message box, last elsewhere so a narrow bar cuts it first).
    A click in the box places the cursor at the pointer before it starts Insert mode.
    - Editor keys (Insert mode;

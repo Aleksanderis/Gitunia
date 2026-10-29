@@ -128,8 +128,9 @@ public sealed class CommitActions(
 
     /// <summary>True while the focused message box shows its cursor: Insert mode, and the box's Normal mode.</summary>
     public bool ShowsCursor =>
-        host.Workspace.ActiveTab is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } }
-        && keyMode() is KeyMode.Insert or KeyMode.Normal;
+        IsEditing
+        || (host.Workspace.ActiveTab is { View: { Mode: TabViewMode.WorkingTree, FocusedPane: PaneKind.WorkingMessage } }
+            && keyMode() == KeyMode.Normal);
 
     /// <summary>Raised on the UI thread after the message, an option or the draft's existence changed (the session saves it).</summary>
     public event Action? DraftChanged;
@@ -337,7 +338,7 @@ public sealed class CommitActions(
 
         var editor = draft.Editor;
         var line = Math.Clamp(draft.Top + row, 0, editor.Lines.Count - 1);
-        var offset = IsEditing && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
+        var offset = ShowsCursor && line == editor.CursorRow ? MessageEditorRenderer.ScrollOffset(editor, textWidth) : 0;
         editor.PlaceCursor(line, Math.Max(0, textColumn) + offset);
         redraw();
     }
