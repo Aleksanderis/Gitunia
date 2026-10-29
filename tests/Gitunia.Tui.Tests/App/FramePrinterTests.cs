@@ -112,6 +112,21 @@ public class FramePrinterTests
     }
 
     [Fact]
+    public async Task GivenTheFilesTabWithoutAZoom_WhenPrinting_ThenTheContentPaneSitsBesideTheTree()
+    {
+        using var repository = TestRepository.Create();
+        repository.Commit("root", new TestFile("a.txt", "one\n"));
+
+        var wide = await PrintAsync(repository, 100, 30, null, BottomTab.Files);
+        var narrow = await PrintAsync(repository, 60, 30, null, BottomTab.Files);
+
+        Assert.Contains(wide, line => HasFileWithSize(line, "4 B"));
+        Assert.Contains(wide, line => line.Contains(" File ", StringComparison.Ordinal));
+        Assert.Contains(wide, line => line.Contains("1  one", StringComparison.Ordinal));
+        Assert.DoesNotContain(narrow, line => line.Contains(" File ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task GivenEachTab_WhenPrinting_ThenThePaneShowsThatTabsContent()
     {
         using var repository = TestRepository.Create();
