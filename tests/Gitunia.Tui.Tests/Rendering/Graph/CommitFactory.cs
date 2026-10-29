@@ -35,7 +35,11 @@ public static class CommitFactory
         var tips = commits
             .Where(commit => BranchColors.PrimaryName(commit.Decorations) is not null)
             .ToDictionary(commit => commit.Id, commit => BranchColors.PrimaryName(commit.Decorations)!);
-        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+        var decorations = commits
+            .Where(commit => commit.Decorations.Count > 0)
+            .ToDictionary(commit => commit.Id, commit => commit.Decorations);
+        var trunk = BranchColors.TrunkCommitsOf(decorations, BranchColors.TrunkOf(decorations));
+        var rows = new GraphLayoutBuilder(tips, trunkCommits: trunk).AppendRange(commits);
         var graph = new CommitGraph();
         graph.AddRange(commits.Select((commit, index) =>
             new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, rows[index])).ToArray());

@@ -204,62 +204,51 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenAForkedBranchOfTwoCommits_WhenRendering_ThenItsUnlabelledRunIsAPlainLineAndTheForkACurve()
-    {
-        var tip = CommitFactory.Commit(
-            1, "feature tip", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
-        var first = CommitFactory.Commit(2, "feature first", [3]);
-        var fork = CommitFactory.Commit(
-            3, "fork point", [4], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
-        var root = CommitFactory.Commit(4, "root", []);
-
-        var rows = Rows(GraphGlyphSet.Unicode, 60, tip, first, fork, root);
-
-        Assert.StartsWith("●  (feature) feature tip", rows[0]);
-        Assert.StartsWith("├  feature first", rows[1]);
-        Assert.StartsWith("╰─●  (", rows[2]);
-        Assert.StartsWith("  ●  root", rows[3]);
-    }
-
-    [Fact]
-    public void GivenABranchForkedFromTheTipOfAnotherThatIsNewer_WhenRendering_ThenItsTipSitsOnANewLaneJoinedByACurve()
+    public void GivenAFeatureBranchForkedFromMain_WhenRendering_ThenItKeepsItsLaneToTheForkWhereItJoinsMain()
     {
         var main = CommitFactory.Commit(
-            1, "main tip", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
-        var feature = CommitFactory.Commit(
-            2, "feature work", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
-        var middle = CommitFactory.Commit(3, "main middle", [4]);
-        var root = CommitFactory.Commit(4, "root", []);
+            1, "main tip", [4], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var tip = CommitFactory.Commit(
+            2, "feature tip", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var first = CommitFactory.Commit(3, "feature first", [4]);
+        var fork = CommitFactory.Commit(4, "fork point", [5]);
+        var root = CommitFactory.Commit(5, "root", []);
 
-        var rows = Rows(GraphGlyphSet.Unicode, 60, main, feature, middle, root);
+        var rows = Rows(GraphGlyphSet.Unicode, 60, main, tip, first, fork, root);
 
         Assert.StartsWith("●  (◆ main) main tip", rows[0].Replace("⎇ ", "◆ ", StringComparison.Ordinal));
-        Assert.StartsWith("├─●  (feature) feature work", rows[1]);
-        Assert.StartsWith("├  main middle", rows[2]);
-        var graph = CommitFactory.Graph(main, feature, middle, root);
-        Assert.Equal(graph[0].Row.NodeColor, graph[2].Row.NodeColor);
+        Assert.StartsWith("│ ●  (feature) feature tip", rows[1]);
+        Assert.StartsWith("│ ├  feature first", rows[2]);
+        Assert.StartsWith("●─╯  fork point", rows[3]);
+        Assert.StartsWith("●  root", rows[4]);
+        var graph = CommitFactory.Graph(main, tip, first, fork, root);
+        Assert.Equal(graph[0].Row.NodeColor, graph[3].Row.NodeColor);
+        Assert.Equal(graph[0].Row.NodeColor, graph[4].Row.NodeColor);
+        Assert.Equal(graph[1].Row.NodeColor, graph[2].Row.NodeColor);
         Assert.NotEqual(graph[0].Row.NodeColor, graph[1].Row.NodeColor);
     }
 
     [Fact]
-    public void GivenAMainTipOlderThanTheFeatureTip_WhenRendering_ThenTheSharedHistoryStaysOnTheFeatureLane()
+    public void GivenAMainTipOlderThanTheFeatureTip_WhenRendering_ThenMainStillOwnsTheLineBelowTheFork()
     {
-        // The limit registered as #792: the shared commit's lane was chosen when the newer tip was laid out.
-        var feature = CommitFactory.Commit(
-            1, "feature work", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var tip = CommitFactory.Commit(
+            1, "feature tip", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var first = CommitFactory.Commit(2, "feature first", [4]);
         var main = CommitFactory.Commit(
-            2, "main tip", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
-        var middle = CommitFactory.Commit(3, "main middle", [4]);
-        var root = CommitFactory.Commit(4, "root", []);
+            3, "main tip", [4], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var fork = CommitFactory.Commit(4, "fork point", [5]);
+        var root = CommitFactory.Commit(5, "root", []);
 
-        var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, middle, root);
+        var rows = Rows(GraphGlyphSet.Unicode, 60, tip, first, main, fork, root);
 
-        Assert.StartsWith("●  (feature) feature work", rows[0]);
-        Assert.StartsWith("├─●  (", rows[1]);
-        Assert.StartsWith("├  main middle", rows[2]);
-        var graph = CommitFactory.Graph(feature, main, middle, root);
-        Assert.Equal(graph[0].Row.NodeColor, graph[2].Row.NodeColor);
-        Assert.NotEqual(graph[1].Row.NodeColor, graph[2].Row.NodeColor);
+        Assert.StartsWith("●  (feature) feature tip", rows[0]);
+        Assert.StartsWith("├  feature first", rows[1]);
+        Assert.StartsWith("│ ●  (", rows[2]);
+        Assert.StartsWith("╰─●  fork point", rows[3]);
+        Assert.StartsWith("  ●  root", rows[4]);
+        var graph = CommitFactory.Graph(tip, first, main, fork, root);
+        Assert.Equal(graph[2].Row.NodeColor, graph[3].Row.NodeColor);
+        Assert.NotEqual(graph[0].Row.NodeColor, graph[3].Row.NodeColor);
     }
 
     [Fact]
