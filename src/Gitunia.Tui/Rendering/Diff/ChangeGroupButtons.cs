@@ -30,12 +30,16 @@ public static class ChangeGroupButtons
     /// <param name="side">Which side of the working tree the diff shows.</param>
     /// <param name="keys">Where the key text comes from; null uses the default keymap. Keys are shown when all the
     /// buttons that fit also fit with them, otherwise every button is label-only.</param>
+    /// <param name="contentWidth">Columns the row's text uses (<see cref="ContentWidth"/>); the buttons never cover
+    /// any of them, so a row whose text reaches them gets none (the title row has the same buttons).</param>
     public static IReadOnlyList<TitleButton> Layout(
         int textWidth,
         int padding,
         WorkingTreeButtons side,
-        ChipKeys? keys = null)
+        ChipKeys? keys = null,
+        int contentWidth = 0)
     {
+        var free = Math.Max(MinimumTextWidth, contentWidth);
         TitleButton[] wanted = side switch
         {
             WorkingTreeButtons.Unstaged => [Stage, Discard],
@@ -48,7 +52,7 @@ public static class ChangeGroupButtons
         {
             // One column of space before each button.
             var needed = button.Width + 1;
-            if (textWidth - used - needed < MinimumTextWidth)
+            if (textWidth - used - needed < free)
             {
                 break;
             }
@@ -63,7 +67,7 @@ public static class ChangeGroupButtons
             .Select(button => KeyedChip.Keyed(button.View, button.Label, lookup.For(button.View, keyView)))
             .ToList();
         var keyedUsed = keyed.Sum(button => button.Width + 1);
-        if (chosen.Count > 0 && textWidth - keyedUsed >= MinimumTextWidth)
+        if (chosen.Count > 0 && textWidth - keyedUsed >= free)
         {
             chosen = keyed;
             used = keyedUsed;
@@ -78,6 +82,27 @@ public static class ChangeGroupButtons
         }
 
         return placed;
+    }
+
+    /// <summary>Columns of <paramref name="line"/> up to its last non-blank character.</summary>
+    public static int ContentWidth(StyledLine line)
+    {
+        var width = 0;
+        var content = 0;
+        foreach (var segment in line.Segments)
+        {
+            var counter = new WidthCounter();
+            foreach (var rune in segment.Text.EnumerateRunes())
+            {
+                width += counter.Next(rune);
+                if (!Rune.IsWhiteSpace(rune))
+                {
+                    content = width;
+                }
+            }
+        }
+
+        return content;
     }
 
     /// <summary>The line with <paramref name="buttons"/> drawn over its right end (the text under is cut).</summary>

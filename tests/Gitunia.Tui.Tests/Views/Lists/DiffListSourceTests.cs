@@ -172,6 +172,25 @@ public class DiffListSourceTests
         Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
     }
 
+    [Fact]
+    public void GivenALongFirstLine_WhenClickingWhereTheChipsWouldBe_ThenNoButtonCoversTheText()
+    {
+        var rows = new[] { new DiffRow(DiffRowKind.Added, new string('x', 70), null, 1, 0) };
+        var source = new DiffListSource(GraphGlyphSet.Unicode)
+        {
+            HighlightsGroup = true,
+            GroupButtons = () => WorkingTreeButtons.Unstaged,
+        };
+        source.Update(new DiffDocument(rows, [0], [], [["f"]], 5));
+        var list = Sized(source, 80);
+        list.SelectedItem = 0;
+
+        for (var column = 0; column < 80; column++)
+        {
+            Assert.Null(source.ButtonAt(list, column, source.LineOf(0)));
+        }
+    }
+
     private static List<int> Marked(DiffListSource source, ListView list) =>
         [.. Enumerable.Range(0, source.Count).Where(item => source.IsInCursorGroup(list, item))];
 
