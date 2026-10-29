@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Keymap;
 using Gitunia.Core.Mouse;
 using Gitunia.Core.Rebase;
 using Gitunia.Git.Rebase;
@@ -30,21 +31,26 @@ public static class RebaseEditorFrameBuilder
     private const string DiscardHint = "Esc again discards the changes to the todo";
     private const string BlankMessageHint = "A reword needs a message: type one, or Esc to cancel";
 
-    private static readonly HintChip[] Chips =
+    private static readonly HintChip[] ChipLabels =
     [
-        new("p", "pick", DefaultMouseMap.RebasePickButton),
-        new("r", "reword", DefaultMouseMap.RebaseRewordButton),
-        new("s", "squash", DefaultMouseMap.RebaseSquashButton),
-        new("f", "fixup", DefaultMouseMap.RebaseFixupButton),
-        new("d", "drop", DefaultMouseMap.RebaseDropButton),
-        new("K", "move up", DefaultMouseMap.RebaseMoveUpButton),
-        new("J", "move down", DefaultMouseMap.RebaseMoveDownButton),
-        new("Enter", "start", DefaultMouseMap.RebaseStartButton),
-        new("Esc", "cancel", DefaultMouseMap.RebaseCancelButton),
+        new("pick", DefaultMouseMap.RebasePickButton),
+        new("reword", DefaultMouseMap.RebaseRewordButton),
+        new("squash", DefaultMouseMap.RebaseSquashButton),
+        new("fixup", DefaultMouseMap.RebaseFixupButton),
+        new("drop", DefaultMouseMap.RebaseDropButton),
+        new("move up", DefaultMouseMap.RebaseMoveUpButton),
+        new("move down", DefaultMouseMap.RebaseMoveDownButton),
+        new("start", DefaultMouseMap.RebaseStartButton),
+        new("cancel", DefaultMouseMap.RebaseCancelButton),
     ];
 
     /// <summary>The frame for a screen, or null when the screen is too small to show it.</summary>
-    public static OverlayFrame? Build(RebaseEditorState state, int screenWidth, int screenHeight, GraphGlyphSet glyphs)
+    public static OverlayFrame? Build(
+        RebaseEditorState state,
+        int screenWidth,
+        int screenHeight,
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
         var width = Math.Min(MaximumWidth, screenWidth - ScreenMargin);
         if (width < OverlayBox.MinimumWidth)
@@ -54,13 +60,18 @@ public static class RebaseEditorFrameBuilder
 
         return state.Edit is not null
             ? BuildMessage(state, screenWidth, screenHeight, width, glyphs)
-            : BuildList(state, screenWidth, screenHeight, width, glyphs);
+            : BuildList(state, screenWidth, screenHeight, width, glyphs, keys);
     }
 
     /// <summary>The entry index of the row on <paramref name="frameLine"/>, or null for none.</summary>
-    public static int? EntryIndexAt(RebaseEditorState state, int frameLine, int screenWidth, int screenHeight)
+    public static int? EntryIndexAt(
+        RebaseEditorState state,
+        int frameLine,
+        int screenWidth,
+        int screenHeight,
+        ChipKeys? keys = null)
     {
-        var window = Window(state, screenWidth, screenHeight);
+        var window = Window(state, screenWidth, screenHeight, keys);
         var offset = frameLine - ListStartLine;
         return state.Edit is null && offset >= 0 && offset < window.RowCount && window.Top + offset < state.Rows.Count
             ? window.Top + offset
@@ -73,10 +84,11 @@ public static class RebaseEditorFrameBuilder
         int frameLine,
         int frameColumn,
         int screenWidth,
-        int screenHeight)
+        int screenHeight,
+        ChipKeys? keys = null)
     {
-        var window = Window(state, screenWidth, screenHeight);
-        var chipRows = HintChipRows.Flow(Chips, FrameWidth(screenWidth));
+        var window = Window(state, screenWidth, screenHeight, keys);
+        var chipRows = HintChipRows.Flow(Chips(keys), FrameWidth(screenWidth));
         var chipRow = frameLine - ListStartLine - window.RowCount;
         if (state.Edit is not null || chipRow < 0 || chipRow >= chipRows.Count)
         {
@@ -87,23 +99,27 @@ public static class RebaseEditorFrameBuilder
     }
 
     /// <summary>Rows the list shows at a screen height (the page size of the half-page motions).</summary>
-    public static int VisibleRows(RebaseEditorState state, int screenWidth, int screenHeight) =>
-        Window(state, screenWidth, screenHeight).RowCount;
+    public static int VisibleRows(RebaseEditorState state, int screenWidth, int screenHeight, ChipKeys? keys = null) =>
+        Window(state, screenWidth, screenHeight, keys).RowCount;
+
+    private static HintChip[] Chips(ChipKeys? keys) =>
+        HintChipRows.WithKeys(ChipLabels, keys, DefaultKeymap.RebaseEditorView);
 
     private static OverlayFrame? BuildList(
         RebaseEditorState state,
         int screenWidth,
         int screenHeight,
         int width,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        ChipKeys? keys)
     {
-        var chipRows = HintChipRows.Flow(Chips, width);
+        var chipRows = HintChipRows.Flow(Chips(keys), width);
         if (screenHeight - ScreenMargin - FixedChromeRows - chipRows.Count < 1)
         {
             return null;
         }
 
-        var window = Window(state, screenWidth, screenHeight);
+        var window = Window(state, screenWidth, screenHeight, keys);
         var lines = new List<StyledLine>
         {
             OverlayBox.Title($"Interactive rebase: {state.BranchName} onto {state.TargetLabel}", width, glyphs),
@@ -214,9 +230,9 @@ public static class RebaseEditorFrameBuilder
 
     private static int FrameWidth(int screenWidth) => Math.Min(MaximumWidth, screenWidth - ScreenMargin);
 
-    private static PaletteWindow Window(RebaseEditorState state, int screenWidth, int screenHeight)
+    private static PaletteWindow Window(RebaseEditorState state, int screenWidth, int screenHeight, ChipKeys? keys)
     {
-        var chromeRows = FixedChromeRows + HintChipRows.Flow(Chips, FrameWidth(screenWidth)).Count;
+        var chromeRows = FixedChromeRows + HintChipRows.Flow(Chips(keys), FrameWidth(screenWidth)).Count;
         var maximumRows = Math.Min(MaximumRows, screenHeight - ScreenMargin - chromeRows);
         var count = state.Rows.Count;
         var rowCount = Math.Max(1, Math.Min(maximumRows, count));

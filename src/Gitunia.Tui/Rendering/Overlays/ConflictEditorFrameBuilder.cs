@@ -1,6 +1,8 @@
 using System.Globalization;
 using Gitunia.Core.Conflicts;
 using Gitunia.Core.Diff;
+using Gitunia.Core.Keymap;
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Core.Mouse;
 using Gitunia.Git.Conflicts.Models;
 using Gitunia.Tui.Rendering.Diff;
@@ -61,36 +63,36 @@ public static class ConflictEditorFrameBuilder
     private const string NoBasePaneText = "(no base: set diff3, then R)";
     private const string NoBaseText = "(no base for this hunk: set merge.conflictStyle=diff3, then R)";
 
-    private static readonly HintChip[] Chips =
+    private static readonly HintChip[] ChipLabels =
     [
-        new("o", "ours", DefaultMouseMap.ConflictOursButton),
-        new("t", "theirs", DefaultMouseMap.ConflictTheirsButton),
-        new("b", "both", DefaultMouseMap.ConflictBothButton),
-        new("O", "all ours", DefaultMouseMap.ConflictAllOursButton),
-        new("T", "all theirs", DefaultMouseMap.ConflictAllTheirsButton),
-        new("e", "edit", DefaultMouseMap.ConflictEditButton),
-        new("r", "reset", DefaultMouseMap.ConflictResetButton),
-        new("u", "undo", DefaultMouseMap.ConflictUndoButton),
-        new("Ctrl-r", "redo", DefaultMouseMap.ConflictRedoButton),
-        new("B", "base", DefaultMouseMap.ConflictBaseButton),
-        new("n", "next conflict", DefaultMouseMap.ConflictNextButton),
-        new("N", "previous conflict", DefaultMouseMap.ConflictPreviousButton),
-        new("]c", "next diff", DefaultMouseMap.ConflictNextDiffButton),
-        new("[c", "previous diff", DefaultMouseMap.ConflictPreviousDiffButton),
-        new("Ctrl-d", "scroll down", DefaultMouseMap.ConflictScrollDownButton),
-        new("Ctrl-u", "scroll up", DefaultMouseMap.ConflictScrollUpButton),
-        new("R", "re-create", DefaultMouseMap.ConflictRecreateButton),
-        new("Enter", "save", DefaultMouseMap.ConflictSaveButton),
-        new("Esc", "close", DefaultMouseMap.ConflictCancelButton),
+        new("ours", DefaultMouseMap.ConflictOursButton),
+        new("theirs", DefaultMouseMap.ConflictTheirsButton),
+        new("both", DefaultMouseMap.ConflictBothButton),
+        new("all ours", DefaultMouseMap.ConflictAllOursButton),
+        new("all theirs", DefaultMouseMap.ConflictAllTheirsButton),
+        new("edit", DefaultMouseMap.ConflictEditButton),
+        new("reset", DefaultMouseMap.ConflictResetButton),
+        new("undo", DefaultMouseMap.ConflictUndoButton),
+        new("redo", DefaultMouseMap.ConflictRedoButton),
+        new("base", DefaultMouseMap.ConflictBaseButton),
+        new("next conflict", DefaultMouseMap.ConflictNextButton),
+        new("previous conflict", DefaultMouseMap.ConflictPreviousButton),
+        new("next diff", DefaultMouseMap.ConflictNextDiffButton),
+        new("previous diff", DefaultMouseMap.ConflictPreviousDiffButton),
+        new("scroll down", DefaultMouseMap.ConflictScrollDownButton),
+        new("scroll up", DefaultMouseMap.ConflictScrollUpButton),
+        new("re-create", DefaultMouseMap.ConflictRecreateButton),
+        new("save", DefaultMouseMap.ConflictSaveButton),
+        new("close", DefaultMouseMap.ConflictCancelButton),
     ];
 
     // The base is always on screen in three panes, so the chip that toggles it is left out.
-    private static readonly HintChip[] ThreePaneChips =
-        [.. Chips.Where(chip => chip.View != DefaultMouseMap.ConflictBaseButton)];
+    private static readonly HintChip[] ThreePaneChipLabels =
+        [.. ChipLabels.Where(chip => chip.View != DefaultMouseMap.ConflictBaseButton)];
 
-    private static readonly HintChip[] EditingChips =
+    private static readonly HintChip[] EditingChipLabels =
     [
-        new("Ctrl-g", "keep", DefaultMouseMap.ConflictEditDoneButton),
+        new("keep", DefaultMouseMap.ConflictEditDoneButton),
     ];
 
     /// <summary>True when a screen is wide enough for ours, the base and theirs side by side.</summary>
@@ -106,9 +108,10 @@ public static class ConflictEditorFrameBuilder
         ConflictEditorState state,
         int screenWidth,
         int screenHeight,
-        GraphGlyphSet glyphs)
+        GraphGlyphSet glyphs,
+        ChipKeys? keys = null)
     {
-        if (state.Selected is not { } hunk || PlanFor(state, screenWidth, screenHeight) is not { } plan)
+        if (state.Selected is not { } hunk || PlanFor(state, screenWidth, screenHeight, keys) is not { } plan)
         {
             return null;
         }
@@ -157,12 +160,12 @@ public static class ConflictEditorFrameBuilder
     /// <summary>
     /// The most lines our side and their side scroll down at this size (0 when everything fits or nothing is drawn).
     /// </summary>
-    public static int MaxSideScroll(ConflictEditorState state, int screenWidth, int screenHeight) =>
-        PlanFor(state, screenWidth, screenHeight)?.MaxScroll ?? 0;
+    public static int MaxSideScroll(ConflictEditorState state, int screenWidth, int screenHeight, ChipKeys? keys = null) =>
+        PlanFor(state, screenWidth, screenHeight, keys)?.MaxScroll ?? 0;
 
     /// <summary>The rows each side pane shows at this size (0 when nothing is drawn).</summary>
-    public static int SideRowCount(ConflictEditorState state, int screenWidth, int screenHeight) =>
-        PlanFor(state, screenWidth, screenHeight)?.SideRows ?? 0;
+    public static int SideRowCount(ConflictEditorState state, int screenWidth, int screenHeight, ChipKeys? keys = null) =>
+        PlanFor(state, screenWidth, screenHeight, keys)?.SideRows ?? 0;
 
     /// <summary>The mouse view of the chip drawn at a frame line and column; null when none.</summary>
     public static string? ChipAt(
@@ -170,9 +173,10 @@ public static class ConflictEditorFrameBuilder
         int frameLine,
         int frameColumn,
         int screenWidth,
-        int screenHeight)
+        int screenHeight,
+        ChipKeys? keys = null)
     {
-        if (PlanFor(state, screenWidth, screenHeight) is not { } plan)
+        if (PlanFor(state, screenWidth, screenHeight, keys) is not { } plan)
         {
             return null;
         }
@@ -186,7 +190,7 @@ public static class ConflictEditorFrameBuilder
         return HintChipRows.ViewAt(plan.ChipRows[chipRow], frameColumn);
     }
 
-    private static Plan? PlanFor(ConflictEditorState state, int screenWidth, int screenHeight)
+    private static Plan? PlanFor(ConflictEditorState state, int screenWidth, int screenHeight, ChipKeys? keys)
     {
         var width = Math.Min(MaximumWidth, screenWidth - HorizontalMargin);
         if (width < OverlayBox.MinimumWidth)
@@ -196,7 +200,12 @@ public static class ConflictEditorFrameBuilder
 
         var isStacked = width < StackedBelowWidth;
         var isThreePane = !isStacked && width >= ThreePaneFromWidth;
-        var chipSet = state.IsEditing ? EditingChips : isThreePane ? ThreePaneChips : Chips;
+        var chipSet = state.IsEditing
+            ? HintChipRows.WithKeys(EditingChipLabels, keys, DefaultKeymap.ConflictEditorView, KeyMode.Insert)
+            : HintChipRows.WithKeys(
+                isThreePane ? ThreePaneChipLabels : ChipLabels,
+                keys,
+                DefaultKeymap.ConflictEditorView);
         var chipRows = HintChipRows.Flow(chipSet, width);
         var sideHeaders = isStacked ? StackedSides : SideBySideHeaders;
         var sideCount = isStacked ? StackedSides : 1;

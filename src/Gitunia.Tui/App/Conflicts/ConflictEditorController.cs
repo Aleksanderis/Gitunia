@@ -13,6 +13,7 @@ using Gitunia.Git.Status.Models;
 using Gitunia.Tui.App.WorkingTree;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Overlays;
+using Gitunia.Tui.Rendering.Styling;
 using Gitunia.Tui.Rendering.WorkingTree;
 using Gitunia.Tui.Views;
 
@@ -45,6 +46,7 @@ namespace Gitunia.Tui.App.Conflicts;
 /// <param name="setMode">Switches the keymap mode (Insert while the text of a hunk is edited).</param>
 /// <param name="redraw">Redraws the overlay layer and the status bar.</param>
 /// <param name="gate">The one-operation-per-tab gate, shared with staging, discard, reset and stash.</param>
+/// <param name="keys">Where the chips take their key text from; null uses the default keymap.</param>
 public sealed class ConflictEditorController(
     WorkspaceHost host,
     IConflictReader reader,
@@ -61,7 +63,8 @@ public sealed class ConflictEditorController(
     GraphGlyphSet glyphs,
     Action<KeyMode> setMode,
     Action redraw,
-    TabOperationGate gate)
+    TabOperationGate gate,
+    ChipKeys? keys = null)
 {
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was saved";
@@ -94,7 +97,7 @@ public sealed class ConflictEditorController(
 
         var size = screenSize();
 
-        return ConflictEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs);
+        return ConflictEditorFrameBuilder.Build(state, size.Width, size.Height, glyphs, keys);
     }
 
     /// <summary>
@@ -139,7 +142,7 @@ public sealed class ConflictEditorController(
         }
 
         var size = screenSize();
-        var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height);
+        var view = ConflictEditorFrameBuilder.ChipAt(State, frameLine, frameColumn, size.Width, size.Height, keys);
         handled = view is not null;
 
         return view;
@@ -396,15 +399,15 @@ public sealed class ConflictEditorController(
     {
         var size = screenSize();
 
-        return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height);
+        return ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
     }
 
     // A half page of the side panes, at least one line.
     private void ScrollSides(ConflictEditorState state, int direction)
     {
         var size = screenSize();
-        var rows = ConflictEditorFrameBuilder.SideRowCount(state, size.Width, size.Height);
-        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height);
+        var rows = ConflictEditorFrameBuilder.SideRowCount(state, size.Width, size.Height, keys);
+        var maximum = ConflictEditorFrameBuilder.MaxSideScroll(state, size.Width, size.Height, keys);
         Update(state.ScrollSides(direction * Math.Max(1, rows / 2), maximum));
     }
 

@@ -1,3 +1,4 @@
+using Gitunia.Core.Keymap.Models;
 using Gitunia.Tui.Rendering.Graph;
 using Gitunia.Tui.Rendering.Styling;
 
@@ -14,6 +15,25 @@ public static class HintChipRows
 
     private const int Gap = 2;
     private const string GapText = "  ";
+
+    /// <summary>
+    /// The chips with the key the keymap gives their mouse view's action in <paramref name="keyView"/> (empty when the
+    /// action has none, so a rebinding follows and a removed key is not advertised).
+    /// </summary>
+    /// <param name="chips">The chips with their descriptions and mouse views.</param>
+    /// <param name="keys">The lookup; null uses the default keymap.</param>
+    /// <param name="keyView">The keymap view of the editor.</param>
+    /// <param name="mode">The mode the keys are looked up in.</param>
+    public static HintChip[] WithKeys(
+        IEnumerable<HintChip> chips,
+        ChipKeys? keys,
+        string keyView,
+        KeyMode mode = KeyMode.Normal)
+    {
+        var lookup = keys ?? ChipKeys.Default;
+
+        return [.. chips.Select(chip => chip with { Keys = lookup.For(chip.View, keyView, mode) ?? string.Empty })];
+    }
 
     /// <summary>The chips split into rows for a frame of <paramref name="frameWidth"/> columns.</summary>
     public static List<List<HintChip>> Flow(IEnumerable<HintChip> chips, int frameWidth)
@@ -46,7 +66,7 @@ public static class HintChipRows
         for (var index = 0; index < chips.Count; index++)
         {
             builder.Append(index == 0 ? string.Empty : GapText, SegmentRole.Status);
-            HintBar.AppendOne(builder, new HintItem(chips[index].Keys, chips[index].Description));
+            HintBar.AppendOne(builder, chips[index].Item);
         }
 
         return OverlayBox.Wrap(builder.Build(SegmentRole.Status), glyphs);

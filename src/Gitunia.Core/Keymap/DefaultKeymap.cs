@@ -342,8 +342,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "Alt-k", ActionIds.RebaseEditorMoveUp);
         Add(bindings, NormalOnly, editor, "Alt-j", ActionIds.RebaseEditorMoveDown);
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.RebaseEditorStart);
-        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
+        // Esc first: the chips show the first of equally short keys.
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
         Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.RebaseEditorMessageNewLine);
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.RebaseEditorMessageSave);
     }
@@ -376,8 +377,9 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, editor, "Enter", ActionIds.ConflictEditorSave);
         Add(bindings, [KeyMode.Insert], editor, "Enter", ActionIds.ConflictEditorEditNewLine);
         Add(bindings, [KeyMode.Insert], editor, "Ctrl-g", ActionIds.ConflictEditorEditDone);
-        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
+        // Esc first: the chips show the first of equally short keys.
         Add(bindings, NormalOnly, editor, "Esc", ActionIds.NavigateBack);
+        Add(bindings, NormalOnly, editor, "h", ActionIds.NavigateBack);
     }
 
     // The settings screen: the list motions come from Lists; these edit the setting under the cursor. They are keys

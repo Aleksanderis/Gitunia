@@ -926,7 +926,12 @@ public sealed class MainView : IDisposable
         bool IsAscii);
 
     private StyledLine OptionsLine(int width) =>
-        MessageBoxRenderer.OptionsLine(ActiveDraft(), width, PanePadding.ColumnsFor(ScreenWidth), _glyphs);
+        MessageBoxRenderer.OptionsLine(
+            ActiveDraft(),
+            width,
+            PanePadding.ColumnsFor(ScreenWidth),
+            _glyphs,
+            _model().Keys);
 
     // The checkboxes and the Commit button of the option row are the mouse path of the Alt- chords and the commit key.
     private void OnMessageOptionsClicked(int column)
@@ -937,7 +942,8 @@ public sealed class MainView : IDisposable
         }
 
         var padding = PanePadding.ColumnsFor(ScreenWidth);
-        var buttons = MessageBoxRenderer.Buttons(PanePadding.TextWidth(_messageOptions.Viewport.Width, padding), padding);
+        var textWidth = PanePadding.TextWidth(_messageOptions.Viewport.Width, padding);
+        var buttons = MessageBoxRenderer.Buttons(textWidth, padding, _model().Keys);
         if (TitleButton.ViewAt(buttons, column) is { } buttonView)
         {
             Gestured?.Invoke(buttonView, MouseGesture.Click, null);

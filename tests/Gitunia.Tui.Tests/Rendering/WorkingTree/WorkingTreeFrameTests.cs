@@ -50,7 +50,7 @@ public class WorkingTreeFrameTests
                 "│ R old name.txt -> new name… │                                                          │",
                 "│                             │                                                          │",
                 "│                             │                                                          │",
-                "│                             │ [ ] SignOff  [ ] No-Verify  [ ] Amend            Commit  │",
+                "│                             │ [ ] SignOff  [ ] No-Verify  [ ] Amend     Ctrl-g Commit  │",
                 "╰─────────────────────────────┴──────────────────────────────────────────────────────────╯",
                 " NORMAL  1/1  ? help  : commands  q quit  j/k move  <space>a stage  <space>A stage all  l…"),
             frame);
