@@ -38,11 +38,9 @@ public static class GraphTopologyValidator
                 problems.Add($"{where}: incoming lanes [{string.Join(",", incomingLanes)}] but lanes waiting for the commit are [{string.Join(",", expectedIncoming)}]");
             }
 
-            // The node may sit left of every lane waiting for it: lane 0 is the shaft of the checked-out branch and takes
-            // the commits above and at HEAD even when only another lane waits for them (that lane bends in).
-            if (expectedIncoming.Length > 0 && row.Lane != expectedIncoming[0] && row.Lane != 0)
+            if (expectedIncoming.Length > 0 && row.Lane != expectedIncoming[0])
             {
-                problems.Add($"{where}: node is neither in lane 0 nor in the leftmost lane waiting for it");
+                problems.Add($"{where}: node is not in the leftmost lane waiting for it");
             }
 
             var throughLanes = row.Edges.Where(edge => edge.Kind == GraphEdgeKind.Through).ToArray();

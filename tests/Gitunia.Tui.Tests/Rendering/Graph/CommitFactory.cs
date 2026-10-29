@@ -32,7 +32,10 @@ public static class CommitFactory
     /// <summary>Lays out the commits (children first) and pairs each with its row.</summary>
     public static CommitGraph Graph(params CommitInfo[] commits)
     {
-        var rows = GraphLayout.Compute(commits);
+        var tips = commits
+            .Where(commit => BranchColors.PrimaryName(commit.Decorations) is not null)
+            .ToDictionary(commit => commit.Id, commit => BranchColors.PrimaryName(commit.Decorations)!);
+        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
         var graph = new CommitGraph();
         graph.AddRange(commits.Select((commit, index) =>
             new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, rows[index])).ToArray());

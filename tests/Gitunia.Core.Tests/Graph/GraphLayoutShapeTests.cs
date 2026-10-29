@@ -21,9 +21,11 @@ public class GraphLayoutShapeTests
             Assert.Equal(1, row.LaneCount);
         }
 
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)], rows[0].Edges);
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0), new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)], rows[1].Edges);
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], rows[3].Edges);
+        Assert.Equal([new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)], Shape(rows[0].Edges));
+        Assert.Equal(
+            [new GraphEdge(GraphEdgeKind.Incoming, 0, 0), new GraphEdge(GraphEdgeKind.Outgoing, 0, 0)],
+            Shape(rows[1].Edges));
+        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], Shape(rows[3].Edges));
     }
 
     [Fact]
@@ -34,12 +36,12 @@ public class GraphLayoutShapeTests
 
         Assert.Equal(
             [new GraphEdge(GraphEdgeKind.Outgoing, 0, 0), new GraphEdge(GraphEdgeKind.Outgoing, 0, 1)],
-            rows[0].Edges);
+            Shape(rows[0].Edges));
         Assert.Equal(2, rows[0].LaneCount);
         Assert.Equal(1, rows[2].Lane);
-        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 0), rows[2].Edges);
+        Assert.Contains(new GraphEdge(GraphEdgeKind.Outgoing, 1, 0), Shape(rows[2].Edges));
         Assert.Equal(0, rows[3].Lane);
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], rows[3].Edges);
+        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], Shape(rows[3].Edges));
     }
 
     [Fact]
@@ -77,7 +79,7 @@ public class GraphLayoutShapeTests
         var rows = GraphLayout.Compute([Commit(1, 5), Commit(2, 5), Commit(3, 5), Commit(4, 5), Commit(5)]);
 
         Assert.Equal([0, 1, 1, 1, 0], rows.Select(row => row.Lane));
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], rows[4].Edges);
+        Assert.Equal([new GraphEdge(GraphEdgeKind.Incoming, 0, 0)], Shape(rows[4].Edges));
     }
 
     [Fact]
@@ -97,7 +99,13 @@ public class GraphLayoutShapeTests
         var rows = GraphLayout.Compute([Commit(1, 3), Commit(2, 3, 4), Commit(3), Commit(4)]);
 
         Assert.Equal(1, rows[1].Lane);
-        Assert.Equal([new GraphEdge(GraphEdgeKind.Through, 0, 0), new GraphEdge(GraphEdgeKind.Outgoing, 1, 0), new GraphEdge(GraphEdgeKind.Outgoing, 1, 1)], rows[1].Edges);
+        Assert.Equal(
+            [
+                new GraphEdge(GraphEdgeKind.Through, 0, 0),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 0),
+                new GraphEdge(GraphEdgeKind.Outgoing, 1, 1),
+            ],
+            Shape(rows[1].Edges));
         Assert.Equal(1, rows[3].Lane);
     }
 

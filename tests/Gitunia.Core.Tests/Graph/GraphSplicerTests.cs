@@ -87,28 +87,28 @@ public class GraphSplicerTests
     public void GivenMovedRefs_WhenSplicing_ThenTailDecorationsFollowTheNewRefs()
     {
         var oldTag = new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false);
-        var newBranch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
+        var newTag = new CommitDecoration("refs/tags/v2", "v2", RefKind.Tag, false);
         var old = new[] { Commit(5, 4), Commit(4, 3), Commit(3, 2) with { Decorations = [oldTag] }, Commit(2, 1), Commit(1) };
         var updated = new[] { Commit(6, 5), Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2, 1), Commit(1) };
-        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(1)] = [newBranch] };
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(1)] = [newTag] };
 
-        var (result, joinIndex) = Reload(old, updated, decorations);
+        var (result, joinIndex) = Reload(old, updated, decorations, Tips(5), Tips(6));
 
         Assert.Equal(1, joinIndex);
         Assert.Equal(6, result.Count);
         Assert.Empty(result[3].Decorations);
         Assert.Empty(result[4].Decorations);
-        Assert.Equal([newBranch], result[5].Decorations);
+        Assert.Equal([newTag], result[5].Decorations);
     }
 
     [Fact]
     public void GivenReusedTipThatLostItsOnlyRef_WhenSplicing_ThenItIsReportedAsPossiblyGone()
     {
-        var branch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
-        var old = new[] { Commit(4, 3), Commit(3, 2), Commit(9, 2) with { Decorations = [branch] }, Commit(2) };
+        var tag = new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false);
+        var old = new[] { Commit(4, 3), Commit(3, 2), Commit(9, 2) with { Decorations = [tag] }, Commit(2) };
         var updated = new[] { Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2) };
-        var splicer = new GraphSplicer(Entries(old));
-        var builder = new GraphLayoutBuilder();
+        var splicer = new GraphSplicer(Entries(old, Tips(4)));
+        var builder = new GraphLayoutBuilder(Tips(5));
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
         foreach (var commit in updated)
@@ -125,13 +125,52 @@ public class GraphSplicerTests
         Assert.Null(splicer.Splice(rows, joinIndex, NoDecorations));
     }
 
+    [Fact]
+    public void GivenBranchAddedOnAReusedCommit_WhenSplicing_ThenTheLaneColoursAreStaleAndItIsReportedAsChanged()
+    {
+        var branch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
+        var old = new[] { Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2, 1), Commit(1) };
+        var updated = new[] { Commit(6, 5), Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2, 1), Commit(1) };
+        var splicer = new GraphSplicer(Entries(old, Tips(5)));
+        var builder = new GraphLayoutBuilder(Tips(6));
+        var rows = updated.Take(3).Select(commit => ToEntry(commit, builder.Append(commit))).ToList();
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(1)] = [branch] };
+
+        splicer.Observe(rows[0]);
+        splicer.Observe(rows[1]);
+        var joinIndex = splicer.Observe(rows[2]);
+
+        Assert.Equal(1, joinIndex);
+        Assert.Null(splicer.Splice(rows, joinIndex, decorations));
+    }
+
+    [Fact]
+    public void GivenLocalBranchReplacedByItsRemoteOfTheSameName_WhenSplicing_ThenTheRowsAreReused()
+    {
+        var local = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
+        var remote = new CommitDecoration("refs/remotes/origin/topic", "origin/topic", RefKind.RemoteBranch, false);
+        var old = new[] { Commit(5, 4), Commit(4, 3) with { Decorations = [local] }, Commit(3) };
+        var updated = new[] { Commit(5, 4), Commit(4, 3), Commit(3) };
+        var splicer = new GraphSplicer(Entries(old, Tips(5)));
+        var rows = new List<GraphEntry> { Entries(updated, Tips(5))[0] };
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(4)] = [remote] };
+
+        var joinIndex = splicer.Observe(rows[0]);
+        var result = splicer.Splice(rows, joinIndex, decorations);
+
+        Assert.NotNull(result);
+        Assert.Equal([remote], result[1].Decorations);
+    }
+
     private static ReloadOutcome Reload(
         IReadOnlyList<CommitInfo> old,
         IReadOnlyList<CommitInfo> updated,
-        IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>>? decorations = null)
+        IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>>? decorations = null,
+        IReadOnlyDictionary<ObjectId, string>? oldTips = null,
+        IReadOnlyDictionary<ObjectId, string>? newTips = null)
     {
-        var splicer = new GraphSplicer(Entries(old));
-        var builder = new GraphLayoutBuilder();
+        var splicer = new GraphSplicer(Entries(old, oldTips));
+        var builder = new GraphLayoutBuilder(newTips);
         var rows = new List<GraphEntry>();
         foreach (var commit in updated)
         {
@@ -146,9 +185,13 @@ public class GraphSplicerTests
         return new ReloadOutcome(rows, -1);
     }
 
-    private static List<GraphEntry> Entries(IReadOnlyList<CommitInfo> commits)
+    private static Dictionary<ObjectId, string> Tips(int number) => new() { [Id(number)] = "main" };
+
+    private static List<GraphEntry> Entries(
+        IReadOnlyList<CommitInfo> commits,
+        IReadOnlyDictionary<ObjectId, string>? tips = null)
     {
-        var builder = new GraphLayoutBuilder();
+        var builder = new GraphLayoutBuilder(tips);
         return [.. commits.Select(commit => ToEntry(commit, builder.Append(commit)))];
     }
 

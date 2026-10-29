@@ -7,11 +7,10 @@ namespace Gitunia.Tui.Loading.Graph;
 
 /// <summary>
 /// Reloads a graph after a refresh without reading the whole log: reads the new log from the top and stops at the first row that
-/// is the same as in the previous graph (see <see cref="GraphSplicer"/>), then reuses the rest. Rows are laid out with the lane 0 reservation of the current branch, which is part of
-/// <see cref="GraphRow.LaneFingerprint"/>, so a moved HEAD never joins old rows where the layout differs. A cheap commit count guards the
-/// reused part; when it disagrees, or no row joins, the whole log is read as before. A reload from here can in theory differ from a
-/// full read when a `git replace` ref changes history below the join without changing the number of commits, so the manual refresh (which does a
-/// full read) stays the way to resynchronize.
+/// is the same as in the previous graph (see <see cref="GraphSplicer"/>), then reuses the rest. A cheap commit count
+/// guards the reused part; when it disagrees, or no row joins, the whole log is read as before. A reload from here can
+/// in theory differ from a full read when a `git replace` ref changes history below the join without changing the
+/// number of commits, so the manual refresh (which does a full read) stays the way to resynchronize.
 /// </summary>
 public sealed class IncrementalGraphLoader
 {
@@ -41,13 +40,13 @@ public sealed class IncrementalGraphLoader
         }
 
         var splicer = new GraphSplicer(previous);
-        var headTask = _commitLog.ReadHeadLayoutAsync(location, cancellationToken);
+        using var tipRead = _graphLoader.StartTipRead(location, cancellationToken);
         GraphLayoutBuilder? builder = null;
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
         await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
-            builder ??= GraphLayoutBuilder.For(await headTask.ConfigureAwait(false));
+            builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
             joinIndex = splicer.Observe(entry);
@@ -57,10 +56,15 @@ public sealed class IncrementalGraphLoader
             }
         }
 
-        await headTask.ConfigureAwait(false);
+        var decorations = await tipRead.Decorations.ConfigureAwait(false);
         if (joinIndex < 0)
         {
             return new GraphReload(rows, 0);
+        }
+
+        if (decorations is null)
+        {
+            return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
@@ -69,7 +73,6 @@ public sealed class IncrementalGraphLoader
             return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
-        var decorations = await _commitLog.ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
         var spliced = splicer.Splice(rows, joinIndex, decorations);
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).

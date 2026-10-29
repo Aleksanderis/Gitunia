@@ -137,6 +137,10 @@ public sealed class ThemeFileContrastTests
                 RatioOf(SegmentRole.Lane, new SegmentHighlight(false, false), colors, definition, lane)
                     >= ReadableRatio,
                 $"{name} lane {lane}");
+            Assert.True(
+                RatioOf(SegmentRole.LaneLabel, new SegmentHighlight(false, false), colors, definition, lane)
+                    >= ReadableRatio,
+                $"{name} label {lane}");
         }
     }
 

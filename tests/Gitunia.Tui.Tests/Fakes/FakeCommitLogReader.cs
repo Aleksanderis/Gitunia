@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Tests.Fakes;
@@ -19,6 +18,12 @@ public sealed class FakeCommitLogReader : ICommitLogReader
 
     /// <summary>Thrown when a read starts, to play a git failure.</summary>
     public Exception? Failure { get; set; }
+
+    /// <summary>Thrown when the tip decorations are read, to play a failure of only that call.</summary>
+    public Exception? TipFailure { get; set; }
+
+    /// <summary>The token of the last tip decorations read, to check that the load cancels it when over.</summary>
+    public CancellationToken LastTipToken { get; private set; }
 
     /// <summary>The number of log streams started so far.</summary>
     public int ReadCount { get; private set; }
@@ -77,46 +82,14 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     public Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (Failure is not null)
+        LastTipToken = cancellationToken;
+        var failure = TipFailure ?? Failure;
+        if (failure is not null)
         {
-            return Task.FromException<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>>(Failure);
+            return Task.FromException<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>>(failure);
         }
 
         var decorated = Commits.Where(commit => commit.Decorations.Count > 0).ToDictionary(commit => commit.Id, commit => commit.Decorations);
         return Task.FromResult(decorated);
-    }
-
-    public Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (Failure is not null)
-        {
-            return Task.FromException<ObjectId?>(Failure);
-        }
-
-        var tip = Commits.FirstOrDefault(commit => commit.Decorations.Any(decoration => decoration.IsCurrent && decoration.Kind == RefKind.LocalBranch));
-        return Task.FromResult(tip?.Id);
-    }
-
-    public async Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken)
-    {
-        var tip = await ReadCurrentBranchTipAsync(location, cancellationToken);
-        if (tip is null)
-        {
-            return HeadLayoutInfo.None;
-        }
-
-        // Commits are listed newest first, so walking the list backwards sees parents before children.
-        var descendants = new HashSet<ObjectId>();
-        for (var index = Commits.Count - 1; index >= 0; index--)
-        {
-            var parents = Commits[index].Parents;
-            if (parents.Count > 0 && (parents[0] == tip || descendants.Contains(parents[0])))
-            {
-                descendants.Add(Commits[index].Id);
-            }
-        }
-
-        return new HeadLayoutInfo(tip, descendants);
     }
 }

@@ -23,14 +23,4 @@ public interface ICommitLogReader
 
     /// <summary>The decorations of the commits that carry a ref (a few hundred at most), exactly as <see cref="ReadAsync"/> reports them; reads no history.</summary>
     Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(RepositoryLocation location, CancellationToken cancellationToken);
-
-    /// <summary>The commit the checked-out local branch points at, or null when HEAD is detached or unborn; the graph reserves lane 0 for its first-parent chain.</summary>
-    Task<ObjectId?> ReadCurrentBranchTipAsync(RepositoryLocation location, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// What the lane layout needs about the checked-out branch: its tip (as <see cref="ReadCurrentBranchTipAsync"/>)
-    /// and the commits above it whose first-parent chain reaches the tip (a branch ahead of HEAD such as
-    /// <c>origin/main</c>), so they can stay in lane 0. A failed read of the descendants gives a null set, not an error.
-    /// </summary>
-    Task<HeadLayoutInfo> ReadHeadLayoutAsync(RepositoryLocation location, CancellationToken cancellationToken);
 }

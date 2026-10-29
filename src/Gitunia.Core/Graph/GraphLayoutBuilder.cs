@@ -8,47 +8,39 @@ namespace Gitunia.Core.Graph;
 /// Assigns lanes to commits fed in topological order (children before parents), one row at a time, so a partial
 /// log can be shown while the rest is still loading. The result depends only on the sequence of commits, never on
 /// how it was split into <see cref="Append"/> calls. Rows are immutable; the builder only keeps the open lanes.
-/// When the commit of the checked-out branch is given, lane 0 is reserved for its first-parent chain: no other commit
-/// takes lane 0 until the chain ends, and every chain commit sits in lane 0, so the current branch is a straight
-/// shaft on the left. The commits above HEAD whose first-parent chain reaches it (a branch ahead of HEAD such as
-/// <c>origin/main</c>), given as a set because the streamed layout cannot tell it from the log, continue that shaft
-/// upwards in lane 0 while it is free. Without the head commit (detached HEAD, no commits) the leftmost free lane is used.
+/// A commit no lane waits for (a branch tip) takes the leftmost free lane. The log is newest first, so the branch
+/// with the newest tip ends up leftmost, the next newest right of it, and so on; the checked-out branch gets no
+/// lane of its own (#757, which replaced the lane 0 reservation of #308).
 /// </summary>
 public sealed class GraphLayoutBuilder
 {
-    private static readonly IReadOnlySet<ObjectId> EmptySet = FrozenSet<ObjectId>.Empty;
-
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
+
+    // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
+    private readonly List<int> _laneSlots = [];
     private readonly List<GraphRow> _rows = [];
 
-    // The next commit of the reserved first-parent chain of HEAD (lane 0); the default (invalid) id when there is no chain
-    // or it has ended. Lane 0 is not handed out to anything else while this is valid.
-    private ObjectId _chainNext;
+    // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
+    private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
+    private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
+    private readonly int _colorCount;
 
-    // Commits above HEAD whose first-parent chain reaches it; they take lane 0 while it is free. Empty without a head.
-    private readonly IReadOnlySet<ObjectId> _aboveHead;
-
-    // When the set is known, a tip above HEAD is in it, so HEAD is never pulled into lane 0 early by another commit's
-    // parent link: it waits where it is and joins lane 0 when its own row comes.
-    private readonly bool _aboveHeadKnown;
-
-    /// <param name="headCommit">The commit the checked-out branch points at; null for a detached or unborn HEAD.</param>
-    /// <param name="aboveHead">
-    /// The commits whose first-parent chain reaches <paramref name="headCommit"/> (not including it), for example the
-    /// commits of <c>origin/main</c> when it is ahead; null if not known. A pure function of the history and the head
-    /// (membership depends only on a commit's first-parent chain, not on which refs reach it), so it needs no part in
-    /// <see cref="GraphRow.LaneFingerprint"/>.
+    /// <param name="branchTips">
+    /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
+    /// the colour of its branch from its first row on; null when not known (every lane is then coloured by its commit).
     /// </param>
-    public GraphLayoutBuilder(ObjectId? headCommit = null, IReadOnlySet<ObjectId>? aboveHead = null)
+    /// <param name="colorCount">
+    /// Distinct colours the palette has (at most <see cref="BranchColors.SlotCount"/>): lanes open at the same time
+    /// get different colours while one is free, so a short palette (16 colours, a small theme) never repeats one early.
+    /// </param>
+    public GraphLayoutBuilder(
+        IReadOnlyDictionary<ObjectId, string>? branchTips = null,
+        int colorCount = BranchColors.SlotCount)
     {
-        _chainNext = headCommit ?? default;
-        _aboveHead = headCommit is null ? EmptySet : aboveHead ?? EmptySet;
-        _aboveHeadKnown = headCommit is not null && aboveHead is not null;
+        _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
+        _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
-
-    /// <summary>A builder for the checked-out branch as read from git.</summary>
-    public static GraphLayoutBuilder For(HeadLayoutInfo head) => new(head.Head, head.FirstParentDescendants);
 
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
@@ -62,15 +54,16 @@ public sealed class GraphLayoutBuilder
         var commitId = commit.Id;
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
-        var isChain = _chainNext.IsValid && commitId == _chainNext;
-        var isAboveHead = !isChain && _aboveHead.Contains(commitId) && IsLaneZeroFreeFor(commitId);
-        var nodeLane = isChain || isAboveHead ? 0 : IndexOfLane(commitId);
+        var nodeLane = IndexOfLane(commitId);
         if (nodeLane < 0)
         {
-            nodeLane = IsDirectDescendantOfChain(commit) ? 0 : FindFreeLane();
+            nodeLane = FindFreeLane();
+            EnsureLane(nodeLane);
+            _laneSlots[nodeLane] = SlotForNewLane(commitId);
         }
 
         EnsureLane(nodeLane);
+        var nodeColor = _laneSlots[nodeLane];
 
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
@@ -81,55 +74,29 @@ public sealed class GraphLayoutBuilder
 
             if (_lanes[lane] == commitId)
             {
-                edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane));
+                edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane, _laneSlots[lane]));
                 _lanes[lane] = default;
             }
             else
             {
-                edges.Add(new GraphEdge(GraphEdgeKind.Through, lane, lane));
+                edges.Add(new GraphEdge(GraphEdgeKind.Through, lane, lane, _laneSlots[lane]));
             }
         }
 
         for (var parentIndex = 0; parentIndex < commit.Parents.Count; parentIndex++)
         {
             var parent = commit.Parents[parentIndex];
-            int parentLane;
-            if (isChain && parentIndex == 0)
+            var parentLane = IndexOfLane(parent);
+            if (parentLane < 0)
             {
-                // The chain stays in lane 0 even when another lane already waits for this parent (that lane joins it later).
-                parentLane = 0;
-                _chainNext = parent;
-                _lanes[0] = parent;
-            }
-            else if (isAboveHead && parentIndex == 0 && IsOnOrAboveHead(parent))
-            {
-                // The shaft continues down: the first parent is in lane 0 too, even when another lane waits for it.
-                parentLane = 0;
-                _lanes[0] = parent;
-            }
-            else if (!_aboveHeadKnown && _chainNext.IsValid && parent == _chainNext && IsLaneZeroFreeFor(parent))
-            {
-                parentLane = 0;
-                EnsureLane(0);
-                _lanes[0] = parent;
-            }
-            else
-            {
-                parentLane = IndexOfLane(parent);
-                if (parentLane < 0)
-                {
-                    parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
-                    EnsureLane(parentLane);
-                    _lanes[parentLane] = parent;
-                }
+                parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
+                EnsureLane(parentLane);
+
+                _laneSlots[parentLane] = parentIndex == 0 ? nodeColor : SlotForNewLane(parent);
+                _lanes[parentLane] = parent;
             }
 
-            edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane));
-        }
-
-        if (isChain && commit.Parents.Count == 0)
-        {
-            _chainNext = default;
+            edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
         }
 
         var laneCount = nodeLane + 1;
@@ -139,7 +106,7 @@ public sealed class GraphLayoutBuilder
         }
 
         TrimFreeLanes();
-        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes());
+        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes(), nodeColor);
         _rows.Add(row);
         return row;
     }
@@ -169,37 +136,65 @@ public sealed class GraphLayoutBuilder
         return -1;
     }
 
-    // Lane 0 is empty or already waits for this commit.
-    private bool IsLaneZeroFreeFor(ObjectId commitId) =>
-        _lanes.Count == 0 || !_lanes[0].IsValid || _lanes[0] == commitId;
-
-    private bool IsOnOrAboveHead(ObjectId commitId) => commitId == _chainNext || _aboveHead.Contains(commitId);
-
-    // A tip no lane waits for whose first parent is the next commit of the reserved chain (before HEAD's row that is
-    // HEAD itself: a branch one commit ahead, such as origin/main) continues the chain upwards: it takes lane 0 and the
-    // shaft stays straight. Only while lane 0 is still empty, so the first such tip gets it and later ones bend in.
-    private bool IsDirectDescendantOfChain(CommitInfo commit) =>
-        _chainNext.IsValid
-        && commit.Parents.Count > 0
-        && commit.Parents[0] == _chainNext
-        && !_aboveHeadKnown
-        && (_lanes.Count == 0 || !_lanes[0].IsValid);
-
     private void EnsureLane(int lane)
     {
         while (_lanes.Count <= lane)
         {
             _lanes.Add(default);
+            _laneSlots.Add(0);
         }
     }
 
-    // Leftmost free lane, or the next new one; lane 0 is skipped while it is reserved for the chain of HEAD. Only the
-    // lane of the commit being laid out can end in a row, and a later parent may reuse it: its line simply continues
-    // straight down.
+    // The slot of a lane that starts at this commit: its branch's slot when it is a branch tip, else one derived from
+    // the commit, in both cases moved on to the next slot no open lane of another branch is using.
+    private int SlotForNewLane(ObjectId commitId)
+    {
+        if (!_branchTips.TryGetValue(commitId, out var name))
+        {
+            return FreeSlotFrom((int)(commitId.Hash64 % (uint)_colorCount));
+        }
+
+        if (!_namedSlots.TryGetValue(name, out var slot))
+        {
+            slot = FreeSlotFrom(BranchColors.PreferredSlot(name, _colorCount));
+            _namedSlots[name] = slot;
+        }
+
+        return slot;
+    }
+
+    private int FreeSlotFrom(int preferred)
+    {
+        for (var offset = 0; offset < _colorCount; offset++)
+        {
+            var slot = (preferred + offset) % _colorCount;
+            if (!IsSlotInUse(slot))
+            {
+                return slot;
+            }
+        }
+
+        return preferred;
+    }
+
+    private bool IsSlotInUse(int slot)
+    {
+        for (var lane = 0; lane < _lanes.Count; lane++)
+        {
+            if (_lanes[lane].IsValid && _laneSlots[lane] == slot)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Leftmost free lane, or the next new one. Only the lane of the commit being laid out can end in a row, and a later
+    // parent may reuse it: its line simply continues straight down.
     private int FindFreeLane()
     {
-        var first = _chainNext.IsValid ? 1 : 0;
-        for (var lane = first; lane < _lanes.Count; lane++)
+        for (var lane = 0; lane < _lanes.Count; lane++)
         {
             if (!_lanes[lane].IsValid)
             {
@@ -207,7 +202,7 @@ public sealed class GraphLayoutBuilder
             }
         }
 
-        return Math.Max(_lanes.Count, first);
+        return _lanes.Count;
     }
 
     // FNV-style mix over (lane index, waited-for commit) of the occupied lanes.
@@ -218,17 +213,8 @@ public sealed class GraphLayoutBuilder
         {
             if (_lanes[lane].IsValid)
             {
-                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
-            }
-        }
-
-        if (_chainNext.IsValid)
-        {
-            // The reservation shapes the rows below (even when lane 0 is still empty), so it is part of what must match.
-            hash = (hash ^ 0x9E3779B97F4A7C15UL) * 1099511628211UL;
-            if (_lanes.Count == 0 || !_lanes[0].IsValid)
-            {
-                hash = (hash ^ _chainNext.Hash64) * 1099511628211UL;
+                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48))
+                    * 1099511628211UL;
             }
         }
 
@@ -244,5 +230,6 @@ public sealed class GraphLayoutBuilder
         }
 
         _lanes.RemoveRange(count, _lanes.Count - count);
+        _laneSlots.RemoveRange(count, _laneSlots.Count - count);
     }
 }

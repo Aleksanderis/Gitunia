@@ -28,6 +28,9 @@ public static class Palette
 
     public static Scheme BaseScheme(PaletteTable colors) => new(new Attribute(colors.BaseForeground, colors.BaseBackground));
 
+    /// <summary>Distinct lane colours of the configured scheme: the colour slots the graph layout may use.</summary>
+    public static int LaneColorCount => table.Lanes.Length;
+
     public static Attribute For(StyledSegment segment, bool isSelected, bool isFocused) => For(segment, isSelected, isFocused, table);
 
     /// <param name="segment">The text to draw.</param>
@@ -84,6 +87,9 @@ public static class Palette
         return segment.Role switch
         {
             SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
+            SegmentRole.LaneLabel =>
+                new RoleAppearance(
+                    colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.Bold, false),
             SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.WhitespaceMarkAddedWord =>

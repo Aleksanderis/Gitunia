@@ -173,6 +173,7 @@ public class PaletteTests
     [InlineData(SegmentRole.Tag)]
     [InlineData(SegmentRole.DiffAdded)]
     [InlineData(SegmentRole.Lane)]
+    [InlineData(SegmentRole.LaneLabel)]
     public void GivenTrueColorScheme_WhenSelectingARow_ThenTheTextKeepsItsOwnColour(SegmentRole role)
     {
         var colors = PaletteTable.For(PaletteSettings.Default);
@@ -392,6 +393,44 @@ public class PaletteTests
                 var attribute = Palette.For(new StyledSegment("x", SegmentRole.Lane, lane), true, isFocused, colors);
 
                 Assert.True(Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background)) >= ReadableRatio, $"lane {lane}, focused {isFocused}");
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(ColorDepth.TrueColor)]
+    [InlineData(ColorDepth.Ansi256)]
+    [InlineData(ColorDepth.Ansi16)]
+    [InlineData(ColorDepth.None)]
+    public void GivenAnyColourTier_WhenColouringABranchLabel_ThenItHasTheColourOfItsLaneAndIsBold(ColorDepth depth)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(depth, false));
+
+        for (var slot = 0; slot < 12; slot++)
+        {
+            var lane = Palette.For(new StyledSegment("x", SegmentRole.Lane, slot), false, false, colors);
+            var label = Palette.For(new StyledSegment("x", SegmentRole.LaneLabel, slot), false, false, colors);
+
+            Assert.Equal(lane.Foreground, label.Foreground);
+            Assert.True(label.Style.HasFlag(TextStyle.Bold), $"slot {slot} at {depth}");
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Variants))]
+    public void GivenTrueColorScheme_WhenColouringBranchLabelsOnASelectedRow_ThenEveryLabelIsReadable(bool isLight)
+    {
+        var colors = PaletteTable.For(new PaletteSettings(ColorDepth.TrueColor, isLight));
+
+        for (var slot = 0; slot < colors.Lanes.Length; slot++)
+        {
+            foreach (var isFocused in new[] { true, false })
+            {
+                var segment = new StyledSegment("x", SegmentRole.LaneLabel, slot);
+                var attribute = Palette.For(segment, true, isFocused, colors);
+                var ratio = Contrast(ToRgb(attribute.Foreground), ToRgb(attribute.Background));
+
+                Assert.True(ratio >= ReadableRatio, $"slot {slot}");
             }
         }
     }

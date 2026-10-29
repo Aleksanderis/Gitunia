@@ -1,3 +1,4 @@
+using Gitunia.Core.Graph;
 using Gitunia.Core.Jump.Models;
 using Gitunia.Core.Search.Models;
 using Gitunia.Git;
@@ -136,6 +137,54 @@ public class GraphRowRendererTests
         var row = Rows(GraphGlyphSet.Unicode, 120, commit)[0];
 
         Assert.StartsWith("●  (⎇ main , topic, tag: v1) release", row);
+    }
+
+    [Fact]
+    public void GivenBranchLabels_WhenRendering_ThenTheyCarryTheColourOfTheLaneAndTagsDoNot()
+    {
+        // A name whose colour is not the first one, so a label that lost its colour index would show.
+        var current = Enumerable.Range(0, 50).Select(number => $"branch-{number}")
+            .First(name => BranchColors.PreferredSlot(name) != 0);
+        var commit = CommitFactory.Commit(
+            1,
+            "release",
+            [],
+            new CommitDecoration($"refs/heads/{current}", current, RefKind.LocalBranch, true),
+            new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false),
+            new CommitDecoration("refs/remotes/origin/other", "origin/other", RefKind.RemoteBranch, false),
+            new CommitDecoration("refs/tags/v1", "v1", RefKind.Tag, false));
+        var graph = CommitFactory.Graph(commit);
+        var options = new GraphRowOptions(80, 1, GraphGlyphSet.Unicode);
+
+        var line = GraphRowRenderer.Render(graph[0], options, false);
+
+        var slot = BranchColors.PreferredSlot(current);
+        Assert.NotEqual(0, slot);
+        Assert.Equal(slot, graph[0].Row.NodeColor);
+        var labels = line.Segments.Where(segment => segment.Role == SegmentRole.LaneLabel).ToArray();
+        Assert.Equal([current, "topic", "origin/other"], labels.Select(segment => segment.Text));
+        Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
+        Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.CurrentBranch);
+    }
+
+    [Fact]
+    public void GivenTwoBranchesOnTwoLanes_WhenRendering_ThenEachLaneLineHasItsBranchColour()
+    {
+        var alpha = CommitFactory.Commit(
+            1, "alpha tip", [3], new CommitDecoration("refs/heads/alpha", "alpha", RefKind.LocalBranch, false));
+        var beta = CommitFactory.Commit(
+            2, "beta tip", [3], new CommitDecoration("refs/heads/beta", "beta", RefKind.LocalBranch, false));
+        var root = CommitFactory.Commit(3, "root", []);
+        var graph = CommitFactory.Graph(alpha, beta, root);
+        var options = new GraphRowOptions(80, 2, GraphGlyphSet.Unicode);
+
+        var line = GraphRowRenderer.Render(graph[1], options, false);
+
+        var laneSegments = line.Segments.Where(segment => segment.Role == SegmentRole.Lane).ToArray();
+        Assert.Equal(graph[0].Row.NodeColor, laneSegments[0].ColorIndex);
+        Assert.Equal(graph[1].Row.NodeColor, laneSegments[^1].ColorIndex);
+        Assert.NotEqual(graph[0].Row.NodeColor, graph[1].Row.NodeColor);
     }
 
     [Fact]
@@ -310,6 +359,11 @@ public class GraphRowRendererTests
         var line = GraphRowRenderer.Render(graph[2], options, false);
 
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Hash && segment.Text == "0000003");
-        Assert.Contains(line.Segments, segment => segment is { Role: SegmentRole.Lane, ColorIndex: 1 } && segment.Text.Contains('●', StringComparison.Ordinal));
+        var nodeColor = graph[2].Row.NodeColor;
+        Assert.Contains(
+            line.Segments,
+            segment => segment.Role == SegmentRole.Lane
+                && segment.ColorIndex == nodeColor
+                && segment.Text.Contains('●', StringComparison.Ordinal));
     }
 }
