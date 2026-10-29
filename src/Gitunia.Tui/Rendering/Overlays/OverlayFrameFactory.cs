@@ -62,7 +62,13 @@ public static class OverlayFrameFactory
                     screenHeight,
                     glyphs,
                     state.MenuTitle ?? ContextMenuFrameBuilder.DefaultTitle),
-            _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(pendingKeys, whichKeyRows, screenWidth, screenHeight, glyphs, bannerShown),
+            _ when state.WhichKeyVisible => WhichKeyFrameBuilder.Build(
+                pendingKeys,
+                whichKeyRows,
+                screenWidth,
+                screenHeight,
+                glyphs,
+                bannerShown),
             _ => null,
         };
     }

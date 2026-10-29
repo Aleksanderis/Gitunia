@@ -1348,7 +1348,7 @@ public sealed class TuiApplication(
     // A merge, rebase, cherry-pick or revert is stopped on a conflict: <space>to opens the editor from every pane.
     private bool ConflictPending() =>
         _host.Workspace.ActiveTab is { Operation: not null } tab
-        && OperationBannerBuilder.ConflictCount(tab.WorkingTree) > 0;
+        && OperationBannerBuilder.HasConflicts(tab.WorkingTree);
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
     private string FocusedSidebarName()

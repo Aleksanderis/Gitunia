@@ -63,6 +63,10 @@ public static class OperationBannerBuilder
     public static int ConflictCount(WorkingTreeState? tree) =>
         tree?.Snapshot.Entries.Count(entry => entry.Kind == StatusEntryKind.Unmerged) ?? 0;
 
+    /// <summary>Whether the working tree has any conflicted file.</summary>
+    public static bool HasConflicts(WorkingTreeState? tree) =>
+        tree?.Snapshot.Entries.Any(entry => entry.Kind == StatusEntryKind.Unmerged) ?? false;
+
     /// <summary>The name of the operation in the title and in messages, such as <c>rebase</c> or
     /// <c>cherry-pick</c>.</summary>
     public static string NameOf(RepositoryOperation operation) => operation switch

@@ -98,7 +98,15 @@ public sealed class OverlayController
         var rows = WhichKeyRowsFor(pending);
         var bannerShown = OperationInProgress() && height >= ScreenLayout.MinimumHeightWithBanner;
 
-        return OverlayFrameFactory.Create(State, _helpTabs, _keys.PendingText, rows, width, height, _glyphs, bannerShown);
+        return OverlayFrameFactory.Create(
+            State,
+            _helpTabs,
+            _keys.PendingText,
+            rows,
+            width,
+            height,
+            _glyphs,
+            bannerShown);
     }
 
     /// <summary>Handles an action while an overlay may be open; returns true when it was consumed.</summary>

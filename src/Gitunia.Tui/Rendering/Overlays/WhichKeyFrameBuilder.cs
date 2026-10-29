@@ -64,7 +64,9 @@ public static class WhichKeyFrameBuilder
         }
 
         lines.Add(OverlayBox.Bottom(width, glyphs));
-        return new OverlayFrame(screenWidth - width, ScreenLayout.StatusRow(screenHeight) - bannerRows - lines.Count, lines);
+        var top = ScreenLayout.StatusRow(screenHeight) - bannerRows - lines.Count;
+
+        return new OverlayFrame(screenWidth - width, top, lines);
     }
 
     private static bool IsGroup(WhichKeyRow row) => row.Description.StartsWith("+more", StringComparison.Ordinal);
