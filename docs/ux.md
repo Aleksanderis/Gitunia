@@ -60,8 +60,7 @@ Outside Insert and Command mode a paste does nothing.
 - **Keys.** Frequent actions are single keys per view (`Enter`, `y`, `/`). Global actions use the `<space>` leader (`<space>o` open repository, `<space>p` pin, `<space>z` zoom). `g`, `]`/`[` and `Ctrl-w` start chords; counts prefix motions (`5j`, `3gt`).
 - **Chords.** A pending prefix shows in the status bar and, after 250 ms, in a which-key popup listing the continuations, plain actions first and `+more` groups after, with a horizontal rule between the two parts (#573;
   shown in every colour tier and the ASCII set, dropped when no row would be left for an action), each alphabetical by key label with lowercase before uppercase (#472);
-  a row that only opens a longer chord reads `+more` plus what the group holds where it is a named leader group (`<space>b` `+more (branch operations)`, also merge/rebase/reset/pick, tag, worktree, stash operations, external tools, diff view options;
-  #443).
+  a row that only opens a longer chord reads `+more` plus what the group holds where it is a named leader group (`<space>b` `+more (branch operations)`, also merge/rebase/reset/pick, tag, worktree, stash operations, external tools, diff view options; #443).
   `Esc` cancels; there is no chord timeout.
 - **Insert mode.** Printable keys are text; only `Esc`, `Enter` and `Ctrl-`/`Alt-` combinations act, so the leader and chords never fire while typing.
 - **`Esc` precedence:** cancel a pending chord, then leave Insert mode, then clear a filter or search highlight, then go back one pane level (diff to detail to graph).
@@ -608,9 +607,9 @@ Every action is also a palette entry and has a mouse path (a button in the sideb
 4. `bu` set the upstream of the selected local branch (type-to-filter picker of remote branches, nothing is fetched), `bU` unset it (the status line prints the `git branch --set-upstream-to=` command that restores it).
    Ahead/behind (`↑n↓m`) already shows in the sidebar and the tab bar; it is not new work.
    `bf` (#572) fast-forwards the selected local branch (sidebar row, or the local branch at the graph commit) to its upstream as last fetched, without checking it out and without a Confirm (nothing is lost): fetch first with `<space>F`.
-Only a real fast-forward runs; the status line names the old and new tip and the undo (`git update-ref refs/heads/<b> <old>`).
-Refused with nothing changed: up to date, diverged (it has commits the upstream lacks), no upstream or a gone one, the branch checked out here (points to `<space>L` pull) or in another worktree.
-Fast-forwarding to the commit under the graph cursor instead is not part of this.
+   Only a real fast-forward runs; the status line names the old and new tip and the undo (`git update-ref refs/heads/<b> <old>`).
+   Refused with nothing changed: up to date, diverged (it has commits the upstream lacks), no upstream or a gone one, the branch checked out here (points to `<space>L` pull) or in another worktree.
+   Fast-forwarding to the commit under the graph cursor instead is not part of this.
 5. Mouse: the actions menu of a branch row (`<space>.`, or the `...` marker of the selected sidebar row) lists create, switch, rename, delete, fast-forward and the upstream actions, and the Branches header menu offers create and create-only; there are no header chips (dropped in #469).
    After create, switch, rename or delete the graph cursor moves to the created or checked-out branch's commit (after a delete, to the commit of the current branch).
 6. No single-letter sidebar shortcuts (`d`, `r`): they are vim operator and replace keys (vim-clash rule), so the sidebar uses the same `<space>b` chords on the selected row. Every action is in the command palette.
@@ -737,8 +736,7 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
 **Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list).
 A modal view of one conflict hunk at a time in one continuous box-drawing frame (the title set into the top border;
 rules join the side borders, with T-junctions where the divider between the two sides meets them;
-the key hints and the footer sit in a bottom section above the closing border;
-#733): the base (common ancestor), ours and theirs as three panes side by side on top, in that order (as in KDiff3, #739;
+the key hints and the footer sit in a bottom section above the closing border; #733): the base (common ancestor), ours and theirs as three panes side by side on top, in that order (as in KDiff3, #739;
 a hunk without a base says how to get one;
 the labels git wrote after the markers, `HEAD` and the branch), the result below it (a rule separates the panes from the result) with up to two unconflicted lines around the hunk, line numbers in a gutter on the left of every pane (the lines of the result file, counted from the hunk;
 ours and theirs are numbered from where the hunk starts, the base pane (on the left) has a blank gutter;
@@ -848,11 +846,11 @@ Keys are `<space>S` chords, not bare sidebar keys (`a` `p` `d` are vim keys, see
    The file under the cursor opens in the diff pane exactly as for a commit (tracked changes as `git stash show -p`, untracked files as additions; context, whole-file, whitespace and split options apply).
    There is no stage or unstage inside a stash (git has none).
    The stash is known by its commit hash: while it is shown, moving the sidebar cursor to another stash row shows that one;
-selecting a commit in the graph (the user's own move;
-a graph reload, restore or tab switch that moves the selection keeps the view), or `Enter` on a branch or tag row, ends the view;
-while a stash is shown the commit actions that read the graph selection (`<space>bc` and the other branch, merge, rebase, reset, pick, compare, tag and external-tool actions) refuse with a notice instead of acting on the graph row (the worktree add starts at HEAD), so select a commit first;
-the graph row menu still opens (#716);
-a stash that leaves the stack (dropped, popped, in another client) ends the view with a warning in the status bar instead of showing another stash, and a stash that only moves down the stack keeps showing under its new name.
+   selecting a commit in the graph (the user's own move;
+   a graph reload, restore or tab switch that moves the selection keeps the view), or `Enter` on a branch or tag row, ends the view;
+   while a stash is shown the commit actions that read the graph selection (`<space>bc` and the other branch, merge, rebase, reset, pick, compare, tag and external-tool actions) refuse with a notice instead of acting on the graph row (the worktree add starts at HEAD), so select a commit first;
+   the graph row menu still opens (#716);
+   a stash that leaves the stack (dropped, popped, in another client) ends the view with a warning in the status bar instead of showing another stash, and a stash that only moves down the stack keeps showing under its new name.
 5. Mouse: the actions menu of a stash row lists apply, pop, drop, push and push-all (`drop` keeps its Confirm); the Stashes header menu offers push and push-all.
 
 ## Look and colours
