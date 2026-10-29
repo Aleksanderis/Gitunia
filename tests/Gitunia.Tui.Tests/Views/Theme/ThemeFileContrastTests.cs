@@ -146,6 +146,27 @@ public sealed class ThemeFileContrastTests
 
     [Theory]
     [MemberData(nameof(Names))]
+    public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenEveryBranchLabelStaysReadable(string name)
+    {
+        var (colors, definition) = TableOf(name);
+        var failures = new List<string>();
+        for (var lane = 0; lane < colors.Lanes.Length; lane++)
+        {
+            var attribute = Palette.For(new StyledSegment("x", SegmentRole.LaneLabel, lane), false, false, colors);
+            var ratio = Contrast(
+                Quantize(Resolve(attribute.Foreground, definition, true)),
+                Quantize(Resolve(attribute.Background, definition, false)));
+            if (ratio < QuantizedRatio)
+            {
+                failures.Add($"lane {lane}: {ratio:F2}");
+            }
+        }
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [MemberData(nameof(Names))]
     public void GivenABuiltInTheme_WhenRoundedTo256Colours_ThenRolesStayReadable(string name)
     {
         var (colors, definition) = TableOf(name);

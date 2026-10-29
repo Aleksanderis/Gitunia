@@ -88,6 +88,13 @@ public sealed class PaletteTable
     /// <summary>The colours graph lanes cycle through.</summary>
     public required Color[] Lanes { get; init; }
 
+    /// <summary>
+    /// Text on a branch label of the graph, which is a chip in the colour of its lane: one entry per entry of
+    /// <see cref="Lanes"/>, readable on it. Null where it cannot be worked out from the colours (16 colours,
+    /// styles only): the label then uses <see cref="ChipForeground"/>.
+    /// </summary>
+    public Color[]? LaneLabelForegrounds { get; init; }
+
     /// <summary>Added to selected text of the focused pane (bold where the tint alone is too faint, reverse without colour).</summary>
     public TextStyle SelectionFocusedStyle { get; init; } = TextStyle.None;
 
@@ -111,6 +118,16 @@ public sealed class PaletteTable
 
     /// <summary>Added to chips (bold, reverse without colour).</summary>
     public TextStyle ChipStyle { get; init; } = TextStyle.Bold;
+
+    private const double ReadableContrast = 4.5;
+
+    private static readonly Color[] DarkLanes = Rgbs(
+        0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5,
+        0xfab387, 0xf5c2e7, 0x74c7ec, 0xb4befe, 0xeba0ac, 0xf2cdcd);
+
+    private static readonly Color[] LightLanes = Rgbs(
+        0x1a59d7, 0x2c6f1e, 0x8a5811, 0x7f35e0, 0xc30d35, 0x116d72,
+        0xa74107, 0x91497d, 0x156c7b, 0x4d5bac, 0xb1353f, 0x914f4f);
 
     private static readonly Dictionary<string, ColorName16> AnsiNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -170,7 +187,8 @@ public sealed class PaletteTable
         MatchBackground = Rgb(0xf9e2af),
         BaseForeground = paintsBase ? Rgb(0xcdd6f4) : Color.None,
         BaseBackground = paintsBase ? Rgb(0x1e1e2e) : Color.None,
-        Lanes = Rgbs(0x89b4fa, 0xa6e3a1, 0xf9e2af, 0xcba6f7, 0xf38ba8, 0x94e2d5, 0xfab387, 0xf5c2e7, 0x74c7ec, 0xb4befe, 0xeba0ac, 0xf2cdcd),
+        Lanes = DarkLanes,
+        LaneLabelForegrounds = ReadableOn(DarkLanes, Rgb(0x11111b)),
     };
 
     private static PaletteTable TrueColorLight(bool paintsBase) => new()
@@ -199,7 +217,8 @@ public sealed class PaletteTable
         MatchBackground = Rgb(0xf2c97a),
         BaseForeground = paintsBase ? Rgb(0x4c4f69) : Color.None,
         BaseBackground = paintsBase ? Rgb(0xeff1f5) : Color.None,
-        Lanes = Rgbs(0x1a59d7, 0x2c6f1e, 0x8a5811, 0x7f35e0, 0xc30d35, 0x116d72, 0xa74107, 0x91497d, 0x156c7b, 0x4d5bac, 0xb1353f, 0x914f4f),
+        Lanes = LightLanes,
+        LaneLabelForegrounds = ReadableOn(LightLanes, Rgb(0xeff1f5)),
     };
 
     // The 16 named colours: the terminal's theme maps them, so they stay readable whatever it is. The selection uses
@@ -336,10 +355,48 @@ public sealed class PaletteTable
         BaseForeground = Role(definition, ThemeRoles.BaseForeground),
         BaseBackground = Role(definition, ThemeRoles.BaseBackground),
         Lanes = [.. definition.Lanes.Select(Rgb)],
+        LaneLabelForegrounds = ReadableOn(
+            [.. definition.Lanes.Select(Rgb)],
+            Role(definition, ThemeRoles.ChipForeground)),
     };
 
     private static Color Role(ThemeDefinition definition, string role) =>
         definition.Colors.TryGetValue(role, out var value) ? Rgb(value) : Color.None;
+
+    // For every background the preferred foreground when readable (4.5) on it, else the better of black and white.
+    private static Color[] ReadableOn(Color[] backgrounds, Color preferred) =>
+        [.. backgrounds.Select(background => ReadableOn(background, preferred))];
+
+    private static Color ReadableOn(Color background, Color preferred)
+    {
+        if (preferred != Color.None && ContrastOf(preferred, background) >= ReadableContrast)
+        {
+            return preferred;
+        }
+
+        var black = Rgb(0x000000);
+        var white = Rgb(0xffffff);
+
+        return ContrastOf(black, background) >= ContrastOf(white, background) ? black : white;
+    }
+
+    private static double ContrastOf(Color first, Color second)
+    {
+        var lighter = Math.Max(LuminanceOf(first), LuminanceOf(second));
+        var darker = Math.Min(LuminanceOf(first), LuminanceOf(second));
+
+        return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    private static double LuminanceOf(Color color) =>
+        (0.2126 * Linear(color.R)) + (0.7152 * Linear(color.G)) + (0.0722 * Linear(color.B));
+
+    private static double Linear(int channel)
+    {
+        var value = channel / 255.0;
+
+        return value <= 0.03928 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
+    }
 
     private static Color Rgb(int value) => new(value >> 16 & 0xff, value >> 8 & 0xff, value & 0xff);
 

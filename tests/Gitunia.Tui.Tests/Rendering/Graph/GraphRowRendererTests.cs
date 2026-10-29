@@ -200,6 +200,41 @@ public class GraphRowRendererTests
     }
 
     [Fact]
+    public void GivenAForkedBranchOfTwoCommits_WhenRendering_ThenItsUnlabelledRunIsAPlainLineAndTheForkACurve()
+    {
+        var tip = CommitFactory.Commit(
+            1, "feature tip", [2], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var first = CommitFactory.Commit(2, "feature first", [3]);
+        var fork = CommitFactory.Commit(
+            3, "fork point", [4], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var root = CommitFactory.Commit(4, "root", []);
+
+        var rows = Rows(GraphGlyphSet.Unicode, 60, tip, first, fork, root);
+
+        Assert.StartsWith("●  (feature) feature tip", rows[0]);
+        Assert.StartsWith("├  feature first", rows[1]);
+        Assert.StartsWith("╰─●  (", rows[2]);
+        Assert.StartsWith("  ●  root", rows[3]);
+    }
+
+    [Fact]
+    public void GivenABranchForkedFromTheMiddleOfAnother_WhenRendering_ThenItsCommitSitsOnItsOwnLaneJoinedByACurve()
+    {
+        var feature = CommitFactory.Commit(
+            1, "feature work", [3], new CommitDecoration("refs/heads/feature", "feature", RefKind.LocalBranch, false));
+        var main = CommitFactory.Commit(
+            2, "main tip", [3], new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true));
+        var middle = CommitFactory.Commit(3, "main middle", [4]);
+        var root = CommitFactory.Commit(4, "root", []);
+
+        var rows = Rows(GraphGlyphSet.Unicode, 60, feature, main, middle, root);
+
+        Assert.StartsWith("●  (feature) feature work", rows[0]);
+        Assert.StartsWith("├─●  (", rows[1]);
+        Assert.StartsWith("├  main middle", rows[2]);
+    }
+
+    [Fact]
     public void GivenAsciiGlyphs_WhenRenderingMergedBranch_ThenAsciiMarkersAreUsed()
     {
         var commit = CommitFactory.Commit(
