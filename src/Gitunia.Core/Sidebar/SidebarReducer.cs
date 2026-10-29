@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Gitunia.Core.Lists;
-using Gitunia.Core.Workspaces.Panes;
 using Gitunia.Core.Workspaces.Repositories;
 
 namespace Gitunia.Core.Sidebar;
@@ -45,7 +44,8 @@ public static class SidebarReducer
         var row = rows[cursor];
         if (!row.IsContainer)
         {
-            return tab with { View = tab.View with { FocusedPane = PaneKind.Graph } };
+            // Bare l stays inside the pane: a leaf has nothing to open (Enter selects it, Ctrl-l moves on).
+            return tab;
         }
 
         if (!row.IsExpanded)

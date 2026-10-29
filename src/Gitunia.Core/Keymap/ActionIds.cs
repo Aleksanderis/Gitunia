@@ -15,6 +15,8 @@ public static class ActionIds
 
     public static ActionId DetailCollapse { get; } = new("detail.collapse");
 
+    public static ActionId DetailExpand { get; } = new("detail.expand");
+
     public static ActionId DetailCopyPath { get; } = new("detail.copy-path");
 
     public static ActionId DetailFilter { get; } = new("detail.filter");
@@ -425,6 +427,8 @@ public static class ActionIds
     public static ActionId WorkingTreeToggleFolder { get; } = new("working-tree.toggle-folder");
 
     public static ActionId WorkingTreeCollapse { get; } = new("working-tree.collapse");
+
+    public static ActionId WorkingTreeExpand { get; } = new("working-tree.expand");
 
     public static ActionId WorkingTreeToggle { get; } = new("working-tree.toggle");
 

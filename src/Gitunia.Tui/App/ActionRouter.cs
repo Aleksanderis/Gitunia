@@ -163,7 +163,6 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
     public void Execute(ActionId action, int? count)
     {
         Message = string.Empty;
-        action = FileTree?.Resolve(action) ?? action;
         if (QuickJump?.TryExecute(action, count) == true)
         {
             Message = QuickJump.Notice;
@@ -389,6 +388,10 @@ public sealed class ActionRouter(WorkspaceHost host, ListView graphList, ListVie
             {
                 FocusPane(PaneKind.Graph, graphList);
             }
+        }
+        else if (action == ActionIds.DetailCollapse || action == ActionIds.DetailExpand)
+        {
+            // Bare h and l stay inside the pane: with no directory or folder to fold they do nothing.
         }
         else if (!_statusActions.TryHandleFallback(action))
         {

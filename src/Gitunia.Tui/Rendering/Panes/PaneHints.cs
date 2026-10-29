@@ -62,9 +62,9 @@ public static class PaneHints
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>s", "working tree", [ActionIds.WorkingTreeToggle]),
         new("]/[", "tabs", [ActionIds.DetailNextTab, ActionIds.DetailPreviousTab]),
-        new("l", "open", [ActionIds.DetailOpenDiff]),
+        new("Enter", "open", [ActionIds.DetailOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
-        new("h", "back", [ActionIds.DetailCollapse]),
+        new("Esc", "back", [ActionIds.NavigateBack]),
         PaneMove,
     ];
 
@@ -83,7 +83,7 @@ public static class PaneHints
         new("]f/[f", "file", [ActionIds.DiffNextFile, ActionIds.DiffPreviousFile]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         ViewOptions,
-        new("h", "back", [ActionIds.NavigateBack]),
+        new("Esc", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         PaneMove,
     ];
@@ -97,7 +97,7 @@ public static class PaneHints
         new("<space>vw", "wrap", [ActionIds.DiffToggleWrap]),
         new("y", "copy line", [ActionIds.DiffCopyLine]),
         new("Y", "copy file", [ActionIds.DiffCopyFile]),
-        new("h", "back", [ActionIds.NavigateBack]),
+        new("Esc", "back", [ActionIds.NavigateBack]),
         PaneMove,
     ];
 
@@ -116,7 +116,7 @@ public static class PaneHints
         new("]c/[c", "change", [ActionIds.DiffNextHunk, ActionIds.DiffPreviousHunk]),
         new("/", "search", [ActionIds.DiffSearchOpen]),
         ViewOptions,
-        new("h", "back", [ActionIds.NavigateBack]),
+        new("Esc", "back", [ActionIds.NavigateBack]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         PaneJumps,
     ];
@@ -148,7 +148,7 @@ public static class PaneHints
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>a", "stage", [ActionIds.WorkingTreeStage]),
         new("<space>A", "stage all", [ActionIds.WorkingTreeStageAll]),
-        new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
         new("<space>d", "discard", [ActionIds.WorkingTreeDiscard]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
@@ -160,7 +160,7 @@ public static class PaneHints
     private static readonly ImmutableArray<KeyHint> WorkingUnstagedConflict =
     [
         .. Pinned,
-        new("l/Enter", "conflict editor", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", "conflict editor", [ActionIds.WorkingTreeOpenDiff]),
         .. WorkingUnstaged.Skip(Pinned.Length).Where(hint => hint.Description != "diff"),
     ];
 
@@ -177,7 +177,7 @@ public static class PaneHints
         new("j/k", "move", [ActionIds.ListDown, ActionIds.ListUp]),
         new("<space>u", "unstage", [ActionIds.WorkingTreeUnstage]),
         new("<space>U", "unstage all", [ActionIds.WorkingTreeUnstageAll]),
-        new("l/Enter", "diff", [ActionIds.WorkingTreeOpenDiff, ActionIds.WorkingTreeOpenDiff]),
+        new("Enter", "diff", [ActionIds.WorkingTreeOpenDiff]),
         new("<space>j", "quick jump", [ActionIds.QuickJump]),
         new("<space>c", "message", [ActionIds.WorkingTreeWriteMessage]),
         PaneJumps,

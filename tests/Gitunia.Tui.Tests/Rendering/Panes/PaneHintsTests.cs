@@ -16,7 +16,7 @@ public class PaneHintsTests
     [Theory]
     [InlineData(PaneKind.Graph, "gg/G")]
     [InlineData(PaneKind.Sidebar, "/")]
-    [InlineData(PaneKind.Detail, "l")]
+    [InlineData(PaneKind.Detail, "Enter")]
     [InlineData(PaneKind.Diff, "<space>v")]
     [InlineData(PaneKind.WorkingUnstaged, "<space>c")]
     [InlineData(PaneKind.WorkingStaged, "<space>c")]
@@ -89,7 +89,7 @@ public class PaneHintsTests
     {
         var hints = PaneHints.For(PaneKind.WorkingUnstaged, showsFileContent: false, onConflict: true);
 
-        Assert.Equal("l/Enter", hints[3].Keys);
+        Assert.Equal("Enter", hints[3].Keys);
         Assert.Equal("conflict editor", hints[3].Description);
         Assert.DoesNotContain(hints, hint => hint.Description == "diff");
         Assert.DoesNotContain(PaneHints.For(PaneKind.WorkingUnstaged), hint => hint.Description == "conflict editor");

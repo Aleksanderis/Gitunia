@@ -144,14 +144,14 @@ public class SidebarReducerTests
     }
 
     [Fact]
-    public void GivenCursorOnLeaf_WhenExpanding_ThenFocusMovesToTheGraph()
+    public void GivenCursorOnLeaf_WhenExpanding_ThenFocusStaysInTheSidebar()
     {
         var tab = MoveTo(TabWithBranches(), 1);
         tab = tab with { View = tab.View with { FocusedPane = PaneKind.Sidebar } };
 
         tab = Reduce(tab, new ExpandSidebarCommand());
 
-        Assert.Equal(PaneKind.Graph, tab.View.FocusedPane);
+        Assert.Equal(PaneKind.Sidebar, tab.View.FocusedPane);
     }
 
     [Fact]
