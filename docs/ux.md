@@ -506,7 +506,7 @@ Paths are always passed literally.
    `<space>a` (or a double-click) on one opens a Confirm, "Mark X as resolved?", saying that conflict markers still in the file are not removed or checked and that `git checkout --merge <file>` re-creates the conflict (overwriting the file's current content).
    `y` runs `git add` on it (status: "Marked X resolved").
    Stage all and a Visual range skip conflicted files and count them; a range of only conflicted files is refused.
-   The banner with continue, abort and skip and the mergetool key are built (workflow 4); `Enter` (or `<space>to`) on a conflicted file opens the built-in conflict editor (workflow 4, item 2a); its mouse path is the `resolve` chip in the Unstaged title row, shown while the cursor is on a conflicted file (a double-click keeps asking "Mark X as resolved?").
+   The banner with continue, abort and skip and the mergetool key are built (workflow 4); `Enter` (or `<space>to`, also from the file's diff) on a conflicted file opens the built-in conflict editor (workflow 4, item 2a); its mouse path is the `resolve` chip in the Unstaged title row, shown while the cursor is on a conflicted file (a double-click keeps asking "Mark X as resolved?").
 5. Every action is also a palette entry. The lists refresh from the tab's status after each operation and by polling; `<space>r` forces a refresh.
 
 **Discard.** Nothing discarded can be undone: git keeps no copy, so there is no reflog hint and no dangling stash; the Confirm dialog is the safety.
@@ -748,7 +748,7 @@ The graph `<space>l` still opens HEAD's reflog directly; the picker is one key a
 One flow serves merge, rebase, cherry-pick and revert, and the interactive rebase (#399, editor #458) reuses it. `RepositoryOperationDetector` names the operation from the git directory.
 
 1. **Banner.** While an operation is in progress the tab shows a banner on the frame's bottom edge (the line under the panes, in the status bar's colours;
-   the title is a warning-coloured chip starting at column 0 like the `NORMAL` badge): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  Unstaged: Enter, <space>to open conflict editor` (while conflicts remain the line ends with the keys that open the conflict editor, said to work in the Unstaged list (item 2a, #742); where the chips leave no room for that, a short form `Enter: conflict editor` is tried, and where the chips do not fit beside the step and conflict counts the counts go first. The line is never relied on alone: while the cursor is on a conflicted file the status bar's own hints lead with `l/Enter conflict editor` in the Unstaged list and `<space>to conflict editor` in its diff, right after help, commands and quit, and the which-key popup docks above the banner instead of covering it;
+   the title is a warning-coloured chip starting at column 0 like the `NORMAL` badge): `MERGING feature/x  3 conflicts  <space>gc continue  <space>ga abort  Unstaged: Enter, <space>to open conflict editor` (while conflicts remain the line ends with the keys that open the conflict editor, said to work in the Unstaged list (item 2a, #742); where the chips leave no room for that, a short form `Unstaged: Enter conflict editor` is tried, and where the chips do not fit beside the step and conflict counts the counts go first. The line is never relied on alone: while the cursor is on a conflicted file the status bar's own hints lead with `l/Enter conflict editor` in the Unstaged list and `<space>to conflict editor` in its diff, right after help, commands and quit, and the which-key popup docks above the banner instead of covering it;
    a rebase adds `step 2/5` and `<space>gk skip`;
    a cherry-pick or revert of a range shows how many commits are left, `3 commits left`).
    The title names the merged branch (read from git's default merge message, so a custom message gives just `MERGING`), the rebased branch, or the short hash of the picked or reverted commit.
@@ -756,9 +756,9 @@ One flow serves merge, rebase, cherry-pick and revert, and the interactive rebas
    `<space>gc`, `<space>ga` and `<space>gk` work in the graph, the sidebar and the working-tree view (where conflicts are resolved).
    On a terminal under 10 rows the banner is dropped and an empty status message shows the same text.
    It is read from the repository's state files (`MERGE_MSG`, `rebase-merge/`, `sequencer/`), so it survives a restart of the app, and the tab bar shows a `!` marker.
-2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (graph) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item).
+2. **Conflicts.** The working-tree view lists conflicted files with `!`. `<space>a` marks one resolved (workflow 2, item 4); `<space>tm` (graph) opens the configured mergetool; `Enter` on a conflicted file opens the conflict editor (next item; also `<space>to` from that file's diff).
 2a.
-**Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list).
+**Conflict editor** (#689; `Enter`, `l` or `<space>to` on a `!` row of the Unstaged list; `<space>to` also in the diff of that file, and from the graph or the Staged list it only says where to go (#742)).
 A modal view of one conflict hunk at a time in one continuous box-drawing frame (the title set into the top border;
 rules join the side borders, with T-junctions where the divider between the two sides meets them;
 the key hints and the footer sit in a bottom section above the closing border; #733): the base (common ancestor), ours and theirs as three panes side by side on top, in that order (as in KDiff3, #739;
@@ -1222,6 +1222,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | Graph | `<space>r` | Refresh repository |
 | Graph | `<space>td` | Open the selected commit (against its first parent) in the configured difftool |
 | Graph | `<space>tm` | Resolve conflicts in the configured mergetool |
+| Graph | `<space>to` | The conflict editor opens in the Unstaged list of the working tree; from here the key only says so in the status bar (#742) |
 | Graph | `<space>te` | Commit the staged changes with `$EDITOR` (git's own editor; the working-tree view's `<space>te` does the same) |
 | Graph | `<space>bc` | Create a branch at the selected commit and check it out (prompt popup) |
 | Graph | `<space>bC` | Create a branch at the selected commit without checking it out |
@@ -1298,6 +1299,7 @@ Modes: rows apply to Normal, except those whose view says `(Visual)` (Visual mod
 | WorkingStaged | `Esc` | Leave the working-tree view (back to the history) |
 | WorkingStaged | `h` | Tree style: close the open folder under the cursor, else move to the parent folder; on a file at the top level, and in the flat styles, leave the working-tree view (back to the history) |
 | WorkingStaged | `<space>c` | Write the commit message (focus the message box, Insert mode) |
+| WorkingStaged | `<space>to` | Says in the status bar that the conflict editor opens from the Unstaged list (#742) |
 | WorkingStaged | `<space>te` | Commit with `$EDITOR` (git's own editor; the TUI suspends) |
 | WorkingStaged | `Alt-s` `Alt-n` `Alt-a` | Toggle the commit options SignOff, No-Verify, Amend (also in Insert mode) |
 | WorkingStaged | `<space>1` `<space>2` `<space>3` `<space>4` | Jump to the Unstaged list / Staged list / diff of the file under the cursor / message box (Normal mode) |

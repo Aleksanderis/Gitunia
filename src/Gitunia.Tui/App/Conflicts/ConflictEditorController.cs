@@ -69,7 +69,7 @@ public sealed class ConflictEditorController(
     private const string BusyNotice = "Busy: another operation of this tab is still running";
     private const string TooSmallNotice = "The screen is too small to ask: nothing was saved";
     private const string NothingPickedNotice = "No hunk is picked yet: nothing to save";
-    private const string NotConflictedNotice = "Select a conflicted file (!) in the Unstaged list";
+    private const string NotConflictedNotice = "Select a conflicted file (!) in the Unstaged list of the working tree (<space>s)";
     private const string ChangedNotice = "The tab changed while the file was read: the conflict editor was not opened";
     private const string CoveredNotice =
         "Another view opened while the file was read: the conflict editor was not opened";

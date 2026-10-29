@@ -181,6 +181,7 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, GraphView, "<space>td", ActionIds.ToolDifftool);
         Add(bindings, NormalOnly, GraphView, "<space>tm", ActionIds.ToolMergetool);
         Add(bindings, NormalOnly, GraphView, "<space>te", ActionIds.ToolCommitEditor);
+        Add(bindings, NormalOnly, GraphView, "<space>to", ActionIds.ConflictOpen);
         AddBottomTabKeys(bindings, GraphView);
         AddBranchKeys(bindings, GraphView);
         AddBranchKeys(bindings, SidebarView);
@@ -416,6 +417,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
+            Add(bindings, NormalOnly, view, "<space>to", ActionIds.ConflictOpen);
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
@@ -428,7 +430,6 @@ public static class DefaultKeymap
         // Stage, unstage and discard also act on a Visual range of files.
         Add(bindings, Navigation, WorkingUnstagedView, "<space>a", ActionIds.WorkingTreeStage);
         Add(bindings, NormalOnly, WorkingUnstagedView, "<space>A", ActionIds.WorkingTreeStageAll);
-        Add(bindings, NormalOnly, WorkingUnstagedView, "<space>to", ActionIds.ConflictOpen);
         Add(bindings, Navigation, WorkingUnstagedView, "<space>d", ActionIds.WorkingTreeDiscard);
         Add(bindings, Navigation, WorkingStagedView, "<space>u", ActionIds.WorkingTreeUnstage);
         Add(bindings, NormalOnly, WorkingStagedView, "<space>U", ActionIds.WorkingTreeUnstageAll);

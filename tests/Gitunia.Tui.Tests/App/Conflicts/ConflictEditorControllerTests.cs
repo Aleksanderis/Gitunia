@@ -214,6 +214,34 @@ public class ConflictEditorControllerTests
     }
 
     [Fact]
+    public async Task GivenTheGraphFocused_WhenPressingTheEditorKey_ThenTheStatusBarSaysWhereItOpens()
+    {
+        using var repository = TestRepositories.Conflicted();
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.Graph));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("<space>s", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+        Assert.Contains("Unstaged", harness.Statuses.Log.Latest.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GivenTheDiffOfACleanFileFocused_WhenPressingTheEditorKey_ThenItOpensNothingAndSaysSo()
+    {
+        using var repository = TestRepository.Create().Commit("Initial", new TestFile("a.txt", "a\n"));
+        repository.WriteFile("a.txt", "changed\n");
+        using var harness = await Harness.CreateAsync(repository);
+        harness.Send(new FocusPaneCommand(PaneKind.WorkingUnstagedDiff));
+
+        Assert.True(harness.Controller.TryExecute(ActionIds.ConflictOpen, null));
+
+        Assert.False(harness.Controller.IsOpen);
+        Assert.Contains("conflicted file", harness.Statuses.Log.Latest!.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GivenPicksMade_WhenPressingEscOnce_ThenItAsksAndTheSecondEscCloses()
     {
         using var repository = TestRepositories.Conflicted();

@@ -1334,7 +1334,7 @@ public sealed class TuiApplication(
         return PaneHints.For(
             _host.Workspace.ActiveTab?.View.FocusedPane ?? PaneKind.Graph,
             _diffPane.IsShowingContent,
-            _host.Workspace.ActiveTab is { } tab && ConflictedSelection.Find(tab.WorkingTree) is not null);
+            OnConflictedFile());
     }
 
     // The full name of the sidebar row under the cursor while the sidebar has focus (rows show short names).
@@ -1348,6 +1348,11 @@ public sealed class TuiApplication(
 
         return string.Empty;
     }
+
+    // Only the Unstaged list and its diff lead with the conflict editor, so no other pane pays for the lookup.
+    private bool OnConflictedFile() =>
+        _host.Workspace.ActiveTab is { View.FocusedPane: PaneKind.WorkingUnstaged or PaneKind.WorkingUnstagedDiff } tab
+        && ConflictedSelection.Find(tab.WorkingTree) is not null;
 
     private bool GraphComparing() =>
         _host.Workspace.ActiveTab?.View is { FocusedPane: PaneKind.Graph, CompareMark: not null };

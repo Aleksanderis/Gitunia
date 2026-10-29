@@ -18,7 +18,7 @@ public static class OperationBannerBuilder
     // The editor keys are the ConflictOpen bindings of the Unstaged view; the text is not rebuilt from the keymap
     // because the banner is plain data.
     private const string EditorHint = "Unstaged: Enter, <space>to open conflict editor";
-    private const string ShortEditorHint = "Enter: conflict editor";
+    private const string ShortEditorHint = "Unstaged: Enter conflict editor";
 
     private static readonly BannerChip Continue = new("<space>gc", "continue", ActionIds.OperationContinue);
     private static readonly BannerChip Abort = new("<space>ga", "abort", ActionIds.OperationAbort);

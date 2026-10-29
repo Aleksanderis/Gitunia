@@ -460,7 +460,7 @@ public class OverlayFrameTests
                 "│                       │ selection                            │",
                 "│  <space>gi            │ Interactive rebase onto the selection│",
                 "│                       │ (edit the todo)                      │",
-                "│ 1-18/71  Esc close  Tab next tab  list keys scroll           │",
+                "│ 1-18/73  Esc close  Tab next tab  list keys scroll           │",
                 "╰──────────────────────────────────────────────────────────────╯"),
             Text(frame));
     }
@@ -519,6 +519,18 @@ public class OverlayFrameTests
 
         Assert.Equal(23, plain.Row + plain.Height);
         Assert.Equal(22, withBanner.Row + withBanner.Height);
+    }
+
+    [Fact]
+    public void GivenABannerAndMoreRowsThanFit_WhenRenderingTheWhichKeyPopup_ThenOneRowFewerIsListed()
+    {
+        var rows = Enumerable.Range(0, 30).Select(index => new WhichKeyRow($"{index % 10}", $"Action {index}")).ToList();
+
+        var plain = WhichKeyFrameBuilder.Build("<space>t", rows, 100, 12, GraphGlyphSet.Unicode)!;
+        var withBanner = WhichKeyFrameBuilder.Build("<space>t", rows, 100, 12, GraphGlyphSet.Unicode, bannerShown: true)!;
+
+        Assert.Equal(plain.Height - 1, withBanner.Height);
+        Assert.True(withBanner.Row >= 0);
     }
 
     [Fact]
