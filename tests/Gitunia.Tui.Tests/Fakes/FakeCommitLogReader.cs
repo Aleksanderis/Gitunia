@@ -19,6 +19,9 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     /// <summary>Thrown when a read starts, to play a git failure.</summary>
     public Exception? Failure { get; set; }
 
+    /// <summary>Thrown when the tip decorations are read, to play a failure of only that call.</summary>
+    public Exception? TipFailure { get; set; }
+
     /// <summary>The number of log streams started so far.</summary>
     public int ReadCount { get; private set; }
 
@@ -76,9 +79,10 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     public Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (Failure is not null)
+        var failure = TipFailure ?? Failure;
+        if (failure is not null)
         {
-            return Task.FromException<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>>(Failure);
+            return Task.FromException<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>>(failure);
         }
 
         var decorated = Commits.Where(commit => commit.Decorations.Count > 0).ToDictionary(commit => commit.Id, commit => commit.Decorations);

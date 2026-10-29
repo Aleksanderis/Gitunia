@@ -7,6 +7,12 @@ public enum SegmentRole
 
     /// <summary>Part of the commit graph; <see cref="StyledSegment.ColorIndex"/> is the lane.</summary>
     Lane,
+
+    /// <summary>
+    /// A branch name in the graph, in the colour of its lane (<see cref="StyledSegment.ColorIndex"/>, as for
+    /// <see cref="Lane"/>), bold.
+    /// </summary>
+    LaneLabel,
     Hash,
     Punctuation,
     LocalBranch,

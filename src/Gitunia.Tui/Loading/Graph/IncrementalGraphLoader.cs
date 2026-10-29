@@ -40,11 +40,13 @@ public sealed class IncrementalGraphLoader
         }
 
         var splicer = new GraphSplicer(previous);
-        var builder = new GraphLayoutBuilder();
+        var tipsTask = _graphLoader.ReadTipDecorationsAsync(location, cancellationToken);
+        GraphLayoutBuilder? builder = null;
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
         await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
+            builder ??= await GraphLoader.NewBuilderAsync(tipsTask).ConfigureAwait(false);
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
             joinIndex = splicer.Observe(entry);
@@ -54,9 +56,15 @@ public sealed class IncrementalGraphLoader
             }
         }
 
+        var decorations = await tipsTask.ConfigureAwait(false);
         if (joinIndex < 0)
         {
             return new GraphReload(rows, 0);
+        }
+
+        if (decorations is null)
+        {
+            return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
         var expectedCount = rows.Count + previous.Count - joinIndex - 1;
@@ -65,7 +73,6 @@ public sealed class IncrementalGraphLoader
             return await ReadAllAsync(location, false, cancellationToken).ConfigureAwait(false);
         }
 
-        var decorations = await _commitLog.ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
         var spliced = splicer.Splice(rows, joinIndex, decorations);
 
         // A reused tip that lost its last ref may be a commit that is gone (the count can still match when new commits arrived).

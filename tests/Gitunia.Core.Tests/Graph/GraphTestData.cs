@@ -1,4 +1,5 @@
 using System.Globalization;
+using Gitunia.Core.Graph;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 
@@ -11,6 +12,10 @@ public static class GraphTestData
         ObjectId.TryParse(number.ToString("x40", CultureInfo.InvariantCulture), out var objectId)
             ? objectId
             : throw new InvalidOperationException("Cannot build an id.");
+
+    /// <summary>The edges without their colours, for tests of the shape of a layout.</summary>
+    public static IReadOnlyList<GraphEdge> Shape(IReadOnlyList<GraphEdge> edges) =>
+        [.. edges.Select(edge => edge with { Color = 0 })];
 
     public static CommitInfo Commit(int number, params int[] parents) => new(
         Id(number),

@@ -16,8 +16,8 @@ public static class LaneCellBuilder
     public static GraphCell[] Build(GraphRow row, int laneColumns, GraphGlyphSet glyphs, bool isDecorated)
     {
         var directions = new LineDirections[laneColumns * 2];
-        var lanes = new int[laneColumns * 2];
-        Array.Fill(lanes, -1);
+        var colors = new int[laneColumns * 2];
+        Array.Fill(colors, -1);
 
         var nodeLane = Math.Min(row.Lane, laneColumns - 1);
         var outgoingCount = 0;
@@ -29,17 +29,19 @@ public static class LaneCellBuilder
             {
                 case GraphEdgeKind.Through:
                     var throughLane = Math.Min(edge.FromLane, laneColumns - 1);
-                    Add(directions, lanes, throughLane * 2, LineDirections.Up | LineDirections.Down, throughLane);
+                    Add(directions, colors, throughLane * 2, LineDirections.Up | LineDirections.Down, edge.Color);
                     break;
                 case GraphEdgeKind.Incoming:
                     incomingCount++;
                     isOnLane &= edge.FromLane == row.Lane;
-                    Connect(directions, lanes, Math.Min(edge.FromLane, laneColumns - 1), nodeLane, LineDirections.Up);
+                    var incomingLane = Math.Min(edge.FromLane, laneColumns - 1);
+                    Connect(directions, colors, incomingLane, nodeLane, LineDirections.Up, edge.Color);
                     break;
                 default:
                     outgoingCount++;
                     isOnLane &= edge.ToLane == row.Lane;
-                    Connect(directions, lanes, Math.Min(edge.ToLane, laneColumns - 1), nodeLane, LineDirections.Down);
+                    var outgoingLane = Math.Min(edge.ToLane, laneColumns - 1);
+                    Connect(directions, colors, outgoingLane, nodeLane, LineDirections.Down, edge.Color);
                     break;
             }
         }
@@ -49,18 +51,24 @@ public static class LaneCellBuilder
         {
             cells[column] = directions[column] == LineDirections.None
                 ? new GraphCell(' ', -1)
-                : new GraphCell(glyphs.For(directions[column]), lanes[column]);
+                : new GraphCell(glyphs.For(directions[column]), colors[column]);
         }
 
         // An unlabelled commit with exactly one child and one parent, both on its lane, is part of a straight line, not a node.
         var isLineCommit = !isDecorated && isOnLane && incomingCount == 1 && outgoingCount == 1;
         var nodeGlyph = isLineCommit ? glyphs.LineNode : outgoingCount > 1 ? glyphs.MergeNode : glyphs.Node;
-        cells[nodeLane * 2] = new GraphCell(nodeGlyph, nodeLane);
+        cells[nodeLane * 2] = new GraphCell(nodeGlyph, row.NodeColor);
         return cells;
     }
 
     // A line between the node and another lane: horizontal in between, a corner (up or down plus sideways) at the other lane.
-    private static void Connect(LineDirections[] directions, int[] lanes, int otherLane, int nodeLane, LineDirections vertical)
+    private static void Connect(
+        LineDirections[] directions,
+        int[] colors,
+        int otherLane,
+        int nodeLane,
+        LineDirections vertical,
+        int color)
     {
         if (otherLane == nodeLane)
         {
@@ -72,18 +80,19 @@ public static class LaneCellBuilder
         var isRight = otherLane > nodeLane;
         for (var column = (from * 2) + 1; column < to * 2; column++)
         {
-            Add(directions, lanes, column, LineDirections.Left | LineDirections.Right, otherLane);
+            Add(directions, colors, column, LineDirections.Left | LineDirections.Right, color);
         }
 
-        Add(directions, lanes, otherLane * 2, vertical | (isRight ? LineDirections.Left : LineDirections.Right), otherLane);
+        var sideways = isRight ? LineDirections.Left : LineDirections.Right;
+        Add(directions, colors, otherLane * 2, vertical | sideways, color);
     }
 
     // The first line in a cell decides its colour (a through lane keeps its own where a connection crosses it).
-    private static void Add(LineDirections[] directions, int[] lanes, int column, LineDirections added, int lane)
+    private static void Add(LineDirections[] directions, int[] colors, int column, LineDirections added, int color)
     {
         if (directions[column] == LineDirections.None)
         {
-            lanes[column] = lane;
+            colors[column] = color;
         }
 
         directions[column] |= added;

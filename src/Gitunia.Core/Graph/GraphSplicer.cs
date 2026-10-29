@@ -38,7 +38,9 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
     /// Builds the new graph: <paramref name="newRows"/> (the rows read, the last one being the join) followed by the previous rows
     /// below the join. Rows below the join get their refs from <paramref name="decorationsByCommit"/> (every commit that carries a ref
     /// now), since refs may have moved without the commits changing.
-    /// Returns null when a reused tip (a row without incoming edge) lost all its refs: it may be a commit that no longer exists, so the caller must read the whole log.
+    /// Returns null when the branch of a reused commit changed (its lane colour was chosen by the name) or a reused tip
+    /// (a row without incoming edge) lost all its refs (it may be a commit that no longer exists): the caller must read
+    /// the whole log then.
     /// </summary>
     public List<GraphEntry>? Splice(IReadOnlyList<GraphEntry> newRows, int joinIndex, IReadOnlyDictionary<ObjectId, IReadOnlyList<CommitDecoration>> decorationsByCommit)
     {
@@ -47,7 +49,15 @@ public sealed class GraphSplicer(IReadOnlyList<GraphEntry> previous)
         for (var index = joinIndex + 1; index < previous.Count; index++)
         {
             var entry = previous[index];
-            if (decorationsByCommit.TryGetValue(entry.Id, out var decorations))
+            decorationsByCommit.TryGetValue(entry.Id, out var decorations);
+            var oldBranch = BranchColors.PrimaryName(entry.Decorations);
+            if (oldBranch != (decorations is null ? null : BranchColors.PrimaryName(decorations)))
+            {
+                // The colours of the lanes below were chosen by this branch name, so the old rows would be stale.
+                return null;
+            }
+
+            if (decorations is not null)
             {
                 if (!entry.Decorations.SequenceEqual(decorations))
                 {

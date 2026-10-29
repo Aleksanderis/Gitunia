@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Repositories.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Graph;
@@ -32,6 +33,36 @@ public class GraphLoaderTests
         Assert.Contains(entries[0].Decorations, decoration => decoration.Name == "main" && decoration.IsCurrent);
         Assert.Contains(entries[0].Decorations, decoration => decoration.Name == "v1");
         Assert.Contains(entries.Single(entry => entry.Subject == "on topic").Decorations, decoration => decoration.Name == "topic");
+    }
+
+    [Fact]
+    public async Task GivenTwoBranchesAndTheirRemotes_WhenStreaming_ThenEachBranchHasOneColourAndLocalAndRemoteShareIt()
+    {
+        var commitLog = new FakeCommitLogReader();
+        var root = commitLog.AddOnTop("root");
+        var alpha = commitLog.AddOnTop("alpha", Branch("alpha"));
+        commitLog.Commits.Insert(0, Tip(10, "beta", root, Branch("beta")));
+        commitLog.Commits.Insert(0, Tip(11, "origin alpha", alpha, Remote("origin/alpha")));
+
+        var entries = (await LoadAsync(commitLog)).SelectMany(batch => batch).ToList();
+
+        var originAlpha = entries.Single(entry => entry.Subject == "origin alpha").Row.NodeColor;
+        var localAlpha = entries.Single(entry => entry.Subject == "alpha").Row.NodeColor;
+        var beta = entries.Single(entry => entry.Subject == "beta").Row.NodeColor;
+        Assert.Equal(BranchColors.PreferredSlot("alpha"), originAlpha);
+        Assert.Equal(originAlpha, localAlpha);
+        Assert.NotEqual(originAlpha, beta);
+    }
+
+    [Fact]
+    public async Task GivenTheTipsCannotBeRead_WhenStreaming_ThenTheGraphStillLoads()
+    {
+        var commitLog = FakeCommitLogReader.Chain(5);
+        commitLog.TipFailure = new GitException("boom");
+
+        var entries = (await LoadAsync(commitLog)).SelectMany(batch => batch).ToList();
+
+        Assert.Equal(5, entries.Count);
     }
 
     [Fact]
@@ -122,6 +153,22 @@ public class GraphLoaderTests
 
         await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
     }
+
+    private static CommitDecoration Branch(string name) =>
+        new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
+
+    private static CommitDecoration Remote(string name) =>
+        new($"refs/remotes/{name}", name, RefKind.RemoteBranch, false);
+
+    private static CommitInfo Tip(int number, string subject, CommitInfo parent, CommitDecoration decoration) =>
+        new(
+            FakeObjectIds.Of(number),
+            [parent.Id],
+            "Author",
+            "author@example.com",
+            DateTimeOffset.UnixEpoch,
+            subject,
+            [decoration]);
 
     private static Task<List<IReadOnlyList<GraphEntry>>> LoadCappedAsync(
         FakeCommitLogReader commitLog,

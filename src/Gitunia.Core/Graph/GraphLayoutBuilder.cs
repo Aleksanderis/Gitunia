@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Gitunia.Git;
 using Gitunia.Git.Commits.Models;
 
@@ -15,7 +16,23 @@ public sealed class GraphLayoutBuilder
 {
     // The entry at lanes[index] is the commit the lane is waiting for; the default (invalid) id marks a free lane.
     private readonly List<ObjectId> _lanes = [];
+
+    // The colour slot of each lane (see BranchColors); only meaningful while the lane is occupied.
+    private readonly List<int> _laneSlots = [];
     private readonly List<GraphRow> _rows = [];
+
+    // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
+    private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
+    private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
+
+    /// <param name="branchTips">
+    /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
+    /// the colour of its branch from its first row on; null when not known (every lane is then coloured by its commit).
+    /// </param>
+    public GraphLayoutBuilder(IReadOnlyDictionary<ObjectId, string>? branchTips = null)
+    {
+        _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
+    }
 
     /// <summary>All rows laid out so far, in feed order.</summary>
     public IReadOnlyList<GraphRow> Rows => _rows.AsReadOnly();
@@ -33,9 +50,12 @@ public sealed class GraphLayoutBuilder
         if (nodeLane < 0)
         {
             nodeLane = FindFreeLane();
+            EnsureLane(nodeLane);
+            _laneSlots[nodeLane] = SlotForNewLane(commitId);
         }
 
         EnsureLane(nodeLane);
+        var nodeColor = _laneSlots[nodeLane];
 
         for (var lane = 0; lane < _lanes.Count; lane++)
         {
@@ -46,12 +66,12 @@ public sealed class GraphLayoutBuilder
 
             if (_lanes[lane] == commitId)
             {
-                edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane));
+                edges.Add(new GraphEdge(GraphEdgeKind.Incoming, lane, nodeLane, _laneSlots[lane]));
                 _lanes[lane] = default;
             }
             else
             {
-                edges.Add(new GraphEdge(GraphEdgeKind.Through, lane, lane));
+                edges.Add(new GraphEdge(GraphEdgeKind.Through, lane, lane, _laneSlots[lane]));
             }
         }
 
@@ -63,10 +83,19 @@ public sealed class GraphLayoutBuilder
             {
                 parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
                 EnsureLane(parentLane);
+                if (parentIndex != 0)
+                {
+                    _laneSlots[parentLane] = SlotForNewLane(parent);
+                }
+                else
+                {
+                    _laneSlots[parentLane] = nodeColor;
+                }
+
                 _lanes[parentLane] = parent;
             }
 
-            edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane));
+            edges.Add(new GraphEdge(GraphEdgeKind.Outgoing, nodeLane, parentLane, _laneSlots[parentLane]));
         }
 
         var laneCount = nodeLane + 1;
@@ -76,7 +105,7 @@ public sealed class GraphLayoutBuilder
         }
 
         TrimFreeLanes();
-        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes());
+        var row = new GraphRow(commitId, nodeLane, laneCount, edges.ToArray(), FingerprintLanes(), nodeColor);
         _rows.Add(row);
         return row;
     }
@@ -111,7 +140,53 @@ public sealed class GraphLayoutBuilder
         while (_lanes.Count <= lane)
         {
             _lanes.Add(default);
+            _laneSlots.Add(0);
         }
+    }
+
+    // The slot of a lane that starts at this commit: its branch's slot when it is a branch tip, else one derived from
+    // the commit, in both cases moved on to the next slot no open lane of another branch is using.
+    private int SlotForNewLane(ObjectId commitId)
+    {
+        if (!_branchTips.TryGetValue(commitId, out var name))
+        {
+            return FreeSlotFrom((int)(commitId.Hash64 % BranchColors.SlotCount));
+        }
+
+        if (!_namedSlots.TryGetValue(name, out var slot))
+        {
+            slot = FreeSlotFrom(BranchColors.PreferredSlot(name));
+            _namedSlots[name] = slot;
+        }
+
+        return slot;
+    }
+
+    private int FreeSlotFrom(int preferred)
+    {
+        for (var offset = 0; offset < BranchColors.SlotCount; offset++)
+        {
+            var slot = (preferred + offset) % BranchColors.SlotCount;
+            if (!IsSlotInUse(slot))
+            {
+                return slot;
+            }
+        }
+
+        return preferred;
+    }
+
+    private bool IsSlotInUse(int slot)
+    {
+        for (var lane = 0; lane < _lanes.Count; lane++)
+        {
+            if (_lanes[lane].IsValid && _laneSlots[lane] == slot)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Leftmost free lane, or the next new one. Only the lane of the commit being laid out can end in a row, and a later
@@ -137,7 +212,8 @@ public sealed class GraphLayoutBuilder
         {
             if (_lanes[lane].IsValid)
             {
-                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56)) * 1099511628211UL;
+                hash = (hash ^ _lanes[lane].Hash64 ^ ((ulong)(lane + 1) << 56) ^ ((ulong)(_laneSlots[lane] + 1) << 48))
+                    * 1099511628211UL;
             }
         }
 
@@ -153,5 +229,6 @@ public sealed class GraphLayoutBuilder
         }
 
         _lanes.RemoveRange(count, _lanes.Count - count);
+        _laneSlots.RemoveRange(count, _laneSlots.Count - count);
     }
 }

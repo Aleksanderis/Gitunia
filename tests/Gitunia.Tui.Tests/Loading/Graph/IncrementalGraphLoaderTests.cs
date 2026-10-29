@@ -1,6 +1,7 @@
 using Gitunia.Core.Graph;
 using Gitunia.Git.Commits.Models;
 using Gitunia.Git.Execution.Exceptions;
+using Gitunia.Git.Refs.Models;
 using Gitunia.Git.Tests.Fixtures;
 using Gitunia.Tui.Loading.Graph;
 using Gitunia.Tui.Tests.Fakes;
@@ -17,8 +18,13 @@ public class IncrementalGraphLoaderTests
     public async Task GivenNewCommitOnTop_WhenReloading_ThenOldRowsAreReusedAndTheResultEqualsAFullRead()
     {
         var commitLog = FakeCommitLogReader.Chain(40);
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [main] };
         var previous = await ReadAllAsync(commitLog);
-        commitLog.AddOnTop("new top");
+
+        // The branch moves up with the new commit, as a commit on main does.
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [] };
+        commitLog.AddOnTop("new top", main);
 
         var reload = await ReloadAsync(commitLog, previous);
 
@@ -75,11 +81,28 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenNewBranchAndTagOnOldCommits_WhenReloading_ThenTheirRefsAppearOnReusedRows()
+    public async Task GivenTheTipsCannotBeRead_WhenReloading_ThenTheWholeLogIsReadInstead()
+    {
+        var commitLog = FakeCommitLogReader.Chain(10);
+        var main = new CommitDecoration("refs/heads/main", "main", RefKind.LocalBranch, true);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [main] };
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [] };
+        commitLog.AddOnTop("new top", main);
+        commitLog.TipFailure = new GitException("boom");
+
+        var reload = await ReloadAsync(commitLog, previous);
+
+        Assert.Equal(0, reload.ReusedCount);
+        Assert.Equal(11, reload.Entries.Count);
+    }
+
+    [Fact]
+    public async Task GivenNewTagsOnOldCommits_WhenReloading_ThenTheirRefsAppearOnReusedRows()
     {
         using var testRepository = LongHistory(30);
         var previous = await ReadAllAsync(testRepository);
-        testRepository.Branch("topic", "HEAD~20").Tag("v1");
+        testRepository.Git("tag", "other-tag", "HEAD~20");
         testRepository.Git("tag", "old-tag", "HEAD~25");
         testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
@@ -87,8 +110,25 @@ public class IncrementalGraphLoaderTests
 
         Assert.True(reload.ReusedCount > 20);
         await AssertEqualToFullReadAsync(testRepository, reload);
-        Assert.Contains(reload.Entries.Single(entry => entry.Subject == "commit 9").Decorations, decoration => decoration.Name == "topic");
+        var commitNine = reload.Entries.Single(entry => entry.Subject == "commit 9");
+        Assert.Contains(commitNine.Decorations, decoration => decoration.Name == "other-tag");
         Assert.Contains(reload.Entries.Single(entry => entry.Subject == "commit 4").Decorations, decoration => decoration.Name == "old-tag");
+    }
+
+    [Fact]
+    public async Task GivenNewBranchOnAnOldCommit_WhenReloading_ThenTheWholeLogIsReadAgainForItsColour()
+    {
+        using var testRepository = LongHistory(30);
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Branch("topic", "HEAD~20");
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        Assert.Equal(0, reload.ReusedCount);
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        var commitNine = reload.Entries.Single(entry => entry.Subject == "commit 9");
+        Assert.Contains(commitNine.Decorations, decoration => decoration.Name == "topic");
     }
 
     [Fact]
@@ -96,10 +136,10 @@ public class IncrementalGraphLoaderTests
     {
         using var testRepository = LongHistory(30);
         testRepository.Git("tag", "old-tag", "HEAD~25");
-        testRepository.Branch("topic", "HEAD~20");
+        testRepository.Git("tag", "other-tag", "HEAD~20");
         var previous = await ReadAllAsync(testRepository);
         testRepository.Git("tag", "-d", "old-tag");
-        testRepository.Git("branch", "-D", "topic");
+        testRepository.Git("tag", "-d", "other-tag");
         testRepository.Commit("new top", new TestFile("new.txt", "1"));
 
         var reload = await ReloadAsync(testRepository, previous);

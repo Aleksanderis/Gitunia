@@ -153,7 +153,7 @@ public static class GraphRowRenderer
         var start = 0;
         for (var index = 1; index <= cells.Length; index++)
         {
-            if (index < cells.Length && cells[index].Lane == cells[start].Lane)
+            if (index < cells.Length && cells[index].Color == cells[start].Color)
             {
                 continue;
             }
@@ -164,8 +164,8 @@ public static class GraphRowRenderer
                 run[position] = cells[start + position].Glyph;
             }
 
-            var lane = cells[start].Lane;
-            builder.Append(new string(run), lane < 0 ? SegmentRole.Plain : SegmentRole.Lane, Math.Max(lane, 0));
+            var color = cells[start].Color;
+            builder.Append(new string(run), color < 0 ? SegmentRole.Plain : SegmentRole.Lane, Math.Max(color, 0));
             start = index;
         }
     }
@@ -207,13 +207,13 @@ public static class GraphRowRenderer
             {
                 case RefKind.LocalBranch when label.IsCurrent:
                     builder.Add(new StyledSegment(glyphs.CurrentBranch, SegmentRole.CurrentBranch));
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.CurrentBranch));
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
                     break;
                 case RefKind.LocalBranch:
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.LocalBranch));
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
                     break;
                 case RefKind.RemoteBranch:
-                    builder.Add(new StyledSegment(label.Name, SegmentRole.RemoteBranch));
+                    builder.Add(new StyledSegment(label.Name, SegmentRole.LaneLabel, entry.Row.NodeColor));
                     break;
                 case RefKind.Tag:
                     builder.Add(new StyledSegment($"tag: {label.Name}", SegmentRole.Tag));

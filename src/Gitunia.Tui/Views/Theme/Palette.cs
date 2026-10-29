@@ -84,6 +84,9 @@ public static class Palette
         return segment.Role switch
         {
             SegmentRole.Lane => new RoleAppearance(colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.None, false),
+            SegmentRole.LaneLabel =>
+                new RoleAppearance(
+                    colors.Lanes[segment.ColorIndex % colors.Lanes.Length], Color.None, TextStyle.Bold, false),
             SegmentRole.Hash or SegmentRole.Faint => new RoleAppearance(colors.Muted, Color.None, muted, false),
             SegmentRole.WhitespaceMark => new RoleAppearance(colors.Subtle, Color.None, colors.SubtleStyle, false),
             SegmentRole.WhitespaceMarkAddedWord =>
