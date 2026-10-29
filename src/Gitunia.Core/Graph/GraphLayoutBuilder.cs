@@ -29,7 +29,7 @@ public sealed class GraphLayoutBuilder
     private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
     private readonly int _colorCount;
-    private readonly string? _trunk;
+    private readonly IReadOnlySet<ObjectId> _trunkCommits;
 
     /// <param name="branchTips">
     /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
@@ -39,16 +39,17 @@ public sealed class GraphLayoutBuilder
     /// Distinct colours the palette has (at most <see cref="BranchColors.SlotCount"/>): lanes open at the same time
     /// get different colours while one is free, so a short palette (16 colours, a small theme) never repeats one early.
     /// </param>
-    /// <param name="trunk">
-    /// The branch whose lane keeps a commit where several lanes meet (<see cref="BranchColors.TrunkOf"/>); null for
-    /// the leftmost lane.
+    /// <param name="trunkCommits">
+    /// The commits that carry the trunk branch (<see cref="BranchColors.TrunkCommitsOf"/>): the lane of such a
+    /// commit is the trunk's from its row down, and where several lanes meet at a commit the trunk's lane keeps it;
+    /// null for none (the leftmost lane keeps it).
     /// </param>
     public GraphLayoutBuilder(
         IReadOnlyDictionary<ObjectId, string>? branchTips = null,
         int colorCount = BranchColors.SlotCount,
-        string? trunk = null)
+        IReadOnlySet<ObjectId>? trunkCommits = null)
     {
-        _trunk = trunk;
+        _trunkCommits = trunkCommits ?? FrozenSet<ObjectId>.Empty;
         _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
@@ -66,6 +67,12 @@ public sealed class GraphLayoutBuilder
         var edges = new List<GraphEdge>(_lanes.Count + commit.Parents.Count);
 
         var nodeLane = NodeLaneOf(commitId);
+
+        if (_trunkCommits.Contains(commitId))
+        {
+            // A trunk commit inside the lane of another branch makes that lane the trunk's from here down.
+            _laneIsTrunk[nodeLane] = true;
+        }
 
         var nodeColor = _laneSlots[nodeLane];
 
@@ -174,7 +181,7 @@ public sealed class GraphLayoutBuilder
     private void StartLane(int lane, ObjectId commitId)
     {
         _laneSlots[lane] = SlotForNewLane(commitId);
-        _laneIsTrunk[lane] = _trunk is not null && _branchTips.TryGetValue(commitId, out var name) && name == _trunk;
+        _laneIsTrunk[lane] = _trunkCommits.Contains(commitId);
     }
 
     private int IndexOfLane(ObjectId commitId)

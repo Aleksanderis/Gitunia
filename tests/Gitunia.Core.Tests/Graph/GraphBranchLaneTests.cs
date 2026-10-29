@@ -76,7 +76,8 @@ public class GraphBranchLaneTests
     {
         // The same history with its first rows reordered, as it comes when all commits share one timestamp.
         var commits = DemoWithTopRows(topRows);
-        var rows = new GraphLayoutBuilder(DemoTips(), trunk: "main").AppendRange(commits);
+        var trunk = Commits(1, 13, 14, 15, 16, 17);
+        var rows = new GraphLayoutBuilder(DemoTips(), trunkCommits: trunk).AppendRange(commits);
 
         Assert.Empty(GraphTopologyValidator.Validate(commits, rows));
         var main = MainCommits.Select(Id).ToHashSet();
@@ -94,6 +95,19 @@ public class GraphBranchLaneTests
                 .Distinct();
             Assert.NotEqual(mainLane, Assert.Single(lanes));
         }
+    }
+
+    [Fact]
+    public void GivenTheTrunkTipInsideTheLaneOfAnotherBranch_WhenLanesMeetBelow_ThenTheTrunkLaneKeepsTheCommit()
+    {
+        // 1 (x) is the newest tip and sits in lane 0; 2 (feat) has main (3) as its first parent, so main's commit lies
+        // in feat's lane 1; both lanes meet at 5. Main's line must not jump to lane 0 there.
+        var commits = new[] { Commit(1, 5), Commit(2, 3), Commit(3, 4), Commit(4, 5), Commit(5, 6), Commit(6) };
+        var tips = Tips(Tip(1, "x"), Tip(2, "feat"), Tip(3, "main"));
+
+        var rows = new GraphLayoutBuilder(tips, trunkCommits: Commits(3)).AppendRange(commits);
+
+        Assert.Equal([0, 1, 1, 1, 1, 1], rows.Select(row => row.Lane));
     }
 
     [Fact]
@@ -195,6 +209,8 @@ public class GraphBranchLaneTests
         Tip(14, "hotfix"),
         Tip(15, "develop"),
         Tip(16, "release"));
+
+    private static HashSet<ObjectId> Commits(params int[] numbers) => [.. numbers.Select(Id)];
 
     private static Dictionary<ObjectId, string> Tips(params KeyValuePair<ObjectId, string>[] tips) => new(tips);
 

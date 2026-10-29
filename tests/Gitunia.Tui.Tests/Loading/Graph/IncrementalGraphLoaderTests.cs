@@ -81,6 +81,40 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenAnotherBranchCheckedOutWithoutMain_WhenReloading_ThenTheWholeLogIsReadForTheNewTrunk()
+    {
+        var commitLog = FakeCommitLogReader.Chain(20);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [Local("work", true)] };
+        commitLog.Commits[8] = commitLog.Commits[8] with { Decorations = [Local("other", false)] };
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [Local("work", false)] };
+        commitLog.Commits[8] = commitLog.Commits[8] with { Decorations = [Local("other", true)] };
+        commitLog.AddOnTop("new top");
+
+        var reload = await ReloadAsync(commitLog, previous);
+
+        Assert.Equal(0, reload.ReusedCount);
+        Assert.Equal(21, reload.Entries.Count);
+    }
+
+    [Fact]
+    public async Task GivenAMainBranchAppearing_WhenReloading_ThenTheWholeLogIsReadForTheNewTrunk()
+    {
+        var commitLog = FakeCommitLogReader.Chain(20);
+        commitLog.Commits[0] = commitLog.Commits[0] with { Decorations = [Local("work", true)] };
+        var previous = await ReadAllAsync(commitLog);
+        commitLog.Commits[10] = commitLog.Commits[10] with { Decorations = [Local("main", false)] };
+        commitLog.AddOnTop("new top");
+
+        var reload = await ReloadAsync(commitLog, previous);
+
+        Assert.Equal(0, reload.ReusedCount);
+    }
+
+    private static CommitDecoration Local(string name, bool isCurrent) =>
+        new($"refs/heads/{name}", name, RefKind.LocalBranch, isCurrent);
+
+    [Fact]
     public async Task GivenTheTipsCannotBeRead_WhenReloading_ThenTheWholeLogIsReadInstead()
     {
         var commitLog = FakeCommitLogReader.Chain(10);
