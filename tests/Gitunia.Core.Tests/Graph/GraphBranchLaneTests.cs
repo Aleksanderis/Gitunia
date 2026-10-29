@@ -95,7 +95,8 @@ public class GraphBranchLaneTests
         var forkIndex = Array.FindIndex(commits, commit => commit.Id == Id(13));
         var edges = rows[forkIndex].Edges;
         var incoming = edges.Where(edge => edge.Kind == GraphEdgeKind.Incoming).Select(edge => edge.FromLane);
-        Assert.Equal(5, incoming.Count());
+        Assert.Equal(5, incoming.Distinct().Count());
+        Assert.Contains(firstLane, incoming);
         foreach (var number in BranchTipRows.Select(row => row + 1))
         {
             var chain = ChainOf(number);
