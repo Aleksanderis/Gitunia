@@ -202,7 +202,7 @@ public static class DefaultKeymap
         AddPickKeys(bindings, SidebarView, NormalOnly);
 
         Add(bindings, NormalOnly, DetailView, "Enter", ActionIds.DetailOpenDiff);
-        Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailOpenDiff);
+        Add(bindings, NormalOnly, DetailView, "l", ActionIds.DetailExpand);
         Add(bindings, NormalOnly, DetailView, "<space>r", ActionIds.DetailRetry);
         Add(bindings, NormalOnly, DetailView, "y", ActionIds.DetailCopyPath);
         Add(bindings, NormalOnly, DetailView, "gx", ActionIds.DetailOpenLink);
@@ -241,7 +241,6 @@ public static class DefaultKeymap
         Add(bindings, NormalOnly, DiffView, "]f", ActionIds.DiffNextFile);
         Add(bindings, NormalOnly, DiffView, "[f", ActionIds.DiffPreviousFile);
         Add(bindings, NormalOnly, DiffView, "Esc", ActionIds.NavigateBack);
-        Add(bindings, NormalOnly, DiffView, "h", ActionIds.NavigateBack);
         Add(bindings, NormalOnly, DiffView, "<space>vw", ActionIds.DiffToggleWrap);
         Add(bindings, NormalOnly, DiffView, "<space>vv", ActionIds.DiffOpenViewOptions);
         Add(bindings, NormalOnly, DiffView, "<space>vl", ActionIds.DiffLoadAnyway);
@@ -417,7 +416,7 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "<space>c", ActionIds.WorkingTreeWriteMessage);
             Add(bindings, NormalOnly, view, "<space>te", ActionIds.ToolCommitEditor);
             Add(bindings, NormalOnly, view, "Enter", ActionIds.WorkingTreeOpenDiff);
-            Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeOpenDiff);
+            Add(bindings, NormalOnly, view, "l", ActionIds.WorkingTreeExpand);
             Add(bindings, NormalOnly, view, "<space>j", ActionIds.QuickJump);
             Add(bindings, NormalOnly, view, "<space>vn", ActionIds.FilesTogglePathStyle);
             Add(bindings, NormalOnly, view, "<space>vv", ActionIds.ListOpenViewOptions);
@@ -445,7 +444,6 @@ public static class DefaultKeymap
             Add(bindings, NormalOnly, view, "]f", ActionIds.DiffNextFile);
             Add(bindings, NormalOnly, view, "[f", ActionIds.DiffPreviousFile);
             Add(bindings, NormalOnly, view, "Esc", ActionIds.NavigateBack);
-            Add(bindings, NormalOnly, view, "h", ActionIds.NavigateBack);
             Add(bindings, NormalOnly, view, "<space>vw", ActionIds.DiffToggleWrap);
             Add(bindings, NormalOnly, view, "<space>vv", ActionIds.DiffOpenViewOptions);
             Add(bindings, NormalOnly, view, "<space>vl", ActionIds.DiffLoadAnyway);

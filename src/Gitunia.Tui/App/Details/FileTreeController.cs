@@ -56,25 +56,6 @@ public sealed class FileTreeController(
         }
     }
 
-    /// <summary>
-    /// Maps the keys the Files tab shares with other tabs back to the action they mean there: <c>h</c> is "back to
-    /// the graph" everywhere, except where it closes a directory or climbs to the parent.
-    /// </summary>
-    public ActionId Resolve(ActionId action)
-    {
-        if (action != ActionIds.DetailCollapse)
-        {
-            return action;
-        }
-
-        if (IsChangesTreeFocused())
-        {
-            return ChangesCollapseStep() != CollapseKind.Leave ? action : ActionIds.NavigateBack;
-        }
-
-        return IsFilesFocused() && CollapseStep() != CollapseKind.Leave ? action : ActionIds.NavigateBack;
-    }
-
     public bool TryExecute(ActionId action, int? count)
     {
         Notice = string.Empty;
@@ -108,6 +89,10 @@ public sealed class FileTreeController(
         if (action == ActionIds.DetailOpenDiff)
         {
             Open(tree);
+        }
+        else if (action == ActionIds.DetailExpand)
+        {
+            Expand(tree);
         }
         else if (action == ActionIds.DetailCollapse)
         {
@@ -169,6 +154,16 @@ public sealed class FileTreeController(
             return true;
         }
 
+        if (action == ActionIds.DetailExpand && IsChangesTreeFocused())
+        {
+            if (content.FolderAt(row) is { } closed && session.CollapsedFolders.Remove(closed))
+            {
+                refresh();
+            }
+
+            return true;
+        }
+
         if (action != ActionIds.DetailCollapse || !IsChangesTreeFocused())
         {
             return false;
@@ -188,7 +183,7 @@ public sealed class FileTreeController(
         return step != CollapseKind.Leave;
     }
 
-    // Close an open folder, otherwise climb to the parent folder, and at the top level leave the pane.
+    // Close an open folder, otherwise climb to the parent folder; at the top level there is nothing to do.
     private CollapseKind ChangesCollapseStep()
     {
         if (activeSession() is not { } session || selectedRow() is not { } row)
@@ -299,6 +294,15 @@ public sealed class FileTreeController(
         refresh();
     }
 
+    // Bare l opens a closed directory and does nothing else: a file opens with Enter.
+    private void Expand(FileTreeSession tree)
+    {
+        if (CurrentRow() is { Kind: FileTreeRowKind.Directory, IsExpanded: false } row && tree.Expand(row))
+        {
+            refresh();
+        }
+    }
+
     private void Collapse(FileTreeSession tree)
     {
         var step = CollapseStep();
@@ -313,7 +317,7 @@ public sealed class FileTreeController(
         }
     }
 
-    // Close an open directory, otherwise climb to the parent row, and at the top leave the pane.
+    // Close an open directory, otherwise climb to the parent row; at the top there is nothing to do (h stays in the pane).
     private CollapseKind CollapseStep()
     {
         var rows = ContentRows();

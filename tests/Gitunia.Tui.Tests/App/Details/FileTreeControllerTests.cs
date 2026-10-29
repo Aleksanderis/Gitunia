@@ -127,10 +127,8 @@ public class FileTreeControllerTests : IDisposable
         _cursor = 1;
         _controller.TryExecute(ActionIds.DetailOpenDiff, null);
 
-        var action = _controller.Resolve(ActionIds.DetailCollapse);
-        _controller.TryExecute(action, null);
+        _controller.TryExecute(ActionIds.DetailCollapse, null);
 
-        Assert.Equal(ActionIds.DetailCollapse, action);
         Assert.Equal(["docs/", "src/", "README"], Labels());
         Assert.Equal(1, _cursor);
     }
@@ -143,43 +141,70 @@ public class FileTreeControllerTests : IDisposable
         _controller.TryExecute(ActionIds.DetailOpenDiff, null);
         _cursor = 3;
 
-        var action = _controller.Resolve(ActionIds.DetailCollapse);
-        _controller.TryExecute(action, null);
+        _controller.TryExecute(ActionIds.DetailCollapse, null);
 
-        Assert.Equal(ActionIds.DetailCollapse, action);
         Assert.Equal(1, _cursor);
         Assert.Equal(["docs/", "src/", "  lib/", "  main.cs", "README"], Labels());
     }
 
     [Fact]
-    public async Task GivenATopLevelRow_WhenPressingH_ThenItMeansBackToTheGraph()
+    public async Task GivenATopLevelRow_WhenPressingH_ThenNothingMovesAndFocusStays()
     {
         await LoadAsync();
         _cursor = 2;
 
-        Assert.Equal(ActionIds.NavigateBack, _controller.Resolve(ActionIds.DetailCollapse));
+        _controller.TryExecute(ActionIds.DetailCollapse, null);
         _cursor = 0;
-        Assert.Equal(ActionIds.NavigateBack, _controller.Resolve(ActionIds.DetailCollapse));
+        _controller.TryExecute(ActionIds.DetailCollapse, null);
+
+        Assert.Equal(0, _cursor);
+        Assert.Equal(PaneKind.Detail, _host.Workspace.ActiveTab!.View.FocusedPane);
+        Assert.Equal(["docs/", "src/", "README"], Labels());
+    }
+
+    [Fact]
+    public async Task GivenAClosedDirectory_WhenPressingL_ThenItOpensWithoutLeavingThePane()
+    {
+        await LoadAsync();
+        _cursor = 1;
+
+        _controller.TryExecute(ActionIds.DetailExpand, null);
+        var afterFirst = Labels();
+        _controller.TryExecute(ActionIds.DetailExpand, null);
+
+        Assert.Equal(["docs/", "src/", "  lib/", "  main.cs", "README"], afterFirst);
+        Assert.Equal(afterFirst, Labels());
+        Assert.Equal(PaneKind.Detail, _host.Workspace.ActiveTab!.View.FocusedPane);
+    }
+
+    [Fact]
+    public async Task GivenAFileRow_WhenPressingL_ThenTheFileIsNotOpened()
+    {
+        await LoadAsync();
+        _cursor = 2;
+
+        _controller.TryExecute(ActionIds.DetailExpand, null);
+
+        Assert.Empty(_opened);
     }
 
     [Theory]
     [InlineData(BottomTab.Details)]
     [InlineData(BottomTab.Changes)]
-    public async Task GivenAnotherTab_WhenPressingH_ThenItMeansBackToTheGraph(BottomTab tab)
+    public async Task GivenAnotherTab_WhenTheFilesActionsRun_ThenTheyAreNotHandled(BottomTab tab)
     {
         await LoadAsync();
         _host.Dispatch(new TabCommand(_session.TabId, new SetBottomTabCommand(tab)));
 
-        Assert.Equal(ActionIds.NavigateBack, _controller.Resolve(ActionIds.DetailCollapse));
         Assert.False(_controller.TryExecute(ActionIds.DetailOpenDiff, null));
+        Assert.False(_controller.TryExecute(ActionIds.DetailExpand, null));
     }
 
     [Fact]
-    public async Task GivenOtherActions_WhenResolving_ThenTheyStayAsTheyAre()
+    public async Task GivenOtherActions_WhenExecuting_ThenTheyAreNotHandled()
     {
         await LoadAsync();
 
-        Assert.Equal(ActionIds.ListDown, _controller.Resolve(ActionIds.ListDown));
         Assert.False(_controller.TryExecute(ActionIds.ListDown, null));
     }
 

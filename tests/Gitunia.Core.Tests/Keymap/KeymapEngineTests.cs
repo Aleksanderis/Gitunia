@@ -262,6 +262,48 @@ public class KeymapEngineTests
     [Theory]
     [InlineData(DefaultKeymap.GraphView)]
     [InlineData(DefaultKeymap.DetailView)]
+    [InlineData(DefaultKeymap.DetailChangesView)]
+    [InlineData(DefaultKeymap.DetailFilesView)]
+    [InlineData(DefaultKeymap.SidebarView)]
+    [InlineData(DefaultKeymap.DiffView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedDiffView)]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
+    public void GivenAnyPane_WhenPressingBareHOrL_ThenNoPaneFocusActionRuns(string view)
+    {
+        List<ActionId?> crossing =
+        [
+            ActionIds.NavigateBack,
+            ActionIds.DetailOpenDiff,
+            ActionIds.WorkingTreeOpenDiff,
+            ActionIds.GraphOpenDetails,
+            ActionIds.PaneFocusLeft,
+            ActionIds.PaneFocusRight,
+        ];
+
+        Assert.DoesNotContain(CreateFeeder(view).Feed("h").Action, crossing);
+        Assert.DoesNotContain(CreateFeeder(view).Feed("l").Action, crossing);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.DetailView)]
+    [InlineData(DefaultKeymap.SidebarView)]
+    [InlineData(DefaultKeymap.DiffView)]
+    [InlineData(DefaultKeymap.WorkingUnstagedView)]
+    [InlineData(DefaultKeymap.WorkingStagedDiffView)]
+    public void GivenAnyPane_WhenPressingTheCtrlDirections_ThenPaneFocusActionsRun(string view)
+    {
+        Assert.Equal(ActionIds.PaneFocusLeft, CreateFeeder(view).Feed("Ctrl-h").Action);
+        Assert.Equal(ActionIds.PaneFocusDown, CreateFeeder(view).Feed("Ctrl-j").Action);
+        Assert.Equal(ActionIds.PaneFocusUp, CreateFeeder(view).Feed("Ctrl-k").Action);
+        Assert.Equal(ActionIds.PaneFocusRight, CreateFeeder(view).Feed("Ctrl-l").Action);
+    }
+
+    [Theory]
+    [InlineData(DefaultKeymap.GraphView)]
+    [InlineData(DefaultKeymap.DetailView)]
     [InlineData(DefaultKeymap.SidebarView)]
     [InlineData(DefaultKeymap.DiffView)]
     public void GivenAnyPane_WhenQIsPressed_ThenItQuitsInsteadOfGoingBack(string view)

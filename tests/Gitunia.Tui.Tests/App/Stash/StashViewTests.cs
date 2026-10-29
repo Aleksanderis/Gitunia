@@ -89,7 +89,7 @@ public class StashViewTests
     }
 
     [Fact]
-    public async Task GivenAStashRow_WhenPressingL_ThenTheStashIsShownAndTheDetailPaneGetsFocus()
+    public async Task GivenAStashRow_WhenPressingL_ThenNothingIsShownAndTheFocusStays()
     {
         using var repository = TestRepositories.WithStash();
         using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
@@ -97,10 +97,9 @@ public class StashViewTests
 
         harness.Select("stash@{0}");
         harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-        await harness.WaitForDetailsAsync();
 
-        Assert.True(harness.Controller.IsShowing);
-        Assert.Equal(PaneKind.Detail, harness.Tab.View.FocusedPane);
+        Assert.False(harness.Controller.IsShowing);
+        Assert.NotEqual(PaneKind.Detail, harness.Tab.View.FocusedPane);
     }
 
     [Fact]
@@ -149,19 +148,6 @@ public class StashViewTests
 
         Assert.Null(StashViewController.ShownName(harness.Session));
         Assert.StartsWith("Dropped stash@{0}", harness.Statuses.Current!.Text, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task GivenTheDetailPaneIsHidden_WhenPressingEnterOnAStash_ThenAMessageSaysSo()
-    {
-        using var repository = TestRepositories.WithStash();
-        using var harness = await Harness.LoadAsync(repository.WorkingTreePath);
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-        harness.Select("stash@{0}");
-
-        harness.Handler.TryHandle(ActionIds.SidebarExpand, null);
-
-        Assert.Contains("detail pane is hidden", harness.Handler.Message, StringComparison.Ordinal);
     }
 
     [Fact]

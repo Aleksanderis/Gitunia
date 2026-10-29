@@ -16,7 +16,7 @@ public class PaneHintsTests
     [Theory]
     [InlineData(PaneKind.Graph, "gg/G")]
     [InlineData(PaneKind.Sidebar, "/")]
-    [InlineData(PaneKind.Detail, "l")]
+    [InlineData(PaneKind.Detail, "Enter")]
     [InlineData(PaneKind.Diff, "<space>v")]
     [InlineData(PaneKind.WorkingUnstaged, "<space>c")]
     [InlineData(PaneKind.WorkingStaged, "<space>c")]
