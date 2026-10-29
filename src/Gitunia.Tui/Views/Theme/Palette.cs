@@ -103,7 +103,7 @@ public static class Palette
         return new Attribute(foreground, background, style | colors.RangeStyle | (isCursor ? colors.RangeCursorStyle : TextStyle.None));
     }
 
-    // A branch label of the graph: a chip in the colour of its lane (inverse video where there are no colours).
+    // A branch label of the graph: a chip in the colour of its branch (inverse video where there are no colours).
     private static RoleAppearance LaneLabel(int colorIndex, PaletteTable colors)
     {
         var index = colorIndex % colors.Lanes.Length;

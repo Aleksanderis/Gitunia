@@ -14,6 +14,11 @@ namespace Gitunia.Core.Graph;
 /// second parent that started the lane). Only then can a changed branch name change the layout below, so an incremental
 /// reload keeps the old rows when it is false.
 /// </param>
+/// <param name="LabelSlots">
+/// The colour slot of every branch chip of the commit, one per branch name (#849): a chip is coloured by its branch,
+/// not by its lane, so a branch stacked on another one gets a colour of its own while the line and node keep the lane
+/// colour. Null when the commit carries no branch name (or the names were not known when it was laid out).
+/// </param>
 public sealed record GraphRow(
     ObjectId Id,
     int Lane,
@@ -21,4 +26,5 @@ public sealed record GraphRow(
     IReadOnlyList<GraphEdge> Edges,
     ulong LaneFingerprint = 0,
     int NodeColor = 0,
-    bool ColorChosenByName = false);
+    bool ColorChosenByName = false,
+    IReadOnlyList<BranchSlot>? LabelSlots = null);

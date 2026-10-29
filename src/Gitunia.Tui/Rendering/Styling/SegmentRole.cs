@@ -9,7 +9,7 @@ public enum SegmentRole
     Lane,
 
     /// <summary>
-    /// A branch name in the graph: a chip (a box) in the colour of its lane (<see cref="StyledSegment.ColorIndex"/>, as
+    /// A branch name in the graph: a chip (a box) in the colour of its branch (#849; <see cref="StyledSegment.ColorIndex"/>, as
     /// for <see cref="Lane"/>) with a readable foreground; bold and inverse video where there are no colours.
     /// </summary>
     LaneLabel,

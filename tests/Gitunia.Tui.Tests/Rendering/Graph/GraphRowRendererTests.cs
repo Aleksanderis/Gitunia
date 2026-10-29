@@ -227,7 +227,7 @@ public class GraphRowRendererTests
     }
 
     [Fact]
-    public void GivenBranchLabels_WhenRendering_ThenTheyCarryTheColourOfTheLaneAndTagsDoNot()
+    public void GivenBranchLabels_WhenRendering_ThenEachBranchChipCarriesItsOwnColourAndTagsDoNot()
     {
         // A name whose colour is not the first one, so a label that lost its colour index would show.
         var current = Enumerable.Range(0, 50).Select(number => $"branch-{number}")
@@ -253,7 +253,8 @@ public class GraphRowRendererTests
         Assert.Equal(
             [$" {glyphs.CurrentBranch}{current} ", $" {glyphs.LocalBranch}topic ", " origin/other "],
             labels.Select(segment => segment.Text));
-        Assert.All(labels, segment => Assert.Equal(slot, segment.ColorIndex));
+        Assert.Equal(slot, labels[0].ColorIndex);
+        Assert.Equal(3, labels.Select(segment => segment.ColorIndex).Distinct().Count());
         Assert.Contains(line.Segments, segment => segment.Role == SegmentRole.Tag);
     }
 
