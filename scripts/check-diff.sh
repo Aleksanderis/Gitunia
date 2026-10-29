@@ -28,6 +28,22 @@ done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- '*.cs' | awk '
     /^@@/ { match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) - 1; next }
     /^\+/ { line++; print file "\t" line "\t" substr($0, 2) }')
 
+# Ternaries: no nested ?: and no ?: wrapped over several lines (rule in .claude/rules/csharp-style.md).
+while IFS=$'\t' read -r file line text; do
+    trimmed="${text#"${text%%[![:space:]]*}"}"
+    if [[ "$trimmed" == //* || "$trimmed" == \** || "$trimmed" == /\** ]]; then
+        continue
+    fi
+    if [[ "$trimmed" == '? '* || "$trimmed" == *' ?' ]]; then
+        report "$file:$line: multi-line ?:, use if/return, a switch expression or a helper"
+    elif [[ "$trimmed" =~ \ \?\ .*\ \?\ .*\ :\  ]]; then
+        report "$file:$line: nested ?:, use if/return, a switch expression or a helper"
+    fi
+done < <(git diff -U0 "$base"...HEAD --diff-filter=AM -- '*.cs' | awk '
+    /^\+\+\+ b\// { file = substr($0, 7); next }
+    /^@@/ { match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) - 1; next }
+    /^\+/ { line++; print file "\t" line "\t" substr($0, 2) }')
+
 # Long doc lines make parallel edits conflict on the whole line: one sentence or bullet per line (table rows excepted).
 while IFS=$'\t' read -r file line text; do
     if (( ${#text} > 600 )) && [[ "$text" != '|'* ]]; then
