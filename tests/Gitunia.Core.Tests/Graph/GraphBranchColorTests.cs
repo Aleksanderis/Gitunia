@@ -133,4 +133,48 @@ public class GraphBranchColorTests
         Assert.True(GraphRowComparer.AreEqual(first, second));
         Assert.Equal(first.Select(row => row.NodeColor), second.Select(row => row.NodeColor));
     }
+
+    [Fact]
+    public void GivenTipsAndMergedBranches_WhenLayingOut_ThenOnlyTipsAndStartedSecondParentsChooseTheirLaneColour()
+    {
+        // 1 merges 2 and 3; 3 starts the second lane at the merge row; 4 is where both lanes meet.
+        var commits = new[] { Commit(1, 2, 3), Commit(2, 4), Commit(3, 4), Commit(4) };
+
+        var rows = new GraphLayoutBuilder().AppendRange(commits);
+
+        Assert.Equal([true, false, true, false], rows.Select(row => row.ColorChosenByName));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void GivenAnyCommitThatChoseNoLaneColour_WhenItsBranchNameChanges_ThenTheWholeLayoutStaysTheSame(int seed)
+    {
+        var commits = RandomHistory(seed, count: 150, window: 8);
+        var tips = commits.Where((_, index) => index % 4 == 0)
+            .ToDictionary(commit => commit.Id, commit => $"branch-{commit.Id.GetHashCode() % 11}");
+        var rows = new GraphLayoutBuilder(tips).AppendRange(commits);
+        var checkedCommits = 0;
+
+        for (var index = 0; index < commits.Count; index++)
+        {
+            if (rows[index].ColorChosenByName)
+            {
+                continue;
+            }
+
+            var renamed = new Dictionary<ObjectId, string>(tips) { [commits[index].Id] = "renamed-branch" };
+            var other = new GraphLayoutBuilder(renamed).AppendRange(commits);
+            Assert.Equal(rows.Select(row => row.NodeColor), other.Select(row => row.NodeColor));
+            Assert.Equal(rows.Select(row => row.LaneFingerprint), other.Select(row => row.LaneFingerprint));
+            Assert.True(GraphRowComparer.AreEqual(rows, other));
+            checkedCommits++;
+        }
+
+        Assert.True(checkedCommits > 50);
+    }
 }

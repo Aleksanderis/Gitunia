@@ -116,7 +116,7 @@ public class IncrementalGraphLoaderTests
     }
 
     [Fact]
-    public async Task GivenNewBranchOnAnOldCommit_WhenReloading_ThenTheWholeLogIsReadAgainForItsColour()
+    public async Task GivenNewBranchOnAnOldCommit_WhenReloading_ThenTheOldRowsAreReusedAndTheResultEqualsAFullRead()
     {
         using var testRepository = LongHistory(30);
         var previous = await ReadAllAsync(testRepository);
@@ -125,10 +125,46 @@ public class IncrementalGraphLoaderTests
 
         var reload = await ReloadAsync(testRepository, previous);
 
-        Assert.Equal(0, reload.ReusedCount);
+        Assert.True(reload.ReusedCount > 25, $"Reused {reload.ReusedCount}");
         await AssertEqualToFullReadAsync(testRepository, reload);
         var commitNine = reload.Entries.Single(entry => entry.Subject == "commit 9");
         Assert.Contains(commitNine.Decorations, decoration => decoration.Name == "topic");
+    }
+
+    [Fact]
+    public async Task GivenBranchMovedOntoAnotherOldCommitWithNothingNew_WhenReloading_ThenEverythingIsReusedAndTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(30);
+        testRepository.Branch("topic", "HEAD~20");
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Git("branch", "-f", "topic", "HEAD~7");
+        testRepository.Branch("other", "HEAD~12");
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        Assert.Equal(29, reload.ReusedCount);
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        Assert.Contains(
+            reload.Entries.Single(entry => entry.Subject == "commit 22").Decorations,
+            decoration => decoration.Name == "topic");
+    }
+
+    [Fact]
+    public async Task GivenBranchAddedOnTheTipOfAnotherBranch_WhenReloading_ThenTheLaneColourFollowsAndTheResultEqualsAFullRead()
+    {
+        using var testRepository = LongHistory(20);
+        testRepository.CheckoutNewBranch("zzz").Commit("zzz tip", new TestFile("z.txt", "1")).Checkout("main");
+        testRepository.Commit("main 1", new TestFile("m1.txt", "1"));
+        var previous = await ReadAllAsync(testRepository);
+        testRepository.Branch("aaa", "zzz");
+        testRepository.Commit("new top", new TestFile("new.txt", "1"));
+
+        var reload = await ReloadAsync(testRepository, previous);
+
+        await AssertEqualToFullReadAsync(testRepository, reload);
+        Assert.Contains(
+            reload.Entries.Single(entry => entry.Subject == "zzz tip").Decorations,
+            decoration => decoration.Name == "aaa");
     }
 
     [Fact]
@@ -481,6 +517,8 @@ public class IncrementalGraphLoaderTests
             Assert.Equal(left.Row.LaneCount, right.Row.LaneCount);
             Assert.Equal(left.Row.LaneFingerprint, right.Row.LaneFingerprint);
             Assert.Equal(left.Row.Edges, right.Row.Edges);
+            Assert.Equal(left.Row.NodeColor, right.Row.NodeColor);
+            Assert.Equal(left.Row.ColorChosenByName, right.Row.ColorChosenByName);
         }
     }
 }

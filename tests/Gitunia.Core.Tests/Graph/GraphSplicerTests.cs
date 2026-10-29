@@ -126,12 +126,13 @@ public class GraphSplicerTests
     }
 
     [Fact]
-    public void GivenBranchAddedOnAReusedCommit_WhenSplicing_ThenTheLaneColoursAreStaleAndItIsReportedAsChanged()
+    public void GivenBranchAddedOnAReusedCommitThatChoseNoLaneColour_WhenSplicing_ThenTheOldRowsAreKeptWithTheNewRef()
     {
         var branch = new CommitDecoration("refs/heads/topic", "topic", RefKind.LocalBranch, false);
         var old = new[] { Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2, 1), Commit(1) };
         var updated = new[] { Commit(6, 5), Commit(5, 4), Commit(4, 3), Commit(3, 2), Commit(2, 1), Commit(1) };
-        var splicer = new GraphSplicer(Entries(old, Tips(5)));
+        var oldEntries = Entries(old, Tips(5));
+        var splicer = new GraphSplicer(oldEntries);
         var builder = new GraphLayoutBuilder(Tips(6));
         var rows = updated.Take(3).Select(commit => ToEntry(commit, builder.Append(commit))).ToList();
         var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(1)] = [branch] };
@@ -139,8 +140,39 @@ public class GraphSplicerTests
         splicer.Observe(rows[0]);
         splicer.Observe(rows[1]);
         var joinIndex = splicer.Observe(rows[2]);
+        var result = splicer.Splice(rows, joinIndex, decorations);
 
         Assert.Equal(1, joinIndex);
+        Assert.NotNull(result);
+        Assert.Equal([branch], result[^1].Decorations);
+        Assert.Same(oldEntries[^2].Row, result[^2].Row);
+    }
+
+    [Fact]
+    public void GivenBranchAddedOnAReusedTip_WhenSplicing_ThenTheLaneColourIsStaleAndItIsReportedAsChanged()
+    {
+        var side = Local("side");
+        var added = Local("aaa");
+        var old = new[] { Commit(5, 4), Commit(4, 3), Commit(9, 2) with { Decorations = [side] }, Commit(3, 2), Commit(2) };
+        var updated = new[] { Commit(6, 5), Commit(5, 4), Commit(4, 3), Commit(9, 2), Commit(3, 2), Commit(2) };
+        var splicer = new GraphSplicer(Entries(old, Tips(5, 9)));
+        var builder = new GraphLayoutBuilder(Tips(6, 9));
+        var rows = new List<GraphEntry>();
+        var joinIndex = -1;
+        foreach (var commit in updated)
+        {
+            rows.Add(ToEntry(commit, builder.Append(commit)));
+            joinIndex = splicer.Observe(rows[^1]);
+            if (joinIndex >= 0)
+            {
+                break;
+            }
+        }
+
+        // The tip 9 now carries "aaa" too, which sorts first and becomes the name its lane colour comes from.
+        var decorations = new Dictionary<ObjectId, IReadOnlyList<CommitDecoration>> { [Id(9)] = [side, added] };
+
+        Assert.True(joinIndex >= 0);
         Assert.Null(splicer.Splice(rows, joinIndex, decorations));
     }
 
@@ -186,6 +218,12 @@ public class GraphSplicerTests
     }
 
     private static Dictionary<ObjectId, string> Tips(int number) => new() { [Id(number)] = "main" };
+
+    private static Dictionary<ObjectId, string> Tips(int mainNumber, int sideNumber) =>
+        new() { [Id(mainNumber)] = "main", [Id(sideNumber)] = "side" };
+
+    private static CommitDecoration Local(string name) =>
+        new($"refs/heads/{name}", name, RefKind.LocalBranch, false);
 
     private static List<GraphEntry> Entries(
         IReadOnlyList<CommitInfo> commits,
