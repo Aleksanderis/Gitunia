@@ -55,6 +55,38 @@ public class GraphLoaderTests
     }
 
     [Fact]
+    public async Task GivenTheLogReadFails_WhenStreaming_ThenTheTipReadIsCancelled()
+    {
+        var commitLog = FakeCommitLogReader.Chain(3);
+        commitLog.Failure = new GitException("boom");
+
+        await Assert.ThrowsAsync<GitException>(() => LoadAsync(commitLog));
+
+        Assert.True(commitLog.LastTipToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task GivenAShortPalette_WhenStreaming_ThenTheColoursStayWithinIt()
+    {
+        var commitLog = new FakeCommitLogReader();
+        var root = commitLog.AddOnTop("root");
+        for (var number = 10; number < 16; number++)
+        {
+            commitLog.Commits.Insert(0, Tip(number, $"tip {number}", root, Branch($"branch-{number}")));
+        }
+
+        var loader = new GraphLoader(commitLog, colorCount: () => 3);
+        var entries = new List<GraphEntry>();
+        await foreach (var batch in loader.StreamAsync(
+            FakeStatusReader.LocationOf("graph"), CommitOrder.ByDate, null, CancellationToken.None))
+        {
+            entries.AddRange(batch);
+        }
+
+        Assert.All(entries, entry => Assert.InRange(entry.Row.NodeColor, 0, 2));
+    }
+
+    [Fact]
     public async Task GivenTheTipsCannotBeRead_WhenStreaming_ThenTheGraphStillLoads()
     {
         var commitLog = FakeCommitLogReader.Chain(5);

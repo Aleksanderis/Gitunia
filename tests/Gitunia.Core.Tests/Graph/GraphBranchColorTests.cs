@@ -102,22 +102,35 @@ public class GraphBranchColorTests
         Assert.NotEqual(fingerprintA, fingerprintB);
     }
 
+    [Theory]
+    [InlineData(3)]
+    [InlineData(6)]
+    public void GivenAShortPalette_WhenManyLanesAreOpen_ThenNoTwoOpenLanesShareAColourWhileOneIsFree(int colorCount)
+    {
+        // The tips 1..n all wait for one root, so n lanes are open at the same time.
+        var tipCount = colorCount;
+        var commits = Enumerable.Range(1, tipCount).Select(number => Commit(number, 100))
+            .Append(Commit(100)).ToArray();
+        var tips = Enumerable.Range(1, tipCount).ToDictionary(Id, number => $"branch-{number}");
+
+        var rows = new GraphLayoutBuilder(tips, colorCount).AppendRange(commits);
+
+        var colors = rows.Take(tipCount).Select(row => row.NodeColor).ToArray();
+        Assert.Equal(tipCount, colors.Distinct().Count());
+        Assert.All(colors, color => Assert.InRange(color, 0, colorCount - 1));
+    }
+
     [Fact]
-    public void GivenAnIncrementalFeed_WhenColouring_ThenRowsEqualTheFullLayout()
+    public void GivenAGraphLoadedTwice_WhenColouring_ThenEveryBranchHasTheSameColourBothTimes()
     {
         var commits = RandomHistory(7, count: 300, window: 10);
-        var tips = commits.Where(commit => commit.Id.GetHashCode() % 5 == 0)
+        var tips = commits.Where((_, index) => index % 5 == 0)
             .ToDictionary(commit => commit.Id, commit => $"branch-{commit.Id.GetHashCode() % 17}");
-        var full = new GraphLayoutBuilder(tips).AppendRange(commits);
-        var builder = new GraphLayoutBuilder(tips);
 
-        var position = 0;
-        while (position < commits.Count)
-        {
-            builder.AppendRange(commits.Skip(position).Take(37));
-            position += 37;
-        }
+        var first = new GraphLayoutBuilder(tips).AppendRange(commits);
+        var second = new GraphLayoutBuilder(tips).AppendRange(commits);
 
-        Assert.True(GraphRowComparer.AreEqual(full, builder.Rows));
+        Assert.True(GraphRowComparer.AreEqual(first, second));
+        Assert.Equal(first.Select(row => row.NodeColor), second.Select(row => row.NodeColor));
     }
 }

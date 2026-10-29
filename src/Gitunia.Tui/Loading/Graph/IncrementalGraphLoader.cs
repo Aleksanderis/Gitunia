@@ -40,13 +40,13 @@ public sealed class IncrementalGraphLoader
         }
 
         var splicer = new GraphSplicer(previous);
-        var tipsTask = _graphLoader.ReadTipDecorationsAsync(location, cancellationToken);
+        using var tipRead = _graphLoader.StartTipRead(location, cancellationToken);
         GraphLayoutBuilder? builder = null;
         var rows = new List<GraphEntry>();
         var joinIndex = -1;
         await foreach (var commit in _commitLog.ReadAsync(location, CommitOrder.ByDate, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
-            builder ??= await GraphLoader.NewBuilderAsync(tipsTask).ConfigureAwait(false);
+            builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
             var entry = new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, builder.Append(commit));
             rows.Add(entry);
             joinIndex = splicer.Observe(entry);
@@ -56,7 +56,7 @@ public sealed class IncrementalGraphLoader
             }
         }
 
-        var decorations = await tipsTask.ConfigureAwait(false);
+        var decorations = await tipRead.Decorations.ConfigureAwait(false);
         if (joinIndex < 0)
         {
             return new GraphReload(rows, 0);

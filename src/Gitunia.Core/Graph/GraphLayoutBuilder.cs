@@ -24,13 +24,21 @@ public sealed class GraphLayoutBuilder
     // The slot each branch name got: a branch keeps one colour for the whole graph, local and remote alike.
     private readonly Dictionary<string, int> _namedSlots = new(StringComparer.Ordinal);
     private readonly IReadOnlyDictionary<ObjectId, string> _branchTips;
+    private readonly int _colorCount;
 
     /// <param name="branchTips">
     /// The branch name of every commit that carries a branch ref (<see cref="BranchColors.TipsOf"/>), so a lane gets
     /// the colour of its branch from its first row on; null when not known (every lane is then coloured by its commit).
     /// </param>
-    public GraphLayoutBuilder(IReadOnlyDictionary<ObjectId, string>? branchTips = null)
+    /// <param name="colorCount">
+    /// Distinct colours the palette has (at most <see cref="BranchColors.SlotCount"/>): lanes open at the same time
+    /// get different colours while one is free, so a short palette (16 colours, a small theme) never repeats one early.
+    /// </param>
+    public GraphLayoutBuilder(
+        IReadOnlyDictionary<ObjectId, string>? branchTips = null,
+        int colorCount = BranchColors.SlotCount)
     {
+        _colorCount = Math.Clamp(colorCount, 1, BranchColors.SlotCount);
         _branchTips = branchTips ?? FrozenDictionary<ObjectId, string>.Empty;
     }
 
@@ -83,15 +91,8 @@ public sealed class GraphLayoutBuilder
             {
                 parentLane = parentIndex == 0 ? nodeLane : FindFreeLane();
                 EnsureLane(parentLane);
-                if (parentIndex != 0)
-                {
-                    _laneSlots[parentLane] = SlotForNewLane(parent);
-                }
-                else
-                {
-                    _laneSlots[parentLane] = nodeColor;
-                }
 
+                _laneSlots[parentLane] = parentIndex == 0 ? nodeColor : SlotForNewLane(parent);
                 _lanes[parentLane] = parent;
             }
 
@@ -150,12 +151,12 @@ public sealed class GraphLayoutBuilder
     {
         if (!_branchTips.TryGetValue(commitId, out var name))
         {
-            return FreeSlotFrom((int)(commitId.Hash64 % BranchColors.SlotCount));
+            return FreeSlotFrom((int)(commitId.Hash64 % (uint)_colorCount));
         }
 
         if (!_namedSlots.TryGetValue(name, out var slot))
         {
-            slot = FreeSlotFrom(BranchColors.PreferredSlot(name));
+            slot = FreeSlotFrom(BranchColors.PreferredSlot(name, _colorCount));
             _namedSlots[name] = slot;
         }
 
@@ -164,9 +165,9 @@ public sealed class GraphLayoutBuilder
 
     private int FreeSlotFrom(int preferred)
     {
-        for (var offset = 0; offset < BranchColors.SlotCount; offset++)
+        for (var offset = 0; offset < _colorCount; offset++)
         {
-            var slot = (preferred + offset) % BranchColors.SlotCount;
+            var slot = (preferred + offset) % _colorCount;
             if (!IsSlotInUse(slot))
             {
                 return slot;

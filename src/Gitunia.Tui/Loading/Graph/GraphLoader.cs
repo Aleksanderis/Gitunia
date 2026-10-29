@@ -1,10 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Gitunia.Core.Graph;
-using Gitunia.Git;
 using Gitunia.Git.Commits;
 using Gitunia.Git.Commits.Models;
-using Gitunia.Git.Execution.Exceptions;
 using Gitunia.Git.Repositories.Models;
 
 namespace Gitunia.Tui.Loading.Graph;
@@ -23,10 +21,18 @@ public sealed class GraphLoader
     private static readonly TimeSpan MaximumBatchAge = TimeSpan.FromMilliseconds(40);
 
     private readonly ICommitLogReader _commitLog;
+    private readonly Func<int> _colorCount;
 
-    public GraphLoader(ICommitLogReader commitLog, int softRowLimit = DefaultSoftRowLimit)
+    /// <param name="commitLog">Where the log comes from.</param>
+    /// <param name="softRowLimit">Rows a tab loads eagerly.</param>
+    /// <param name="colorCount">The distinct colours of the palette, read per load; all of them when null.</param>
+    public GraphLoader(
+        ICommitLogReader commitLog,
+        int softRowLimit = DefaultSoftRowLimit,
+        Func<int>? colorCount = null)
     {
         _commitLog = commitLog;
+        _colorCount = colorCount ?? (static () => BranchColors.SlotCount);
         SoftRowLimit = softRowLimit;
     }
 
@@ -83,7 +89,7 @@ public sealed class GraphLoader
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Started before the log so the extra git call overlaps with git producing the first rows.
-        var tipsTask = ReadTipDecorationsAsync(location, cancellationToken);
+        using var tipRead = StartTipRead(location, cancellationToken);
         GraphLayoutBuilder? builder = null;
         var batch = new List<GraphEntry>(FirstBatchSize);
         var batchSize = FirstBatchSize;
@@ -92,7 +98,7 @@ public sealed class GraphLoader
 
         await foreach (var commit in _commitLog.ReadAsync(location, order, [], cancellationToken: cancellationToken).ConfigureAwait(false))
         {
-            builder ??= await NewBuilderAsync(tipsTask).ConfigureAwait(false);
+            builder ??= await tipRead.CreateBuilderAsync().ConfigureAwait(false);
             var row = builder.Append(commit);
             batch.Add(new GraphEntry(commit.Id, commit.Subject, commit.AuthorName, commit.AuthorTime, commit.Decorations, row));
             total++;
@@ -115,36 +121,12 @@ public sealed class GraphLoader
             yield return batch;
         }
 
-        await tipsTask.ConfigureAwait(false);
+        await tipRead.Decorations.ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// The refs of the commits that carry one, or null when git could not list them: the layout only needs them for
-    /// colours, so a failure must not stop the graph from loading.
-    /// </summary>
+    /// <summary>Starts reading the branch tips of a repository for a layout (dispose it after the log read).</summary>
     /// <param name="location">The repository to read.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
-    public async Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>?> ReadTipDecorationsAsync(
-        RepositoryLocation location,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await _commitLog.ReadTipDecorationsAsync(location, cancellationToken).ConfigureAwait(false);
-        }
-        catch (GitException)
-        {
-            return null;
-        }
-    }
-
-    /// <summary>A layout builder that knows the branch of every tip (none when the tips could not be read).</summary>
-    /// <param name="tipsTask">The result of <see cref="ReadTipDecorationsAsync"/>.</param>
-    public static async Task<GraphLayoutBuilder> NewBuilderAsync(
-        Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>?> tipsTask)
-    {
-        var tips = await tipsTask.ConfigureAwait(false);
-
-        return new GraphLayoutBuilder(tips is null ? null : BranchColors.TipsOf(tips));
-    }
+    public BranchTipRead StartTipRead(RepositoryLocation location, CancellationToken cancellationToken) =>
+        new(_commitLog, location, _colorCount(), cancellationToken);
 }

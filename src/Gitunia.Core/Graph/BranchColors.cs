@@ -5,8 +5,9 @@ using Gitunia.Git.Refs.Models;
 namespace Gitunia.Core.Graph;
 
 /// <summary>
-/// Which branch a commit belongs to for colouring (#761): every branch name gets one of <see cref="SlotCount"/> colour
-/// slots, the same for the local branch and its remote-tracking branch (the remote prefix is ignored). Pure.
+/// Which branch a commit belongs to for colouring (#761): every branch name gets one of the palette's colours (at
+/// most <see cref="SlotCount"/>), the same for the local branch and its remote-tracking branch (the remote prefix is
+/// ignored). Pure.
 /// </summary>
 public static class BranchColors
 {
@@ -35,34 +36,41 @@ public static class BranchColors
     }
 
     /// <summary>
-    /// The branch a commit stands for: its first local branch, else its first remote-tracking branch (without the
-    /// remote name, the symbolic <c>origin/HEAD</c> excluded); null when it carries no branch ref (tags and a
-    /// detached HEAD are not branches).
+    /// The branch a commit stands for: its checked-out local branch, else its smallest local branch name (ordinal),
+    /// else its smallest remote-tracking branch name without the remote name (the symbolic <c>origin/HEAD</c>
+    /// excluded); null when it carries no branch ref (tags and a detached HEAD are not branches). Independent of the
+    /// order git lists the refs in.
     /// </summary>
     /// <param name="decorations">The refs on the commit.</param>
     public static string? PrimaryName(IReadOnlyList<CommitDecoration> decorations)
     {
+        string? local = null;
         string? remote = null;
         foreach (var decoration in decorations)
         {
             if (decoration.Kind == RefKind.LocalBranch)
             {
-                return decoration.Name;
-            }
+                if (decoration.IsCurrent)
+                {
+                    return decoration.Name;
+                }
 
-            if (remote is null && decoration.Kind == RefKind.RemoteBranch)
+                local = Smaller(local, decoration.Name);
+            }
+            else if (decoration.Kind == RefKind.RemoteBranch)
             {
                 var name = decoration.Name[(decoration.Name.IndexOf('/', StringComparison.Ordinal) + 1)..];
-                remote = name == SymbolicRemoteHeadName ? null : name;
+                remote = name == SymbolicRemoteHeadName ? remote : Smaller(remote, name);
             }
         }
 
-        return remote;
+        return local ?? remote;
     }
 
     /// <summary>The colour slot a branch name starts from: a stable hash of the name, never of the position.</summary>
     /// <param name="name">The branch name without a remote prefix.</param>
-    public static int PreferredSlot(string name)
+    /// <param name="slotCount">Distinct colours the palette has.</param>
+    public static int PreferredSlot(string name, int slotCount = SlotCount)
     {
         var hash = HashOffset;
         foreach (var character in name)
@@ -70,6 +78,9 @@ public static class BranchColors
             hash = (hash ^ character) * HashPrime;
         }
 
-        return (int)(hash % SlotCount);
+        return (int)(hash % (uint)slotCount);
     }
+
+    private static string Smaller(string? current, string candidate) =>
+        current is null || string.CompareOrdinal(candidate, current) < 0 ? candidate : current;
 }

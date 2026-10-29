@@ -22,6 +22,9 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     /// <summary>Thrown when the tip decorations are read, to play a failure of only that call.</summary>
     public Exception? TipFailure { get; set; }
 
+    /// <summary>The token of the last tip decorations read, to check that the load cancels it when over.</summary>
+    public CancellationToken LastTipToken { get; private set; }
+
     /// <summary>The number of log streams started so far.</summary>
     public int ReadCount { get; private set; }
 
@@ -79,6 +82,7 @@ public sealed class FakeCommitLogReader : ICommitLogReader
     public Task<Dictionary<ObjectId, IReadOnlyList<CommitDecoration>>> ReadTipDecorationsAsync(RepositoryLocation location, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        LastTipToken = cancellationToken;
         var failure = TipFailure ?? Failure;
         if (failure is not null)
         {

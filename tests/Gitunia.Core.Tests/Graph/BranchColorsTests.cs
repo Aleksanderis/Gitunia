@@ -33,6 +33,17 @@ public class BranchColorsTests
     }
 
     [Fact]
+    public void GivenSeveralLocalBranches_WhenNamingTheBranch_ThenTheCheckedOutOneWinsElseTheSmallestName()
+    {
+        var current = new CommitDecoration("refs/heads/zeta", "zeta", RefKind.LocalBranch, true);
+
+        Assert.Equal("zeta", BranchColors.PrimaryName([Branch("beta"), current, Branch("alpha")]));
+        Assert.Equal("alpha", BranchColors.PrimaryName([Branch("beta"), Branch("alpha")]));
+        Assert.Equal("alpha", BranchColors.PrimaryName([Branch("alpha"), Branch("beta")]));
+        Assert.Equal("a", BranchColors.PrimaryName([Remote("origin/b"), Remote("origin/a")]));
+    }
+
+    [Fact]
     public void GivenOnlyTheSymbolicRemoteHead_WhenNamingTheBranch_ThenThereIsNone()
     {
         Assert.Null(BranchColors.PrimaryName([Remote("origin/HEAD")]));
