@@ -52,10 +52,14 @@ internal sealed class StatusHeaderBuilder
     {
         var unborn = _objectName == UnbornObjectName;
         var commit = _objectName is null || unborn ? null : _objectName;
-        var head = _branchName == DetachedBranchName
-            ? new HeadState(HeadKind.Detached, null, commit)
-            : new HeadState(unborn ? HeadKind.Unborn : HeadKind.Branch, _branchName, commit);
-        return new StatusBranch(head, _upstream, _ahead, _behind);
+        if (_branchName == DetachedBranchName)
+        {
+            return new StatusBranch(new HeadState(HeadKind.Detached, null, commit), _upstream, _ahead, _behind);
+        }
+
+        var kind = unborn ? HeadKind.Unborn : HeadKind.Branch;
+
+        return new StatusBranch(new HeadState(kind, _branchName, commit), _upstream, _ahead, _behind);
     }
 
     /// <summary>Reads <c>+2 -1</c>.</summary>

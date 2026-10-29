@@ -45,9 +45,15 @@ public static class CommitFileChangeParser
             }
 
             var firstPath = Encoding.UTF8.GetString(first);
-            files.Add(hasTwoPaths
-                ? new CommitFileChange(Encoding.UTF8.GetString(second), firstPath, kind, ParseSimilarity(statusText))
-                : new CommitFileChange(firstPath, null, kind, null));
+            if (hasTwoPaths)
+            {
+                var secondPath = Encoding.UTF8.GetString(second);
+                files.Add(new CommitFileChange(secondPath, firstPath, kind, ParseSimilarity(statusText)));
+            }
+            else
+            {
+                files.Add(new CommitFileChange(firstPath, null, kind, null));
+            }
         }
 
         return new ParseResult<CommitFileChange>(files, warnings);

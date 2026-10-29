@@ -53,18 +53,23 @@ public sealed class PickableDiffReader(IDiffReader reader)
     }
 
     // Staging some lines must not also stage (or, reversed, undo) a chmod: leave the mode lines out of the patch.
-    private static DiffFile? WithoutModeChange(DiffFile? file) =>
-        file is null || !file.IsModeChange
-            ? file
-            : file with
-            {
-                HeaderLines =
-                [
-                    .. file.HeaderLines.Where(line =>
-                        !line.StartsWith(OldModePrefix, StringComparison.Ordinal)
-                        && !line.StartsWith(NewModePrefix, StringComparison.Ordinal)),
-                ],
-            };
+    private static DiffFile? WithoutModeChange(DiffFile? file)
+    {
+        if (file is null || !file.IsModeChange)
+        {
+            return file;
+        }
+
+        return file with
+        {
+            HeaderLines =
+            [
+                .. file.HeaderLines.Where(line =>
+                    !line.StartsWith(OldModePrefix, StringComparison.Ordinal)
+                    && !line.StartsWith(NewModePrefix, StringComparison.Ordinal)),
+            ],
+        };
+    }
 
     // A partial patch that kept the rename header would rename the file in the index when applied (and undo the rename
     // when reversed), so a renamed file with edits is cut as a plain edit of its new path: the index holds that path in

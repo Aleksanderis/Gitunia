@@ -75,9 +75,12 @@ public sealed record RebaseEditorState(
         get
         {
             var first = Rows.FirstOrDefault(row => !row.IsStructure && row.Action != RebaseTodoAction.Drop);
-            return first?.Action is RebaseTodoAction.Squash or RebaseTodoAction.Fixup
-                ? "The first commit that is kept cannot be a squash or a fixup: it has nothing to meld into"
-                : RebaseTodoValidator.FindProblem(ToEntries());
+            if (first?.Action is RebaseTodoAction.Squash or RebaseTodoAction.Fixup)
+            {
+                return "The first commit that is kept cannot be a squash or a fixup: it has nothing to meld into";
+            }
+
+            return RebaseTodoValidator.FindProblem(ToEntries());
         }
     }
 

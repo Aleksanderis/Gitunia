@@ -79,8 +79,25 @@ public static class PickerRowBuilder
         return rows;
     }
 
-    private static int Rank(PickerTags tags) =>
-        tags.HasFlag(PickerTags.Open) ? 0 : tags.HasFlag(PickerTags.Pinned) ? 1 : tags.HasFlag(PickerTags.Recent) ? 2 : 3;
+    private static int Rank(PickerTags tags)
+    {
+        if (tags.HasFlag(PickerTags.Open))
+        {
+            return 0;
+        }
+
+        if (tags.HasFlag(PickerTags.Pinned))
+        {
+            return 1;
+        }
+
+        if (tags.HasFlag(PickerTags.Recent))
+        {
+            return 2;
+        }
+
+        return 3;
+    }
 
     private static string NameOf(string path)
     {

@@ -34,9 +34,21 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
         WorktreeAddRequest request,
         CancellationToken cancellationToken)
     {
-        string[] arguments = request.NewBranchStartPoint is { } startPoint
-            ? [Worktree, "add", NewBranchOption, request.Branch, GitOptions.EndOfOptions, request.Path, startPoint]
-            : [Worktree, "add", GitOptions.EndOfOptions, request.Path, request.Branch];
+        string[] arguments = [Worktree, "add", GitOptions.EndOfOptions, request.Path, request.Branch];
+        if (request.NewBranchStartPoint is { } startPoint)
+        {
+            arguments =
+            [
+                Worktree,
+                "add",
+                NewBranchOption,
+                request.Branch,
+                GitOptions.EndOfOptions,
+                request.Path,
+                startPoint,
+            ];
+        }
+
         await RunAsync(location.CommandPath, arguments, cancellationToken).ConfigureAwait(false);
     }
 
@@ -59,9 +71,12 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
         bool force,
         CancellationToken cancellationToken)
     {
-        string[] arguments = force
-            ? [Worktree, "remove", ForceOption, GitOptions.EndOfOptions, path]
-            : [Worktree, "remove", GitOptions.EndOfOptions, path];
+        string[] arguments = [Worktree, "remove", GitOptions.EndOfOptions, path];
+        if (force)
+        {
+            arguments = [Worktree, "remove", ForceOption, GitOptions.EndOfOptions, path];
+        }
+
         await RunAsync(location.CommandPath, arguments, cancellationToken).ConfigureAwait(false);
     }
 
@@ -71,9 +86,12 @@ public sealed class WorktreeWriter(GitRunner runner) : IWorktreeWriter
         string? reason,
         CancellationToken cancellationToken)
     {
-        string[] arguments = string.IsNullOrWhiteSpace(reason)
-            ? [Worktree, "lock", GitOptions.EndOfOptions, path]
-            : [Worktree, "lock", ReasonOption, reason.Trim(), GitOptions.EndOfOptions, path];
+        string[] arguments = [Worktree, "lock", GitOptions.EndOfOptions, path];
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            arguments = [Worktree, "lock", ReasonOption, reason.Trim(), GitOptions.EndOfOptions, path];
+        }
+
         await RunAsync(location.CommandPath, arguments, cancellationToken).ConfigureAwait(false);
     }
 

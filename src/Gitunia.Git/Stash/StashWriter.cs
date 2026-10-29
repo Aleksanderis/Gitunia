@@ -50,9 +50,12 @@ public sealed class StashWriter(GitRunner runner) : IStashWriter
 
         // Git exits 0 with "No local changes to save", so a new top entry is the only proof that a stash was made.
         var after = await ReadTopAsync(location, cancellationToken).ConfigureAwait(false);
-        return after is null || after == before
-            ? new StashResult(StashOutcome.NothingToStash, null)
-            : new StashResult(StashOutcome.Done, after);
+        if (after is null || after == before)
+        {
+            return new StashResult(StashOutcome.NothingToStash, null);
+        }
+
+        return new StashResult(StashOutcome.Done, after);
     }
 
     public Task<StashResult> ApplyAsync(

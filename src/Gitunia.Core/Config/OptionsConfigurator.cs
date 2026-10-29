@@ -138,9 +138,12 @@ public static class OptionsConfigurator
         }
 
         var separator = text[1];
-        return separator == Path.DirectorySeparatorChar || separator == Path.AltDirectorySeparatorChar
-            ? Path.Combine(homeDirectory, text[2..])
-            : text;
+        if (separator == Path.DirectorySeparatorChar || separator == Path.AltDirectorySeparatorChar)
+        {
+            return Path.Combine(homeDirectory, text[2..]);
+        }
+
+        return text;
     }
 
     private static string? ResolveRoot(

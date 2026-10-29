@@ -177,11 +177,16 @@ public static class StatusParser
     }
 
     /// <summary>Reads <c>N...</c> (not a submodule) or <c>S&lt;c&gt;&lt;m&gt;&lt;u&gt;</c>.</summary>
-    private static SubmoduleState? ParseSubmodule(string field) =>
-        field.Length == StatusRecordTypes.SubmoduleFieldLength && field[0] == StatusRecordTypes.SubmoduleMarker
-            ? new SubmoduleState(
-                field[StatusRecordTypes.SubmoduleCommitChangedIndex] == StatusRecordTypes.SubmoduleCommitChanged,
-                field[StatusRecordTypes.SubmoduleModifiedIndex] == StatusRecordTypes.SubmoduleModified,
-                field[StatusRecordTypes.SubmoduleUntrackedIndex] == StatusRecordTypes.SubmoduleUntracked)
-            : null;
+    private static SubmoduleState? ParseSubmodule(string field)
+    {
+        if (field.Length != StatusRecordTypes.SubmoduleFieldLength || field[0] != StatusRecordTypes.SubmoduleMarker)
+        {
+            return null;
+        }
+
+        return new SubmoduleState(
+            field[StatusRecordTypes.SubmoduleCommitChangedIndex] == StatusRecordTypes.SubmoduleCommitChanged,
+            field[StatusRecordTypes.SubmoduleModifiedIndex] == StatusRecordTypes.SubmoduleModified,
+            field[StatusRecordTypes.SubmoduleUntrackedIndex] == StatusRecordTypes.SubmoduleUntracked);
+    }
 }

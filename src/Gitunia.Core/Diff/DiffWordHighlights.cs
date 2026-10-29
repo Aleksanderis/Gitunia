@@ -25,12 +25,12 @@ public static class DiffWordHighlights
             return [];
         }
 
-        var isRemoved = rows[row].Kind == DiffRowKind.Removed;
-        var result = isRemoved
-            ? WordDiff.Compare(rows[row].Text, rows[partner].Text)
-            : WordDiff.Compare(rows[partner].Text, rows[row].Text);
+        if (rows[row].Kind == DiffRowKind.Removed)
+        {
+            return WordDiff.Compare(rows[row].Text, rows[partner].Text).Old;
+        }
 
-        return isRemoved ? result.Old : result.New;
+        return WordDiff.Compare(rows[partner].Text, rows[row].Text).New;
     }
 
     /// <summary>The row <paramref name="row"/> is paired with (a removed row with an added one), or -1.</summary>

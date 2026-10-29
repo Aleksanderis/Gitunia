@@ -97,18 +97,35 @@ public sealed record SettingsState(
     public int ActiveIndex => Column == SettingsColumn.Categories && !ListsAllCategories ? CategoryIndex : Cursor;
 
     /// <summary>The number of rows in the column that has the cursor.</summary>
-    public int ActiveCount => Column == SettingsColumn.Categories && !ListsAllCategories
-        ? Categories.Count
-        : Rows.Count;
+    public int ActiveCount
+    {
+        get
+        {
+            if (Column == SettingsColumn.Categories && !ListsAllCategories)
+            {
+                return Categories.Count;
+            }
+
+            return Rows.Count;
+        }
+    }
 
     /// <summary>
     /// The theme to show while the theme options are listed and the cursor is on one; null when no theme is being
     /// picked, so the kept theme applies.
     /// </summary>
-    public ThemeChoice? PreviewTheme =>
-        Choice is { SettingId: SettingsRegistry.ThemeId } && Selected is { Kind: SettingRowKind.Option } row
-            ? SettingsValueReader.ThemeOf(row.Definition.Choices[row.Index])
-            : null;
+    public ThemeChoice? PreviewTheme
+    {
+        get
+        {
+            if (Choice is { SettingId: SettingsRegistry.ThemeId } && Selected is { Kind: SettingRowKind.Option } row)
+            {
+                return SettingsValueReader.ThemeOf(row.Definition.Choices[row.Index]);
+            }
+
+            return null;
+        }
+    }
 
     /// <summary>Builds the state for a freshly read file.</summary>
     /// <param name="definitions">The settings on offer.</param>

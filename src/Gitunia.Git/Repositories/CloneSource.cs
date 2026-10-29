@@ -29,9 +29,12 @@ public static class CloneSource
             return homeDirectory;
         }
 
-        var expanded = trimmed.Length > 1 && trimmed[0] == HomeMarker && trimmed[1] is '/' or '\\'
-            ? Path.Combine(homeDirectory, trimmed[2..])
-            : trimmed;
+        var expanded = trimmed;
+        if (trimmed.Length > 1 && trimmed[0] == HomeMarker && trimmed[1] is '/' or '\\')
+        {
+            expanded = Path.Combine(homeDirectory, trimmed[2..]);
+        }
+
         return Path.GetFullPath(expanded, baseDirectory);
     }
 

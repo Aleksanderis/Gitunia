@@ -28,9 +28,11 @@ public sealed class StatusReader : IStatusReader
         CancellationToken cancellationToken)
     {
         var untrackedArgument = untrackedFiles == UntrackedFilesMode.All ? UntrackedAll : UntrackedNormal;
-        string[] arguments = includeIgnored
-            ? [.. FixedArguments, untrackedArgument, IgnoredTraditional]
-            : [.. FixedArguments, untrackedArgument];
+        string[] arguments = [.. FixedArguments, untrackedArgument];
+        if (includeIgnored)
+        {
+            arguments = [.. FixedArguments, untrackedArgument, IgnoredTraditional];
+        }
 
         var result = await _runner.RunAsync(location.CommandPath, arguments, GitRunOptions.ReadOnlyRun, cancellationToken).ConfigureAwait(false);
         return StatusParser.Parse(GitPathText.Decode(result.StandardOutput));

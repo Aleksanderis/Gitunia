@@ -42,8 +42,11 @@ public sealed class BlobReader(GitRunner runner) : IBlobReader
         }
 
         var probe = bytes.AsSpan(0, Math.Min(bytes.Length, BinaryProbeBytes));
-        return probe.IndexOf((byte)0) >= 0
-            ? new BlobContent(BlobKind.Binary, string.Empty, bytes.Length)
-            : new BlobContent(BlobKind.Text, Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF'), bytes.Length);
+        if (probe.IndexOf((byte)0) >= 0)
+        {
+            return new BlobContent(BlobKind.Binary, string.Empty, bytes.Length);
+        }
+
+        return new BlobContent(BlobKind.Text, Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF'), bytes.Length);
     }
 }

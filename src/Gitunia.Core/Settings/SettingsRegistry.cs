@@ -80,15 +80,12 @@ public static class SettingsRegistry
 
     /// <summary>The settings with the theme options replaced by auto and the given theme names.</summary>
     /// <param name="themeNames">The names of all theme files on offer (built-in and the user's).</param>
-    public static IReadOnlyList<SettingDefinition> WithThemes(IEnumerable<string> themeNames) =>
-    [
-        .. All.Select(definition => definition.Id == ThemeId
-            ? definition with
-            {
-                Choices = [ThemeChoice.AutoName, .. themeNames],
-            }
-            : definition),
-    ];
+    public static IReadOnlyList<SettingDefinition> WithThemes(IEnumerable<string> themeNames)
+    {
+        var choices = new[] { ThemeChoice.AutoName }.Concat(themeNames).ToArray();
+
+        return [.. All.Select(definition => WithChoices(definition, choices))];
+    }
 
     /// <summary>The title of a category in the categories column.</summary>
     /// <param name="category">The category.</param>
@@ -101,4 +98,14 @@ public static class SettingsRegistry
         SettingCategory.Tabs => "Tabs",
         _ => "Config file",
     };
+
+    private static SettingDefinition WithChoices(SettingDefinition definition, string[] choices)
+    {
+        if (definition.Id != ThemeId)
+        {
+            return definition;
+        }
+
+        return definition with { Choices = choices };
+    }
 }

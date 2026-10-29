@@ -98,9 +98,7 @@ public static class KeymapConfigurator
             return false;
         }
 
-        var view = string.IsNullOrWhiteSpace(entry.View)
-            ? KeyBindingTable.GlobalView
-            : views.FirstOrDefault(name => name.Equals(entry.View, StringComparison.OrdinalIgnoreCase));
+        var view = FindView(views, entry.View);
         if (view is null)
         {
             error = $"unknown view '{entry.View}' (use {string.Join(", ", views.Order())})";
@@ -129,6 +127,16 @@ public static class KeymapConfigurator
 
         edit = new KeyEdit(new BindingSlot(mode, view, sequence), isUnbind ? null : action);
         return true;
+    }
+
+    private static string? FindView(IReadOnlyCollection<string> views, string? requested)
+    {
+        if (string.IsNullOrWhiteSpace(requested))
+        {
+            return KeyBindingTable.GlobalView;
+        }
+
+        return views.FirstOrDefault(name => name.Equals(requested, StringComparison.OrdinalIgnoreCase));
     }
 
     // The bindings with the slot's binding replaced, added or removed; null when there was nothing to unbind.

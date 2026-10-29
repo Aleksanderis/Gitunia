@@ -130,17 +130,31 @@ public static class WorkspaceReducer
 
         var current = workspace.ActiveTabId is { } activeId ? IndexOf(workspace, activeId) : -1;
         var count = workspace.Tabs.Length;
-        var next = current < 0 ? (direction > 0 ? 0 : count - 1) : (current + direction + count) % count;
+        var next = (current + direction + count) % count;
+        if (current < 0 && direction > 0)
+        {
+            next = 0;
+        }
+        else if (current < 0)
+        {
+            next = count - 1;
+        }
+
         return Activate(workspace, workspace.Tabs[next].Id);
     }
 
     private static Workspace GoTo(Workspace workspace, int position) =>
         position >= 1 && position <= workspace.Tabs.Length ? Activate(workspace, workspace.Tabs[position - 1].Id) : workspace;
 
-    private static Workspace TogglePin(Workspace workspace, string rootPath) =>
-        workspace.IsPinned(rootPath)
-            ? workspace with { Pins = Remove(workspace.Pins, rootPath) }
-            : workspace with { Pins = workspace.Pins.Add(rootPath) };
+    private static Workspace TogglePin(Workspace workspace, string rootPath)
+    {
+        if (workspace.IsPinned(rootPath))
+        {
+            return workspace with { Pins = Remove(workspace.Pins, rootPath) };
+        }
+
+        return workspace with { Pins = workspace.Pins.Add(rootPath) };
+    }
 
     private static Workspace Route(Workspace workspace, TabCommand command)
     {

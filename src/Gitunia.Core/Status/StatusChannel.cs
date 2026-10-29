@@ -25,9 +25,12 @@ public sealed class StatusChannel(TimeProvider? clock = null)
         get
         {
             var now = _clock.GetUtcNow();
-            return Log.Current(now) is { } message && StatusLifetime.NextChange(message, now) is { } next
-                ? next - now
-                : null;
+            if (Log.Current(now) is { } message && StatusLifetime.NextChange(message, now) is { } next)
+            {
+                return next - now;
+            }
+
+            return null;
         }
     }
 

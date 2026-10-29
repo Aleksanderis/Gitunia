@@ -20,9 +20,12 @@ public static class InotifyLimit
 
         try
         {
-            return int.TryParse(File.ReadAllText(InstancesFile).Trim(), out var instances) && instances > 0
-                ? instances
-                : null;
+            if (int.TryParse(File.ReadAllText(InstancesFile).Trim(), out var instances) && instances > 0)
+            {
+                return instances;
+            }
+
+            return null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

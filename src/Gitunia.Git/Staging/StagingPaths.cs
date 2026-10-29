@@ -9,8 +9,14 @@ public static class StagingPaths
     /// <summary>
     /// The path, and for a rename being unstaged the old path too: leaving it out would keep the deletion of the old path staged.
     /// </summary>
-    public static IReadOnlyList<string> Of(StatusEntry entry, WorkingDiffSide side) =>
-        side == WorkingDiffSide.Staged && entry.Kind == StatusEntryKind.Renamed && entry.OriginalPath is { } original
-            ? [entry.Path, original]
-            : [entry.Path];
+    public static IReadOnlyList<string> Of(StatusEntry entry, WorkingDiffSide side)
+    {
+        var isStagedRename = side == WorkingDiffSide.Staged && entry.Kind == StatusEntryKind.Renamed;
+        if (isStagedRename && entry.OriginalPath is { } original)
+        {
+            return [entry.Path, original];
+        }
+
+        return [entry.Path];
+    }
 }
